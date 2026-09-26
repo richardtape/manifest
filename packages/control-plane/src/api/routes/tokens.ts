@@ -71,6 +71,29 @@ export const tokenRoutes = [
       'TOKEN_CAPABILITY_FORBIDDEN',
       'TOKEN_CREDENTIAL_REFUSED',
     ],
+    examples: {
+      request: {
+        name: 'claude-code',
+        capabilities: ['project:read', 'source:write'],
+        expiresInDays: 1,
+      },
+      response: {
+        token: {
+          id: '606cabe3-f4b5-4cd3-9202-a3a6df8f89a4',
+          projectId: '483eefec-c89d-4ecb-aac1-997aadf0dc5d',
+          name: 'claude-code',
+          capabilities: ['project:read', 'source:write'],
+          rateLimit: 600,
+          expiresAt: '2026-09-27T21:49:41.998Z',
+          expired: false,
+          revokedAt: null,
+          lastUsedAt: null,
+          createdAt: '2026-09-26T21:49:41.998Z',
+        },
+        secret:
+          'mft_606cabe3f4b54cd39202a3a6df8f89a4_F662m-ioPZ05YzFtHcpQ3fI12oCwPRNz_4_EAXUtrZ8',
+      },
+    },
     handler: async ({ deps, request, params, body }) => {
       const actor = requireSession(request)
       // 1. Who may mint at all. NOT_FOUND to a stranger, FORBIDDEN to a member without it.
@@ -184,6 +207,34 @@ export const tokenRoutes = [
       schema: TokenList,
     },
     errors: ['NOT_FOUND', 'TOKEN_CREDENTIAL_REFUSED'],
+    examples: {
+      response: [
+        {
+          id: '09ca0c4f-541c-433c-90b1-8f921ba88ff1',
+          projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+          name: 'authz',
+          capabilities: ['project:read'],
+          rateLimit: 600,
+          expiresAt: '2026-10-26T21:51:55.029Z',
+          expired: false,
+          revokedAt: null,
+          lastUsedAt: null,
+          createdAt: '2026-09-26T21:51:55.029Z',
+        },
+        {
+          id: '91ffc307-1602-457a-9965-6581d2f365d5',
+          projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+          name: 'authz',
+          capabilities: ['project:read'],
+          rateLimit: 600,
+          expiresAt: '2026-10-26T21:51:55.024Z',
+          expired: false,
+          revokedAt: null,
+          lastUsedAt: null,
+          createdAt: '2026-09-26T21:51:55.024Z',
+        },
+      ],
+    },
     handler: async ({ deps, request, params }) => {
       const actor = requireSession(request)
       // A READ, not a write: nothing here is credential material — the secret was never
@@ -211,6 +262,20 @@ export const tokenRoutes = [
       schema: Token,
     },
     errors: ['NOT_FOUND', 'TOKEN_CREDENTIAL_REFUSED'],
+    examples: {
+      response: {
+        id: 'd526fd4f-2528-45d9-9e45-c374393d8cec',
+        projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+        name: 'authz-fixture',
+        capabilities: ['project:read'],
+        rateLimit: 600,
+        expiresAt: '2026-10-26T21:51:47.658Z',
+        expired: false,
+        revokedAt: '2026-09-26T21:51:55.051Z',
+        lastUsedAt: null,
+        createdAt: '2026-09-26T21:51:47.658Z',
+      },
+    },
     handler: async ({ deps, request, params }) => {
       const actor = requireSession(request)
       // The row is read FIRST because the repository deliberately answers `false` for

@@ -169,15 +169,6 @@ async function publishChange(
   )
 }
 
-/** THE EXAMPLES — the shape a staging environment answers, its ids illustrative. */
-const ENVIRONMENT_ID = '5b1f7e0c-3d7a-4c52-9a3e-0f6d2c8b9e41'
-const SET_STATUS = {
-  name: 'SIS_API_KEY',
-  declared: true,
-  set: true,
-  updatedAt: '2026-09-26T18:04:11.000Z',
-}
-
 export const secretRoutes = [
   defineRoute({
     operationId: 'listAppSecrets',
@@ -194,11 +185,11 @@ export const secretRoutes = [
     errors: ['NOT_FOUND', 'FORBIDDEN'],
     examples: {
       response: {
-        environmentId: ENVIRONMENT_ID,
+        environmentId: 'baa38785-0be9-4861-a518-054ce19780a8',
         environmentKind: 'staging',
         secrets: [
           { name: 'BOARD_ADMIN_CODE', declared: true, set: false, updatedAt: null },
-          SET_STATUS,
+          { name: 'SIS_API_KEY', declared: true, set: false, updatedAt: null },
         ],
       },
     },
@@ -245,8 +236,13 @@ export const secretRoutes = [
       'SECRET_NAME_RESERVED',
     ],
     examples: {
-      request: { value: 'an-example-value-never-answered' },
-      response: SET_STATUS,
+      request: { value: 'stream-contract-value' },
+      response: {
+        name: 'STREAM_CONTRACT_KEY',
+        declared: false,
+        set: true,
+        updatedAt: '2026-09-26T21:50:44.115Z',
+      },
     },
     handler: async ({ deps, request, actor, params, body }) => {
       const environment = await writableEnvironment(
@@ -298,7 +294,12 @@ export const secretRoutes = [
       'SECRET_NAME_RESERVED',
     ],
     examples: {
-      response: { name: 'SIS_API_KEY', declared: true, set: false, updatedAt: null },
+      response: {
+        name: 'STREAM_CONTRACT_KEY',
+        declared: false,
+        set: false,
+        updatedAt: null,
+      },
     },
     handler: async ({ deps, request, actor, params }) => {
       const environment = await writableEnvironment(

@@ -129,6 +129,61 @@ export const createProjectRoutes = [
       'AI_CATALOGUE_EMPTY',
       'TOKEN_CREDENTIAL_REFUSED',
     ],
+    examples: {
+      request: {
+        slug: 'fixture-40adbffa',
+        blueprint: 'fixture-node@1',
+        audience: { scale: 'solo', burst: 'steady' },
+      },
+      response: {
+        id: '2851c199-1ddd-4635-aca4-d5f173a904eb',
+        slug: 'fixture-40adbffa',
+        blueprint: 'fixture-node@1',
+        starter: null,
+        owner: { id: '25ecede0-2db6-462f-a5f5-e56a27a8b401', displayName: 'Bio Prof' },
+        audience: {
+          scale: 'solo',
+          burst: 'steady',
+          justification: null,
+          setBy: '25ecede0-2db6-462f-a5f5-e56a27a8b401',
+          setAt: '2026-09-26T21:47:45.365Z',
+        },
+        createdAt: '2026-09-26T21:47:45.365Z',
+        launchedAt: null,
+        repository: {
+          provider: 'local',
+          fullName: 'fixture-40adbffa',
+          webUrl: null,
+          mainProtected: true,
+          protectionDetail: null,
+        },
+        environments: [
+          {
+            id: 'b0c5266e-e5cf-4695-9237-96574a847f68',
+            projectId: '2851c199-1ddd-4635-aca4-d5f173a904eb',
+            kind: 'sandbox',
+            hostname: 'fixture-40adbffa.sandbox.manifest.internal',
+            url: 'https://fixture-40adbffa.sandbox.manifest.internal',
+            instance: null,
+          },
+          {
+            id: '0c05344a-9022-4a93-b868-101b66b7a6c9',
+            projectId: '2851c199-1ddd-4635-aca4-d5f173a904eb',
+            kind: 'staging',
+            hostname: 'fixture-40adbffa.staging.manifest.internal',
+            url: 'https://fixture-40adbffa.staging.manifest.internal',
+            instance: null,
+          },
+        ],
+        spec: {
+          appSpecId: '23b24e73-d35c-4cb9-b971-2bfc465419c9',
+          commitSha: 'a9a0a5d69c68020e2f4adf3330fd6e3c2f0bab20',
+          valid: true,
+          errors: [],
+          sensitiveDiff: { sensitive: false, fields: [] },
+        },
+      },
+    },
     handler: async ({ deps, request, body }) => {
       /**
        * INTERACTIVE ONLY (P5b Decision 13), and this refusal carries more than it looks.

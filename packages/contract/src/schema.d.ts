@@ -4434,6 +4434,58 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "ref": "fixture-node@1",
+                     *         "name": "fixture-node",
+                     *         "majorVersion": 1,
+                     *         "language": "typescript",
+                     *         "defaultPort": 3000,
+                     *         "healthPath": "/healthz",
+                     *         "schemaVersions": [
+                     *           1
+                     *         ],
+                     *         "provides": {
+                     *           "services": [
+                     *             "mongo"
+                     *           ],
+                     *           "authProviders": [
+                     *             "none"
+                     *           ],
+                     *           "ai": false
+                     *         },
+                     *         "starters": []
+                     *       },
+                     *       {
+                     *         "ref": "node-ts-mongo@1",
+                     *         "name": "node-ts-mongo",
+                     *         "majorVersion": 1,
+                     *         "language": "typescript",
+                     *         "defaultPort": 3000,
+                     *         "healthPath": "/healthz",
+                     *         "schemaVersions": [
+                     *           1
+                     *         ],
+                     *         "provides": {
+                     *           "services": [
+                     *             "mongo"
+                     *           ],
+                     *           "authProviders": [
+                     *             "cwl",
+                     *             "none"
+                     *           ],
+                     *           "ai": true
+                     *         },
+                     *         "starters": [
+                     *           {
+                     *             "name": "proof-app",
+                     *             "summary": "CWL sign-in, a private note, and a question answered from your notes"
+                     *           }
+                     *         ]
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["BlueprintList"];
                 };
             };
@@ -4466,6 +4518,35 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "ref": "node-ts-mongo@1",
+                     *       "name": "node-ts-mongo",
+                     *       "majorVersion": 1,
+                     *       "language": "typescript",
+                     *       "defaultPort": 3000,
+                     *       "healthPath": "/healthz",
+                     *       "schemaVersions": [
+                     *         1
+                     *       ],
+                     *       "provides": {
+                     *         "services": [
+                     *           "mongo"
+                     *         ],
+                     *         "authProviders": [
+                     *           "cwl",
+                     *           "none"
+                     *         ],
+                     *         "ai": true
+                     *       },
+                     *       "starters": [
+                     *         {
+                     *           "name": "proof-app",
+                     *           "summary": "CWL sign-in, a private note, and a question answered from your notes"
+                     *         }
+                     *       ]
+                     *     }
+                     */
                     "application/json": components["schemas"]["Blueprint"];
                 };
             };
@@ -4498,6 +4579,19 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "blueprint": "node-ts-mongo@1",
+                     *       "files": [
+                     *         {
+                     *           "path": "AGENTS.md",
+                     *           "mediaType": "text/markdown",
+                     *           "sha256": "65c15d46fd344f1e2cf2bbea2727fc97e42504c78c88e5de5509127a2892a739",
+                     *           "content": "# node-ts-mongo@1 — knowledge pack\n\nYou are generating an application from this blueprint. This file is the whole of\nwhat you need to know about the platform; it is served over the Manifest API\n(D25) alongside the blueprint itself.\n\n**The stack is fixed.** Node 22 on Alpine, Expr …"
+                     *         }
+                     *       ]
+                     *     }
+                     */
                     "application/json": components["schemas"]["KnowledgePack"];
                 };
             };
@@ -4530,6 +4624,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "a7fa8817-0f11-43fc-a66e-e5a307068a59",
+                     *       "projectId": "f3d4076b-b482-4d5d-b614-7e1cc4064392",
+                     *       "commitSha": "8ca53a0c88c96b9624724873b4e03d9c40af796c",
+                     *       "status": "failed",
+                     *       "imageDigest": null,
+                     *       "error": "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'iam-add': sn. Registered: mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered (§7, §9) — otherwise students hit a broken login on launch …",
+                     *       "scan": null,
+                     *       "createdAt": "2026-09-26T21:48:49.290Z"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Build"];
                 };
             };
@@ -4565,6 +4671,19 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "buildId": "d9152353-95cd-4f1c-9a4f-655b710b4d46",
+                     *       "lines": [
+                     *         {
+                     *           "seq": 0,
+                     *           "stream": "stdout",
+                     *           "text": "fake build of authz-fixture at 26f71b49f02162fc3614864c3f520faea87c10a2 from fixture-node@1",
+                     *           "at": "2026-09-26T21:51:47.637Z"
+                     *         }
+                     *       ]
+                     *     }
+                     */
                     "application/json": components["schemas"]["BuildLog"];
                 };
             };
@@ -4597,6 +4716,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "d5084b58-e7b0-46ef-bdd8-a431d9b97b2d",
+                     *       "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *       "kind": "staging",
+                     *       "hostname": "authz-fixture.staging.manifest.internal",
+                     *       "url": "https://authz-fixture.staging.manifest.internal",
+                     *       "instance": {
+                     *         "id": "a6605b8a-7adb-464e-ac45-ef3d8d56cca5",
+                     *         "environmentId": "d5084b58-e7b0-46ef-bdd8-a431d9b97b2d",
+                     *         "releaseId": "8e4d08ba-37d8-4b96-8981-e6a13722e42f",
+                     *         "kind": "web",
+                     *         "state": "healthy",
+                     *         "lastSeenAt": "2026-09-26T21:51:54.793Z"
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["Environment"];
                 };
             };
@@ -4626,6 +4762,11 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "releaseId": "87155b5c-f7d8-4519-9042-cc5fa8e2d352"
+                 *     }
+                 */
                 "application/json": components["schemas"]["DeployRequest"];
             };
         };
@@ -4636,6 +4777,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "b0d088b9-183e-4138-bda0-a4939537a2b8",
+                     *       "environmentId": "669c357e-7857-45c2-8406-428079de4026",
+                     *       "releaseId": "87155b5c-f7d8-4519-9042-cc5fa8e2d352",
+                     *       "kind": "web",
+                     *       "state": "healthy",
+                     *       "lastSeenAt": "2026-09-26T21:47:31.749Z"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Instance"];
                 };
             };
@@ -4668,6 +4819,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "environmentId": "4de1302a-e630-4fca-8d47-5c66d99bfdb8",
+                     *       "incidents": [
+                     *         {
+                     *           "id": "e6f321ab-9a68-49b6-98fd-fa9f0f9f9fbb",
+                     *           "instanceId": "d5affadc-0751-4b8a-9af8-ae4351512916",
+                     *           "releaseId": "7ec58cd8-3dd3-4209-89a8-4c04596b2f5c",
+                     *           "exitReason": "the platform reports the instance as failed",
+                     *           "logTail": "starting chem-labs-staging-7ec58cd8-d5affadc",
+                     *           "failedCheck": "health: GET /healthz on port 3000 — the driver reported the instance as failed",
+                     *           "diffSinceHealthy": "This app has never been healthy in staging, so there is no working release to compare this one with.",
+                     *           "createdAt": "2026-09-26T21:47:38.803Z",
+                     *           "prompt": "The application \"chem-labs\" failed to start in its staging environment.\n\nWhat the platform checked: health: GET /healthz on port 3000 — the driver reported the instance as failed\nHow it ended: the platform reports the instance as failed\n\nWhat changed since the last time it starte …"
+                     *         }
+                     *       ]
+                     *     }
+                     */
                     "application/json": components["schemas"]["IncidentList"];
                 };
             };
@@ -4702,7 +4871,7 @@ export interface operations {
                 content: {
                     /**
                      * @example {
-                     *       "environmentId": "5b1f7e0c-3d7a-4c52-9a3e-0f6d2c8b9e41",
+                     *       "environmentId": "baa38785-0be9-4861-a518-054ce19780a8",
                      *       "environmentKind": "staging",
                      *       "secrets": [
                      *         {
@@ -4714,8 +4883,8 @@ export interface operations {
                      *         {
                      *           "name": "SIS_API_KEY",
                      *           "declared": true,
-                     *           "set": true,
-                     *           "updatedAt": "2026-09-26T18:04:11.000Z"
+                     *           "set": false,
+                     *           "updatedAt": null
                      *         }
                      *       ]
                      *     }
@@ -4753,7 +4922,7 @@ export interface operations {
             content: {
                 /**
                  * @example {
-                 *       "value": "an-example-value-never-answered"
+                 *       "value": "stream-contract-value"
                  *     }
                  */
                 "application/json": components["schemas"]["SetAppSecretRequest"];
@@ -4768,10 +4937,10 @@ export interface operations {
                 content: {
                     /**
                      * @example {
-                     *       "name": "SIS_API_KEY",
-                     *       "declared": true,
+                     *       "name": "STREAM_CONTRACT_KEY",
+                     *       "declared": false,
                      *       "set": true,
-                     *       "updatedAt": "2026-09-26T18:04:11.000Z"
+                     *       "updatedAt": "2026-09-26T21:50:44.115Z"
                      *     }
                      */
                     "application/json": components["schemas"]["AppSecretStatus"];
@@ -4813,8 +4982,8 @@ export interface operations {
                 content: {
                     /**
                      * @example {
-                     *       "name": "SIS_API_KEY",
-                     *       "declared": true,
+                     *       "name": "STREAM_CONTRACT_KEY",
+                     *       "declared": false,
                      *       "set": false,
                      *       "updatedAt": null
                      *     }
@@ -4848,6 +5017,90 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "id": "7454ad83-e8c6-43da-a33e-6b0615e53263",
+                     *         "slug": "p-7e7d49b6",
+                     *         "blueprint": "fixture-node@1",
+                     *         "starter": null,
+                     *         "owner": {
+                     *           "id": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *           "displayName": "Platform Admin",
+                     *           "email": "platform_admin@example.ubc.ca"
+                     *         },
+                     *         "audience": {
+                     *           "scale": "solo",
+                     *           "burst": "steady",
+                     *           "justification": null,
+                     *           "setBy": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *           "setAt": "2026-09-26T21:51:49.589Z"
+                     *         },
+                     *         "createdAt": "2026-09-26T21:51:49.590Z",
+                     *         "slugReserved": false,
+                     *         "environments": [
+                     *           {
+                     *             "kind": "production",
+                     *             "hostname": "p-7e7d49b6.manifest.internal",
+                     *             "state": null,
+                     *             "releaseId": null,
+                     *             "imageDigest": null,
+                     *             "lastDeployAt": null,
+                     *             "latestIncidentAt": null
+                     *           },
+                     *           {
+                     *             "kind": "sandbox",
+                     *             "hostname": "p-7e7d49b6.sandbox.manifest.internal",
+                     *             "state": null,
+                     *             "releaseId": null,
+                     *             "imageDigest": null,
+                     *             "lastDeployAt": null,
+                     *             "latestIncidentAt": null
+                     *           }
+                     *         ]
+                     *       },
+                     *       {
+                     *         "id": "b94629a7-978e-4b18-817b-ad5cf979282f",
+                     *         "slug": "p-15e91afe",
+                     *         "blueprint": "fixture-node@1",
+                     *         "starter": null,
+                     *         "owner": {
+                     *           "id": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
+                     *           "displayName": "Unrelated User",
+                     *           "email": "unrelated_user@example.ubc.ca"
+                     *         },
+                     *         "audience": {
+                     *           "scale": "solo",
+                     *           "burst": "steady",
+                     *           "justification": null,
+                     *           "setBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
+                     *           "setAt": "2026-09-26T21:51:49.144Z"
+                     *         },
+                     *         "createdAt": "2026-09-26T21:51:49.145Z",
+                     *         "slugReserved": false,
+                     *         "environments": [
+                     *           {
+                     *             "kind": "production",
+                     *             "hostname": "p-15e91afe.manifest.internal",
+                     *             "state": null,
+                     *             "releaseId": null,
+                     *             "imageDigest": null,
+                     *             "lastDeployAt": null,
+                     *             "latestIncidentAt": null
+                     *           },
+                     *           {
+                     *             "kind": "sandbox",
+                     *             "hostname": "p-15e91afe.sandbox.manifest.internal",
+                     *             "state": null,
+                     *             "releaseId": null,
+                     *             "imageDigest": null,
+                     *             "lastDeployAt": null,
+                     *             "latestIncidentAt": null
+                     *           }
+                     *         ]
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["Fleet"];
                 };
             };
@@ -4877,6 +5130,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
+                     *       "puid": "unrelated_user",
+                     *       "displayName": "Unrelated User",
+                     *       "email": "unrelated_user@example.ubc.ca",
+                     *       "role": "member"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Me"];
                 };
             };
@@ -4909,6 +5171,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "45103737-568d-4db0-8137-ba1b00f161e3",
+                     *       "projectId": "71fa56ac-c7dc-4368-ba62-32696fa50bfb",
+                     *       "tokenId": "bad42919-d270-4d8e-b74c-89802f381f93",
+                     *       "action": "members:manage",
+                     *       "state": "pending",
+                     *       "method": "POST",
+                     *       "path": "/v1/projects/71fa56ac-c7dc-4368-ba62-32696fa50bfb/members",
+                     *       "bodySha256": "63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b",
+                     *       "summary": "Add or change a member",
+                     *       "expiresAt": "2026-09-27T21:48:16.729Z",
+                     *       "createdAt": "2026-09-26T21:48:16.730Z",
+                     *       "resolvedAt": null,
+                     *       "waitingSeconds": 0,
+                     *       "reason": null,
+                     *       "consumedAt": null
+                     *     }
+                     */
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
@@ -4938,6 +5219,7 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /** @example {} */
                 "application/json": components["schemas"]["EmptyRequest"];
             };
         };
@@ -4948,6 +5230,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "d2438330-fdfd-435c-afc5-8cf2cef778f8",
+                     *       "projectId": "20f75cbb-0bd7-4fba-b648-3fd43e9640ff",
+                     *       "tokenId": "a2221a13-2bc9-4944-8311-4a5340fc12b9",
+                     *       "action": "members:manage",
+                     *       "state": "confirmed",
+                     *       "method": "DELETE",
+                     *       "path": "/v1/projects/20f75cbb-0bd7-4fba-b648-3fd43e9640ff/members/303c35ad-8966-44a0-96a1-29e39b453258",
+                     *       "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                     *       "summary": "Remove a member",
+                     *       "expiresAt": "2026-09-27T21:48:26.880Z",
+                     *       "createdAt": "2026-09-26T21:48:26.881Z",
+                     *       "resolvedAt": "2026-09-26T21:48:26.885Z",
+                     *       "waitingSeconds": 0,
+                     *       "reason": null,
+                     *       "consumedAt": null
+                     *     }
+                     */
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
@@ -4977,6 +5278,11 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "reason": "not something an agent should be doing"
+                 *     }
+                 */
                 "application/json": components["schemas"]["RejectPendingActionRequest"];
             };
         };
@@ -4987,6 +5293,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "7d034c5b-ea3a-4f28-95c5-4f6824f04f9f",
+                     *       "projectId": "ef7b2d4a-e4a3-4f11-b0d9-dddbc1b1a3bd",
+                     *       "tokenId": "290c71b2-2173-49a7-91a1-ad42fa895029",
+                     *       "action": "members:manage",
+                     *       "state": "rejected",
+                     *       "method": "POST",
+                     *       "path": "/v1/projects/ef7b2d4a-e4a3-4f11-b0d9-dddbc1b1a3bd/members",
+                     *       "bodySha256": "63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b",
+                     *       "summary": "Add or change a member",
+                     *       "expiresAt": "2026-09-27T21:48:29.860Z",
+                     *       "createdAt": "2026-09-26T21:48:29.861Z",
+                     *       "resolvedAt": "2026-09-26T21:48:29.865Z",
+                     *       "waitingSeconds": 0,
+                     *       "reason": "not something an agent should be doing",
+                     *       "consumedAt": null
+                     *     }
+                     */
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
@@ -5016,6 +5341,62 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "id": "71a3eefa-e530-44c1-b7f5-3dde5e38eef8",
+                     *         "slug": "p-6e200d3a",
+                     *         "blueprint": "fixture-node@1",
+                     *         "starter": null,
+                     *         "owner": {
+                     *           "id": "39414511-6e5d-46e9-a47a-090166426ed3",
+                     *           "displayName": "Bio Prof"
+                     *         },
+                     *         "audience": {
+                     *           "scale": "solo",
+                     *           "burst": "steady",
+                     *           "justification": null,
+                     *           "setBy": "39414511-6e5d-46e9-a47a-090166426ed3",
+                     *           "setAt": "2026-09-26T21:51:48.272Z"
+                     *         },
+                     *         "createdAt": "2026-09-26T21:51:48.272Z",
+                     *         "launchedAt": null,
+                     *         "repository": {
+                     *           "provider": "local",
+                     *           "fullName": "p-6e200d3a",
+                     *           "webUrl": null,
+                     *           "mainProtected": true,
+                     *           "protectionDetail": null
+                     *         }
+                     *       },
+                     *       {
+                     *         "id": "f8920a3c-e857-4580-8f04-c72b008ae71f",
+                     *         "slug": "authz-other-f891223a",
+                     *         "blueprint": "fixture-node@1",
+                     *         "starter": null,
+                     *         "owner": {
+                     *           "id": "39414511-6e5d-46e9-a47a-090166426ed3",
+                     *           "displayName": "Bio Prof"
+                     *         },
+                     *         "audience": {
+                     *           "scale": "solo",
+                     *           "burst": "steady",
+                     *           "justification": null,
+                     *           "setBy": "39414511-6e5d-46e9-a47a-090166426ed3",
+                     *           "setAt": "2026-09-26T21:51:47.663Z"
+                     *         },
+                     *         "createdAt": "2026-09-26T21:51:47.664Z",
+                     *         "launchedAt": null,
+                     *         "repository": {
+                     *           "provider": "local",
+                     *           "fullName": "authz-other-f891223a",
+                     *           "webUrl": null,
+                     *           "mainProtected": true,
+                     *           "protectionDetail": null
+                     *         }
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["ProjectList"];
                 };
             };
@@ -5042,6 +5423,16 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "slug": "fixture-40adbffa",
+                 *       "blueprint": "fixture-node@1",
+                 *       "audience": {
+                 *         "scale": "solo",
+                 *         "burst": "steady"
+                 *       }
+                 *     }
+                 */
                 "application/json": components["schemas"]["CreateProjectRequest"];
             };
         };
@@ -5052,6 +5443,62 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "2851c199-1ddd-4635-aca4-d5f173a904eb",
+                     *       "slug": "fixture-40adbffa",
+                     *       "blueprint": "fixture-node@1",
+                     *       "starter": null,
+                     *       "owner": {
+                     *         "id": "25ecede0-2db6-462f-a5f5-e56a27a8b401",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "audience": {
+                     *         "scale": "solo",
+                     *         "burst": "steady",
+                     *         "justification": null,
+                     *         "setBy": "25ecede0-2db6-462f-a5f5-e56a27a8b401",
+                     *         "setAt": "2026-09-26T21:47:45.365Z"
+                     *       },
+                     *       "createdAt": "2026-09-26T21:47:45.365Z",
+                     *       "launchedAt": null,
+                     *       "repository": {
+                     *         "provider": "local",
+                     *         "fullName": "fixture-40adbffa",
+                     *         "webUrl": null,
+                     *         "mainProtected": true,
+                     *         "protectionDetail": null
+                     *       },
+                     *       "environments": [
+                     *         {
+                     *           "id": "b0c5266e-e5cf-4695-9237-96574a847f68",
+                     *           "projectId": "2851c199-1ddd-4635-aca4-d5f173a904eb",
+                     *           "kind": "sandbox",
+                     *           "hostname": "fixture-40adbffa.sandbox.manifest.internal",
+                     *           "url": "https://fixture-40adbffa.sandbox.manifest.internal",
+                     *           "instance": null
+                     *         },
+                     *         {
+                     *           "id": "0c05344a-9022-4a93-b868-101b66b7a6c9",
+                     *           "projectId": "2851c199-1ddd-4635-aca4-d5f173a904eb",
+                     *           "kind": "staging",
+                     *           "hostname": "fixture-40adbffa.staging.manifest.internal",
+                     *           "url": "https://fixture-40adbffa.staging.manifest.internal",
+                     *           "instance": null
+                     *         }
+                     *       ],
+                     *       "spec": {
+                     *         "appSpecId": "23b24e73-d35c-4cb9-b971-2bfc465419c9",
+                     *         "commitSha": "a9a0a5d69c68020e2f4adf3330fd6e3c2f0bab20",
+                     *         "valid": true,
+                     *         "errors": [],
+                     *         "sensitiveDiff": {
+                     *           "sensitive": false,
+                     *           "fields": []
+                     *         }
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["CreatedProject"];
                 };
             };
@@ -5087,6 +5534,52 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+                     *       "slug": "chem-labs",
+                     *       "blueprint": "fixture-node@1",
+                     *       "starter": null,
+                     *       "owner": {
+                     *         "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "audience": {
+                     *         "scale": "solo",
+                     *         "burst": "steady",
+                     *         "justification": null,
+                     *         "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                     *         "setAt": "2026-09-26T21:49:02.609Z"
+                     *       },
+                     *       "createdAt": "2026-09-26T21:49:02.611Z",
+                     *       "launchedAt": null,
+                     *       "repository": {
+                     *         "provider": "local",
+                     *         "fullName": "chem-labs",
+                     *         "webUrl": null,
+                     *         "mainProtected": true,
+                     *         "protectionDetail": null
+                     *       },
+                     *       "environments": [
+                     *         {
+                     *           "id": "72a1fc83-a0e4-4c8a-ba76-eb040c1c9eda",
+                     *           "projectId": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+                     *           "kind": "sandbox",
+                     *           "hostname": "chem-labs.sandbox.manifest.internal",
+                     *           "url": "https://chem-labs.sandbox.manifest.internal",
+                     *           "instance": null
+                     *         },
+                     *         {
+                     *           "id": "ca192723-fae5-415e-8ed5-b0085b6e33d6",
+                     *           "projectId": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+                     *           "kind": "staging",
+                     *           "hostname": "chem-labs.staging.manifest.internal",
+                     *           "url": "https://chem-labs.staging.manifest.internal",
+                     *           "instance": null
+                     *         }
+                     *       ]
+                     *     }
+                     */
                     "application/json": components["schemas"]["Project"];
                 };
             };
@@ -5119,6 +5612,68 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "id": "3ab69e9e-b83f-400d-9653-2c18038aa578",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "commitSha": "26f71b49f02162fc3614864c3f520faea87c10a2",
+                     *         "status": "succeeded",
+                     *         "imageDigest": "sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419",
+                     *         "error": null,
+                     *         "scan": {
+                     *           "scanner": "fake",
+                     *           "scannedAt": "2026-09-26T21:51:54.417Z",
+                     *           "databaseAgeDays": 0,
+                     *           "stale": false,
+                     *           "baseImageKnown": true,
+                     *           "fixable": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "unfixable": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "baseImage": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "unfixableFindings": []
+                     *         },
+                     *         "createdAt": "2026-09-26T21:51:54.415Z"
+                     *       },
+                     *       {
+                     *         "id": "cda88a76-2d07-4e7a-b0f5-0c524e157b03",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "commitSha": "26f71b49f02162fc3614864c3f520faea87c10a2",
+                     *         "status": "succeeded",
+                     *         "imageDigest": "sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419",
+                     *         "error": null,
+                     *         "scan": {
+                     *           "scanner": "fake",
+                     *           "scannedAt": "2026-09-26T21:51:54.395Z",
+                     *           "databaseAgeDays": 0,
+                     *           "stale": false,
+                     *           "baseImageKnown": true,
+                     *           "fixable": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "unfixable": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "baseImage": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "unfixableFindings": []
+                     *         },
+                     *         "createdAt": "2026-09-26T21:51:54.392Z"
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["BuildList"];
                 };
             };
@@ -5148,6 +5703,11 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "commitSha": "e47cbba42cf5ba5ae3bb110198ad19089cd883fb"
+                 *     }
+                 */
                 "application/json": components["schemas"]["StartBuildRequest"];
             };
         };
@@ -5158,6 +5718,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "5002ee0c-8e74-4ec8-96d0-27eaf5908a03",
+                     *       "projectId": "46a772b2-8f42-4d9e-9a1a-241a097965d6",
+                     *       "commitSha": "e47cbba42cf5ba5ae3bb110198ad19089cd883fb",
+                     *       "status": "running",
+                     *       "imageDigest": null,
+                     *       "error": null,
+                     *       "scan": null,
+                     *       "createdAt": "2026-09-26T21:47:37.711Z"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Build"];
                 };
             };
@@ -5404,6 +5976,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "id": "5647b084-e2c2-4281-a604-dcb11d735441",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "kind": "sandbox",
+                     *         "hostname": "authz-fixture.sandbox.manifest.internal",
+                     *         "url": "https://authz-fixture.sandbox.manifest.internal",
+                     *         "instance": null
+                     *       },
+                     *       {
+                     *         "id": "d5084b58-e7b0-46ef-bdd8-a431d9b97b2d",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "kind": "staging",
+                     *         "hostname": "authz-fixture.staging.manifest.internal",
+                     *         "url": "https://authz-fixture.staging.manifest.internal",
+                     *         "instance": null
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["EnvironmentList"];
                 };
             };
@@ -5523,6 +6115,35 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "projectId": "bd8dfbcc-4c37-4e7d-ab4b-4e1ce0c032e6",
+                     *       "launched": false,
+                     *       "ready": false,
+                     *       "candidateReleaseId": null,
+                     *       "baselineReleaseId": null,
+                     *       "sensitiveFields": [],
+                     *       "reescalated": false,
+                     *       "items": [
+                     *         {
+                     *           "id": "domain",
+                     *           "title": "Where the app will live",
+                     *           "owner": "project owner",
+                     *           "blocking": true,
+                     *           "state": "met",
+                     *           "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it."
+                     *         },
+                     *         {
+                     *           "id": "iam-registration",
+                     *           "title": "Registered with UBC IAM",
+                     *           "owner": "UBC IAM, recorded by a platform administrator (§9)",
+                     *           "blocking": true,
+                     *           "state": "unmet",
+                     *           "why": "Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference."
+                     *         }
+                     *       ]
+                     *     }
+                     */
                     "application/json": components["schemas"]["LaunchReadiness"];
                 };
             };
@@ -5555,6 +6176,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                     *       "iamRegistration": {
+                     *         "id": "77e7ddc9-7571-4de3-9ba7-6a4372526295",
+                     *         "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                     *         "entityId": "https://manifest.internal/sp/iam-pending/production",
+                     *         "acsUrl": "https://iam-pending.manifest.internal/auth/ubcshib/callback",
+                     *         "sloUrl": "https://iam-pending.manifest.internal/auth/logout",
+                     *         "certFingerprint": null,
+                     *         "certExpiresAt": null,
+                     *         "registeredAttributes": [
+                     *           "ubcEduCwlPuid",
+                     *           "mail"
+                     *         ],
+                     *         "requestedAttributes": [
+                     *           "ubcEduCwlPuid",
+                     *           "mail"
+                     *         ],
+                     *         "registeredAt": "2026-09-26T21:48:50.164Z",
+                     *         "state": "change_requested",
+                     *         "externalTicketRef": "IAM-CR-7",
+                     *         "updatedAt": "2026-09-26T21:48:50.262Z"
+                     *       },
+                     *       "privacyAssessment": {
+                     *         "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
+                     *         "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                     *         "state": "approved",
+                     *         "reviewer": "K. Privacy",
+                     *         "approvedAt": "2026-09-26T21:48:50.173Z",
+                     *         "externalTicketRef": "PIA-iam-pending",
+                     *         "updatedAt": "2026-09-26T21:48:50.173Z"
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["LaunchRecords"];
                 };
             };
@@ -5584,6 +6240,23 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "entityId": "https://manifest.internal/sp/iam-granted/production",
+                 *       "acsUrl": "https://iam-granted.manifest.internal/auth/ubcshib/callback",
+                 *       "sloUrl": "https://iam-granted.manifest.internal/auth/logout",
+                 *       "registeredAttributes": [
+                 *         "ubcEduCwlPuid",
+                 *         "mail"
+                 *       ],
+                 *       "requestedAttributes": [
+                 *         "ubcEduCwlPuid",
+                 *         "mail"
+                 *       ],
+                 *       "state": "change_requested",
+                 *       "externalTicketRef": "IAM-iam-granted"
+                 *     }
+                 */
                 "application/json": components["schemas"]["RecordIamRegistrationRequest"];
             };
         };
@@ -5594,6 +6267,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "62169b5f-1961-406a-8ad3-f5de46143c6f",
+                     *       "projectId": "9aa37d53-038d-4e78-9270-01c2ea085d21",
+                     *       "entityId": "https://manifest.internal/sp/iam-granted/production",
+                     *       "acsUrl": "https://iam-granted.manifest.internal/auth/ubcshib/callback",
+                     *       "sloUrl": "https://iam-granted.manifest.internal/auth/logout",
+                     *       "certFingerprint": null,
+                     *       "certExpiresAt": null,
+                     *       "registeredAttributes": [
+                     *         "ubcEduCwlPuid",
+                     *         "mail"
+                     *       ],
+                     *       "requestedAttributes": [
+                     *         "ubcEduCwlPuid",
+                     *         "mail"
+                     *       ],
+                     *       "registeredAt": "2026-09-26T21:48:52.716Z",
+                     *       "state": "change_requested",
+                     *       "externalTicketRef": "IAM-iam-granted",
+                     *       "updatedAt": "2026-09-26T21:48:52.796Z"
+                     *     }
+                     */
                     "application/json": components["schemas"]["IamRegistration"];
                 };
             };
@@ -5623,6 +6319,13 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "state": "approved",
+                 *       "reviewer": "K. Privacy",
+                 *       "externalTicketRef": "PIA-DELIVERY-1"
+                 *     }
+                 */
                 "application/json": components["schemas"]["RecordPrivacyAssessmentRequest"];
             };
         };
@@ -5633,6 +6336,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "678fa833-25a5-4ddc-8f32-329d262e6c67",
+                     *       "projectId": "ed493bf0-5ff3-4f03-bfa2-ea7b7b53730f",
+                     *       "state": "approved",
+                     *       "reviewer": "K. Privacy",
+                     *       "approvedAt": "2026-09-26T21:47:36.002Z",
+                     *       "externalTicketRef": "PIA-DELIVERY-1",
+                     *       "updatedAt": "2026-09-26T21:47:36.002Z"
+                     *     }
+                     */
                     "application/json": components["schemas"]["PrivacyAssessment"];
                 };
             };
@@ -5665,6 +6379,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "userId": "39414511-6e5d-46e9-a47a-090166426ed3",
+                     *         "puid": "bio_prof",
+                     *         "displayName": "Bio Prof",
+                     *         "email": "bio_prof@example.ubc.ca",
+                     *         "role": "owner"
+                     *       },
+                     *       {
+                     *         "userId": "9a77d151-997d-49f4-8c60-23c009fa18db",
+                     *         "puid": "bio_student",
+                     *         "displayName": "Bio Student",
+                     *         "email": "bio_student@example.ubc.ca",
+                     *         "role": "collaborator"
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["MemberList"];
                 };
             };
@@ -5694,6 +6426,12 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "puid": "platform_admin",
+                 *       "role": "collaborator"
+                 *     }
+                 */
                 "application/json": components["schemas"]["AddMemberRequest"];
             };
         };
@@ -5704,6 +6442,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "userId": "042c5573-8a82-4e7c-b411-40f0e80060ae",
+                     *       "puid": "platform_admin",
+                     *       "displayName": "Platform Admin",
+                     *       "email": "platform_admin@example.ubc.ca",
+                     *       "role": "collaborator"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Member"];
                 };
             };
@@ -5741,6 +6488,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "userId": "6e78f827-89cd-4186-80e6-549dcaa4d76a",
+                     *         "puid": "bio_student",
+                     *         "displayName": "Bio Student",
+                     *         "email": "bio_student@example.ubc.ca",
+                     *         "role": "owner"
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["MemberList"];
                 };
             };
@@ -5773,6 +6531,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "id": "afaea8b7-7d62-4f32-a644-a7c3fbf7f77e",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "tokenId": "2164b084-a859-4fdf-bdc1-1a8518348f21",
+                     *         "action": "members:manage",
+                     *         "state": "pending",
+                     *         "method": "DELETE",
+                     *         "path": "/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *         "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                     *         "summary": "Remove a member",
+                     *         "expiresAt": "2026-09-27T21:51:54.279Z",
+                     *         "createdAt": "2026-09-26T21:51:54.280Z",
+                     *         "resolvedAt": null,
+                     *         "waitingSeconds": 0,
+                     *         "reason": null,
+                     *         "consumedAt": null
+                     *       },
+                     *       {
+                     *         "id": "56a3aeec-a04f-4d76-b4dc-f2dc2025576a",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "tokenId": "10ce2f9b-1577-4a3a-be7d-d72acc9bd876",
+                     *         "action": "members:manage",
+                     *         "state": "pending",
+                     *         "method": "DELETE",
+                     *         "path": "/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *         "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                     *         "summary": "Remove a member",
+                     *         "expiresAt": "2026-09-27T21:51:54.270Z",
+                     *         "createdAt": "2026-09-26T21:51:54.271Z",
+                     *         "resolvedAt": null,
+                     *         "waitingSeconds": 0,
+                     *         "reason": null,
+                     *         "consumedAt": null
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["PendingActionList"];
                 };
             };
@@ -5808,6 +6604,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "eecbc16e-6428-4600-baf3-62b93200de80",
+                     *       "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                     *       "releaseId": "beefa3d6-c695-47e7-a632-ace8f5bd702a",
+                     *       "passed": true,
+                     *       "entityId": "https://manifest.internal/sp/iam-pending/production",
+                     *       "acsUrl": "https://iam-pending.manifest.internal/auth/ubcshib/callback",
+                     *       "attributes": [
+                     *         "ubcEduCwlPuid",
+                     *         "mail"
+                     *       ],
+                     *       "evidence": {
+                     *         "instanceId": "6ac3e6d7-3080-4c70-8af6-376e447829f6",
+                     *         "hostname": "iam-pending.manifest.internal",
+                     *         "listener": "public",
+                     *         "signInStatus": 302,
+                     *         "attributesReleased": [
+                     *           "ubcEduCwlPuid",
+                     *           "mail"
+                     *         ],
+                     *         "reason": "the unit tier’s labelled fake released exactly what was registered"
+                     *       },
+                     *       "ranAt": "2026-09-26T21:48:50.190Z"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Rehearsal"];
                 };
             };
@@ -5840,6 +6662,200 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "id": "5c0f405e-0aac-4b10-a75f-19bf38f60117",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "buildId": "d9152353-95cd-4f1c-9a4f-655b710b4d46",
+                     *         "appSpecId": "ab95aadb-d8b8-4b78-83df-c8d9067af42b",
+                     *         "imageDigest": "sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419",
+                     *         "summary": null,
+                     *         "createdBy": "39414511-6e5d-46e9-a47a-090166426ed3",
+                     *         "createdAt": "2026-09-26T21:51:54.496Z",
+                     *         "scan": {
+                     *           "scanner": "fake",
+                     *           "scannedAt": "2026-09-26T21:51:47.638Z",
+                     *           "databaseAgeDays": 0,
+                     *           "stale": false,
+                     *           "baseImageKnown": true,
+                     *           "fixable": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "unfixable": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "baseImage": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "unfixableFindings": []
+                     *         },
+                     *         "config": {
+                     *           "sandbox": {
+                     *             "port": 3000,
+                     *             "health": "/healthz",
+                     *             "resources": {
+                     *               "cpu": 0.5,
+                     *               "memory": "512Mi",
+                     *               "pids": 256,
+                     *               "disk": "2Gi"
+                     *             },
+                     *             "services": [],
+                     *             "egressAllow": [],
+                     *             "classification": "internal",
+                     *             "auth": {
+                     *               "provider": "none",
+                     *               "attributes": []
+                     *             },
+                     *             "ai": {
+                     *               "models": []
+                     *             },
+                     *             "envNames": []
+                     *           },
+                     *           "staging": {
+                     *             "port": 3000,
+                     *             "health": "/healthz",
+                     *             "resources": {
+                     *               "cpu": 0.5,
+                     *               "memory": "512Mi",
+                     *               "pids": 256,
+                     *               "disk": "2Gi"
+                     *             },
+                     *             "services": [],
+                     *             "egressAllow": [],
+                     *             "classification": "internal",
+                     *             "auth": {
+                     *               "provider": "none",
+                     *               "attributes": []
+                     *             },
+                     *             "ai": {
+                     *               "models": []
+                     *             },
+                     *             "envNames": []
+                     *           },
+                     *           "production": {
+                     *             "port": 3000,
+                     *             "health": "/healthz",
+                     *             "resources": {
+                     *               "cpu": 0.5,
+                     *               "memory": "512Mi",
+                     *               "pids": 256,
+                     *               "disk": "2Gi"
+                     *             },
+                     *             "services": [],
+                     *             "egressAllow": [],
+                     *             "classification": "internal",
+                     *             "auth": {
+                     *               "provider": "none",
+                     *               "attributes": []
+                     *             },
+                     *             "ai": {
+                     *               "models": []
+                     *             },
+                     *             "envNames": []
+                     *           }
+                     *         }
+                     *       },
+                     *       {
+                     *         "id": "9642a63a-14de-4d22-84e4-3736fb77f6ac",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "buildId": "d9152353-95cd-4f1c-9a4f-655b710b4d46",
+                     *         "appSpecId": "ab95aadb-d8b8-4b78-83df-c8d9067af42b",
+                     *         "imageDigest": "sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419",
+                     *         "summary": null,
+                     *         "createdBy": "39414511-6e5d-46e9-a47a-090166426ed3",
+                     *         "createdAt": "2026-09-26T21:51:54.487Z",
+                     *         "scan": {
+                     *           "scanner": "fake",
+                     *           "scannedAt": "2026-09-26T21:51:47.638Z",
+                     *           "databaseAgeDays": 0,
+                     *           "stale": false,
+                     *           "baseImageKnown": true,
+                     *           "fixable": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "unfixable": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "baseImage": {
+                     *             "critical": 0,
+                     *             "high": 0
+                     *           },
+                     *           "unfixableFindings": []
+                     *         },
+                     *         "config": {
+                     *           "sandbox": {
+                     *             "port": 3000,
+                     *             "health": "/healthz",
+                     *             "resources": {
+                     *               "cpu": 0.5,
+                     *               "memory": "512Mi",
+                     *               "pids": 256,
+                     *               "disk": "2Gi"
+                     *             },
+                     *             "services": [],
+                     *             "egressAllow": [],
+                     *             "classification": "internal",
+                     *             "auth": {
+                     *               "provider": "none",
+                     *               "attributes": []
+                     *             },
+                     *             "ai": {
+                     *               "models": []
+                     *             },
+                     *             "envNames": []
+                     *           },
+                     *           "staging": {
+                     *             "port": 3000,
+                     *             "health": "/healthz",
+                     *             "resources": {
+                     *               "cpu": 0.5,
+                     *               "memory": "512Mi",
+                     *               "pids": 256,
+                     *               "disk": "2Gi"
+                     *             },
+                     *             "services": [],
+                     *             "egressAllow": [],
+                     *             "classification": "internal",
+                     *             "auth": {
+                     *               "provider": "none",
+                     *               "attributes": []
+                     *             },
+                     *             "ai": {
+                     *               "models": []
+                     *             },
+                     *             "envNames": []
+                     *           },
+                     *           "production": {
+                     *             "port": 3000,
+                     *             "health": "/healthz",
+                     *             "resources": {
+                     *               "cpu": 0.5,
+                     *               "memory": "512Mi",
+                     *               "pids": 256,
+                     *               "disk": "2Gi"
+                     *             },
+                     *             "services": [],
+                     *             "egressAllow": [],
+                     *             "classification": "internal",
+                     *             "auth": {
+                     *               "provider": "none",
+                     *               "attributes": []
+                     *             },
+                     *             "ai": {
+                     *               "models": []
+                     *             },
+                     *             "envNames": []
+                     *           }
+                     *         }
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["ReleaseList"];
                 };
             };
@@ -5869,6 +6885,11 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "buildId": "5b083281-e96c-48ee-9dcc-6347ed5f087a"
+                 *     }
+                 */
                 "application/json": components["schemas"]["CreateReleaseRequest"];
             };
         };
@@ -5879,6 +6900,109 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "cc85411d-da69-4291-9ece-8db66e086109",
+                     *       "projectId": "760932a4-7e0f-42c8-bfe4-9ddc80c3cd16",
+                     *       "buildId": "5b083281-e96c-48ee-9dcc-6347ed5f087a",
+                     *       "appSpecId": "b9a04952-9145-4912-a0e3-216305f6bae6",
+                     *       "imageDigest": "sha256:1ffe125abe69cae1fe908d3c937a5ba3966dcf03867e7ae44edf21281f9df8c9",
+                     *       "summary": null,
+                     *       "createdBy": "438641c1-3d15-4c8a-b2dc-bca3da187db1",
+                     *       "createdAt": "2026-09-26T21:48:33.798Z",
+                     *       "scan": {
+                     *         "scanner": "fake",
+                     *         "scannedAt": "2026-09-26T21:48:33.793Z",
+                     *         "databaseAgeDays": 0,
+                     *         "stale": false,
+                     *         "baseImageKnown": true,
+                     *         "fixable": {
+                     *           "critical": 0,
+                     *           "high": 0
+                     *         },
+                     *         "unfixable": {
+                     *           "critical": 0,
+                     *           "high": 0
+                     *         },
+                     *         "baseImage": {
+                     *           "critical": 0,
+                     *           "high": 0
+                     *         },
+                     *         "unfixableFindings": []
+                     *       },
+                     *       "config": {
+                     *         "sandbox": {
+                     *           "port": 3000,
+                     *           "health": "/healthz",
+                     *           "resources": {
+                     *             "cpu": 0.5,
+                     *             "memory": "512Mi",
+                     *             "pids": 256,
+                     *             "disk": "2Gi"
+                     *           },
+                     *           "services": [],
+                     *           "egressAllow": [
+                     *             "x.example.org"
+                     *           ],
+                     *           "classification": "internal",
+                     *           "auth": {
+                     *             "provider": "none",
+                     *             "attributes": []
+                     *           },
+                     *           "ai": {
+                     *             "models": []
+                     *           },
+                     *           "envNames": []
+                     *         },
+                     *         "staging": {
+                     *           "port": 3000,
+                     *           "health": "/healthz",
+                     *           "resources": {
+                     *             "cpu": 0.5,
+                     *             "memory": "512Mi",
+                     *             "pids": 256,
+                     *             "disk": "2Gi"
+                     *           },
+                     *           "services": [],
+                     *           "egressAllow": [
+                     *             "x.example.org"
+                     *           ],
+                     *           "classification": "internal",
+                     *           "auth": {
+                     *             "provider": "none",
+                     *             "attributes": []
+                     *           },
+                     *           "ai": {
+                     *             "models": []
+                     *           },
+                     *           "envNames": []
+                     *         },
+                     *         "production": {
+                     *           "port": 3000,
+                     *           "health": "/healthz",
+                     *           "resources": {
+                     *             "cpu": 0.5,
+                     *             "memory": "512Mi",
+                     *             "pids": 256,
+                     *             "disk": "2Gi"
+                     *           },
+                     *           "services": [],
+                     *           "egressAllow": [
+                     *             "x.example.org"
+                     *           ],
+                     *           "classification": "internal",
+                     *           "auth": {
+                     *             "provider": "none",
+                     *             "attributes": []
+                     *           },
+                     *           "ai": {
+                     *             "models": []
+                     *           },
+                     *           "envNames": []
+                     *         }
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["Release"];
                 };
             };
@@ -5911,6 +7035,54 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "appSpecId": "bcdbd995-b929-4f18-bab8-a765757b7a73",
+                     *       "commitSha": "bc2120d529f824d4715bfe75526c7780eb00b9e3",
+                     *       "spec": {
+                     *         "ai": {
+                     *           "budget": {
+                     *             "per_user_monthly_usd": 0
+                     *           },
+                     *           "models": []
+                     *         },
+                     *         "env": [],
+                     *         "auth": {
+                     *           "logout": "/auth/logout",
+                     *           "callback": "/auth/ubcshib/callback",
+                     *           "provider": "none",
+                     *           "attributes": []
+                     *         },
+                     *         "data": {
+                     *           "classification": "internal",
+                     *           "retention_days": 365
+                     *         },
+                     *         "jobs": [],
+                     *         "name": "chem-labs",
+                     *         "checks": [],
+                     *         "egress": {
+                     *           "allow": []
+                     *         },
+                     *         "runtime": {
+                     *           "port": 3000,
+                     *           "health": "/healthz",
+                     *           "command": null
+                     *         },
+                     *         "manifest": 1,
+                     *         "services": [
+                     *           {
+                     *             "name": "db",
+                     *             "type": "mongo",
+                     *             "version": "7"
+                     *           }
+                     *         ],
+                     *         "blueprint": "fixture-node@1",
+                     *         "resources": {},
+                     *         "environments": {},
+                     *         "integrations": []
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["Spec"];
                 };
             };
@@ -5940,6 +7112,11 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "commitSha": "0cf7e2d5dc61fb39c8c0cff09b531c4ef3e1cbdf"
+                 *     }
+                 */
                 "application/json": components["schemas"]["ValidateSpecRequest"];
             };
         };
@@ -5950,6 +7127,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "appSpecId": "14da1d0c-1831-4adc-b823-211891a2db9e",
+                     *       "commitSha": "0cf7e2d5dc61fb39c8c0cff09b531c4ef3e1cbdf",
+                     *       "valid": true,
+                     *       "errors": [],
+                     *       "sensitiveDiff": {
+                     *         "sensitive": false,
+                     *         "fields": []
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["SpecValidation"];
                 };
             };
@@ -5982,6 +7171,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "id": "09ca0c4f-541c-433c-90b1-8f921ba88ff1",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "name": "authz",
+                     *         "capabilities": [
+                     *           "project:read"
+                     *         ],
+                     *         "rateLimit": 600,
+                     *         "expiresAt": "2026-10-26T21:51:55.029Z",
+                     *         "expired": false,
+                     *         "revokedAt": null,
+                     *         "lastUsedAt": null,
+                     *         "createdAt": "2026-09-26T21:51:55.029Z"
+                     *       },
+                     *       {
+                     *         "id": "91ffc307-1602-457a-9965-6581d2f365d5",
+                     *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *         "name": "authz",
+                     *         "capabilities": [
+                     *           "project:read"
+                     *         ],
+                     *         "rateLimit": 600,
+                     *         "expiresAt": "2026-10-26T21:51:55.024Z",
+                     *         "expired": false,
+                     *         "revokedAt": null,
+                     *         "lastUsedAt": null,
+                     *         "createdAt": "2026-09-26T21:51:55.024Z"
+                     *       }
+                     *     ]
+                     */
                     "application/json": components["schemas"]["TokenList"];
                 };
             };
@@ -6011,6 +7232,16 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "name": "claude-code",
+                 *       "capabilities": [
+                 *         "project:read",
+                 *         "source:write"
+                 *       ],
+                 *       "expiresInDays": 1
+                 *     }
+                 */
                 "application/json": components["schemas"]["MintTokenRequest"];
             };
         };
@@ -6021,6 +7252,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "token": {
+                     *         "id": "606cabe3-f4b5-4cd3-9202-a3a6df8f89a4",
+                     *         "projectId": "483eefec-c89d-4ecb-aac1-997aadf0dc5d",
+                     *         "name": "claude-code",
+                     *         "capabilities": [
+                     *           "project:read",
+                     *           "source:write"
+                     *         ],
+                     *         "rateLimit": 600,
+                     *         "expiresAt": "2026-09-27T21:49:41.998Z",
+                     *         "expired": false,
+                     *         "revokedAt": null,
+                     *         "lastUsedAt": null,
+                     *         "createdAt": "2026-09-26T21:49:41.998Z"
+                     *       },
+                     *       "secret": "mft_606cabe3f4b54cd39202a3a6df8f89a4_F662m-ioPZ05YzFtHcpQ3fI12oCwPRNz_4_EAXUtrZ8"
+                     *     }
+                     */
                     "application/json": components["schemas"]["MintedToken"];
                 };
             };
@@ -6125,6 +7376,109 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "43c8a96a-000d-41f1-9884-efb3db828883",
+                     *       "projectId": "62492871-47f1-4733-92e2-4ae75634cd53",
+                     *       "buildId": "1890d9d7-900a-4b9b-a2b4-e969f174e23f",
+                     *       "appSpecId": "9a08683a-39aa-43c6-8921-7d1960e8c6d4",
+                     *       "imageDigest": "sha256:404a9e253752d77f41bd20ad14e09167c8f4ae6e3cd564f9b58af0b6eb73f329",
+                     *       "summary": null,
+                     *       "createdBy": "6320001f-7385-470b-a1dd-1214cd8af583",
+                     *       "createdAt": "2026-09-26T21:47:39.608Z",
+                     *       "scan": {
+                     *         "scanner": "fake",
+                     *         "scannedAt": "2026-09-26T21:47:39.600Z",
+                     *         "databaseAgeDays": 0,
+                     *         "stale": false,
+                     *         "baseImageKnown": true,
+                     *         "fixable": {
+                     *           "critical": 0,
+                     *           "high": 0
+                     *         },
+                     *         "unfixable": {
+                     *           "critical": 0,
+                     *           "high": 0
+                     *         },
+                     *         "baseImage": {
+                     *           "critical": 0,
+                     *           "high": 0
+                     *         },
+                     *         "unfixableFindings": []
+                     *       },
+                     *       "config": {
+                     *         "sandbox": {
+                     *           "port": 3000,
+                     *           "health": "/healthz",
+                     *           "resources": {
+                     *             "cpu": 0.5,
+                     *             "memory": "512Mi",
+                     *             "pids": 256,
+                     *             "disk": "2Gi"
+                     *           },
+                     *           "services": [],
+                     *           "egressAllow": [],
+                     *           "classification": "internal",
+                     *           "auth": {
+                     *             "provider": "none",
+                     *             "attributes": []
+                     *           },
+                     *           "ai": {
+                     *             "models": []
+                     *           },
+                     *           "envNames": [
+                     *             "COURSE_CODE"
+                     *           ]
+                     *         },
+                     *         "staging": {
+                     *           "port": 3000,
+                     *           "health": "/healthz",
+                     *           "resources": {
+                     *             "cpu": 0.5,
+                     *             "memory": "512Mi",
+                     *             "pids": 256,
+                     *             "disk": "2Gi"
+                     *           },
+                     *           "services": [],
+                     *           "egressAllow": [],
+                     *           "classification": "internal",
+                     *           "auth": {
+                     *             "provider": "none",
+                     *             "attributes": []
+                     *           },
+                     *           "ai": {
+                     *             "models": []
+                     *           },
+                     *           "envNames": [
+                     *             "COURSE_CODE"
+                     *           ]
+                     *         },
+                     *         "production": {
+                     *           "port": 3000,
+                     *           "health": "/healthz",
+                     *           "resources": {
+                     *             "cpu": 0.5,
+                     *             "memory": "512Mi",
+                     *             "pids": 256,
+                     *             "disk": "2Gi"
+                     *           },
+                     *           "services": [],
+                     *           "egressAllow": [],
+                     *           "classification": "internal",
+                     *           "auth": {
+                     *             "provider": "none",
+                     *             "attributes": []
+                     *           },
+                     *           "ai": {
+                     *             "models": []
+                     *           },
+                     *           "envNames": [
+                     *             "COURSE_CODE"
+                     *           ]
+                     *         }
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["Release"];
                 };
             };
@@ -6157,6 +7511,45 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "2e2862ae-a97d-4cfe-b1bd-f89515c4841a",
+                     *       "releaseId": "8e4d08ba-37d8-4b96-8981-e6a13722e42f",
+                     *       "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *       "decision": "approved",
+                     *       "decidedBy": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *       "decidedByName": "Platform Admin",
+                     *       "decidedAt": "2026-09-26T21:51:48.180Z",
+                     *       "imageDigest": "sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419",
+                     *       "reason": "the authorization fixture needs a decision to read",
+                     *       "diff": {
+                     *         "imageDigest": "sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419",
+                     *         "changes": [],
+                     *         "services": [],
+                     *         "attributes": [],
+                     *         "resources": {
+                     *           "cpu": 0.5,
+                     *           "memory": "512Mi",
+                     *           "disk": "2Gi",
+                     *           "pids": 256
+                     *         },
+                     *         "summary": null,
+                     *         "summarySource": "no-previous-release",
+                     *         "summaryWithheldBecause": null,
+                     *         "summaryExposures": null,
+                     *         "baselineReleaseId": null,
+                     *         "sensitiveFields": [],
+                     *         "security": [],
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "review": {
+                     *           "state": "not_performed",
+                     *           "reviewer": "none",
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *         }
+                     *       },
+                     *       "previewId": "a08d1993-28bf-4378-a8d8-dfad2dccfc57"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Approval"];
                 };
             };
@@ -6192,6 +7585,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "0df5bf80-218f-430f-9295-c6837256afca",
+                     *       "releaseId": "e04bcda9-e9e4-44b7-a5ec-b064498179c7",
+                     *       "projectId": "5a52e925-81ea-4fca-a517-cad1799a2cbb",
+                     *       "createdBy": "26628bdf-719c-4664-8a77-9e97a37e472a",
+                     *       "createdByName": "Platform Admin",
+                     *       "createdAt": "2026-09-26T21:48:55.759Z",
+                     *       "expiresAt": "2026-09-26T22:18:55.759Z",
+                     *       "imageDigest": "sha256:538c34511aac0a6f2165a18cad074b6d342a54415d67ca6d00a000b020b7f937",
+                     *       "diff": {
+                     *         "imageDigest": "sha256:538c34511aac0a6f2165a18cad074b6d342a54415d67ca6d00a000b020b7f937",
+                     *         "changes": [
+                     *           {
+                     *             "path": "auth.attributes",
+                     *             "from": "mail, ubcEduCwlPuid",
+                     *             "to": "ubcEduCwlPuid",
+                     *             "summary": "no longer requests the mail attribute"
+                     *           }
+                     *         ],
+                     *         "services": [],
+                     *         "attributes": [
+                     *           "ubcEduCwlPuid"
+                     *         ],
+                     *         "resources": {
+                     *           "cpu": 0.5,
+                     *           "memory": "512Mi",
+                     *           "disk": "2Gi",
+                     *           "pids": 256
+                     *         },
+                     *         "summary": null,
+                     *         "summarySource": "not-modelled",
+                     *         "summaryWithheldBecause": null,
+                     *         "summaryExposures": null,
+                     *         "baselineReleaseId": "781048e0-06c6-47f5-92d7-f4125ee53e6e",
+                     *         "sensitiveFields": [
+                     *           "auth.attributes"
+                     *         ],
+                     *         "security": [
+                     *           {
+                     *             "field": "auth.attributes",
+                     *             "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA."
+                     *           }
+                     *         ],
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "review": {
+                     *           "state": "not_performed",
+                     *           "reviewer": "none",
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *         }
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["ApprovalPreview"];
                 };
             };
@@ -6226,6 +7672,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "a08d1993-28bf-4378-a8d8-dfad2dccfc57",
+                     *       "releaseId": "8e4d08ba-37d8-4b96-8981-e6a13722e42f",
+                     *       "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *       "createdBy": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *       "createdByName": "Platform Admin",
+                     *       "createdAt": "2026-09-26T21:51:48.171Z",
+                     *       "expiresAt": "2026-09-26T22:21:48.171Z",
+                     *       "imageDigest": "sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419",
+                     *       "diff": {
+                     *         "imageDigest": "sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419",
+                     *         "changes": [],
+                     *         "services": [],
+                     *         "attributes": [],
+                     *         "resources": {
+                     *           "cpu": 0.5,
+                     *           "memory": "512Mi",
+                     *           "disk": "2Gi",
+                     *           "pids": 256
+                     *         },
+                     *         "summary": null,
+                     *         "summarySource": "no-previous-release",
+                     *         "summaryWithheldBecause": null,
+                     *         "summaryExposures": null,
+                     *         "baselineReleaseId": null,
+                     *         "sensitiveFields": [],
+                     *         "security": [],
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "review": {
+                     *           "state": "not_performed",
+                     *           "reviewer": "none",
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *         }
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["ApprovalPreview"];
                 };
             };
@@ -6255,6 +7738,12 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "reason": "dropping mail is data minimisation",
+                 *       "previewId": "0df5bf80-218f-430f-9295-c6837256afca"
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApproveReleaseRequest"];
             };
         };
@@ -6265,6 +7754,61 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "a5e8fc49-1e64-4cd0-a0e1-77512fdaf3b4",
+                     *       "releaseId": "e04bcda9-e9e4-44b7-a5ec-b064498179c7",
+                     *       "projectId": "5a52e925-81ea-4fca-a517-cad1799a2cbb",
+                     *       "decision": "approved",
+                     *       "decidedBy": "26628bdf-719c-4664-8a77-9e97a37e472a",
+                     *       "decidedByName": "Platform Admin",
+                     *       "decidedAt": "2026-09-26T21:48:55.765Z",
+                     *       "imageDigest": "sha256:538c34511aac0a6f2165a18cad074b6d342a54415d67ca6d00a000b020b7f937",
+                     *       "reason": "dropping mail is data minimisation",
+                     *       "diff": {
+                     *         "imageDigest": "sha256:538c34511aac0a6f2165a18cad074b6d342a54415d67ca6d00a000b020b7f937",
+                     *         "changes": [
+                     *           {
+                     *             "path": "auth.attributes",
+                     *             "from": "mail, ubcEduCwlPuid",
+                     *             "to": "ubcEduCwlPuid",
+                     *             "summary": "no longer requests the mail attribute"
+                     *           }
+                     *         ],
+                     *         "services": [],
+                     *         "attributes": [
+                     *           "ubcEduCwlPuid"
+                     *         ],
+                     *         "resources": {
+                     *           "cpu": 0.5,
+                     *           "memory": "512Mi",
+                     *           "disk": "2Gi",
+                     *           "pids": 256
+                     *         },
+                     *         "summary": null,
+                     *         "summarySource": "not-modelled",
+                     *         "summaryWithheldBecause": null,
+                     *         "summaryExposures": null,
+                     *         "baselineReleaseId": "781048e0-06c6-47f5-92d7-f4125ee53e6e",
+                     *         "sensitiveFields": [
+                     *           "auth.attributes"
+                     *         ],
+                     *         "security": [
+                     *           {
+                     *             "field": "auth.attributes",
+                     *             "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA."
+                     *           }
+                     *         ],
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "review": {
+                     *           "state": "not_performed",
+                     *           "reviewer": "none",
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *         }
+                     *       },
+                     *       "previewId": "0df5bf80-218f-430f-9295-c6837256afca"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Approval"];
                 };
             };
@@ -6294,6 +7838,12 @@ export interface operations {
         };
         requestBody: {
             content: {
+                /**
+                 * @example {
+                 *       "reason": "withdrawn — the destination is not in the PIA",
+                 *       "previewId": "46109278-ffed-493e-8489-09e3b24c9be8"
+                 *     }
+                 */
                 "application/json": components["schemas"]["RejectReleaseRequest"];
             };
         };
@@ -6304,6 +7854,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "29c68784-e30b-4a94-b501-bc1e728dca81",
+                     *       "releaseId": "469a1136-582d-470f-8692-0e72223d3186",
+                     *       "projectId": "50cd1bf5-1343-46a7-9bf4-81bf56b87ceb",
+                     *       "decision": "rejected",
+                     *       "decidedBy": "2ff7d194-783e-46f9-91f1-33a84281d966",
+                     *       "decidedByName": "Platform Admin",
+                     *       "decidedAt": "2026-09-26T21:48:37.947Z",
+                     *       "imageDigest": "sha256:c583f7d2b6553963268d6e547075e823616f5c07eab9b52c7b782b7e5c82cef5",
+                     *       "reason": "withdrawn — the destination is not in the PIA",
+                     *       "diff": {
+                     *         "imageDigest": "sha256:c583f7d2b6553963268d6e547075e823616f5c07eab9b52c7b782b7e5c82cef5",
+                     *         "changes": [
+                     *           {
+                     *             "path": "egress.allow",
+                     *             "from": "none",
+                     *             "to": "x.example.org",
+                     *             "summary": "now allows x.example.org"
+                     *           }
+                     *         ],
+                     *         "services": [],
+                     *         "attributes": [],
+                     *         "resources": {
+                     *           "cpu": 0.5,
+                     *           "memory": "512Mi",
+                     *           "disk": "2Gi",
+                     *           "pids": 256
+                     *         },
+                     *         "summary": null,
+                     *         "summarySource": "unavailable",
+                     *         "summaryWithheldBecause": null,
+                     *         "summaryExposures": null,
+                     *         "baselineReleaseId": "17874d11-f772-4ab0-9ad2-a3dadaa1542c",
+                     *         "sensitiveFields": [
+                     *           "egress.allow"
+                     *         ],
+                     *         "security": [
+                     *           {
+                     *             "field": "egress.allow",
+                     *             "note": "The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”."
+                     *           }
+                     *         ],
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "review": {
+                     *           "state": "not_performed",
+                     *           "reviewer": "none",
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *         }
+                     *       },
+                     *       "previewId": "46109278-ffed-493e-8489-09e3b24c9be8"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Approval"];
                 };
             };
@@ -6336,6 +7939,19 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "slug": "chem",
+                     *       "available": false,
+                     *       "reasons": [
+                     *         {
+                     *           "code": "SLUG_RESERVED",
+                     *           "message": "'chem' is reserved — UBC Okanagan course subject code CHEM (Chemistry); UBC Vancouver course subject code CHEM (Chemistry).",
+                     *           "hint": "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another name."
+                     *         }
+                     *       ]
+                     *     }
+                     */
                     "application/json": components["schemas"]["SlugCheck"];
                 };
             };
@@ -6371,6 +7987,22 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "id": "d526fd4f-2528-45d9-9e45-c374393d8cec",
+                     *       "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
+                     *       "name": "authz-fixture",
+                     *       "capabilities": [
+                     *         "project:read"
+                     *       ],
+                     *       "rateLimit": 600,
+                     *       "expiresAt": "2026-10-26T21:51:47.658Z",
+                     *       "expired": false,
+                     *       "revokedAt": "2026-09-26T21:51:55.051Z",
+                     *       "lastUsedAt": null,
+                     *       "createdAt": "2026-09-26T21:51:47.658Z"
+                     *     }
+                     */
                     "application/json": components["schemas"]["Token"];
                 };
             };

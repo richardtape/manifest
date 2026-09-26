@@ -75,6 +75,19 @@ export const buildRoutes = [
       'AI_BACKEND_UNAVAILABLE',
       'AI_CATALOGUE_EMPTY',
     ],
+    examples: {
+      request: { commitSha: 'e47cbba42cf5ba5ae3bb110198ad19089cd883fb' },
+      response: {
+        id: '5002ee0c-8e74-4ec8-96d0-27eaf5908a03',
+        projectId: '46a772b2-8f42-4d9e-9a1a-241a097965d6',
+        commitSha: 'e47cbba42cf5ba5ae3bb110198ad19089cd883fb',
+        status: 'running',
+        imageDigest: null,
+        error: null,
+        scan: null,
+        createdAt: '2026-09-26T21:47:37.711Z',
+      },
+    },
     handler: async ({ deps, actor, params, body }) => {
       await assertCapability(deps.db, actor, params.projectId, 'build:create')
       // Moved up (the authoring API plan's Task 7): the commit's validation needs the project.
@@ -183,6 +196,19 @@ export const buildRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The build.', schema: Build },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        id: 'a7fa8817-0f11-43fc-a66e-e5a307068a59',
+        projectId: 'f3d4076b-b482-4d5d-b614-7e1cc4064392',
+        commitSha: '8ca53a0c88c96b9624724873b4e03d9c40af796c',
+        status: 'failed',
+        imageDigest: null,
+        error:
+          "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'iam-add': sn. Registered: mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered (§7, §9) — otherwise students hit a broken login on launch …",
+        scan: null,
+        createdAt: '2026-09-26T21:48:49.290Z',
+      },
+    },
     handler: async ({ deps, actor, params }) =>
       toBuild(await buildReadableBy(deps.db, actor, params.buildId)),
   }),
@@ -207,6 +233,19 @@ export const buildRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The log.', schema: BuildLog },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        buildId: 'd9152353-95cd-4f1c-9a4f-655b710b4d46',
+        lines: [
+          {
+            seq: 0,
+            stream: 'stdout',
+            text: 'fake build of authz-fixture at 26f71b49f02162fc3614864c3f520faea87c10a2 from fixture-node@1',
+            at: '2026-09-26T21:51:47.637Z',
+          },
+        ],
+      },
+    },
     handler: async ({ deps, actor, params, query }) => {
       const build = await buildReadableBy(deps.db, actor, params.buildId)
       const lines = await readBuildLog(
@@ -230,6 +269,52 @@ export const buildRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The builds.', schema: BuildList },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: [
+        {
+          id: '3ab69e9e-b83f-400d-9653-2c18038aa578',
+          projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+          commitSha: '26f71b49f02162fc3614864c3f520faea87c10a2',
+          status: 'succeeded',
+          imageDigest:
+            'sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419',
+          error: null,
+          scan: {
+            scanner: 'fake',
+            scannedAt: '2026-09-26T21:51:54.417Z',
+            databaseAgeDays: 0,
+            stale: false,
+            baseImageKnown: true,
+            fixable: { critical: 0, high: 0 },
+            unfixable: { critical: 0, high: 0 },
+            baseImage: { critical: 0, high: 0 },
+            unfixableFindings: [],
+          },
+          createdAt: '2026-09-26T21:51:54.415Z',
+        },
+        {
+          id: 'cda88a76-2d07-4e7a-b0f5-0c524e157b03',
+          projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+          commitSha: '26f71b49f02162fc3614864c3f520faea87c10a2',
+          status: 'succeeded',
+          imageDigest:
+            'sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419',
+          error: null,
+          scan: {
+            scanner: 'fake',
+            scannedAt: '2026-09-26T21:51:54.395Z',
+            databaseAgeDays: 0,
+            stale: false,
+            baseImageKnown: true,
+            fixable: { critical: 0, high: 0 },
+            unfixable: { critical: 0, high: 0 },
+            baseImage: { critical: 0, high: 0 },
+            unfixableFindings: [],
+          },
+          createdAt: '2026-09-26T21:51:54.392Z',
+        },
+      ],
+    },
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, 'project:read')
       const rows = await deps.db

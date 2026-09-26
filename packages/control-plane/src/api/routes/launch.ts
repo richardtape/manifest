@@ -39,6 +39,35 @@ export const launchRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The checklist.', schema: LaunchReadiness },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        projectId: 'bd8dfbcc-4c37-4e7d-ab4b-4e1ce0c032e6',
+        launched: false,
+        ready: false,
+        candidateReleaseId: null,
+        baselineReleaseId: null,
+        sensitiveFields: [],
+        reescalated: false,
+        items: [
+          {
+            id: 'domain',
+            title: 'Where the app will live',
+            owner: 'project owner',
+            blocking: true,
+            state: 'met',
+            why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
+          },
+          {
+            id: 'iam-registration',
+            title: 'Registered with UBC IAM',
+            owner: 'UBC IAM, recorded by a platform administrator (§9)',
+            blocking: true,
+            state: 'unmet',
+            why: 'Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference.',
+          },
+        ],
+      },
+    },
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, 'project:read')
       return computeLaunchReadiness(deps.db, params.projectId)
@@ -61,6 +90,35 @@ export const launchRoutes = [
       schema: LaunchRecords,
     },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        projectId: '11303e87-e32a-4264-9191-bc37307c218b',
+        iamRegistration: {
+          id: '77e7ddc9-7571-4de3-9ba7-6a4372526295',
+          projectId: '11303e87-e32a-4264-9191-bc37307c218b',
+          entityId: 'https://manifest.internal/sp/iam-pending/production',
+          acsUrl: 'https://iam-pending.manifest.internal/auth/ubcshib/callback',
+          sloUrl: 'https://iam-pending.manifest.internal/auth/logout',
+          certFingerprint: null,
+          certExpiresAt: null,
+          registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+          requestedAttributes: ['ubcEduCwlPuid', 'mail'],
+          registeredAt: '2026-09-26T21:48:50.164Z',
+          state: 'change_requested',
+          externalTicketRef: 'IAM-CR-7',
+          updatedAt: '2026-09-26T21:48:50.262Z',
+        },
+        privacyAssessment: {
+          id: '04f0ba9a-51c7-449e-ab08-90969a0d6357',
+          projectId: '11303e87-e32a-4264-9191-bc37307c218b',
+          state: 'approved',
+          reviewer: 'K. Privacy',
+          approvedAt: '2026-09-26T21:48:50.173Z',
+          externalTicketRef: 'PIA-iam-pending',
+          updatedAt: '2026-09-26T21:48:50.173Z',
+        },
+      },
+    },
     handler: async ({ deps, actor, params }) => {
       // READABLE BY THE PROJECT, not only by an administrator: §13 says the checklist is
       // surfaced "the moment a project is created — not at the point the owner asks to go
@@ -101,6 +159,32 @@ export const launchRoutes = [
       'LAUNCH_TRANSITION_INVALID',
       'LAUNCH_RECORD_INVALID',
     ],
+    examples: {
+      request: {
+        entityId: 'https://manifest.internal/sp/iam-granted/production',
+        acsUrl: 'https://iam-granted.manifest.internal/auth/ubcshib/callback',
+        sloUrl: 'https://iam-granted.manifest.internal/auth/logout',
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+        requestedAttributes: ['ubcEduCwlPuid', 'mail'],
+        state: 'change_requested',
+        externalTicketRef: 'IAM-iam-granted',
+      },
+      response: {
+        id: '62169b5f-1961-406a-8ad3-f5de46143c6f',
+        projectId: '9aa37d53-038d-4e78-9270-01c2ea085d21',
+        entityId: 'https://manifest.internal/sp/iam-granted/production',
+        acsUrl: 'https://iam-granted.manifest.internal/auth/ubcshib/callback',
+        sloUrl: 'https://iam-granted.manifest.internal/auth/logout',
+        certFingerprint: null,
+        certExpiresAt: null,
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+        requestedAttributes: ['ubcEduCwlPuid', 'mail'],
+        registeredAt: '2026-09-26T21:48:52.716Z',
+        state: 'change_requested',
+        externalTicketRef: 'IAM-iam-granted',
+        updatedAt: '2026-09-26T21:48:52.796Z',
+      },
+    },
     handler: async ({ deps, request, params, body }) => {
       // D14 and Decision 4: an administrator, in a browser. `requireSession`'s RETURN TYPE
       // is the enforcement — reverting this line does not weaken a check, it stops
@@ -154,6 +238,22 @@ export const launchRoutes = [
       'TOKEN_CREDENTIAL_REFUSED',
       'LAUNCH_TRANSITION_INVALID',
     ],
+    examples: {
+      request: {
+        state: 'approved',
+        reviewer: 'K. Privacy',
+        externalTicketRef: 'PIA-DELIVERY-1',
+      },
+      response: {
+        id: '678fa833-25a5-4ddc-8f32-329d262e6c67',
+        projectId: 'ed493bf0-5ff3-4f03-bfa2-ea7b7b53730f',
+        state: 'approved',
+        reviewer: 'K. Privacy',
+        approvedAt: '2026-09-26T21:47:36.002Z',
+        externalTicketRef: 'PIA-DELIVERY-1',
+        updatedAt: '2026-09-26T21:47:36.002Z',
+      },
+    },
     handler: async ({ deps, request, params, body }) => {
       const actor = requireSession(request)
       await assertCapability(deps.db, actor, params.projectId, 'launch:record')
@@ -196,6 +296,26 @@ export const launchRoutes = [
       'REHEARSAL_LAUNCHED',
       'RELEASE_DIGEST_MISSING',
     ],
+    examples: {
+      response: {
+        id: 'eecbc16e-6428-4600-baf3-62b93200de80',
+        projectId: '11303e87-e32a-4264-9191-bc37307c218b',
+        releaseId: 'beefa3d6-c695-47e7-a632-ace8f5bd702a',
+        passed: true,
+        entityId: 'https://manifest.internal/sp/iam-pending/production',
+        acsUrl: 'https://iam-pending.manifest.internal/auth/ubcshib/callback',
+        attributes: ['ubcEduCwlPuid', 'mail'],
+        evidence: {
+          instanceId: '6ac3e6d7-3080-4c70-8af6-376e447829f6',
+          hostname: 'iam-pending.manifest.internal',
+          listener: 'public',
+          signInStatus: 302,
+          attributesReleased: ['ubcEduCwlPuid', 'mail'],
+          reason: 'the unit tier’s labelled fake released exactly what was registered',
+        },
+        ranAt: '2026-09-26T21:48:50.190Z',
+      },
+    },
     handler: async ({ deps, request, params }) => {
       // D14 and Decision 4: an administrator, in a browser — `requireSession`'s RETURN
       // TYPE is the enforcement, because `runRehearsal` needs the `puid` it returns, and

@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod/v4'
 import { randomUUID } from 'node:crypto'
 import { resetDatabase } from '../../db/testing.js'
+import { ensureTestUser } from '../../identity/testing.js'
+import { mintTestToken } from '../../tokens/testing.js'
 import { buildServer } from '../server.js'
-import { loginAs, mutationHeaders, testDeps } from '../testing.js'
-import { defineRoute, NO_BODY, NO_QUERY, registerRoutes } from './route.js'
+import { loginAs, mutationHeaders, projectFor, testDeps } from '../testing.js'
+import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY, registerRoutes } from './route.js'
 import { representation, request } from './schemas.js'
 
 afterEach(resetDatabase)
@@ -33,6 +35,9 @@ const probeGet = defineRoute({
   body: NO_BODY,
   success: { status: 200, description: 'probe', schema: Probe },
   errors: [],
+  examples: {
+    response: { id: '6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f', name: 'probe' },
+  },
   handler: async ({ params }) => {
     // A TYPE-LEVEL CONTROL, checked by `tsc` rather than Vitest (which strips types). Were
     // `params` to widen to `any`, this read would stop being an error, and an unused
@@ -54,6 +59,10 @@ const probePost = defineRoute({
   body: ProbeBody,
   success: { status: 201, description: 'probe', schema: Probe },
   errors: [],
+  examples: {
+    request: { name: 'probe' },
+    response: { id: '6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f', name: 'probe' },
+  },
   handler: async ({ body }) => ({ id: randomUUID(), name: body.name }),
 })
 
@@ -156,5 +165,77 @@ describe('defineRoute (P5a Task 6)', () => {
     expect(first.statusCode).toBe(201)
     expect(again.json()).toEqual(first.json())
     await app.close()
+  })
+})
+
+/**
+ * `credential: 'session'` IS ENFORCED BY THE WRAPPER ITSELF (the authoring API plan's Task 9,
+ * F17). Every real session-only route's handler ALSO calls `requireSession` — for `tsc`, which
+ * needs a `SessionActor` — so with the wrapper's refusal removed, all 560 rows of the
+ * authorization matrix stayed green (sitting 6's control (f)): the wrapper was a second read
+ * nothing asserted alone. These probes' handlers ask nothing, so a token refused here was
+ * refused by the wrapper — which is what makes the document's `security` true of a route whose
+ * author forgot to ask.
+ */
+describe('credential: session — the wrapper refuses a token before the handler runs (F17)', () => {
+  const reached = { id: '6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f', name: 'reached' }
+  const probe = (operationId: string, path: `/v1/${string}`, session: boolean) =>
+    defineRoute({
+      operationId,
+      method: 'GET',
+      path,
+      tag: 'zz',
+      summary: 'probe',
+      description: 'probe',
+      ...(session ? { credential: 'session' as const } : {}),
+      params: NO_PARAMS,
+      query: NO_QUERY,
+      body: NO_BODY,
+      success: { status: 200, description: 'probe', schema: Probe },
+      errors: [],
+      examples: { response: reached },
+      // DELIBERATELY asks nothing about the credential: only the wrapper can refuse here.
+      handler: async () => reached,
+    })
+
+  it('answers a token 403 TOKEN_CREDENTIAL_REFUSED on a session-only route, and the same token 200 on one that takes either', async () => {
+    const { deps, cookies, project } = await projectFor('bio_prof')
+    const user = await ensureTestUser(deps.db, 'bio_prof')
+    const { plaintext } = await mintTestToken(deps.db, {
+      userId: user.id,
+      projectId: (project as { id: string }).id,
+      capabilities: ['project:read'],
+    })
+    const app = await buildServer(deps)
+    registerRoutes(app, deps, [
+      probe('zzSessionOnly', '/v1/zz-session-only', true),
+      probe('zzEitherCredential', '/v1/zz-either-credential', false),
+    ])
+    const asToken = (url: string) =>
+      app.inject({
+        method: 'GET',
+        url,
+        headers: { authorization: `Bearer ${plaintext}` },
+      })
+
+    const refused = await asToken('/v1/zz-session-only')
+    expect({
+      status: refused.statusCode,
+      code: (refused.json() as { error?: { code?: string } }).error?.code,
+    }).toEqual({
+      status: 403,
+      code: 'TOKEN_CREDENTIAL_REFUSED',
+    })
+    // The positive controls: the same token is a valid credential, and a person reaches it.
+    expect((await asToken('/v1/zz-either-credential')).statusCode).toBe(200)
+    const asPerson = await app.inject({
+      method: 'GET',
+      url: '/v1/zz-session-only',
+      cookies,
+    })
+    expect({ status: asPerson.statusCode, body: asPerson.json() }).toEqual({
+      status: 200,
+      body: reached,
+    })
   })
 })

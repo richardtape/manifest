@@ -25,6 +25,20 @@ export const slugRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The verdict.', schema: SlugCheck },
     errors: ['RATE_LIMITED'],
+    examples: {
+      response: {
+        slug: 'chem',
+        available: false,
+        reasons: [
+          {
+            code: 'SLUG_RESERVED',
+            message:
+              "'chem' is reserved — UBC Okanagan course subject code CHEM (Chemistry); UBC Vancouver course subject code CHEM (Chemistry).",
+            hint: "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another name.",
+          },
+        ],
+      },
+    },
     handler: async ({ deps, actor, params }) => {
       deps.limits.slugCheck.take(actor.userId)
       return checkSlug(deps.db, deps.reservedLabels, params.slug)

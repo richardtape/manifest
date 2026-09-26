@@ -154,6 +154,44 @@ export const pendingActionReads = [
       schema: PendingActionList,
     },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: [
+        {
+          id: 'afaea8b7-7d62-4f32-a644-a7c3fbf7f77e',
+          projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+          tokenId: '2164b084-a859-4fdf-bdc1-1a8518348f21',
+          action: 'members:manage',
+          state: 'pending',
+          method: 'DELETE',
+          path: '/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b',
+          bodySha256: '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
+          summary: 'Remove a member',
+          expiresAt: '2026-09-27T21:51:54.279Z',
+          createdAt: '2026-09-26T21:51:54.280Z',
+          resolvedAt: null,
+          waitingSeconds: 0,
+          reason: null,
+          consumedAt: null,
+        },
+        {
+          id: '56a3aeec-a04f-4d76-b4dc-f2dc2025576a',
+          projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+          tokenId: '10ce2f9b-1577-4a3a-be7d-d72acc9bd876',
+          action: 'members:manage',
+          state: 'pending',
+          method: 'DELETE',
+          path: '/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b',
+          bodySha256: '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
+          summary: 'Remove a member',
+          expiresAt: '2026-09-27T21:51:54.270Z',
+          createdAt: '2026-09-26T21:51:54.271Z',
+          resolvedAt: null,
+          waitingSeconds: 0,
+          reason: null,
+          consumedAt: null,
+        },
+      ],
+    },
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, 'project:read')
       const now = new Date()
@@ -178,6 +216,25 @@ export const pendingActionReads = [
     body: NO_BODY,
     success: { status: 200, description: 'The pending action.', schema: PendingAction },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        id: '45103737-568d-4db0-8137-ba1b00f161e3',
+        projectId: '71fa56ac-c7dc-4368-ba62-32696fa50bfb',
+        tokenId: 'bad42919-d270-4d8e-b74c-89802f381f93',
+        action: 'members:manage',
+        state: 'pending',
+        method: 'POST',
+        path: '/v1/projects/71fa56ac-c7dc-4368-ba62-32696fa50bfb/members',
+        bodySha256: '63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b',
+        summary: 'Add or change a member',
+        expiresAt: '2026-09-27T21:48:16.729Z',
+        createdAt: '2026-09-26T21:48:16.730Z',
+        resolvedAt: null,
+        waitingSeconds: 0,
+        reason: null,
+        consumedAt: null,
+      },
+    },
     handler: async ({ deps, request, params }) => {
       const actor = requireActor(request)
       const row = await pendingById(deps.db, params.pendingActionId)
@@ -232,6 +289,26 @@ export const pendingActionRoutes = [
       // the same freshness as doing it directly.
       'STEP_UP_REQUIRED',
     ],
+    examples: {
+      request: {},
+      response: {
+        id: 'd2438330-fdfd-435c-afc5-8cf2cef778f8',
+        projectId: '20f75cbb-0bd7-4fba-b648-3fd43e9640ff',
+        tokenId: 'a2221a13-2bc9-4944-8311-4a5340fc12b9',
+        action: 'members:manage',
+        state: 'confirmed',
+        method: 'DELETE',
+        path: '/v1/projects/20f75cbb-0bd7-4fba-b648-3fd43e9640ff/members/303c35ad-8966-44a0-96a1-29e39b453258',
+        bodySha256: '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
+        summary: 'Remove a member',
+        expiresAt: '2026-09-27T21:48:26.880Z',
+        createdAt: '2026-09-26T21:48:26.881Z',
+        resolvedAt: '2026-09-26T21:48:26.885Z',
+        waitingSeconds: 0,
+        reason: null,
+        consumedAt: null,
+      },
+    },
     handler: async ({ deps, request, params }) => {
       const { row, userId, puid } = await answerable(
         deps,
@@ -274,6 +351,26 @@ export const pendingActionRoutes = [
       'TOKEN_CREDENTIAL_REFUSED',
       'PENDING_ACTION_RESOLVED',
     ],
+    examples: {
+      request: { reason: 'not something an agent should be doing' },
+      response: {
+        id: '7d034c5b-ea3a-4f28-95c5-4f6824f04f9f',
+        projectId: 'ef7b2d4a-e4a3-4f11-b0d9-dddbc1b1a3bd',
+        tokenId: '290c71b2-2173-49a7-91a1-ad42fa895029',
+        action: 'members:manage',
+        state: 'rejected',
+        method: 'POST',
+        path: '/v1/projects/ef7b2d4a-e4a3-4f11-b0d9-dddbc1b1a3bd/members',
+        bodySha256: '63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b',
+        summary: 'Add or change a member',
+        expiresAt: '2026-09-27T21:48:29.860Z',
+        createdAt: '2026-09-26T21:48:29.861Z',
+        resolvedAt: '2026-09-26T21:48:29.865Z',
+        waitingSeconds: 0,
+        reason: 'not something an agent should be doing',
+        consumedAt: null,
+      },
+    },
     handler: async ({ deps, request, params, body }) => {
       const { row, userId, puid } = await answerable(
         deps,

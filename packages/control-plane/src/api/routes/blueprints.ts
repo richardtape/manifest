@@ -35,6 +35,38 @@ export const blueprintRoutes = [
       schema: BlueprintList,
     },
     errors: [],
+    examples: {
+      response: [
+        {
+          ref: 'fixture-node@1',
+          name: 'fixture-node',
+          majorVersion: 1,
+          language: 'typescript',
+          defaultPort: 3000,
+          healthPath: '/healthz',
+          schemaVersions: [1],
+          provides: { services: ['mongo'], authProviders: ['none'], ai: false },
+          starters: [],
+        },
+        {
+          ref: 'node-ts-mongo@1',
+          name: 'node-ts-mongo',
+          majorVersion: 1,
+          language: 'typescript',
+          defaultPort: 3000,
+          healthPath: '/healthz',
+          schemaVersions: [1],
+          provides: { services: ['mongo'], authProviders: ['cwl', 'none'], ai: true },
+          starters: [
+            {
+              name: 'proof-app',
+              summary:
+                'CWL sign-in, a private note, and a question answered from your notes',
+            },
+          ],
+        },
+      ],
+    },
     handler: async ({ deps }) => deps.blueprints.list().map(toBlueprint),
   }),
   defineRoute({
@@ -50,6 +82,25 @@ export const blueprintRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The blueprint.', schema: Blueprint },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        ref: 'node-ts-mongo@1',
+        name: 'node-ts-mongo',
+        majorVersion: 1,
+        language: 'typescript',
+        defaultPort: 3000,
+        healthPath: '/healthz',
+        schemaVersions: [1],
+        provides: { services: ['mongo'], authProviders: ['cwl', 'none'], ai: true },
+        starters: [
+          {
+            name: 'proof-app',
+            summary:
+              'CWL sign-in, a private note, and a question answered from your notes',
+          },
+        ],
+      },
+    },
     handler: async ({ deps, params }) => {
       const descriptor = deps.blueprints.resolve(params.blueprintRef)
       if (descriptor === undefined) {
@@ -71,6 +122,20 @@ export const blueprintRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The pack.', schema: KnowledgePack },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        blueprint: 'node-ts-mongo@1',
+        files: [
+          {
+            path: 'AGENTS.md',
+            mediaType: 'text/markdown',
+            sha256: '65c15d46fd344f1e2cf2bbea2727fc97e42504c78c88e5de5509127a2892a739',
+            content:
+              '# node-ts-mongo@1 — knowledge pack\n\nYou are generating an application from this blueprint. This file is the whole of\nwhat you need to know about the platform; it is served over the Manifest API\n(D25) alongside the blueprint itself.\n\n**The stack is fixed.** Node 22 on Alpine, Expr …',
+          },
+        ],
+      },
+    },
     handler: async ({ deps, params }) => {
       const pack = deps.blueprints.knowledgePack(params.blueprintRef)
       if (pack === undefined) {

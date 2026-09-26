@@ -233,6 +233,66 @@ export const releaseRoutes = [
       'RELEASE_BUILD_NOT_FOUND',
       'RELEASE_BUILD_NOT_DEPLOYABLE',
     ],
+    examples: {
+      request: { buildId: '5b083281-e96c-48ee-9dcc-6347ed5f087a' },
+      response: {
+        id: 'cc85411d-da69-4291-9ece-8db66e086109',
+        projectId: '760932a4-7e0f-42c8-bfe4-9ddc80c3cd16',
+        buildId: '5b083281-e96c-48ee-9dcc-6347ed5f087a',
+        appSpecId: 'b9a04952-9145-4912-a0e3-216305f6bae6',
+        imageDigest:
+          'sha256:1ffe125abe69cae1fe908d3c937a5ba3966dcf03867e7ae44edf21281f9df8c9',
+        summary: null,
+        createdBy: '438641c1-3d15-4c8a-b2dc-bca3da187db1',
+        createdAt: '2026-09-26T21:48:33.798Z',
+        scan: {
+          scanner: 'fake',
+          scannedAt: '2026-09-26T21:48:33.793Z',
+          databaseAgeDays: 0,
+          stale: false,
+          baseImageKnown: true,
+          fixable: { critical: 0, high: 0 },
+          unfixable: { critical: 0, high: 0 },
+          baseImage: { critical: 0, high: 0 },
+          unfixableFindings: [],
+        },
+        config: {
+          sandbox: {
+            port: 3000,
+            health: '/healthz',
+            resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+            services: [],
+            egressAllow: ['x.example.org'],
+            classification: 'internal',
+            auth: { provider: 'none', attributes: [] },
+            ai: { models: [] },
+            envNames: [],
+          },
+          staging: {
+            port: 3000,
+            health: '/healthz',
+            resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+            services: [],
+            egressAllow: ['x.example.org'],
+            classification: 'internal',
+            auth: { provider: 'none', attributes: [] },
+            ai: { models: [] },
+            envNames: [],
+          },
+          production: {
+            port: 3000,
+            health: '/healthz',
+            resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+            services: [],
+            egressAllow: ['x.example.org'],
+            classification: 'internal',
+            auth: { provider: 'none', attributes: [] },
+            ai: { models: [] },
+            envNames: [],
+          },
+        },
+      },
+    },
     handler: async ({ deps, actor, params, body }) => {
       await assertCapability(deps.db, actor, params.projectId, 'release:create')
       const [project] = await deps.db
@@ -307,6 +367,65 @@ export const releaseRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The release.', schema: Release },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        id: '43c8a96a-000d-41f1-9884-efb3db828883',
+        projectId: '62492871-47f1-4733-92e2-4ae75634cd53',
+        buildId: '1890d9d7-900a-4b9b-a2b4-e969f174e23f',
+        appSpecId: '9a08683a-39aa-43c6-8921-7d1960e8c6d4',
+        imageDigest:
+          'sha256:404a9e253752d77f41bd20ad14e09167c8f4ae6e3cd564f9b58af0b6eb73f329',
+        summary: null,
+        createdBy: '6320001f-7385-470b-a1dd-1214cd8af583',
+        createdAt: '2026-09-26T21:47:39.608Z',
+        scan: {
+          scanner: 'fake',
+          scannedAt: '2026-09-26T21:47:39.600Z',
+          databaseAgeDays: 0,
+          stale: false,
+          baseImageKnown: true,
+          fixable: { critical: 0, high: 0 },
+          unfixable: { critical: 0, high: 0 },
+          baseImage: { critical: 0, high: 0 },
+          unfixableFindings: [],
+        },
+        config: {
+          sandbox: {
+            port: 3000,
+            health: '/healthz',
+            resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+            services: [],
+            egressAllow: [],
+            classification: 'internal',
+            auth: { provider: 'none', attributes: [] },
+            ai: { models: [] },
+            envNames: ['COURSE_CODE'],
+          },
+          staging: {
+            port: 3000,
+            health: '/healthz',
+            resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+            services: [],
+            egressAllow: [],
+            classification: 'internal',
+            auth: { provider: 'none', attributes: [] },
+            ai: { models: [] },
+            envNames: ['COURSE_CODE'],
+          },
+          production: {
+            port: 3000,
+            health: '/healthz',
+            resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+            services: [],
+            egressAllow: [],
+            classification: 'internal',
+            auth: { provider: 'none', attributes: [] },
+            ai: { models: [] },
+            envNames: ['COURSE_CODE'],
+          },
+        },
+      },
+    },
     handler: async ({ deps, actor, params }) => {
       const joined = await releaseWithBuild(deps.db, params.releaseId)
       // The project comes from the release ROW, never from the request.
@@ -329,6 +448,124 @@ export const releaseRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The releases.', schema: ReleaseList },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: [
+        {
+          id: '5c0f405e-0aac-4b10-a75f-19bf38f60117',
+          projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+          buildId: 'd9152353-95cd-4f1c-9a4f-655b710b4d46',
+          appSpecId: 'ab95aadb-d8b8-4b78-83df-c8d9067af42b',
+          imageDigest:
+            'sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419',
+          summary: null,
+          createdBy: '39414511-6e5d-46e9-a47a-090166426ed3',
+          createdAt: '2026-09-26T21:51:54.496Z',
+          scan: {
+            scanner: 'fake',
+            scannedAt: '2026-09-26T21:51:47.638Z',
+            databaseAgeDays: 0,
+            stale: false,
+            baseImageKnown: true,
+            fixable: { critical: 0, high: 0 },
+            unfixable: { critical: 0, high: 0 },
+            baseImage: { critical: 0, high: 0 },
+            unfixableFindings: [],
+          },
+          config: {
+            sandbox: {
+              port: 3000,
+              health: '/healthz',
+              resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+              services: [],
+              egressAllow: [],
+              classification: 'internal',
+              auth: { provider: 'none', attributes: [] },
+              ai: { models: [] },
+              envNames: [],
+            },
+            staging: {
+              port: 3000,
+              health: '/healthz',
+              resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+              services: [],
+              egressAllow: [],
+              classification: 'internal',
+              auth: { provider: 'none', attributes: [] },
+              ai: { models: [] },
+              envNames: [],
+            },
+            production: {
+              port: 3000,
+              health: '/healthz',
+              resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+              services: [],
+              egressAllow: [],
+              classification: 'internal',
+              auth: { provider: 'none', attributes: [] },
+              ai: { models: [] },
+              envNames: [],
+            },
+          },
+        },
+        {
+          id: '9642a63a-14de-4d22-84e4-3736fb77f6ac',
+          projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+          buildId: 'd9152353-95cd-4f1c-9a4f-655b710b4d46',
+          appSpecId: 'ab95aadb-d8b8-4b78-83df-c8d9067af42b',
+          imageDigest:
+            'sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419',
+          summary: null,
+          createdBy: '39414511-6e5d-46e9-a47a-090166426ed3',
+          createdAt: '2026-09-26T21:51:54.487Z',
+          scan: {
+            scanner: 'fake',
+            scannedAt: '2026-09-26T21:51:47.638Z',
+            databaseAgeDays: 0,
+            stale: false,
+            baseImageKnown: true,
+            fixable: { critical: 0, high: 0 },
+            unfixable: { critical: 0, high: 0 },
+            baseImage: { critical: 0, high: 0 },
+            unfixableFindings: [],
+          },
+          config: {
+            sandbox: {
+              port: 3000,
+              health: '/healthz',
+              resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+              services: [],
+              egressAllow: [],
+              classification: 'internal',
+              auth: { provider: 'none', attributes: [] },
+              ai: { models: [] },
+              envNames: [],
+            },
+            staging: {
+              port: 3000,
+              health: '/healthz',
+              resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+              services: [],
+              egressAllow: [],
+              classification: 'internal',
+              auth: { provider: 'none', attributes: [] },
+              ai: { models: [] },
+              envNames: [],
+            },
+            production: {
+              port: 3000,
+              health: '/healthz',
+              resources: { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' },
+              services: [],
+              egressAllow: [],
+              classification: 'internal',
+              auth: { provider: 'none', attributes: [] },
+              ai: { models: [] },
+              envNames: [],
+            },
+          },
+        },
+      ],
+    },
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, 'project:read')
       const rows = await deps.db
@@ -374,6 +611,60 @@ export const releaseRoutes = [
       'APPROVAL_PREVIEW_EXPIRED',
       'APPROVAL_PREVIEW_STALE',
     ],
+    examples: {
+      request: {
+        reason: 'dropping mail is data minimisation',
+        previewId: '0df5bf80-218f-430f-9295-c6837256afca',
+      },
+      response: {
+        id: 'a5e8fc49-1e64-4cd0-a0e1-77512fdaf3b4',
+        releaseId: 'e04bcda9-e9e4-44b7-a5ec-b064498179c7',
+        projectId: '5a52e925-81ea-4fca-a517-cad1799a2cbb',
+        decision: 'approved',
+        decidedBy: '26628bdf-719c-4664-8a77-9e97a37e472a',
+        decidedByName: 'Platform Admin',
+        decidedAt: '2026-09-26T21:48:55.765Z',
+        imageDigest:
+          'sha256:538c34511aac0a6f2165a18cad074b6d342a54415d67ca6d00a000b020b7f937',
+        reason: 'dropping mail is data minimisation',
+        diff: {
+          imageDigest:
+            'sha256:538c34511aac0a6f2165a18cad074b6d342a54415d67ca6d00a000b020b7f937',
+          changes: [
+            {
+              path: 'auth.attributes',
+              from: 'mail, ubcEduCwlPuid',
+              to: 'ubcEduCwlPuid',
+              summary: 'no longer requests the mail attribute',
+            },
+          ],
+          services: [],
+          attributes: ['ubcEduCwlPuid'],
+          resources: { cpu: 0.5, memory: '512Mi', disk: '2Gi', pids: 256 },
+          summary: null,
+          summarySource: 'not-modelled',
+          summaryWithheldBecause: null,
+          summaryExposures: null,
+          baselineReleaseId: '781048e0-06c6-47f5-92d7-f4125ee53e6e',
+          sensitiveFields: ['auth.attributes'],
+          security: [
+            {
+              field: 'auth.attributes',
+              note: 'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA.',
+            },
+          ],
+          coverage:
+            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+          review: {
+            state: 'not_performed',
+            reviewer: 'none',
+            detail:
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+          },
+        },
+        previewId: '0df5bf80-218f-430f-9295-c6837256afca',
+      },
+    },
     handler: ({ deps, request, params, body }) =>
       decide(deps, request, params.releaseId, 'approved', body),
   }),
@@ -404,6 +695,60 @@ export const releaseRoutes = [
       'APPROVAL_PREVIEW_EXPIRED',
       'APPROVAL_PREVIEW_STALE',
     ],
+    examples: {
+      request: {
+        reason: 'withdrawn — the destination is not in the PIA',
+        previewId: '46109278-ffed-493e-8489-09e3b24c9be8',
+      },
+      response: {
+        id: '29c68784-e30b-4a94-b501-bc1e728dca81',
+        releaseId: '469a1136-582d-470f-8692-0e72223d3186',
+        projectId: '50cd1bf5-1343-46a7-9bf4-81bf56b87ceb',
+        decision: 'rejected',
+        decidedBy: '2ff7d194-783e-46f9-91f1-33a84281d966',
+        decidedByName: 'Platform Admin',
+        decidedAt: '2026-09-26T21:48:37.947Z',
+        imageDigest:
+          'sha256:c583f7d2b6553963268d6e547075e823616f5c07eab9b52c7b782b7e5c82cef5',
+        reason: 'withdrawn — the destination is not in the PIA',
+        diff: {
+          imageDigest:
+            'sha256:c583f7d2b6553963268d6e547075e823616f5c07eab9b52c7b782b7e5c82cef5',
+          changes: [
+            {
+              path: 'egress.allow',
+              from: 'none',
+              to: 'x.example.org',
+              summary: 'now allows x.example.org',
+            },
+          ],
+          services: [],
+          attributes: [],
+          resources: { cpu: 0.5, memory: '512Mi', disk: '2Gi', pids: 256 },
+          summary: null,
+          summarySource: 'unavailable',
+          summaryWithheldBecause: null,
+          summaryExposures: null,
+          baselineReleaseId: '17874d11-f772-4ab0-9ad2-a3dadaa1542c',
+          sensitiveFields: ['egress.allow'],
+          security: [
+            {
+              field: 'egress.allow',
+              note: 'The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”.',
+            },
+          ],
+          coverage:
+            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+          review: {
+            state: 'not_performed',
+            reviewer: 'none',
+            detail:
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+          },
+        },
+        previewId: '46109278-ffed-493e-8489-09e3b24c9be8',
+      },
+    },
     handler: ({ deps, request, params, body }) =>
       decide(deps, request, params.releaseId, 'rejected', body),
   }),
@@ -431,6 +776,54 @@ export const releaseRoutes = [
       // …and, on driver 2, a repository last read public is never handed over (Task 10).
       'SOURCE_REPOSITORY_PUBLIC',
     ],
+    examples: {
+      response: {
+        id: '0df5bf80-218f-430f-9295-c6837256afca',
+        releaseId: 'e04bcda9-e9e4-44b7-a5ec-b064498179c7',
+        projectId: '5a52e925-81ea-4fca-a517-cad1799a2cbb',
+        createdBy: '26628bdf-719c-4664-8a77-9e97a37e472a',
+        createdByName: 'Platform Admin',
+        createdAt: '2026-09-26T21:48:55.759Z',
+        expiresAt: '2026-09-26T22:18:55.759Z',
+        imageDigest:
+          'sha256:538c34511aac0a6f2165a18cad074b6d342a54415d67ca6d00a000b020b7f937',
+        diff: {
+          imageDigest:
+            'sha256:538c34511aac0a6f2165a18cad074b6d342a54415d67ca6d00a000b020b7f937',
+          changes: [
+            {
+              path: 'auth.attributes',
+              from: 'mail, ubcEduCwlPuid',
+              to: 'ubcEduCwlPuid',
+              summary: 'no longer requests the mail attribute',
+            },
+          ],
+          services: [],
+          attributes: ['ubcEduCwlPuid'],
+          resources: { cpu: 0.5, memory: '512Mi', disk: '2Gi', pids: 256 },
+          summary: null,
+          summarySource: 'not-modelled',
+          summaryWithheldBecause: null,
+          summaryExposures: null,
+          baselineReleaseId: '781048e0-06c6-47f5-92d7-f4125ee53e6e',
+          sensitiveFields: ['auth.attributes'],
+          security: [
+            {
+              field: 'auth.attributes',
+              note: 'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA.',
+            },
+          ],
+          coverage:
+            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+          review: {
+            state: 'not_performed',
+            reviewer: 'none',
+            detail:
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+          },
+        },
+      },
+    },
     handler: async ({ deps, request, params }) => {
       // requireSession FIRST, as `decide()`: a token learns nothing about which releases exist.
       const actor = requireSession(request)
@@ -461,6 +854,42 @@ export const releaseRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The preview.', schema: ApprovalPreview },
     errors: ['NOT_FOUND', 'FORBIDDEN', 'TOKEN_CREDENTIAL_REFUSED'],
+    examples: {
+      response: {
+        id: 'a08d1993-28bf-4378-a8d8-dfad2dccfc57',
+        releaseId: '8e4d08ba-37d8-4b96-8981-e6a13722e42f',
+        projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+        createdBy: '0a418b8c-6d32-4e9f-bc77-24765feebf3b',
+        createdByName: 'Platform Admin',
+        createdAt: '2026-09-26T21:51:48.171Z',
+        expiresAt: '2026-09-26T22:21:48.171Z',
+        imageDigest:
+          'sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419',
+        diff: {
+          imageDigest:
+            'sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419',
+          changes: [],
+          services: [],
+          attributes: [],
+          resources: { cpu: 0.5, memory: '512Mi', disk: '2Gi', pids: 256 },
+          summary: null,
+          summarySource: 'no-previous-release',
+          summaryWithheldBecause: null,
+          summaryExposures: null,
+          baselineReleaseId: null,
+          sensitiveFields: [],
+          security: [],
+          coverage:
+            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+          review: {
+            state: 'not_performed',
+            reviewer: 'none',
+            detail:
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+          },
+        },
+      },
+    },
     handler: async ({ deps, request, params }) => {
       const actor = requireSession(request)
       const joined = await approvableRelease(deps, actor, params.releaseId)
@@ -486,6 +915,44 @@ export const releaseRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The latest decision.', schema: Approval },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        id: '2e2862ae-a97d-4cfe-b1bd-f89515c4841a',
+        releaseId: '8e4d08ba-37d8-4b96-8981-e6a13722e42f',
+        projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
+        decision: 'approved',
+        decidedBy: '0a418b8c-6d32-4e9f-bc77-24765feebf3b',
+        decidedByName: 'Platform Admin',
+        decidedAt: '2026-09-26T21:51:48.180Z',
+        imageDigest:
+          'sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419',
+        reason: 'the authorization fixture needs a decision to read',
+        diff: {
+          imageDigest:
+            'sha256:381846aa0581a9b8a299a0789f2627a9da7491365a4a40625c74582f12b6d419',
+          changes: [],
+          services: [],
+          attributes: [],
+          resources: { cpu: 0.5, memory: '512Mi', disk: '2Gi', pids: 256 },
+          summary: null,
+          summarySource: 'no-previous-release',
+          summaryWithheldBecause: null,
+          summaryExposures: null,
+          baselineReleaseId: null,
+          sensitiveFields: [],
+          security: [],
+          coverage:
+            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+          review: {
+            state: 'not_performed',
+            reviewer: 'none',
+            detail:
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+          },
+        },
+        previewId: 'a08d1993-28bf-4378-a8d8-dfad2dccfc57',
+      },
+    },
     handler: async ({ deps, actor, params }) => {
       const joined = await releaseWithBuild(deps.db, params.releaseId)
       if (joined === undefined)
@@ -554,6 +1021,17 @@ export const releaseRoutes = [
       'RELEASE_MODEL_UNCLASSIFIED',
       'AI_BACKEND_UNAVAILABLE',
     ],
+    examples: {
+      request: { releaseId: '87155b5c-f7d8-4519-9042-cc5fa8e2d352' },
+      response: {
+        id: 'b0d088b9-183e-4138-bda0-a4939537a2b8',
+        environmentId: '669c357e-7857-45c2-8406-428079de4026',
+        releaseId: '87155b5c-f7d8-4519-9042-cc5fa8e2d352',
+        kind: 'web',
+        state: 'healthy',
+        lastSeenAt: '2026-09-26T21:47:31.749Z',
+      },
+    },
     handler: async ({ deps, actor, params, body }) => {
       const environment = await environmentById(deps.db, params.environmentId)
       // §13 and D24: promoting to production is a different decision from deploying to
@@ -628,6 +1106,27 @@ export const releaseRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The incidents.', schema: IncidentList },
     errors: ['NOT_FOUND'],
+    examples: {
+      response: {
+        environmentId: '4de1302a-e630-4fca-8d47-5c66d99bfdb8',
+        incidents: [
+          {
+            id: 'e6f321ab-9a68-49b6-98fd-fa9f0f9f9fbb',
+            instanceId: 'd5affadc-0751-4b8a-9af8-ae4351512916',
+            releaseId: '7ec58cd8-3dd3-4209-89a8-4c04596b2f5c',
+            exitReason: 'the platform reports the instance as failed',
+            logTail: 'starting chem-labs-staging-7ec58cd8-d5affadc',
+            failedCheck:
+              'health: GET /healthz on port 3000 — the driver reported the instance as failed',
+            diffSinceHealthy:
+              'This app has never been healthy in staging, so there is no working release to compare this one with.',
+            createdAt: '2026-09-26T21:47:38.803Z',
+            prompt:
+              'The application "chem-labs" failed to start in its staging environment.\n\nWhat the platform checked: health: GET /healthz on port 3000 — the driver reported the instance as failed\nHow it ended: the platform reports the instance as failed\n\nWhat changed since the last time it starte …',
+          },
+        ],
+      },
+    },
     handler: async ({ deps, actor, params }) => {
       const environment = await environmentReadableBy(
         deps.db,

@@ -63,11 +63,13 @@ export interface RouteDefinition<
   /** Codes this operation can answer beyond the ones every route can (document.ts). */
   errors: readonly ErrorCode[]
   /**
-   * WHAT A CALL LOOKS LIKE (the authoring API plan's Task 5): printed into the document as the
-   * request body's and the success response's `example` — a real answer, captured and
-   * shortened. Optional until Task 9 makes it required and parses each through its schema.
+   * WHAT A CALL LOOKS LIKE (the authoring API plan's Tasks 5 and 9): printed into the document as
+   * the request body's and the success response's `example` — a REAL answer, captured from the
+   * route's own tests and shortened (lists cut to two entries, long text cut), never invented.
+   * REQUIRED, and typed by the route's own schemas so `tsc` checks each; `docs.test.ts` parses each
+   * through them too, so an example that has drifted from its schema is red twice.
    */
-  examples?: { request?: unknown; response: unknown }
+  examples: { request?: z.input<B>; response: z.input<R> }
   /**
    * THIS ROUTE'S OWN BODY LIMIT, in bytes (the authoring API plan's Decision 11). Absent, a
    * route takes Fastify's 1 MiB default, which every route but `createCommit` keeps: a commit's

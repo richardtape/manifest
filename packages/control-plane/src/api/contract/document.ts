@@ -307,7 +307,7 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
               content: {
                 'application/json': {
                   schema: ref(requests, route.body, `${route.operationId}'s body`),
-                  ...(route.examples?.request === undefined
+                  ...(route.examples.request === undefined
                     ? {}
                     : { example: route.examples.request }),
                 },
@@ -325,9 +325,7 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
                 route.success.schema,
                 `${route.operationId}'s response`,
               ),
-              ...(route.examples === undefined
-                ? {}
-                : { example: route.examples.response }),
+              example: route.examples.response,
             },
           },
         },

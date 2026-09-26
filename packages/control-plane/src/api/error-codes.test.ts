@@ -42,6 +42,36 @@ async function sourceFiles(dir: string): Promise<string[]> {
 }
 
 /** The classes `toErrorResponse` answers as themselves. Everything else is INTERNAL. */
+/**
+ * AN OPERATION'S `examples` ARE WHAT IT ANSWERS, NOT WHAT IT THROWS (the authoring API plan's
+ * Task 9). `checkSlug`'s example is a captured `200` whose `reasons` carry `code: 'SLUG_RESERVED'`,
+ * and the literal scan below read it as a code the api layer throws (red, identically, on both
+ * of that sitting's runs). Each `examples: {…}` block is cut out before the scan — matching its
+ * braces outside string literals, because a shortened example's text can hold a lone brace.
+ */
+function withoutExamples(text: string): string {
+  let out = ''
+  let from = 0
+  for (;;) {
+    const at = text.indexOf('examples: {', from)
+    if (at === -1) return out + text.slice(from)
+    out += text.slice(from, at)
+    let depth = 0
+    let quote: string | undefined
+    let i = text.indexOf('{', at)
+    for (; i < text.length; i++) {
+      const c = text[i]!
+      if (quote !== undefined) {
+        if (c === '\\') i++
+        else if (c === quote) quote = undefined
+      } else if (c === "'" || c === '"' || c === '`') quote = c
+      else if (c === '{' || c === '[') depth++
+      else if ((c === '}' || c === ']') && --depth === 0) break
+    }
+    from = i + 1
+  }
+}
+
 const WIRE_CLASSES = [
   'AuthorizationError',
   'BadRequestError',
@@ -81,9 +111,10 @@ async function thrown(): Promise<Map<string, Set<ErrorFamily>>> {
      */
     const withinApi = relative(SRC, file).split(sep)[0] === 'api'
     if (withinApi && !file.endsWith(`${sep}authz-contract.ts`)) {
-      for (const m of text.matchAll(/readonly code = '([A-Z][A-Z0-9_]+)'/g))
+      const answers = withoutExamples(text)
+      for (const m of answers.matchAll(/readonly code = '([A-Z][A-Z0-9_]+)'/g))
         add(m[1]!, 'api')
-      for (const m of text.matchAll(/\bcode: '([A-Z][A-Z0-9_]+)'/g)) add(m[1]!, 'api')
+      for (const m of answers.matchAll(/\bcode: '([A-Z][A-Z0-9_]+)'/g)) add(m[1]!, 'api')
     }
   }
   for (const code of Object.values(AI_CODES)) add(code, 'AiError')

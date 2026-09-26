@@ -48,6 +48,10 @@ function probeFor(capability: Capability, suffix: string) {
     body: ProbeBody,
     success: { status: 201, description: 'probe', schema: Probe },
     errors: [],
+    examples: {
+      request: { reason: 'probe' },
+      response: { id: '6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f' },
+    },
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, capability)
       return { id: randomUUID() }

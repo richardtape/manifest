@@ -19,6 +19,15 @@ export const meRoutes = [
     body: NO_BODY,
     success: { status: 200, description: 'The person.', schema: Me },
     errors: ['TOKEN_CREDENTIAL_REFUSED'],
+    examples: {
+      response: {
+        id: '30d15229-d64b-4740-8d3e-9ef1f21650ab',
+        puid: 'unrelated_user',
+        displayName: 'Unrelated User',
+        email: 'unrelated_user@example.ubc.ca',
+        role: 'member',
+      },
+    },
     handler: async ({ deps, request }) => {
       // A `Me` carries `platformRole`, and a token has none by Decision 4 — not
       // "member", NONE. Answering a default here would be inventing an authority

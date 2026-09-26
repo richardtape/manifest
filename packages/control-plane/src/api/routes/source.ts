@@ -33,6 +33,7 @@ import {
   CommitList,
   CommitOutcome,
   CommitSha,
+  CommitSummary,
   CreateCommitRequest,
   Ref,
   SourceFile,
@@ -194,7 +195,7 @@ const HEAD_SUMMARY = {
   authorName: "Ada Lovelace (via token 'claude-code')",
   authoredAt: '2026-09-26T06:23:51.000Z',
   madeThrough: { kind: 'agent', name: 'Ada Lovelace', tokenName: 'claude-code' },
-}
+} satisfies z.input<typeof CommitSummary>
 
 /**
  * `createCommit`'s example — the answer captured through the route (sitting 4), with its ids
@@ -222,6 +223,9 @@ const COMMIT_EXAMPLES = {
       sensitiveDiff: { sensitive: false, fields: [] },
     },
   },
+} satisfies {
+  request: z.input<typeof CreateCommitRequest>
+  response: z.input<typeof CommitOutcome>
 }
 
 /**
