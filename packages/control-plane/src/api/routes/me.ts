@@ -7,6 +7,7 @@ import { Me, toMe } from '../representations/me.js'
 export const meRoutes = [
   defineRoute({
     operationId: 'getMe',
+    credential: 'session',
     method: 'GET',
     path: '/v1/me',
     tag: 'identity',

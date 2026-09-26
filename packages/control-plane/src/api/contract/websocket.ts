@@ -1,4 +1,7 @@
 import {
+  EVENT_DETAIL_SCHEMAS,
+  EVENT_TYPES,
+  EXAMPLE_DETAILS,
   MAX_BUFFERED_BYTES,
   REPLAY_LIMIT,
   STREAM_READY,
@@ -40,11 +43,12 @@ export function streamPathItem(): Record<string, unknown> {
       tags: ['events'],
       summary: 'The project’s event stream (WebSocket)',
       description:
-        'Upgrade to a WebSocket. Builds, their log lines, instance state transitions, incidents and every other audit event for this project, as StreamFrames: the newest events first as a replay, then the ready frame, then live. A session-bearing upgrade must carry Origin (§20). A plain GET answers 426.',
+        'Upgrade to a WebSocket. Builds, their log lines, instance state transitions, incidents and every other audit event for this project, as StreamFrames: the newest events first as a replay, then the ready frame, then live. A session-bearing upgrade must carry Origin (§20); a delegated token of this project may read it too. A plain GET answers 426. `x-manifest-event-types` lists every event type with what it means and an example of its `machineDetail`.',
       parameters: [
         {
           name: 'projectId',
           in: 'path',
+          description: 'The project whose events to stream (`listProjects`).',
           required: true,
           schema: { type: 'string', format: 'uuid' },
         },
@@ -65,6 +69,17 @@ export function streamPathItem(): Record<string, unknown> {
         },
       },
       'x-manifest-error-codes': STREAM_ERROR_CODES,
+      /**
+       * EVERY EVENT TYPE, WHAT IT MEANS, AND AN EXAMPLE (the authoring API plan's Task 9) — in the
+       * order `EVENT_TYPES` lists them. The description is the type's own `.describe()` in
+       * `observability/event-schemas.ts` and the example its `EXAMPLE_DETAILS` entry, which
+       * `api/contract/docs.test.ts` parses through its schema: one source for each, published.
+       */
+      'x-manifest-event-types': EVENT_TYPES.map((type) => ({
+        type,
+        description: EVENT_DETAIL_SCHEMAS[type].description,
+        example: EXAMPLE_DETAILS[type],
+      })),
       'x-manifest-websocket': {
         frame: ref(representations, StreamFrame, 'the stream’s frame'),
         replay: REPLAY_LIMIT,

@@ -7,6 +7,7 @@ import { Fleet, toFleet } from '../representations/fleet.js'
 export const fleetRoutes = [
   defineRoute({
     operationId: 'listFleet',
+    credential: 'session',
     method: 'GET',
     path: '/v1/fleet',
     tag: 'administration',

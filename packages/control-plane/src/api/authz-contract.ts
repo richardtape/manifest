@@ -13,6 +13,8 @@ import { fingerprintOf, recordPendingAction } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { loginAs, mutationHeaders, projectBody } from './testing.js'
 import type { ErrorCode } from './error-codes.js'
+import { fastifyPath } from './contract/route.js'
+import { ROUTE_DEFINITIONS } from './routes/index.js'
 
 /** A person in a browser. Five, because §16 names five. */
 type SessionActor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
@@ -1943,6 +1945,45 @@ export function describeAuthorizationContract(
     afterAll(async () => {
       await deps.builds.idle()
       await resetDatabase()
+    })
+
+    /**
+     * THE DOCUMENT'S SESSION-ONLY OPERATIONS ARE EXACTLY THE ONES THIS TABLE REFUSES EVERY TOKEN
+     * FOR ITS CREDENTIAL CLASS (the authoring API plan's Task 9, F17). A route's `credential:
+     * 'session'` is what the OpenAPI document prints as its `security`, and what the wrapper
+     * refuses a token on; this table is what a token is actually answered. Declared and not
+     * refused would be a document that lies to an agent; refused and not declared, one that
+     * says nothing — which is how the document said nothing about tokens at all until then. A
+     * route refused only in SOME of its cases (production) is not session-only: its description
+     * says when.
+     */
+    it('declares `credential: session` on exactly the routes every token actor is refused TOKEN_CREDENTIAL_REFUSED', () => {
+      const alwaysRefused = new Map<string, boolean>()
+      for (const route of ROUTES) {
+        const key = `${route.method} ${route.url}`
+        const refused = TOKEN_ACTORS.every((actor) => {
+          const expected = route.expect[actor]
+          return (
+            typeof expected === 'object' && expected.code === 'TOKEN_CREDENTIAL_REFUSED'
+          )
+        })
+        alwaysRefused.set(key, (alwaysRefused.get(key) ?? true) && refused)
+      }
+      const keyOf = (route: (typeof ROUTE_DEFINITIONS)[number]) =>
+        `${route.method} ${fastifyPath(route.path)}`
+      const declared = ROUTE_DEFINITIONS.filter((r) => r.credential === 'session')
+        .map(keyOf)
+        .sort()
+      const measured = ROUTE_DEFINITIONS.filter(
+        (r) => alwaysRefused.get(keyOf(r)) === true,
+      )
+        .map(keyOf)
+        .sort()
+      expect(
+        measured.length,
+        'the table refuses some route to every token',
+      ).toBeGreaterThan(0)
+      expect(declared).toEqual(measured)
     })
 
     // The drift guard. A route added without an entry here fails the build.

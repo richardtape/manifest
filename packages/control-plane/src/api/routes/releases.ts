@@ -340,6 +340,7 @@ export const releaseRoutes = [
   }),
   defineRoute({
     operationId: 'approveRelease',
+    credential: 'session',
     method: 'POST',
     path: '/v1/releases/{releaseId}/approve',
     tag: 'delivery',
@@ -375,6 +376,7 @@ export const releaseRoutes = [
   }),
   defineRoute({
     operationId: 'rejectRelease',
+    credential: 'session',
     method: 'POST',
     path: '/v1/releases/{releaseId}/reject',
     tag: 'delivery',
@@ -404,6 +406,7 @@ export const releaseRoutes = [
   }),
   defineRoute({
     operationId: 'createApprovalPreview',
+    credential: 'session',
     method: 'POST',
     path: '/v1/releases/{releaseId}/approval-preview',
     tag: 'delivery',
@@ -443,6 +446,7 @@ export const releaseRoutes = [
   }),
   defineRoute({
     operationId: 'getApprovalPreview',
+    credential: 'session',
     method: 'GET',
     path: '/v1/releases/{releaseId}/approval-previews/{previewId}',
     tag: 'delivery',

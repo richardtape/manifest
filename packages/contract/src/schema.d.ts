@@ -449,7 +449,7 @@ export interface paths {
         };
         /**
          * The project’s event stream (WebSocket)
-         * @description Upgrade to a WebSocket. Builds, their log lines, instance state transitions, incidents and every other audit event for this project, as StreamFrames: the newest events first as a replay, then the ready frame, then live. A session-bearing upgrade must carry Origin (§20). A plain GET answers 426.
+         * @description Upgrade to a WebSocket. Builds, their log lines, instance state transitions, incidents and every other audit event for this project, as StreamFrames: the newest events first as a replay, then the ready frame, then live. A session-bearing upgrade must carry Origin (§20); a delegated token of this project may read it too. A plain GET answers 426. `x-manifest-event-types` lists every event type with what it means and an example of its `machineDetail`.
          */
         get: operations["streamProjectEvents"];
         put?: never;
@@ -1251,12 +1251,22 @@ export interface components {
         };
         /** @description Ends the replay: everything after it is live. */
         ControlFrame: {
-            /** @constant */
+            /**
+             * @description A message about the stream itself.
+             * @constant
+             */
             kind: "control";
+            /** @description An id for this message; opaque. */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the stream is for.
+             */
             projectId: string;
-            /** @constant */
+            /**
+             * @description The replay is over: every message after this one is live.
+             * @constant
+             */
             type: "manifest.stream.ready";
         };
         CreateCommitRequest: {
@@ -1328,6 +1338,7 @@ export interface components {
             /** Format: uuid */
             releaseId: string;
         };
+        /** @description A mutation that takes no fields still sends a JSON object: `{}`, with `Content-Type: application/json`. */
         EmptyRequest: Record<string, never>;
         Environment: {
             /** Format: uuid */
@@ -1345,7 +1356,7 @@ export interface components {
         };
         EnvironmentList: components["schemas"]["Environment"][];
         /**
-         * @description Every code the API answers with (api/error-codes.ts). Stable: a client switches on it (§20).
+         * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
         ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
@@ -1365,937 +1376,1675 @@ export interface components {
         };
         /** @description An audit Event, as recorded (§20) and redacted at capture (§14). Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect. */
         EventFrame: {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "sso.registered";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description The app’s SAML Service Provider registration with the identity provider was written for one environment (§9). */
             machineDetail: {
+                /** @description The app’s SAML entity id in this environment (§9). */
                 entityId: string;
+                /** @description Where the identity provider sends its assertions. */
                 acsUrl: string;
+                /** @description The CWL attributes the identity provider releases to the app. */
                 attributes: string[];
+                /** @description The SHA-256 fingerprint of the app’s SAML signing certificate. */
                 certificateFingerprint: string;
+                /** @description Whether the registration differs from the one before; false when it was written again unchanged. */
                 changed: boolean;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "sso.acs_changed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description Where the app receives CWL sign-in assertions moved (§9). Worth a person’s attention: it is where a sign-in is sent. */
             machineDetail: {
+                /** @description Where assertions were sent before; null for a first registration. */
                 from: string | null;
+                /** @description Where they are sent now. */
                 to: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "build.started";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A build began (§14). Its log lines follow on the stream as LogFrames, and `build.succeeded` or `build.failed` ends it. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The build (`getBuild`); its log streams after this event.
+                 */
                 buildId: string;
+                /** @description A full 40-character commit id. */
                 commitSha: string;
+                /** @description The blueprint it is built with, `name@major` (§25). */
                 blueprintRef: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "build.succeeded";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A build finished and passed every gate (§12); create a release from it next. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The build (`getBuild`).
+                 */
                 buildId: string;
+                /** @description The image’s content digest, `sha256:…` — what a release freezes. */
                 imageDigest: string | null;
+                /** @description Where the image is stored in the platform’s registry. */
                 imageRepository: string | null;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "build.failed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A build failed. `reason` says why, and `getBuildLog` has the whole output to correct it from. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The build (`getBuild`); `getBuildLog` has its whole output.
+                 */
                 buildId: string;
+                /** @description A stable code for the failure when there is one; null for a failure with no code. */
                 code: string | null;
                 /** @description Redacted at capture (§14). For the agent; the human message is for a person. */
                 reason: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "instance.provisioning";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A deploy made an instance and is binding its services — the first step of a deploy (§11). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The instance (`listInstances`).
+                 */
                 instanceId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The release it runs (`getRelease`).
+                 */
                 releaseId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description Its environment (`getEnvironment`).
+                 */
                 environmentId: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
-                /** @enum {string} */
+                /**
+                 * @description The state the instance moved to (§11).
+                 * @enum {string}
+                 */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "instance.starting";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description The instance’s services are bound and the runtime is starting it, beside the one already serving (§11). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The instance (`listInstances`).
+                 */
                 instanceId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The release it runs (`getRelease`).
+                 */
                 releaseId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description Its environment (`getEnvironment`).
+                 */
                 environmentId: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
-                /** @enum {string} */
+                /**
+                 * @description The state the instance moved to (§11).
+                 * @enum {string}
+                 */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "instance.healthy";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description The instance passed its health check and now serves the environment; a deploy has succeeded (§11). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The instance (`listInstances`).
+                 */
                 instanceId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The release it runs (`getRelease`).
+                 */
                 releaseId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description Its environment (`getEnvironment`).
+                 */
                 environmentId: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
-                /** @enum {string} */
+                /**
+                 * @description The state the instance moved to (§11).
+                 * @enum {string}
+                 */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "instance.failed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description The instance never became healthy — whatever was already serving keeps serving — and an Incident records why (§11, §14). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The instance (`listInstances`).
+                 */
                 instanceId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The release it runs (`getRelease`).
+                 */
                 releaseId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description Its environment (`getEnvironment`).
+                 */
                 environmentId: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
-                /** @enum {string} */
+                /**
+                 * @description The state the instance moved to (§11).
+                 * @enum {string}
+                 */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
+                /** @description Which check it failed, and how — the health check, and what it answered. */
                 failedCheck: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "incident.opened";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description An Incident was recorded for a failed instance (§14): its logs, redacted, and a prompt an agent can work from. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The Incident (`listIncidents`).
+                 */
                 incidentId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The instance that failed.
+                 */
                 instanceId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The release it ran.
+                 */
                 releaseId: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "ai.key_rotated";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description The app’s AI key was replaced by a deploy that became healthy (§10). The key itself is never in an event. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The instance the key was issued to.
+                 */
                 instanceId: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
+                /** @description The logical models the new key reaches. */
                 models: string[];
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "instance.retiring";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description An instance a deploy replaced is finishing the requests it already had, before it stops (§11). */
             machineDetail: {
+                /** @description The instance being retired; null for a container no instance row names any more, which `handle` then names. */
                 instanceId: string | null;
+                /** @description The runtime’s own name for the container — what an operator would look for. */
                 handle: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
+                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops (§11). */
                 drainMs: number;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "instance.retired";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A replaced instance finished: its container is gone and its AI key is revoked (§11). */
             machineDetail: {
+                /** @description The instance being retired; null for a container no instance row names any more, which `handle` then names. */
                 instanceId: string | null;
+                /** @description The runtime’s own name for the container — what an operator would look for. */
                 handle: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
+                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops (§11). */
                 drainMs: number;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "instance.retire_failed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A replaced instance could not be retired, and will be tried again — never silently (§11). */
             machineDetail: {
+                /** @description The instance being retired; null for a container no instance row names any more, which `handle` then names. */
                 instanceId: string | null;
+                /** @description The runtime’s own name for the container — what an operator would look for. */
                 handle: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environment: "sandbox" | "staging" | "production";
+                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops (§11). */
                 drainMs: number;
                 /** @description A code or an error class name — never a message (§14). */
                 error: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "project.created";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A project and its three environments were created (§22). `repository.seeded` and `spec.validated` follow. */
             machineDetail: {
+                /** @description The project’s name (§23). */
                 slug: string;
+                /** @description Its blueprint, `name@major` (§25). */
                 blueprint: string;
+                /** @description The starter it was seeded from; null for the skeleton alone. */
                 starter: string | null;
+                /** @description Who the app is for, as its owner answered at creation (§24). */
                 audience: {
-                    /** @enum {string} */
+                    /**
+                     * @description §24: how many people the app is for.
+                     * @enum {string}
+                     */
                     scale: "solo" | "class" | "large_course" | "public";
-                    /** @enum {string} */
+                    /**
+                     * @description §24: whether they arrive steadily or all at once.
+                     * @enum {string}
+                     */
                     burst: "steady" | "synchronised";
                 };
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "repository.seeded";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description The project’s repository was created and its first commit made, from the blueprint’s skeleton and starter (§25). */
             machineDetail: {
+                /** @description A full 40-character commit id. */
                 commitSha: string;
+                /** @description How many files the first commit holds. */
                 files: number;
+                /** @description The starter laid over the skeleton; null for the skeleton alone. */
                 starter: string | null;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "spec.validated";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not (§7). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The recorded validation (`getSpec` reads the newest).
+                 */
                 appSpecId: string;
+                /** @description A full 40-character commit id. */
                 commitSha: string;
+                /** @description Whether manifest.yaml at that commit is valid. */
                 valid: boolean;
+                /** @description How many errors it has; 0 when it is valid. */
                 errorCount: number;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "token.minted";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A person minted a delegated token for this project (D24). Never carries the token or its hash. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The token (`listTokens`).
+                 */
                 tokenId: string;
+                /** @description What it may do (D24). */
                 capabilities: string[];
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description When it stops working, in UTC.
+                 */
                 expiresAt: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "pending_action.created";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A delegated token asked for one of D24’s privileged actions, and a person must confirm or reject it in the console. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The question (`getPendingAction`).
+                 */
                 pendingActionId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The token that asked.
+                 */
                 tokenId: string;
+                /** @description The privileged capability it asked to use (D24). */
                 action: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "pending_action.confirmed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A person confirmed a token’s pending action, which grants that one request exactly one retry (D24). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The question (`getPendingAction`).
+                 */
                 pendingActionId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The token that asked.
+                 */
                 tokenId: string;
+                /** @description The privileged capability it asked to use (D24). */
                 action: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The person who confirmed it.
+                 */
                 resolvedBy: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "pending_action.rejected";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED` (D24). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The question (`getPendingAction`).
+                 */
                 pendingActionId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The token that asked.
+                 */
                 tokenId: string;
+                /** @description The privileged capability it asked to use (D24). */
                 action: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The person who rejected it.
+                 */
                 resolvedBy: string;
+                /** @description Why, in their own words — what the agent is told. */
                 reason: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "iam_registration.recorded";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description An administrator recorded what UBC IAM registered for the app’s production sign-in (§9). */
             machineDetail: {
-                /** @enum {string} */
+                /**
+                 * @description The registration’s state, as UBC IAM gave it (§9).
+                 * @enum {string}
+                 */
                 state: "draft" | "submitted" | "active" | "change_requested" | "expired";
+                /** @description The production entity id registered. */
                 entityId: string;
+                /** @description UBC IAM’s own reference for the request; null when none was given. */
                 externalTicketRef: string | null;
+                /** @description How many attributes are registered; `getLaunchRecords` lists them. */
                 attributeCount: number;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "privacy_assessment.recorded";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment (§9). */
             machineDetail: {
-                /** @enum {string} */
+                /**
+                 * @description The assessment’s state, as the Privacy Office gave it (§9).
+                 * @enum {string}
+                 */
                 state: "draft" | "submitted" | "approved";
+                /** @description The Privacy Office’s own reference; null when none was given. */
                 externalTicketRef: string | null;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "rehearsal.completed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The rehearsal (`getLaunchReadiness` reads the newest).
+                 */
                 rehearsalId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The candidate release rehearsed.
+                 */
                 releaseId: string;
+                /** @description Whether the production-shaped sign-in worked. */
                 passed: boolean;
+                /** @description How many attributes the sign-in released. */
                 attributeCount: number;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "release.approved";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description An administrator approved a release for production, bound to the image digest it froze (§13). */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The release decided on (`getApproval` has the whole decision).
+                 */
                 releaseId: string;
+                /** @description The first 19 characters of the image digest decided on — recognisable, and never mistaken for the binding itself. */
                 imageDigest: string;
-                /** @enum {string} */
+                /**
+                 * @description What the administrator decided.
+                 * @enum {string}
+                 */
                 decision: "approved" | "rejected";
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "release.approval_rejected";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description An administrator rejected a release for production, which is final for that release (§13); the sentence carries their reason. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The release decided on (`getApproval` has the whole decision).
+                 */
                 releaseId: string;
+                /** @description The first 19 characters of the image digest decided on — recognisable, and never mistaken for the binding itself. */
                 imageDigest: string;
-                /** @enum {string} */
+                /**
+                 * @description What the administrator decided.
+                 * @enum {string}
+                 */
                 decision: "approved" | "rejected";
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "project.launched";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description The app’s first production launch became healthy (§13 D9). Published once per project, ever. */
             machineDetail: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The release that launched it.
+                 */
                 releaseId: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The production instance that became healthy.
+                 */
                 instanceId: string;
                 /** @description The first 19 characters — recognisable, and never mistaken for the binding. */
                 imageDigest: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "repository.pushed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A branch moved on GitHub and Manifest’s copy took it (D5). Commit ids only — never an author or a message. */
             machineDetail: {
+                /** @description The branch, as git names it: `refs/heads/main`. */
                 ref: string;
+                /** @description Where the branch was; null for a branch that appeared. */
                 from: string | null;
+                /** @description Where it is now. */
                 to: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "repository.history_rewritten";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next (§13). */
             machineDetail: {
+                /** @description The branch, as git names it: `refs/heads/main`. */
                 ref: string;
+                /** @description What Manifest kept — the history an approved release may name. */
                 mirror: string;
+                /** @description What GitHub has now. */
                 upstream: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "repository.visibility_enforced";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description The repository was found public on GitHub, and was made private again or could not be (§20). */
             machineDetail: {
-                /** @constant */
+                /**
+                 * @description What the repository was found to be on GitHub.
+                 * @constant
+                 */
                 observed: "public";
-                /** @enum {string} */
+                /**
+                 * @description `private` when Manifest made it private again; `still-public` when it could not, and nothing is built from it until it is private.
+                 * @enum {string}
+                 */
                 result: "private" | "still-public";
+                /** @description Manifest’s own sentence about what happened. */
                 detail: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "repository.secret_detected";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A commit pushed to GitHub adds a value shaped like a secret (§20). Never the value; the commit is never deployed with it. */
             machineDetail: {
+                /** @description The commit that added the value. */
                 commit: string;
+                /** @description Where each value is, and what kind — at most 50. */
                 findings: {
+                    /** @description The file, from the repository root. */
                     path: string;
+                    /** @description The line, counting from 1. */
                     line: number;
+                    /** @description Which kind of secret it looks like — `an AWS access key id`. Never the value. */
                     rule: string;
                 }[];
+                /** @description True when there were more than 50. */
                 truncated: boolean;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "repository.protection_unavailable";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description GitHub would not protect the new repository’s `main`, so a person can rewrite or delete it there; `getProject`’s repository says so too. */
             machineDetail: {
+                /** @description The branch, as git names it: `refs/heads/main`. */
                 ref: string;
+                /** @description Manifest’s own sentence about why. */
                 detail: string;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "repository.committed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A commit was made through Manifest’s API (`createCommit`) — the platform’s own record of who made it, which `listCommits` reads as `madeThrough`. */
             machineDetail: {
+                /** @description The commit made. */
                 commitSha: string;
+                /** @description The commit it was made on — the request’s `baseCommit`. */
                 parent: string;
+                /** @description How many files it added. */
                 added: number;
+                /** @description How many files it changed. */
                 modified: number;
+                /** @description How many files it deleted. */
                 deleted: number;
-                /** @enum {string} */
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
                 via: "session" | "token";
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
                 userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
                 tokenId: string | null;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "repository.secret_refused";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A commit Manifest was asked to make carried a value shaped like a secret, and was refused (§20). Never the value. */
             machineDetail: {
+                /** @description Where each value was, and what kind. */
                 findings: {
+                    /** @description The file, from the repository root. */
                     path: string;
+                    /** @description The line, counting from 1. */
                     line: number;
+                    /** @description Which kind of secret it looks like — `an AWS access key id`. Never the value. */
                     rule: string;
                 }[];
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "app_secret.set";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A value was set for one of the app’s secrets in one environment; the next deploy there renders it. Never the value. */
             machineDetail: {
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environmentKind: "sandbox" | "staging" | "production";
+                /** @description The secret’s name, as manifest.yaml declares it. Never its value. */
                 name: string;
-                /** @enum {string} */
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
                 via: "session" | "token";
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
                 userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
                 tokenId: string | null;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         } | {
-            /** @constant */
+            /**
+             * @description An audit event.
+             * @constant
+             */
             kind: "event";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
             projectId: string;
             /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
             subject: string;
-            /** @constant */
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "app_secret.cleared";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
+            /** @description A secret’s value was removed from one environment; deploying a release that declares it there is refused until it is set again. */
             machineDetail: {
-                /** @enum {string} */
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
                 environmentKind: "sandbox" | "staging" | "production";
+                /** @description The secret’s name, as manifest.yaml declares it. Never its value. */
                 name: string;
-                /** @enum {string} */
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
                 via: "session" | "token";
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
                 userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
                 tokenId: string | null;
             };
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
         };
@@ -2447,34 +3196,50 @@ export interface components {
         };
         /** @description One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all. */
         LogFrame: {
-            /** @constant */
+            /**
+             * @description A line of a build’s output.
+             * @constant
+             */
             kind: "log";
             /** @description `<buildId>:<seq>`. */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project the build belongs to.
+             */
             projectId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The build writing it (`getBuild`).
+             */
             buildId: string;
+            /** @description Its position in the build’s log, from 0 — `getBuildLog` answers the same numbers. */
             seq: number;
-            /** @enum {string} */
+            /**
+             * @description Which of the build’s outputs wrote it.
+             * @enum {string}
+             */
             stream: "stdout" | "stderr";
             /** @description Redacted at capture (§14). */
             text: string;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was written.
              */
             createdAt: string;
         };
+        /** @description One thing wrong with manifest.yaml (§7, §25), inside `details` of a `422 SPEC_INVALID` or a spec validation. Switch on `code`; show `message` and `hint` to a person. */
         ManifestError: {
             code: components["schemas"]["ManifestErrorCode"];
             /** @description Where in manifest.yaml, dotted: `services.0.type`. */
             path: string;
+            /** @description What is wrong at `path`, naming the value — for a person to read. */
             message: string;
+            /** @description How to correct it, when there is one sentence to say: the permitted values, or the setting to ask about. */
             hint?: string;
         };
         /**
-         * @description A code inside `details`: §7 schema, §7 policy, or §25 blueprint compatibility.
+         * @description A code inside `details` of a `422 SPEC_INVALID`: a breach of §7’s schema or policy, or of §25’s blueprint compatibility. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-spec-errors` its remedy.
          * @enum {string}
          */
         ManifestErrorCode: "BLUEPRINT_AI_UNSUPPORTED" | "BLUEPRINT_AUTH_UNSUPPORTED" | "BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED" | "BLUEPRINT_SERVICE_UNSUPPORTED" | "SPEC_AI_BUDGET_REQUIRED" | "SPEC_AI_DISABLED" | "SPEC_ATTRIBUTE_NOT_REGISTERED" | "SPEC_ATTRIBUTE_NOT_WHITELISTED" | "SPEC_BLUEPRINT_NOT_PINNED" | "SPEC_BUILD_BLOCK_FORBIDDEN" | "SPEC_ENV_NAME_RESERVED" | "SPEC_INVALID_BLUEPRINT_REF" | "SPEC_INVALID_SLUG" | "SPEC_INVALID_VALUE" | "SPEC_MODEL_CLASSIFICATION_TOO_LOW" | "SPEC_MODEL_UNCLASSIFIED" | "SPEC_MODEL_UNKNOWN" | "SPEC_NAME_SLUG_MISMATCH" | "SPEC_PATH_EXPECTED" | "SPEC_QUOTA_EXCEEDED" | "SPEC_RESERVED_BLOCK_NOT_EMPTY" | "SPEC_SERVICE_TYPE_UNKNOWN" | "SPEC_UNKNOWN_KEY" | "SPEC_YAML_PARSE_FAILED";
@@ -2960,7 +3725,7 @@ export interface operations {
                     "application/json": components["schemas"]["BlueprintList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2991,7 +3756,7 @@ export interface operations {
                     "application/json": components["schemas"]["Blueprint"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3022,7 +3787,7 @@ export interface operations {
                     "application/json": components["schemas"]["KnowledgePack"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3053,7 +3818,7 @@ export interface operations {
                     "application/json": components["schemas"]["Build"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3087,7 +3852,7 @@ export interface operations {
                     "application/json": components["schemas"]["BuildLog"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3118,7 +3883,7 @@ export interface operations {
                     "application/json": components["schemas"]["Environment"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3156,7 +3921,7 @@ export interface operations {
                     "application/json": components["schemas"]["Instance"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3187,7 +3952,7 @@ export interface operations {
                     "application/json": components["schemas"]["IncidentList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3239,7 +4004,7 @@ export interface operations {
                     "application/json": components["schemas"]["AppSecretList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3293,7 +4058,7 @@ export interface operations {
                     "application/json": components["schemas"]["AppSecretStatus"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3338,7 +4103,7 @@ export interface operations {
                     "application/json": components["schemas"]["AppSecretStatus"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3367,7 +4132,7 @@ export interface operations {
                     "application/json": components["schemas"]["Fleet"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3396,7 +4161,7 @@ export interface operations {
                     "application/json": components["schemas"]["Me"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3427,7 +4192,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3465,7 +4230,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3503,7 +4268,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3532,7 +4297,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProjectList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3568,7 +4333,7 @@ export interface operations {
                     "application/json": components["schemas"]["CreatedProject"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GITHUB_REFUSED, SOURCE_GIT_FAILED, SOURCE_REPOSITORY_EXISTS, SOURCE_REPOSITORY_NOT_PRIVATE, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GITHUB_REFUSED, SOURCE_GIT_FAILED, SOURCE_REPOSITORY_EXISTS, SOURCE_REPOSITORY_NOT_PRIVATE, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3601,7 +4366,7 @@ export interface operations {
                     "application/json": components["schemas"]["Project"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3632,7 +4397,7 @@ export interface operations {
                     "application/json": components["schemas"]["BuildList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3670,7 +4435,7 @@ export interface operations {
                     "application/json": components["schemas"]["Build"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, SOURCE_UNREACHABLE, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, SOURCE_UNREACHABLE, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3749,7 +4514,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommitList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3821,7 +4586,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommitOutcome"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_CONFLICT, SOURCE_GIT_FAILED, SOURCE_NOTHING_TO_COMMIT, SOURCE_PATH_CONFLICT, SOURCE_PATH_ESCAPE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, SPEC_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_CONFLICT, SOURCE_GIT_FAILED, SOURCE_NOTHING_TO_COMMIT, SOURCE_PATH_CONFLICT, SOURCE_PATH_ESCAPE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, SPEC_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3884,7 +4649,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommitDetail"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3915,7 +4680,7 @@ export interface operations {
                     "application/json": components["schemas"]["EnvironmentList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3931,6 +4696,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project whose events to stream (`listProjects`). */
                 projectId: string;
             };
             cookie?: never;
@@ -4001,7 +4767,7 @@ export interface operations {
                     "application/json": components["schemas"]["SourceFile"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_FILE_NOT_TEXT, SOURCE_FILE_TOO_LARGE, SOURCE_GIT_FAILED, SOURCE_PATH_NOT_A_FILE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_FILE_NOT_TEXT, SOURCE_FILE_TOO_LARGE, SOURCE_GIT_FAILED, SOURCE_PATH_NOT_A_FILE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4032,7 +4798,7 @@ export interface operations {
                     "application/json": components["schemas"]["LaunchReadiness"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4063,7 +4829,7 @@ export interface operations {
                     "application/json": components["schemas"]["LaunchRecords"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4101,7 +4867,7 @@ export interface operations {
                     "application/json": components["schemas"]["IamRegistration"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4139,7 +4905,7 @@ export interface operations {
                     "application/json": components["schemas"]["PrivacyAssessment"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4170,7 +4936,7 @@ export interface operations {
                     "application/json": components["schemas"]["MemberList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4208,7 +4974,7 @@ export interface operations {
                     "application/json": components["schemas"]["Member"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4243,7 +5009,7 @@ export interface operations {
                     "application/json": components["schemas"]["MemberList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4274,7 +5040,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingActionList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4308,7 +5074,7 @@ export interface operations {
                     "application/json": components["schemas"]["Rehearsal"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4339,7 +5105,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReleaseList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4377,7 +5143,7 @@ export interface operations {
                     "application/json": components["schemas"]["Release"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4408,7 +5174,7 @@ export interface operations {
                     "application/json": components["schemas"]["Spec"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4446,7 +5212,7 @@ export interface operations {
                     "application/json": components["schemas"]["SpecValidation"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4477,7 +5243,7 @@ export interface operations {
                     "application/json": components["schemas"]["TokenList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4515,7 +5281,7 @@ export interface operations {
                     "application/json": components["schemas"]["MintedToken"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4587,7 +5353,7 @@ export interface operations {
                     "application/json": components["schemas"]["SourceTree"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4618,7 +5384,7 @@ export interface operations {
                     "application/json": components["schemas"]["Release"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4649,7 +5415,7 @@ export interface operations {
                     "application/json": components["schemas"]["Approval"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4683,7 +5449,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalPreview"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4715,7 +5481,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalPreview"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4753,7 +5519,7 @@ export interface operations {
                     "application/json": components["schemas"]["Approval"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4791,7 +5557,7 @@ export interface operations {
                     "application/json": components["schemas"]["Approval"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4822,7 +5588,7 @@ export interface operations {
                     "application/json": components["schemas"]["SlugCheck"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -4856,7 +5622,7 @@ export interface operations {
                     "application/json": components["schemas"]["Token"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

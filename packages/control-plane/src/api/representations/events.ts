@@ -15,16 +15,20 @@ import { representation, Timestamp, Uuid } from '../contract/schemas.js'
  */
 const eventFrameOf = <T extends EventType>(type: T) =>
   z.object({
-    kind: z.literal('event'),
-    id: Uuid,
-    projectId: Uuid,
+    kind: z.literal('event').describe('An audit event.'),
+    id: Uuid.describe(
+      'The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.',
+    ),
+    projectId: Uuid.describe('The project the event belongs to.'),
     subject: z
       .string()
       .describe('What the event is about — `build:<id>`, `instance:<id>`. Opaque.'),
-    type: z.literal(type),
+    type: z
+      .literal(type)
+      .describe('What happened. Switch on it: each type has one `machineDetail` shape.'),
     humanMessage: z.string().describe('For a person (§14). Never parse it.'),
     machineDetail: EVENT_DETAIL_SCHEMAS[type],
-    createdAt: Timestamp,
+    createdAt: Timestamp.describe('When it was recorded.'),
   })
 
 type EventFrameSchema = ReturnType<typeof eventFrameOf<EventType>>
@@ -48,14 +52,22 @@ export const LogFrame = representation(
   'LogFrame',
   z
     .object({
-      kind: z.literal('log'),
+      kind: z.literal('log').describe('A line of a build’s output.'),
       id: z.string().describe('`<buildId>:<seq>`.'),
-      projectId: Uuid,
-      buildId: Uuid,
-      seq: z.number().int().nonnegative(),
-      stream: z.enum(['stdout', 'stderr']),
+      projectId: Uuid.describe('The project the build belongs to.'),
+      buildId: Uuid.describe('The build writing it (`getBuild`).'),
+      seq: z
+        .number()
+        .int()
+        .nonnegative()
+        .describe(
+          'Its position in the build’s log, from 0 — `getBuildLog` answers the same numbers.',
+        ),
+      stream: z
+        .enum(['stdout', 'stderr'])
+        .describe('Which of the build’s outputs wrote it.'),
       text: z.string().describe('Redacted at capture (§14).'),
-      createdAt: Timestamp,
+      createdAt: Timestamp.describe('When it was written.'),
     })
     .describe(
       'One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all.',
@@ -66,10 +78,12 @@ export const ControlFrame = representation(
   'ControlFrame',
   z
     .object({
-      kind: z.literal('control'),
-      id: z.string(),
-      projectId: Uuid,
-      type: z.literal(STREAM_READY),
+      kind: z.literal('control').describe('A message about the stream itself.'),
+      id: z.string().describe('An id for this message; opaque.'),
+      projectId: Uuid.describe('The project the stream is for.'),
+      type: z
+        .literal(STREAM_READY)
+        .describe('The replay is over: every message after this one is live.'),
     })
     .describe('Ends the replay: everything after it is live.'),
 )

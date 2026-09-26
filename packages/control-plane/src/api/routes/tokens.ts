@@ -49,6 +49,7 @@ const DAY_MS = 86_400_000
 export const tokenRoutes = [
   defineRoute({
     operationId: 'mintToken',
+    credential: 'session',
     method: 'POST',
     path: '/v1/projects/{projectId}/tokens',
     tag: 'tokens',
@@ -166,6 +167,7 @@ export const tokenRoutes = [
   }),
   defineRoute({
     operationId: 'listTokens',
+    credential: 'session',
     method: 'GET',
     path: '/v1/projects/{projectId}/tokens',
     tag: 'tokens',
@@ -192,6 +194,7 @@ export const tokenRoutes = [
   }),
   defineRoute({
     operationId: 'revokeToken',
+    credential: 'session',
     method: 'DELETE',
     path: '/v1/tokens/{tokenId}',
     tag: 'tokens',

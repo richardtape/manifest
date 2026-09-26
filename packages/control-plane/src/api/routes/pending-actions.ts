@@ -204,6 +204,7 @@ export const pendingActionReads = [
 export const pendingActionRoutes = [
   defineRoute({
     operationId: 'confirmPendingAction',
+    credential: 'session',
     method: 'POST',
     path: '/v1/pending-actions/{pendingActionId}/confirm',
     tag: 'pending-actions',
@@ -252,6 +253,7 @@ export const pendingActionRoutes = [
   }),
   defineRoute({
     operationId: 'rejectPendingAction',
+    credential: 'session',
     method: 'POST',
     path: '/v1/pending-actions/{pendingActionId}/reject',
     tag: 'pending-actions',

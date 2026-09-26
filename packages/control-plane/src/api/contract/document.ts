@@ -1,5 +1,11 @@
 import { z } from 'zod/v4'
-import type { ErrorCode } from '../error-codes.js'
+import {
+  ERROR_CODE_LIST,
+  ERROR_CODES,
+  MANIFEST_ERROR_CODE_LIST,
+  MANIFEST_ERRORS,
+  type ErrorCode,
+} from '../error-codes.js'
 // Registers ErrorEnvelope, which every operation's `default` response names by id — and
 // which no route declares as a success schema, so nothing else imports it (P5a Task 15).
 import '../representations/errors.js'
@@ -43,6 +49,35 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
 export const CONTRACT_VERSION = '1.3.0'
 
 type JsonSchema = Record<string, unknown>
+
+/**
+ * WHAT EACH TAG GROUPS, for a reader choosing where to start (the authoring API plan's Task 9;
+ * the independent linter's `tag-description`). Keyed by every tag a route or the stream uses,
+ * and `docs.test.ts` refuses a tag without a sentence here — a new tag is a new line.
+ */
+const TAG_DESCRIPTIONS: Record<string, string> = {
+  administration:
+    'Operations for the platform’s administrators — today, every project on the platform at a glance (§26).',
+  blueprints:
+    'The blueprints an app is built from (§25): what each provides, its starters, and the knowledge pack an agent reads before writing code.',
+  delivery:
+    'From a commit to a running app (§11–§13): build it, release the build, deploy the release, and — for production — the approval an administrator gives. Incidents say why an instance failed.',
+  events:
+    'The project’s event stream (D23.2): every audit event and build log line, live, over a WebSocket.',
+  identity: 'Who the caller is: the person behind the session, and their platform role.',
+  launch:
+    'A first production launch (§9, §13): the checklist computed from what exists, the external records UBC’s IAM and Privacy Office decisions are kept in, and the sign-in rehearsal.',
+  'pending-actions':
+    'D24’s questions: a delegated token that asks for a privileged action waits here until a person confirms or rejects it.',
+  projects:
+    'A project, its three environments, its members, and the validation of its manifest.yaml (§6, §7, §23).',
+  secrets:
+    'The values of an app’s declared secrets, per environment — set and cleared, and never read back (§20).',
+  source:
+    'The project’s code: read a tree, a file, the history and one commit, and commit changes against the commit read (§20’s git driver).',
+  tokens:
+    'Delegated tokens (D24): a person mints one for an agent, scoped to one project and a list of capabilities, and revokes it.',
+}
 
 /** Codes EVERY `/v1` operation can answer, and every mutation besides. */
 const EVERY_ROUTE: readonly ErrorCode[] = [
@@ -91,11 +126,46 @@ function components(): Record<string, JsonSchema> {
     )
   }
   const all = { ...out, ...inp } as Record<string, JsonSchema>
+  // Each code's MEANING beside the enum itself (Decision 14), where a reference renderer and a
+  // generated client both look — `x-enumDescriptions` is an extension, so the generated
+  // `ErrorCode` union is unchanged, where a `oneOf` of `const`s would change `schema.d.ts`.
+  all.ErrorCode = {
+    ...all.ErrorCode,
+    'x-enumDescriptions': Object.fromEntries(
+      ERROR_CODE_LIST.map((code) => [code, ERROR_CODES[code].summary]),
+    ),
+  }
+  all.ManifestErrorCode = {
+    ...all.ManifestErrorCode,
+    'x-enumDescriptions': Object.fromEntries(
+      MANIFEST_ERROR_CODE_LIST.map((code) => [code, MANIFEST_ERRORS[code].summary]),
+    ),
+  }
   return Object.fromEntries(
     Object.keys(all)
       .sort()
       .map((id) => [id, strip(all[id]!)]),
   )
+}
+
+/**
+ * EVERY ERROR CODE'S STATUS, MEANING AND REMEDY, as one table a client can look a code up in
+ * (Decision 14) — the enum says what a code IS; this says what to DO. Sorted, so the drift
+ * test compares bytes. The codes inside `details` get their own table: they have no status,
+ * because every one of them arrives inside a `422 SPEC_INVALID`.
+ */
+function errorTables(): Record<string, JsonSchema> {
+  return {
+    'x-manifest-errors': Object.fromEntries(
+      ERROR_CODE_LIST.map((code) => {
+        const { status, summary, remedy } = ERROR_CODES[code]
+        return [code, { status, summary, remedy }]
+      }),
+    ),
+    'x-manifest-spec-errors': Object.fromEntries(
+      MANIFEST_ERROR_CODE_LIST.map((code) => [code, { ...MANIFEST_ERRORS[code] }]),
+    ),
+  }
 }
 
 function parameters(route: AnyRoute): JsonSchema[] {
@@ -156,6 +226,9 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
       tags: [route.tag],
       summary: route.summary,
       description: route.description,
+      // A session-only operation says so where a client looks first (F17); every other one
+      // takes the document's global `security` — either credential.
+      ...(route.credential === 'session' ? { security: [{ session: [] }] } : {}),
       parameters: parameters(route),
       ...(readsBody(route)
         ? {
@@ -189,7 +262,7 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
           },
         },
         default: {
-          description: `An error, in the D23.7 envelope. This operation can answer: ${codes.join(', ')}.`,
+          description: `An error, in the D23.7 envelope; \`x-manifest-errors\` gives each code's meaning and remedy. This operation can answer: ${codes.join(', ')}.`,
           content: {
             'application/json': { schema: { $ref: component('ErrorEnvelope') } },
           },
@@ -226,10 +299,14 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
           'The laptop platform (§21). The console and the API share this origin.',
       },
     ],
-    security: [{ session: [] }],
-    tags: [...new Set([...routes.map((r) => r.tag), 'events'])]
-      .sort()
-      .map((name) => ({ name })),
+    // EITHER credential (F17): an OpenAPI `security` list is alternatives, each object one way.
+    security: [{ session: [] }, { delegatedToken: [] }],
+    tags: [...new Set([...routes.map((r) => r.tag), 'events'])].sort().map((name) => ({
+      name,
+      ...(TAG_DESCRIPTIONS[name] === undefined
+        ? {}
+        : { description: TAG_DESCRIPTIONS[name] }),
+    })),
     paths: sortedPaths,
     components: {
       securitySchemes: {
@@ -238,11 +315,19 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
           in: 'cookie',
           name: 'manifest_session',
           description:
-            'Set by the CWL sign-in at /auth/login (§9). Delegated tokens arrive in P5b.',
+            'A person, signed in with CWL at /auth/login in a browser (§9). It carries their platform role and expires on its own; a mutation made with it must carry `Origin` (§20). Some operations take nothing else — their `security` names this scheme alone — and a few need it stepped up within the last ten minutes (`STEP_UP_REQUIRED`, §20).',
+        },
+        delegatedToken: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'mft_<id>_<secret>',
+          description:
+            'A delegated token (D24): `Authorization: Bearer mft_<id>_<secret>`, for an agent or a script. A person mints it in their own session for ONE project (`mintToken`), and it is shown once. It acts as that person, on that project, with the capabilities it was minted with, until it expires or is revoked (`revokeToken`). Send it with no session cookie — both at once is `400 CREDENTIAL_AMBIGUOUS` — and no `Origin` is needed. An operation whose `security` names the session alone refuses it `403 TOKEN_CREDENTIAL_REFUSED`; one of D24’s privileged actions answers `403 TOKEN_ACTION_PENDING` until a person confirms that one request.',
         },
       },
       schemas: components(),
     },
     'x-manifest-unversioned': UNVERSIONED.map((u) => ({ ...u })),
+    ...errorTables(),
   }
 }

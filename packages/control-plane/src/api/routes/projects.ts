@@ -98,6 +98,7 @@ export function validationContext(
 export const createProjectRoutes = [
   defineRoute({
     operationId: 'createProject',
+    credential: 'session',
     method: 'POST',
     path: '/v1/projects',
     tag: 'projects',

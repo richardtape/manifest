@@ -59,7 +59,7 @@ export const ErrorCodeSchema = representation(
   z
     .enum(ERROR_CODE_LIST as unknown as [string, ...string[]])
     .describe(
-      'Every code the API answers with (api/error-codes.ts). Stable: a client switches on it (§20).',
+      'Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.',
     ),
 )
 
@@ -68,18 +68,29 @@ export const ManifestErrorCodeSchema = representation(
   z
     .enum(MANIFEST_ERROR_CODE_LIST as unknown as [string, ...string[]])
     .describe(
-      'A code inside `details`: §7 schema, §7 policy, or §25 blueprint compatibility.',
+      'A code inside `details` of a `422 SPEC_INVALID`: a breach of §7’s schema or policy, or of §25’s blueprint compatibility. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-spec-errors` its remedy.',
     ),
 )
 
 export const ManifestErrorSchema = representation(
   'ManifestError',
-  z.object({
-    code: ManifestErrorCodeSchema,
-    path: z.string().describe('Where in manifest.yaml, dotted: `services.0.type`.'),
-    message: z.string(),
-    hint: z.string().optional(),
-  }),
+  z
+    .object({
+      code: ManifestErrorCodeSchema,
+      path: z.string().describe('Where in manifest.yaml, dotted: `services.0.type`.'),
+      message: z
+        .string()
+        .describe('What is wrong at `path`, naming the value — for a person to read.'),
+      hint: z
+        .string()
+        .optional()
+        .describe(
+          'How to correct it, when there is one sentence to say: the permitted values, or the setting to ask about.',
+        ),
+    })
+    .describe(
+      'One thing wrong with manifest.yaml (§7, §25), inside `details` of a `422 SPEC_INVALID` or a spec validation. Switch on `code`; show `message` and `hint` to a person.',
+    ),
 )
 
 /*
@@ -89,4 +100,11 @@ export const ManifestErrorSchema = representation(
  */
 
 /** A mutation that takes no fields still takes a JSON object (Decision 4). */
-export const EmptyRequest = request('EmptyRequest', z.strictObject({}))
+export const EmptyRequest = request(
+  'EmptyRequest',
+  z
+    .strictObject({})
+    .describe(
+      'A mutation that takes no fields still sends a JSON object: `{}`, with `Content-Type: application/json`.',
+    ),
+)

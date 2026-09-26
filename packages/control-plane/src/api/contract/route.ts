@@ -13,7 +13,7 @@ import {
   recordPendingAction,
   resolutionFor,
 } from '../../tokens/index.js'
-import { requireActor, type Actor } from '../actor.js'
+import { requireActor, requireSession, type Actor } from '../actor.js'
 import type { ErrorCode } from '../error-codes.js'
 import type { ServerDeps } from '../server.js'
 
@@ -75,6 +75,19 @@ export interface RouteDefinition<
    * per-file limit would be unreachable through the route that enforces it.
    */
   bodyLimit?: number
+  /**
+   * THE CREDENTIAL THIS OPERATION TAKES, when it is narrower than every `/v1` route's — a
+   * session or a delegated token (the authoring API plan's Task 9, F17). `'session'` refuses a
+   * delegated token OUTRIGHT, here, before a parameter or a project is read — `403
+   * TOKEN_CREDENTIAL_REFUSED`, identically for every id, so a token learns nothing about which
+   * projects exist — and `document.ts` prints the operation's `security` as the session alone.
+   * Absent, either credential; an operation that refuses a token only in some cases (production)
+   * says so in its description. **One fact, read twice**: the document and this wrapper both read
+   * it, and `authz-contract.ts` holds it to what every token actor is actually answered. The
+   * handler still calls `requireSession` where it needs a `SessionActor`'s fields — that is tsc's
+   * half, and this is the wire's.
+   */
+  credential?: 'session'
   handler: (
     ctx: RouteContext<z.output<P>, z.output<Q>, z.output<B>>,
   ) => Promise<z.input<R>>
@@ -171,8 +184,10 @@ export function registerRoutes(
       url: fastifyPath(route.path),
       ...(route.bodyLimit === undefined ? {} : { bodyLimit: route.bodyLimit }),
       handler: async (request, reply) => {
-        // Authentication first: nobody learns the shape of a request they may not make.
-        const actor = requireActor(request)
+        // Authentication first: nobody learns the shape of a request they may not make —
+        // and for a session-only operation, nor does a token (F17).
+        const actor =
+          route.credential === 'session' ? requireSession(request) : requireActor(request)
         const params = parsePart('params', route.params, request.params ?? {})
         const query = parsePart('query', route.query, request.query ?? {})
         const body = parsePart(

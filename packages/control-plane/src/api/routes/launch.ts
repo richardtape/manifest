@@ -78,6 +78,7 @@ export const launchRoutes = [
   }),
   defineRoute({
     operationId: 'recordIamRegistration',
+    credential: 'session',
     method: 'POST',
     path: '/v1/projects/{projectId}/launch-records/iam-registration',
     tag: 'launch',
@@ -131,6 +132,7 @@ export const launchRoutes = [
   }),
   defineRoute({
     operationId: 'recordPrivacyAssessment',
+    credential: 'session',
     method: 'POST',
     path: '/v1/projects/{projectId}/launch-records/privacy-assessment',
     tag: 'launch',
@@ -167,6 +169,7 @@ export const launchRoutes = [
   }),
   defineRoute({
     operationId: 'runRehearsal',
+    credential: 'session',
     method: 'POST',
     path: '/v1/projects/{projectId}/rehearsal',
     tag: 'launch',

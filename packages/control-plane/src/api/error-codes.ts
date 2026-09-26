@@ -16,6 +16,16 @@ import { POLICY_CODES, SPEC_CODES } from '../spec/index.js'
  *
  * A FAMILY is where the code comes from: a class `toErrorResponse` maps, or `api` for
  * the literals and fixed-code classes in `api/` itself.
+ *
+ * **EVERY CODE HAS A MEANING AND A REMEDY, AND BOTH ARE PUBLISHED** (the authoring API plan's
+ * Task 9, Decision 14): `summary` is what happened and `remedy` is what a caller does next —
+ * addressed to a person and an agent alike, never *"an error occurred"*. `document.ts` prints
+ * both into the OpenAPI document (`x-enumDescriptions` on `ErrorCode`, and the top-level
+ * `x-manifest-errors` table), so this file is PUBLIC TEXT: it cites the spec (`§13`, `D24`)
+ * for depth and never a plan, a task or a person, which `api/contract/docs.test.ts` refuses.
+ * The state-conflict family (a `ReleaseError`, `SourceError`, `ConfigError` or
+ * `RehearsalError`) answers no `hint` on the wire, so for those codes this remedy is the only
+ * one a client can read.
  */
 export type ErrorFamily =
   | 'api'
@@ -36,107 +46,151 @@ export type ErrorFamily =
 interface Entry {
   status: number
   families: readonly ErrorFamily[]
+  /** What happened — published as the code's meaning. */
   summary: string
+  /** What a caller does next — one or two sentences a person or an agent can act on. */
+  remedy: string
 }
 
-const api = (status: number, summary: string): Entry => ({
+const api = (status: number, summary: string, remedy: string): Entry => ({
   status,
   families: ['api'],
   summary,
+  remedy,
 })
-const bad = (summary: string): Entry => ({
+const bad = (summary: string, remedy: string): Entry => ({
   status: 400,
   families: ['BadRequestError'],
   summary,
+  remedy,
 })
-const release = (summary: string): Entry => ({
+const release = (summary: string, remedy: string): Entry => ({
   status: 409,
   families: ['ReleaseError'],
   summary,
+  remedy,
 })
-const rehearsal = (summary: string): Entry => ({
+const rehearsal = (summary: string, remedy: string): Entry => ({
   status: 409,
   families: ['RehearsalError'],
   summary,
+  remedy,
 })
-const source = (summary: string): Entry => ({
+const source = (summary: string, remedy: string): Entry => ({
   status: 409,
   families: ['SourceError'],
   summary,
+  remedy,
 })
+/** Raised at BOOT: a control plane with one of these never serves a request. */
+const OPERATOR_SETTING =
+  'The control plane refuses to start until its operator corrects the setting the message names; nothing a client sends changes it.'
 const config = (summary: string): Entry => ({
   status: 409,
   families: ['ConfigError'],
   summary,
+  remedy: OPERATOR_SETTING,
 })
-const saml = (summary: string): Entry => ({
+const saml = (summary: string, remedy: string): Entry => ({
   status: 401,
   families: ['SamlError'],
   summary,
+  remedy,
 })
-const ai = (summary: string): Entry => ({ status: 503, families: ['AiError'], summary })
+const ai = (summary: string, remedy: string): Entry => ({
+  status: 503,
+  families: ['AiError'],
+  summary,
+  remedy,
+})
+
+/** The remedy every build-side release refusal shares: the release names a build that cannot be run. */
+const REBUILD =
+  'Build the commit again (`startBuild`) and create the release from the new build (`createRelease`).'
 
 export const ERROR_CODES = {
   // api/ — the envelope's own answers
-  UNAUTHENTICATED: api(401, 'The request carries no valid session.'),
+  UNAUTHENTICATED: api(
+    401,
+    'The request carries no valid credential — no session, or a delegated token that is unknown, revoked or expired.',
+    'Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`).',
+  ),
   INTERNAL: api(
     500,
     'The control plane failed; its operator log has the reason. Nothing the client sent explains it.',
+    'Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation.',
   ),
   REQUEST_INVALID: api(
     400,
     'A field in the request is missing or malformed, or the body could not be read at all; the message says which.',
+    'Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`.',
   ),
-  REQUEST_BODY_TOO_LARGE: api(413, 'The request body is larger than the API accepts.'),
+  REQUEST_BODY_TOO_LARGE: api(
+    413,
+    'The request body is larger than the API accepts.',
+    'Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits.',
+  ),
   REQUEST_MEDIA_TYPE_UNSUPPORTED: api(
     415,
     'The request body is a content type the route does not read.',
+    'Send the body as JSON, with `Content-Type: application/json`.',
   ),
   ROUTE_NOT_FOUND: api(
     404,
     'No route has this method and path. Resource routes are under /v1/.',
+    'Check the method and the path against this document: every resource route begins `/v1/`, and a path parameter is an id, never a name.',
   ),
   // POST /webhooks/github (the D5 plan's Task 9, Decision 9) — FOUR refusals, four codes: with
   // one shared code, deleting the absent-signature branch would leave every test green.
   WEBHOOK_SIGNATURE_MISSING: api(
     401,
     'The delivery carries no X-Hub-Signature-256 — including one that carries only the legacy SHA-1 X-Hub-Signature.',
+    'Give the GitHub App’s webhook its secret, so that GitHub signs every delivery with X-Hub-Signature-256. Only GitHub calls this endpoint; a Manifest client never does.',
   ),
   WEBHOOK_SIGNATURE_MALFORMED: api(
     401,
     'X-Hub-Signature-256 is not exactly one sha256= and 64 lowercase hex characters.',
+    'Send the signature exactly as GitHub computes it: `sha256=` and the HMAC-SHA256 of the raw body, as 64 lowercase hex characters.',
   ),
   WEBHOOK_SIGNATURE_INVALID: api(
     401,
     'X-Hub-Signature-256 is well formed and does not match the body under the App’s webhook secret.',
+    'Make the App’s webhook secret and the control plane’s the same, and sign the exact bytes sent — a body re-serialised after signing no longer matches.',
   ),
   WEBHOOK_PAYLOAD_INVALID: api(
     400,
     'A correctly signed delivery whose body is not a JSON object, or which lacks X-GitHub-Delivery or X-GitHub-Event.',
+    'Send GitHub’s delivery unchanged: a JSON object, with its X-GitHub-Delivery and X-GitHub-Event headers.',
   ),
   WEBHOOKS_NOT_CONFIGURED: api(
     404,
     'This control plane runs the local source driver, which receives no webhooks.',
+    'Nothing to fix here: on the local driver a person pushes into Manifest’s own repository and no webhook is needed. Point a GitHub webhook only at a control plane that runs the GitHub driver.',
   ),
   IDEMPOTENCY_KEY_REUSED: api(
     409,
     'This Idempotency-Key was used on this route with a different body.',
+    'Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed.',
   ),
   CSRF_ORIGIN_REFUSED: api(
     403,
     'A request carrying a session did not come from the console’s origin.',
+    'Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin.',
   ),
   RATE_LIMITED: api(
     429,
     'Too many requests from this credential; Retry-After says when to try again. A delegated token’s limit is its own, from its row (§20).',
+    'Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted.',
   ),
   EVENTS_UPGRADE_REQUIRED: api(
     426,
     'The event stream is a WebSocket; a plain GET cannot read it.',
+    'Open the same URL as a WebSocket (`wss://`), with the same credential.',
   ),
   SPEC_INVALID: api(
     422,
     'manifest.yaml at this commit is not valid; `details` lists each error with its path.',
+    'Read `details`: each entry names a path in manifest.yaml, a code (`ManifestErrorCode`), a message and usually a hint. Correct each one and commit the file again (`createCommit`); `validateSpec` checks it without building.',
   ),
   RELEASE_PRODUCTION_GATE_UNAVAILABLE: {
     status: 409,
@@ -149,6 +203,8 @@ export const ERROR_CODES = {
     families: ['ProductionGateError'],
     summary:
       'A blocking item an approval alone cannot fix is unmet — a first launch’s checklist (§13, D19), or a launched app’s (D9.2), a rejected release included; the body carries LaunchReadiness.',
+    remedy:
+      'Read `launchReadiness`: each unmet blocking item says what meets it. Meet them — most are records an administrator keeps, some with long lead times — and deploy again; a retry alone changes nothing.',
   },
   RELEASE_REESCALATED: {
     status: 409,
@@ -156,12 +212,16 @@ export const ERROR_CODES = {
     families: ['ProductionGateError'],
     summary:
       'A launched app’s release changes a sensitive field (§7) since the last approved release, and only an administrator’s approval is missing (§13 D9.2); the body carries LaunchReadiness.',
+    remedy:
+      'Ask an administrator to approve this release: they take a preview (`createApprovalPreview`), read it, and approve naming it (`approveRelease`). Deploy again once they have.',
   },
   RELEASE_NOT_STAGED: {
     status: 409,
     families: ['ProductionGateError'],
     summary:
       'Production deploys only the release serving staging — production runs exactly what staging ran (§13); the body carries the LaunchReadiness of the one that is.',
+    remedy:
+      'Deploy this release to staging first and let it become healthy, then deploy it to production — or deploy the release that is serving staging.',
   },
 
   // projects/authz.ts
@@ -169,17 +229,22 @@ export const ERROR_CODES = {
     status: 404,
     families: ['AuthorizationError'],
     summary: 'No such resource — or one the caller has no business knowing exists.',
+    remedy:
+      'Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project.',
   },
   FORBIDDEN: {
     status: 403,
     families: ['AuthorizationError'],
     summary: 'A member of the project whose role does not hold this capability.',
+    remedy:
+      'Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`).',
   },
 
   // api/actor.ts — the credential class itself being refused (D24, P5b Task 5)
   TOKEN_CREDENTIAL_REFUSED: api(
     403,
     'A valid delegated token asked for something D24 reserves to an interactive session.',
+    'Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused.',
   ),
   /**
    * D24's central refusal (P5b Task 6). DISTINCT from the one above: that is "no route
@@ -191,6 +256,7 @@ export const ERROR_CODES = {
   TOKEN_ACTION_PENDING: api(
     403,
     'A delegated token asked for one of D24’s privileged four; `pendingAction` is the question a person must answer.',
+    'Ask the person who minted the token to confirm `pendingAction` in the console, then retry the identical request — same body, same Idempotency-Key — once. The confirmation grants exactly one retry.',
   ),
   /**
    * The third answer, and DISTINCT from both above (P5b Task 7). `TOKEN_ACTION_PENDING`
@@ -202,6 +268,7 @@ export const ERROR_CODES = {
   TOKEN_ACTION_REJECTED: api(
     403,
     'A person refused this exact request. `pendingAction.reason` is why, in their words; retrying it will not change the answer.',
+    'Do not retry it. Read `pendingAction.reason`, then ask the person, or ask for something different.',
   ),
   /**
    * §20's step-up (P6a Task 9), and the FIFTH answer that is a `403` on this API — after
@@ -217,6 +284,7 @@ export const ERROR_CODES = {
   STEP_UP_REQUIRED: api(
     403,
     'This action needs a second authentication round trip (§20). Send the person to /auth/step-up and retry.',
+    'Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up.',
   ),
   /**
    * D24's PERSON-ONLY class (P6b Task 2), and the SIXTH `403` on this API. Distinct from
@@ -227,38 +295,58 @@ export const ERROR_CODES = {
   TOKEN_PERSON_ONLY: api(
     403,
     'A delegated token asked for a person-only action (D24) — approving a release, or recording UBC’s IAM or privacy decision. Refused outright; no pending action is created.',
+    'A person does this, in the console, in their own session. No token can hold it and no confirmation grants it — do not ask for one.',
   ),
   PROJECT_LAST_OWNER: api(
     409,
     'A project must always have an owner, so the last one cannot be removed.',
+    'Make another member an owner first (`addMember` with role `owner`), then remove this one.',
   ),
   /** A pending action already has an answer, and one question has one (P5b Task 7). */
   PENDING_ACTION_RESOLVED: api(
     409,
     'This pending action has already been confirmed or rejected; it cannot be answered twice.',
+    'Read it again (`getPendingAction`): somebody has already answered, and its `state` says how.',
   ),
 
   // BadRequestError — every one of these is 400
   IDEMPOTENCY_KEY_REQUIRED: bad(
     'A mutation arrived without an Idempotency-Key of at least 8 characters (D23.6).',
+    'Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action.',
   ),
-  BLUEPRINT_NOT_FOUND: bad('No blueprint with this reference is in the registry.'),
-  MEMBER_USER_NOT_FOUND: bad('No user with this PUID has ever signed in.'),
-  SPEC_NOT_FOUND: bad('The project has no validated spec yet.'),
+  BLUEPRINT_NOT_FOUND: bad(
+    'No blueprint with this reference is in the registry.',
+    'Choose one from `listBlueprints` and name it `name@major`.',
+  ),
+  MEMBER_USER_NOT_FOUND: bad(
+    'No user with this PUID has ever signed in.',
+    'Ask the person to sign in to Manifest once with CWL, then add them again.',
+  ),
+  SPEC_NOT_FOUND: bad(
+    'The project has no validated spec yet.',
+    'Validate the manifest on `main` (`validateSpec`), or commit one (`createCommit`), and try again.',
+  ),
   // P6b Task 9 (Rich, 2026-09-22): a decision names the preview the administrator read.
   APPROVAL_PREVIEW_REQUIRED: bad(
     'An approval or rejection names no preview. Take one (`POST /v1/releases/{releaseId}/approval-preview`), read it, and decide naming its id.',
+    'Take a preview (`createApprovalPreview`), read it, and send the decision again naming its `previewId`.',
   ),
-  STARTER_NOT_FOUND: bad('The blueprint offers no starter by that name (§25).'),
+  STARTER_NOT_FOUND: bad(
+    'The blueprint offers no starter by that name (§25).',
+    'Choose one of the starters `getBlueprint` lists, or leave `starter` out for the skeleton alone.',
+  ),
   CREDENTIAL_AMBIGUOUS: bad(
     'The request carried both a session cookie and a delegated token; it carries one or the other.',
+    'Send one credential: the session cookie from a browser, or `Authorization: Bearer` from a program — never both.',
   ),
   TOKEN_CAPABILITY_FORBIDDEN: bad(
     'A mint asked for one of D24’s four privileged capabilities, or for one of its two person-only ones; the message names which.',
+    'Mint the token without them. A privileged action is granted to a token one request at a time, by a person’s confirmation (`TOKEN_ACTION_PENDING`); a person-only one never is.',
   ),
   // The authoring API plan's Task 8: its own code, so an agent told it stops asking.
   SECRET_NAME_RESERVED: bad(
     'That variable is one the platform sets for every app (§8) — the platform’s value always wins — so it cannot be an app secret. Choose another name.',
+    'Name the secret something else, in manifest.yaml and here. The platform’s own variables are listed in the blueprint’s knowledge pack (`getKnowledgePack`).',
   ),
 
   // projects/slugs.ts — §23. The check answers them in a 200; creation refuses with them.
@@ -266,64 +354,93 @@ export const ERROR_CODES = {
     status: 400,
     families: ['SlugRefusedError'],
     summary: 'The name breaks §7’s slug rule.',
+    remedy:
+      'Choose a name of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything.',
   },
   SLUG_RESERVED: {
     status: 409,
     families: ['SlugRefusedError'],
     summary:
       'The name is one of §23’s reserved labels; the message says what it stands for.',
+    remedy: 'Choose another name. `checkSlug` says whether one is free.',
   },
   SLUG_TAKEN: {
     status: 409,
     families: ['SlugRefusedError'],
     summary: 'Another project holds the name.',
+    remedy: 'Choose another name. `checkSlug` says whether one is free.',
   },
 
   // releases/ — every one is 409
   APPROVAL_PREVIEW_EXPIRED: release(
     'The preview is older than thirty minutes, so it is no longer what was shown at decision time; take a new one.',
+    'Take a new preview (`createApprovalPreview`), read it, and decide naming the new one.',
   ),
   APPROVAL_PREVIEW_STALE: release(
     'What the release would be approved as changed since the preview was taken — in practice another decision moved the last approved release. Take a new preview and read it.',
+    'Take a new preview (`createApprovalPreview`), read what changed, and decide naming the new one.',
   ),
-  RELEASE_AI_BUDGET_MISSING: release('The release declares models and no AI budget.'),
+  RELEASE_AI_BUDGET_MISSING: release(
+    'The release declares models and no AI budget.',
+    'Set `ai.budget.project_monthly_usd` above 0 in manifest.yaml, or ask an administrator to raise the project’s AI quota, then build and release again. A budget of 0 would refuse the app’s every question.',
+  ),
   RELEASE_AI_DISABLED: release(
     'The release declares models and AI is switched off on this control plane.',
+    'Remove `ai.models` from manifest.yaml and release again to deploy without AI, or ask an administrator to switch AI on.',
   ),
   RELEASE_BLUEPRINT_NOT_FOUND: release(
     'The project’s blueprint is no longer in the registry.',
+    'Ask an administrator to restore the blueprint to the registry; nothing in the project can change it.',
   ),
   RELEASE_BUILD_NOT_DEPLOYABLE: release(
     'The build did not succeed, so nothing can be released from it.',
+    'Read the build’s log (`getBuildLog`), fix the cause, build again (`startBuild`) and release the build that succeeds.',
   ),
-  RELEASE_BUILD_NOT_FOUND: release('No build with this id.'),
-  RELEASE_DIGEST_MISSING: release('The release’s build recorded no digest.'),
+  RELEASE_BUILD_NOT_FOUND: release(
+    'No build with this id.',
+    'Check the build id; `listBuilds` lists the project’s builds.',
+  ),
+  RELEASE_DIGEST_MISSING: release('The release’s build recorded no digest.', REBUILD),
   RELEASE_DIGEST_NOT_APPROVED: release(
     'This production deploy needs an administrator’s approval — a first launch, or a launched app’s change to a sensitive field (§13 D9.2) — and none covers the digest it would run; or an administrator rejected this release, which is final. The message says which.',
+    'Ask an administrator to approve this release — they take a preview (`createApprovalPreview`) and approve naming it — then deploy again. A rejected release stays rejected: build and release a new one.',
   ),
-  RELEASE_ENVIRONMENT_NOT_FOUND: release('No environment with this id.'),
+  RELEASE_ENVIRONMENT_NOT_FOUND: release(
+    'No environment with this id.',
+    'Check the environment id; `listEnvironments` lists the project’s three.',
+  ),
   RELEASE_IMAGE_REPOSITORY_MISSING: release(
     'The build recorded a digest and no repository; rebuild it.',
+    REBUILD,
   ),
   RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER: release(
     'A laptop-built image cannot reach a remote driver (§13).',
+    'Nothing a client can change: this control plane builds on one machine and runs on another. Report it to the platform’s operator.',
   ),
   RELEASE_MODEL_CLASSIFICATION_TOO_LOW: release(
     'A declared model is not approved for the app’s data classification (D17).',
+    'Declare a model approved for the app’s `data.classification`, or lower the classification if it is overstated; then build and release again.',
   ),
   RELEASE_MODEL_NOT_IN_CATALOGUE: release(
     'A declared model is no longer in the catalogue.',
+    'Declare a model the catalogue has — `validateSpec` names them when one is unknown — then build and release again.',
   ),
   RELEASE_MODEL_UNCLASSIFIED: release(
     'A declared model has no classification in the catalogue.',
+    'Declare another model, or ask an administrator to classify this one; then build and release again.',
   ),
-  RELEASE_NOT_FOUND: release('No release with this id.'),
+  RELEASE_NOT_FOUND: release(
+    'No release with this id.',
+    'Check the release id; `listReleases` lists the project’s releases.',
+  ),
   RELEASE_PROJECT_NOT_FOUND: release(
     'The environment names a project that does not exist.',
+    'Check the environment id: its project has been deleted, and nothing can be deployed to it.',
   ),
   // The authoring API plan's Task 8: refused BEFORE anything starts, naming the names.
   RELEASE_SECRET_NOT_SET: release(
     'The release’s manifest.yaml declares a secret (`secret: true`) that has no value in this environment, so nothing was started. Set each name the message lists with `setAppSecret`, then deploy again.',
+    'Set each name the message lists in this environment (`setAppSecret`) and deploy again; `listAppSecrets` shows which are set.',
   ),
 
   // launch/ — §9's two state machines, as the arrows that exist (P6a Task 5)
@@ -332,12 +449,16 @@ export const ERROR_CODES = {
     families: ['LaunchTransitionError'],
     summary:
       'An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.',
+    remedy:
+      'Move the record along §9’s states one step at a time, to one of the states the message names.',
   },
   LAUNCH_RECORD_INVALID: {
     status: 400,
     families: ['LaunchRecordError'],
     summary:
       'An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.',
+    remedy:
+      'Correct the fields the message names — a registration lists at least one attribute — and record it again.',
   },
 
   // launch/rehearsal.ts — D21's rehearsal as R2 redefines it (P6a Task 14). Every one of
@@ -346,15 +467,19 @@ export const ERROR_CODES = {
   // these — a measurement that came out badly is not a request error.
   REHEARSAL_NO_CANDIDATE: rehearsal(
     'Nothing is serving staging, so there is no candidate release to rehearse (§13).',
+    'Deploy a release to staging and let it become healthy, then rehearse again.',
   ),
   REHEARSAL_NOT_CWL: rehearsal(
     'The app signs nobody in with CWL, so it registers no Service Provider and there is nothing to rehearse. Its checklist item is met.',
+    'Nothing to do: the launch checklist’s rehearsal item is already met for an app with no CWL sign-in.',
   ),
   REHEARSAL_DEPLOY_FAILED: rehearsal(
     'The candidate could not be deployed to production, or the deploy registered no Service Provider.',
+    'Read the message and the project’s events for why the deploy failed, fix that, and rehearse again.',
   ),
   REHEARSAL_LAUNCHED: rehearsal(
-    'The app has launched, so a rehearsal would put an unapproved candidate on its live production listener (P6b Decision 16). A registration change is proved by UBC IAM’s change request.',
+    'The app has launched, so a rehearsal would put an unapproved candidate on its live production listener. A registration change is proved by UBC IAM’s change request.',
+    'Nothing to rehearse: a launched app’s registration change goes to UBC IAM as a change request (§9), which an administrator records (`recordIamRegistration`).',
   ),
 
   // source/ — every one is 409 but SOURCE_UNREACHABLE, a 503 (the D5 plan's Task 8).
@@ -363,67 +488,93 @@ export const ERROR_CODES = {
   // make, and the one foreign reference left — another driver's — is PROVIDER_MISMATCH.
   SOURCE_COMMIT_NOT_FOUND: source(
     'The repository has no such commit — or what was named is not a full commit id — so there is nothing to build or read from it.',
+    'Name the full 40-character id of a commit the repository has; `listCommits` lists them.',
   ),
   SOURCE_CONFLICT: source(
     'The branch moved after the commit this request was computed from; read it again and retry.',
+    'Read the tree again (`getTree`) for its `commitSha`, recompute your changes against it, and commit with that as `baseCommit`.',
   ),
   SOURCE_FILE_NOT_TEXT: source(
     'The file is binary or not UTF-8, which the API does not read or write in v1.',
+    'Change the file with git directly, by a push: the API reads and writes UTF-8 text files only. `getTree` marks a binary file `binary: true`.',
   ),
   SOURCE_FILE_TOO_LARGE: source(
     'The file is larger than 1 MiB, the most the API carries in one file.',
+    'Read or change the file with git directly, by a push; `getTree` gives every file’s `size`.',
   ),
-  SOURCE_GIT_FAILED: source('git failed; the message names the operation.'),
+  SOURCE_GIT_FAILED: source(
+    'git failed; the message names the operation.',
+    'Retry once; if it recurs, report the time and the operation the message names to the platform’s operator.',
+  ),
   SOURCE_GITHUB_KEY_UNREADABLE: source(
-    'The GitHub App’s private key cannot be read, or is not an RSA key; the message names the file (the D5 plan’s Decision 5).',
+    'The GitHub App’s private key cannot be read, or is not an RSA key; the message names the file.',
+    'Nothing a client can change: the platform’s operator restores the key file, readable by its owner alone.',
   ),
   SOURCE_GITHUB_REFUSED: source(
     'GitHub refused the request; the message carries GitHub’s own message and nothing else of its answer.',
+    'Read GitHub’s message: a limit passes with time, and a permission is the GitHub App installation’s to grant. Retry once it is resolved.',
   ),
-  SOURCE_INVALID_SLUG: source('The slug cannot name a repository.'),
+  SOURCE_INVALID_SLUG: source(
+    'The slug cannot name a repository.',
+    'Choose a project name that follows §23’s rule; `checkSlug` checks one.',
+  ),
   SOURCE_NOTHING_TO_COMMIT: source(
     'Every change leaves its file as it is in the base commit, so there is nothing to commit.',
+    'Nothing to do: every file already reads as you would write it. Read the file again (`getFile`) if you expected a difference.',
   ),
   SOURCE_PATH_CONFLICT: source(
     'A change does not fit the base commit’s tree: a file where a directory is, a path under a file, a symlink or a submodule, something other than a regular file to overwrite or a file to delete, or one path named twice; the message names the path.',
+    'Read the tree at `baseCommit` (`getTree`) and change the path the message names: write beside a directory rather than over it, delete a directory’s files one by one, and name each path once. A symlink or a submodule is changed with git directly.',
   ),
   SOURCE_PATH_ESCAPE: source(
     'A slug that would leave the repository root, or a path that is not inside the repository — absolute, or with an empty, `.` or `..` component — or into a repository’s own `.git`.',
+    'Name a path relative to the repository root, `/`-separated, with no empty, `.`, `..` or `.git` component.',
   ),
   SOURCE_PATH_NOT_A_FILE: source(
     'The path names a directory, a symlink or a submodule; the API reads and writes regular text files.',
+    'Name a file; `getTree` says what each path is, and lists a directory’s contents.',
   ),
   SOURCE_PATH_NOT_FOUND: source(
     'The commit has no such path — so there is nothing to read, or to delete.',
+    'Check the path against `getTree` at the same commit; paths are case-sensitive.',
   ),
   SOURCE_PROVIDER_MISMATCH: source(
-    'The project’s repository was made by a different source driver from the one this control plane runs; the message names both (the D5 plan’s Decision 3).',
+    'The project’s repository was made by a different source driver from the one this control plane runs; the message names both.',
+    'Use a control plane running the project’s own driver: a project stays with the driver that created its repository.',
   ),
-  SOURCE_REF_NOT_FOUND: source('No branch has that name.'),
+  SOURCE_REF_NOT_FOUND: source(
+    'No branch has that name.',
+    'Name `main`, another branch the repository has, or a full 40-character commit id.',
+  ),
   SOURCE_REPOSITORY_EXISTS: source(
-    'A repository of that name already exists — on GitHub, or as a mirror on this machine — and Manifest never adopts one it did not create (the D5 plan’s Decision 16).',
+    'A repository of that name already exists — on GitHub, or as a mirror on this machine — and Manifest never adopts one it did not create.',
+    'Choose another project name. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over.',
   ),
   SOURCE_REPOSITORY_NOT_PRIVATE: source(
-    'GitHub did not create the repository private, so it was deleted (the D5 plan’s Decision 12).',
+    'GitHub did not create the repository private, so it was deleted.',
+    'Create the project again. If it recurs, the GitHub organisation’s settings forbid private repositories, and its administrator changes them.',
   ),
   SOURCE_REPOSITORY_PUBLIC: source(
-    'The repository was last read PUBLIC on GitHub and could not be made private; it is not built while it is public (§20, the D5 plan’s Task 10).',
+    'The repository was last read PUBLIC on GitHub and could not be made private; it is not built while it is public (§20).',
+    'Make the repository private on GitHub. The next push or read checks it again, and building resumes.',
   ),
   SOURCE_SECRET_DETECTED: source(
-    'A commit Manifest was asked to make carries a secret-shaped value, and nothing was committed; the message names path:line and the rule, never the value (§20, the D5 plan’s Task 11).',
+    'A commit Manifest was asked to make carries a secret-shaped value, and nothing was committed; the message names path:line and the rule, never the value (§20).',
+    'Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again.',
   ),
   // NOT a state conflict: a client retries a 503 and does not "fix" a 409 (Decision 18).
   SOURCE_UNREACHABLE: {
     status: 503,
     families: ['SourceError'],
-    summary:
-      'The git host did not answer. A commit already mirrored still builds (the D5 plan’s Decision 18).',
+    summary: 'The git host did not answer. A commit already mirrored still builds.',
+    remedy:
+      'Retry when the git host answers. Meanwhile a commit already mirrored still builds, releases and deploys.',
   },
 
   // config.ts — mapped by toErrorResponse, raised at boot
   CONFIG_INVALID: config('A setting failed validation.'),
   CONFIG_GITHUB_INSECURE_URL: config(
-    'A GitHub URL is plain http beyond loopback, so an installation token would cross the network in plaintext (the D5 plan’s Decision 4).',
+    'A GitHub URL is plain http beyond loopback, so an installation token would cross the network in plaintext.',
   ),
   CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED: config(
     'MANIFEST_BUILD_CREDENTIAL_SECRET is required outside development.',
@@ -439,11 +590,21 @@ export const ERROR_CODES = {
   ),
 
   // identity/saml.ts and the callback — every one is 401, and the envelope names no detail
-  SAML_ASSERTION_REJECTED: saml('The assertion was refused; the operator log says why.'),
-  SAML_NO_PUID: saml('The assertion released no ubcEduCwlPuid.'),
-  SAML_USER_UPSERT_FAILED: saml('The user could not be recorded.'),
+  SAML_ASSERTION_REJECTED: saml(
+    'The assertion was refused; the operator log says why.',
+    'Start the sign-in again at /auth/login. If it keeps failing, report the time to the platform’s operator, whose log has the reason.',
+  ),
+  SAML_NO_PUID: saml(
+    'The assertion released no ubcEduCwlPuid.',
+    'Nothing the person can change: the identity provider’s registration for Manifest must release ubcEduCwlPuid. Report it to the platform’s operator.',
+  ),
+  SAML_USER_UPSERT_FAILED: saml(
+    'The user could not be recorded.',
+    'Start the sign-in again at /auth/login. If it keeps failing, report the time to the platform’s operator.',
+  ),
   SAML_LOGIN_NOT_BOUND: saml(
     'The assertion answers a sign-in this browser did not start.',
+    'Start the sign-in again at /auth/login, in the browser that will receive the answer.',
   ),
   /**
    * §20's step-up (P6a Task 8). Both are 401 and both are `SamlError`, because a step-up
@@ -453,9 +614,11 @@ export const ERROR_CODES = {
    */
   SAML_STEP_UP_NO_SESSION: saml(
     'The step-up came back to a browser holding no valid session; sign in again.',
+    'Sign in again at /auth/login, then step up.',
   ),
   SAML_STEP_UP_WRONG_USER: saml(
     'The step-up assertion is for a different person than the session in this browser.',
+    'Step up as the person who is signed in — or sign out, sign in as the other person, and step up then.',
   ),
 
   /**
@@ -469,27 +632,59 @@ export const ERROR_CODES = {
   SAML_LOGOUT_REJECTED: api(
     400,
     'The single-logout request could not be verified; the operator log says why.',
+    'Nothing a client can change: this endpoint’s caller is the identity provider. The platform’s operator log says why its request could not be verified.',
   ),
 
   // ai/ — every one is 503, and carries nothing from the gateway (§14)
-  AI_PROJECT_BUDGET_EXCEEDED: ai('The app has used its AI budget for the month.'),
-  AI_USER_BUDGET_EXCEEDED: ai('The person has used their AI allowance for the month.'),
-  AI_MODEL_NOT_PERMITTED: ai('The app’s key does not reach the model it asked for.'),
-  AI_ROUTE_NOT_PERMITTED: ai('The app’s key does not reach that gateway route.'),
-  AI_KEY_REVOKED: ai('The app’s key was revoked.'),
-  AI_KEY_EXPIRED: ai('The app’s key expired.'),
-  AI_MODEL_UNKNOWN: ai('The gateway does not know the model.'),
-  AI_BACKEND_UNAVAILABLE: ai('The gateway could not be reached.'),
-  AI_UNMAPPED: ai('The gateway answered with a failure this platform does not map.'),
+  AI_PROJECT_BUDGET_EXCEEDED: ai(
+    'The app has used its AI budget for the month.',
+    'Wait for next month’s budget, or raise `ai.budget.project_monthly_usd` within the project’s AI quota and release again.',
+  ),
+  AI_USER_BUDGET_EXCEEDED: ai(
+    'The person has used their AI allowance for the month.',
+    'Wait for next month’s allowance, or ask an administrator to raise it.',
+  ),
+  AI_MODEL_NOT_PERMITTED: ai(
+    'The app’s key does not reach the model it asked for.',
+    'Declare the model in manifest.yaml’s `ai.models`, then build, release and deploy: an app’s key reaches only the models its release declares.',
+  ),
+  AI_ROUTE_NOT_PERMITTED: ai(
+    'The app’s key does not reach that gateway route.',
+    'Call the gateway only through the routes the blueprint’s AI client uses; the key reaches no others.',
+  ),
+  AI_KEY_REVOKED: ai(
+    'The app’s key was revoked.',
+    'Deploy the app again: a deploy issues its instance a new key.',
+  ),
+  AI_KEY_EXPIRED: ai(
+    'The app’s key expired.',
+    'Deploy the app again: a deploy issues its instance a new key.',
+  ),
+  AI_MODEL_UNKNOWN: ai(
+    'The gateway does not know the model.',
+    'Use a logical model name from the catalogue, never a vendor’s model id.',
+  ),
+  AI_BACKEND_UNAVAILABLE: ai(
+    'The gateway could not be reached.',
+    'Retry later: the AI gateway did not answer.',
+  ),
+  AI_UNMAPPED: ai(
+    'The gateway answered with a failure this platform does not map.',
+    'Retry once; if it recurs, report the time to the platform’s operator, whose log has the gateway’s answer.',
+  ),
   AI_CATALOGUE_EMPTY: {
     status: 503,
     families: ['CatalogueError'],
     summary: 'The gateway returned an empty model catalogue.',
+    remedy:
+      'Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked.',
   },
   AI_CATALOGUE_DISABLED: {
     status: 503,
     families: ['CatalogueError'],
     summary: 'AI is switched off on this control plane.',
+    remedy:
+      'Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on.',
   },
 } as const satisfies Record<string, Entry>
 
@@ -498,8 +693,147 @@ export type ErrorCode = keyof typeof ERROR_CODES
 export const ERROR_CODE_LIST = Object.keys(ERROR_CODES).sort() as readonly ErrorCode[]
 
 /** The codes inside `details` (a `ManifestError[]`): §7's schema, its policy, and §25's compatibility check. */
-export const MANIFEST_ERROR_CODE_LIST: readonly string[] = [
+export type ManifestErrorCode =
+  | (typeof SPEC_CODES)[keyof typeof SPEC_CODES]
+  | (typeof POLICY_CODES)[keyof typeof POLICY_CODES]
+  | (typeof BLUEPRINT_CODES)[keyof typeof BLUEPRINT_CODES]
+
+export const MANIFEST_ERROR_CODE_LIST: readonly ManifestErrorCode[] = [
   ...Object.values(SPEC_CODES),
   ...Object.values(POLICY_CODES),
   ...Object.values(BLUEPRINT_CODES),
 ].sort()
+
+/**
+ * THE CODES INSIDE `details`, EACH WITH A MEANING AND A REMEDY — published as
+ * `x-enumDescriptions` on `ManifestErrorCode` and the top-level `x-manifest-spec-errors`
+ * (the authoring API plan's Task 9). They are what an agent writing `manifest.yaml` meets most,
+ * and until this map they published nothing. **Here, beside the list the contract is built
+ * from, and not beside each code's definition**: this is the public text, and `Record<
+ * ManifestErrorCode, …>` makes `tsc` refuse a code added in `spec/` or `blueprints/` without
+ * one. Each `ManifestError` still carries its own `message` and `hint` per instance — those
+ * name the values; this names the rule.
+ */
+export const MANIFEST_ERRORS: Record<
+  ManifestErrorCode,
+  { summary: string; remedy: string }
+> = {
+  // §7's schema (spec/errors.ts)
+  SPEC_BUILD_BLOCK_FORBIDDEN: {
+    summary:
+      'manifest.yaml supplies its own build definition (`runtime.build`); the Dockerfile is the blueprint’s (D13).',
+    remedy: 'Remove `runtime.build`. Declare what the app needs — never how to build it.',
+  },
+  SPEC_UNKNOWN_KEY: {
+    summary: 'A key §7 does not define at that path.',
+    remedy: 'Remove or rename the key; the hint lists the keys that path accepts.',
+  },
+  SPEC_PATH_EXPECTED: {
+    summary: 'A field that takes a path was given a URL.',
+    remedy:
+      'Write a path beginning `/`, such as `/auth/ubcshib/callback`; Manifest derives the origin itself (D15).',
+  },
+  SPEC_INVALID_SLUG: {
+    summary: '`name` is not a valid project slug.',
+    remedy:
+      'Set `name` to the project’s slug: 3 to 39 lower-case letters, digits and hyphens, starting with a letter.',
+  },
+  SPEC_RESERVED_BLOCK_NOT_EMPTY: {
+    summary:
+      '`integrations`, `jobs` or `checks` is not empty; §15 reserves each, empty, in schema version 1.',
+    remedy: 'Leave the block out, or leave it as an empty list.',
+  },
+  SPEC_INVALID_BLUEPRINT_REF: {
+    summary: '`blueprint` is not a name pinned to a major version.',
+    remedy:
+      'Write it as `name@major` — the project’s own pin, which `getProject` answers as `blueprint`.',
+  },
+  SPEC_INVALID_VALUE: {
+    summary: 'A value has the wrong type, or is outside what §7 permits.',
+    remedy:
+      'Correct the value the path names. This document’s `ManifestYaml` schema gives every field’s type and permitted values.',
+  },
+  SPEC_YAML_PARSE_FAILED: {
+    summary: 'manifest.yaml is not valid YAML.',
+    remedy:
+      'Fix the YAML at the place the message names; YAML indents with spaces, never tabs.',
+  },
+  // §7's policy (spec/policy.ts)
+  SPEC_ENV_NAME_RESERVED: {
+    summary: 'An `env` entry declares a variable the platform sets for every app (§8).',
+    remedy:
+      'Remove the entry, or choose another name: the platform’s value always wins, so this line would do nothing.',
+  },
+  SPEC_NAME_SLUG_MISMATCH: {
+    summary: '`name` is not the project’s slug.',
+    remedy: 'Set `name` to the project’s slug, which `getProject` answers as `slug`.',
+  },
+  SPEC_SERVICE_TYPE_UNKNOWN: {
+    summary: 'A service type this platform does not offer.',
+    remedy: 'Use a service type the hint lists — the ones this platform can provision.',
+  },
+  SPEC_ATTRIBUTE_NOT_WHITELISTED: {
+    summary: 'A CWL attribute UBC does not release to applications.',
+    remedy:
+      'Use an attribute the hint lists. The person’s identifier is `ubcEduCwlPuid`, never `uid`.',
+  },
+  SPEC_ATTRIBUTE_NOT_REGISTERED: {
+    summary:
+      'A launched app asks for a CWL attribute its recorded IAM registration does not release (§7); refused when the production build runs.',
+    remedy:
+      'Remove the attribute from `auth.attributes`, or have UBC IAM approve the registration’s change and record it (`recordIamRegistration`), then build again.',
+  },
+  SPEC_MODEL_UNKNOWN: {
+    summary: 'A model the catalogue does not name.',
+    remedy: 'Use a logical model name the hint lists, never a vendor’s model id.',
+  },
+  SPEC_MODEL_UNCLASSIFIED: {
+    summary: 'A model with no data classification, which no app may use (D17).',
+    remedy: 'Choose another model, or ask an administrator to classify this one.',
+  },
+  SPEC_MODEL_CLASSIFICATION_TOO_LOW: {
+    summary: 'A model that is not approved for the app’s `data.classification` (D17).',
+    remedy:
+      'Choose a model approved for that classification, or lower `data.classification` if it is overstated.',
+  },
+  SPEC_AI_DISABLED: {
+    summary: 'The manifest declares models, and this platform offers none.',
+    remedy: 'Remove `ai.models`, or ask an administrator to switch AI on.',
+  },
+  SPEC_AI_BUDGET_REQUIRED: {
+    summary:
+      'The manifest declares a model and its AI budget is $0, which would refuse every request the app makes.',
+    remedy:
+      'Set `ai.budget.project_monthly_usd` above 0, or leave it out to use the project’s AI quota — and if that quota is $0, ask an administrator to raise it.',
+  },
+  SPEC_QUOTA_EXCEEDED: {
+    summary:
+      'A resource, the number of services, or the AI budget is above the project’s quota.',
+    remedy:
+      'Lower what the manifest asks for, or ask an administrator to raise the quota.',
+  },
+  SPEC_BLUEPRINT_NOT_PINNED: {
+    summary:
+      '`blueprint` names a different blueprint from the one the project is pinned to; a commit cannot move a project.',
+    remedy: 'Set `blueprint` to the project’s pin, which the hint names.',
+  },
+  // §25's compatibility check (blueprints/compatibility.ts)
+  BLUEPRINT_SERVICE_UNSUPPORTED: {
+    summary: 'The pinned blueprint cannot bind that service type (§25).',
+    remedy: 'Use a service type the hint lists, which the pinned blueprint can bind.',
+  },
+  BLUEPRINT_AUTH_UNSUPPORTED: {
+    summary: 'The pinned blueprint does not support that `auth.provider` (§25).',
+    remedy:
+      'Set `auth.provider` to one the hint lists, which the pinned blueprint supports.',
+  },
+  BLUEPRINT_AI_UNSUPPORTED: {
+    summary: 'The pinned blueprint does not provide AI (§25).',
+    remedy: 'Remove `ai.models`: an app gets AI only from a blueprint that provides it.',
+  },
+  BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED: {
+    summary:
+      'The pinned blueprint does not understand this `manifest:` schema version (§25).',
+    remedy: 'Set `manifest:` to a schema version the hint lists.',
+  },
+}
