@@ -1,6 +1,6 @@
 import { beforeEach, afterAll, describe, expect, it, vi } from 'vitest'
 import { asc, count, eq } from 'drizzle-orm'
-import { builds, events, releases } from '../db/index.js'
+import { appSpecs, builds, events, releases } from '../db/index.js'
 import type { StreamFrame } from '../observability/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { createFakeDriver, type Driver } from '../runtime/index.js'
@@ -17,6 +17,8 @@ import {
   refusal,
   releasedProject,
   testDeps,
+  withProjectServer,
+  type TestProject,
 } from './testing.js'
 import { writeFiles } from '../source/testing.js'
 
@@ -1152,5 +1154,162 @@ describe('a release freezes its build’s own spec (P6b Task 3, [M6])', () => {
     const removed = await commitManifest(ctx, manifest('f7-labs'), 'revert: no egress')
     expect(removed.sensitiveDiff).toEqual({ sensitive: true, fields: ['egress.allow'] })
     await ctx.app.close()
+  })
+})
+
+/**
+ * A BUILD OF A COMMIT USES THAT COMMIT'S VALIDATION (the authoring API plan's Task 7, Decision
+ * 12). `startBuild` paired a given commit with the project's NEWEST spec, whatever commit that
+ * came from — so a client that committed X, then Y, then built X froze X's code with Y's
+ * manifest. An API that commits makes that the normal case (the plan's *Read this first* 4).
+ */
+describe('a build uses the validation of the commit it builds (Task 7)', () => {
+  const seedManifest = async (ctx: TestProject): Promise<string> =>
+    (
+      (
+        await ctx.app.inject({
+          method: 'GET',
+          url: `/v1/projects/${ctx.projectId}/file?path=manifest.yaml&ref=${ctx.commitSha}`,
+          cookies: ctx.ownerCookies,
+        })
+      ).json() as { content: string }
+    ).content
+  const manifestWith = async (ctx: TestProject, memory: string) =>
+    `${await seedManifest(ctx)}resources:\n  memory: ${memory}\n`
+
+  /** Task 6's `createCommit`, on `main` as it is now. */
+  async function commitThroughRoute(ctx: TestProject, manifest: string): Promise<string> {
+    const head = (
+      (
+        await ctx.app.inject({
+          method: 'GET',
+          url: `/v1/projects/${ctx.projectId}/tree`,
+          cookies: ctx.ownerCookies,
+        })
+      ).json() as { commitSha: string }
+    ).commitSha
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.projectId}/commits`,
+      cookies: ctx.ownerCookies,
+      headers: mutationHeaders(ctx.deps),
+      payload: {
+        baseCommit: head,
+        message: 'a manifest change',
+        changes: [{ op: 'write', path: 'manifest.yaml', content: manifest }],
+      },
+    })
+    expect(res.statusCode, res.body).toBe(201)
+    return (res.json() as { commitSha: string }).commitSha
+  }
+
+  const startBuildOf = (ctx: TestProject, commitSha?: string) =>
+    ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.projectId}/builds`,
+      cookies: ctx.ownerCookies,
+      headers: mutationHeaders(ctx.deps),
+      payload: commitSha === undefined ? {} : { commitSha },
+    })
+
+  const specOfBuild = async (ctx: TestProject, buildId: string) => {
+    const [build] = await ctx.db.select().from(builds).where(eq(builds.id, buildId))
+    const [spec] = await ctx.db
+      .select()
+      .from(appSpecs)
+      .where(eq(appSpecs.id, build!.appSpecId))
+    return { build: build!, spec: spec! }
+  }
+
+  const rowsFor = async (ctx: TestProject, commitSha: string) =>
+    (
+      await ctx.db
+        .select({ n: count() })
+        .from(appSpecs)
+        .where(eq(appSpecs.commitSha, commitSha))
+    )[0]!.n
+
+  it('builds a commit with THAT commit’s manifest, not the newest one (Read this first 4)', async () => {
+    await withProjectServer(async (ctx) => {
+      const x = await commitThroughRoute(ctx, await manifestWith(ctx, '256Mi'))
+      // The newest spec now says 512Mi.
+      const y = await commitThroughRoute(ctx, await manifestWith(ctx, '512Mi'))
+      const res = await startBuildOf(ctx, x)
+      expect(res.statusCode, res.body).toBe(202)
+      const { build, spec } = await specOfBuild(ctx, (res.json() as { id: string }).id)
+      expect(build.commitSha).toBe(x)
+      expect(spec.commitSha).toBe(x)
+      expect((spec.parsed as { resources: { memory: string } }).resources.memory).toBe(
+        '256Mi',
+      )
+      // The positive control: a build that names no commit takes the NEWEST recorded
+      // validation's commit, and its spec — the meaning the empty body has always had.
+      const newest = await startBuildOf(ctx)
+      expect(newest.statusCode, newest.body).toBe(202)
+      const latest = await specOfBuild(ctx, (newest.json() as { id: string }).id)
+      expect(latest.build.commitSha).toBe(y)
+      expect(
+        (latest.spec.parsed as { resources: { memory: string } }).resources.memory,
+      ).toBe('512Mi')
+    })
+  })
+
+  it('validates a commit nobody has validated before building it, and refuses an invalid one', async () => {
+    await withProjectServer(async (ctx) => {
+      const slug = (
+        (
+          await ctx.app.inject({
+            method: 'GET',
+            url: `/v1/projects/${ctx.projectId}`,
+            cookies: ctx.ownerCookies,
+          })
+        ).json() as { slug: string }
+      ).slug
+      const repo = ctx.deps.source.repositoryFor(slug)
+      // A person's commit, made outside the API: no app_specs row for it.
+      const valid = await writeFiles(
+        ctx.deps.source,
+        repo,
+        { 'manifest.yaml': await manifestWith(ctx, '384Mi') },
+        'a person’s manifest change',
+      )
+      expect(await rowsFor(ctx, valid)).toBe(0)
+      const res = await startBuildOf(ctx, valid)
+      expect(res.statusCode, res.body).toBe(202)
+      expect(await rowsFor(ctx, valid)).toBe(1)
+      const { spec } = await specOfBuild(ctx, (res.json() as { id: string }).id)
+      expect((spec.parsed as { resources: { memory: string } }).resources.memory).toBe(
+        '384Mi',
+      )
+      const announced = await ctx.db
+        .select({ machineDetail: events.machineDetail })
+        .from(events)
+        .where(eq(events.type, 'spec.validated'))
+      expect(
+        announced.filter(
+          (e) => (e.machineDetail as { commitSha: string }).commitSha === valid,
+        ),
+      ).toHaveLength(1)
+
+      await ctx.deps.builds.idle()
+      const invalid = await writeFiles(
+        ctx.deps.source,
+        repo,
+        {
+          'manifest.yaml': `${await seedManifest(ctx)}data:\n  classification: secret\n`,
+        },
+        'a person’s broken manifest',
+      )
+      const before = (await ctx.db.select({ n: count() }).from(builds))[0]!.n
+      const refused = await startBuildOf(ctx, invalid)
+      expect(refusal(refused)).toEqual({ status: 422, code: 'SPEC_INVALID' })
+      expect(
+        (refused.json() as { error: { details: { path: string }[] } }).error.details[0]!
+          .path,
+      ).toBe('data.classification')
+      expect((await ctx.db.select({ n: count() }).from(builds))[0]!.n).toBe(before)
+      // It was validated — and recorded invalid — once.
+      expect(await rowsFor(ctx, invalid)).toBe(1)
+    })
   })
 })

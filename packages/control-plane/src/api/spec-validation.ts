@@ -26,13 +26,18 @@ export type SpecValidationResult = z.output<typeof SpecValidation>
  */
 export async function validateManifestText(
   deps: ServerDeps,
-  project: { slug: string; quota: unknown },
+  project: { slug: string; quota: unknown; blueprintRef: string },
   yamlText: string,
 ): Promise<ValidationResult> {
   const models = await modelPolicy(deps.catalogue, yamlText)
   return validateSpec(
     yamlText,
-    validationContext(project.slug, project.quota as Record<string, unknown>, models),
+    validationContext(
+      project.slug,
+      project.quota as Record<string, unknown>,
+      models,
+      project.blueprintRef,
+    ),
   )
 }
 
@@ -80,7 +85,7 @@ export async function sensitiveAgainstNewestValid(
  */
 export async function validateAndRecord(
   deps: ServerDeps,
-  project: { id: string; slug: string; quota: unknown },
+  project: { id: string; slug: string; quota: unknown; blueprintRef: string },
   commitSha: string | undefined,
 ): Promise<SpecValidationResult> {
   const repo = await repositoryOf(deps, project)

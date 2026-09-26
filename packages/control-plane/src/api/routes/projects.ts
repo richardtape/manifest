@@ -58,14 +58,19 @@ export async function modelPolicy(
   return { aiEnabled: true, modelCatalogue: models, unclassifiedModels: unclassified }
 }
 
-/** The validation context §7 needs but manifest.yaml cannot contain (Task 4). */
+/**
+ * The validation context §7 needs but manifest.yaml cannot contain (Task 4) — and, since the
+ * authoring API plan's Task 7, the project's pinned blueprint, which the manifest must name.
+ */
 export function validationContext(
   projectSlug: string,
   quota: Record<string, unknown>,
   models: ModelPolicy,
+  projectBlueprint: string,
 ): ValidationContext {
   return {
     projectSlug,
+    projectBlueprint,
     attributeWhitelist: [
       'ubcEduCwlPuid',
       'mail',
@@ -216,7 +221,12 @@ export const createProjectRoutes = [
       // 6. What was seeded, validated and recorded.
       const result = validateSpec(
         yamlText,
-        validationContext(project.slug, project.quota as Record<string, unknown>, models),
+        validationContext(
+          project.slug,
+          project.quota as Record<string, unknown>,
+          models,
+          project.blueprintRef,
+        ),
       )
       const [appSpec] = await deps.db
         .insert(appSpecs)

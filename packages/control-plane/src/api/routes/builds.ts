@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
 import { checkBlueprintCompatibility } from '../../blueprints/index.js'
 import { appSpecs, builds, projects, type Db } from '../../db/index.js'
@@ -13,6 +13,7 @@ import { getBuild } from '../../releases/index.js'
 import type { ManifestSpec } from '../../spec/index.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { BadRequestError, SpecInvalidError } from '../errors.js'
+import { validateAndRecord } from '../spec-validation.js'
 import {
   Build,
   BuildList,
@@ -23,6 +24,12 @@ import {
 } from '../representations/builds.js'
 
 const ProjectParams = z.strictObject({ projectId: z.uuid() })
+
+/** The `app_specs` row `validateAndRecord` wrote — it answers the representation, not the row. */
+async function specRowOf(db: Db, appSpecId: string) {
+  const [row] = await db.select().from(appSpecs).where(eq(appSpecs.id, appSpecId))
+  return row!
+}
 const BuildParams = z.strictObject({ buildId: z.uuid() })
 
 /**
@@ -47,7 +54,7 @@ export const buildRoutes = [
     tag: 'delivery',
     summary: 'Build the project',
     description:
-      '§22 step 4. Answers 202 at once with the build `running` (R6); its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.',
+      '§22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running` (R6); its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.',
     params: ProjectParams,
     query: NO_QUERY,
     body: StartBuildRequest,
@@ -62,24 +69,14 @@ export const buildRoutes = [
       'SOURCE_PROVIDER_MISMATCH',
       'SOURCE_REPOSITORY_PUBLIC',
       'SOURCE_UNREACHABLE',
+      // A commit nobody has validated is validated first (Task 7), which reads the model
+      // catalogue when its manifest declares a model.
+      'AI_BACKEND_UNAVAILABLE',
+      'AI_CATALOGUE_EMPTY',
     ],
     handler: async ({ deps, actor, params, body }) => {
       await assertCapability(deps.db, actor, params.projectId, 'build:create')
-      const [spec] = await deps.db
-        .select()
-        .from(appSpecs)
-        .where(eq(appSpecs.projectId, params.projectId))
-        .orderBy(desc(appSpecs.createdAt))
-        .limit(1)
-      if (spec === undefined) {
-        throw new BadRequestError(
-          'SPEC_NOT_FOUND',
-          'this project has no validated spec yet',
-        )
-      }
-      // SpecInvalidError, with the errors (P5a Task 5): one code, one status, from every
-      // route that answers it — it was `400 SPEC_INVALID` here with no `details`.
-      if (!spec.valid) throw new SpecInvalidError(spec.errors as never)
+      // Moved up (the authoring API plan's Task 7): the commit's validation needs the project.
       const [project] = await deps.db
         .select()
         .from(projects)
@@ -87,6 +84,49 @@ export const buildRoutes = [
       if (project === undefined) {
         throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
       }
+      const [newest] = await deps.db
+        .select()
+        .from(appSpecs)
+        .where(eq(appSpecs.projectId, params.projectId))
+        .orderBy(desc(appSpecs.createdAt))
+        .limit(1)
+      if (newest === undefined && body.commitSha === undefined) {
+        throw new BadRequestError(
+          'SPEC_NOT_FOUND',
+          'this project has no validated spec yet',
+        )
+      }
+      // No commit named: the newest recorded validation's — the meaning the empty body has
+      // always had (ORIENTATION §4 trap 23), and what the description now says in words.
+      const commitSha = body.commitSha ?? newest!.commitSha
+      /**
+       * THE SPEC OF THE COMMIT BUILT (Decision 12): its own newest validation, or one made now.
+       * This read the project's NEWEST row, whatever commit that came from — so a client that
+       * committed X, then Y, then built X froze X's code with Y's manifest (the plan's *Read
+       * this first* 4). A commit nobody validated is validated first, recorded and announced
+       * like any other; one the repository lacks is `SOURCE_COMMIT_NOT_FOUND` from the read,
+       * before any row is written.
+       */
+      const [ofCommit] = await deps.db
+        .select()
+        .from(appSpecs)
+        .where(
+          and(
+            eq(appSpecs.projectId, params.projectId),
+            eq(appSpecs.commitSha, commitSha),
+          ),
+        )
+        .orderBy(desc(appSpecs.createdAt))
+        .limit(1)
+      const spec =
+        ofCommit ??
+        (await specRowOf(
+          deps.db,
+          (await validateAndRecord(deps, project, commitSha)).appSpecId,
+        ))
+      // SpecInvalidError, with the errors (P5a Task 5): one code, one status, from every
+      // route that answers it — it was `400 SPEC_INVALID` here with no `details`.
+      if (!spec.valid) throw new SpecInvalidError(spec.errors as never)
       // D30/§25: the spec is checked against the blueprint it pins HERE rather than at
       // validation, because a blueprint's major version can move under a spec that has
       // not changed. This is `checkBlueprintCompatibility`'s call site.
@@ -102,7 +142,6 @@ export const buildRoutes = [
         descriptor,
       )
       if (incompatible.length > 0) throw new SpecInvalidError(incompatible)
-      const commitSha = body.commitSha ?? spec.commitSha
       // D5's seam (the D5 plan's Task 2): the builder is handed a LOCAL bare repository that
       // holds this commit, from the driver — never a path read off a reference. Driver 2
       // fetches it into its mirror first; driver 1 checks it is there. Either refuses

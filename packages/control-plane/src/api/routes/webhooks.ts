@@ -171,7 +171,7 @@ export const webhookRoutes =
  */
 async function processDelivery(
   deps: ServerDeps,
-  project: { id: string; slug: string; quota: unknown },
+  project: { id: string; slug: string; quota: unknown; blueprintRef: string },
   event: string,
   mainPushed: boolean,
 ): Promise<void> {

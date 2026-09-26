@@ -247,6 +247,25 @@ describe('createCommit — changes checked before anything is written (Task 6)',
       ).toEqual({ status: 422, code: 'SPEC_INVALID' })
       expect(await headOf(ctx)).toBe(ctx.commitSha)
       expect(await specRows(ctx)).toBe(before)
+      // Nor may a commit move the project to another blueprint (Task 7, Decision 12): the
+      // fixture project pins fixture-node@1, and node-ts-mongo@1 is a real blueprint.
+      const renamed = await post(
+        ctx,
+        commitBody(ctx.commitSha, [
+          {
+            op: 'write',
+            path: 'manifest.yaml',
+            content: (await manifestWith(ctx)).replace(
+              'blueprint: fixture-node@1',
+              'blueprint: node-ts-mongo@1',
+            ),
+          },
+        ]),
+      )
+      expect(refusal(renamed)).toEqual({ status: 422, code: 'SPEC_INVALID' })
+      expect(errorOf(renamed).details?.map((d) => d.code)).toEqual([
+        'SPEC_BLUEPRINT_NOT_PINNED',
+      ])
       // The positive control: a VALID manifest change commits.
       const valid = await post(
         ctx,

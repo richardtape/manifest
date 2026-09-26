@@ -323,7 +323,7 @@ export interface paths {
         put?: never;
         /**
          * Build the project
-         * @description §22 step 4. Answers 202 at once with the build `running` (R6); its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.
+         * @description §22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running` (R6); its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.
          */
         post: operations["startBuild"];
         delete?: never;
@@ -2359,7 +2359,7 @@ export interface components {
          * @description A code inside `details`: §7 schema, §7 policy, or §25 blueprint compatibility.
          * @enum {string}
          */
-        ManifestErrorCode: "BLUEPRINT_AI_UNSUPPORTED" | "BLUEPRINT_AUTH_UNSUPPORTED" | "BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED" | "BLUEPRINT_SERVICE_UNSUPPORTED" | "SPEC_AI_BUDGET_REQUIRED" | "SPEC_AI_DISABLED" | "SPEC_ATTRIBUTE_NOT_REGISTERED" | "SPEC_ATTRIBUTE_NOT_WHITELISTED" | "SPEC_BUILD_BLOCK_FORBIDDEN" | "SPEC_ENV_NAME_RESERVED" | "SPEC_INVALID_BLUEPRINT_REF" | "SPEC_INVALID_SLUG" | "SPEC_INVALID_VALUE" | "SPEC_MODEL_CLASSIFICATION_TOO_LOW" | "SPEC_MODEL_UNCLASSIFIED" | "SPEC_MODEL_UNKNOWN" | "SPEC_NAME_SLUG_MISMATCH" | "SPEC_PATH_EXPECTED" | "SPEC_QUOTA_EXCEEDED" | "SPEC_RESERVED_BLOCK_NOT_EMPTY" | "SPEC_SERVICE_TYPE_UNKNOWN" | "SPEC_UNKNOWN_KEY" | "SPEC_YAML_PARSE_FAILED";
+        ManifestErrorCode: "BLUEPRINT_AI_UNSUPPORTED" | "BLUEPRINT_AUTH_UNSUPPORTED" | "BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED" | "BLUEPRINT_SERVICE_UNSUPPORTED" | "SPEC_AI_BUDGET_REQUIRED" | "SPEC_AI_DISABLED" | "SPEC_ATTRIBUTE_NOT_REGISTERED" | "SPEC_ATTRIBUTE_NOT_WHITELISTED" | "SPEC_BLUEPRINT_NOT_PINNED" | "SPEC_BUILD_BLOCK_FORBIDDEN" | "SPEC_ENV_NAME_RESERVED" | "SPEC_INVALID_BLUEPRINT_REF" | "SPEC_INVALID_SLUG" | "SPEC_INVALID_VALUE" | "SPEC_MODEL_CLASSIFICATION_TOO_LOW" | "SPEC_MODEL_UNCLASSIFIED" | "SPEC_MODEL_UNKNOWN" | "SPEC_NAME_SLUG_MISMATCH" | "SPEC_PATH_EXPECTED" | "SPEC_QUOTA_EXCEEDED" | "SPEC_RESERVED_BLOCK_NOT_EMPTY" | "SPEC_SERVICE_TYPE_UNKNOWN" | "SPEC_UNKNOWN_KEY" | "SPEC_YAML_PARSE_FAILED";
         /** @description The person the session belongs to. */
         Me: {
             /** Format: uuid */
@@ -3397,7 +3397,7 @@ export interface operations {
                     "application/json": components["schemas"]["Build"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, SOURCE_UNREACHABLE, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, SOURCE_UNREACHABLE, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

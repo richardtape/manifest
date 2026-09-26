@@ -29,6 +29,14 @@ export interface ValidationContext {
     maxServices: number
     aiMonthlyUsd: number
   }
+  /**
+   * THE PROJECT'S PINNED BLUEPRINT (`projects.blueprint_ref`) — what its builds are made from
+   * (the authoring API plan's Task 7, Decision 12). REQUIRED, like `aiEnabled`, so a caller
+   * that forgets it is a `tsc` error rather than a manifest that may name any blueprint: an
+   * agent that writes `manifest.yaml` could otherwise point it at another blueprint's
+   * knowledge pack while `startBuild` builds from this one.
+   */
+  projectBlueprint: string
 }
 
 export const POLICY_CODES = {
@@ -51,6 +59,8 @@ export const POLICY_CODES = {
   AI_DISABLED: 'SPEC_AI_DISABLED',
   AI_BUDGET_REQUIRED: 'SPEC_AI_BUDGET_REQUIRED',
   QUOTA_EXCEEDED: 'SPEC_QUOTA_EXCEEDED',
+  /** Decision 12: `blueprint:` must be the project's pin — a commit cannot move a project. */
+  BLUEPRINT_NOT_PINNED: 'SPEC_BLUEPRINT_NOT_PINNED',
 } as const
 
 /** Converts "512Mi" / "2Gi" / "512" to mebibytes. */
@@ -70,6 +80,18 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
       path: 'name',
       message: `name "${spec.name}" does not match the project slug "${ctx.projectSlug}"`,
       hint: 'The name in manifest.yaml must equal the project slug. Rename the project, or correct the file.',
+    })
+  }
+
+  // Decision 12. By NAME, whole — `node-ts-mongo@2` is not `node-ts-mongo@1`: §25's major
+  // version is part of what a build is made from, and `checkBlueprintCompatibility` (at build
+  // time) compares versions of the pin, never another blueprint's.
+  if (spec.blueprint !== ctx.projectBlueprint) {
+    errors.push({
+      code: POLICY_CODES.BLUEPRINT_NOT_PINNED,
+      path: 'blueprint',
+      message: `this project is built from ${ctx.projectBlueprint}; manifest.yaml must name it — moving a project to another blueprint is not something a commit can do`,
+      hint: `Set blueprint: ${ctx.projectBlueprint} in manifest.yaml.`,
     })
   }
 

@@ -133,6 +133,7 @@ describe('the ai block a release freezes (§13; P4b Task 9 mints from it)', () =
     unclassifiedModels: [],
     aiEnabled: true,
     quota: { maxCpu: 2, maxMemoryMi: 2048, maxServices: 3, aiMonthlyUsd: 40 },
+    projectBlueprint: 'fixture-node@1',
   }
   // No budget written: §7 as amended fills it with the quota at validation.
   const aiYaml = `${yaml}ai:\n  models: [default-chat, default-embed]\n`

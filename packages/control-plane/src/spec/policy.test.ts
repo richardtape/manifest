@@ -19,6 +19,7 @@ const ctx: ValidationContext = {
   unclassifiedModels: [],
   aiEnabled: true,
   quota: { maxCpu: 2, maxMemoryMi: 2048, maxServices: 3, aiMonthlyUsd: 100 },
+  projectBlueprint: 'node-ts-mongo@2',
 }
 
 const yaml = (extra = '') => `
@@ -309,5 +310,31 @@ describe('an unclassified catalogue entry refuses only itself (§7 as amended 20
   it('validates a manifest that declares another model, and one that declares none', () => {
     expect(errorCodes(budgeted('default-embed'), withUnclassified)).toEqual([])
     expect(validateSpec(yaml(), withUnclassified).valid).toBe(true)
+  })
+})
+
+/**
+ * THE MANIFEST NAMES THE PROJECT'S OWN BLUEPRINT (the authoring API plan's Task 7, Decision 12):
+ * an agent that writes `manifest.yaml` could otherwise point it at another blueprint's
+ * knowledge pack while `startBuild` builds from the project's pin.
+ */
+describe('the blueprint a manifest names is the project’s pin', () => {
+  it('refuses a manifest that names a blueprint other than the project’s pin', () => {
+    const r = validateSpec(yaml().replace('node-ts-mongo@2', 'fixture-node@1'), ctx)
+    expect(r.valid).toBe(false)
+    if (r.valid) return
+    expect(r.errors).toContainEqual(
+      expect.objectContaining({ code: 'SPEC_BLUEPRINT_NOT_PINNED', path: 'blueprint' }),
+    )
+    expect(
+      r.errors.find((e) => e.code === 'SPEC_BLUEPRINT_NOT_PINNED')!.message,
+    ).toContain('node-ts-mongo@2')
+  })
+
+  it('accepts the pin itself — the positive control — and another MAJOR of it is still another blueprint', () => {
+    expect(validateSpec(yaml(), ctx).valid).toBe(true)
+    expect(errorCodes(yaml().replace('node-ts-mongo@2', 'node-ts-mongo@1'))).toContain(
+      'SPEC_BLUEPRINT_NOT_PINNED',
+    )
   })
 })

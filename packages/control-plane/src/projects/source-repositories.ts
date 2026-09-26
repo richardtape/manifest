@@ -84,9 +84,17 @@ export async function projectForRepository(
   db: Db,
   provider: SourceProvider,
   fullName: string,
-): Promise<{ id: string; slug: string; quota: unknown } | undefined> {
+): Promise<
+  { id: string; slug: string; quota: unknown; blueprintRef: string } | undefined
+> {
   const [row] = await db
-    .select({ id: projects.id, slug: projects.slug, quota: projects.quota })
+    .select({
+      id: projects.id,
+      slug: projects.slug,
+      quota: projects.quota,
+      // A push is validated against the project's pin (the authoring API plan's Task 7).
+      blueprintRef: projects.blueprintRef,
+    })
     .from(sourceRepositories)
     .innerJoin(projects, eq(projects.id, sourceRepositories.projectId))
     .where(
