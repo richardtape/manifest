@@ -58,7 +58,7 @@
 | 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths (it does: Task 9's Files list modifies `observability/event-schemas.ts`) | ← **next** |
 | 7 | 10 | **The console and the mock**: a Code screen (tree, file, edit, delete, commit, history, one commit) and a Secrets screen; the mock answers every new operation from the document's own examples; both coverage gates | **No** | |
 | 8 | 11 | **The guides, served**: `docs/api/` — hand-written guides whose code examples are real files, type-checked and run against the mock — a reference generated from the document, the journey as a gate, all served at `/v1/docs` and `/v1/openapi.json`, `llms.txt`, a console Docs screen, **the HTML reference page**, and the knowledge pack's pointer | **Yes** — `blueprints/` (the knowledge pack), `api/` boot | |
-| 9 | 12 | **What the D5 plan hands over**: the mirror's scan paged to the end, no PUID in any event's sentence, the review's six deferred minors, and every driver-1 demo refusing a driver-2 control plane before it creates anything | **Yes** — `source/`, `launch/`, `infra/` scripts | |
+| 9 | 12 | **What the D5 plan hands over**: the mirror's scan paged to the end, no PUID in any event's sentence, the review's six deferred minors, and every driver-1 demo refusing a driver-2 control plane before it creates anything — **and sitting 5's F4, Rich's option (a): a delegated token's secret kept in no idempotency record, a replayed mint answering `409 TOKEN_ALREADY_MINTED`** | **Yes** — `source/`, `launch/`, `infra/` scripts | |
 | 10 | 13 | **The acceptance**: `make demo-authoring` — an agent builds the bulletin board from the bare skeleton through the API, on driver 1 AND on driver 2, green three times on each — every other demo, `make ci-acceptance`, **and a clicked half**: a student posts, an instructor replies, and a person reads the Code screen, the Docs screen and the HTML reference. **Alone, and last** | **Yes** if any code changes | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -77,6 +77,7 @@
 **Each of these was answered by Rich from options with their costs stated. Do not re-ask any of them** (ORIENTATION §8, *Decided*).
 
 - **The authoring API is its own Phase 2 plan, after D5's GitHub driver** (2026-09-22), with **text files only in v1**, **the front-end project specced against this slice** rather than waiting for sandboxes, and **S5 not scheduled until after it**. *Cost, accepted:* a front-end team waited one plan longer.
+- **SITTING 5'S F4 — `mintToken`'S IDEMPOTENCY RECORD: OPTION (a), BUILT IN TASK 12** (2026-09-26, after sitting 5's close, taking the recommendation). The record keeps the token WITHOUT its secret; a replay of a mint answers `409 TOKEN_ALREADY_MINTED` naming the token the first request minted, so a client that lost the answer revokes it and mints again — D24's *shown exactly once* made true, and no second token ever minted; a custom migration scrubs the secrets already stored. Task 12's Step 5 has the design. *Rejected:* (b) store the answer encrypted and replay it within a short window; (c) leave it. A retention for `idempotency_keys` is not part of it (*What this plan does not build*).
 - **SPEC ACTION 2: OPTION (a), AS PROPOSED** (2026-09-26, at sitting 4's close, taking the recommendation) — a delegated token sets its app's sandbox and staging secrets; a production value only in an interactive session with step-up, refused to a token outright, without joining D24's four. Applied to §20 and D24 the same night, in the words *Spec actions*, 2, gives; `manifest-decisions.html` restates it. *Rejected:* (b) a token sets any environment's; (c) production joins D24's privileged set.
 - **F7, AFTER TASK 2 MEASURED OPTION (a) AND IT READ WORSE: OPTION (b)** (2026-09-25, after sitting 2's close) — a CWL attribute change gets NO model sentence; its change line is the record. *Rejected:* (c) no sentences at all; (d) keep them shown and labelled. Applied the same evening (the record, *Sitting 2*, *After the close*).
 - **F7 is this plan's first task after the measurements** (2026-09-25) — Task 2. The approval summary's sentence reversed a removed CWL attribute 5 times in 40 (the D5 plan's sitting 7). The fix to try is handing the model each attribute change's added and removed halves as their own facts, measured over 40 answers before it is adopted. *Rejected (2026-09-25, the D5 plan):* no sentence for attribute changes; no sentences at all. *Offered and not chosen:* a separate small follow-up.
@@ -1747,6 +1748,60 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > environment id is made up — so Step 5's *"a real answer"* rule applies to them too. `SetAppSecretRequest.value` has
 > `minLength: 6` and says why (a shorter value could not be redacted from an Incident — the record's F2).
 
+> **`[S5]` — A COLD-START REVIEW OF THIS TASK AGAINST THE CODE AS TASKS 2–8 LEFT IT (2026-09-26, after sitting 5's close;
+> its F17–F22). Read this before Step 1; each point was MEASURED, and where a step and this block disagree, this block wins.**
+> 1. **Step 1's gate runs as written** — dry-run against today's document with a throwaway test: **840 gaps** (636
+>    descriptions — operations, components and properties together — 41 parameters, 42 response examples, 13 request
+>    examples, 108 remedies), not the ~600 `[M6]` predicted. **42 of the 50 routes in `ROUTE_DEFINITIONS` have no
+>    `examples`**, and until each has one the third `it` throws a `TypeError` reading `route.examples.response` rather than
+>    naming them: make `examples` required in `route.ts` FIRST, and `pnpm typecheck` lists the 42. The document's 51st
+>    operation, `streamProjectEvents`, is not in `ROUTE_DEFINITIONS` (`routes/events.ts` registers it directly) — Step 3
+>    documents the stream.
+> 2. **The internal-name regex has no false positive**: its **35** hits are all real — `P6b` ×9, `P5b` ×5, `Task 9` ×5, `P5a`
+>    ×4, `P6a` ×3, `Decision 22` ×3, `R1`–`R6`, `the D5 plan` ×2, `F10`, `sitting`, `Rich`. **Where they are**: 19 in component
+>    schemas (`api/representations/*.ts`), 11 in route descriptions, 1 in the security scheme (`document.ts`), and **4 in
+>    `x-manifest-unversioned` — `api/unversioned.ts`, which the Files list does not name (F20)**. `jq` groups them:
+>    `jq -r '[paths(type=="string") as $p | {p:($p|map(tostring)|join(".")), v:getpath($p)} | select(.v|test("\\b(P[1-6][abc]?|sitting|Task [0-9]+|Decision [0-9]+|Rich)\\b|the D5 plan|\\bR[1-9]\\b|\\bF[0-9]{1,3}\\b")) | .p] | .[]' packages/contract/openapi.json`.
+> 3. **THE DOCUMENT CANNOT TELL AN AGENT HOW TO USE A TOKEN (F17)** — and this plan's promise is that an agent drives the API
+>    from the docs alone. `components.securitySchemes` declares ONLY `session` (a cookie), described *"Delegated tokens
+>    arrive in P5b."* — stale since 2026-09-18, and an internal name; the document's global `security` is
+>    `[{ session: [] }]`, no operation overrides it, and `Bearer` appears nowhere. **Add a `delegatedToken` scheme** (`type:
+>    http`, `scheme: bearer`, its format `mft_<id>_<secret>` described), make the global `security` either credential, and
+>    **mark the operations a token is refused on**: about fourteen call sites of `requireSession(request)` in
+>    `api/routes/*.ts` (`grep -rn "requireSession(request)" api/routes/`), some of them only for production
+>    (`setAppSecret`/`clearAppSecret`) — a per-operation `security: [{ session: [] }]` for the always-session ones, and the
+>    description saying so for the conditional ones. How a route states it (a `RouteDefinition` field, so the document and
+>    the wrapper read one fact) is this task's ruling. **Check `openapi-typescript` generates the same types** after it.
+> 4. **Step 4's target is WRONG as written (F18)**: it says `target: 'jsonSchema2019-09'`; `[M7]` measured and ruled
+>    **`jsonSchema7`** with `$refStrategy: 'none'`, `$schema` dropped — `[M7]` wins. Step 4 also includes `[M7]`'s **corpus
+>    gate** (every starter's manifest, the seed, a mutation per rule, through `manifestSchema.safeParse` AND Ajv) and its
+>    **hand-restated `env` XOR**, which its own text does not repeat.
+> 5. **Step 5's order mixes tags and files (F19)** — `releases` and `fleet` are not tags; `administration` and `events` are.
+>    Work FILE by file: `api/representations/` holds `blueprints`, `builds`, `environments`, `errors`, `events`, `fleet`,
+>    `incidents`, `instances`, `launch`, `me`, `members`, `pending-actions`, `projects`, `releases`, `secrets`, `slugs`,
+>    `source`, `specs`, `tokens`. The eleven TAGS (all without a description) are `administration`, `blueprints`,
+>    `delivery`, `events`, `identity`, `launch`, `pending-actions`, `projects`, `secrets`, `source`, `tokens`; `document.ts`
+>    builds the tag list, so the descriptions go there.
+> 6. **Decision 14 promises every error code's meaning and remedy, and the gate checks `ERROR_CODES` only (F21)**: the **24
+>    `ManifestErrorCode`s** — the codes inside `details`, from `spec/errors.ts`, `spec/policy.ts` and `blueprints/`
+>    (`MANIFEST_ERROR_CODE_LIST`) — publish no meaning at all, and they are what an agent writing `manifest.yaml` meets most.
+>    **Recommended ruling:** give them `x-enumDescriptions` with a remedy each, from a map beside their definitions, and
+>    add them to the gate. Each `ManifestError` already carries a `message` and a `hint` per instance, which is the reason
+>    this could be ruled otherwise — record the ruling either way.
+> 7. **The two packages are on this machine**: `node_modules/.pnpm` already holds `zod-to-json-schema@3.25.2_zod@3.25.76` and
+>    `@redocly+openapi-core@1.34.20`, so the offline adds have what they need — **and the lock's peer suffix must still read
+>    `_zod@3.25.76`** (`[M7]`).
+> 8. **Nothing Task 12 will build is documented here**: a replayed mint still answers the first `201` today, and
+>    `TOKEN_ALREADY_MINTED` does not exist until Task 12's Step 5 (Rich's option (a) for sitting 5's F4).
+> 9. **THE GATE IS WRITTEN FIRST AND RED, AND THE PLAN SAYS COMMIT PER MODULE — BUT EVERY COMMIT NEEDS THE FOUR GATES CLEAN
+>    (*Global Constraints*), so the two cannot both hold as written (F22).** A red `docs.test.ts` in the tree makes every
+>    `pnpm test` red, and `examples` made required makes `pnpm typecheck` red on 42 routes. **The order that satisfies
+>    both:** write the gate in Step 1 and run it ALONE to read the list; flip `examples` to required only long enough for
+>    `pnpm typecheck` to name the 42, then flip it back. For each module, move `docs.test.ts` (and `lint.test.ts`, Step 6)
+>    aside to `$SCRATCH`, run the four gates, commit the module's files BY NAME, and move the gate back. **The gate, the
+>    required `examples` and the linter land LAST, in one commit, green** — and `ALLOWED_GAPS` is empty in every commit
+>    it appears in.
+
 **The largest writing task in the plan, and the one Rich called vital.** Its product is prose, so its definition of done is a GATE (Decision 14), written first and red, then brought to green module by module. **The gate's allowlist starts empty and ends empty.**
 
 **Files:**
@@ -2073,7 +2128,7 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ---
 
-## Task 12: What the D5 plan hands over — the mirror's scan paged to the end, no PUID in any sentence, the review's six deferred minors, and every driver-1 demo refusing the wrong driver
+## Task 12: What the D5 plan hands over — the mirror's scan paged to the end, no PUID in any sentence, the review's six deferred minors, every driver-1 demo refusing the wrong driver — and a delegated token's secret kept in no idempotency record
 
 **Files:**
 - Modify: `packages/control-plane/src/source/scan-commits.ts` — `scanNewCommits` pages; `packages/control-plane/src/source/github/driver.ts` — reads the pages, and `repository.scan_incomplete` for a commit too large to scan
@@ -2081,11 +2136,12 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 - Modify: `packages/control-plane/src/api/routes/webhooks.ts` (minor 1), `packages/control-plane/src/source/github/driver.ts` (minor 2), `packages/control-plane/src/source/git-driver.ts` + `api/representations/projects.ts` + `packages/console/src/screens/project.tsx` (minor 3), `packages/control-plane/src/config.ts` (minor 4), `packages/control-plane/src/source/github/git.ts` (minor 5), `packages/control-plane/src/releases/summary.ts` (minor 6)
 - Modify: `scripts/lib/api.sh` — `require_driver local|github`; every `scripts/demo*.sh` but `demo-github.sh` and `demo-authoring.sh` calls `require_driver local` before it creates anything
 - Modify: the event files and a migration — `repository.scan_incomplete`
-- Test: `source/scan-commits.test.ts`, `source/github/driver.test.ts`, `launch/records.test.ts`, `api/webhooks.test.ts`, `config.test.ts`, `source/github/git.test.ts`
+- Modify (Step 5, sitting 5's F4 — Rich's option (a)): `packages/control-plane/src/api/contract/route.ts` (`withholdOnReplay`), `packages/control-plane/src/api/idempotency.ts`, `packages/control-plane/src/api/server.ts` (`app.idempotent` passes it), `packages/control-plane/src/api/routes/tokens.ts`, `packages/control-plane/src/api/errors.ts` (`TokenAlreadyMintedError`), `packages/control-plane/src/api/error-codes.ts`, `packages/mock/src/server.ts`, the `docs/api/` pages that describe a replay (Task 11's), and a CUSTOM migration that scrubs the secrets already stored
+- Test: `source/scan-commits.test.ts`, `source/github/driver.test.ts`, `launch/records.test.ts`, `api/webhooks.test.ts`, `config.test.ts`, `source/github/git.test.ts`, `api/tokens.test.ts` and `api/idempotency.test.ts` (Step 5), `packages/mock/src/server.test.ts` (Step 5)
 
 **Interfaces:**
 - Consumes: `SCAN_COMMIT_LIMIT`, `SCAN_OUTPUT_LIMIT`, `findingsInPatch`; `authorFor`'s name lookup (Task 6).
-- Produces: `scanNewCommits(gitDir, heads, exclude, limits?)` answering `{ findings, commits, unscannable: string[] }` — **no `truncated`**; the event `repository.scan_incomplete { commits: string[] }`; `RepositoryLink.visibility: 'private' | 'public' | null`; `require_driver`.
+- Produces: `scanNewCommits(gitDir, heads, exclude, limits?)` answering `{ findings, commits, unscannable: string[] }` — **no `truncated`**; the event `repository.scan_incomplete { commits: string[] }`; `RepositoryLink.visibility: 'private' | 'public' | null`; `require_driver`; **`RouteDefinition.withholdOnReplay`** and the code **`409 TOKEN_ALREADY_MINTED`** (Step 5).
 
 - [ ] **Step 1: The scan pages to the end (the D5 plan's final review, Important 3, ruled for this plan).** Today one scan reads at most 1000 commits and 20 MiB of patch, then marks the branch scanned — so what lay past the cap is never scanned. **Page instead**: `git rev-list --reverse --topo-order --stdin` lists every new commit oldest first; scan them in batches of `SCAN_COMMIT_LIMIT` with `git log -p --no-walk --stdin` over each batch's ids (`PATCH_ARGS` unchanged); a batch whose patch exceeds `SCAN_OUTPUT_LIMIT` is split in half and retried; **a single commit whose own patch exceeds the limit is `unscannable`** — reported, never silently marked. The driver publishes `repository.scan_incomplete` naming those commits **before** it moves `refs/manifest/scanned/*`, and a build of such a commit is still refused by the build gate if it holds a secret (the gate scans every tree). Test with `limits: { commits: 3, bytes: 4096 }` passed in: 10 commits → 4 batches, every finding found; one 8 KiB commit → `unscannable`, the rest scanned. **Red first**: the 10-commit case finds only the first batch's finding against today's code.
 
@@ -2101,12 +2157,32 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 - [ ] **Step 4: Every driver-1 demo refuses a driver-2 control plane before it creates anything** (the D5 plan's *Added at the close*: *"a driver-1 demo run on a driver-2 control plane creates its project there, where no route deletes it"*). `require_driver local` in `scripts/lib/api.sh`: an unsigned `curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' --data '{}' http://127.0.0.1:$PORT_CONTROL_PLANE/webhooks/github` — `404` is driver 1, `401` driver 2 — and on the wrong one it prints the restart command and exits 1. Called at the top of `demo.sh`, `demo-identity.sh`, `demo-ai.sh`, `demo-redeploy.sh`, `demo-journey.sh`, `demo-token.sh`, `demo-production.sh` and `demo-releases.sh` — **`grep -ln 'POST /v1/projects\|create_project' scripts/demo*.sh` lists which create projects; every one of them**.
 
-- [ ] **Step 5: The gates; commit.** The migration (the `CHECK` gains `repository.scan_incomplete`); `pnpm contract:write && pnpm contract:generate`; the four gates; `pnpm test` twice; `pnpm test:docker` in the background. **Run `make demo` on driver 1** (green) and **with the control plane on driver 2** (it stops at `require_driver`, creating nothing — check `GET /v1/projects` before and after). Commit each step separately as it goes green, the last:
+- [ ] **Step 5: A delegated token's secret is kept in NO idempotency record — sitting 5's F4, Rich's option (a) (decided 2026-09-26; *Decided by Rich*).** **What is true today, measured by sitting 5:** `replayOrStore` (`api/idempotency.ts`) stores whatever a mutation answered, so `mintToken`'s record in `idempotency_keys.response_body` holds `MintedToken` — `{ token, secret }` — with the plaintext secret, and nothing ever deletes a row; `mintToken`'s own description says *"the platform stores only a hash of it and cannot show it again"* (D24). It is the ONLY route whose answer carries a credential: the registry token (`api/routes/registry-token.ts`) is a plain `app.post` outside the idempotency wrapper — **re-check that with `grep -rn "secret\|password\|token" api/representations/*.ts` before you rely on it.** **What to build:**
+  1. **`RouteDefinition` gains `withholdOnReplay?: { stored: (answer) => unknown; refuse: (stored: unknown) => Error }`** — a route whose answer carries a credential is NEVER replayed. The wrapper hands it to `app.idempotent` (`api/server.ts`'s decorator), which hands it to `replayOrStore`: the record keeps `stored(answer)`, and a repeated key **with the same fingerprint** throws `refuse(stored)`. **The fingerprint check stays FIRST** — the same key with a different body is still `409 IDEMPOTENCY_KEY_REUSED` — and a refusal stores nothing, as today (the catch's placement in `route.ts` is load-bearing; read its comment).
+  2. **`mintToken` declares it**: `stored: ({ token }) => ({ token })` — the `Token` representation, exactly what `listTokens` shows, never the secret — and `refuse` answers **`TokenAlreadyMintedError`**, which `replayOrStore` throws (`api/errors.ts`, `readonly code = 'TOKEN_ALREADY_MINTED'`, the shape `IdempotencyConflictError` has, so `error-codes.test.ts`'s scan finds it), mapped by `instanceof` to **`409 TOKEN_ALREADY_MINTED`**. Its message names the token the first request minted — its id and name — and its hint says what to do: *"The first request minted this token; its secret was shown once and is not kept. If that answer was lost, revoke it (`revokeToken`) and mint again with a new Idempotency-Key."* A row written BEFORE this step holds `{ token, secret }`; `refuse` reads `token` from it and never replays the rest.
+  3. **Register the code** in `api/error-codes.ts` (`api(409, …)`) **with its `remedy`** — Task 9 made `remedy` required on every code — and add it to `mintToken`'s `errors`. **Change `mintToken`'s description** so a reader learns that a retry with the same key answers the refusal rather than the secret. `pnpm contract:write && pnpm contract:generate` **inside `1.3.0`** (never bump).
+  4. **Scrub what is already stored, in a CUSTOM migration** — no schema changes, so `db:generate` writes nothing: `pnpm --filter @manifest/control-plane exec drizzle-kit generate --custom --name scrub_minted_token_secrets` writes an empty numbered file and its journal entry (checked on drizzle-kit 0.31.10: `generate --help` lists `--custom`); fill it, commented as 0024's backfill is:
+     ```sql
+     -- The authoring API plan's Task 12 (sitting 5's F4) — a minted token's secret, stored by every mint
+     -- before this migration. Idempotent.
+     UPDATE "idempotency_keys" SET "response_body" = "response_body" - 'secret'
+       WHERE "route" = 'POST /v1/projects/:projectId/tokens' AND "response_body" ? 'secret';
+     ```
+     **Measure it on a real row before trusting it**: with the control plane running on the tree BEFORE this step, mint a token through the edge; apply the migration (`db:migrate`, ORIENTATION §3's one-line form); `select count(*) from idempotency_keys where response_body ? 'secret'` answers `0`, and **the token still authenticates** (its hash in `delegated_tokens` is untouched).
+  5. **`manifest-mock` does the same** (`packages/mock/src/server.ts`'s `seen` store replays by key): for `mintToken` it keeps the answer without `secret` and answers a replay `409 TOKEN_ALREADY_MINTED` — a front end built against the mock meets what the platform does. A case beside the mock's other replay cases.
+  6. **The guides**: Task 11 wrote `docs/api/` against the old behaviour. Change every page that says what a replayed mutation answers (`conventions.md`, `authentication.md` — `grep -rln "Idempotency-Key\|replay" docs/api/`) and run `pnpm docs:write`; its drift gate goes red until you do.
+
+  **The tests, red first** (`api/tokens.test.ts`): **a mint retried with the same Idempotency-Key is `409 TOKEN_ALREADY_MINTED`, naming the token — and exactly ONE token exists, and NO idempotency record holds its secret** (the first answer DID carry it: that is the positive control, and the record's `token.id` is the second); the same key with a different body is still `IDEMPOTENCY_KEY_REUSED`; **another route still replays** (`createProject` twice with one key → `201` and the same id). Red against today's code at the replay (`201` with the secret) and at the record. `api/idempotency.test.ts`: `withholdOnReplay` stores `stored(answer)`, refuses a replay, and checks the fingerprint first. **The console needs no change** — `screens/tokens.tsx` mints with `api.newKey()` per submit — and no demo replays a mint (`grep -rn "tokens'" packages/journey/src/`), checked by sitting 5. **A retention for `idempotency_keys` is NOT built** (*What this plan does not build*). Commit:
+  ```bash
+  git commit -m "fix(api): a delegated token's secret is kept in no idempotency record — a replayed mint answers TOKEN_ALREADY_MINTED"
+  ```
+
+- [ ] **Step 6: The gates; commit.** The migrations (the `CHECK` gains `repository.scan_incomplete`; Step 5's scrub); `pnpm contract:write && pnpm contract:generate`; the four gates; `pnpm test` twice; `pnpm test:docker` in the background. **Run `make demo` on driver 1** (green) and **with the control plane on driver 2** (it stops at `require_driver`, creating nothing — check `GET /v1/projects` before and after). Commit each step separately as it goes green, the last:
   ```bash
   git commit -m "fix(source): the mirror's scan pages to the end — a commit too large to scan is reported, never marked scanned"
   ```
 
-- [ ] **Step 6: Watch it fail.** Restore the cap-then-mark behaviour — predict the 10-commit case red (one finding where three belong). Restore one PUID sentence — predict its publisher's test red. Remove `require_driver` from `demo.sh` — predict nothing red in any tier (**no test runs a demo**) — and say so: the control is the manual run in Step 5, and the offline acceptance runs every demo.
+- [ ] **Step 7: Watch it fail.** Restore the cap-then-mark behaviour — predict the 10-commit case red (one finding where three belong). Restore one PUID sentence — predict its publisher's test red. Remove `require_driver` from `demo.sh` — predict nothing red in any tier (**no test runs a demo**) — and say so: the control is the manual run in Step 6, and the offline acceptance runs every demo. **Step 5's three**: `stored` returning the answer unchanged — predict the mint case red at the record's secret, and nothing else; `replayOrStore` replaying instead of refusing — predict the mint case red at `201` where `409 TOKEN_ALREADY_MINTED`; the fingerprint check moved after the refusal — predict the *different body* case red, `TOKEN_ALREADY_MINTED` where `IDEMPOTENCY_KEY_REUSED`.
 
 ---
 
@@ -2201,6 +2277,7 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 - **A real code `Reviewer` (D33)** — still the null implementation. **This plan makes it more pressing, not less**: an authoring API is a machine for producing unreviewed code faster, which is exactly §13's stated residual risk.
 - **Reading a secret's value** — never (D24). **Rotation reminders or expiry for app secrets** — a value is set until it is changed or cleared.
 - **An outbound webhook for API clients** — the event stream is how a client learns something changed (D23.2).
+- **A retention for `idempotency_keys`** — nothing deletes a row, so the table grows with every mutation. Once Task 12's Step 5 has taken the one credential out of it (sitting 5's F4, Rich's option (a)), no row holds a secret — the request fingerprint is keyed since sitting 5 — so a retention is housekeeping, not security. D23.6 says nothing about how long a key is honoured; a retention would set that, which is a published behaviour, so it belongs with a decision rather than a sweep.
 - **§8's open question on driver 1's hook cost** — every API commit on driver 1 runs the secret-scanning `pre-receive` (Task 3 keeps the push, deliberately: *Read this first* 2). The unit suite gets slower with every test that commits; Rich's call, unchanged.
 - **From the D5 plan, still open**: production's webhook ingress (Phase 5); retention of `webhook_deliveries`; GitHub's other `repository` actions (`deleted`, `renamed`, `transferred`, `archived`); moving a project between drivers.
 - **From P6b's list, still open**: D16's *every environment*; database-level non-repudiation for `approvals` and `approval_previews`; a run against real UBC Shibboleth for a changed registration; per-instance egress proxies; `make verify`'s runtime-route meter on the public listener; IAM change-request generation (P8); certificate expiry alerts (D20).
@@ -3081,7 +3158,8 @@ names.** Red first in `idempotency.test.ts` and `secrets.test.ts`; fixed (decisi
 probe: `idempotency_keys.response_body` for `POST …/tokens` holds the minted `secret`, and nothing ever deletes an
 `idempotency_keys` row. The route's own description says *"the platform stores only a hash of it and cannot show it
 again"* (D24). P5b's code, not this task's, and the fix changes what a replay of a mint answers — so it is Rich's to place
-(§8 *Open* has the options; recommended: Task 12, sitting 9).
+(§8 had the options). **→ DECIDED BY RICH AFTER THE CLOSE (2026-09-26): OPTION (a), BUILT IN TASK 12** — the record keeps the
+token without its secret and a replayed mint answers `409 TOKEN_ALREADY_MINTED`; Task 12's Step 5 has the design.
 
 **F5 — THE PLAN'S RESOLVER CANNOT SET A VALUE.** It gives `AppSecretResolver` `envSecrets` alone and the route
 `setAppSecret(db, keys, …)` — but `ServerDeps` holds bound resolvers and never the keypair. `setEnvSecret` added, as
@@ -3217,3 +3295,34 @@ moved), §3 (two invariants — an app's declared secret, and the idempotency re
 unchanged** — no plan started or finished, and F4 is in §8, which its *Outstanding* line already names. **WALKTHROUGH and
 the four HTML pages were checked and left alone**: WALKTHROUGH describes what a person can click, and the Secrets screen is
 Task 10's; `manifest-decisions.html`'s D24 already says a token sets sandbox and staging secrets (sitting 4).
+
+#### After the close — F4 decided (2026-09-26)
+
+**Rich chose option (a) for F4, in Task 12** — asked in the close's report, answered the same afternoon. Recorded in *Decided
+by Rich*, the sittings table's row 9, Task 12 (its title, Files, Interfaces, a new **Step 5** with the design, the tests and
+the controls — the old Steps 5 and 6 are now 6 and 7), *What this plan does not build* (a retention for
+`idempotency_keys`, which is not part of it), ORIENTATION §3 and §8 (*Open* → *Decided*) and §7e, the roadmap's ledger and
+TRAPS.md.
+
+**And a cold-start review of Task 9 against the code, done at Rich's request so the next sitting starts clean, found six
+things** — recorded in full in Task 9's second `[S5]` block, with the measurements, and counted here:
+
+**F17 — THE PUBLISHED DOCUMENT CANNOT TELL AN AGENT HOW TO USE A TOKEN.** `components.securitySchemes` declares only the
+session cookie, described *"Delegated tokens arrive in P5b."* — stale since 2026-09-18 — the global `security` is the
+session alone, no operation overrides it, and `Bearer` appears nowhere in `openapi.json`, though D24's tokens have worked
+since P5b and about fourteen call sites refuse one (`requireSession`). Task 9 closes it.
+
+**F18 — TASK 9'S STEP 4 CONTRADICTS ITS OWN `[M7]`** — `target: 'jsonSchema2019-09'` where the measurement ruled
+`jsonSchema7`, and it omits `[M7]`'s corpus gate and hand-restated `env` rule.
+
+**F19 — TASK 9'S STEP 5 ORDERS THE WORK BY "TAGS" THAT ARE PARTLY FILES** — `releases` and `fleet` are files, not tags;
+`administration` and `events` are tags it never names.
+
+**F20 — TASK 9'S FILES LIST OMITS `api/unversioned.ts`**, whose table holds 4 of the document's 35 internal names.
+
+**F21 — DECISION 14'S *"EVERY ERROR CODE"* IS NOT WHAT TASK 9'S GATE CHECKS**: the 24 `ManifestErrorCode`s inside `details`
+publish no meaning at all, and the gate reads `ERROR_CODES` alone. A ruling for Task 9, with a recommendation.
+
+**F22 — TASK 9'S ORDER BREAKS THE FOUR-GATES RULE**: its gate is written red first and `examples` made required at once,
+while Step 5 commits module by module — and every commit needs `pnpm test` and `pnpm typecheck` clean. Task 9's second
+`[S5]` block, point 9, gives an order that satisfies both.

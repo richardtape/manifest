@@ -346,7 +346,8 @@ defect even when every test is green.**
   sitting 5, F3). `replayOrStore`'s request fingerprint is an HMAC under `config.sessionSecret` (a REQUIRED `hashKey`),
   never a bare SHA-256 of the body — `setAppSecret`'s body IS the value. A retry spanning a `MANIFEST_SESSION_SECRET`
   rotation answers `IDEMPOTENCY_KEY_REUSED`. **Its RESPONSE body is still stored as sent — including `mintToken`'s
-  plaintext secret, and nothing deletes a row** (F4; §8 *Open*).
+  plaintext secret, and nothing deletes a row** (F4) — **until the authoring API plan's Task 12**, which builds Rich's option
+  (a): the record keeps the token without its secret and a replay answers `409 TOKEN_ALREADY_MINTED` (§8 *Decided*).
 - **A migration is always its own file** — drizzle-kit keeps a journal and never re-runs an applied one — written
   by `pnpm --filter @manifest/control-plane db:generate` from `db/schema.ts` and applied with `db:migrate`.
   **`db:migrate` reads `MANIFEST_ADMIN_DATABASE_URL` FROM THE ENVIRONMENT, and nothing exports it for you**: run
@@ -1448,20 +1449,33 @@ both drivers' reads over the API; `createCommit` and builds of the right spec; a
 write-only per environment, a deploy refused when one is missing, production a stepped-up person's alone** (§3 states
 each as an invariant, and a sixth for the idempotency record). Their records are the plan's *What executing this plan found*, *Sitting 1* to *Sitting 5*.
 
-**NOTHING NEEDS ASKING BEFORE SITTING 6.** One question is open and NOT blocking: **F4 of sitting 5 — `mintToken`'s
-idempotency record stores the plaintext token** (§8 *Open*, first bullet: options (a)/(b)/(c), (a) recommended, placed at
-Task 12, sitting 9). Ask it in the sitting's first message so Rich can answer while you work; it changes nothing in Task 9.
-Spec actions 1 and 3 wait for sitting 10.
+**NOTHING NEEDS ASKING BEFORE SITTING 6.** Sitting 5's F4 — **`mintToken`'s idempotency record stores the plaintext
+token** — was answered by Rich after that sitting's close: **option (a), built in Task 12** (sitting 9; §8 *Decided*; Task 12's
+Step 5 has the design). **Task 9 documents the behaviour as it IS** (a replayed mint answers the first `201` again): the new
+code, `TOKEN_ALREADY_MINTED`, does not exist until Task 12, so do not document it yet. Spec actions 1 and 3 wait for sitting 10.
 
 **EXECUTE SITTING 6 — TASK 9 (THE REFERENCE, COMPLETED). THE PLAN CALLS IT ONE OF ITS TWO HEAVY SITTINGS** — every
 description in the document. `superpowers:executing-plans`, inline, no subagent per task (Rich, 2026-09-25); **commit on
 `main`**, **module by module** as Step 5 says, so a session limit loses nothing. **Read, in this order:** the plan's header to
 the end of *The fixtures and helpers*; *What executing this plan found*, *Sitting 5* (F2, F3, F10, F14 and F15 above all) and
-*Sitting 1*'s `[M6]`–`[M8]`; then **Task 9 in full, starting with its `[M6]`/`[M7]`/`[M8]` and `[S5]` blocks**. The ledger is
+*Sitting 1*'s `[M6]`–`[M8]`; then **Task 9 in full, starting with its `[M6]`/`[M7]`/`[M8]` block and BOTH `[S5]` blocks**. **The
+second `[S5]` block is a cold-start review of Task 9 against the code, measured after sitting 5's close (its F17–F22), and
+where it and a step disagree it wins**: Step 4's JSON Schema target is `jsonSchema7`, not `2019-09`; Step 5 works file by
+file; `api/unversioned.ts` is in scope; the 24 `ManifestErrorCode`s want a ruling; and **the red gate and the required
+`examples` are committed LAST, green** — each module's commit is made with the gate moved aside, because every commit needs
+the four gates clean (point 9). The ledger is
 `.superpowers/sdd/2026-09-25-authoring-api/progress.md` (git-ignored; `Task 1…8: complete` and every `Ruling:` line).
 
+- **THE ONE GAP MOST WORTH CLOSING IS NOT ON THE GATE'S LIST (F17): the document cannot tell an agent how to use a token.**
+  It declares only the session cookie — *"Delegated tokens arrive in P5b"* — and never says `Authorization: Bearer`, or which
+  operations refuse a token. The plan's promise is that an agent drives the API from the docs alone; Task 9's second
+  `[S5]` block, point 3, says what to add.
+- **The gate's starting line, measured by a dry run of Step 1's own snippet: 840 gaps and 35 internal names** (none of them a
+  false positive), and 42 of 50 routes with no `examples` — the third `it` throws a `TypeError` on the first of them instead
+  of listing them, so flip `examples` to required just long enough for `pnpm typecheck` to name all 42 (it lands last,
+  point 9).
 - **The contract is `1.3.0`** and stays there — Task 9 regenerates inside it. It reads **51 operations, 74 component schemas,
-  108 error codes and 11 tags, none of the 11 described** (Task 9's `[S5]` block, with the `jq` for the tags).
+  108 error codes and 11 tags, none of the 11 described** (Task 9's first `[S5]` block, with the `jq` for the tags).
 - **Two packages come from the store, offline**: `zod-to-json-schema@3.25.2` and `@redocly/openapi-core@1.34.20` — **read
   `pnpm-lock.yaml`'s peer suffix after the first: it must link `zod@3.25.76`**, because `zod@4.6.5` is in the store too and an
   offline add can link the wrong one without a word (`[M7]`).
@@ -1469,7 +1483,11 @@ the end of *The fixtures and helpers*; *What executing this plan found*, *Sittin
 - **`pnpm test:docker` IS OWED**: the table says *"No — unless a change reaches the owing paths"*, and Task 9's Files list
   modifies `observability/event-schemas.ts`. ~15 minutes; background it, then the three cleanup scripts and `make verify`.
 
-**WHERE THE SITTING STOPS, AND HOW IT ENDS.** After Task 9's commits and its controls. Then the plan's *every sitting ends the
+**WHERE THE SITTING STOPS, AND HOW IT ENDS.** After Task 9's commits and its controls. **IF IT RUNS LONG** — it is the plan's
+heaviest writing — stop at a MODULE boundary, with that module committed and the gate's remaining gap count written in the
+record, and sweep: the next sitting finishes Task 9 before Task 10. Say so to Rich, because it moves the schedule by a
+sitting (the plan's *THIS TABLE IS A SCHEDULE* rule). The committed modules stand on their own; the gate stays uncommitted
+until it is green, and `ALLOWED_GAPS` is never filled to get there. Then the plan's *every sitting ends the
 same way*: the four gates (`pnpm test` twice), the Docker tier, the dated record, the sittings table, and the close-out (§6) —
 the roadmap's defect-rate table with the count DERIVED, this §7e rewritten for sitting 7, §2's box when a gate moved.
 **Query the machine's state AFTER the last Vitest run of the close.** **Re-read the §7e you wrote as a cold agent, opening
@@ -1525,19 +1543,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **`mintToken`'S IDEMPOTENCY RECORD STORES THE PLAINTEXT DELEGATED TOKEN — RAISED 2026-09-26 (the authoring API plan's
-  sitting 5, F4).** Measured: `idempotency_keys.response_body` for `POST /v1/projects/{id}/tokens` holds the minted
-  `secret`, and nothing ever deletes an `idempotency_keys` row — while the route's own description says *"the platform
-  stores only a hash of it and cannot show it again"* (D24). Anyone who can read the control plane's database holds every
-  token ever minted, until the table is truncated. P5b's code (2026-09-17), found while keying the request hash for
-  `setAppSecret`. **Options:** **(a) — recommended —** store the record WITHOUT the secret, and answer a replay of a mint
-  `409` with a code of its own naming the token that WAS minted, so a client that lost the answer revokes it and mints
-  again (D24's *shown exactly once* made true; D23.6's replay answers a refusal for this one operation — no second token
-  is ever minted); **(b)** store the answer ENCRYPTED under the master key and replay it within a short window, then drop
-  it (D23.6 unchanged; the credential exists at rest, encrypted like every other secret, for that window — and the
-  route's sentence changes); **(c)** leave it. **Either (a) or (b) wants a retention for `idempotency_keys`** beside it.
-  Recommended placement: **Task 12, sitting 9** (*what earlier plans hand over*). Nothing is lost by waiting that long on
-  this laptop — its tables are truncated by every `pnpm test` — but it must be fixed before a real deployment.
 - **THE AUTHORING API PLAN'S SPEC ACTIONS 1 AND 3 — RAISED 2026-09-25** (the plan's *Spec actions*; Spec action 2 is
   *Decided*, below). **Spec action 1** (§14: a bounded, redacted read of a running app's recent output, sandbox and staging
   only) **and where its plan goes** (recommended: straight after the authoring API), and **Spec action 3** (§17/§22: the
@@ -1596,6 +1601,15 @@ reasoning is recorded.**
 
 ### Decided
 
+- **`mintToken`'S IDEMPOTENCY RECORD — OPTION (a): KEEP THE TOKEN WITHOUT ITS SECRET, AND REFUSE A REPLAY BY NAMING THE
+  TOKEN — DECIDED 2026-09-26, TO BE BUILT IN THE AUTHORING API PLAN'S TASK 12 (sitting 9)** (Rich, after that plan's sitting 5
+  closed, taking the recommendation). Sitting 5's F4 measured `idempotency_keys.response_body` holding every minted token's
+  plaintext secret, rows never deleted, against D24's *"stores only a hash of it and cannot show it again"*. A replay of a
+  mint will answer **`409 TOKEN_ALREADY_MINTED`** naming the token the first request minted, so a client that lost the answer
+  revokes it and mints again; no second token is ever minted, and a migration scrubs the secrets already stored. *Rejected:*
+  (b) store the answer encrypted and replay it within a short window; (c) leave it. **A retention for `idempotency_keys` is
+  NOT part of it**: once no row holds a credential it is housekeeping, not security, and it is named in the plan's *What
+  this plan does not build*. Task 12's Step 5 has the design.
 - **THE AUTHORING API PLAN'S SPEC ACTION 2 — OPTION (a): A TOKEN SETS SANDBOX AND STAGING SECRETS; A PRODUCTION VALUE ONLY
   IN A STEPPED-UP INTERACTIVE SESSION — DECIDED AND APPLIED 2026-09-26** (Rich, at the close of that plan's sitting 4, taking
   the recommendation). §20's credential table and step-up bullet and D24's rationale carry the three edits as the plan

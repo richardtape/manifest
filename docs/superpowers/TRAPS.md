@@ -1761,7 +1761,8 @@ it belongs among the traps the next sitting is most likely to hit.
 - **THE IDEMPOTENCY RECORD STORES WHAT A MUTATION ANSWERED, AS IT ANSWERED IT** (2026-09-26, sitting 5, F3/F4). Its
   request fingerprint is keyed now (a body can BE a secret); its `response_body` is not — `mintToken`'s holds the plaintext
   token, and no row is ever deleted. A new route whose ANSWER carries a credential stores it in `idempotency_keys` unless
-  it says otherwise (ORIENTATION §8 *Open*).
+  it says otherwise — **until the authoring API plan's Task 12**, which adds `withholdOnReplay` for exactly that (Rich's
+  option (a), ORIENTATION §8 *Decided*): after it, such a route declares it.
 
 ## Images already pulled
 
