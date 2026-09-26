@@ -1,5 +1,7 @@
 # Authoring API brief — what a front end needs that does not exist yet
 
+> **THE PLAN WRITTEN FROM THIS BRIEF: [`2026-09-25-authoring-api.md`](./2026-09-25-authoring-api.md)** (2026-09-25 — 13 tasks, ten sittings proposed). Where the two disagree the plan wins: its *Read this first* re-read the code, and found this brief's §2 path-escape row (*"Built and enforced"*) does not hold against a symlink a person pushed.
+
 *Written 2026-09-19, after Rich asked whether the API is fleshed out enough for a separate
 front-end project — the one a real faculty member would use — to be specced against. It compares
 what §22, D23 and §17's Phase 3 ask for with the code at `43f0452`, and every claim in §2 and §3
