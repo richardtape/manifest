@@ -8,7 +8,7 @@ import {
 import { pendingActionsFor, pendingById, resolveAction } from '../../tokens/index.js'
 import { requireActor, requireSession } from '../actor.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
-import { EmptyRequest } from '../contract/schemas.js'
+import { EmptyRequest, PATH } from '../contract/schemas.js'
 import { PendingActionResolvedError } from '../errors.js'
 import {
   PendingAction,
@@ -20,7 +20,7 @@ import type { PendingAction as PendingActionRow } from '../../tokens/index.js'
 import type { ServerDeps } from '../server.js'
 import type { FastifyRequest } from 'fastify'
 
-const PendingActionParams = z.strictObject({ pendingActionId: z.uuid() })
+const PendingActionParams = z.strictObject({ pendingActionId: PATH.pendingActionId })
 
 /**
  * D24's loop closing: a person answers the question a refused agent asked (P5b Task 7).
@@ -118,7 +118,7 @@ async function answerable(
   return { row, userId: actor.userId, puid: actor.puid }
 }
 
-const ProjectParams = z.strictObject({ projectId: z.uuid() })
+const ProjectParams = z.strictObject({ projectId: PATH.projectId })
 
 /**
  * §26's queue, as two reads (Task 8) — *"The primary screen is the queue ... Not the fleet

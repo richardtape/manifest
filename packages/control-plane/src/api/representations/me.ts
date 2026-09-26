@@ -6,10 +6,12 @@ export const Me = representation(
   'Me',
   z
     .object({
-      id: Uuid,
+      id: Uuid.describe(
+        'The person’s user id on this platform — what `listMembers` calls `userId`.',
+      ),
       puid: z.string().describe("The person's ubcEduCwlPuid (§9)."),
-      displayName: z.string(),
-      email: z.string(),
+      displayName: z.string().describe('Their name, as CWL gave it.'),
+      email: z.string().describe('Their address, as CWL gave it.'),
       role: z
         .enum(['admin', 'member'])
         .describe('The platform role THIS SESSION is authorized as.'),

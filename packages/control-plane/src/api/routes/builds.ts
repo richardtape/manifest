@@ -12,6 +12,7 @@ import {
 import { getBuild } from '../../releases/index.js'
 import type { ManifestSpec } from '../../spec/index.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
+import { PATH } from '../contract/schemas.js'
 import { BadRequestError, SpecInvalidError } from '../errors.js'
 import { validateAndRecord } from '../spec-validation.js'
 import {
@@ -23,14 +24,14 @@ import {
   toBuildLog,
 } from '../representations/builds.js'
 
-const ProjectParams = z.strictObject({ projectId: z.uuid() })
+const ProjectParams = z.strictObject({ projectId: PATH.projectId })
 
 /** The `app_specs` row `validateAndRecord` wrote — it answers the representation, not the row. */
 async function specRowOf(db: Db, appSpecId: string) {
   const [row] = await db.select().from(appSpecs).where(eq(appSpecs.id, appSpecId))
   return row!
 }
-const BuildParams = z.strictObject({ buildId: z.uuid() })
+const BuildParams = z.strictObject({ buildId: PATH.buildId })
 
 /**
  * A build a reader of its project may see. The project comes from the build ROW, never
@@ -54,7 +55,7 @@ export const buildRoutes = [
     tag: 'delivery',
     summary: 'Build the project',
     description:
-      '§22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running` (R6); its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.',
+      '§22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running`; its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.',
     params: ProjectParams,
     query: NO_QUERY,
     body: StartBuildRequest,
@@ -222,7 +223,8 @@ export const buildRoutes = [
     path: '/v1/projects/{projectId}/builds',
     tag: 'delivery',
     summary: 'A project’s builds',
-    description: 'The newest 50, newest first.',
+    description:
+      'The project’s newest 50 builds, newest first, each with its status, image digest and scan. A build in progress reads `running`; the event stream says when it ends.',
     params: ProjectParams,
     query: NO_QUERY,
     body: NO_BODY,

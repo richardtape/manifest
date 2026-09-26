@@ -19,6 +19,7 @@ import {
 } from '../../tokens/index.js'
 import { requireSession } from '../actor.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
+import { PATH } from '../contract/schemas.js'
 import { BadRequestError } from '../errors.js'
 import {
   MintedToken,
@@ -28,8 +29,8 @@ import {
   toToken,
 } from '../representations/tokens.js'
 
-const ProjectParams = z.strictObject({ projectId: z.uuid() })
-const TokenParams = z.strictObject({ tokenId: z.uuid() })
+const ProjectParams = z.strictObject({ projectId: PATH.projectId })
+const TokenParams = z.strictObject({ tokenId: PATH.tokenId })
 
 const DAY_MS = 86_400_000
 
@@ -55,7 +56,7 @@ export const tokenRoutes = [
     tag: 'tokens',
     summary: 'Mint a delegated token',
     description:
-      'D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in the response and nowhere else — the platform stores only a hash of it and cannot show it again. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.',
+      'D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response: store it, because `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.',
     params: ProjectParams,
     query: NO_QUERY,
     body: MintTokenRequest,

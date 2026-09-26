@@ -6,14 +6,22 @@ export const Incident = representation(
   'Incident',
   z
     .object({
-      id: Uuid,
-      instanceId: Uuid,
-      releaseId: Uuid,
-      exitReason: z.string(),
+      id: Uuid.describe('The Incident.'),
+      instanceId: Uuid.describe('The instance that failed.'),
+      releaseId: Uuid.describe('The release it ran (`getRelease`).'),
+      exitReason: z
+        .string()
+        .describe('How it ended — its exit, or that it never answered its health check.'),
       logTail: z.string().describe('The last 200 lines, redacted at capture (§14).'),
-      failedCheck: z.string(),
-      diffSinceHealthy: z.string(),
-      createdAt: Timestamp,
+      failedCheck: z
+        .string()
+        .describe('Which check the platform ran and what it got back (§11).'),
+      diffSinceHealthy: z
+        .string()
+        .describe(
+          'What changed in manifest.yaml since the last release that was healthy here — often the cause.',
+        ),
+      createdAt: Timestamp.describe('When it was recorded.'),
       prompt: z
         .string()
         .describe('§14: shaped to be handed straight to an agent as a repair request.'),
@@ -26,7 +34,10 @@ export const Incident = representation(
 export const IncidentList = representation(
   'IncidentList',
   z
-    .object({ environmentId: Uuid, incidents: z.array(Incident) })
+    .object({
+      environmentId: Uuid.describe('The environment.'),
+      incidents: z.array(Incident).describe('Newest first.'),
+    })
     .describe('One environment’s Incidents, newest first.'),
 )
 

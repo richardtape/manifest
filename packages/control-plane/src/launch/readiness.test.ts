@@ -485,7 +485,10 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
       const rehearsal = (await computeLaunchReadiness(tx, projectId)).items.find(
         (i) => i.id === 'load-rehearsal',
       )
-      expect(rehearsal).toMatchObject({ state: 'not_built', builtBy: 'P9' })
+      expect(rehearsal).toMatchObject({
+        state: 'not_built',
+        builtBy: 'a later Manifest release (§24’s load rehearsal)',
+      })
     })
   })
 

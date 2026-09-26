@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * A blueprint
-         * @description One blueprint by `name@major`.
+         * @description One blueprint by its `name@major`: what an app on it may declare — its services, sign-in providers and AI — and the starters `createProject` accepts for it. Any credential may read it.
          */
         get: operations["getBlueprint"];
         put?: never;
@@ -135,7 +135,7 @@ export interface paths {
         put?: never;
         /**
          * Deploy a release to an environment
-         * @description §22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (R3, §14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.
+         * @description §22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (§14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.
          */
         post: operations["deploy"];
         delete?: never;
@@ -323,7 +323,7 @@ export interface paths {
         put?: never;
         /**
          * Create a project
-         * @description §22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24, P5b Decision 13), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.
+         * @description §22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.
          */
         post: operations["createProject"];
         delete?: never;
@@ -361,13 +361,13 @@ export interface paths {
         };
         /**
          * A project’s builds
-         * @description The newest 50, newest first.
+         * @description The project’s newest 50 builds, newest first, each with its status, image digest and scan. A build in progress reads `running`; the event stream says when it ends.
          */
         get: operations["listBuilds"];
         put?: never;
         /**
          * Build the project
-         * @description §22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running` (R6); its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.
+         * @description §22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running`; its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.
          */
         post: operations["startBuild"];
         delete?: never;
@@ -509,7 +509,7 @@ export interface paths {
         };
         /**
          * The IAM registration and the privacy assessment, as recorded
-         * @description §9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. P8 generates what they carry. Either may be absent, which is a state and not an error.
+         * @description §9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. Manifest does not yet generate what they carry. Either may be absent, which is a state and not an error.
          */
         get: operations["getLaunchRecords"];
         put?: never;
@@ -531,7 +531,7 @@ export interface paths {
         put?: never;
         /**
          * Record what UBC IAM registered
-         * @description §9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). P8 will submit these programmatically; the object and its states do not change when it does.
+         * @description §9 and D19: a platform administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). A later Manifest release will submit these itself; the object and its states will not change when it does.
          */
         post: operations["recordIamRegistration"];
         delete?: never;
@@ -551,7 +551,7 @@ export interface paths {
         put?: never;
         /**
          * Record what the Privacy Office said
-         * @description §9, D19 and R1: the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.
+         * @description §9 and D19: a platform administrator records it, in the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.
          */
         post: operations["recordPrivacyAssessment"];
         delete?: never;
@@ -575,7 +575,7 @@ export interface paths {
         put?: never;
         /**
          * Add or change a member
-         * @description Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token will never hold it (P5b).
+         * @description Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.
          */
         post: operations["addMember"];
         delete?: never;
@@ -596,7 +596,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a member
-         * @description Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms (P5b). Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.
+         * @description Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.
          */
         delete: operations["removeMember"];
         options?: never;
@@ -635,7 +635,7 @@ export interface paths {
         put?: never;
         /**
          * Run the pre-production rehearsal
-         * @description D21, as P6a redefines it for a laptop (R2): deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.
+         * @description D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.
          */
         post: operations["runRehearsal"];
         delete?: never;
@@ -653,7 +653,7 @@ export interface paths {
         };
         /**
          * A project’s releases
-         * @description The newest 50, newest first.
+         * @description The project’s newest 50 releases, newest first. `deploy` names one; `getRelease` reads one.
          */
         get: operations["listReleases"];
         put?: never;
@@ -707,7 +707,7 @@ export interface paths {
         put?: never;
         /**
          * Mint a delegated token
-         * @description D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in the response and nowhere else — the platform stores only a hash of it and cannot show it again. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.
+         * @description D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response: store it, because `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.
          */
         post: operations["mintToken"];
         delete?: never;
@@ -745,7 +745,7 @@ export interface paths {
         };
         /**
          * A release
-         * @description One immutable release (§13).
+         * @description One immutable release (§13): the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it; to production only once `getLaunchReadiness` says the checklist is met.
          */
         get: operations["getRelease"];
         put?: never;
@@ -787,7 +787,7 @@ export interface paths {
         put?: never;
         /**
          * Take the preview an administrator reads before deciding
-         * @description §13’s exact diff, computed NOW and STORED (Rich, 2026-09-22; P6b Decision 10): the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.
+         * @description §13’s exact diff, computed NOW and STORED: the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.
          */
         post: operations["createApprovalPreview"];
         delete?: never;
@@ -805,7 +805,7 @@ export interface paths {
         };
         /**
          * Re-read a stored preview
-         * @description The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it (P6b Task 9). 404 for a preview of another release.
+         * @description The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it. 404 for a preview of another release.
          */
         get: operations["getApprovalPreview"];
         put?: never;
@@ -827,7 +827,7 @@ export interface paths {
         put?: never;
         /**
          * Approve a release for production
-         * @description §13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved (P6b Task 9). `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.
+         * @description §13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved. `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.
          */
         post: operations["approveRelease"];
         delete?: never;
@@ -900,20 +900,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Who to add, and as what. Adding someone who is already a member changes their role. */
         AddMemberRequest: {
             /** @description The person’s ubcEduCwlPuid. They must have signed in once. */
             puid: string;
-            /** @enum {string} */
+            /**
+             * @description The role to grant: `owner` or `collaborator`.
+             * @enum {string}
+             */
             role: "owner" | "collaborator";
         };
+        /** @description An environment’s app secrets, by name: which are declared and which are set. */
         AppSecretList: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The environment.
+             */
             environmentId: string;
-            /** @enum {string} */
+            /**
+             * @description Which of the three it is. Production’s values are set only by a person who has stepped up.
+             * @enum {string}
+             */
             environmentKind: "sandbox" | "staging" | "production";
             /** @description Every name declared or set, sorted. A declared name with `set: false` stops the next deploy of this environment (`RELEASE_SECRET_NOT_SET`). */
             secrets: components["schemas"]["AppSecretStatus"][];
         };
+        /** @description One secret’s name in one environment, and whether it has a value — never the value. */
         AppSecretStatus: {
             /** @description The variable’s name, as manifest.yaml’s `env` declares it: an upper-case letter, then upper-case letters, digits and underscores, at most 128 characters. */
             name: string;
@@ -926,21 +938,36 @@ export interface components {
         };
         /** @description One decision about one release, kept for ever (§13). */
         Approval: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The decision.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The release decided on.
+             */
             releaseId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
             projectId: string;
-            /** @enum {string} */
+            /**
+             * @description What the administrator decided; a rejection is final for this release.
+             * @enum {string}
+             */
             decision: "approved" | "rejected";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Who decided.
+             */
             decidedBy: string;
-            /** @description The display name of the person who decided — the owner meets a decision before anyone else, and a user id tells them nothing (P6b Decision 18). */
+            /** @description The display name of the person who decided — the owner meets a decision before anyone else, and a user id tells them nothing. */
             decidedByName: string;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When.
              */
             decidedAt: string;
             /** @description What this approval binds to (§13). */
@@ -948,17 +975,20 @@ export interface components {
             /** @description Required on a rejection: a refusal with no words is one nobody can act on (D23.7). */
             reason: string | null;
             diff: components["schemas"]["ApprovalDiff"];
-            /** @description The stored preview the administrator read, whose diff this record COPIES (P6b Task 9). Null only for a decision made before previews existed. */
+            /** @description The stored preview the administrator read, whose diff this record COPIES. Null only for a decision made before previews existed. */
             previewId: string | null;
         };
         /** @description The exact diff shown at decision time (§13). */
         ApprovalDiff: {
             /** @description The image this approval binds to — the same value as the approval’s. */
             imageDigest: string;
+            /** @description Every change to manifest.yaml since the release it is compared with, in the file’s own vocabulary. */
             changes: {
                 /** @description Where, in manifest.yaml’s own vocabulary — the file an agent edits. */
                 path: string;
+                /** @description What it was, as a string. */
                 from: string;
+                /** @description What it is now. */
                 to: string;
                 /** @description One clause a faculty member can read. */
                 summary: string;
@@ -973,12 +1003,16 @@ export interface components {
             attributes: string[];
             /** @description The production limits this release would run under. */
             resources: {
+                /** @description CPU cores; null when no limit is set. */
                 cpu: number | null;
+                /** @description Memory; null when no limit is set. */
                 memory: string | null;
+                /** @description Disk; null when no limit is set. */
                 disk: string | null;
+                /** @description Processes and threads; null when no limit is set. */
                 pids: number | null;
             };
-            /** @description The AI-written plain-English summary of what changed. **Null is a state, not an error** (Decision 7): an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why. */
+            /** @description The AI-written plain-English summary of what changed. **Null is a state, not an error**: an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why. */
             summary: string | null;
             /**
              * @description `llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it. `withheld`: the model answered, and its answer broke the schema it was given or stated a decision, so it is not shown — `summaryWithheldBecause` names the rule, and the diff, the security notes and the reviewer’s verdict are the record. `not-modelled`: every change is one no model describes — a change to the CWL attributes, whose change line is the record — so no model was asked; this is by design, not an outage.
@@ -987,47 +1021,69 @@ export interface components {
             summarySource: "llm" | "unavailable" | "no-previous-release" | "no-changes" | "withheld" | "not-modelled";
             /** @description Which rule a `withheld` answer broke, in the platform’s words — never the model’s text, which could carry an app’s own words. Null for every other `summarySource`. */
             summaryWithheldBecause: string | null;
-            /** @description One sentence per change, in `changes`’ order, written by a language model: what that change could expose. **Never for a change to `auth.attributes`**: a model read those wrong — a removed attribute as one the app now receives, `sn` as a student number — so the change line alone is the record, and such a change has no entry here. The model is given the changes and the security notes only — never the verdict — and fills a schema with no place for one (the D5 plan’s Decision 19). The change lines are the record; these are the model’s reading of them, and a reading can get a fact wrong. Null unless `summarySource` is `llm`, and for a record made before it existed, whose `summary` is one string. */
+            /** @description One sentence per change, in `changes`’ order, written by a language model: what that change could expose. **Never for a change to `auth.attributes`**: a model read those wrong — a removed attribute as one the app now receives, `sn` as a student number — so the change line alone is the record, and such a change has no entry here. The model is given the changes and the security notes only — never the verdict — and fills a schema with no place for one. The change lines are the record; these are the model’s reading of them, and a reading can get a fact wrong. Null unless `summarySource` is `llm`, and for a record made before it existed, whose `summary` is one string. */
             summaryExposures: {
                 /** @description The change it is about — one of `changes`’ own paths. */
                 path: string;
+                /** @description What that change could expose, in the model’s words. */
                 sentence: string;
             }[] | null;
-            /** @description The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before P6b. */
+            /** @description The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before subsequent releases were compared. */
             baselineReleaseId: string | null;
             /** @description Which of §7’s sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch. */
             sensitiveFields: ("services" | "auth.attributes" | "egress.allow" | "resources" | "data.classification" | "ai.models" | "blueprint")[];
-            /** @description R4(d): what each changed field means for security and privacy, in the platform’s own words — present whether or not the model answered. */
+            /** @description What each changed field means for security and privacy, in the platform’s own words — present whether or not the model answered. */
             security: {
-                /** @enum {string} */
+                /**
+                 * @description One of §7’s sensitive fields that changed.
+                 * @enum {string}
+                 */
                 field: "services" | "auth.attributes" | "egress.allow" | "resources" | "data.classification" | "ai.models" | "blueprint";
+                /** @description What it means for security and privacy. */
                 note: string;
             }[];
-            /** @description D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before P6b. */
+            /** @description D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before it was stated. */
             coverage: string | null;
-            /** @description R4 (D33, §15): the code reviewer’s verdict at decision time. `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed. */
+            /** @description The code reviewer’s verdict at decision time (D33, §15). `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed. */
             review: {
-                /** @enum {string} */
+                /**
+                 * @description The verdict, or `not_performed`.
+                 * @enum {string}
+                 */
                 state: "not_performed" | "clean" | "findings";
+                /** @description Which reviewer answered. */
                 reviewer: string;
+                /** @description What it said, in the platform’s words. */
                 detail: string;
             };
         };
         /** @description §13’s exact diff, shown BEFORE the decision: approve and reject name it, the platform recomputes its facts and refuses if they moved (`APPROVAL_PREVIEW_STALE`), and the record copies its summary and verdict rather than asking the model again. */
         ApprovalPreview: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The preview — what `approveRelease` and `rejectRelease` name as `previewId`.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The release it is of.
+             */
             releaseId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
             projectId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Who took it.
+             */
             createdBy: string;
-            /** @description Who took it (P6b Decision 18). */
+            /** @description Who took it, by name. */
             createdByName: string;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was taken.
              */
             createdAt: string;
             /**
@@ -1039,7 +1095,9 @@ export interface components {
             imageDigest: string;
             diff: components["schemas"]["ApprovalDiff"];
         };
+        /** @description An administrator’s approval, naming the preview they read. */
         ApproveReleaseRequest: {
+            /** @description Why, in the administrator’s words; optional on an approval. */
             reason?: string;
             /**
              * Format: uuid
@@ -1047,20 +1105,32 @@ export interface components {
              */
             previewId?: string;
         };
+        /** @description Who the app is for, as its owner answered at creation (§24, D29). A large or public audience adds a load rehearsal to the launch checklist. */
         Audience: {
-            /** @enum {string} */
+            /**
+             * @description §24: how many people the app is for.
+             * @enum {string}
+             */
             scale: "solo" | "class" | "large_course" | "public";
-            /** @enum {string} */
+            /**
+             * @description §24: whether they arrive steadily, or all at once — a class starting a lab together.
+             * @enum {string}
+             */
             burst: "steady" | "synchronised";
+            /** @description Why, in the owner’s words; null when none was given. */
             justification: string | null;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Who answered.
+             */
             setBy: string;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When they answered.
              */
             setAt: string;
         };
+        /** @description §24’s two questions about who the app is for, answered by a person at creation. */
         AudienceInput: {
             /**
              * @description §24: how many people.
@@ -1072,38 +1142,62 @@ export interface components {
              * @enum {string}
              */
             burst: "steady" | "synchronised";
+            /** @description Why, in a sentence or two — shown to an administrator for a large or public app. */
             justification?: string;
         };
         /** @description A blueprint as a client chooses one: what it provides and the starters it offers. Never its base image or build internals. */
         Blueprint: {
             /** @description `name@major` — what a project pins (§25). */
             ref: string;
+            /** @description The blueprint’s name. */
             name: string;
+            /** @description Its major version — the `@major` a project pins. */
             majorVersion: number;
+            /** @description What an app on it is written in. */
             language: string;
+            /** @description The port its apps listen on unless `runtime.port` says otherwise. */
             defaultPort: number;
+            /** @description The health path its skeleton answers. */
             healthPath: string;
+            /** @description The `manifest:` schema versions it understands. */
             schemaVersions: number[];
+            /** @description What an app on it may declare in manifest.yaml (§25). */
             provides: {
+                /** @description The service types it can bind — what `services[].type` may name. */
                 services: string[];
+                /** @description What `auth.provider` may be. */
                 authProviders: ("cwl" | "none")[];
+                /** @description Whether its apps may declare `ai.models`. */
                 ai: boolean;
             };
             /** @description §25: what `POST /v1/projects` accepts as `starter` for this blueprint. */
             starters: {
+                /** @description The starter’s name, as `starter` in `createProject`. */
                 name: string;
+                /** @description What it is, in a sentence. */
                 summary: string;
             }[];
         };
+        /** @description Every blueprint a project can be created from. */
         BlueprintList: components["schemas"]["Blueprint"][];
-        /** @description A build of one commit (§13). It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream (R6). */
+        /** @description A build of one commit (§13). It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream. */
         Build: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The build — what `getBuild`, `getBuildLog` and `createRelease` name.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
             projectId: string;
+            /** @description The commit built, whose own manifest.yaml it was built with. */
             commitSha: string;
-            /** @enum {string} */
+            /**
+             * @description `running` from the moment it is started, then `succeeded` or `failed` — the stream says which as it happens. `pending` is not answered today.
+             * @enum {string}
+             */
             status: "pending" | "running" | "succeeded" | "failed";
             /** @description `sha256:…` once the build has succeeded; the image a release names. */
             imageDigest: string | null;
@@ -1113,28 +1207,38 @@ export interface components {
             scan: components["schemas"]["ScanSummary"] | null;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was started.
              */
             createdAt: string;
         };
+        /** @description A project’s newest builds, newest first. */
         BuildList: components["schemas"]["Build"][];
         /** @description §14’s build log, as stored. */
         BuildLog: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The build.
+             */
             buildId: string;
+            /** @description Every line, in order. */
             lines: {
+                /** @description Its position, from 0. */
                 seq: number;
-                /** @enum {string} */
+                /**
+                 * @description Which of the build’s outputs wrote it.
+                 * @enum {string}
+                 */
                 stream: "stdout" | "stderr";
                 /** @description Redacted at capture (§14). */
                 text: string;
                 /**
                  * Format: date-time
-                 * @description An instant, ISO 8601 in UTC.
+                 * @description When it was written.
                  */
                 at: string;
             }[];
         };
+        /** @description One commit and every file it changed against its first parent, with patches. */
         CommitDetail: {
             /** @description A full 40-character commit id. */
             commitSha: string;
@@ -1186,6 +1290,7 @@ export interface components {
             /** @description True when some `patch` is null because the 256 KiB budget was spent. */
             patchesTruncated: boolean;
         };
+        /** @description A page of the branch’s history, following first parents, newest first. */
         CommitList: {
             /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
             ref: string;
@@ -1194,6 +1299,7 @@ export interface components {
             /** @description Pass as `cursor` for the next page; null on the last page. */
             next: string | null;
         };
+        /** @description The commit made — or, for a dry run, the one that would have been. */
         CommitOutcome: {
             /** @description True when nothing was written. */
             dryRun: boolean;
@@ -1218,6 +1324,7 @@ export interface components {
                 sensitiveDiff: components["schemas"]["SensitiveDiff"];
             };
         };
+        /** @description One commit on the branch — who, when and why, without its changes. */
         CommitSummary: {
             /** @description A full 40-character commit id. */
             commitSha: string;
@@ -1269,6 +1376,7 @@ export interface components {
              */
             type: "manifest.stream.ready";
         };
+        /** @description Changes to make on `main`, computed from `baseCommit`: whole-file writes and deletions of text files. */
         CreateCommitRequest: {
             /** @description The commit these changes were computed from — `commitSha` from the tree or file you read. `main` must still be exactly this commit, or the request is refused `SOURCE_CONFLICT`. */
             baseCommit: string;
@@ -1297,6 +1405,7 @@ export interface components {
             /** @description Run every check the commit would, write nothing, and answer what would have happened. */
             dryRun?: boolean;
         };
+        /** @description A new project: its name, its blueprint, an optional starter, and who it is for. */
         CreateProjectRequest: {
             /** @description Checked by the same function as GET /v1/slugs/{slug} (§23). */
             slug: string;
@@ -1306,14 +1415,22 @@ export interface components {
             starter?: string;
             audience: components["schemas"]["AudienceInput"];
         };
+        /** @description The build to freeze into a release, with a line saying what it changes. */
         CreateReleaseRequest: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description A build that succeeded (`listBuilds`).
+             */
             buildId: string;
+            /** @description What this release changes, for the people who read it. */
             summary?: string;
         };
         /** @description §22 steps 2–3: the project, its environments, and the validation of the manifest its first commit carries. */
         CreatedProject: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project — what every project-scoped path names.
+             */
             id: string;
             /** @description The project’s name, and the first label of every hostname it has (§23). */
             slug: string;
@@ -1322,51 +1439,74 @@ export interface components {
             /** @description The starter the first commit was seeded from (§25); null for the skeleton alone. */
             starter: string | null;
             owner: components["schemas"]["UserSummary"];
+            /** @description Who it is for (§24); null for a project created before the question was asked. */
             audience: components["schemas"]["Audience"] | null;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was created.
              */
             createdAt: string;
             /** @description When it first went to production (§13 D9) — null until then; never cleared. */
             launchedAt: string | null;
             repository: components["schemas"]["RepositoryLink"];
+            /** @description Its three environments, none deployed yet. */
             environments: components["schemas"]["Environment"][];
             spec: components["schemas"]["SpecValidation"];
         };
+        /** @description Which release to deploy. */
         DeployRequest: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The release to deploy to the environment in the path.
+             */
             releaseId: string;
         };
         /** @description A mutation that takes no fields still sends a JSON object: `{}`, with `Content-Type: application/json`. */
         EmptyRequest: Record<string, never>;
+        /** @description One of a project’s three environments (§11): where a release is deployed, and what is serving there now. */
         Environment: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The environment — what `deploy`, `listIncidents` and the secrets operations name.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
             projectId: string;
-            /** @enum {string} */
+            /**
+             * @description Which of the three: `sandbox`, `staging` or `production` (§11).
+             * @enum {string}
+             */
             kind: "sandbox" | "staging" | "production";
             /** @description §23: `<slug>.<zone for this kind>`. Permanent. */
             hostname: string;
-            /** Format: uri */
+            /**
+             * Format: uri
+             * @description Where the app answers in this environment, once it is deployed.
+             */
             url: string;
-            /** @description The instance the hostname reaches (§6 Route); for an app deployed before P4c, its newest instance. Null before any deploy. */
+            /** @description The instance the hostname reaches (§6 Route). Null before any deploy. */
             instance: components["schemas"]["Instance"] | null;
         };
+        /** @description A project’s three environments: sandbox, staging and production. */
         EnvironmentList: components["schemas"]["Environment"][];
         /**
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
         ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
+            /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
             error: {
                 code: components["schemas"]["ErrorCode"];
                 /** @description For a person. Never parse it; switch on `code`. */
                 message: string;
                 /** @description What to do about it. */
                 hint?: string;
+                /** @description On SPEC_INVALID: each problem in manifest.yaml, with its path and code. */
                 details?: components["schemas"]["ManifestError"][];
                 /** @description On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13). */
                 launchReadiness?: components["schemas"]["LaunchReadiness"];
@@ -3050,45 +3190,78 @@ export interface components {
         };
         /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
         Fleet: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project.
+             */
             id: string;
+            /** @description Its name (§23). */
             slug: string;
+            /** @description Its blueprint, `name@major`. */
             blueprint: string;
+            /** @description Its starter; null for the skeleton alone. */
             starter: string | null;
+            /** @description Its owner of record. */
             owner: {
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @description Their user id.
+                 */
                 id: string;
+                /** @description Their name. */
                 displayName: string;
+                /** @description Their address. */
                 email: string;
             };
+            /** @description Who it is for (§24); null for a project created before the question was asked. */
             audience: components["schemas"]["Audience"] | null;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was created.
              */
             createdAt: string;
             /** @description §23: holds a label reserved after it was created. Handle with the owner; never renamed automatically. */
             slugReserved: boolean;
+            /** @description Its three environments, and what each is running. */
             environments: {
-                /** @enum {string} */
+                /**
+                 * @description Which environment.
+                 * @enum {string}
+                 */
                 kind: "sandbox" | "staging" | "production";
+                /** @description Its hostname (§23). */
                 hostname: string;
+                /** @description The serving instance’s state; null before any deploy. */
                 state: string | null;
+                /** @description The release serving; null before any deploy. */
                 releaseId: string | null;
+                /** @description The image that release runs; null before any deploy. */
                 imageDigest: string | null;
+                /** @description When it was last deployed. */
                 lastDeployAt: string | null;
+                /** @description When its newest Incident was recorded; null if it has none. */
                 latestIncidentAt: string | null;
             }[];
         }[];
+        /** @description What UBC IAM registered for the app’s production CWL sign-in (§9), as an administrator recorded it. */
         IamRegistration: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The record.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
             projectId: string;
             /** @description §9: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch. */
             entityId: string;
+            /** @description The assertion consumer URL registered — where sign-ins are sent. */
             acsUrl: string;
+            /** @description The single-logout URL registered. */
             sloUrl: string;
+            /** @description The fingerprint of the signing certificate registered; null when none was recorded. */
             certFingerprint: string | null;
             /** @description D20: an unnoticed expiry silently kills login for a live course app. */
             certExpiresAt: string | null;
@@ -3098,28 +3271,47 @@ export interface components {
             requestedAttributes: string[] | null;
             /** @description When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it (§13, D9). */
             registeredAt: string | null;
-            /** @enum {string} */
+            /**
+             * @description Along §9’s states: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.
+             * @enum {string}
+             */
             state: "draft" | "submitted" | "active" | "change_requested" | "expired";
+            /** @description UBC IAM’s own reference for the request; null when none was recorded. */
             externalTicketRef: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When the record last changed.
+             */
             updatedAt: string;
         };
         /** @description A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. */
         Incident: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The Incident.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The instance that failed.
+             */
             instanceId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The release it ran (`getRelease`).
+             */
             releaseId: string;
+            /** @description How it ended — its exit, or that it never answered its health check. */
             exitReason: string;
             /** @description The last 200 lines, redacted at capture (§14). */
             logTail: string;
+            /** @description Which check the platform ran and what it got back (§11). */
             failedCheck: string;
+            /** @description What changed in manifest.yaml since the last release that was healthy here — often the cause. */
             diffSinceHealthy: string;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was recorded.
              */
             createdAt: string;
             /** @description §14: shaped to be handed straight to an agent as a repair request. */
@@ -3127,43 +3319,75 @@ export interface components {
         };
         /** @description One environment’s Incidents, newest first. */
         IncidentList: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The environment.
+             */
             environmentId: string;
+            /** @description Newest first. */
             incidents: components["schemas"]["Incident"][];
         };
         /** @description A running (or once-running) copy of a release in one environment (§11). Never its driver or handle. */
         Instance: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The instance.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The environment it runs in.
+             */
             environmentId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The release it runs (`getRelease`).
+             */
             releaseId: string;
-            /** @enum {string} */
+            /**
+             * @description What kind of process it is; `web`, which answers requests, is the only kind the platform runs today.
+             * @enum {string}
+             */
             kind: "web" | "worker" | "cron";
-            /** @enum {string} */
+            /**
+             * @description Where it is in its life (§11): `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.
+             * @enum {string}
+             */
             state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
+            /** @description When the platform last saw it running; null before it started. */
             lastSeenAt: string | null;
         };
         /** @description D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it. */
         KnowledgePack: {
+            /** @description The blueprint it belongs to, `name@major`. */
             blueprint: string;
+            /** @description Every file in the pack; read them all before writing code. */
             files: {
+                /** @description The file’s path in the pack — `AGENTS.md` first. */
                 path: string;
-                /** @enum {string} */
+                /**
+                 * @description What kind of text it is.
+                 * @enum {string}
+                 */
                 mediaType: "text/markdown" | "text/plain";
                 /** @description Hex SHA-256 of `content` as UTF-8. */
                 sha256: string;
+                /** @description The file’s text, whole. */
                 content: string;
             }[];
         };
         /** @description §13’s checklist, computed from what exists — a first launch’s, or once launched the self-serve check (D9). A production deploy is refused with this exact value until every blocking item is met. */
         LaunchReadiness: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project.
+             */
             projectId: string;
             /** @description Which of D9’s two clauses this is: false, the first launch’s checklist; true, a launched app’s, where a release goes to production self-serve unless it changes a sensitive field (§13). */
             launched: boolean;
+            /** @description Whether every blocking item is met — a production deploy is refused until it is. */
             ready: boolean;
+            /** @description The release serving staging — what production would run; null when nothing serves staging. */
             candidateReleaseId: string | null;
             /** @description The last approved release the candidate is compared with (D9.2); null before launch, or when nothing else is approved. */
             baselineReleaseId: string | null;
@@ -3171,27 +3395,42 @@ export interface components {
             sensitiveFields: ("services" | "auth.attributes" | "egress.allow" | "resources" | "data.classification" | "ai.models" | "blueprint")[];
             /** @description An administrator’s approval is what this release is waiting for — a sensitive change, not rejected, and nothing else unmet (§13 D9.2). */
             reescalated: boolean;
+            /** @description Every item, met or not. */
             items: components["schemas"]["LaunchReadinessItem"][];
         };
+        /** @description One item of the launch checklist (§13), computed from what exists. */
         LaunchReadinessItem: {
-            /** @enum {string} */
+            /**
+             * @description Which item — stable, for a client to switch on.
+             * @enum {string}
+             */
             id: "domain" | "iam-registration" | "privacy-assessment" | "rehearsal" | "scans" | "admin-approval" | "load-rehearsal" | "code-review";
+            /** @description The item, for a person. */
             title: string;
+            /** @description Who meets it: the project’s owner, Manifest itself, or UBC recorded by an administrator. */
             owner: string;
             /** @description Whether this item gates production. `ready` is every BLOCKING item being met; a non-blocking item is shown and never refuses a launch (D33: `code-review`). */
             blocking: boolean;
             /**
-             * @description `unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names what builds it — a plan, or for `code-review` a tracked hardening item.
+             * @description `met`: satisfied. `unmet`: tracked and not satisfied — `why` says what to do. `not_built`: Manifest does not track it yet, and `builtBy` says what will.
              * @enum {string}
              */
             state: "met" | "unmet" | "not_built";
+            /** @description Why it matters, and — when it is unmet — what meets it. */
             why: string;
+            /** @description For a `not_built` item: what will build it. Absent otherwise. */
             builtBy?: string;
         };
+        /** @description The two external records a first production launch waits on (§9). */
         LaunchRecords: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project.
+             */
             projectId: string;
+            /** @description What UBC IAM registered; null until an administrator records something. */
             iamRegistration: components["schemas"]["IamRegistration"] | null;
+            /** @description What the Privacy Office said; null until an administrator records something. */
             privacyAssessment: components["schemas"]["PrivacyAssessment"] | null;
         };
         /** @description One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all. */
@@ -3496,11 +3735,16 @@ export interface components {
         };
         /** @description The person the session belongs to. */
         Me: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The person’s user id on this platform — what `listMembers` calls `userId`.
+             */
             id: string;
             /** @description The person's ubcEduCwlPuid (§9). */
             puid: string;
+            /** @description Their name, as CWL gave it. */
             displayName: string;
+            /** @description Their address, as CWL gave it. */
             email: string;
             /**
              * @description The platform role THIS SESSION is authorized as.
@@ -3508,16 +3752,28 @@ export interface components {
              */
             role: "admin" | "member";
         };
+        /** @description A person who may work on the project, and their role on it. */
         Member: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The person’s user id — what `removeMember` names.
+             */
             userId: string;
+            /** @description Their ubcEduCwlPuid (§9) — what `addMember` names. */
             puid: string;
+            /** @description Their name, as CWL gave it. */
             displayName: string;
+            /** @description Their address, as CWL gave it. */
             email: string;
-            /** @enum {string} */
+            /**
+             * @description `owner` may do everything on the project; `collaborator` the same except managing members, deleting the project and promoting a release to production (§13).
+             * @enum {string}
+             */
             role: "owner" | "collaborator";
         };
+        /** @description Everyone who may work on the project; every project has an owner. */
         MemberList: components["schemas"]["Member"][];
+        /** @description A delegated token to mint: a label, what it may do, and how long it lives. */
         MintTokenRequest: {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
@@ -3529,22 +3785,36 @@ export interface components {
         /** @description A newly minted delegated token, with its secret. The only time the secret exists. */
         MintedToken: {
             token: components["schemas"]["Token"];
-            /** @description The token, in full: `mft_<id>_<secret>`. Shown ONCE. Store it now — the platform keeps only a hash and cannot show it again. */
+            /** @description The token, in full: `mft_<id>_<secret>` — what an agent sends as `Authorization: Bearer`. Store it now: `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key, which replays this answer. */
             secret: string;
         };
         /** @description D24: a delegated token asked for one of the privileged four. A person confirms or rejects it; a confirmation grants that one request a single retry. */
         PendingAction: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The question — what `confirmPendingAction` and `rejectPendingAction` name.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project it was asked on.
+             */
             projectId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The delegated token that asked (`listTokens`).
+             */
             tokenId: string;
             /** @description The privileged capability that was refused — one of D24’s four. */
             action: string;
-            /** @enum {string} */
+            /**
+             * @description `pending` until a person answers; `confirmed` grants the identical request one retry; `rejected` is final; `expired` when nobody answered in time.
+             * @enum {string}
+             */
             state: "pending" | "confirmed" | "rejected" | "expired";
+            /** @description The HTTP method the token used. */
             method: string;
+            /** @description The path it asked for. */
             path: string;
             /** @description SHA-256 of the canonical request body, so a client can match its own. */
             bodySha256: string;
@@ -3552,37 +3822,60 @@ export interface components {
             summary: string;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When the question lapses unanswered.
              */
             expiresAt: string;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When the token asked.
              */
             createdAt: string;
+            /** @description When a person answered; null while it is pending. */
             resolvedAt: string | null;
             /** @description Seconds between the question being asked and it being answered — or, while it is still pending, now. */
             waitingSeconds: number;
+            /** @description A rejection’s reason, in the person’s words — what the agent is told; null otherwise. */
             reason: string | null;
+            /** @description When the confirmed retry was made, spending the confirmation; null until then. */
             consumedAt: string | null;
         };
         /** @description The questions agents have put to the people who own this project, newest first (§26). */
         PendingActionList: components["schemas"]["PendingAction"][];
+        /** @description What UBC’s Privacy Office said of the app’s privacy impact assessment (§9), as an administrator recorded it. */
         PrivacyAssessment: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The record.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
             projectId: string;
-            /** @enum {string} */
+            /**
+             * @description Along §9’s states: `draft`, `submitted` to the Privacy Office, `approved`. A refused assessment goes back to `draft`.
+             * @enum {string}
+             */
             state: "draft" | "submitted" | "approved";
+            /** @description Who at the Privacy Office reviewed it; null until recorded. */
             reviewer: string | null;
+            /** @description When it was approved; null until it is. */
             approvedAt: string | null;
+            /** @description The Privacy Office’s own reference; null when none was recorded. */
             externalTicketRef: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When the record last changed.
+             */
             updatedAt: string;
         };
+        /** @description A project: one app, its code, its three environments and who works on it (§6). */
         Project: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The project — what every project-scoped path names.
+             */
             id: string;
             /** @description The project’s name, and the first label of every hostname it has (§23). */
             slug: string;
@@ -3591,10 +3884,11 @@ export interface components {
             /** @description The starter the first commit was seeded from (§25); null for the skeleton alone. */
             starter: string | null;
             owner: components["schemas"]["UserSummary"];
+            /** @description Who it is for (§24); null for a project created before the question was asked. */
             audience: components["schemas"]["Audience"] | null;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was created.
              */
             createdAt: string;
             /** @description When it first went to production (§13 D9) — null until then; never cleared. */
@@ -3603,10 +3897,15 @@ export interface components {
             /** @description Present with `?expand=environments` (D23.1). */
             environments?: components["schemas"]["Environment"][];
         };
+        /** @description Every project the caller is a member of — every project, for an administrator. */
         ProjectList: components["schemas"]["Project"][];
+        /** @description What UBC IAM registered for the app’s production sign-in, as an administrator records it from the ticket (§9). */
         RecordIamRegistrationRequest: {
+            /** @description The entityID UBC IAM registered — fixed once registered. */
             entityId: string;
+            /** @description The assertion consumer URL registered. */
             acsUrl: string;
+            /** @description The single-logout URL registered. */
             sloUrl: string;
             /** @description Exactly the attributes UBC IAM registered, as the ticket lists them. Once registered, a record that does not reach `active` must repeat them unchanged. */
             registeredAttributes: string[];
@@ -3617,42 +3916,72 @@ export interface components {
              * @enum {string}
              */
             state: "draft" | "submitted" | "active" | "change_requested" | "expired";
+            /** @description UBC IAM’s ticket reference, pasted in. */
             externalTicketRef?: string;
+            /** @description The fingerprint of the signing certificate registered. */
             certFingerprint?: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When that certificate expires (D20).
+             */
             certExpiresAt?: string;
         };
+        /** @description What the Privacy Office said, as an administrator records it (§9). */
         RecordPrivacyAssessmentRequest: {
-            /** @enum {string} */
+            /**
+             * @description The state this record should now be in, reached along §9’s arrows.
+             * @enum {string}
+             */
             state: "draft" | "submitted" | "approved";
+            /** @description Who at the Privacy Office reviewed it. */
             reviewer?: string;
+            /** @description The Privacy Office’s reference, pasted in. */
             externalTicketRef?: string;
         };
-        /** @description A LOCAL, production-shaped rehearsal (D21 as P6a redefines it for a laptop): it proves the SHAPE of the registration and never UBC’s acceptance of it. */
+        /** @description A LOCAL, production-shaped rehearsal of the app’s CWL sign-in (D21): it proves the SHAPE of the registration, and never UBC’s acceptance of it. */
         Rehearsal: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The rehearsal.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
             projectId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The candidate release rehearsed — the one serving staging.
+             */
             releaseId: string;
+            /** @description Whether a production-shaped CWL sign-in worked. */
             passed: boolean;
             /** @description The entityID the Service Provider was registered under when this ran — read off the registration, never recomputed. */
             entityId: string;
+            /** @description Where the sign-in’s assertion was sent. */
             acsUrl: string;
-            /** @description What the registration listed. Decision 10 compares these with what the candidate release would register now. */
+            /** @description The attributes the registration listed when it ran, compared with what the candidate release would register now. */
             attributes: string[];
+            /** @description What the rehearsal saw — measured, not assumed. */
             evidence: {
+                /** @description The production instance it deployed; null if none started. */
                 instanceId: string | null;
+                /** @description The hostname the sign-in went to. */
                 hostname: string;
-                /** @enum {string} */
+                /**
+                 * @description Which of the edge’s listeners the app answered on (§12).
+                 * @enum {string}
+                 */
                 listener: "internal" | "public";
                 /** @description What the app answered at its registered ACS, or null when no assertion was produced. */
                 signInStatus: number | null;
                 /** @description What the assertion ACTUALLY carried, as friendly names where the platform knows one. §9’s attribute release, measured rather than assumed. */
                 attributesReleased: string[];
+                /** @description Why it passed or did not, in the platform’s words. */
                 reason: string;
             };
+            /** @description When it ran, ISO 8601 in UTC. */
             ranAt: string;
         };
         /** @description A person’s refusal of a pending action, in their own words. */
@@ -3660,7 +3989,9 @@ export interface components {
             /** @description Why this is refused. The agent is told, verbatim. */
             reason: string;
         };
+        /** @description An administrator’s rejection, naming the preview they read. It is final for the release. */
         RejectReleaseRequest: {
+            /** @description Why, in the administrator’s words — required: a refusal with no words is one nobody can act on. */
             reason: string;
             /**
              * Format: uuid
@@ -3670,114 +4001,193 @@ export interface components {
         };
         /** @description Immutable: a build, a spec and the configuration resolved for every environment (§13). */
         Release: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The release — what `deploy` names.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
             projectId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The build it froze.
+             */
             buildId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The validation of manifest.yaml it froze — its build’s commit’s.
+             */
             appSpecId: string;
             /** @description What an approval binds to (§13). */
             imageDigest: string;
+            /** @description What it changes, in its author’s words; null when none was given. */
             summary: string | null;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Who made it.
+             */
             createdBy: string;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was made.
              */
             createdAt: string;
             /** @description §12: its build’s scan, recorded on the Release. */
             scan: components["schemas"]["ScanSummary"] | null;
+            /** @description What it runs as in each environment, resolved when it was made. */
             config: {
                 /** @description One environment’s view of the release, frozen when it was made (§13). */
                 sandbox: {
+                    /** @description The port the app listens on. */
                     port: number;
+                    /** @description The path its health check asks. */
                     health: string;
+                    /** @description What it may use in this environment — the blueprint’s defaults, overridden by manifest.yaml. */
                     resources: {
+                        /** @description CPU cores. */
                         cpu: number;
+                        /** @description Memory, as `512Mi`. */
                         memory: string;
+                        /** @description The most processes and threads at once. */
                         pids: number;
+                        /** @description Disk, as `2Gi`. */
                         disk: string;
                     };
+                    /** @description The backing services bound to it. */
                     services: {
+                        /** @description The service type. */
                         type: string;
+                        /** @description Its version. */
                         version: string;
+                        /** @description The app’s name for it. */
                         name: string;
                     }[];
+                    /** @description The hostnames it may reach outside the platform. */
                     egressAllow: string[];
+                    /** @description Its data classification (D17). */
                     classification: string;
+                    /** @description Its sign-in (§9). */
                     auth: {
-                        /** @enum {string} */
+                        /**
+                         * @description Whether it signs people in with CWL.
+                         * @enum {string}
+                         */
                         provider: "cwl" | "none";
+                        /** @description The CWL attributes it receives. */
                         attributes: string[];
                     };
+                    /** @description Its AI (§10). */
                     ai: {
+                        /** @description The logical models it may call. */
                         models: string[];
                     };
-                    /** @description The names the app declares — never their values (P5a Decision 22). */
+                    /** @description The names of the variables the app declares — never their values. */
                     envNames: string[];
                 };
                 /** @description One environment’s view of the release, frozen when it was made (§13). */
                 staging: {
+                    /** @description The port the app listens on. */
                     port: number;
+                    /** @description The path its health check asks. */
                     health: string;
+                    /** @description What it may use in this environment — the blueprint’s defaults, overridden by manifest.yaml. */
                     resources: {
+                        /** @description CPU cores. */
                         cpu: number;
+                        /** @description Memory, as `512Mi`. */
                         memory: string;
+                        /** @description The most processes and threads at once. */
                         pids: number;
+                        /** @description Disk, as `2Gi`. */
                         disk: string;
                     };
+                    /** @description The backing services bound to it. */
                     services: {
+                        /** @description The service type. */
                         type: string;
+                        /** @description Its version. */
                         version: string;
+                        /** @description The app’s name for it. */
                         name: string;
                     }[];
+                    /** @description The hostnames it may reach outside the platform. */
                     egressAllow: string[];
+                    /** @description Its data classification (D17). */
                     classification: string;
+                    /** @description Its sign-in (§9). */
                     auth: {
-                        /** @enum {string} */
+                        /**
+                         * @description Whether it signs people in with CWL.
+                         * @enum {string}
+                         */
                         provider: "cwl" | "none";
+                        /** @description The CWL attributes it receives. */
                         attributes: string[];
                     };
+                    /** @description Its AI (§10). */
                     ai: {
+                        /** @description The logical models it may call. */
                         models: string[];
                     };
-                    /** @description The names the app declares — never their values (P5a Decision 22). */
+                    /** @description The names of the variables the app declares — never their values. */
                     envNames: string[];
                 };
                 /** @description One environment’s view of the release, frozen when it was made (§13). */
                 production: {
+                    /** @description The port the app listens on. */
                     port: number;
+                    /** @description The path its health check asks. */
                     health: string;
+                    /** @description What it may use in this environment — the blueprint’s defaults, overridden by manifest.yaml. */
                     resources: {
+                        /** @description CPU cores. */
                         cpu: number;
+                        /** @description Memory, as `512Mi`. */
                         memory: string;
+                        /** @description The most processes and threads at once. */
                         pids: number;
+                        /** @description Disk, as `2Gi`. */
                         disk: string;
                     };
+                    /** @description The backing services bound to it. */
                     services: {
+                        /** @description The service type. */
                         type: string;
+                        /** @description Its version. */
                         version: string;
+                        /** @description The app’s name for it. */
                         name: string;
                     }[];
+                    /** @description The hostnames it may reach outside the platform. */
                     egressAllow: string[];
+                    /** @description Its data classification (D17). */
                     classification: string;
+                    /** @description Its sign-in (§9). */
                     auth: {
-                        /** @enum {string} */
+                        /**
+                         * @description Whether it signs people in with CWL.
+                         * @enum {string}
+                         */
                         provider: "cwl" | "none";
+                        /** @description The CWL attributes it receives. */
                         attributes: string[];
                     };
+                    /** @description Its AI (§10). */
                     ai: {
+                        /** @description The logical models it may call. */
                         models: string[];
                     };
-                    /** @description The names the app declares — never their values (P5a Decision 22). */
+                    /** @description The names of the variables the app declares — never their values. */
                     envNames: string[];
                 };
             };
         };
+        /** @description A project’s newest releases, newest first. */
         ReleaseList: components["schemas"]["Release"][];
+        /** @description Where the project’s code lives (D5), and whether `main` is protected there. */
         RepositoryLink: {
             /**
              * @description Which of D5’s drivers holds it: a repository on this machine, or GitHub.
@@ -3810,23 +4220,32 @@ export interface components {
             baseImageKnown: boolean;
             /** @description Introduced by this build, with a published fix. On a fresh database a build with any is refused (§12). */
             fixable: {
+                /** @description Critical findings. */
                 critical: number;
+                /** @description High findings. */
                 high: number;
             };
             /** @description Introduced by this build, with no published fix: recorded, not blocking (§12). */
             unfixable: {
+                /** @description Critical findings. */
                 critical: number;
+                /** @description High findings. */
                 high: number;
             };
             /** @description The base image’s own — the blueprint’s to fix (§20). */
             baseImage: {
+                /** @description Critical findings. */
                 critical: number;
+                /** @description High findings. */
                 high: number;
             };
             /** @description The unfixable findings by id, at most 50; `unfixable` counts them all. */
             unfixableFindings: {
+                /** @description The vulnerability’s id — a CVE or an advisory. */
                 id: string;
+                /** @description `Critical` or `High`. */
                 severity: string;
+                /** @description The package it is in, with its version. */
                 package: string;
             }[];
         };
@@ -3837,22 +4256,31 @@ export interface components {
             /** @description Which of them changed — `services`, `auth.attributes`, `egress.allow` and so on. */
             fields: string[];
         };
+        /** @description The value to store under the name in the path. */
         SetAppSecretRequest: {
             /** @description The value, as text: at least 6 characters (a shorter one could not be redacted from the app’s Incidents), at most 16384 bytes of UTF-8, well-formed, with no NUL. Takes effect at the next deploy of this environment; it is never answered back. */
             value: string;
         };
         /** @description §23: exactly what project creation will answer — advisory, since creation checks again. */
         SlugCheck: {
+            /** @description The name checked, as sent. */
             slug: string;
+            /** @description Whether `createProject` would accept it now. */
             available: boolean;
             /** @description Present when `available` is false: every reason that applies. */
             reasons?: {
-                /** @enum {string} */
+                /**
+                 * @description The code `createProject` would refuse it with.
+                 * @enum {string}
+                 */
                 code: "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN";
+                /** @description What is wrong with it, for a person. */
                 message: string;
+                /** @description What to do instead. */
                 hint: string;
             }[];
         };
+        /** @description One text file at one commit, whole. */
         SourceFile: {
             /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
             ref: string;
@@ -3869,6 +4297,7 @@ export interface components {
             /** @description git's id for this content; equal ids mean equal bytes. */
             blobSha: string;
         };
+        /** @description Every path in the repository at one commit — the files an API client can read and write. */
         SourceTree: {
             /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
             ref: string;
@@ -3922,41 +4351,58 @@ export interface components {
             errors: components["schemas"]["ManifestError"][];
             sensitiveDiff: components["schemas"]["SensitiveDiff"];
         };
+        /** @description Which commit to build. */
         StartBuildRequest: {
-            /** @description A full commit id. Defaults to the commit of the newest validated spec. */
+            /** @description The full id of the commit to build. Without it, the commit of the project’s newest recorded validation — which need not be `main`’s head: name the commit you mean. */
             commitSha?: string;
         };
         /** @description Every message on WS /v1/projects/{projectId}/events is one of these, as JSON. Switch on `kind`, then `type`. */
         StreamFrame: components["schemas"]["EventFrame"] | components["schemas"]["LogFrame"] | components["schemas"]["ControlFrame"];
         /** @description A delegated token (D24), scoped to one project and a capability set. Its secret is shown once, when it is minted, and is never readable again. */
         Token: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The token — what `revokeToken` names, and the `<id>` in its secret.
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The one project it may act on.
+             */
             projectId: string;
+            /** @description The label its minter gave it. */
             name: string;
+            /** @description What it may do on that project (D24); nothing else. */
             capabilities: string[];
-            /** @description Requests a minute this token may make, enforced in the control plane (§20, P5b Task 9). Past it, every route answers 429 RATE_LIMITED with Retry-After. */
+            /** @description Requests a minute this token may make, enforced in the control plane (§20). Past it, every route answers 429 RATE_LIMITED with Retry-After. */
             rateLimit: number;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it stops working.
              */
             expiresAt: string;
             /** @description Whether this token is past its own expiresAt. Computed by the platform; a revoked token that has not expired is not expired. */
             expired: boolean;
+            /** @description When a person revoked it; null while it is not revoked. A revoked token is refused `UNAUTHENTICATED`. */
             revokedAt: string | null;
+            /** @description When it last authenticated a request; null if never. */
             lastUsedAt: string | null;
             /**
              * Format: date-time
-             * @description An instant, ISO 8601 in UTC.
+             * @description When it was minted.
              */
             createdAt: string;
         };
+        /** @description The project’s delegated tokens — revoked and expired ones included. */
         TokenList: components["schemas"]["Token"][];
+        /** @description A person, by name. */
         UserSummary: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Their user id.
+             */
             id: string;
+            /** @description Their name, as CWL gave it. */
             displayName: string;
         };
         /** @description Which commit’s manifest.yaml to validate; `{}` validates `main`’s head. */
@@ -4007,6 +4453,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The blueprint, `name@major` — its `ref` in `listBlueprints`. */
                 blueprintRef: string;
             };
             cookie?: never;
@@ -4038,6 +4485,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The blueprint, `name@major` — its `ref` in `listBlueprints`. */
                 blueprintRef: string;
             };
             cookie?: never;
@@ -4069,6 +4517,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The build’s id, from `startBuild` or `listBuilds`. */
                 buildId: string;
             };
             cookie?: never;
@@ -4103,6 +4552,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description The build’s id, from `startBuild` or `listBuilds`. */
                 buildId: string;
             };
             cookie?: never;
@@ -4134,6 +4584,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The environment’s id, from `listEnvironments` — one each for sandbox, staging and production. */
                 environmentId: string;
             };
             cookie?: never;
@@ -4168,6 +4619,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The environment’s id, from `listEnvironments` — one each for sandbox, staging and production. */
                 environmentId: string;
             };
             cookie?: never;
@@ -4203,6 +4655,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The environment’s id, from `listEnvironments` — one each for sandbox, staging and production. */
                 environmentId: string;
             };
             cookie?: never;
@@ -4443,6 +4896,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`. */
                 pendingActionId: string;
             };
             cookie?: never;
@@ -4477,6 +4931,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`. */
                 pendingActionId: string;
             };
             cookie?: never;
@@ -4515,6 +4970,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`. */
                 pendingActionId: string;
             };
             cookie?: never;
@@ -4613,10 +5069,12 @@ export interface operations {
     getProject: {
         parameters: {
             query?: {
+                /** @description `environments` includes the project’s three environments in the answer. */
                 expand?: "environments";
             };
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -4648,6 +5106,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -4682,6 +5141,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -4931,6 +5391,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5049,6 +5510,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5080,6 +5542,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5114,6 +5577,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5152,6 +5616,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5187,6 +5652,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5221,6 +5687,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5259,7 +5726,9 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
+                /** @description The member’s user id, from `listMembers`. */
                 userId: string;
             };
             cookie?: never;
@@ -5291,6 +5760,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5325,6 +5795,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5356,6 +5827,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5390,6 +5862,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5425,6 +5898,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5459,6 +5933,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5494,6 +5969,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5528,6 +6004,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
             };
             cookie?: never;
@@ -5635,6 +6112,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The release’s id, from `createRelease` or `listReleases`. */
                 releaseId: string;
             };
             cookie?: never;
@@ -5666,6 +6144,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The release’s id, from `createRelease` or `listReleases`. */
                 releaseId: string;
             };
             cookie?: never;
@@ -5700,6 +6179,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The release’s id, from `createRelease` or `listReleases`. */
                 releaseId: string;
             };
             cookie?: never;
@@ -5731,7 +6211,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The preview’s id, from `createApprovalPreview`. */
                 previewId: string;
+                /** @description The release’s id, from `createRelease` or `listReleases`. */
                 releaseId: string;
             };
             cookie?: never;
@@ -5766,6 +6248,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The release’s id, from `createRelease` or `listReleases`. */
                 releaseId: string;
             };
             cookie?: never;
@@ -5804,6 +6287,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The release’s id, from `createRelease` or `listReleases`. */
                 releaseId: string;
             };
             cookie?: never;
@@ -5839,6 +6323,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description The name to check, as it would be given to `createProject`. */
                 slug: string;
             };
             cookie?: never;
@@ -5873,6 +6358,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
+                /** @description The token’s id, from `listTokens`. */
                 tokenId: string;
             };
             cookie?: never;

@@ -7,19 +7,40 @@ export const Blueprint = representation(
   z
     .object({
       ref: z.string().describe('`name@major` — what a project pins (§25).'),
-      name: z.string(),
-      majorVersion: z.number().int(),
-      language: z.string(),
-      defaultPort: z.number().int(),
-      healthPath: z.string(),
-      schemaVersions: z.array(z.number().int()),
-      provides: z.object({
-        services: z.array(z.string()),
-        authProviders: z.array(z.enum(['cwl', 'none'])),
-        ai: z.boolean(),
-      }),
+      name: z.string().describe('The blueprint’s name.'),
+      majorVersion: z
+        .number()
+        .int()
+        .describe('Its major version — the `@major` a project pins.'),
+      language: z.string().describe('What an app on it is written in.'),
+      defaultPort: z
+        .number()
+        .int()
+        .describe('The port its apps listen on unless `runtime.port` says otherwise.'),
+      healthPath: z.string().describe('The health path its skeleton answers.'),
+      schemaVersions: z
+        .array(z.number().int())
+        .describe('The `manifest:` schema versions it understands.'),
+      provides: z
+        .object({
+          services: z
+            .array(z.string())
+            .describe('The service types it can bind — what `services[].type` may name.'),
+          authProviders: z
+            .array(z.enum(['cwl', 'none']))
+            .describe('What `auth.provider` may be.'),
+          ai: z.boolean().describe('Whether its apps may declare `ai.models`.'),
+        })
+        .describe('What an app on it may declare in manifest.yaml (§25).'),
       starters: z
-        .array(z.object({ name: z.string(), summary: z.string() }))
+        .array(
+          z.object({
+            name: z
+              .string()
+              .describe('The starter’s name, as `starter` in `createProject`.'),
+            summary: z.string().describe('What it is, in a sentence.'),
+          }),
+        )
         .describe(
           '§25: what `POST /v1/projects` accepts as `starter` for this blueprint.',
         ),
@@ -28,24 +49,31 @@ export const Blueprint = representation(
       'A blueprint as a client chooses one: what it provides and the starters it offers. Never its base image or build internals.',
     ),
 )
-export const BlueprintList = representation('BlueprintList', z.array(Blueprint))
+export const BlueprintList = representation(
+  'BlueprintList',
+  z.array(Blueprint).describe('Every blueprint a project can be created from.'),
+)
 
 export const KnowledgePack = representation(
   'KnowledgePack',
   z
     .object({
-      blueprint: z.string(),
-      files: z.array(
-        z.object({
-          path: z.string(),
-          mediaType: z.enum(['text/markdown', 'text/plain']),
-          sha256: z
-            .string()
-            .regex(/^[0-9a-f]{64}$/)
-            .describe('Hex SHA-256 of `content` as UTF-8.'),
-          content: z.string(),
-        }),
-      ),
+      blueprint: z.string().describe('The blueprint it belongs to, `name@major`.'),
+      files: z
+        .array(
+          z.object({
+            path: z.string().describe('The file’s path in the pack — `AGENTS.md` first.'),
+            mediaType: z
+              .enum(['text/markdown', 'text/plain'])
+              .describe('What kind of text it is.'),
+            sha256: z
+              .string()
+              .regex(/^[0-9a-f]{64}$/)
+              .describe('Hex SHA-256 of `content` as UTF-8.'),
+            content: z.string().describe('The file’s text, whole.'),
+          }),
+        )
+        .describe('Every file in the pack; read them all before writing code.'),
     })
     .describe(
       'D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it.',

@@ -33,6 +33,7 @@ import { resolveConfig, type ManifestSpec } from '../../spec/index.js'
 import { requireSession } from '../actor.js'
 import type { ServerDeps } from '../server.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
+import { PATH } from '../contract/schemas.js'
 import { BadRequestError } from '../errors.js'
 import { IncidentList, toIncident } from '../representations/incidents.js'
 import { Instance, toInstance } from '../representations/instances.js'
@@ -50,9 +51,9 @@ import {
   toRelease,
 } from '../representations/releases.js'
 
-const ProjectParams = z.strictObject({ projectId: z.uuid() })
-const ReleaseParams = z.strictObject({ releaseId: z.uuid() })
-const EnvironmentParams = z.strictObject({ environmentId: z.uuid() })
+const ProjectParams = z.strictObject({ projectId: PATH.projectId })
+const ReleaseParams = z.strictObject({ releaseId: PATH.releaseId })
+const EnvironmentParams = z.strictObject({ environmentId: PATH.environmentId })
 
 /** A release with the build it names: the digest and the scan are the build's (§12, §13). */
 async function releaseWithBuild(db: Db, releaseId: string) {
@@ -299,8 +300,9 @@ export const releaseRoutes = [
     path: '/v1/releases/{releaseId}',
     tag: 'delivery',
     summary: 'A release',
-    description: 'One immutable release (§13).',
-    params: z.strictObject({ releaseId: z.uuid() }),
+    description:
+      'One immutable release (§13): the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it; to production only once `getLaunchReadiness` says the checklist is met.',
+    params: ReleaseParams,
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The release.', schema: Release },
@@ -320,7 +322,8 @@ export const releaseRoutes = [
     path: '/v1/projects/{projectId}/releases',
     tag: 'delivery',
     summary: 'A project’s releases',
-    description: 'The newest 50, newest first.',
+    description:
+      'The project’s newest 50 releases, newest first. `deploy` names one; `getRelease` reads one.',
     params: ProjectParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -346,8 +349,8 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Approve a release for production',
     description:
-      '§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved (P6b Task 9). `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.',
-    params: z.strictObject({ releaseId: z.uuid() }),
+      '§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved. `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.',
+    params: ReleaseParams,
     query: NO_QUERY,
     body: ApproveReleaseRequest,
     success: {
@@ -383,7 +386,7 @@ export const releaseRoutes = [
     summary: 'Decline to approve a release for production',
     description:
       '§13, and the same four guards as approving, naming a preview the same way. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.',
-    params: z.strictObject({ releaseId: z.uuid() }),
+    params: ReleaseParams,
     query: NO_QUERY,
     body: RejectReleaseRequest,
     success: {
@@ -412,7 +415,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Take the preview an administrator reads before deciding',
     description:
-      '§13’s exact diff, computed NOW and STORED (Rich, 2026-09-22; P6b Decision 10): the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.',
+      '§13’s exact diff, computed NOW and STORED: the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.',
     params: ReleaseParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -452,8 +455,8 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Re-read a stored preview',
     description:
-      'The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it (P6b Task 9). 404 for a preview of another release.',
-    params: z.strictObject({ releaseId: z.uuid(), previewId: z.uuid() }),
+      'The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it. 404 for a preview of another release.',
+    params: z.strictObject({ releaseId: PATH.releaseId, previewId: PATH.previewId }),
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The preview.', schema: ApprovalPreview },
@@ -478,7 +481,7 @@ export const releaseRoutes = [
     summary: 'The latest decision about a release',
     description:
       '§13: the newest approval or rejection, with the diff it was made on. 404 when nobody has decided yet.',
-    params: z.strictObject({ releaseId: z.uuid() }),
+    params: ReleaseParams,
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The latest decision.', schema: Approval },
@@ -507,7 +510,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Deploy a release to an environment',
     description:
-      '§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (R3, §14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.',
+      '§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (§14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: DeployRequest,

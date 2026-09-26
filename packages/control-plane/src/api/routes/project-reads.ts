@@ -15,6 +15,7 @@ import {
   servingInstanceOf,
 } from '../../projects/index.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
+import { PATH } from '../contract/schemas.js'
 import { validateAndRecord } from '../spec-validation.js'
 import { BadRequestError, LastOwnerError, SpecInvalidError } from '../errors.js'
 import {
@@ -31,10 +32,10 @@ import {
 import { Project, ProjectList, toProject } from '../representations/projects.js'
 import { Spec, SpecValidation, ValidateSpecRequest } from '../representations/specs.js'
 
-const ProjectParams = z.strictObject({ projectId: z.uuid() })
+const ProjectParams = z.strictObject({ projectId: PATH.projectId })
 /** The member routes that name a person: `userId` is the §6 `users.id`, not a PUID. */
-const MemberParams = z.strictObject({ projectId: z.uuid(), userId: z.uuid() })
-const EnvironmentParams = z.strictObject({ environmentId: z.uuid() })
+const MemberParams = z.strictObject({ projectId: PATH.projectId, userId: PATH.userId })
+const EnvironmentParams = z.strictObject({ environmentId: PATH.environmentId })
 
 async function environmentsWithInstances(db: Db, projectId: string) {
   const rows = await environmentsOf(db, projectId)
@@ -94,7 +95,14 @@ export const projectReadRoutes = [
     description:
       'One project; `?expand=environments` includes its three environments, each with the instance it serves (D23.1).',
     params: ProjectParams,
-    query: z.strictObject({ expand: z.literal('environments').optional() }),
+    query: z.strictObject({
+      expand: z
+        .literal('environments')
+        .optional()
+        .describe(
+          '`environments` includes the project’s three environments in the answer.',
+        ),
+    }),
     body: NO_BODY,
     success: { status: 200, description: 'The project.', schema: Project },
     errors: ['NOT_FOUND'],
@@ -182,7 +190,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Add or change a member',
     description:
-      'Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token will never hold it (P5b).',
+      'Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.',
     params: ProjectParams,
     query: NO_QUERY,
     body: AddMemberRequest,
@@ -241,7 +249,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Remove a member',
     description:
-      'Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms (P5b). Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.',
+      'Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.',
     params: MemberParams,
     query: NO_QUERY,
     body: NO_BODY,

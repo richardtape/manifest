@@ -15,7 +15,12 @@ export const slugRoutes = [
     // Deliberately NOT §7's rule, and no length bound: a name that breaks the rule — a long
     // one included — is a 200 saying SLUG_INVALID and why (§23: "a 200 either way"), which
     // a 400 REQUEST_INVALID would not. `checkSlug` quotes at most 64 characters of it.
-    params: z.strictObject({ slug: z.string().min(1) }),
+    params: z.strictObject({
+      slug: z
+        .string()
+        .min(1)
+        .describe('The name to check, as it would be given to `createProject`.'),
+    }),
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The verdict.', schema: SlugCheck },

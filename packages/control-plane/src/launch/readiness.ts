@@ -214,7 +214,7 @@ function loadRehearsalItems(audience: StoredAudience | null | undefined): Launch
       owner: 'Manifest',
       blocking: true,
       state: 'not_built',
-      builtBy: 'P9',
+      builtBy: 'a later Manifest release (§24’s load rehearsal)',
       why: `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed against staging with production-shaped capacity before launch (§24).`,
     },
   ]

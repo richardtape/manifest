@@ -11,7 +11,10 @@ import {
 
 /** `name@major`, as a manifest pins it — the descriptor's name rule and a positive major. */
 const RefParams = z.strictObject({
-  blueprintRef: z.string().regex(/^[a-z][a-z0-9-]{2,38}@[1-9][0-9]*$/),
+  blueprintRef: z
+    .string()
+    .regex(/^[a-z][a-z0-9-]{2,38}@[1-9][0-9]*$/)
+    .describe('The blueprint, `name@major` — its `ref` in `listBlueprints`.'),
 })
 
 export const blueprintRoutes = [
@@ -40,7 +43,8 @@ export const blueprintRoutes = [
     path: '/v1/blueprints/{blueprintRef}',
     tag: 'blueprints',
     summary: 'A blueprint',
-    description: 'One blueprint by `name@major`.',
+    description:
+      'One blueprint by its `name@major`: what an app on it may declare — its services, sign-in providers and AI — and the starters `createProject` accepts for it. Any credential may read it.',
     params: RefParams,
     query: NO_QUERY,
     body: NO_BODY,

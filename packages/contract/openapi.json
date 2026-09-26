@@ -112,13 +112,15 @@
           "blueprints"
         ],
         "summary": "A blueprint",
-        "description": "One blueprint by `name@major`.",
+        "description": "One blueprint by its `name@major`: what an app on it may declare — its services, sign-in providers and AI — and the starters `createProject` accepts for it. Any credential may read it.",
         "parameters": [
           {
             "name": "blueprintRef",
             "in": "path",
+            "description": "The blueprint, `name@major` — its `ref` in `listBlueprints`.",
             "required": true,
             "schema": {
+              "description": "The blueprint, `name@major` — its `ref` in `listBlueprints`.",
               "type": "string",
               "pattern": "^[a-z][a-z0-9-]{2,38}@[1-9][0-9]*$"
             }
@@ -167,8 +169,10 @@
           {
             "name": "blueprintRef",
             "in": "path",
+            "description": "The blueprint, `name@major` — its `ref` in `listBlueprints`.",
             "required": true,
             "schema": {
+              "description": "The blueprint, `name@major` — its `ref` in `listBlueprints`.",
               "type": "string",
               "pattern": "^[a-z][a-z0-9-]{2,38}@[1-9][0-9]*$"
             }
@@ -217,8 +221,10 @@
           {
             "name": "buildId",
             "in": "path",
+            "description": "The build’s id, from `startBuild` or `listBuilds`.",
             "required": true,
             "schema": {
+              "description": "The build’s id, from `startBuild` or `listBuilds`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -268,8 +274,10 @@
           {
             "name": "buildId",
             "in": "path",
+            "description": "The build’s id, from `startBuild` or `listBuilds`.",
             "required": true,
             "schema": {
+              "description": "The build’s id, from `startBuild` or `listBuilds`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -331,8 +339,10 @@
           {
             "name": "environmentId",
             "in": "path",
+            "description": "The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.",
             "required": true,
             "schema": {
+              "description": "The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -377,13 +387,15 @@
           "delivery"
         ],
         "summary": "Deploy a release to an environment",
-        "description": "§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (R3, §14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.",
+        "description": "§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (§14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.",
         "parameters": [
           {
             "name": "environmentId",
             "in": "path",
+            "description": "The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.",
             "required": true,
             "schema": {
+              "description": "The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -475,8 +487,10 @@
           {
             "name": "environmentId",
             "in": "path",
+            "description": "The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.",
             "required": true,
             "schema": {
+              "description": "The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -878,8 +892,10 @@
           {
             "name": "pendingActionId",
             "in": "path",
+            "description": "The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`.",
             "required": true,
             "schema": {
+              "description": "The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -934,8 +950,10 @@
           {
             "name": "pendingActionId",
             "in": "path",
+            "description": "The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`.",
             "required": true,
             "schema": {
+              "description": "The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -1019,8 +1037,10 @@
           {
             "name": "pendingActionId",
             "in": "path",
+            "description": "The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`.",
             "required": true,
             "schema": {
+              "description": "The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -1130,7 +1150,7 @@
           "projects"
         ],
         "summary": "Create a project",
-        "description": "§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24, P5b Decision 13), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.",
+        "description": "§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.",
         "security": [
           {
             "session": []
@@ -1219,8 +1239,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -1229,8 +1251,10 @@
           {
             "name": "expand",
             "in": "query",
+            "description": "`environments` includes the project’s three environments in the answer.",
             "required": false,
             "schema": {
+              "description": "`environments` includes the project’s three environments in the answer.",
               "type": "string",
               "const": "environments"
             }
@@ -1274,13 +1298,15 @@
           "delivery"
         ],
         "summary": "A project’s builds",
-        "description": "The newest 50, newest first.",
+        "description": "The project’s newest 50 builds, newest first, each with its status, image digest and scan. A build in progress reads `running`; the event stream says when it ends.",
         "parameters": [
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -1323,13 +1349,15 @@
           "delivery"
         ],
         "summary": "Build the project",
-        "description": "§22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running` (R6); its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.",
+        "description": "§22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running`; its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.",
         "parameters": [
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -1761,8 +1789,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2354,8 +2384,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2400,13 +2432,15 @@
           "launch"
         ],
         "summary": "The IAM registration and the privacy assessment, as recorded",
-        "description": "§9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. P8 generates what they carry. Either may be absent, which is a state and not an error.",
+        "description": "§9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. Manifest does not yet generate what they carry. Either may be absent, which is a state and not an error.",
         "parameters": [
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2451,7 +2485,7 @@
           "launch"
         ],
         "summary": "Record what UBC IAM registered",
-        "description": "§9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). P8 will submit these programmatically; the object and its states do not change when it does.",
+        "description": "§9 and D19: a platform administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). A later Manifest release will submit these itself; the object and its states will not change when it does.",
         "security": [
           {
             "session": []
@@ -2461,8 +2495,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2536,7 +2572,7 @@
           "launch"
         ],
         "summary": "Record what the Privacy Office said",
-        "description": "§9, D19 and R1: the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.",
+        "description": "§9 and D19: a platform administrator records it, in the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.",
         "security": [
           {
             "session": []
@@ -2546,8 +2582,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2625,8 +2663,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2669,13 +2709,15 @@
           "projects"
         ],
         "summary": "Add or change a member",
-        "description": "Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token will never hold it (P5b).",
+        "description": "Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.",
         "parameters": [
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2750,13 +2792,15 @@
           "projects"
         ],
         "summary": "Remove a member",
-        "description": "Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms (P5b). Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.",
+        "description": "Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.",
         "parameters": [
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2765,8 +2809,10 @@
           {
             "name": "userId",
             "in": "path",
+            "description": "The member’s user id, from `listMembers`.",
             "required": true,
             "schema": {
+              "description": "The member’s user id, from `listMembers`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2836,8 +2882,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2882,7 +2930,7 @@
           "launch"
         ],
         "summary": "Run the pre-production rehearsal",
-        "description": "D21, as P6a redefines it for a laptop (R2): deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.",
+        "description": "D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.",
         "security": [
           {
             "session": []
@@ -2892,8 +2940,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -2960,13 +3010,15 @@
           "delivery"
         ],
         "summary": "A project’s releases",
-        "description": "The newest 50, newest first.",
+        "description": "The project’s newest 50 releases, newest first. `deploy` names one; `getRelease` reads one.",
         "parameters": [
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3014,8 +3066,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3094,8 +3148,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3145,8 +3201,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3233,8 +3291,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3278,7 +3338,7 @@
           "tokens"
         ],
         "summary": "Mint a delegated token",
-        "description": "D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in the response and nowhere else — the platform stores only a hash of it and cannot show it again. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.",
+        "description": "D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response: store it, because `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.",
         "security": [
           {
             "session": []
@@ -3288,8 +3348,10 @@
           {
             "name": "projectId",
             "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
             "required": true,
             "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3468,13 +3530,15 @@
           "delivery"
         ],
         "summary": "A release",
-        "description": "One immutable release (§13).",
+        "description": "One immutable release (§13): the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it; to production only once `getLaunchReadiness` says the checklist is met.",
         "parameters": [
           {
             "name": "releaseId",
             "in": "path",
+            "description": "The release’s id, from `createRelease` or `listReleases`.",
             "required": true,
             "schema": {
+              "description": "The release’s id, from `createRelease` or `listReleases`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3524,8 +3588,10 @@
           {
             "name": "releaseId",
             "in": "path",
+            "description": "The release’s id, from `createRelease` or `listReleases`.",
             "required": true,
             "schema": {
+              "description": "The release’s id, from `createRelease` or `listReleases`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3570,7 +3636,7 @@
           "delivery"
         ],
         "summary": "Take the preview an administrator reads before deciding",
-        "description": "§13’s exact diff, computed NOW and STORED (Rich, 2026-09-22; P6b Decision 10): the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.",
+        "description": "§13’s exact diff, computed NOW and STORED: the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.",
         "security": [
           {
             "session": []
@@ -3580,8 +3646,10 @@
           {
             "name": "releaseId",
             "in": "path",
+            "description": "The release’s id, from `createRelease` or `listReleases`.",
             "required": true,
             "schema": {
+              "description": "The release’s id, from `createRelease` or `listReleases`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3646,7 +3714,7 @@
           "delivery"
         ],
         "summary": "Re-read a stored preview",
-        "description": "The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it (P6b Task 9). 404 for a preview of another release.",
+        "description": "The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it. 404 for a preview of another release.",
         "security": [
           {
             "session": []
@@ -3656,8 +3724,10 @@
           {
             "name": "previewId",
             "in": "path",
+            "description": "The preview’s id, from `createApprovalPreview`.",
             "required": true,
             "schema": {
+              "description": "The preview’s id, from `createApprovalPreview`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3666,8 +3736,10 @@
           {
             "name": "releaseId",
             "in": "path",
+            "description": "The release’s id, from `createRelease` or `listReleases`.",
             "required": true,
             "schema": {
+              "description": "The release’s id, from `createRelease` or `listReleases`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3714,7 +3786,7 @@
           "delivery"
         ],
         "summary": "Approve a release for production",
-        "description": "§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved (P6b Task 9). `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.",
+        "description": "§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved. `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.",
         "security": [
           {
             "session": []
@@ -3724,8 +3796,10 @@
           {
             "name": "releaseId",
             "in": "path",
+            "description": "The release’s id, from `createRelease` or `listReleases`.",
             "required": true,
             "schema": {
+              "description": "The release’s id, from `createRelease` or `listReleases`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3812,8 +3886,10 @@
           {
             "name": "releaseId",
             "in": "path",
+            "description": "The release’s id, from `createRelease` or `listReleases`.",
             "required": true,
             "schema": {
+              "description": "The release’s id, from `createRelease` or `listReleases`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -3895,8 +3971,10 @@
           {
             "name": "slug",
             "in": "path",
+            "description": "The name to check, as it would be given to `createProject`.",
             "required": true,
             "schema": {
+              "description": "The name to check, as it would be given to `createProject`.",
               "type": "string",
               "minLength": 1
             }
@@ -3949,8 +4027,10 @@
           {
             "name": "tokenId",
             "in": "path",
+            "description": "The token’s id, from `listTokens`.",
             "required": true,
             "schema": {
+              "description": "The token’s id, from `listTokens`.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -4022,6 +4102,7 @@
     },
     "schemas": {
       "AddMemberRequest": {
+        "description": "Who to add, and as what. Adding someone who is already a member changes their role.",
         "type": "object",
         "properties": {
           "puid": {
@@ -4031,6 +4112,7 @@
             "maxLength": 64
           },
           "role": {
+            "description": "The role to grant: `owner` or `collaborator`.",
             "type": "string",
             "enum": [
               "owner",
@@ -4045,14 +4127,17 @@
         "additionalProperties": false
       },
       "AppSecretList": {
+        "description": "An environment’s app secrets, by name: which are declared and which are set.",
         "type": "object",
         "properties": {
           "environmentId": {
+            "description": "The environment.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "environmentKind": {
+            "description": "Which of the three it is. Production’s values are set only by a person who has stepped up.",
             "type": "string",
             "enum": [
               "sandbox",
@@ -4076,6 +4161,7 @@
         "additionalProperties": false
       },
       "AppSecretStatus": {
+        "description": "One secret’s name in one environment, and whether it has a value — never the value.",
         "type": "object",
         "properties": {
           "name": {
@@ -4119,21 +4205,25 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The decision.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "releaseId": {
+            "description": "The release decided on.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "Its project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "decision": {
+            "description": "What the administrator decided; a rejection is final for this release.",
             "type": "string",
             "enum": [
               "approved",
@@ -4141,16 +4231,17 @@
             ]
           },
           "decidedBy": {
+            "description": "Who decided.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "decidedByName": {
-            "description": "The display name of the person who decided — the owner meets a decision before anyone else, and a user id tells them nothing (P6b Decision 18).",
+            "description": "The display name of the person who decided — the owner meets a decision before anyone else, and a user id tells them nothing.",
             "type": "string"
           },
           "decidedAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -4174,7 +4265,7 @@
             "$ref": "#/components/schemas/ApprovalDiff"
           },
           "previewId": {
-            "description": "The stored preview the administrator read, whose diff this record COPIES (P6b Task 9). Null only for a decision made before previews existed.",
+            "description": "The stored preview the administrator read, whose diff this record COPIES. Null only for a decision made before previews existed.",
             "anyOf": [
               {
                 "type": "string",
@@ -4211,6 +4302,7 @@
             "type": "string"
           },
           "changes": {
+            "description": "Every change to manifest.yaml since the release it is compared with, in the file’s own vocabulary.",
             "type": "array",
             "items": {
               "type": "object",
@@ -4220,9 +4312,11 @@
                   "type": "string"
                 },
                 "from": {
+                  "description": "What it was, as a string.",
                   "type": "string"
                 },
                 "to": {
+                  "description": "What it is now.",
                   "type": "string"
                 },
                 "summary": {
@@ -4272,6 +4366,7 @@
             "type": "object",
             "properties": {
               "cpu": {
+                "description": "CPU cores; null when no limit is set.",
                 "anyOf": [
                   {
                     "type": "number"
@@ -4282,6 +4377,7 @@
                 ]
               },
               "memory": {
+                "description": "Memory; null when no limit is set.",
                 "anyOf": [
                   {
                     "type": "string"
@@ -4292,6 +4388,7 @@
                 ]
               },
               "disk": {
+                "description": "Disk; null when no limit is set.",
                 "anyOf": [
                   {
                     "type": "string"
@@ -4302,6 +4399,7 @@
                 ]
               },
               "pids": {
+                "description": "Processes and threads; null when no limit is set.",
                 "anyOf": [
                   {
                     "type": "integer",
@@ -4323,7 +4421,7 @@
             "additionalProperties": false
           },
           "summary": {
-            "description": "The AI-written plain-English summary of what changed. **Null is a state, not an error** (Decision 7): an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why.",
+            "description": "The AI-written plain-English summary of what changed. **Null is a state, not an error**: an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why.",
             "anyOf": [
               {
                 "type": "string"
@@ -4357,7 +4455,7 @@
             ]
           },
           "summaryExposures": {
-            "description": "One sentence per change, in `changes`’ order, written by a language model: what that change could expose. **Never for a change to `auth.attributes`**: a model read those wrong — a removed attribute as one the app now receives, `sn` as a student number — so the change line alone is the record, and such a change has no entry here. The model is given the changes and the security notes only — never the verdict — and fills a schema with no place for one (the D5 plan’s Decision 19). The change lines are the record; these are the model’s reading of them, and a reading can get a fact wrong. Null unless `summarySource` is `llm`, and for a record made before it existed, whose `summary` is one string.",
+            "description": "One sentence per change, in `changes`’ order, written by a language model: what that change could expose. **Never for a change to `auth.attributes`**: a model read those wrong — a removed attribute as one the app now receives, `sn` as a student number — so the change line alone is the record, and such a change has no entry here. The model is given the changes and the security notes only — never the verdict — and fills a schema with no place for one. The change lines are the record; these are the model’s reading of them, and a reading can get a fact wrong. Null unless `summarySource` is `llm`, and for a record made before it existed, whose `summary` is one string.",
             "anyOf": [
               {
                 "type": "array",
@@ -4369,6 +4467,7 @@
                       "type": "string"
                     },
                     "sentence": {
+                      "description": "What that change could expose, in the model’s words.",
                       "type": "string"
                     }
                   },
@@ -4385,7 +4484,7 @@
             ]
           },
           "baselineReleaseId": {
-            "description": "The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before P6b.",
+            "description": "The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before subsequent releases were compared.",
             "anyOf": [
               {
                 "type": "string",
@@ -4414,12 +4513,13 @@
             }
           },
           "security": {
-            "description": "R4(d): what each changed field means for security and privacy, in the platform’s own words — present whether or not the model answered.",
+            "description": "What each changed field means for security and privacy, in the platform’s own words — present whether or not the model answered.",
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
                 "field": {
+                  "description": "One of §7’s sensitive fields that changed.",
                   "type": "string",
                   "enum": [
                     "services",
@@ -4432,6 +4532,7 @@
                   ]
                 },
                 "note": {
+                  "description": "What it means for security and privacy.",
                   "type": "string"
                 }
               },
@@ -4443,7 +4544,7 @@
             }
           },
           "coverage": {
-            "description": "D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before P6b.",
+            "description": "D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before it was stated.",
             "anyOf": [
               {
                 "type": "string"
@@ -4454,10 +4555,11 @@
             ]
           },
           "review": {
-            "description": "R4 (D33, §15): the code reviewer’s verdict at decision time. `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed.",
+            "description": "The code reviewer’s verdict at decision time (D33, §15). `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed.",
             "type": "object",
             "properties": {
               "state": {
+                "description": "The verdict, or `not_performed`.",
                 "type": "string",
                 "enum": [
                   "not_performed",
@@ -4466,9 +4568,11 @@
                 ]
               },
               "reviewer": {
+                "description": "Which reviewer answered.",
                 "type": "string"
               },
               "detail": {
+                "description": "What it said, in the platform’s words.",
                 "type": "string"
               }
             },
@@ -4503,31 +4607,35 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The preview — what `approveRelease` and `rejectRelease` name as `previewId`.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "releaseId": {
+            "description": "The release it is of.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "Its project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "createdBy": {
+            "description": "Who took it.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "createdByName": {
-            "description": "Who took it (P6b Decision 18).",
+            "description": "Who took it, by name.",
             "type": "string"
           },
           "createdAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When it was taken.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -4560,9 +4668,11 @@
         "additionalProperties": false
       },
       "ApproveReleaseRequest": {
+        "description": "An administrator’s approval, naming the preview they read.",
         "type": "object",
         "properties": {
           "reason": {
+            "description": "Why, in the administrator’s words; optional on an approval.",
             "type": "string",
             "maxLength": 2000
           },
@@ -4576,9 +4686,11 @@
         "additionalProperties": false
       },
       "Audience": {
+        "description": "Who the app is for, as its owner answered at creation (§24, D29). A large or public audience adds a load rehearsal to the launch checklist.",
         "type": "object",
         "properties": {
           "scale": {
+            "description": "§24: how many people the app is for.",
             "type": "string",
             "enum": [
               "solo",
@@ -4588,6 +4700,7 @@
             ]
           },
           "burst": {
+            "description": "§24: whether they arrive steadily, or all at once — a class starting a lab together.",
             "type": "string",
             "enum": [
               "steady",
@@ -4595,6 +4708,7 @@
             ]
           },
           "justification": {
+            "description": "Why, in the owner’s words; null when none was given.",
             "anyOf": [
               {
                 "type": "string"
@@ -4605,12 +4719,13 @@
             ]
           },
           "setBy": {
+            "description": "Who answered.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "setAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When they answered.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -4626,6 +4741,7 @@
         "additionalProperties": false
       },
       "AudienceInput": {
+        "description": "§24’s two questions about who the app is for, answered by a person at creation.",
         "type": "object",
         "properties": {
           "scale": {
@@ -4647,6 +4763,7 @@
             ]
           },
           "justification": {
+            "description": "Why, in a sentence or two — shown to an administrator for a large or public app.",
             "type": "string",
             "maxLength": 1000
           }
@@ -4666,25 +4783,31 @@
             "type": "string"
           },
           "name": {
+            "description": "The blueprint’s name.",
             "type": "string"
           },
           "majorVersion": {
+            "description": "Its major version — the `@major` a project pins.",
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
           "language": {
+            "description": "What an app on it is written in.",
             "type": "string"
           },
           "defaultPort": {
+            "description": "The port its apps listen on unless `runtime.port` says otherwise.",
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
           "healthPath": {
+            "description": "The health path its skeleton answers.",
             "type": "string"
           },
           "schemaVersions": {
+            "description": "The `manifest:` schema versions it understands.",
             "type": "array",
             "items": {
               "type": "integer",
@@ -4693,15 +4816,18 @@
             }
           },
           "provides": {
+            "description": "What an app on it may declare in manifest.yaml (§25).",
             "type": "object",
             "properties": {
               "services": {
+                "description": "The service types it can bind — what `services[].type` may name.",
                 "type": "array",
                 "items": {
                   "type": "string"
                 }
               },
               "authProviders": {
+                "description": "What `auth.provider` may be.",
                 "type": "array",
                 "items": {
                   "type": "string",
@@ -4712,6 +4838,7 @@
                 }
               },
               "ai": {
+                "description": "Whether its apps may declare `ai.models`.",
                 "type": "boolean"
               }
             },
@@ -4729,9 +4856,11 @@
               "type": "object",
               "properties": {
                 "name": {
+                  "description": "The starter’s name, as `starter` in `createProject`.",
                   "type": "string"
                 },
                 "summary": {
+                  "description": "What it is, in a sentence.",
                   "type": "string"
                 }
               },
@@ -4757,30 +4886,35 @@
         "additionalProperties": false
       },
       "BlueprintList": {
+        "description": "Every blueprint a project can be created from.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Blueprint"
         }
       },
       "Build": {
-        "description": "A build of one commit (§13). It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream (R6).",
+        "description": "A build of one commit (§13). It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "The build — what `getBuild`, `getBuildLog` and `createRelease` name.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "Its project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "commitSha": {
+            "description": "The commit built, whose own manifest.yaml it was built with.",
             "type": "string",
             "pattern": "^[0-9a-f]{40}$"
           },
           "status": {
+            "description": "`running` from the moment it is started, then `succeeded` or `failed` — the stream says which as it happens. `pending` is not answered today.",
             "type": "string",
             "enum": [
               "pending",
@@ -4823,7 +4957,7 @@
             ]
           },
           "createdAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When it was started.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -4842,6 +4976,7 @@
         "additionalProperties": false
       },
       "BuildList": {
+        "description": "A project’s newest builds, newest first.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Build"
@@ -4852,21 +4987,25 @@
         "type": "object",
         "properties": {
           "buildId": {
+            "description": "The build.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "lines": {
+            "description": "Every line, in order.",
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
                 "seq": {
+                  "description": "Its position, from 0.",
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 9007199254740991
                 },
                 "stream": {
+                  "description": "Which of the build’s outputs wrote it.",
                   "type": "string",
                   "enum": [
                     "stdout",
@@ -4878,7 +5017,7 @@
                   "type": "string"
                 },
                 "at": {
-                  "description": "An instant, ISO 8601 in UTC.",
+                  "description": "When it was written.",
                   "type": "string",
                   "format": "date-time",
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -4901,6 +5040,7 @@
         "additionalProperties": false
       },
       "CommitDetail": {
+        "description": "One commit and every file it changed against its first parent, with patches.",
         "type": "object",
         "properties": {
           "commitSha": {
@@ -5074,6 +5214,7 @@
         "additionalProperties": false
       },
       "CommitList": {
+        "description": "A page of the branch’s history, following first parents, newest first.",
         "type": "object",
         "properties": {
           "ref": {
@@ -5110,6 +5251,7 @@
         "additionalProperties": false
       },
       "CommitOutcome": {
+        "description": "The commit made — or, for a dry run, the one that would have been.",
         "type": "object",
         "properties": {
           "dryRun": {
@@ -5199,6 +5341,7 @@
         "additionalProperties": false
       },
       "CommitSummary": {
+        "description": "One commit on the branch — who, when and why, without its changes.",
         "type": "object",
         "properties": {
           "commitSha": {
@@ -5326,6 +5469,7 @@
         "additionalProperties": false
       },
       "CreateCommitRequest": {
+        "description": "Changes to make on `main`, computed from `baseCommit`: whole-file writes and deletions of text files.",
         "type": "object",
         "properties": {
           "baseCommit": {
@@ -5407,6 +5551,7 @@
         "additionalProperties": false
       },
       "CreateProjectRequest": {
+        "description": "A new project: its name, its blueprint, an optional starter, and who it is for.",
         "type": "object",
         "properties": {
           "slug": {
@@ -5436,14 +5581,17 @@
         "additionalProperties": false
       },
       "CreateReleaseRequest": {
+        "description": "The build to freeze into a release, with a line saying what it changes.",
         "type": "object",
         "properties": {
           "buildId": {
+            "description": "A build that succeeded (`listBuilds`).",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "summary": {
+            "description": "What this release changes, for the people who read it.",
             "type": "string",
             "maxLength": 500
           }
@@ -5458,6 +5606,7 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The project — what every project-scoped path names.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -5485,6 +5634,7 @@
             "$ref": "#/components/schemas/UserSummary"
           },
           "audience": {
+            "description": "Who it is for (§24); null for a project created before the question was asked.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Audience"
@@ -5495,7 +5645,7 @@
             ]
           },
           "createdAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When it was created.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -5518,6 +5668,7 @@
             "$ref": "#/components/schemas/RepositoryLink"
           },
           "environments": {
+            "description": "Its three environments, none deployed yet.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Environment"
@@ -5543,9 +5694,11 @@
         "additionalProperties": false
       },
       "DeployRequest": {
+        "description": "Which release to deploy.",
         "type": "object",
         "properties": {
           "releaseId": {
+            "description": "The release to deploy to the environment in the path.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -5563,19 +5716,23 @@
         "additionalProperties": false
       },
       "Environment": {
+        "description": "One of a project’s three environments (§11): where a release is deployed, and what is serving there now.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "The environment — what `deploy`, `listIncidents` and the secrets operations name.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "Its project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "kind": {
+            "description": "Which of the three: `sandbox`, `staging` or `production` (§11).",
             "type": "string",
             "enum": [
               "sandbox",
@@ -5588,11 +5745,12 @@
             "type": "string"
           },
           "url": {
+            "description": "Where the app answers in this environment, once it is deployed.",
             "type": "string",
             "format": "uri"
           },
           "instance": {
-            "description": "The instance the hostname reaches (§6 Route); for an app deployed before P4c, its newest instance. Null before any deploy.",
+            "description": "The instance the hostname reaches (§6 Route). Null before any deploy.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Instance"
@@ -5614,6 +5772,7 @@
         "additionalProperties": false
       },
       "EnvironmentList": {
+        "description": "A project’s three environments: sandbox, staging and production.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Environment"
@@ -5844,9 +6003,11 @@
         }
       },
       "ErrorEnvelope": {
+        "description": "Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on.",
         "type": "object",
         "properties": {
           "error": {
+            "description": "What went wrong: switch on `code`; `x-manifest-errors` gives its remedy.",
             "type": "object",
             "properties": {
               "code": {
@@ -5861,6 +6022,7 @@
                 "type": "string"
               },
               "details": {
+                "description": "On SPEC_INVALID: each problem in manifest.yaml, with its path and code.",
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/ManifestError"
@@ -9231,17 +9393,21 @@
           "type": "object",
           "properties": {
             "id": {
+              "description": "The project.",
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
             },
             "slug": {
+              "description": "Its name (§23).",
               "type": "string"
             },
             "blueprint": {
+              "description": "Its blueprint, `name@major`.",
               "type": "string"
             },
             "starter": {
+              "description": "Its starter; null for the skeleton alone.",
               "anyOf": [
                 {
                   "type": "string"
@@ -9252,17 +9418,21 @@
               ]
             },
             "owner": {
+              "description": "Its owner of record.",
               "type": "object",
               "properties": {
                 "id": {
+                  "description": "Their user id.",
                   "type": "string",
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
                 },
                 "displayName": {
+                  "description": "Their name.",
                   "type": "string"
                 },
                 "email": {
+                  "description": "Their address.",
                   "type": "string"
                 }
               },
@@ -9274,6 +9444,7 @@
               "additionalProperties": false
             },
             "audience": {
+              "description": "Who it is for (§24); null for a project created before the question was asked.",
               "anyOf": [
                 {
                   "$ref": "#/components/schemas/Audience"
@@ -9284,7 +9455,7 @@
               ]
             },
             "createdAt": {
-              "description": "An instant, ISO 8601 in UTC.",
+              "description": "When it was created.",
               "type": "string",
               "format": "date-time",
               "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -9294,11 +9465,13 @@
               "type": "boolean"
             },
             "environments": {
+              "description": "Its three environments, and what each is running.",
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "kind": {
+                    "description": "Which environment.",
                     "type": "string",
                     "enum": [
                       "sandbox",
@@ -9307,9 +9480,11 @@
                     ]
                   },
                   "hostname": {
+                    "description": "Its hostname (§23).",
                     "type": "string"
                   },
                   "state": {
+                    "description": "The serving instance’s state; null before any deploy.",
                     "anyOf": [
                       {
                         "type": "string"
@@ -9320,6 +9495,7 @@
                     ]
                   },
                   "releaseId": {
+                    "description": "The release serving; null before any deploy.",
                     "anyOf": [
                       {
                         "type": "string",
@@ -9332,6 +9508,7 @@
                     ]
                   },
                   "imageDigest": {
+                    "description": "The image that release runs; null before any deploy.",
                     "anyOf": [
                       {
                         "type": "string"
@@ -9342,6 +9519,7 @@
                     ]
                   },
                   "lastDeployAt": {
+                    "description": "When it was last deployed.",
                     "anyOf": [
                       {
                         "description": "An instant, ISO 8601 in UTC.",
@@ -9355,6 +9533,7 @@
                     ]
                   },
                   "latestIncidentAt": {
+                    "description": "When its newest Incident was recorded; null if it has none.",
                     "anyOf": [
                       {
                         "description": "An instant, ISO 8601 in UTC.",
@@ -9396,14 +9575,17 @@
         }
       },
       "IamRegistration": {
+        "description": "What UBC IAM registered for the app’s production CWL sign-in (§9), as an administrator recorded it.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "The record.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "Its project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -9413,12 +9595,15 @@
             "type": "string"
           },
           "acsUrl": {
+            "description": "The assertion consumer URL registered — where sign-ins are sent.",
             "type": "string"
           },
           "sloUrl": {
+            "description": "The single-logout URL registered.",
             "type": "string"
           },
           "certFingerprint": {
+            "description": "The fingerprint of the signing certificate registered; null when none was recorded.",
             "anyOf": [
               {
                 "type": "string"
@@ -9476,6 +9661,7 @@
             ]
           },
           "state": {
+            "description": "Along §9’s states: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.",
             "type": "string",
             "enum": [
               "draft",
@@ -9486,6 +9672,7 @@
             ]
           },
           "externalTicketRef": {
+            "description": "UBC IAM’s own reference for the request; null when none was recorded.",
             "anyOf": [
               {
                 "type": "string"
@@ -9496,6 +9683,7 @@
             ]
           },
           "updatedAt": {
+            "description": "When the record last changed.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -9523,21 +9711,25 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The Incident.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "instanceId": {
+            "description": "The instance that failed.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "releaseId": {
+            "description": "The release it ran (`getRelease`).",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "exitReason": {
+            "description": "How it ended — its exit, or that it never answered its health check.",
             "type": "string"
           },
           "logTail": {
@@ -9545,13 +9737,15 @@
             "type": "string"
           },
           "failedCheck": {
+            "description": "Which check the platform ran and what it got back (§11).",
             "type": "string"
           },
           "diffSinceHealthy": {
+            "description": "What changed in manifest.yaml since the last release that was healthy here — often the cause.",
             "type": "string"
           },
           "createdAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When it was recorded.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -9579,11 +9773,13 @@
         "type": "object",
         "properties": {
           "environmentId": {
+            "description": "The environment.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "incidents": {
+            "description": "Newest first.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Incident"
@@ -9601,21 +9797,25 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The instance.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "environmentId": {
+            "description": "The environment it runs in.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "releaseId": {
+            "description": "The release it runs (`getRelease`).",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "kind": {
+            "description": "What kind of process it is; `web`, which answers requests, is the only kind the platform runs today.",
             "type": "string",
             "enum": [
               "web",
@@ -9624,6 +9824,7 @@
             ]
           },
           "state": {
+            "description": "Where it is in its life (§11): `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.",
             "type": "string",
             "enum": [
               "pending",
@@ -9639,6 +9840,7 @@
             ]
           },
           "lastSeenAt": {
+            "description": "When the platform last saw it running; null before it started.",
             "anyOf": [
               {
                 "description": "An instant, ISO 8601 in UTC.",
@@ -9667,17 +9869,21 @@
         "type": "object",
         "properties": {
           "blueprint": {
+            "description": "The blueprint it belongs to, `name@major`.",
             "type": "string"
           },
           "files": {
+            "description": "Every file in the pack; read them all before writing code.",
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
                 "path": {
+                  "description": "The file’s path in the pack — `AGENTS.md` first.",
                   "type": "string"
                 },
                 "mediaType": {
+                  "description": "What kind of text it is.",
                   "type": "string",
                   "enum": [
                     "text/markdown",
@@ -9690,6 +9896,7 @@
                   "pattern": "^[0-9a-f]{64}$"
                 },
                 "content": {
+                  "description": "The file’s text, whole.",
                   "type": "string"
                 }
               },
@@ -9714,6 +9921,7 @@
         "type": "object",
         "properties": {
           "projectId": {
+            "description": "The project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -9723,9 +9931,11 @@
             "type": "boolean"
           },
           "ready": {
+            "description": "Whether every blocking item is met — a production deploy is refused until it is.",
             "type": "boolean"
           },
           "candidateReleaseId": {
+            "description": "The release serving staging — what production would run; null when nothing serves staging.",
             "anyOf": [
               {
                 "type": "string",
@@ -9771,6 +9981,7 @@
             "type": "boolean"
           },
           "items": {
+            "description": "Every item, met or not.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LaunchReadinessItem"
@@ -9790,9 +10001,11 @@
         "additionalProperties": false
       },
       "LaunchReadinessItem": {
+        "description": "One item of the launch checklist (§13), computed from what exists.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "Which item — stable, for a client to switch on.",
             "type": "string",
             "enum": [
               "domain",
@@ -9806,9 +10019,11 @@
             ]
           },
           "title": {
+            "description": "The item, for a person.",
             "type": "string"
           },
           "owner": {
+            "description": "Who meets it: the project’s owner, Manifest itself, or UBC recorded by an administrator.",
             "type": "string"
           },
           "blocking": {
@@ -9816,7 +10031,7 @@
             "type": "boolean"
           },
           "state": {
-            "description": "`unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names what builds it — a plan, or for `code-review` a tracked hardening item.",
+            "description": "`met`: satisfied. `unmet`: tracked and not satisfied — `why` says what to do. `not_built`: Manifest does not track it yet, and `builtBy` says what will.",
             "type": "string",
             "enum": [
               "met",
@@ -9825,9 +10040,11 @@
             ]
           },
           "why": {
+            "description": "Why it matters, and — when it is unmet — what meets it.",
             "type": "string"
           },
           "builtBy": {
+            "description": "For a `not_built` item: what will build it. Absent otherwise.",
             "type": "string"
           }
         },
@@ -9842,14 +10059,17 @@
         "additionalProperties": false
       },
       "LaunchRecords": {
+        "description": "The two external records a first production launch waits on (§9).",
         "type": "object",
         "properties": {
           "projectId": {
+            "description": "The project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "iamRegistration": {
+            "description": "What UBC IAM registered; null until an administrator records something.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/IamRegistration"
@@ -9860,6 +10080,7 @@
             ]
           },
           "privacyAssessment": {
+            "description": "What the Privacy Office said; null until an administrator records something.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/PrivacyAssessment"
@@ -10547,6 +10768,7 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The person’s user id on this platform — what `listMembers` calls `userId`.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -10556,9 +10778,11 @@
             "type": "string"
           },
           "displayName": {
+            "description": "Their name, as CWL gave it.",
             "type": "string"
           },
           "email": {
+            "description": "Their address, as CWL gave it.",
             "type": "string"
           },
           "role": {
@@ -10580,23 +10804,29 @@
         "additionalProperties": false
       },
       "Member": {
+        "description": "A person who may work on the project, and their role on it.",
         "type": "object",
         "properties": {
           "userId": {
+            "description": "The person’s user id — what `removeMember` names.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "puid": {
+            "description": "Their ubcEduCwlPuid (§9) — what `addMember` names.",
             "type": "string"
           },
           "displayName": {
+            "description": "Their name, as CWL gave it.",
             "type": "string"
           },
           "email": {
+            "description": "Their address, as CWL gave it.",
             "type": "string"
           },
           "role": {
+            "description": "`owner` may do everything on the project; `collaborator` the same except managing members, deleting the project and promoting a release to production (§13).",
             "type": "string",
             "enum": [
               "owner",
@@ -10614,12 +10844,14 @@
         "additionalProperties": false
       },
       "MemberList": {
+        "description": "Everyone who may work on the project; every project has an owner.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Member"
         }
       },
       "MintTokenRequest": {
+        "description": "A delegated token to mint: a label, what it may do, and how long it lives.",
         "type": "object",
         "properties": {
           "name": {
@@ -10674,7 +10906,7 @@
             "$ref": "#/components/schemas/Token"
           },
           "secret": {
-            "description": "The token, in full: `mft_<id>_<secret>`. Shown ONCE. Store it now — the platform keeps only a hash and cannot show it again.",
+            "description": "The token, in full: `mft_<id>_<secret>` — what an agent sends as `Authorization: Bearer`. Store it now: `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key, which replays this answer.",
             "type": "string"
           }
         },
@@ -10689,16 +10921,19 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The question — what `confirmPendingAction` and `rejectPendingAction` name.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "The project it was asked on.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "tokenId": {
+            "description": "The delegated token that asked (`listTokens`).",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -10708,6 +10943,7 @@
             "type": "string"
           },
           "state": {
+            "description": "`pending` until a person answers; `confirmed` grants the identical request one retry; `rejected` is final; `expired` when nobody answered in time.",
             "type": "string",
             "enum": [
               "pending",
@@ -10717,9 +10953,11 @@
             ]
           },
           "method": {
+            "description": "The HTTP method the token used.",
             "type": "string"
           },
           "path": {
+            "description": "The path it asked for.",
             "type": "string"
           },
           "bodySha256": {
@@ -10731,18 +10969,19 @@
             "type": "string"
           },
           "expiresAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When the question lapses unanswered.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
           },
           "createdAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When the token asked.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
           },
           "resolvedAt": {
+            "description": "When a person answered; null while it is pending.",
             "anyOf": [
               {
                 "description": "An instant, ISO 8601 in UTC.",
@@ -10762,6 +11001,7 @@
             "maximum": 9007199254740991
           },
           "reason": {
+            "description": "A rejection’s reason, in the person’s words — what the agent is told; null otherwise.",
             "anyOf": [
               {
                 "type": "string"
@@ -10772,6 +11012,7 @@
             ]
           },
           "consumedAt": {
+            "description": "When the confirmed retry was made, spending the confirmation; null until then.",
             "anyOf": [
               {
                 "description": "An instant, ISO 8601 in UTC.",
@@ -10812,19 +11053,23 @@
         }
       },
       "PrivacyAssessment": {
+        "description": "What UBC’s Privacy Office said of the app’s privacy impact assessment (§9), as an administrator recorded it.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "The record.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "Its project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "state": {
+            "description": "Along §9’s states: `draft`, `submitted` to the Privacy Office, `approved`. A refused assessment goes back to `draft`.",
             "type": "string",
             "enum": [
               "draft",
@@ -10833,6 +11078,7 @@
             ]
           },
           "reviewer": {
+            "description": "Who at the Privacy Office reviewed it; null until recorded.",
             "anyOf": [
               {
                 "type": "string"
@@ -10843,6 +11089,7 @@
             ]
           },
           "approvedAt": {
+            "description": "When it was approved; null until it is.",
             "anyOf": [
               {
                 "type": "string",
@@ -10855,6 +11102,7 @@
             ]
           },
           "externalTicketRef": {
+            "description": "The Privacy Office’s own reference; null when none was recorded.",
             "anyOf": [
               {
                 "type": "string"
@@ -10865,6 +11113,7 @@
             ]
           },
           "updatedAt": {
+            "description": "When the record last changed.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -10882,9 +11131,11 @@
         "additionalProperties": false
       },
       "Project": {
+        "description": "A project: one app, its code, its three environments and who works on it (§6).",
         "type": "object",
         "properties": {
           "id": {
+            "description": "The project — what every project-scoped path names.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -10912,6 +11163,7 @@
             "$ref": "#/components/schemas/UserSummary"
           },
           "audience": {
+            "description": "Who it is for (§24); null for a project created before the question was asked.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Audience"
@@ -10922,7 +11174,7 @@
             ]
           },
           "createdAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When it was created.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -10966,25 +11218,30 @@
         "additionalProperties": false
       },
       "ProjectList": {
+        "description": "Every project the caller is a member of — every project, for an administrator.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Project"
         }
       },
       "RecordIamRegistrationRequest": {
+        "description": "What UBC IAM registered for the app’s production sign-in, as an administrator records it from the ticket (§9).",
         "type": "object",
         "properties": {
           "entityId": {
+            "description": "The entityID UBC IAM registered — fixed once registered.",
             "type": "string",
             "minLength": 1,
             "maxLength": 512
           },
           "acsUrl": {
+            "description": "The assertion consumer URL registered.",
             "type": "string",
             "minLength": 1,
             "maxLength": 512
           },
           "sloUrl": {
+            "description": "The single-logout URL registered.",
             "type": "string",
             "minLength": 1,
             "maxLength": 512
@@ -11021,16 +11278,19 @@
             ]
           },
           "externalTicketRef": {
+            "description": "UBC IAM’s ticket reference, pasted in.",
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           },
           "certFingerprint": {
+            "description": "The fingerprint of the signing certificate registered.",
             "type": "string",
             "minLength": 1,
             "maxLength": 256
           },
           "certExpiresAt": {
+            "description": "When that certificate expires (D20).",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -11046,9 +11306,11 @@
         "additionalProperties": false
       },
       "RecordPrivacyAssessmentRequest": {
+        "description": "What the Privacy Office said, as an administrator records it (§9).",
         "type": "object",
         "properties": {
           "state": {
+            "description": "The state this record should now be in, reached along §9’s arrows.",
             "type": "string",
             "enum": [
               "draft",
@@ -11057,11 +11319,13 @@
             ]
           },
           "reviewer": {
+            "description": "Who at the Privacy Office reviewed it.",
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           },
           "externalTicketRef": {
+            "description": "The Privacy Office’s reference, pasted in.",
             "type": "string",
             "minLength": 1,
             "maxLength": 128
@@ -11073,25 +11337,29 @@
         "additionalProperties": false
       },
       "Rehearsal": {
-        "description": "A LOCAL, production-shaped rehearsal (D21 as P6a redefines it for a laptop): it proves the SHAPE of the registration and never UBC’s acceptance of it.",
+        "description": "A LOCAL, production-shaped rehearsal of the app’s CWL sign-in (D21): it proves the SHAPE of the registration, and never UBC’s acceptance of it.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "The rehearsal.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "Its project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "releaseId": {
+            "description": "The candidate release rehearsed — the one serving staging.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "passed": {
+            "description": "Whether a production-shaped CWL sign-in worked.",
             "type": "boolean"
           },
           "entityId": {
@@ -11099,19 +11367,22 @@
             "type": "string"
           },
           "acsUrl": {
+            "description": "Where the sign-in’s assertion was sent.",
             "type": "string"
           },
           "attributes": {
-            "description": "What the registration listed. Decision 10 compares these with what the candidate release would register now.",
+            "description": "The attributes the registration listed when it ran, compared with what the candidate release would register now.",
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "evidence": {
+            "description": "What the rehearsal saw — measured, not assumed.",
             "type": "object",
             "properties": {
               "instanceId": {
+                "description": "The production instance it deployed; null if none started.",
                 "anyOf": [
                   {
                     "type": "string",
@@ -11124,9 +11395,11 @@
                 ]
               },
               "hostname": {
+                "description": "The hostname the sign-in went to.",
                 "type": "string"
               },
               "listener": {
+                "description": "Which of the edge’s listeners the app answered on (§12).",
                 "type": "string",
                 "enum": [
                   "internal",
@@ -11154,6 +11427,7 @@
                 }
               },
               "reason": {
+                "description": "Why it passed or did not, in the platform’s words.",
                 "type": "string"
               }
             },
@@ -11168,6 +11442,7 @@
             "additionalProperties": false
           },
           "ranAt": {
+            "description": "When it ran, ISO 8601 in UTC.",
             "type": "string"
           }
         },
@@ -11201,9 +11476,11 @@
         "additionalProperties": false
       },
       "RejectReleaseRequest": {
+        "description": "An administrator’s rejection, naming the preview they read. It is final for the release.",
         "type": "object",
         "properties": {
           "reason": {
+            "description": "Why, in the administrator’s words — required: a refusal with no words is one nobody can act on.",
             "type": "string",
             "minLength": 1,
             "maxLength": 2000
@@ -11225,21 +11502,25 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The release — what `deploy` names.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "Its project.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "buildId": {
+            "description": "The build it froze.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "appSpecId": {
+            "description": "The validation of manifest.yaml it froze — its build’s commit’s.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
@@ -11249,6 +11530,7 @@
             "type": "string"
           },
           "summary": {
+            "description": "What it changes, in its author’s words; null when none was given.",
             "anyOf": [
               {
                 "type": "string"
@@ -11259,12 +11541,13 @@
             ]
           },
           "createdBy": {
+            "description": "Who made it.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "createdAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When it was made.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -11281,6 +11564,7 @@
             ]
           },
           "config": {
+            "description": "What it runs as in each environment, resolved when it was made.",
             "type": "object",
             "properties": {
               "sandbox": {
@@ -11288,28 +11572,35 @@
                 "type": "object",
                 "properties": {
                   "port": {
+                    "description": "The port the app listens on.",
                     "type": "integer",
                     "minimum": -9007199254740991,
                     "maximum": 9007199254740991
                   },
                   "health": {
+                    "description": "The path its health check asks.",
                     "type": "string"
                   },
                   "resources": {
+                    "description": "What it may use in this environment — the blueprint’s defaults, overridden by manifest.yaml.",
                     "type": "object",
                     "properties": {
                       "cpu": {
+                        "description": "CPU cores.",
                         "type": "number"
                       },
                       "memory": {
+                        "description": "Memory, as `512Mi`.",
                         "type": "string"
                       },
                       "pids": {
+                        "description": "The most processes and threads at once.",
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
                       },
                       "disk": {
+                        "description": "Disk, as `2Gi`.",
                         "type": "string"
                       }
                     },
@@ -11322,17 +11613,21 @@
                     "additionalProperties": false
                   },
                   "services": {
+                    "description": "The backing services bound to it.",
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
                         "type": {
+                          "description": "The service type.",
                           "type": "string"
                         },
                         "version": {
+                          "description": "Its version.",
                           "type": "string"
                         },
                         "name": {
+                          "description": "The app’s name for it.",
                           "type": "string"
                         }
                       },
@@ -11345,18 +11640,22 @@
                     }
                   },
                   "egressAllow": {
+                    "description": "The hostnames it may reach outside the platform.",
                     "type": "array",
                     "items": {
                       "type": "string"
                     }
                   },
                   "classification": {
+                    "description": "Its data classification (D17).",
                     "type": "string"
                   },
                   "auth": {
+                    "description": "Its sign-in (§9).",
                     "type": "object",
                     "properties": {
                       "provider": {
+                        "description": "Whether it signs people in with CWL.",
                         "type": "string",
                         "enum": [
                           "cwl",
@@ -11364,6 +11663,7 @@
                         ]
                       },
                       "attributes": {
+                        "description": "The CWL attributes it receives.",
                         "type": "array",
                         "items": {
                           "type": "string"
@@ -11377,9 +11677,11 @@
                     "additionalProperties": false
                   },
                   "ai": {
+                    "description": "Its AI (§10).",
                     "type": "object",
                     "properties": {
                       "models": {
+                        "description": "The logical models it may call.",
                         "type": "array",
                         "items": {
                           "type": "string"
@@ -11392,7 +11694,7 @@
                     "additionalProperties": false
                   },
                   "envNames": {
-                    "description": "The names the app declares — never their values (P5a Decision 22).",
+                    "description": "The names of the variables the app declares — never their values.",
                     "type": "array",
                     "items": {
                       "type": "string"
@@ -11417,28 +11719,35 @@
                 "type": "object",
                 "properties": {
                   "port": {
+                    "description": "The port the app listens on.",
                     "type": "integer",
                     "minimum": -9007199254740991,
                     "maximum": 9007199254740991
                   },
                   "health": {
+                    "description": "The path its health check asks.",
                     "type": "string"
                   },
                   "resources": {
+                    "description": "What it may use in this environment — the blueprint’s defaults, overridden by manifest.yaml.",
                     "type": "object",
                     "properties": {
                       "cpu": {
+                        "description": "CPU cores.",
                         "type": "number"
                       },
                       "memory": {
+                        "description": "Memory, as `512Mi`.",
                         "type": "string"
                       },
                       "pids": {
+                        "description": "The most processes and threads at once.",
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
                       },
                       "disk": {
+                        "description": "Disk, as `2Gi`.",
                         "type": "string"
                       }
                     },
@@ -11451,17 +11760,21 @@
                     "additionalProperties": false
                   },
                   "services": {
+                    "description": "The backing services bound to it.",
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
                         "type": {
+                          "description": "The service type.",
                           "type": "string"
                         },
                         "version": {
+                          "description": "Its version.",
                           "type": "string"
                         },
                         "name": {
+                          "description": "The app’s name for it.",
                           "type": "string"
                         }
                       },
@@ -11474,18 +11787,22 @@
                     }
                   },
                   "egressAllow": {
+                    "description": "The hostnames it may reach outside the platform.",
                     "type": "array",
                     "items": {
                       "type": "string"
                     }
                   },
                   "classification": {
+                    "description": "Its data classification (D17).",
                     "type": "string"
                   },
                   "auth": {
+                    "description": "Its sign-in (§9).",
                     "type": "object",
                     "properties": {
                       "provider": {
+                        "description": "Whether it signs people in with CWL.",
                         "type": "string",
                         "enum": [
                           "cwl",
@@ -11493,6 +11810,7 @@
                         ]
                       },
                       "attributes": {
+                        "description": "The CWL attributes it receives.",
                         "type": "array",
                         "items": {
                           "type": "string"
@@ -11506,9 +11824,11 @@
                     "additionalProperties": false
                   },
                   "ai": {
+                    "description": "Its AI (§10).",
                     "type": "object",
                     "properties": {
                       "models": {
+                        "description": "The logical models it may call.",
                         "type": "array",
                         "items": {
                           "type": "string"
@@ -11521,7 +11841,7 @@
                     "additionalProperties": false
                   },
                   "envNames": {
-                    "description": "The names the app declares — never their values (P5a Decision 22).",
+                    "description": "The names of the variables the app declares — never their values.",
                     "type": "array",
                     "items": {
                       "type": "string"
@@ -11546,28 +11866,35 @@
                 "type": "object",
                 "properties": {
                   "port": {
+                    "description": "The port the app listens on.",
                     "type": "integer",
                     "minimum": -9007199254740991,
                     "maximum": 9007199254740991
                   },
                   "health": {
+                    "description": "The path its health check asks.",
                     "type": "string"
                   },
                   "resources": {
+                    "description": "What it may use in this environment — the blueprint’s defaults, overridden by manifest.yaml.",
                     "type": "object",
                     "properties": {
                       "cpu": {
+                        "description": "CPU cores.",
                         "type": "number"
                       },
                       "memory": {
+                        "description": "Memory, as `512Mi`.",
                         "type": "string"
                       },
                       "pids": {
+                        "description": "The most processes and threads at once.",
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
                       },
                       "disk": {
+                        "description": "Disk, as `2Gi`.",
                         "type": "string"
                       }
                     },
@@ -11580,17 +11907,21 @@
                     "additionalProperties": false
                   },
                   "services": {
+                    "description": "The backing services bound to it.",
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
                         "type": {
+                          "description": "The service type.",
                           "type": "string"
                         },
                         "version": {
+                          "description": "Its version.",
                           "type": "string"
                         },
                         "name": {
+                          "description": "The app’s name for it.",
                           "type": "string"
                         }
                       },
@@ -11603,18 +11934,22 @@
                     }
                   },
                   "egressAllow": {
+                    "description": "The hostnames it may reach outside the platform.",
                     "type": "array",
                     "items": {
                       "type": "string"
                     }
                   },
                   "classification": {
+                    "description": "Its data classification (D17).",
                     "type": "string"
                   },
                   "auth": {
+                    "description": "Its sign-in (§9).",
                     "type": "object",
                     "properties": {
                       "provider": {
+                        "description": "Whether it signs people in with CWL.",
                         "type": "string",
                         "enum": [
                           "cwl",
@@ -11622,6 +11957,7 @@
                         ]
                       },
                       "attributes": {
+                        "description": "The CWL attributes it receives.",
                         "type": "array",
                         "items": {
                           "type": "string"
@@ -11635,9 +11971,11 @@
                     "additionalProperties": false
                   },
                   "ai": {
+                    "description": "Its AI (§10).",
                     "type": "object",
                     "properties": {
                       "models": {
+                        "description": "The logical models it may call.",
                         "type": "array",
                         "items": {
                           "type": "string"
@@ -11650,7 +11988,7 @@
                     "additionalProperties": false
                   },
                   "envNames": {
-                    "description": "The names the app declares — never their values (P5a Decision 22).",
+                    "description": "The names of the variables the app declares — never their values.",
                     "type": "array",
                     "items": {
                       "type": "string"
@@ -11694,12 +12032,14 @@
         "additionalProperties": false
       },
       "ReleaseList": {
+        "description": "A project’s newest releases, newest first.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Release"
         }
       },
       "RepositoryLink": {
+        "description": "Where the project’s code lives (D5), and whether `main` is protected there.",
         "type": "object",
         "properties": {
           "provider": {
@@ -11789,11 +12129,13 @@
             "type": "object",
             "properties": {
               "critical": {
+                "description": "Critical findings.",
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
               },
               "high": {
+                "description": "High findings.",
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
@@ -11810,11 +12152,13 @@
             "type": "object",
             "properties": {
               "critical": {
+                "description": "Critical findings.",
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
               },
               "high": {
+                "description": "High findings.",
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
@@ -11831,11 +12175,13 @@
             "type": "object",
             "properties": {
               "critical": {
+                "description": "Critical findings.",
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
               },
               "high": {
+                "description": "High findings.",
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
@@ -11854,12 +12200,15 @@
               "type": "object",
               "properties": {
                 "id": {
+                  "description": "The vulnerability’s id — a CVE or an advisory.",
                   "type": "string"
                 },
                 "severity": {
+                  "description": "`Critical` or `High`.",
                   "type": "string"
                 },
                 "package": {
+                  "description": "The package it is in, with its version.",
                   "type": "string"
                 }
               },
@@ -11908,6 +12257,7 @@
         "additionalProperties": false
       },
       "SetAppSecretRequest": {
+        "description": "The value to store under the name in the path.",
         "type": "object",
         "properties": {
           "value": {
@@ -11926,9 +12276,11 @@
         "type": "object",
         "properties": {
           "slug": {
+            "description": "The name checked, as sent.",
             "type": "string"
           },
           "available": {
+            "description": "Whether `createProject` would accept it now.",
             "type": "boolean"
           },
           "reasons": {
@@ -11938,6 +12290,7 @@
               "type": "object",
               "properties": {
                 "code": {
+                  "description": "The code `createProject` would refuse it with.",
                   "type": "string",
                   "enum": [
                     "SLUG_INVALID",
@@ -11946,9 +12299,11 @@
                   ]
                 },
                 "message": {
+                  "description": "What is wrong with it, for a person.",
                   "type": "string"
                 },
                 "hint": {
+                  "description": "What to do instead.",
                   "type": "string"
                 }
               },
@@ -11968,6 +12323,7 @@
         "additionalProperties": false
       },
       "SourceFile": {
+        "description": "One text file at one commit, whole.",
         "type": "object",
         "properties": {
           "ref": {
@@ -12017,6 +12373,7 @@
         "additionalProperties": false
       },
       "SourceTree": {
+        "description": "Every path in the repository at one commit — the files an API client can read and write.",
         "type": "object",
         "properties": {
           "ref": {
@@ -12173,10 +12530,11 @@
         "additionalProperties": false
       },
       "StartBuildRequest": {
+        "description": "Which commit to build.",
         "type": "object",
         "properties": {
           "commitSha": {
-            "description": "A full commit id. Defaults to the commit of the newest validated spec.",
+            "description": "The full id of the commit to build. Without it, the commit of the project’s newest recorded validation — which need not be `main`’s head: name the commit you mean.",
             "type": "string",
             "pattern": "^[0-9a-f]{40}$"
           }
@@ -12202,32 +12560,36 @@
         "type": "object",
         "properties": {
           "id": {
+            "description": "The token — what `revokeToken` names, and the `<id>` in its secret.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "projectId": {
+            "description": "The one project it may act on.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "name": {
+            "description": "The label its minter gave it.",
             "type": "string"
           },
           "capabilities": {
+            "description": "What it may do on that project (D24); nothing else.",
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "rateLimit": {
-            "description": "Requests a minute this token may make, enforced in the control plane (§20, P5b Task 9). Past it, every route answers 429 RATE_LIMITED with Retry-After.",
+            "description": "Requests a minute this token may make, enforced in the control plane (§20). Past it, every route answers 429 RATE_LIMITED with Retry-After.",
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
           "expiresAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When it stops working.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -12237,6 +12599,7 @@
             "type": "boolean"
           },
           "revokedAt": {
+            "description": "When a person revoked it; null while it is not revoked. A revoked token is refused `UNAUTHENTICATED`.",
             "anyOf": [
               {
                 "description": "An instant, ISO 8601 in UTC.",
@@ -12250,6 +12613,7 @@
             ]
           },
           "lastUsedAt": {
+            "description": "When it last authenticated a request; null if never.",
             "anyOf": [
               {
                 "description": "An instant, ISO 8601 in UTC.",
@@ -12263,7 +12627,7 @@
             ]
           },
           "createdAt": {
-            "description": "An instant, ISO 8601 in UTC.",
+            "description": "When it was minted.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
@@ -12284,20 +12648,24 @@
         "additionalProperties": false
       },
       "TokenList": {
+        "description": "The project’s delegated tokens — revoked and expired ones included.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Token"
         }
       },
       "UserSummary": {
+        "description": "A person, by name.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "Their user id.",
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "displayName": {
+            "description": "Their name, as CWL gave it.",
             "type": "string"
           }
         },

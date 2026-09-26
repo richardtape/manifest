@@ -5,14 +5,16 @@ export const SlugCheck = representation(
   'SlugCheck',
   z
     .object({
-      slug: z.string(),
-      available: z.boolean(),
+      slug: z.string().describe('The name checked, as sent.'),
+      available: z.boolean().describe('Whether `createProject` would accept it now.'),
       reasons: z
         .array(
           z.object({
-            code: z.enum(['SLUG_INVALID', 'SLUG_RESERVED', 'SLUG_TAKEN']),
-            message: z.string(),
-            hint: z.string(),
+            code: z
+              .enum(['SLUG_INVALID', 'SLUG_RESERVED', 'SLUG_TAKEN'])
+              .describe('The code `createProject` would refuse it with.'),
+            message: z.string().describe('What is wrong with it, for a person.'),
+            hint: z.string().describe('What to do instead.'),
           }),
         )
         .optional()

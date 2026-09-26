@@ -20,31 +20,44 @@ import { PendingAction } from './pending-actions.js'
  */
 export const ErrorEnvelope = representation(
   'ErrorEnvelope',
-  z.object({
-    error: z.object({
-      code: ErrorCodeSchema,
-      message: z.string().describe('For a person. Never parse it; switch on `code`.'),
-      hint: z.string().optional().describe('What to do about it.'),
-      details: z.array(ManifestErrorSchema).optional(),
-      launchReadiness: LaunchReadiness.optional().describe(
-        'On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13).',
-      ),
-      /**
-       * D24 (P5b Task 6, Decision 8). A `$ref` to the same representation §26's queue
-       * answers with, for the reason `launchReadiness` is one: an agent refused a
-       * privileged action must be able to find the thing it waits on from the refusal
-       * itself, and a 403 that says only "no" fails D23.7.
-       *
-       * OPTIONAL, and it can be absent on a `TOKEN_ACTION_PENDING`: `mapError` fails
-       * closed, so a refusal that could not be recorded — or one raised outside the route
-       * wrapper — is still a refusal, just one without a question attached. The operator
-       * hears about that on stderr.
-       */
-      pendingAction: PendingAction.optional().describe(
-        'On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed (D24).',
-      ),
-    }),
-  }),
+  z
+    .object({
+      error: z
+        .object({
+          code: ErrorCodeSchema,
+          message: z.string().describe('For a person. Never parse it; switch on `code`.'),
+          hint: z.string().optional().describe('What to do about it.'),
+          details: z
+            .array(ManifestErrorSchema)
+            .optional()
+            .describe(
+              'On SPEC_INVALID: each problem in manifest.yaml, with its path and code.',
+            ),
+          launchReadiness: LaunchReadiness.optional().describe(
+            'On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13).',
+          ),
+          /**
+           * D24 (P5b Task 6, Decision 8). A `$ref` to the same representation §26's queue
+           * answers with, for the reason `launchReadiness` is one: an agent refused a
+           * privileged action must be able to find the thing it waits on from the refusal
+           * itself, and a 403 that says only "no" fails D23.7.
+           *
+           * OPTIONAL, and it can be absent on a `TOKEN_ACTION_PENDING`: `mapError` fails
+           * closed, so a refusal that could not be recorded — or one raised outside the route
+           * wrapper — is still a refusal, just one without a question attached. The operator
+           * hears about that on stderr.
+           */
+          pendingAction: PendingAction.optional().describe(
+            'On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed (D24).',
+          ),
+        })
+        .describe(
+          'What went wrong: switch on `code`; `x-manifest-errors` gives its remedy.',
+        ),
+    })
+    .describe(
+      'Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on.',
+    ),
 )
 
 /**

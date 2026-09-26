@@ -21,25 +21,33 @@ export const PendingAction = representation(
   'PendingAction',
   z
     .object({
-      id: Uuid,
-      projectId: Uuid,
+      id: Uuid.describe(
+        'The question — what `confirmPendingAction` and `rejectPendingAction` name.',
+      ),
+      projectId: Uuid.describe('The project it was asked on.'),
       /** The token that asked. A person confirming wants to know which agent. */
-      tokenId: Uuid,
+      tokenId: Uuid.describe('The delegated token that asked (`listTokens`).'),
       action: z
         .string()
         .describe('The privileged capability that was refused — one of D24’s four.'),
-      state: z.enum(['pending', 'confirmed', 'rejected', 'expired']),
-      method: z.string(),
-      path: z.string(),
+      state: z
+        .enum(['pending', 'confirmed', 'rejected', 'expired'])
+        .describe(
+          '`pending` until a person answers; `confirmed` grants the identical request one retry; `rejected` is final; `expired` when nobody answered in time.',
+        ),
+      method: z.string().describe('The HTTP method the token used.'),
+      path: z.string().describe('The path it asked for.'),
       bodySha256: z
         .string()
         .describe(
           'SHA-256 of the canonical request body, so a client can match its own.',
         ),
       summary: z.string().describe('What was asked for, for the person who answers.'),
-      expiresAt: Timestamp,
-      createdAt: Timestamp,
-      resolvedAt: Timestamp.nullable(),
+      expiresAt: Timestamp.describe('When the question lapses unanswered.'),
+      createdAt: Timestamp.describe('When the token asked.'),
+      resolvedAt: Timestamp.nullable().describe(
+        'When a person answered; null while it is pending.',
+      ),
       /**
        * §26: *"how long it has waited"* is the queue's headline number, so it is computed
        * HERE rather than by each client from `createdAt` (Task 8).
@@ -63,12 +71,19 @@ export const PendingAction = representation(
        * corrects itself from the answer: "no, not this term" is the only thing that tells
        * it to stop asking.
        */
-      reason: z.string().nullable(),
+      reason: z
+        .string()
+        .nullable()
+        .describe(
+          'A rejection’s reason, in the person’s words — what the agent is told; null otherwise.',
+        ),
       /**
        * Decision 7: confirmed-and-used, without a fifth state. Non-null means the
        * one-shot retry the confirmation granted has been spent (Task 7).
        */
-      consumedAt: Timestamp.nullable(),
+      consumedAt: Timestamp.nullable().describe(
+        'When the confirmed retry was made, spending the confirmation; null until then.',
+      ),
     })
     .describe(
       'D24: a delegated token asked for one of the privileged four. A person confirms or rejects it; a confirmation grants that one request a single retry.',

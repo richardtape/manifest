@@ -10,6 +10,7 @@ import {
 import { assertCapability } from '../../projects/index.js'
 import { requireSession } from '../actor.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
+import { PATH } from '../contract/schemas.js'
 import {
   IamRegistration,
   LaunchReadiness,
@@ -33,7 +34,7 @@ export const launchRoutes = [
     summary: 'What a production release still needs',
     description:
       '§13 and §22 step 7: the checklist, computed from what exists, surfaced from the moment a project exists — a first launch’s, or once launched the self-serve check, where only a sensitive change needs an administrator (D9). The production deploy is refused with this exact value until every blocking item is met.',
-    params: z.strictObject({ projectId: z.uuid() }),
+    params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The checklist.', schema: LaunchReadiness },
@@ -50,8 +51,8 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'The IAM registration and the privacy assessment, as recorded',
     description:
-      '§9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. P8 generates what they carry. Either may be absent, which is a state and not an error.',
-    params: z.strictObject({ projectId: z.uuid() }),
+      '§9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. Manifest does not yet generate what they carry. Either may be absent, which is a state and not an error.',
+    params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
     success: {
@@ -84,8 +85,8 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Record what UBC IAM registered',
     description:
-      '§9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). P8 will submit these programmatically; the object and its states do not change when it does.',
-    params: z.strictObject({ projectId: z.uuid() }),
+      '§9 and D19: a platform administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). A later Manifest release will submit these itself; the object and its states will not change when it does.',
+    params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: RecordIamRegistrationRequest,
     success: {
@@ -138,8 +139,8 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Record what the Privacy Office said',
     description:
-      '§9, D19 and R1: the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.',
-    params: z.strictObject({ projectId: z.uuid() }),
+      '§9 and D19: a platform administrator records it, in the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.',
+    params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: RecordPrivacyAssessmentRequest,
     success: {
@@ -175,8 +176,8 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Run the pre-production rehearsal',
     description:
-      'D21, as P6a redefines it for a laptop (R2): deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.',
-    params: z.strictObject({ projectId: z.uuid() }),
+      'D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.',
+    params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
     success: {

@@ -51,6 +51,35 @@ export function ref(
 
 export const Uuid = z.uuid()
 
+/**
+ * THE PATH PARAMETERS, EACH DESCRIBED ONCE (the authoring API plan's Task 9). `document.ts` lifts
+ * a parameter's description off its schema onto the OpenAPI parameter, so a route that declares
+ * its own bare `z.uuid()` publishes an undescribed one — which `docs.test.ts` refuses. Each says
+ * where a client gets the id from.
+ */
+export const PATH = {
+  projectId: z
+    .uuid()
+    .describe('The project’s id, from `listProjects` or `createProject`.'),
+  buildId: z.uuid().describe('The build’s id, from `startBuild` or `listBuilds`.'),
+  releaseId: z
+    .uuid()
+    .describe('The release’s id, from `createRelease` or `listReleases`.'),
+  environmentId: z
+    .uuid()
+    .describe(
+      'The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.',
+    ),
+  pendingActionId: z
+    .uuid()
+    .describe(
+      'The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`.',
+    ),
+  userId: z.uuid().describe('The member’s user id, from `listMembers`.'),
+  tokenId: z.uuid().describe('The token’s id, from `listTokens`.'),
+  previewId: z.uuid().describe('The preview’s id, from `createApprovalPreview`.'),
+} as const
+
 /** Never a `Date`: `z.date()` has no JSON Schema (Decision 3). Mappers call `toISOString()`. */
 export const Timestamp = z.iso.datetime().describe('An instant, ISO 8601 in UTC.')
 

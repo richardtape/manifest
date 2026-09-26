@@ -6,19 +6,37 @@ import { SpecValidation } from './specs.js'
 
 export const UserSummary = representation(
   'UserSummary',
-  z.object({ id: Uuid, displayName: z.string() }),
+  z
+    .object({
+      id: Uuid.describe('Their user id.'),
+      displayName: z.string().describe('Their name, as CWL gave it.'),
+    })
+    .describe('A person, by name.'),
 )
 
 /** §24 D29: who the app is for, asked of a human at creation (Task 11 writes it). */
 export const Audience = representation(
   'Audience',
-  z.object({
-    scale: z.enum(['solo', 'class', 'large_course', 'public']),
-    burst: z.enum(['steady', 'synchronised']),
-    justification: z.string().nullable(),
-    setBy: Uuid,
-    setAt: Timestamp,
-  }),
+  z
+    .object({
+      scale: z
+        .enum(['solo', 'class', 'large_course', 'public'])
+        .describe('§24: how many people the app is for.'),
+      burst: z
+        .enum(['steady', 'synchronised'])
+        .describe(
+          '§24: whether they arrive steadily, or all at once — a class starting a lab together.',
+        ),
+      justification: z
+        .string()
+        .nullable()
+        .describe('Why, in the owner’s words; null when none was given.'),
+      setBy: Uuid.describe('Who answered.'),
+      setAt: Timestamp.describe('When they answered.'),
+    })
+    .describe(
+      'Who the app is for, as its owner answered at creation (§24, D29). A large or public audience adds a load rehearsal to the launch checklist.',
+    ),
 )
 
 /**
@@ -27,108 +45,144 @@ export const Audience = representation(
  */
 export const RepositoryLink = representation(
   'RepositoryLink',
-  z.object({
-    provider: z
-      .enum(['local', 'github'])
-      .describe(
-        'Which of D5’s drivers holds it: a repository on this machine, or GitHub.',
-      ),
-    fullName: z
-      .string()
-      .describe(
-        'The slug on this machine; `<org>/<slug>` on GitHub, as GitHub names it.',
-      ),
-    webUrl: z
-      .string()
-      .nullable()
-      .describe(
-        'Where a person opens it; null on this machine, where a path is not an address.',
-      ),
-    mainProtected: z
-      .boolean()
-      .describe(
-        'Whether a person’s force-push or deletion of `main` is refused where the code lives.',
-      ),
-    protectionDetail: z
-      .string()
-      .nullable()
-      .describe(
-        'The host’s own words when it would not protect `main`; null when it did.',
-      ),
-  }),
+  z
+    .object({
+      provider: z
+        .enum(['local', 'github'])
+        .describe(
+          'Which of D5’s drivers holds it: a repository on this machine, or GitHub.',
+        ),
+      fullName: z
+        .string()
+        .describe(
+          'The slug on this machine; `<org>/<slug>` on GitHub, as GitHub names it.',
+        ),
+      webUrl: z
+        .string()
+        .nullable()
+        .describe(
+          'Where a person opens it; null on this machine, where a path is not an address.',
+        ),
+      mainProtected: z
+        .boolean()
+        .describe(
+          'Whether a person’s force-push or deletion of `main` is refused where the code lives.',
+        ),
+      protectionDetail: z
+        .string()
+        .nullable()
+        .describe(
+          'The host’s own words when it would not protect `main`; null when it did.',
+        ),
+    })
+    .describe(
+      'Where the project’s code lives (D5), and whether `main` is protected there.',
+    ),
 )
 
 export const Project = representation(
   'Project',
-  z.object({
-    id: Uuid,
-    slug: z
-      .string()
-      .describe(
-        'The project’s name, and the first label of every hostname it has (§23).',
+  z
+    .object({
+      id: Uuid.describe('The project — what every project-scoped path names.'),
+      slug: z
+        .string()
+        .describe(
+          'The project’s name, and the first label of every hostname it has (§23).',
+        ),
+      blueprint: z.string().describe('`name@major` (§25).'),
+      starter: z
+        .string()
+        .nullable()
+        .describe(
+          'The starter the first commit was seeded from (§25); null for the skeleton alone.',
+        ),
+      owner: UserSummary,
+      audience: Audience.nullable().describe(
+        'Who it is for (§24); null for a project created before the question was asked.',
       ),
-    blueprint: z.string().describe('`name@major` (§25).'),
-    starter: z
-      .string()
-      .nullable()
-      .describe(
-        'The starter the first commit was seeded from (§25); null for the skeleton alone.',
+      createdAt: Timestamp.describe('When it was created.'),
+      launchedAt: Timestamp.nullable().describe(
+        'When it first went to production (§13 D9) — null until then; never cleared.',
       ),
-    owner: UserSummary,
-    audience: Audience.nullable(),
-    createdAt: Timestamp,
-    launchedAt: Timestamp.nullable().describe(
-      'When it first went to production (§13 D9) — null until then; never cleared.',
+      repository: RepositoryLink,
+      environments: z
+        .array(Environment)
+        .optional()
+        .describe('Present with `?expand=environments` (D23.1).'),
+    })
+    .describe(
+      'A project: one app, its code, its three environments and who works on it (§6).',
     ),
-    repository: RepositoryLink,
-    environments: z
-      .array(Environment)
-      .optional()
-      .describe('Present with `?expand=environments` (D23.1).'),
-  }),
 )
 
-export const ProjectList = representation('ProjectList', z.array(Project))
+export const ProjectList = representation(
+  'ProjectList',
+  z
+    .array(Project)
+    .describe(
+      'Every project the caller is a member of — every project, for an administrator.',
+    ),
+)
 
 /** §24's two questions, as a person answers them at creation (P5a Task 11). */
 export const AudienceInput = request(
   'AudienceInput',
-  z.strictObject({
-    scale: z
-      .enum(['solo', 'class', 'large_course', 'public'])
-      .describe('§24: how many people.'),
-    burst: z
-      .enum(['steady', 'synchronised'])
-      .describe('§24: do they all arrive at once.'),
-    justification: z.string().max(1000).optional(),
-  }),
+  z
+    .strictObject({
+      scale: z
+        .enum(['solo', 'class', 'large_course', 'public'])
+        .describe('§24: how many people.'),
+      burst: z
+        .enum(['steady', 'synchronised'])
+        .describe('§24: do they all arrive at once.'),
+      justification: z
+        .string()
+        .max(1000)
+        .optional()
+        .describe(
+          'Why, in a sentence or two — shown to an administrator for a large or public app.',
+        ),
+    })
+    .describe(
+      '§24’s two questions about who the app is for, answered by a person at creation.',
+    ),
 )
 
 export const CreateProjectRequest = request(
   'CreateProjectRequest',
-  z.strictObject({
-    // No length bound and not §7's rule: `checkSlug`'s, so creation and GET
-    // /v1/slugs/{slug} refuse a name with the same code (§23; P5a sitting 6).
-    slug: z
-      .string()
-      .min(1)
-      .describe('Checked by the same function as GET /v1/slugs/{slug} (§23).'),
-    blueprint: z.string().min(1).describe('`name@major`, from GET /v1/blueprints.'),
-    starter: z
-      .string()
-      .min(1)
-      .optional()
-      .describe(
-        'One the blueprint offers. Without one: the skeleton and a minimal manifest.',
-      ),
-    // Registered, and used as is: a `.describe()` copy would be a second, unregistered schema.
-    audience: AudienceInput,
-  }),
+  z
+    .strictObject({
+      // No length bound and not §7's rule: `checkSlug`'s, so creation and GET
+      // /v1/slugs/{slug} refuse a name with the same code (§23; P5a sitting 6).
+      slug: z
+        .string()
+        .min(1)
+        .describe('Checked by the same function as GET /v1/slugs/{slug} (§23).'),
+      blueprint: z.string().min(1).describe('`name@major`, from GET /v1/blueprints.'),
+      starter: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'One the blueprint offers. Without one: the skeleton and a minimal manifest.',
+        ),
+      // Registered, and used as is: a `.describe()` copy would be a second, unregistered schema.
+      audience: AudienceInput,
+    })
+    .describe(
+      'A new project: its name, its blueprint, an optional starter, and who it is for.',
+    ),
 )
 
 export const CreatedProject = representation(
   'CreatedProject',
-  Project.extend({ environments: z.array(Environment), spec: SpecValidation }).describe(
+  Project.extend({
+    environments: z
+      .array(Environment)
+      .describe('Its three environments, none deployed yet.'),
+    spec: SpecValidation,
+  }).describe(
     '§22 steps 2–3: the project, its environments, and the validation of the manifest its first commit carries.',
   ),
 )
