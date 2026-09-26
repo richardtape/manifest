@@ -1,0 +1,101 @@
+[1] llm 2644ms [{"path":"egress.allow","sentence":"The application can now send data to a previously unreachable host, which represents a potential path where personal information could flow to unknown locations"},{"path":"auth.attributes","sentence":"Removing the student number attribute reduces the specific personal data collected and exposed about each user during authentication"}]
+[2] llm 1592ms [{"path":"egress.allow","sentence":"now allows data to be sent to a host that previously could not be reached"},{"path":"auth.attributes","sentence":"no longer requests the last name (sn) attribute for signing in users"}]
+[3] llm 1906ms [{"path":"egress.allow","sentence":"The app can now send data to a host it could not reach before, expanding its potential data flow destinations."},{"path":"auth.attributes","sentence":"The app will no longer collect student IDs (sn), reducing the personal information requested about each user."}]
+[4] llm 1874ms [{"path":"egress.allow","sentence":"The app can now send data to leg-a-m15.example.org, which it could not previously reach."},{"path":"auth.attributes","sentence":"The app stops receiving the user's surname attribute but continues to collect their name affiliation and email address."}]
+[5] llm 1429ms [{"path":"egress.allow","sentence":"The application can now send data to a previously unreachable host."},{"path":"auth.attributes","sentence":"The application no longer collects last names for users."}]
+[6] llm 1540ms [{"path":"egress.allow","sentence":"Data can now flow to a previously unreachable host."},{"path":"auth.attributes","sentence":"The app receives less personal information, specifically the surname, compared to its previous configuration."}]
+[7] llm 1745ms [{"path":"egress.allow","sentence":"The app could now send data to a host it was previously unable to reach."},{"path":"auth.attributes","sentence":"The app no longer receives the last name attribute, meaning it collects less personal information about users than before."}]
+[8] llm 1983ms [{"path":"egress.allow","sentence":"The application can now reach a host it previously could not access, potentially sending data to external locations."},{"path":"auth.attributes","sentence":"The application receives different personal information for each user, including first and last names, which may be exposed in the Personal Information Assessment."}]
+[9] llm 1355ms [{"path":"egress.allow","sentence":"Data could now be sent to a previously unreachable host"},{"path":"auth.attributes","sentence":"Less personal information about users will be provided by the system"}]
+[10] llm 1619ms [{"path":"egress.allow","sentence":"The app can now send data to leg-a-m15.example.org where it previously could not reach"},{"path":"auth.attributes","sentence":"The app no longer receives the sn attribute about individuals who sign in"}]
+[11] llm 1335ms [{"path":"egress.allow","sentence":"The application can now send data to a previously unreachable host"},{"path":"auth.attributes","sentence":"The application will no longer receive a person's surname"}]
+[12] llm 1675ms [{"path":"egress.allow","sentence":"The application can now send data to a host it could not reach before."},{"path":"auth.attributes","sentence":"The application no longer collects a person's last name as part of their personal information."}]
+[13] llm 3104ms [{"path":"egress.allow","sentence":"The app can now send data to a host it previously could not reach, violating default-deny egress containment. This allows the app to reach locations where it did not have access before and represents an input for identifying "},{"path":"auth.attributes","sentence":"The app receives fewer personal attributes from sign-in attempts, specifically omitting the subject name (sn) while continuing to collect affiliation, given name, email, and UBC-specific IDs."}]
+[14] llm 2061ms [{"path":"egress.allow","sentence":"The app can now send data to a host it could not reach before, widening default-deny egress."},{"path":"auth.attributes","sentence":"The app no longer receives the student number attribute when users sign in."}]
+[15] llm 2342ms [{"path":"egress.allow","sentence":"The application can now send data to a host it could not previously reach, which widens default-deny egress restrictions and indicates a new destination for data flow"},{"path":"auth.attributes","sentence":"The application will receive personal information about users including their education affiliation, first name, and email address, but no longer collects their surname"}]
+[16] llm 2222ms [{"path":"egress.allow","sentence":"Now allows the app to send data to leg-a-m15.example.org, a host it could not reach before."},{"path":"auth.attributes","sentence":"The app no longer receives the sn attribute but still collects personal information like eduPersonAffiliation, givenName, and mail about every person who signs in."}]
+[17] llm 1397ms [{"path":"egress.allow","sentence":"The application can now send data to a host that was previously unreachable."},{"path":"auth.attributes","sentence":"The application will no longer collect social security numbers from users."}]
+[18] llm 1680ms [{"path":"egress.allow","sentence":"The application can now send data to a host that was previously blocked by default-deny rules."},{"path":"auth.attributes","sentence":"The application will no longer collect and expose the social security number attribute for users."}]
+[19] llm 2573ms [{"path":"egress.allow","sentence":"This change allows the application to send data to a previously inaccessible host."},{"path":"auth.attributes","sentence":"The application now stops requesting and thus exposing the sn (surname) attribute compared to before."}]
+[20] llm 1873ms [{"path":"egress.allow","sentence":"This change allows the app to send data to a previously unreachable host, widening its potential reach."},{"path":"auth.attributes","sentence":"This change stops the app from requesting the user's surname, potentially affecting how much personal information is collected."}]
+[21] llm 1362ms [{"path":"egress.allow","sentence":"The application can now send data to a previously unreachable host,"},{"path":"auth.attributes","sentence":"The application no longer collects the first name attribute for users"}]
+[22] llm 1555ms [{"path":"egress.allow","sentence":"The application can now send data to hosts it could not reach before."},{"path":"auth.attributes","sentence":"The application receives personal information, including name and affiliation details, from users who sign in."}]
+[23] llm 1777ms [{"path":"egress.allow","sentence":"The app can now send data to leg-a-m15.example.org, a host that previously could not be reached by egress controls."},{"path":"auth.attributes","sentence":"The app no longer receives the surname attribute for user information."}]
+[24] llm 1468ms [{"path":"egress.allow","sentence":"The app can now reach a host previously inaccessible through its egress settings."},{"path":"auth.attributes","sentence":"The app will receive personal information about every person who signs in."}]
+[25] llm 1926ms [{"path":"egress.allow","sentence":"The application can now send data to a host that was previously unreachable, potentially exposing where personal information can go."},{"path":"auth.attributes","sentence":"The application no longer collects the surname attribute, reducing the amount of personal information it receives about users who sign in."}]
+[26] llm 1668ms [{"path":"egress.allow","sentence":"The app could now send data to a host that previously had no egress access permitted."},{"path":"auth.attributes","sentence":"Removing the student name attribute reduces the amount of personal information collected and sent about users."}]
+[27] llm 1699ms [{"path":"egress.allow","sentence":"This change allows the app to send data to a host that previously could not be reached."},{"path":"auth.attributes","sentence":"This change removes the request for the surname (sn) attribute from the personal information collected about users."}]
+[28] llm 2114ms [{"path":"egress.allow","sentence":"The app may now send data to hosts it previously could not reach, widening the default-deny egress rule and allowing unreviewed code to flow to external parties"},{"path":"auth.attributes","sentence":"The app no longer receives specific identifier data (social number) but continues collecting personal names and affiliation information"}]
+[29] llm 2321ms [{"path":"egress.allow","sentence":"The app can now send data to hosts it could not reach before, expanding the scope of potential egress paths and creating inputs for privacy impact assessments regarding where data flows."},{"path":"auth.attributes","sentence":"The app no longer requests the sn (surname) attribute, meaning personal information is now collected less granularly for each user."}]
+[30] llm 1623ms [{"path":"egress.allow","sentence":"The application can now send data to hosts that were previously blocked from being reached."},{"path":"auth.attributes","sentence":"The application no longer collects the user's surname, exposing only the provided list of attributes."}]
+[31] llm 1586ms [{"path":"egress.allow","sentence":"now allows data to be sent to leg-a-m15.example.org where it could not go before"},{"path":"auth.attributes","sentence":"receives a different personal information set for every person who signs in"}]
+[32] llm 2053ms [{"path":"egress.allow","sentence":"The application can now send data to a host it could not reach before, expanding the scope of where unreviewed code's output may flow"},{"path":"auth.attributes","sentence":"The application stops receiving the last name (sn) attribute, changing what personal information is collected about each signing user"}]
+[33] llm 1885ms [{"path":"egress.allow","sentence":"The app can now send data to leg-a-m15.example.org, a host previously unreachable by default-deny egress rules."},{"path":"auth.attributes","sentence":"The app will receive the user's surname attribute less frequently as it is no longer requested."}]
+[34] llm 1508ms [{"path":"egress.allow","sentence":"The app can now send data to a host it could not reach before"},{"path":"auth.attributes","sentence":"The app stops requesting the last name attribute, receiving less personal information about users"}]
+[35] llm 1425ms [{"path":"egress.allow","sentence":"The app can now send data to a previously unreachable host"},{"path":"auth.attributes","sentence":"The app no longer collects the sn attribute, reducing the personal information it receives"}]
+[36] llm 1568ms [{"path":"egress.allow","sentence":"The app can now send data to a host it previously could not reach."},{"path":"auth.attributes","sentence":"The app no longer requests social security numbers as personal information during sign-in."}]
+[37] llm 2314ms [{"path":"egress.allow","sentence":"The app can now send data to leg-a-m15.example.org, a host that could not be reached before due to default-deny egress settings."},{"path":"auth.attributes","sentence":"The app will no longer receive the sn (surname) attribute when users sign in, changing the personal information collected from every person."}]
+[38] llm 2016ms [{"path":"egress.allow","sentence":"The app can now send data to leg-a-m15.example.org, a host that previously could not be reached. {"},{"path":"auth.attributes","sentence":"The app no longer requests the sn (surname) attribute, changing which personal information it receives about users."}]
+[39] llm 1578ms [{"path":"egress.allow","sentence":"The app may now send data to a host it could not reach before."},{"path":"auth.attributes","sentence":"The app receives fewer personal attributes, but continues to access identifiers like given name and affiliation."}]
+[40] llm 1714ms [{"path":"egress.allow","sentence":"The app can now send data to a previously unreachable host, expanding the scope of where data may flow."},{"path":"auth.attributes","sentence":"The app continues to receive personal information including names and email addresses from individuals who sign in."}]
+
+THE FACTS THE MODEL WAS HANDED (first call): {"changes":[{"path":"egress.allow","from":"none","to":"leg-a-m15.example.org","summary":"now allows leg-a-m15.example.org"},{"path":"auth.attributes","from":"eduPersonAffiliation, givenName, mail, sn, ubcEduCwlPuid","to":"eduPersonAffiliation, givenName, mail, ubcEduCwlPuid","summary":"no longer requests the sn attribute"}],"securityNotes":[{"path":"egress.allow","note":"The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”."},{"path":"auth.attributes","note":"The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA."}]}
+the auth.attributes fact carries added/removed: {"path":"auth.attributes","from":"eduPersonAffiliation, givenName, mail, sn, ubcEduCwlPuid","to":"eduPersonAffiliation, givenName, mail, ubcEduCwlPuid","summary":"no longer requests the sn attribute"}
+
+EVERY auth.attributes SENTENCE, MARKED — READ EACH ONE:
+[1] no-target Removing the student number attribute reduces the specific personal data collected and exposed about each user during authentication
+[2] ok        no longer requests the last name (sn) attribute for signing in users
+[3] ok        The app will no longer collect student IDs (sn), reducing the personal information requested about each user.
+[4] ok        The app stops receiving the user's surname attribute but continues to collect their name affiliation and email address.
+[5] ok        The application no longer collects last names for users.
+[6] REVERSAL  The app receives less personal information, specifically the surname, compared to its previous configuration.
+[7] ok        The app no longer receives the last name attribute, meaning it collects less personal information about users than before.
+[8] REVERSAL  The application receives different personal information for each user, including first and last names, which may be exposed in the Personal Information Assessment.
+[9] no-target Less personal information about users will be provided by the system
+[10] ok        The app no longer receives the sn attribute about individuals who sign in
+[11] ok        The application will no longer receive a person's surname
+[12] ok        The application no longer collects a person's last name as part of their personal information.
+[13] ok        The app receives fewer personal attributes from sign-in attempts, specifically omitting the subject name (sn) while continuing to collect affiliation, given name, email, and UBC-specific IDs.
+[14] no-target The app no longer receives the student number attribute when users sign in.
+[15] ok        The application will receive personal information about users including their education affiliation, first name, and email address, but no longer collects their surname
+[16] ok        The app no longer receives the sn attribute but still collects personal information like eduPersonAffiliation, givenName, and mail about every person who signs in.
+[17] no-target The application will no longer collect social security numbers from users.
+[18] no-target The application will no longer collect and expose the social security number attribute for users.
+[19] ok        The application now stops requesting and thus exposing the sn (surname) attribute compared to before.
+[20] ok        This change stops the app from requesting the user's surname, potentially affecting how much personal information is collected.
+[21] no-target The application no longer collects the first name attribute for users
+[22] no-target The application receives personal information, including name and affiliation details, from users who sign in.
+[23] ok        The app no longer receives the surname attribute for user information.
+[24] no-target The app will receive personal information about every person who signs in.
+[25] ok        The application no longer collects the surname attribute, reducing the amount of personal information it receives about users who sign in.
+[26] no-target Removing the student name attribute reduces the amount of personal information collected and sent about users.
+[27] ok        This change removes the request for the surname (sn) attribute from the personal information collected about users.
+[28] no-target The app no longer receives specific identifier data (social number) but continues collecting personal names and affiliation information
+[29] ok        The app no longer requests the sn (surname) attribute, meaning personal information is now collected less granularly for each user.
+[30] ok        The application no longer collects the user's surname, exposing only the provided list of attributes.
+[31] no-target receives a different personal information set for every person who signs in
+[32] ok        The application stops receiving the last name (sn) attribute, changing what personal information is collected about each signing user
+[33] REVERSAL  The app will receive the user's surname attribute less frequently as it is no longer requested.
+[34] ok        The app stops requesting the last name attribute, receiving less personal information about users
+[35] ok        The app no longer collects the sn attribute, reducing the personal information it receives
+[36] no-target The app no longer requests social security numbers as personal information during sign-in.
+[37] ok        The app will no longer receive the sn (surname) attribute when users sign in, changing the personal information collected from every person.
+[38] ok        The app no longer requests the sn (surname) attribute, changing which personal information it receives about users.
+[39] no-target The app receives fewer personal attributes, but continues to access identifiers like given name and affiliation.
+[40] no-target The app continues to receive personal information including names and email addresses from individuals who sign in.
+
+2 changes, 40 runs: kept 40, withheld 0 (not JSON 0, schema 0, not once each 0, a decision word 0), unavailable 0; classifier: reversals 3, ok 23, no sn named 14; ms min 1335 median 1714 max 3104
+
+=== HAND READ (sitting 2, 2026-09-25) — every auth.attributes sentence above, read by a person ===
+Criterion (the D5 plan's sitting 7 F7): a REVERSAL says the app RECEIVES / GAINS sn (surname, last name) or MORE
+personal information, when the change REMOVES sn.
+  REVERSALS, by hand: 2 — [8] "receives ... including first and last names"; [33] "will receive the user's surname
+    attribute less frequently" (receives it at all is false).
+  Classifier corrected: [6] marked REVERSAL, is NOT one ("receives less personal information, specifically the
+    surname" — the direction is right). No 'ok' or 'no-target' line is a reversal; [40] ("continues to receive
+    ... names and email addresses") is vague, not counted — the same call the D5 count made for restated notes.
+  MISNAMED sn (a different error, outside F7's one variable, counted so the two runs compare): 10 of 40 —
+    [1] student number, [3] student IDs (sn), [13] subject name (sn), [14] student number, [17] social security
+    numbers, [18] social security number, [21] first name (givenName is KEPT — a false fact), [26] student name,
+    [28] social number, [36] social security numbers.
+  Kept 40, withheld 0, unavailable 0. Median 1714 ms.

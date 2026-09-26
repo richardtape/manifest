@@ -208,6 +208,9 @@ export async function summariseChanges(
             // FACTS ONLY: each change in the diff's own words, and the platform's security
             // notes. NOT the reviewer's verdict and NOT the coverage sentence — the snapshot
             // carries both in their own fields, and the model is never asked to restate them.
+            // NOT `added`/`removed` either: handing them over, with a sentence saying what they
+            // mean, was MEASURED over 320 answers and read worse — the removed `sn` reversed 30
+            // times against 22 (the authoring API plan's Task 2, F7). Re-measure before adding them.
             content: JSON.stringify({
               changes: changes.map(({ path, from, to, summary }) => ({
                 path,

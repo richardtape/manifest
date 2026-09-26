@@ -32,11 +32,15 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * code no server sends breaks no reader. This bump covers every additive change the D5
  * plan makes, once, because nothing is published between its tasks (P6b Decision 15).
  *
+ * **`1.3.0` SINCE THE AUTHORING API PLAN'S TASK 2 (2026-09-25)**, as that plan predicted:
+ * `ApprovalDiff.changes[]` gains `added` and `removed` (F7). This bump covers every additive
+ * change the authoring API plan makes, once, because nothing is published between its tasks.
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.2.0'
+export const CONTRACT_VERSION = '1.3.0'
 
 type JsonSchema = Record<string, unknown>
 

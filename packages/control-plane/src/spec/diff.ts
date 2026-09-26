@@ -277,6 +277,17 @@ export interface SpecChange {
   to: string
   /** One clause a faculty member can read. */
   summary: string
+  /**
+   * F7 (the authoring API plan's Task 2): for a SET-VALUED path only — `auth.attributes`,
+   * `egress.allow`, `ai.models`, `services` and `env` — what the change added and removed,
+   * sorted: members for a set, NAMES for `services` and `env` — the difference, computed here so
+   * a client never infers it from `from` and `to`, and published on `ApprovalDiff`. **Both can be
+   * empty** for `services` and `env`, when only a member changed (a version, a value) — `summary`
+   * says which. **The approval summary's model is NOT handed them**: that was measured over 320
+   * answers and read worse (F7; `releases/summary.ts`).
+   */
+  added?: string[]
+  removed?: string[]
 }
 
 /**
@@ -375,6 +386,9 @@ function servicesChange(
     from: label(before),
     to: label(after),
     summary: clauses(parts, 'changed the declared services'),
+    // By NAME: a changed version or type is in `summary`, and in neither list.
+    added: sortedStrings([...now.keys()].filter((name) => !was.has(name))),
+    removed: sortedStrings([...was.keys()].filter((name) => !now.has(name))),
   }
 }
 
@@ -383,19 +397,22 @@ function setChange(
   path: string,
   before: readonly string[],
   after: readonly string[],
-  added: (item: string) => string,
-  removed: (item: string) => string,
+  addedClause: (item: string) => string,
+  removedClause: (item: string) => string,
 ): SpecChange | undefined {
   if (sameSet(before, after)) return undefined
-  const parts = [
-    ...sortedStrings(after.filter((item) => !before.includes(item))).map(added),
-    ...sortedStrings(before.filter((item) => !after.includes(item))).map(removed),
-  ]
+  const added = sortedStrings(after.filter((item) => !before.includes(item)))
+  const removed = sortedStrings(before.filter((item) => !after.includes(item)))
   return {
     path,
     from: listOrNone(sortedStrings(before)),
     to: listOrNone(sortedStrings(after)),
-    summary: clauses(parts, `changed ${path}`),
+    summary: clauses(
+      [...added.map(addedClause), ...removed.map(removedClause)],
+      `changed ${path}`,
+    ),
+    added,
+    removed,
   }
 }
 
@@ -430,6 +447,9 @@ function envChange(
     from: listOrNone(names(was)),
     to: listOrNone(names(now)),
     summary: clauses(parts, 'changed the environment variables'),
+    // NAMES only, like everything else here: a changed value is in `summary`, never a list.
+    added: names(now).filter((name) => !was.has(name)),
+    removed: names(was).filter((name) => !now.has(name)),
   }
 }
 

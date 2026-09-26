@@ -22,12 +22,21 @@ import {
  */
 const HOST = 'api-4f2a.example.org'
 const CHANGES: SpecChange[] = [
-  { path: 'egress.allow', from: 'none', to: HOST, summary: `now allows ${HOST}` },
+  {
+    path: 'egress.allow',
+    from: 'none',
+    to: HOST,
+    summary: `now allows ${HOST}`,
+    added: [HOST],
+    removed: [],
+  },
   {
     path: 'auth.attributes',
     from: 'givenName, mail, sn, ubcEduCwlPuid',
     to: 'givenName, mail, ubcEduCwlPuid',
     summary: 'no longer requests the sn attribute',
+    added: [],
+    removed: ['sn'],
   },
 ]
 const PATHS = CHANGES.map((c) => c.path)
@@ -233,7 +242,10 @@ describe('F9 — the summary is STRUCTURED OUTPUT with no place for a verdict (t
     expect(body.max_tokens).toBe(80 + 90 * PATHS.length)
     const user = JSON.parse(body.messages.at(-1)!.content) as Record<string, unknown>
     expect(Object.keys(user).sort()).toEqual(['changes', 'securityNotes'])
-    expect(user['changes']).toEqual(CHANGES)
+    // The diff's own words — and NOT `added`/`removed`, which F7 measured and did not adopt.
+    expect(user['changes']).toEqual(
+      CHANGES.map(({ path, from, to, summary }) => ({ path, from, to, summary })),
+    )
     expect(user['securityNotes']).toEqual([
       { path: 'auth.attributes', note: 'THE ATTRIBUTES NOTE.' },
       { path: 'egress.allow', note: 'THE EGRESS NOTE.' },
@@ -258,6 +270,25 @@ describe('F9 — the summary is STRUCTURED OUTPUT with no place for a verdict (t
       securityNotes: unknown[]
     }
     expect(user.securityNotes).toEqual([])
+  })
+
+  it('does NOT hand the model a change’s added and removed halves — measured worse over 320 answers (F7)', async () => {
+    // THE PRECONDITION, so this cannot pass by having nothing to leave out: the diff carries both.
+    const attributes = CHANGES.find((c) => c.path === 'auth.attributes')!
+    expect(attributes.removed).toEqual(['sn'])
+    expect(attributes.added).toEqual([])
+    const { client, asked } = answering(answer(GOOD))
+    await summariseChanges(client, CHANGES, CONTEXT)
+    const facts = JSON.parse((asked[0] as AskedBody).messages.at(-1)!.content) as {
+      changes: Record<string, unknown>[]
+    }
+    // The authoring API plan's Task 2: handed over with a sentence saying what they mean, the
+    // removed `sn` reversed 30 times in 160 answers against 22 without them. Re-measure first.
+    for (const change of facts.changes) {
+      expect(change).not.toHaveProperty('added')
+      expect(change).not.toHaveProperty('removed')
+    }
+    expect((asked[0] as AskedBody).messages[0]!.content).not.toMatch(/`added`|`removed`/)
   })
 
   it('checkExposure refuses the decision vocabulary and nothing else it was measured against', () => {

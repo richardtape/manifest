@@ -816,6 +816,10 @@ export interface components {
                 to: string;
                 /** @description One clause a faculty member can read. */
                 summary: string;
+                /** @description For a set-valued field only (`auth.attributes`, `egress.allow`, `ai.models`, `services`, `env`): what this change added, sorted — members of the set, or the names of services and variables. Absent for any other field, and absent from a record taken before the field existed. */
+                added?: string[];
+                /** @description For a set-valued field only: what this change removed, sorted — what the app no longer has. Absent exactly when `added` is. */
+                removed?: string[];
             }[];
             /** @description `type@version`, sorted — what this release asks the platform to run. */
             services: string[];

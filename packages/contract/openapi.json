@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Manifest",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "description": "Manifest's public API (§22). Generated from the control plane's route definitions; do not edit. Resource routes are under /v1 (D23.8); a breaking change is a new prefix beside it. Response objects may gain fields under /v1 — a client ignores fields it does not know. Every mutation carries an Idempotency-Key, and a session-bearing mutation carries Origin (§20)."
   },
   "servers": [
@@ -2866,6 +2866,20 @@
                 "summary": {
                   "description": "One clause a faculty member can read.",
                   "type": "string"
+                },
+                "added": {
+                  "description": "For a set-valued field only (`auth.attributes`, `egress.allow`, `ai.models`, `services`, `env`): what this change added, sorted — members of the set, or the names of services and variables. Absent for any other field, and absent from a record taken before the field existed.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "removed": {
+                  "description": "For a set-valued field only: what this change removed, sorted — what the app no longer has. Absent exactly when `added` is.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
               "required": [

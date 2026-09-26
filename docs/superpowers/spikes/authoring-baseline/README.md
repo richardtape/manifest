@@ -247,3 +247,53 @@ comment (2) are not call sites: `driver-contract.ts` 6, `api/projects.test.ts` 5
 which resolves only from `docs/superpowers/`; from the repository root it is `node
 docs/superpowers/spikes/authoring-baseline/probes/f7.mjs 40 2` (its parent, `d5-baseline/probes/structured.mjs`,
 exists and imports the shipped `summary.ts`).
+
+## Task 2 — F7, measured over 320 answers (sitting 2, 2026-09-25)
+
+**The question** (the plan's Task 2, Steps 1 and 5): does handing the model an attribute change's `added` and `removed`
+halves as facts of their own — plus one prompt sentence saying what they mean — stop the approval summary reversing a
+removed CWL attribute? **The rule**: adopt when, over 40 two-change answers, reversals are at most 1, fewer than the
+baseline's, and at most 2 withheld.
+
+**How**: [`probes/f7.mjs`](probes/f7.mjs) drives the SHIPPED `summariseChanges` against LiteLLM 1.98.0 → Ollama
+`qwen3.5:4b` (warm), 40 answers per run, and prints the facts the model was handed — so each file shows whether the two
+lists reached it. "Before" is `summary.ts` at `HEAD` (`2669f6b`); "after" is Task 2's. The three-change shape adds a
+`resources.memory` change to the two. Step 1 measured only the two-change baseline; the three-change baseline and a
+second replicate of all four cells were added (a ruling) when the first three-change "after" run read 10 in 40 with
+nothing to compare it to. **Every `auth.attributes` sentence the classifier marked, and every one it could not place,
+was read by hand**; the criterion is the D5 plan's (sitting 7, F7): a sentence that says the app receives `sn` — or a
+misnamed `sn`, or names or personal information "previously excluded" — when the change removes it.
+
+| Reversals, by hand | before (shipped) | after (Task 2) | files |
+|---|---|---|---|
+| 2 changes, replicate 1 | 2 / 40 | 1 / 40 | `results-task2-step1-…`, `results-task2-step5-two-…` |
+| 2 changes, replicate 2 | 3 / 40 | 2 / 40 | `results-task2-rep2-before-two-…`, `…-after-two-…` |
+| 3 changes, replicate 1 | 6 / 40 | 10 / 40 | `results-task2-step1-three-…`, `results-task2-step5-three-…` |
+| 3 changes, replicate 2 | 11 / 40 | 17 / 40 | `results-task2-rep2-before-three-…`, `…-after-three-…` |
+| **all 160 each** | **22** | **30** | |
+
+Kept 40 of 40 in every one of the eight runs: nothing withheld, nothing unavailable. Median 1.7–1.8 s at two changes,
+2.3–2.6 s at three.
+
+**The classifier's errors, corrected by hand**: it marked seven sentences REVERSAL whose direction is right (*"receives
+less personal information, specifically the surname"*, *"receives fewer personal attributes … since the sn … is no longer
+requested"*, *"receives the first name … instead of also receiving their last name"*), and missed eleven reversals that
+name `sn` as something else or not at all (*"may receive the student number attribute in addition to …"*, *"receives
+personal information that was previously not requested"*).
+
+**The answer: NOT ADOPTED.** Replicate 1 met the rule (1 ≤ 1, fewer than 2, 0 withheld); replicate 2 did not (2 > 1);
+and at three changes it read WORSE — 17 → 27 over 80 (Fisher's exact test, two-sided, p = 0.11; at two changes 5 → 3,
+p = 0.72). Over all 320 answers it reads worse, 22 → 30 (p = 0.29). None of these differences is significant; what
+decides is that it does not measure BETTER, which is the rule's word. **The prompt sentence and the two facts are reverted; `added` and
+`removed` stay on `SpecChange` and on the published `ApprovalDiff`** (true, computed, and a client's to use), and F7 goes
+back to Rich with options (b) *no sentence for attribute changes* and (c) *no sentences at all*.
+
+**Two things this measured that Rich did not have when he chose "fixed after the plan"** (2026-09-25):
+
+1. **The reversal rate depends on the diff's size.** The shipped function reverses the `sn` removal in 5 of 80
+   two-change answers (6%) and in **17 of 80 three-change answers (21%)** — one more, unrelated change (a raised memory
+   limit) more than triples it. The D5 plan's 5 of 40 was measured at two changes.
+2. **The model does not know what `sn` is.** Grep-counted over the sentences: it names `sn` a *student number*, *student
+   ID*, *serial number*, *subject name* or a **social security number** in 6–12 of 40 answers per run, in both variants
+   — Step 1's hand read found 10 of 40, four of them a social security number, and one said `givenName`, which is kept,
+   was removed.

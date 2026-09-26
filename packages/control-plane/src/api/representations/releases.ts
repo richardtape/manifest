@@ -140,6 +140,18 @@ export const ApprovalDiff = representation(
           from: z.string(),
           to: z.string(),
           summary: z.string().describe('One clause a faculty member can read.'),
+          added: z
+            .array(z.string())
+            .optional()
+            .describe(
+              'For a set-valued field only (`auth.attributes`, `egress.allow`, `ai.models`, `services`, `env`): what this change added, sorted — members of the set, or the names of services and variables. Absent for any other field, and absent from a record taken before the field existed.',
+            ),
+          removed: z
+            .array(z.string())
+            .optional()
+            .describe(
+              'For a set-valued field only: what this change removed, sorted — what the app no longer has. Absent exactly when `added` is.',
+            ),
         }),
       ),
       services: z

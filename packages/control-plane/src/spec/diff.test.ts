@@ -173,6 +173,8 @@ describe('describeDiff (§14)', () => {
         from: 'none',
         to: 'mongo 7 (db)',
         summary: 'added a mongo database called db',
+        added: ['db'],
+        removed: [],
       },
     ])
   })
@@ -214,8 +216,32 @@ describe('describeDiff (§14)', () => {
         summary:
           'changed the mongo database called db from version 7 to 8; ' +
           'removed the qdrant vector store called vectors',
+        // By NAME: `db` changed version and is in neither list (F7).
+        added: [],
+        removed: ['vectors'],
       },
     ])
+  })
+
+  it('names what a set-valued change ADDED and REMOVED, as lists — the facts F7 needs', () => {
+    const before = staged({
+      auth: { provider: 'cwl', attributes: ['mail', 'sn', 'ubcEduCwlPuid'] },
+    })
+    const after = staged({
+      auth: { provider: 'cwl', attributes: ['givenName', 'mail', 'ubcEduCwlPuid'] },
+    })
+    const change = describeDiff(before, after).find((c) => c.path === 'auth.attributes')!
+    expect(change.added).toEqual(['givenName'])
+    expect(change.removed).toEqual(['sn'])
+  })
+
+  it('gives a scalar change neither list', () => {
+    const change = describeDiff(
+      staged({ resources: { memory: '256Mi' } }),
+      staged({ resources: { memory: '512Mi' } }),
+    ).find((c) => c.path === 'resources.memory')!
+    expect(change).not.toHaveProperty('added')
+    expect(change).not.toHaveProperty('removed')
   })
 
   it('says which way a resource moved, one dimension at a time, in real units', () => {
@@ -263,6 +289,9 @@ describe('describeDiff (§14)', () => {
         from: 'API_BASE, TOKEN',
         to: 'API_BASE, FEATURE_FLAG',
         summary: 'added FEATURE_FLAG; removed TOKEN; changed the value of API_BASE',
+        // NAMES: a changed value is in `summary` alone (F7).
+        added: ['FEATURE_FLAG'],
+        removed: ['TOKEN'],
       },
     ])
     const text = JSON.stringify(changes)
