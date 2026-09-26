@@ -81,8 +81,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the authoring API plan's sitting 3 (2026-09-25): +66 and two files — Task 4's read cases
 # (4 contract cases × 2 drivers, 8) and `source/reading.test.ts` (14); Task 5's `api/source.test.ts`
 # (7), its four rows in the authorization matrix (36) and the mock answering from the document (1).
-EXPECT_TESTS=2103
-EXPECT_FILES=148
+# Then the authoring API plan's sitting 4 (2026-09-26): +28 and one file — `api/source-commit.test.ts`
+# (12), `createCommit`'s row in the authorization matrix (9), `pathProblem` (2), an invalid
+# validation announced (1), and Task 7's builds of the right spec (2) and the blueprint pin (2).
+EXPECT_TESTS=2131
+EXPECT_FILES=149
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 

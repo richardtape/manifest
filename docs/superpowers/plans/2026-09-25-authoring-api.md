@@ -43,7 +43,7 @@
 
 1. **The split: APPROVED as proposed — ten sittings.**
 2. **The network for Task 1 Step 6: YES.** Fetch the two HTML-renderer candidates, `@scalar/api-reference` and `redoc`, at their current versions into `$SCRATCH`, so they land in the pnpm store. **That is the only outward action sitting 1 may take.** Judge them offline by the browser's network log, not by turning the network off.
-3. **Spec action 2 (production secrets): NOT ANSWERED YET** — it is needed before sitting 5, not before sitting 1. **Spec actions 1 and 3 can wait until sitting 10.** *Sitting 4's close must ask it again if it is still open.*
+3. **Spec action 2 (production secrets): NOT ANSWERED YET** — it is needed before sitting 5, not before sitting 1. **Spec actions 1 and 3 can wait until sitting 10.** *Sitting 4's close must ask it again if it is still open.* **→ ANSWERED AT SITTING 4'S CLOSE (2026-09-26): OPTION (a), as proposed — and applied** (*Decided by Rich*).
 4. **Execution: `superpowers:executing-plans`, inline — no subagent per task.** The plan's one fresh whole-branch review happens at the END of the plan (sitting 10), not in any earlier sitting.
 
 *The **Status** column records what a sitting made true, never how many findings it produced. That number lives once, in the roadmap's defect-rate table (Rich, 2026-09-20).*
@@ -53,8 +53,8 @@
 | 1 | 1 | **The measurements this plan rests on.** Measured while it was written, and to be re-measured: the symlink escape and `fsmonitor` through a worktree, the plumbing commit, `--index-info`'s silent replacements, the documentation baseline, a JSON Schema for `manifest.yaml`. **To be measured for the first time:** the HTML renderer's candidates offline (**network at Rich's yes**), the two store packages offline, a tree listing's cost at 10,000 files, the build context on a very large tree, `exec` against a real container (the brief's §7), and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-25** — every premise holds and no boundary moves; the renderer is Scalar 1.72.0; `zod-to-json-schema`, no v4 port; `[M<n>]` blocks on Tasks 2, 3, 4, 9, 11 |
 | 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | **DONE 2026-09-25** — F7's option (a) measured over 320 answers and NOT adopted — then, at Rich's answer, option (b): no model sentence for a CWL attribute change; `added`/`removed` published, contract `1.3.0`; every commit on both drivers built with plumbing and no worktree, the attacks contract cases; Docker tier green |
 | 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract regenerated INSIDE `1.3.0` (Task 2 already took the plan's one bump) | **Yes** — `source/`, `projects/` | **DONE 2026-09-25** — both drivers read a tree, a text file, a first-parent history and one commit's changes; `getTree`, `getFile`, `listCommits` and `getCommit` published inside `1.3.0` with examples; the mock answers them from the document (Task 10's Step 1, done early) and the console parks them for Task 10 |
-| 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | ← **next** |
-| 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | |
+| 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | **DONE 2026-09-26** — `createCommit` published inside `1.3.0` with its dry run, `source:write` (mintable), the manifest validated before anything is written, `repository.committed` / `repository.secret_refused`, `spec.validated` on every validation and `madeThrough` on the history; a build of a named commit uses THAT commit's validation, and a manifest must name the project's pin (`SPEC_BLUEPRINT_NOT_PINNED`); driven through the edge; Docker tier green |
+| 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | ← **next** — Spec action 2 answered (a), applied 2026-09-26 |
 | 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths | |
 | 7 | 10 | **The console and the mock**: a Code screen (tree, file, edit, delete, commit, history, one commit) and a Secrets screen; the mock answers every new operation from the document's own examples; both coverage gates | **No** | |
 | 8 | 11 | **The guides, served**: `docs/api/` — hand-written guides whose code examples are real files, type-checked and run against the mock — a reference generated from the document, the journey as a gate, all served at `/v1/docs` and `/v1/openapi.json`, `llms.txt`, a console Docs screen, **the HTML reference page**, and the knowledge pack's pointer | **Yes** — `blueprints/` (the knowledge pack), `api/` boot | |
@@ -77,6 +77,7 @@
 **Each of these was answered by Rich from options with their costs stated. Do not re-ask any of them** (ORIENTATION §8, *Decided*).
 
 - **The authoring API is its own Phase 2 plan, after D5's GitHub driver** (2026-09-22), with **text files only in v1**, **the front-end project specced against this slice** rather than waiting for sandboxes, and **S5 not scheduled until after it**. *Cost, accepted:* a front-end team waited one plan longer.
+- **SPEC ACTION 2: OPTION (a), AS PROPOSED** (2026-09-26, at sitting 4's close, taking the recommendation) — a delegated token sets its app's sandbox and staging secrets; a production value only in an interactive session with step-up, refused to a token outright, without joining D24's four. Applied to §20 and D24 the same night, in the words *Spec actions*, 2, gives; `manifest-decisions.html` restates it. *Rejected:* (b) a token sets any environment's; (c) production joins D24's privileged set.
 - **F7, AFTER TASK 2 MEASURED OPTION (a) AND IT READ WORSE: OPTION (b)** (2026-09-25, after sitting 2's close) — a CWL attribute change gets NO model sentence; its change line is the record. *Rejected:* (c) no sentences at all; (d) keep them shown and labelled. Applied the same evening (the record, *Sitting 2*, *After the close*).
 - **F7 is this plan's first task after the measurements** (2026-09-25) — Task 2. The approval summary's sentence reversed a removed CWL attribute 5 times in 40 (the D5 plan's sitting 7). The fix to try is handing the model each attribute change's added and removed halves as their own facts, measured over 40 answers before it is adopted. *Rejected (2026-09-25, the D5 plan):* no sentence for attribute changes; no sentences at all. *Offered and not chosen:* a separate small follow-up.
 - **The acceptance is a bulletin board** (2026-09-25): an agent builds it from the bare skeleton through the new API, and a student posts and an instructor replies in it.
@@ -94,7 +95,7 @@
 **Six things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
 
 1. **Approve the sittings split** — before sitting 1. **DONE 2026-09-25: ten, as proposed.**
-2. **Read and decide the three spec actions** (*Spec actions*, below) — **Spec action 2 before sitting 5** (Task 8 builds whichever he chooses), Spec actions 1 and 3 any time before sitting 10's sweep. **And place Spec action 1's plan**: this plan recommends directly after this one, ahead of the vulnerability database in the console, for the reason Rich gave when he placed that plan — `make refresh-vulndb` already meets the laptop's need, and an agent debugging a running app blind does not have one.
+2. **Read and decide the three spec actions** (*Spec actions*, below) — **Spec action 2 before sitting 5 (DONE 2026-09-26: option (a), applied)** (Task 8 builds whichever he chooses), Spec actions 1 and 3 any time before sitting 10's sweep. **And place Spec action 1's plan**: this plan recommends directly after this one, ahead of the vulnerability database in the console, for the reason Rich gave when he placed that plan — `make refresh-vulndb` already meets the laptop's need, and an agent debugging a running app blind does not have one.
 3. **The network, and a yes, for the HTML renderer — sitting 1 (Task 1, `[M9]`). YES, 2026-09-25 — that fetch and nothing else.** Task 1 installs the candidates into a scratch directory, so that each lands in this machine's pnpm store; Task 11's `pnpm add --offline` then needs no network. The one outward action is fetching two packages from the npm registry.
 4. **The clicked half of the acceptance — sitting 10.** A person clicks, the agent reads the screens, and **Rich types every password** (ORIENTATION §4 trap 6: the Chrome extension is refused on `idp.manifest.internal`, and a password is never an agent's to type).
 5. **`make refresh-vulndb`, with the network on, if execution runs past 2026-10-01.** Past it, `make demo-production` and `make demo-releases` go red at §13's `scans` item.
@@ -1602,7 +1603,24 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > from it; its gate names an operation with neither a fixture nor an example) and a **`DELIBERATELY_UNCALLED`** line in
 > `packages/console/src/coverage.test.ts` naming Task 10 as its remover. Task 6's `[S3]` block has the rest.
 
-**Spec action 2 must be answered before this task starts** (*What Rich does* 2). The steps below build the recommended answer — **a production value is set only in an interactive session with step-up** — and say what changes if Rich chooses otherwise.
+> **`[S4]` — WHAT TASK 6 MET THAT THIS TASK WILL MEET (2026-09-26, sitting 4; its record).** Five things this task's Files
+> list does not name, each of which turned a gate red for Task 6:
+> 1. **`String.prototype.isWellFormed` is not in `tsc`'s lib** — `tsconfig.base.json` targets ES2023 and it is ES2024 —
+>    so Step 1's `v.isWellFormed()` is a type error. Task 6 used `/\p{Surrogate}/u` (`api/representations/source.ts`'s
+>    `LONE_SURROGATE`, measured equal to `isWellFormed` on a lone high, a lone low, a pair and `é`); reuse it.
+> 2. **A capability added to `CAPABILITIES` is a `tsc` error in the CONSOLE** until `packages/console/src/screens/tokens.tsx`'s
+>    `everyCapability([...])` lists it — which is what that function is for. `secret:write` goes there, and in the
+>    authorization matrix's `token-capable` list (`api/authz-contract.ts`, `CAPABLE`) if the route is to pass on a token.
+> 3. **A new event type must be REACHED by `api/stream-contract.test.ts`'s lifecycle** or listed in its
+>    `PUBLISHED_ELSEWHERE` — Task 6's first full run was red there. Task 6 DROVE its two types in the lifecycle (a commit, a
+>    refused secret), so both frames are parsed; do the same with a set and a cleared secret.
+> 4. **The migration must be APPLIED to `manifest_control` before the unit tier runs** — the harness TRUNCATEs the
+>    platform's own database and never migrates it, so a new `CHECK` literal is a `500` on every insert until
+>    `db:migrate` runs (ORIENTATION §3 has the one-line form). Task 6 saw it as ten reds of `500 INTERNAL`.
+> 5. **`RouteCase.request` may be async since Task 6** (`Fixture.mainHead`), and `createCommit`'s row shows a mutating
+>    row that must not depend on another actor's run. Its `[S3]` block's two package gates still apply.
+
+**Spec action 2 must be answered before this task starts** (*What Rich does* 2). The steps below build the recommended answer — **a production value is set only in an interactive session with step-up** — and say what changes if Rich chooses otherwise. **→ ANSWERED 2026-09-26, OPTION (a) — THE RECOMMENDED ANSWER, APPLIED TO THE SPEC** (*Decided by Rich*): build the steps as written, and take none of the *"if Rich chooses otherwise"* branches.
 
 **Files:**
 - Create: `packages/control-plane/src/secrets/app-env.ts` — `setAppSecret`, `clearAppSecret`, `appSecretStatuses`, `appEnvSecretValues`
@@ -1837,6 +1855,12 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > gate refuses a park whose operation has a caller (a *stale park*), so adding the callers without removing the parks is
 > red. Step 6's second control (`exampleOf` answers nothing) was run in sitting 3: the gate named the four.
 
+> **`[S4]` (2026-09-26, sitting 4):** Task 6 parked **`createCommit`** beside the four (five now, before Task 8 adds
+> three). Its answer is `CommitOutcome` — `changes` sorted by path, `spec.sensitiveDiff`, `commitSha: null` on a dry run —
+> and the history's `CommitSummary` gained **`madeThrough`** (`{ kind, name, tokenName }` or null), which the Code
+> screen's history should show beside `authorName`: git's author text is a claim, `madeThrough` is the platform's record.
+> **`source:write` is already in `tokens.tsx`'s list** (`tsc` required it in Task 6), so the token screen offers it.
+
 **D22's rule makes this task compulsory, not cosmetic**: `packages/console/src/coverage.test.ts` refuses an operation with no caller in `src/api.ts`, and `DELIBERATELY_UNCALLED` is empty. The screens are **plain but presentable** (§22's quality bar) — the product is the front-end project's.
 
 **Files:**
@@ -1872,6 +1896,12 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > **`[S3]` (2026-09-25, sitting 3, F8):** `listDocs`, `getDoc` and `getOpenApiDocument` each need an **`examples`**
 > entry and a console caller or a `DELIBERATELY_UNCALLED` line (Task 6's `[S3]` block). The console's Docs screen is this
 > task's own, so the caller can land with the route.
+
+> **`[S4]` (2026-09-26, sitting 4):** `startBuild`'s description now states, in words, that a build of a named commit
+> uses THAT commit's validation and that an empty body builds the newest RECORDED validation's commit — *"not
+> necessarily `main`'s head: name the commit you mean"* — which is what the guide should quote (Task 7). A 413's hint names
+> both body limits (1 MiB, and `createCommit`'s 8 MiB). A `manifest.yaml` must name the project's own blueprint
+> (`SPEC_BLUEPRINT_NOT_PINNED`, compared whole, major included).
 
 > **`[M9]` — MEASURED (2026-09-25, sitting 1; F8, F9, F10, F16): THE RENDERER IS SCALAR, `@scalar/api-reference` 1.72.0
 > (MIT).** Redoc 2.5.4 fails the hard offline criterion — its side menu's *API docs by Redocly* footer fetches
@@ -2048,6 +2078,16 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Task 13: The acceptance — `make demo-authoring`: an agent builds the bulletin board from the bare skeleton through the API, on both drivers, and a person uses it
 
+> **`[S4]` — WHAT TASKS 6 AND 7 BUILT THAT THIS TASK DRIVES (2026-09-26, sitting 4; its record).** `createCommit` answers
+> `201` with `CommitOutcome` (`changes` sorted by path); an agent's token needs **`source:write`** (and `project:read` to
+> read what it writes) — `project:write` alone is `403 FORBIDDEN`. **A build of a named commit freezes THAT commit's
+> manifest**, validating it first if nobody has; the empty body builds the newest recorded validation's commit. Driven
+> through the edge on driver 1 in sitting 4: a 7 MiB commit body passes the edge (`201`) and a 9 MiB one is `413` from the
+> control plane, so the edge adds no smaller limit. **Not measured, and worth knowing on driver 2:** driver 2's commit
+> syncs its mirror after the push, and the mirror's observer publishes `repository.pushed` for any branch that moved —
+> so an API commit there probably reads as BOTH `repository.committed` and `repository.pushed`, and the fake's webhook
+> delivery for it then finds the head already validated. Assert what is seen, not this.
+
 **ALONE, AND LAST.** It drives the authoring path end to end through nothing but `@manifest/contract` — **as an agent, holding a delegated token** — from an empty skeleton to a running bulletin board, on driver 1 and on driver 2. It is **green three times on each driver**, a step of the offline acceptance and of `make ci-acceptance`, and **clicked by a person**: a student posts a question and an instructor replies.
 
 **Files:**
@@ -2139,7 +2179,7 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 *Options:* **(a) as proposed** (recommended); (b) sandbox only — staging carries test users too, and an agent's loop runs against staging today; (c) keep §14 as it is. **Placement**: its own small plan — recommended directly after this one (*What Rich does* 2).
 
-### 2. §20 and D24 — who may set an app secret's value, and where (before sitting 5)
+### 2. §20 and D24 — who may set an app secret's value, and where (before sitting 5) — **DECIDED 2026-09-26: (a), AS PROPOSED; APPLIED THE SAME NIGHT**
 
 **Why.** Task 8 builds write-only app secrets. §20's credential table lists what a delegated token carries, and D24 what it may never carry — **neither mentions setting a secret's value**, because nothing could until now. A production secret is what a live app presents to a real service (§7's example is `SIS_API_KEY`), so an agent that could set one could point a live app at a service of its choosing.
 
@@ -2645,24 +2685,7 @@ argv is an option; on driver 1 the name is only ever `refs/heads/<name>`, which 
 the check on both drivers: `-x` stayed `SOURCE_REF_NOT_FOUND`, and **`main^` resolved to `main`'s parent** — revision
 syntax is what the check actually stops.
 
-**F8 — FOUR NEW OPERATIONS TURN TWO PACKAGE **`pnpm test` moved twice: 2059 in 147 after Task 4, then 2103 passed in 148 files after Task 5**, each twice, alone and
-identical (390 s and 397 s; 402 s and 400 s) — +66 and two files: Task 4's read cases (4 contract cases × 2 drivers) and
-`source/reading.test.ts` (14); Task 5's `api/source.test.ts` (7), four rows in the authorization matrix (36) and the mock
-answering from the document (1). The open read 2037 in 146 (385 s). **Task 4's first full run was one red — F1 — and a
-second run was stopped part-way when F2 was found mid-run**, so no code changed under a running suite (sitting 2's F1).
-`pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean. **`make doctor` 20/0/0** at the open and the close; **`make
-verify` 57/0/0** at the open, after the Docker tier and at the close; **`pnpm test:docker` 208 in 34, 0 skipped, 895 s,
-green first time** — owed by `source/`, run on `ea30832`, at load 3.7–4.8; the host reached the edge afterwards with no
-restart. **Contract `1.3.0`**: `ErrorCode` +4 (Task 4); four operations, five schemas, the tag `source`, and one lifted
-parameter description, `getBuildLog`'s `tail` (Task 5).
-
-**Driven through the edge** (CLAUDE.md's first *Before you trust a green result*): the control plane started per RUNBOOK
-(`"driver":"docker","source":"local"`, origin `https://console.manifest.internal`), then a scratch script — a real CWL
-sign-in as `ins000001`, `POST /v1/projects` for `reads-drive`, and the four reads through `https://console.manifest.internal`:
-`getTree` at the seed (4 entries), `getFile` of `manifest.yaml` (97 bytes, `name: reads-drive`), `listCommits` (the seed,
-by `Manifest`, `next: null`, no `@` anywhere), `getCommit` (four files added, `manifest.yaml +6`), and `?ref=-x` →
-`REQUEST_INVALID`, `?path=nope` → `SOURCE_PATH_NOT_FOUND`, `?ref=no-such` → `SOURCE_REF_NOT_FOUND`. Every check passed; the
-control plane was stopped after (it was not running at the open). RED, AND THE PLAN LEAVES THEM RED FOR FOUR SITTINGS.** The console's
+**F8 — FOUR NEW OPERATIONS TURN TWO PACKAGE GATES RED, AND THE PLAN LEAVES THEM RED FOR FOUR SITTINGS.** The console's
 `coverage.test.ts` (every operation has a caller, `DELIBERATELY_UNCALLED` empty) and `manifest-mock`'s `server.test.ts`
 (every operation has an entry) both named the four, as predicted; Task 5's Files list touches neither, and Task 10 — the
 fix for both — is sitting 7. Decision 4 above. **Tasks 6, 8 and 11 meet the same two gates**: their `[S3]` blocks say so.
@@ -2752,3 +2775,204 @@ ask Spec action 2 at its close); RUNBOOK's gate parenthetical; `scripts/ci-accep
 history comment); TRAPS.md (three traps: F3, F2, F8). **CLAUDE.md's *State* unchanged** — no plan started or finished and no
 *Outstanding* item moved. **The four shared HTML pages were checked and left alone**: none states the authoring API's status,
 a gate count, or anything about reading source.
+
+### Sitting 4 — Task 6 (committing over the API) and Task 7 (builds of the right spec) — 2026-09-26
+
+**AN API CLIENT CAN NOW WRITE A PROJECT'S CODE, AND A BUILD OF A COMMIT IS BUILT WITH THAT COMMIT'S OWN MANIFEST.** Task 6
+published `createCommit` (`POST /v1/projects/{projectId}/commits`, tag `source`) inside `1.3.0`: writes and deletions on
+`main` against a named `baseCommit`, checked in Decision 6's order — the request schema (Decision 4's path and text rules,
+stated once as `source/plumbing.ts`'s `pathProblem`), secret-shaped values found as data and published as
+`repository.secret_refused` (never on a dry run, never the value), the driver's own dry run (base, planner, tree), then the
+`manifest.yaml` the commit would leave, validated with `validateAndRecord`'s own function and refused `422 SPEC_INVALID`.
+`dryRun: true` answers exactly what would change. Its own `bodyLimit` of 8 MiB (Decision 11). **`source:write`** is its own
+capability — owner, collaborator, administrator; mintable — and **`repository.committed`** is the platform's record of who
+made a commit, which `listCommits` and `getCommit` answer as **`madeThrough`** (one query per page), never from git's author
+text. Every validation now publishes **`spec.validated`** (Decision 7). Task 7 made `startBuild` use the validation of the
+commit it builds — validating it first if nobody has — and **`SPEC_BLUEPRINT_NOT_PINNED`** refuses a manifest that names
+anything but the project's pin. Commits `3e280ae` (Task 6), `11e7fa8` (F11), `66c62c4` (Task 7) and `93b42cd` (F18).
+
+#### The decisions this sitting made
+
+**1. `authorFor` never falls back to a PUID** (F8): a blank display name reads *"A Manifest user"*, in git history and in
+the sentence alike — Decision 5 says no PUID reaches git history, and the plan's Step 5 said the opposite.
+
+**2. `ValidationContext.projectBlueprint` is REQUIRED** (F14), as the Interfaces line says, not "when set" as Step 2 does —
+so `tsc` named every caller, one of which the plan's grep could not have found. **The pin is compared whole**, major
+included: `node-ts-mongo@1` is not `node-ts-mongo@2`, and moving a project between them is not something a commit can do.
+
+**3. `CommitOutcome.changes` is sorted by path in the route** (F7), as `getCommit` lists a commit's changes.
+
+**4. The authorization matrix's `RouteCase.request` may be async** (F10) — `Fixture.mainHead` reads `main` per case, so each
+passing actor commits its own `matrix/<actor>.txt` on a fresh base and no actor's answer depends on another's.
+
+**5. `stream-contract.test.ts` DRIVES the two new event types** (F3) — a commit and a refused secret in its lifecycle — rather
+than excusing them in `PUBLISHED_ELSEWHERE`, so both frames are parsed as `StreamFrame`s.
+
+**6. The route scans the commit MESSAGE as well as the files** (F18) — no driver's scan reads a message.
+
+Every other call is a `Ruling:` line in the ledger (`isWellFormed` as a regex, `userId` in `repository.committed`,
+`writeFiles`' optional author, seven files for the body-limit control, the two AI codes on `startBuild`).
+
+#### The findings
+
+**F1 — §7E'S MACHINE STATE WAS WRONG AT THE OPEN.** It said the control database held `reads-drive` alone; it held
+**nothing** (0 projects, 0 events). Sitting 3's close re-ran `config.test.ts` and `db/client.test.ts` after its sweep —
+both Vitest runs, and every Vitest run truncates — AFTER it had queried the state it wrote down. **The state table must be
+queried after the LAST Vitest run of the close, including a post-sweep re-run of RUNBOOK's two readers.**
+
+**F2 — SITTING 3'S RECORD HAD TWO PARAGRAPHS SPLICED INTO ITS F8.** *The gates* and *Driven through the edge* — both also
+present, intact, under its own heading — had been pasted into the middle of F8's bold heading, so F8 read *"FOUR NEW
+OPERATIONS TURN TWO PACKAGE **`pnpm test` moved twice…**"*. Found reading it cold; repaired (the findings count is
+unchanged — the line always began `**F8`).
+
+**F3 — THE PLAN'S FILES LIST OMITS `api/stream-contract.test.ts`**, which holds every event type to a frame its lifecycle
+reached: Task 6's first full run was red there, naming `repository.committed` and `repository.secret_refused`.
+
+**F4 — A CAPABILITY ADDED TO `CAPABILITIES` IS A `tsc` ERROR IN THE CONSOLE.** `packages/console/src/screens/tokens.tsx`'s
+`everyCapability([...])` refuses a list that misses one — which is its purpose, and which `pnpm test` cannot see. The plan's
+Files list does not name it; `source:write` is there now. Task 8's `secret:write` meets the same gate (its `[S4]` block).
+
+**F5 — `String.prototype.isWellFormed` IS NOT IN `tsc`'S LIB.** It is declared only in `lib.es2024.string.d.ts`, and
+`tsconfig.base.json` targets ES2023, so the plan's `c.isWellFormed()` is a type error. `/\p{Surrogate}/u` measured equal on a
+lone high surrogate, a lone low one, a pair and `é`. (The plan foresaw this; Task 8's snippet repeats it.)
+
+**F6 — A NEW `CHECK` LITERAL IS A `500` ON EVERY INSERT UNTIL THE MIGRATION IS APPLIED BY HAND.** The unit tier truncates
+`manifest_control` itself and never migrates it, so the first run of the new cases was ten reds of `500 INTERNAL` — every
+path that published. The plan's Step 3 says generate and read the migration; it does not say apply it before testing.
+
+**F7 — THE DRIVER ANSWERS A COMMIT'S `changes` IN REQUEST ORDER**; the representation says *by path*, as `getCommit` does.
+Red in TDD first (the three-change case).
+
+**F8 — THE PLAN'S `authorFor` FALLS BACK TO A PUID, WHICH ITS OWN DECISION 5 FORBIDS** in git history. Decision 1 above.
+
+**F9 — DECISION 10'S `repository.committed` PAYLOAD OMITS `userId`, WHICH `madeThroughFor`'S JOIN NEEDS** — `audit.events`
+has no actor column. Step 3's schema has it; kept.
+
+**F10 — THE MATRIX COULD NOT GIVE A COMMIT ROW A FRESH BASE**: `request(fixture, actor)` was synchronous, and five passing
+actors each move `main`, so a shared base would have made the fifth a `409 SOURCE_CONFLICT` wearing an authorization
+expectation's clothes. Decision 4 above.
+
+**F11 — THE 413'S HINT SAID *"No API request needs more than 1 MiB"*** — false on `/v1` itself since `createCommit`. Found
+by reading the answer control (d) produced; fixed in its own commit, `11e7fa8`, the size case asserting the new hint, red
+first.
+
+**F12 — THE PLAN'S *"8 writes of 1 MiB minus escaping"* CANNOT BE UNDER 8 MiB** once JSON-framed. Seven files is the positive
+control for the route's own limit (a 7,340,459-byte body through the edge — see below), nine the `413`.
+
+**F13 — THE PLAN'S FOUR TASK 6 CONTROLS LEAVE `source:write` UNSEEN.** The matrix cannot tell it from `project:write`
+(sitting 3's F9, again): every passing actor holds both. Added control (e) — the route asserting `project:write` — left the
+matrix 514/514 green, and only the new *project:write-alone token* case (and the `source:write` token case) went red.
+
+**F14 — A REQUIRED `projectBlueprint` FOUND A CALLER THE PLAN'S GREP COULD NOT.** Step 2 says `grep -n "validationContext("`
+and account for each; the webhook never calls it — it passes `projectForRepository`'s row through `validateAndRecord`, and
+that query did not select `blueprint_ref`. `tsc` named it only because the field is required.
+
+**F15 — `startBuild` NOW READS THE MODEL CATALOGUE** — an unvalidated commit is validated first — so its `errors` gain
+`AI_BACKEND_UNAVAILABLE` and `AI_CATALOGUE_EMPTY`, which the plan did not list.
+
+**F16 — AN INVALID SPEC THAT REACHES `checkBlueprintCompatibility` IS A `500`.** Control (c) removed `startBuild`'s
+`!spec.valid` refusal and predicted a `202`; the answer was `500 INTERNAL`, because an invalid row's `parsed` is `{}` and the
+compatibility check dereferences it. **The refusal is the only guard.** Named here, not fixed: the code as shipped refuses
+first, and hardening the check against `{}` is a change to `blueprints/` no task owns.
+
+**F17 — MY OWN DRIVE SCRIPT'S FIRST RUN: `$(…)` STRIPS A TRAILING NEWLINE.** The manifest read with command substitution
+lost its last `\n`, and `resources:` was glued onto the `health:` line — the platform answered `422 SPEC_INVALID`, its
+`SPEC_YAML_PARSE_FAILED` detail arriving whole through the edge. An instrument defect; TRAPS.md has it, for Task 13's
+scripts. It left a second project behind (`commit-drive`).
+
+**F18 — A SECRET IN THE COMMIT *MESSAGE* WAS COMMITTED, AND WRITTEN TO THE AUDIT TRAIL UNREDACTED.** Control (b′) showed the
+redactor's heuristics miss an AWS key id (20 characters; the entropy rule starts at 24), and `repository.committed`'s sentence
+carries the message's subject — while no scan read a message: the route scanned `writesOf(changes)`, and each driver's
+`assertNoSecrets` and driver 1's `pre-receive` read file content only. A test committing `use the key AKIA…` answered `201`,
+red before the fix. The route now scans `(the commit message)` with the files, published and refused like any finding.
+**This is Review Focus 4's own failure mode, through a path the plan's test did not exercise.**
+
+**Measured, and not a defect:** driver 1's dry run is **121 ms** median (10 runs) against **201 ms** for the commit itself, at
+load 2.5 — so a real API commit pays ~120 ms for planning twice (Step 5 asked); the edge adds no body limit below the
+route's own (a 7,340,459-byte commit passed it, a 9,437,706-byte one was the control plane's `413`); the redactor leaves an AWS
+key id alone (F18's premise, and control (b′)'s prediction).
+
+#### Negative controls — each predicted in writing before it ran, on the committed tree
+
+| # | Break | Predicted | Seen |
+|---|---|---|---|
+| T6 (a) | `createCommit` skips the manifest step | the invalid-manifest case red at its first refusal, alone | `dryRun false: expected { status: 201 } to deeply equal { status: 422, code: 'SPEC_INVALID' }`, alone |
+| T6 (b) | the file's content in `machineDetail` | `recordEvent` refuses it; the secret case red on a `500` | `{ 500, INTERNAL }`; the operator line *"carries a machineDetail its schema refuses, at: (root) (content)"* |
+| T6 (b′) | the VALUE in `humanMessage` | `makeRedactor([])` does NOT catch it; red at `not.toContain(value)` | exactly that — and F18 |
+| T6 (c) | `madeThrough` from git's author text | the token case red at the owner-claiming push | red at `of(pushed)` |
+| T6 (d) | `bodyLimit` dropped | red at the exact-1-MiB file, `413` | exactly that — and F11, from its answer |
+| T6 (e) *(added)* | `project:write` for `source:write` | matrix all green; the `project:write`-alone case red | matrix 514/514 green; that case red `{201}`, and the `source:write` token case `403` — one more than predicted (F13) |
+| T6 (f) *(added)* | the route's own secret step removed | still `409 SOURCE_SECRET_DETECTED` (the driver's); red at the event count | exactly that: 0 events |
+| T6 (g) *(added)* | publish on a dry run too | red at the probe's `[]` | exactly that |
+| T6 (i) *(added)* | the request schema's path rules off | red at `.git/config`: the driver's `409 SOURCE_PATH_ESCAPE` | exactly that — both layers hold, each alone |
+| T7 (a) | the newest-row read restored | red at the build's `spec.commitSha`; the unvalidated case 0 vs 1 | exactly that |
+| T7 (b) | the pin rule dropped | both policy cases and `createCommit`'s rename red | exactly that |
+| T7 (c) *(added)* | the invalid-spec refusal removed | both invalid-build cases red, `202` where `422` | both red — at **`500`**, not `202` (F16) |
+| T7 (d) *(added)* | the pin compared without its major | only the `@1`-vs-`@2` case red | exactly that |
+| F18 | *(the fix's own red)* | the message case red before the scan | `{ 201 }` where `{ 409, SOURCE_SECRET_DETECTED }` |
+
+**Which could not fail, and why:** the matrix cannot fail for the capability `createCommit` asserts (F13) — the
+`project:write`-alone token is what can.
+
+#### The gates, and the machine, at the close
+
+**`pnpm test` moved from 2103 in 148 files to 2131 in 149** — 2126 in 149 after Task 6 (twice, identical, 422.5 s and
+422.6 s; its first run was F3's red), 2130 after Task 7 (twice, identical, 425.9 s and 428.8 s), **2131 after F18** (twice,
+437.5 s and 431.2 s) — +28 and one file: `api/source-commit.test.ts` (12), the matrix's `createCommit` row (9), `pathProblem`'s
+two cases, `projects.test.ts`'s invalid-validation case, and Task 7's four (two in `delivery.test.ts`, two in
+`policy.test.ts`). The open read 2103 in 148
+(405 s). `pnpm lint`, `pnpm typecheck` (every package) and `pnpm format:check` clean. **`make doctor` 20/0/0** at the open and
+the close; **`make verify` 57/0/0** at the open, after the Docker tier and at the close; **`pnpm test:docker` 208 in 34, 0
+skipped, 881 s, green first time** — owed by `releases/`, `projects/`, `observability/`, `spec/`, run on `66c62c4` at load
+3.7–4.6; the host reached the edge afterwards with no restart. **F18's fix touches `api/` alone, which owes no Docker tier,
+and came after the drive below**: its own unit case is its evidence. **Contract `1.3.0`**: one operation (`createCommit`), two
+request/representation schemas, `madeThrough` on `CommitSummary`, `source:write` in `Capability`, two event types, the new
+`ManifestErrorCode`, and `startBuild`'s description and two codes. **Migration 0029** (the `CHECK`'s two literals), applied.
+
+**Driven through the edge** (CLAUDE.md's first *Before you trust a green result*): the control plane started per RUNBOOK
+(`"driver":"docker","source":"local"`, origin `https://console.manifest.internal`), a real CWL sign-in as `ins000001`, and a
+scratch script against `commit-drive-b` (`fixture-node@1`): a dry run (`201`, `commitSha: null`, `main` unmoved); two commits
+X (`resources.memory: 256Mi`) and Y (`512Mi`); a stale base → `SOURCE_CONFLICT`; an AWS key → `SOURCE_SECRET_DETECTED`, the
+value absent from the answer; `.git/config` → `REQUEST_INVALID`; a token minted with `project:read` + `source:write` commits,
+and `listCommits` answers it `madeThrough: { kind: 'agent', name: 'Test Instructor', tokenName: 'drive-agent' }` with git's
+author *"Test Instructor (via token 'drive-agent')"*, Y as the person, the seed `null`, and no `@` anywhere; a 7,340,459-byte
+body `201` and a 9,437,706-byte one `413 REQUEST_BODY_TOO_LARGE` with the new hint; **and a real Docker build of X — not the
+newest — succeeded, its `app_specs` row X's with `256Mi`**. The record: four `repository.committed`, one
+`repository.secret_refused`, five `spec.validated`, each sentence naming *Test Instructor*. The control plane was stopped
+after (it was not running at the open).
+
+**The machine, queried at the close — AFTER the last Vitest run** (F1: the drive's two projects existed until F18's two
+full runs and the post-sweep re-run of RUNBOOK's readers truncated them; `psql`, `docker`, `lsof`, Ollama's `/api/ps`, `make
+verify`): the control database is **EMPTY** — 0 projects, 0 events, 0 builds, 0 releases — with **30 migrations**. The bare
+repositories of nine slugs no project holds sit in `.manifest/repos/` (`commit-drive` and `commit-drive-b` among them) —
+orphans a demo's `clear_orphan_repository` clears. `launch-app`'s six `mf-launch-app-*` containers run with no rows behind
+them, and **0 runtime routes** are applied (the Docker tier restarted the edge). Nothing listens on 7100 or 7104; the GitHub
+fake is not running (it was not at the open). **The three cleanup scripts, bare and then `--apply` by this session**
+(allowed): the tier's 7 networks and 1 volume, the `p4b-probe-user` LiteLLM orphan and 13 app images, each re-measured bare
+— `none dead`, 0 orphans, 0 dead images; `make verify` 57/0/0, its per-app line `containers=6 networks=2 volumes=4`. The chat
+and embedding models were warmed for the tier and unloaded after; none is resident. `diff` of `scripts/snapshot-machine.sh`
+against the opening snapshot: uptimes, the edge's restart, `HEAD`, this sitting's files, and free disk 95 → 94 GiB.
+
+#### Spec action 2, answered at the close
+
+**Rich chose option (a), as proposed** (asked at the close, as §7e said to): a delegated token sets its app's sandbox and
+staging secrets; a production value is set only in an interactive session with step-up, and a token asking is refused
+outright without joining D24's four. **Applied the same night in the words *Spec actions*, 2, gives** — §20's credential
+table and step-up bullet, D24's rationale — and restated on `manifest-decisions.html`'s D24; the other three shared pages
+state nothing about what a token may set. **Task 8 builds its steps as written** and takes none of its *"if Rich chooses
+otherwise"* branches.
+
+#### The sweep
+
+This plan's sittings table, this record, sitting 3's spliced F8 repaired (F2), and `[S4]` blocks at the heads of Tasks 8, 10,
+11 and 13 (Task 8: the five things its Files list does not name; Task 10: `createCommit` parked and `madeThrough`; Task 11:
+`startBuild`'s described meaning and the 413's hint; Task 13: what it drives, and what driver 2 probably does — unmeasured);
+*Decided by Rich*, *What Rich does* 2, Task 8's head and *Spec actions*, 2, for the answer; the roadmap's ledger (the
+heading, a sitting-4 sentence, the spec actions' heading and item 2) and its defect-rate table (the count derived with the
+command above: 18); ORIENTATION's top box and §2's box (the unit count moved), §2's spec line, §3 (two invariants — an API
+commit checked and attributed; a build of a commit with that commit's manifest — and `projects/source-attribution.ts` in the
+module table), §7e (rewritten for sitting 5), §8 (Spec action 2 *Decided*; 1 and 3 still open); RUNBOOK's gate
+parenthetical; `scripts/ci-acceptance.sh` (`2131 / 149 / 20 / 57`, and its history comment); TRAPS.md (four traps: F3/F4/F6,
+F5, F17, F1); CLAUDE.md's *most recently* spec change; the spec's three edits and `manifest-decisions.html`. **CLAUDE.md's
+*State* unchanged** — no plan started or finished and no *Outstanding* item moved. **WALKTHROUGH and the other three HTML
+pages were checked and left alone**: none states the authoring API's status or what a token may set.

@@ -1732,6 +1732,21 @@ it belongs among the traps the next sitting is most likely to hit.
   its remover) and `manifest-mock`'s `server.test.ts` (every operation has a scripted answer or a document EXAMPLE). Give
   the route an `examples` entry and park it, or build its console caller, in the same task — `pnpm test` from the root
   runs both; a `--project unit` run does not.
+- **A NEW EVENT TYPE, CAPABILITY OR `CHECK` LITERAL REDDENS THREE THINGS NO FILES LIST NAMES** (2026-09-26, the authoring
+  API plan's sitting 4, F3, F4, F6). **(1)** `api/stream-contract.test.ts` holds EVERY event type to a frame its lifecycle
+  reached, or to `PUBLISHED_ELSEWHERE` — drive the new type there. **(2)** A capability added to `CAPABILITIES` is a `tsc`
+  error in the CONSOLE (`packages/console/src/screens/tokens.tsx`'s `everyCapability`), which `pnpm test` cannot see.
+  **(3)** The unit tier truncates `manifest_control` ITSELF and never migrates it, so a migration's new `CHECK` literal is
+  a `500 INTERNAL` on every insert until `db:migrate` runs by hand (ORIENTATION §3's one-line form) — ten reds at once.
+- **`String.prototype.isWellFormed` IS A TYPE ERROR HERE** (2026-09-26, sitting 4, F5): it is declared only in
+  `lib.es2024.string.d.ts` and `tsconfig.base.json` targets ES2023. `/\p{Surrogate}/u` answers the same (measured on a
+  lone high, a lone low, a pair and `é`); `api/representations/source.ts`'s `LONE_SURROGATE` is the one to reuse.
+- **`$(…)` STRIPS TRAILING NEWLINES — A FILE READ THAT WAY AND APPENDED TO IS A DIFFERENT FILE** (2026-09-26, sitting 4,
+  F17). A drive read `manifest.yaml` through `field content` in `$(…)`, appended `resources:`, and glued it onto the last
+  line — `422 SPEC_INVALID`, `SPEC_YAML_PARSE_FAILED`. Restore the newline (`.replace(/\n?$/, '\n')`) or do it in node.
+- **A CLOSE'S STATE TABLE IS WRONG IF ANY VITEST RUN FOLLOWS THE QUERY** (2026-09-26, sitting 4, F1). Sitting 3 queried
+  the database, then re-ran RUNBOOK's two readers (`config.test.ts`, `db/client.test.ts`) after its sweep — both truncate —
+  and the next sitting found 0 projects where the hand-off said one. Query LAST.
 
 ## Images already pulled
 

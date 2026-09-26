@@ -147,7 +147,7 @@ For the platform itself it is `make doctor` and `make verify`.
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.
 - **Never edit the spec directly.** `docs/superpowers/specs/2026-08-29-manifest-platform-design.md`
   is marked *Approved design*. Record proposed changes and ask — **every spec change this
-  project has made was approved by Rich first**, most recently **§19's row for the production GitHub organisation, on 2026-09-25** (the D5 plan's Spec action 4, the row §20's bullet 4 points at). The
+  project has made was approved by Rich first**, most recently **§20's and D24's three edits for who may set an app secret's value, on 2026-09-26** (the authoring API plan's Spec action 2, option (a): tokens set sandbox and staging secrets; a production value only in a stepped-up session). The
   roadmap's *Spec action(s) raised by…* sections are the list; this file deliberately states no
   count, because a restated number drifts (ORIENTATION §9) and this one already had.
   **A spec action is not finished when the spec changes**: the four shared HTML pages restate it
