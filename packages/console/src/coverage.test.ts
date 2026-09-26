@@ -28,6 +28,9 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   getFile: 'the authoring API plan, Task 10 (the Code screen) — parked by its Task 5',
   listCommits: 'the authoring API plan, Task 10 (the Code screen) — parked by its Task 5',
   getCommit: 'the authoring API plan, Task 10 (the Code screen) — parked by its Task 5',
+  // …and the WRITE the same screen makes, parked by that plan's Task 6 (sitting 4) beside them.
+  createCommit:
+    'the authoring API plan, Task 10 (the Code screen) — parked by its Task 6',
   //
   // **WAS EMPTY, AND THAT WAS A MEASUREMENT** — all 43 operations had a caller (P6b Task 10).
   // It was empty through the whole of P5c (34 operations) and again from P6a Task 18 (41).

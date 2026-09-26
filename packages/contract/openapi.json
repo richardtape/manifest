@@ -1173,8 +1173,13 @@
                       "subject": "Greet the world",
                       "message": "Greet the world",
                       "messageTruncated": false,
-                      "authorName": "Ada Lovelace",
-                      "authoredAt": "2026-09-26T06:23:51.000Z"
+                      "authorName": "Ada Lovelace (via token 'claude-code')",
+                      "authoredAt": "2026-09-26T06:23:51.000Z",
+                      "madeThrough": {
+                        "kind": "agent",
+                        "name": "Ada Lovelace",
+                        "tokenName": "claude-code"
+                      }
                     },
                     {
                       "commitSha": "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241",
@@ -1185,7 +1190,12 @@
                       "message": "Add the greeting module",
                       "messageTruncated": false,
                       "authorName": "Ada Lovelace",
-                      "authoredAt": "2026-09-26T06:23:51.000Z"
+                      "authoredAt": "2026-09-26T06:23:51.000Z",
+                      "madeThrough": {
+                        "kind": "person",
+                        "name": "Ada Lovelace",
+                        "tokenName": null
+                      }
                     }
                   ],
                   "next": "85418f2fa9748ca708ee1ca3725c5cac4a1018c6"
@@ -1215,6 +1225,124 @@
           "SOURCE_PROVIDER_MISMATCH",
           "SOURCE_REF_NOT_FOUND",
           "SOURCE_UNREACHABLE",
+          "UNAUTHENTICATED"
+        ]
+      },
+      "post": {
+        "operationId": "createCommit",
+        "tags": [
+          "source"
+        ],
+        "summary": "Commit changes to main",
+        "description": "Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project whose repository is read.",
+            "required": true,
+            "schema": {
+              "description": "The project whose repository is read.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommitRequest"
+              },
+              "example": {
+                "baseCommit": "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241",
+                "message": "Greet the world",
+                "changes": [
+                  {
+                    "op": "write",
+                    "path": "src/app.js",
+                    "content": "export const greeting = 'hello, world'\n"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The commit, or what it would have been.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommitOutcome"
+                },
+                "example": {
+                  "dryRun": false,
+                  "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                  "parent": "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241",
+                  "changes": [
+                    {
+                      "path": "src/app.js",
+                      "status": "modified"
+                    }
+                  ],
+                  "spec": {
+                    "appSpecId": "f0f11f7a-f7e5-4358-bace-3619589b5114",
+                    "sensitiveDiff": {
+                      "sensitive": false,
+                      "fields": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_CONFLICT, SOURCE_GIT_FAILED, SOURCE_NOTHING_TO_COMMIT, SOURCE_PATH_CONFLICT, SOURCE_PATH_ESCAPE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, SPEC_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "AI_BACKEND_UNAVAILABLE",
+          "AI_CATALOGUE_EMPTY",
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "SOURCE_CONFLICT",
+          "SOURCE_GIT_FAILED",
+          "SOURCE_NOTHING_TO_COMMIT",
+          "SOURCE_PATH_CONFLICT",
+          "SOURCE_PATH_ESCAPE",
+          "SOURCE_PATH_NOT_FOUND",
+          "SOURCE_PROVIDER_MISMATCH",
+          "SOURCE_SECRET_DETECTED",
+          "SOURCE_UNREACHABLE",
+          "SPEC_INVALID",
           "UNAUTHENTICATED"
         ]
       }
@@ -1268,8 +1396,13 @@
                   "subject": "Greet the world",
                   "message": "Greet the world",
                   "messageTruncated": false,
-                  "authorName": "Ada Lovelace",
+                  "authorName": "Ada Lovelace (via token 'claude-code')",
                   "authoredAt": "2026-09-26T06:23:51.000Z",
+                  "madeThrough": {
+                    "kind": "agent",
+                    "name": "Ada Lovelace",
+                    "tokenName": "claude-code"
+                  },
                   "changes": [
                     {
                       "path": "src/app.js",
@@ -3997,6 +4130,48 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
           },
+          "madeThrough": {
+            "description": "Who made this commit through Manifest, from the platform’s own record — a person, or a person’s agent through a delegated token. Null for a commit pushed any other way, whose author is only what the pusher’s git said.",
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "description": "A person in a session, or a person’s agent through a delegated token.",
+                    "type": "string",
+                    "enum": [
+                      "person",
+                      "agent"
+                    ]
+                  },
+                  "name": {
+                    "description": "The person’s name — for an agent, the person who minted its token.",
+                    "type": "string"
+                  },
+                  "tokenName": {
+                    "description": "The token’s name, for an agent; null for a person.",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "tokenName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "changes": {
             "description": "Every file the commit changed, by path.",
             "type": "array",
@@ -4083,6 +4258,7 @@
           "messageTruncated",
           "authorName",
           "authoredAt",
+          "madeThrough",
           "changes",
           "patchesTruncated"
         ],
@@ -4124,6 +4300,95 @@
         ],
         "additionalProperties": false
       },
+      "CommitOutcome": {
+        "type": "object",
+        "properties": {
+          "dryRun": {
+            "description": "True when nothing was written.",
+            "type": "boolean"
+          },
+          "commitSha": {
+            "description": "The new commit on `main`; null for a dry run.",
+            "anyOf": [
+              {
+                "description": "A full 40-character commit id.",
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent": {
+            "description": "The commit this one follows — the request’s `baseCommit`.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "changes": {
+            "description": "What changed, by path. A write that left a file as it was is not listed.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "description": "The file’s path.",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "What the commit did to it.",
+                  "type": "string",
+                  "enum": [
+                    "added",
+                    "modified",
+                    "deleted"
+                  ]
+                }
+              },
+              "required": [
+                "path",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "spec": {
+            "description": "The new commit's manifest.yaml — always valid, because an invalid one is refused `SPEC_INVALID` before anything is written.",
+            "type": "object",
+            "properties": {
+              "appSpecId": {
+                "description": "The recorded validation of the new commit; null for a dry run.",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sensitiveDiff": {
+                "$ref": "#/components/schemas/SensitiveDiff"
+              }
+            },
+            "required": [
+              "appSpecId",
+              "sensitiveDiff"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "dryRun",
+          "commitSha",
+          "parent",
+          "changes",
+          "spec"
+        ],
+        "additionalProperties": false
+      },
       "CommitSummary": {
         "type": "object",
         "properties": {
@@ -4162,6 +4427,48 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "madeThrough": {
+            "description": "Who made this commit through Manifest, from the platform’s own record — a person, or a person’s agent through a delegated token. Null for a commit pushed any other way, whose author is only what the pusher’s git said.",
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "description": "A person in a session, or a person’s agent through a delegated token.",
+                    "type": "string",
+                    "enum": [
+                      "person",
+                      "agent"
+                    ]
+                  },
+                  "name": {
+                    "description": "The person’s name — for an agent, the person who minted its token.",
+                    "type": "string"
+                  },
+                  "tokenName": {
+                    "description": "The token’s name, for an agent; null for a person.",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "tokenName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -4171,7 +4478,8 @@
           "message",
           "messageTruncated",
           "authorName",
-          "authoredAt"
+          "authoredAt",
+          "madeThrough"
         ],
         "additionalProperties": false
       },
@@ -4201,6 +4509,87 @@
           "id",
           "projectId",
           "type"
+        ],
+        "additionalProperties": false
+      },
+      "CreateCommitRequest": {
+        "type": "object",
+        "properties": {
+          "baseCommit": {
+            "description": "The commit these changes were computed from — `commitSha` from the tree or file you read. `main` must still be exactly this commit, or the request is refused `SOURCE_CONFLICT`.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "message": {
+            "description": "The commit message. Its first line is its subject.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "changes": {
+            "description": "At most 500 writes and deletions, each naming a different path.",
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "description": "Create the file, or replace its content.",
+                      "type": "string",
+                      "const": "write"
+                    },
+                    "path": {
+                      "description": "A relative path, `/`-separated: at most 1024 bytes, 255 per component and 32 components; no empty, `.` or `..` component, no leading or trailing `/`, no backslash, no control character, and no `.git` component.",
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "content": {
+                      "description": "The whole new content of the file, as text: at most 1 MiB of UTF-8, with no NUL character. A new file is mode `100644`; an existing file keeps its mode.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "op",
+                    "path",
+                    "content"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "description": "Remove the file. It must exist in `baseCommit`.",
+                      "type": "string",
+                      "const": "delete"
+                    },
+                    "path": {
+                      "description": "A relative path, `/`-separated: at most 1024 bytes, 255 per component and 32 components; no empty, `.` or `..` component, no leading or trailing `/`, no backslash, no control character, and no `.git` component.",
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "op",
+                    "path"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "dryRun": {
+            "description": "Run every check the commit would, write nothing, and answer what would have happened.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "baseCommit",
+          "message",
+          "changes"
         ],
         "additionalProperties": false
       },
@@ -7196,6 +7585,202 @@
               "createdAt"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "repository.committed"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "type": "object",
+                "properties": {
+                  "commitSha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  },
+                  "parent": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  },
+                  "added": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "modified": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "deleted": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "via": {
+                    "type": "string",
+                    "enum": [
+                      "session",
+                      "token"
+                    ]
+                  },
+                  "userId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "commitSha",
+                  "parent",
+                  "added",
+                  "modified",
+                  "deleted",
+                  "via",
+                  "userId",
+                  "tokenId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "repository.secret_refused"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "type": "object",
+                "properties": {
+                  "findings": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "path": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "line": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        },
+                        "rule": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "path",
+                        "line",
+                        "rule"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "findings"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -8058,6 +8643,7 @@
                 "project:read",
                 "project:write",
                 "project:delete",
+                "source:write",
                 "members:manage",
                 "build:create",
                 "release:create",

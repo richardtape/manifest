@@ -34,8 +34,9 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 type Capability = Schemas['MintTokenRequest']['capabilities'][number]
 
 /**
- * THE TWELVE, HELD TO THE DOCUMENT BY `tsc` IN BOTH DIRECTIONS — eleven until P6a Task 6
- * added `launch:record`, which `tsc` caught here and `pnpm test` could not see at all. A capability renamed or
+ * THE THIRTEEN, HELD TO THE DOCUMENT BY `tsc` IN BOTH DIRECTIONS — eleven until P6a Task 6
+ * added `launch:record`, which `tsc` caught here and `pnpm test` could not see at all, and
+ * twelve until the authoring API plan's Task 6 added `source:write`, caught here again. A capability renamed or
  * removed from `MintTokenRequest.capabilities` makes the array un-assignable; one ADDED makes
  * `Exclude<Capability, T[number]>` non-`never`, which collapses the parameter's type to
  * `never` and refuses the call. So this list cannot silently drift from the contract, which
@@ -51,6 +52,12 @@ const CAPABILITIES = everyCapability([
   'project:read',
   'project:write',
   'project:delete',
+  /**
+   * Writing the project's code, `manifest.yaml` included, through `createCommit` (the
+   * authoring API plan's Task 6). Mintable, and neither privileged nor person-only — the
+   * capability an agent that writes an app needs.
+   */
+  'source:write',
   'members:manage',
   'build:create',
   'release:create',

@@ -15,6 +15,7 @@ import { SourceError } from './git-driver.js'
 import {
   buildCommit,
   MANIFEST_COMMITTER,
+  pathProblem,
   planChanges,
   pushVerdict,
   type BaseEntry,
@@ -119,6 +120,46 @@ describe('planChanges — every shape --index-info would silently replace is ref
         ]),
       ),
     ).toBe('SOURCE_PATH_CONFLICT')
+  })
+})
+
+describe('pathProblem — Decision 4’s path rules, one function the request schema reads (Task 6)', () => {
+  it('accepts an ordinary path — spaces, non-ASCII, deep — the positive control', () => {
+    expect(pathProblem('src/a b/é.js')).toBeNull()
+    expect(pathProblem('README.md')).toBeNull()
+    expect(pathProblem(Array.from({ length: 32 }, () => 'd').join('/'))).toBeNull()
+    expect(pathProblem('a'.repeat(255))).toBeNull()
+    // Exactly 1024 bytes, in five components of 204.
+    expect(
+      pathProblem(Array.from({ length: 5 }, () => 'a'.repeat(204)).join('/')),
+    ).toBeNull()
+    expect(pathProblem('.gitignore')).toBeNull()
+    expect(pathProblem('src/.github/x.yml')).toBeNull()
+  })
+
+  it('refuses each rule by its own sentence', () => {
+    const cases: [string, RegExp][] = [
+      ['a'.repeat(1025), /at most 1024 bytes/],
+      [`${'é'.repeat(513)}`, /at most 1024 bytes/], // 1026 bytes, 513 characters
+      ['/etc/passwd', /relative/],
+      ['src/', /relative/],
+      ['src\\a.js', /backslash/],
+      ['src/a\u0000.js', /control character/],
+      ['src/a\n.js', /control character/],
+      ['src/a\u007f.js', /control character/],
+      [Array.from({ length: 33 }, () => 'd').join('/'), /32 components/],
+      ['a//b', /empty, \. or \.\. component/],
+      ['./a', /empty, \. or \.\. component/],
+      ['../outside.txt', /empty, \. or \.\. component/],
+      ['a/../../b', /empty, \. or \.\. component/],
+      ['a'.repeat(256), /component is at most 255 bytes/],
+      ['.git/config', /\.git/],
+      ['sub/.GIT/hooks/pre-commit', /\.git/],
+      ['.Git', /\.git/],
+    ]
+    for (const [path, rule] of cases) {
+      expect(pathProblem(path), JSON.stringify(path)).toMatch(rule)
+    }
   })
 })
 

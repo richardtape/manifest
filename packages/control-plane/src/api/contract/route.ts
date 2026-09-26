@@ -68,6 +68,13 @@ export interface RouteDefinition<
    * shortened. Optional until Task 9 makes it required and parses each through its schema.
    */
   examples?: { request?: unknown; response: unknown }
+  /**
+   * THIS ROUTE'S OWN BODY LIMIT, in bytes (the authoring API plan's Decision 11). Absent, a
+   * route takes Fastify's 1 MiB default, which every route but `createCommit` keeps: a commit's
+   * body is JSON, so one file at the 1 MiB per-file limit, escaped, is already past it — and the
+   * per-file limit would be unreachable through the route that enforces it.
+   */
+  bodyLimit?: number
   handler: (
     ctx: RouteContext<z.output<P>, z.output<Q>, z.output<B>>,
   ) => Promise<z.input<R>>
@@ -162,6 +169,7 @@ export function registerRoutes(
     app.route({
       method: route.method,
       url: fastifyPath(route.path),
+      ...(route.bodyLimit === undefined ? {} : { bodyLimit: route.bodyLimit }),
       handler: async (request, reply) => {
         // Authentication first: nobody learns the shape of a request they may not make.
         const actor = requireActor(request)

@@ -152,10 +152,18 @@ interface RouteCase {
    * expectation's clothes. Each actor gets its own question, so this table measures who
    * may answer and never what has already been answered.
    */
+  /**
+   * MAY BE ASYNC since the authoring API plan's Task 6: `createCommit` needs `main`'s head READ
+   * AT THE TIME OF THE CASE — every passing actor's commit moves it — or the fifth actor's
+   * answer would be `409 SOURCE_CONFLICT`, a state refusal wearing an authorization
+   * expectation's clothes (the same reason `actor` is here).
+   */
   request(
     fixture: Fixture,
     actor: Actor,
-  ): { url: string; payload?: Record<string, unknown> }
+  ):
+    | { url: string; payload?: Record<string, unknown> }
+    | Promise<{ url: string; payload?: Record<string, unknown> }>
   expect: Record<Actor, Expectation>
 }
 
@@ -192,6 +200,8 @@ interface Fixture {
    * is the same shape the `POST .../members` row above relies on.
    */
   removableUserId: string
+  /** `main`'s head NOW — read per case by `createCommit`'s row (Task 6). */
+  mainHead: () => Promise<string>
 }
 
 const SESSION_ACTORS: SessionActor[] = [
@@ -604,6 +614,36 @@ const ROUTES: RouteCase[] = [
     method: 'GET',
     url: '/v1/projects/:projectId/commits/:commitSha',
     request: (f) => ({ url: `/v1/projects/${f.projectId}/commits/${f.commitSha}` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  /**
+   * COMMITTING (the authoring API plan's Task 6): `source:write` — owner, collaborator and admin
+   * hold it, and it is mintable, so `token-capable` holds it too (said at its list below). Each
+   * passing actor COMMITS, a file of its own on a base read at the time of its case, so no
+   * actor's answer depends on another's; a refused actor's body is just as well-formed, so its
+   * refusal is the authorization one and never a `400`.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/commits',
+    request: async (f, actor) => ({
+      url: `/v1/projects/${f.projectId}/commits`,
+      payload: {
+        baseCommit: await f.mainHead(),
+        message: `the matrix, as ${actor}`,
+        changes: [{ op: 'write', path: `matrix/${actor}.txt`, content: `${actor}\n` }],
+      },
+    }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -1614,6 +1654,12 @@ export function describeAuthorizationContract(
         // like. `requireSession` answers first on both record routes, so no row's
         // expectation moves; `api/person-only.test.ts` is what sees the central rule.
         'launch:record',
+        // The authoring API plan's Task 6: `createCommit` asserts `source:write`, which the
+        // mint route WOULD give this owner's token (it is neither privileged nor person-only).
+        // Without it here the row's `token-capable: 'pass'` would be a `403` — and with it
+        // here the matrix still cannot tell `source:write` from `project:write`, because this
+        // actor holds both; `api/source-commit.test.ts`'s `project:write`-alone token can.
+        'source:write',
       ]
       const tokenFor = async (
         actor: TokenActor,
@@ -1684,6 +1730,8 @@ export function describeAuthorizationContract(
           reject: await questions('reject'),
         },
         commitSha: body.spec.commitSha,
+        mainHead: () =>
+          deps.source.resolveRef(deps.source.repositoryFor('authz-fixture'), 'main'),
         buildId: build.json().id,
         releaseId: release.json().id,
         // Set below, once the preview is taken — after the collaborator is made a member.
@@ -1798,7 +1846,7 @@ export function describeAuthorizationContract(
         const expected = route.expect[actor]
         const label = route.label === undefined ? '' : ` (${route.label})`
         it(`${route.method} ${route.url}${label} as ${actor} → ${describeExpectation(expected)}`, async () => {
-          const { url, payload } = route.request(fixture, actor)
+          const { url, payload } = await route.request(fixture, actor)
           const actorCookies = actor === 'anonymous' ? undefined : cookies[actor]
           /**
            * ONE CREDENTIAL, NEVER TWO. A request carrying both a session cookie and a

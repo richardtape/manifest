@@ -88,13 +88,16 @@ export const TEST_AUTHOR = { name: 'A Test', email: 'test@users.manifest.interna
 /**
  * WHAT `commitFiles` WAS, over the one write path (the authoring API plan's Task 3): reads
  * `main`, writes `files` onto it, and answers the new commit. For the tests that need a
- * commit and are not about how one is made.
+ * commit and are not about how one is made — and, with `author`, a commit made OUTSIDE the
+ * API that claims to be somebody: git's author text is whatever the pusher's git said
+ * (the authoring API plan's Decision 5).
  */
 export async function writeFiles(
   driver: SourceDriver,
   repo: RepoRef,
   files: Record<string, string>,
   message: string,
+  author: { name: string; email: string } = TEST_AUTHOR,
 ): Promise<string> {
   const base = await driver.headCommit(repo)
   const made = await driver.commit(repo, {
@@ -105,7 +108,7 @@ export async function writeFiles(
       content,
     })),
     message,
-    author: TEST_AUTHOR,
+    author,
   })
   return made.commitSha!
 }

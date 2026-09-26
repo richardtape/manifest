@@ -19,6 +19,15 @@ export const CAPABILITIES = [
   'project:read',
   'project:write',
   'project:delete',
+  /**
+   * WRITING A PROJECT'S CODE — `manifest.yaml` included — through `createCommit` (the
+   * authoring API plan's Task 6, Decision 8). Its OWN capability rather than `project:write`:
+   * a token minted holding `project:write` before commits existed would otherwise have gained
+   * the power to change code with nothing about the token changing. Owner, collaborator and
+   * administrator hold it; it is mintable, and neither privileged nor person-only — §13's gate
+   * holds the sensitive fields at production, which is where the spec puts the control.
+   */
+  'source:write',
   'members:manage',
   'build:create',
   'release:create',
@@ -301,6 +310,7 @@ const OWNER: readonly Capability[] = [
   'project:read',
   'project:write',
   'project:delete',
+  'source:write',
   'members:manage',
   'build:create',
   'release:create',

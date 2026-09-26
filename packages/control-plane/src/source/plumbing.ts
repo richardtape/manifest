@@ -52,6 +52,34 @@ const conflict = (message: string): never => {
 }
 
 /**
+ * DECISION 4'S PATH RULES, in the order a person would fix them — null when the path is
+ * acceptable. ONE statement of them: `createCommit`'s request schema refuses with this sentence
+ * (`400 REQUEST_INVALID`), and each driver's `assertWritablePaths` reads the `.git` and escape
+ * rules a second time as `SOURCE_PATH_ESCAPE` — two reads of one rule (the D5 plan's review).
+ * Bytes, not UTF-16 units: `'é'` is one unit and two bytes.
+ */
+export function pathProblem(path: string): string | null {
+  if (Buffer.byteLength(path, 'utf8') > 1024) return 'a path is at most 1024 bytes'
+  if (path.startsWith('/') || path.endsWith('/')) {
+    return 'a path is relative, with no leading or trailing /'
+  }
+  if (/[\u0000-\u001f\u007f\\]/.test(path)) {
+    return 'a path has no control character and no backslash'
+  }
+  const parts = path.split('/')
+  if (parts.length > 32) return 'a path is at most 32 components deep'
+  for (const part of parts) {
+    if (part === '' || part === '.' || part === '..') {
+      return 'a path has no empty, . or .. component'
+    }
+    if (Buffer.byteLength(part, 'utf8') > 255)
+      return 'a path component is at most 255 bytes'
+    if (part.toLowerCase() === '.git') return "a path never names a repository's own .git"
+  }
+  return null
+}
+
+/**
  * THE CONTROL (the authoring API plan's Decision 2). `update-index --index-info` REPLACES where
  * a person would expect a refusal — a file named `src` deleted the directory `src/`, and a write
  * under a symlink turned the symlink into a directory (measured, the plan's *Read this first* 3)

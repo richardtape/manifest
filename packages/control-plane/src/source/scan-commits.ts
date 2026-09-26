@@ -259,15 +259,32 @@ export const writesOf = (
 ): { path: string; content: string }[] =>
   changes.flatMap((c) => (c.op === 'write' ? [{ path: c.path, content: c.content }] : []))
 
-export function assertNoSecrets(
+/** Every secret-shaped line of `files`, as data: where, and which rule — never the value. */
+export function secretFindings(
   files: readonly { path: string; content: string }[],
-): void {
-  const found = files.flatMap(({ path, content }) => scanText(content, path))
-  if (found.length === 0) return
-  throw new SourceError(
+): { path: string; line: number; rule: string }[] {
+  return files.flatMap(({ path, content }) => scanText(content, path))
+}
+
+/**
+ * THE REFUSAL, built from the findings — so `createCommit`, which publishes them first
+ * (`repository.secret_refused`), and each driver refuse in the same words (the authoring API
+ * plan's Task 6). The message names `path:line` and the rule; it goes on the wire.
+ */
+export function secretRefusal(
+  findings: readonly { path: string; line: number; rule: string }[],
+): SourceError {
+  return new SourceError(
     'SOURCE_SECRET_DETECTED',
-    `Manifest never commits a secret-shaped value (§20), and nothing was committed: ${found
+    `Manifest never commits a secret-shaped value (§20), and nothing was committed: ${findings
       .map((f) => `${f.path}:${f.line} looks like ${f.rule}`)
       .join('; ')}. Remove it and commit again; if it is a real secret, rotate it.`,
   )
+}
+
+export function assertNoSecrets(
+  files: readonly { path: string; content: string }[],
+): void {
+  const found = secretFindings(files)
+  if (found.length > 0) throw secretRefusal(found)
 }

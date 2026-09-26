@@ -681,6 +681,84 @@ describe('POST /v1/projects/:id/spec', () => {
     expect(latest.json().spec.services).toEqual([
       { name: 'db', type: 'mongo', version: '7' },
     ])
+    // ANNOUNCED, once (the authoring API plan's Decision 7): every validation publishes
+    // `spec.validated`, not only a project's creation.
+    const announced = await deps.db
+      .select({ machineDetail: events.machineDetail, humanMessage: events.humanMessage })
+      .from(events)
+      .where(eq(events.projectId, projectId))
+      .orderBy(asc(events.createdAt))
+    const validated = announced.filter(
+      (e) =>
+        (e.machineDetail as { commitSha?: string }).commitSha === commitSha &&
+        (e.machineDetail as { appSpecId?: string }).appSpecId === body.appSpecId,
+    )
+    expect(validated).toEqual([
+      {
+        machineDetail: {
+          appSpecId: body.appSpecId,
+          commitSha,
+          valid: true,
+          errorCount: 0,
+        },
+        humanMessage: "chem-labs's manifest.yaml is valid.",
+      },
+    ])
+    await app.close()
+  })
+
+  it('announces an INVALID validation too, with how many problems — Decision 7', async () => {
+    const { app, deps, session } = await loggedIn()
+    const created = await app.inject({
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
+      headers: mutationHeaders(deps),
+    })
+    const projectId = created.json().id as string
+    const commitSha = await writeFiles(
+      deps.source,
+      deps.source.repositoryFor('chem-labs'),
+      { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' },
+      'a manifest missing its blueprint and runtime',
+    )
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${projectId}/spec`,
+      payload: {},
+      cookies: { manifest_session: session },
+      headers: mutationHeaders(deps),
+    })
+    expect(response.statusCode, response.body).toBe(201)
+    const body = response.json() as {
+      valid: boolean
+      errors: unknown[]
+      appSpecId: string
+    }
+    expect(body.valid).toBe(false)
+    const rows = await deps.db
+      .select({
+        type: events.type,
+        machineDetail: events.machineDetail,
+        humanMessage: events.humanMessage,
+      })
+      .from(events)
+      .where(eq(events.projectId, projectId))
+    const mine = rows.filter(
+      (e) => (e.machineDetail as { appSpecId?: string }).appSpecId === body.appSpecId,
+    )
+    expect(mine).toEqual([
+      {
+        type: 'spec.validated',
+        machineDetail: {
+          appSpecId: body.appSpecId,
+          commitSha,
+          valid: false,
+          errorCount: body.errors.length,
+        },
+        humanMessage: `chem-labs's manifest.yaml has ${body.errors.length} problem(s) to fix.`,
+      },
+    ])
+    expect(body.errors.length).toBeGreaterThan(0)
     await app.close()
   })
 

@@ -16,6 +16,7 @@ import {
   StreamFrame,
 } from './representations/events.js'
 import { Audience } from './representations/projects.js'
+import { SAMPLE_SECRETS } from '../build/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { buildServer } from './server.js'
@@ -177,6 +178,34 @@ describe('the stream in the contract (D23.2)', () => {
       `/v1/pending-actions/${secondRefusal.json().error.pendingAction.id}/reject`,
       { reason: 'not this term' },
     )
+
+    // AUTHORING (the authoring API plan's Task 6): a commit through the API — its
+    // `repository.committed`, and the `spec.validated` every validation now publishes — and
+    // one refused for a secret-shaped value, whose `repository.secret_refused` names where
+    // and never what. Driven here, not excused above, so both frames are parsed.
+    const committed = await post(`/v1/projects/${project.id}/commits`, {
+      baseCommit: project.spec.commitSha,
+      message: 'the stream contract’s commit',
+      changes: [{ op: 'write', path: 'notes.txt', content: 'a note\n' }],
+    })
+    const refusedSecret = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/commits`,
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: {
+        baseCommit: committed.commitSha,
+        message: 'a key',
+        changes: [
+          {
+            op: 'write',
+            path: 'key.js',
+            content: `export const k = '${SAMPLE_SECRETS['an AWS access key id']}'\n`,
+          },
+        ],
+      },
+    })
+    expect(refusedSecret.statusCode, refusedSecret.body).toBe(409)
 
     // The unit tier's whole lifecycle, as `delivery.test.ts` drives it, plus a redeploy so
     // the retirer publishes too: a build that fails, one that succeeds, a release, a

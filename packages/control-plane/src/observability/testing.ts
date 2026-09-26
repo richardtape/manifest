@@ -203,4 +203,17 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     ref: 'refs/heads/main',
     detail: 'GitHub would not protect main on this repository',
   },
+  'repository.committed': {
+    commitSha: SHA,
+    parent: SHA,
+    added: 1,
+    modified: 2,
+    deleted: 0,
+    via: 'token',
+    userId: UUID,
+    tokenId: UUID,
+  },
+  'repository.secret_refused': {
+    findings: [{ path: 'config.js', line: 1, rule: 'an AWS access key id' }],
+  },
 }

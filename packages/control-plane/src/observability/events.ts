@@ -112,6 +112,17 @@ export const EVENT_TYPES = [
    * rewrite or delete it on GitHub. Published by `POST /v1/projects`, LAST, never silently.
    */
   'repository.protection_unavailable',
+  /**
+   * A COMMIT MADE THROUGH MANIFEST (the authoring API plan's Task 6, Decision 10) — the
+   * platform's own record of who made it, which `listCommits` reads as `madeThrough`. A commit's
+   * author text is whatever the pusher's git said; this row is what Manifest saw.
+   */
+  'repository.committed',
+  /**
+   * §20: a commit Manifest was ASKED to make carried a secret-shaped value, and was refused
+   * (Decision 10). Where and which rule — never the value. Not published for a dry run.
+   */
+  'repository.secret_refused',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

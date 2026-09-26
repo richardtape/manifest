@@ -35,16 +35,24 @@ describe('reading source over the API (Task 5)', () => {
    * from its representation would publish an answer the API never gives. Task 9's gate holds
    * every operation to this; these four hold it from the task that wrote them.
    */
-  it('every example is an answer its own representation accepts', () => {
+  it('every example is an answer its own representation accepts — and a request its own schema does', () => {
     expect(sourceRoutes.map((r) => r.operationId)).toEqual([
       'getTree',
       'getFile',
       'listCommits',
       'getCommit',
+      'createCommit',
     ])
     for (const route of sourceRoutes) {
       const parsed = route.success.schema.safeParse(route.examples?.response)
       expect(parsed.success, `${route.operationId}: ${String(parsed.error)}`).toBe(true)
+      // A body's example is a REQUEST the route would accept (Task 6's is the first).
+      if (route.method !== 'GET') {
+        const sent = route.body.safeParse(route.examples?.request)
+        expect(sent.success, `${route.operationId} request: ${String(sent.error)}`).toBe(
+          true,
+        )
+      }
     }
   })
 

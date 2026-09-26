@@ -345,7 +345,11 @@ export interface paths {
          */
         get: operations["listCommits"];
         put?: never;
-        post?: never;
+        /**
+         * Commit changes to main
+         * @description Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
+         */
+        post: operations["createCommit"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1087,6 +1091,18 @@ export interface components {
              * @description When git says the commit was authored, in UTC.
              */
             authoredAt: string;
+            /** @description Who made this commit through Manifest, from the platform’s own record — a person, or a person’s agent through a delegated token. Null for a commit pushed any other way, whose author is only what the pusher’s git said. */
+            madeThrough: {
+                /**
+                 * @description A person in a session, or a person’s agent through a delegated token.
+                 * @enum {string}
+                 */
+                kind: "person" | "agent";
+                /** @description The person’s name — for an agent, the person who minted its token. */
+                name: string;
+                /** @description The token’s name, for an agent; null for a person. */
+                tokenName: string | null;
+            } | null;
             /** @description Every file the commit changed, by path. */
             changes: {
                 /** @description The file’s path. */
@@ -1116,6 +1132,30 @@ export interface components {
             /** @description Pass as `cursor` for the next page; null on the last page. */
             next: string | null;
         };
+        CommitOutcome: {
+            /** @description True when nothing was written. */
+            dryRun: boolean;
+            /** @description The new commit on `main`; null for a dry run. */
+            commitSha: string | null;
+            /** @description The commit this one follows — the request’s `baseCommit`. */
+            parent: string;
+            /** @description What changed, by path. A write that left a file as it was is not listed. */
+            changes: {
+                /** @description The file’s path. */
+                path: string;
+                /**
+                 * @description What the commit did to it.
+                 * @enum {string}
+                 */
+                status: "added" | "modified" | "deleted";
+            }[];
+            /** @description The new commit's manifest.yaml — always valid, because an invalid one is refused `SPEC_INVALID` before anything is written. */
+            spec: {
+                /** @description The recorded validation of the new commit; null for a dry run. */
+                appSpecId: string | null;
+                sensitiveDiff: components["schemas"]["SensitiveDiff"];
+            };
+        };
         CommitSummary: {
             /** @description A full 40-character commit id. */
             commitSha: string;
@@ -1134,6 +1174,18 @@ export interface components {
              * @description When git says the commit was authored, in UTC.
              */
             authoredAt: string;
+            /** @description Who made this commit through Manifest, from the platform’s own record — a person, or a person’s agent through a delegated token. Null for a commit pushed any other way, whose author is only what the pusher’s git said. */
+            madeThrough: {
+                /**
+                 * @description A person in a session, or a person’s agent through a delegated token.
+                 * @enum {string}
+                 */
+                kind: "person" | "agent";
+                /** @description The person’s name — for an agent, the person who minted its token. */
+                name: string;
+                /** @description The token’s name, for an agent; null for a person. */
+                tokenName: string | null;
+            } | null;
         };
         /** @description Ends the replay: everything after it is live. */
         ControlFrame: {
@@ -1144,6 +1196,34 @@ export interface components {
             projectId: string;
             /** @constant */
             type: "manifest.stream.ready";
+        };
+        CreateCommitRequest: {
+            /** @description The commit these changes were computed from — `commitSha` from the tree or file you read. `main` must still be exactly this commit, or the request is refused `SOURCE_CONFLICT`. */
+            baseCommit: string;
+            /** @description The commit message. Its first line is its subject. */
+            message: string;
+            /** @description At most 500 writes and deletions, each naming a different path. */
+            changes: ({
+                /**
+                 * @description Create the file, or replace its content.
+                 * @constant
+                 */
+                op: "write";
+                /** @description A relative path, `/`-separated: at most 1024 bytes, 255 per component and 32 components; no empty, `.` or `..` component, no leading or trailing `/`, no backslash, no control character, and no `.git` component. */
+                path: string;
+                /** @description The whole new content of the file, as text: at most 1 MiB of UTF-8, with no NUL character. A new file is mode `100644`; an existing file keeps its mode. */
+                content: string;
+            } | {
+                /**
+                 * @description Remove the file. It must exist in `baseCommit`.
+                 * @constant
+                 */
+                op: "delete";
+                /** @description A relative path, `/`-separated: at most 1024 bytes, 255 per component and 32 components; no empty, `.` or `..` component, no leading or trailing `/`, no backslash, no control character, and no `.git` component. */
+                path: string;
+            })[];
+            /** @description Run every check the commit would, write nothing, and answer what would have happened. */
+            dryRun?: boolean;
         };
         CreateProjectRequest: {
             /** @description Checked by the same function as GET /v1/slugs/{slug} (§23). */
@@ -2045,6 +2125,61 @@ export interface components {
              * @description An instant, ISO 8601 in UTC.
              */
             createdAt: string;
+        } | {
+            /** @constant */
+            kind: "event";
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /** @constant */
+            type: "repository.committed";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            machineDetail: {
+                commitSha: string;
+                parent: string;
+                added: number;
+                modified: number;
+                deleted: number;
+                /** @enum {string} */
+                via: "session" | "token";
+                /** Format: uuid */
+                userId: string;
+                tokenId: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
+        } | {
+            /** @constant */
+            kind: "event";
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /** @constant */
+            type: "repository.secret_refused";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            machineDetail: {
+                findings: {
+                    path: string;
+                    line: number;
+                    rule: string;
+                }[];
+            };
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
         };
         /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
         Fleet: {
@@ -2253,7 +2388,7 @@ export interface components {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
             /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve or launch:record, which are person-only and refused outright. */
-            capabilities: ("project:read" | "project:write" | "project:delete" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "quota:set" | "secret:read")[];
+            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "quota:set" | "secret:read")[];
             /** @description How long the token lives, in days. D24: a token has an expiry, and at most 365 days of one. */
             expiresInDays: number;
         };
@@ -3310,8 +3445,13 @@ export interface operations {
                      *           "subject": "Greet the world",
                      *           "message": "Greet the world",
                      *           "messageTruncated": false,
-                     *           "authorName": "Ada Lovelace",
-                     *           "authoredAt": "2026-09-26T06:23:51.000Z"
+                     *           "authorName": "Ada Lovelace (via token 'claude-code')",
+                     *           "authoredAt": "2026-09-26T06:23:51.000Z",
+                     *           "madeThrough": {
+                     *             "kind": "agent",
+                     *             "name": "Ada Lovelace",
+                     *             "tokenName": "claude-code"
+                     *           }
                      *         },
                      *         {
                      *           "commitSha": "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241",
@@ -3322,7 +3462,12 @@ export interface operations {
                      *           "message": "Add the greeting module",
                      *           "messageTruncated": false,
                      *           "authorName": "Ada Lovelace",
-                     *           "authoredAt": "2026-09-26T06:23:51.000Z"
+                     *           "authoredAt": "2026-09-26T06:23:51.000Z",
+                     *           "madeThrough": {
+                     *             "kind": "person",
+                     *             "name": "Ada Lovelace",
+                     *             "tokenName": null
+                     *           }
                      *         }
                      *       ],
                      *       "next": "85418f2fa9748ca708ee1ca3725c5cac4a1018c6"
@@ -3332,6 +3477,78 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createCommit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The project whose repository is read. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "baseCommit": "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241",
+                 *       "message": "Greet the world",
+                 *       "changes": [
+                 *         {
+                 *           "op": "write",
+                 *           "path": "src/app.js",
+                 *           "content": "export const greeting = 'hello, world'\n"
+                 *         }
+                 *       ]
+                 *     }
+                 */
+                "application/json": components["schemas"]["CreateCommitRequest"];
+            };
+        };
+        responses: {
+            /** @description The commit, or what it would have been. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "dryRun": false,
+                     *       "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                     *       "parent": "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241",
+                     *       "changes": [
+                     *         {
+                     *           "path": "src/app.js",
+                     *           "status": "modified"
+                     *         }
+                     *       ],
+                     *       "spec": {
+                     *         "appSpecId": "f0f11f7a-f7e5-4358-bace-3619589b5114",
+                     *         "sensitiveDiff": {
+                     *           "sensitive": false,
+                     *           "fields": []
+                     *         }
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CommitOutcome"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_CONFLICT, SOURCE_GIT_FAILED, SOURCE_NOTHING_TO_COMMIT, SOURCE_PATH_CONFLICT, SOURCE_PATH_ESCAPE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, SPEC_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3371,8 +3588,13 @@ export interface operations {
                      *       "subject": "Greet the world",
                      *       "message": "Greet the world",
                      *       "messageTruncated": false,
-                     *       "authorName": "Ada Lovelace",
+                     *       "authorName": "Ada Lovelace (via token 'claude-code')",
                      *       "authoredAt": "2026-09-26T06:23:51.000Z",
+                     *       "madeThrough": {
+                     *         "kind": "agent",
+                     *         "name": "Ada Lovelace",
+                     *         "tokenName": "claude-code"
+                     *       },
                      *       "changes": [
                      *         {
                      *           "path": "src/app.js",

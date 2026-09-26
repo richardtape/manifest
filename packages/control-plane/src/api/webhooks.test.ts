@@ -151,6 +151,13 @@ describe('POST /webhooks/github — verified, recorded once, and synced off the 
       { ref: MAIN, from: before, to: after },
     ])
     expect(await specAt(ctx.projectId, after)).toBe(1)
+    // …and ANNOUNCED once (the authoring API plan's Decision 7): a client learns from the
+    // stream that a person's push was validated, and whether it passed.
+    expect(
+      (await eventsOf(ctx.projectId, 'spec.validated')).filter(
+        (d) => (d as { commitSha: string }).commitSha === after,
+      ),
+    ).toEqual([expect.objectContaining({ commitSha: after, valid: true, errorCount: 0 })])
   })
 
   /**

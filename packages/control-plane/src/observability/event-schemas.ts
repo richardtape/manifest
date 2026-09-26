@@ -278,4 +278,31 @@ export const EVENT_DETAIL_SCHEMAS = {
     ref: z.string().regex(/^refs\/heads\/.+$/),
     detail: z.string(),
   }),
+  /**
+   * The authoring API plan's Task 6. COUNTS AND IDS — never a path, a file's content or the
+   * message, which are an agent's free text (§14); the sentence carries the subject, cut at 72.
+   * `userId` is the person — for a token, its minter — and `tokenId` the token, or null.
+   */
+  'repository.committed': z.strictObject({
+    commitSha: Sha,
+    parent: Sha,
+    added: z.number().int().nonnegative(),
+    modified: z.number().int().nonnegative(),
+    deleted: z.number().int().nonnegative(),
+    via: z.enum(['session', 'token']),
+    userId: Uuid,
+    tokenId: Uuid.nullable(),
+  }),
+  /** Where and which rule — NEVER THE VALUE (§20; Decision 10), exactly as `secret_detected`. */
+  'repository.secret_refused': z.strictObject({
+    findings: z
+      .array(
+        z.strictObject({
+          path: z.string().min(1),
+          line: z.number().int().min(1),
+          rule: z.string().min(1),
+        }),
+      )
+      .min(1),
+  }),
 } satisfies Record<EventType, z.ZodType>
