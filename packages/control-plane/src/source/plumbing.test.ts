@@ -16,6 +16,7 @@ import {
   buildCommit,
   MANIFEST_COMMITTER,
   planChanges,
+  pushVerdict,
   type BaseEntry,
 } from './plumbing.js'
 
@@ -282,5 +283,47 @@ describe('buildCommit — no worktree, the objects borrowed, the tree exactly th
     } finally {
       await built.dispose()
     }
+  })
+})
+
+/**
+ * F10 (sitting 2): driver 2 cannot read git's exit code — `gitWithToken` answers exit 1 as stdout
+ * — so a refused push must be read from porcelain's own line for the ref, and a `[remote
+ * rejected]` (a hook, GitHub's GH006, a ref lock lost) must never read as a success.
+ */
+describe('pushVerdict — what `git push --porcelain` said of main', () => {
+  const S = 'a'.repeat(40)
+  const said = (line: string) => `To https://git.example/org/app.git\n${line}\nDone\n`
+  it('reads a new branch, a fast-forward and an up-to-date ref as ok', () => {
+    expect(pushVerdict(said(`*\t${S}:refs/heads/main\t[new branch]`)).verdict).toBe('ok')
+    expect(pushVerdict(said(` \t${S}:refs/heads/main\t1111111..2222222`)).verdict).toBe(
+      'ok',
+    )
+    expect(pushVerdict(said(`=\t${S}:refs/heads/main\t[up to date]`)).verdict).toBe('ok')
+  })
+  it('reads git’s refusal of a moved branch as a conflict', () => {
+    expect(
+      pushVerdict(said(`!\t${S}:refs/heads/main\t[rejected] (non-fast-forward)`)).verdict,
+    ).toBe('conflict')
+    expect(
+      pushVerdict(said(`!\t${S}:refs/heads/main\t[rejected] (fetch first)`)).verdict,
+    ).toBe('conflict')
+  })
+  it('reads a REMOTE rejection, and a missing line, as refused — never as ok', () => {
+    for (const reason of [
+      'pre-receive hook declined',
+      'protected branch hook declined',
+      'failed to update ref',
+    ])
+      expect(
+        pushVerdict(said(`!\t${S}:refs/heads/main\t[remote rejected] (${reason})`))
+          .verdict,
+        reason,
+      ).toBe('refused')
+    expect(pushVerdict('error: failed to push some refs\n').verdict).toBe('refused')
+    // Another ref's line is not main's verdict.
+    expect(pushVerdict(said(`*\t${S}:refs/heads/other\t[new branch]`)).verdict).toBe(
+      'refused',
+    )
   })
 })
