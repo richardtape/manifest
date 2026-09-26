@@ -84,8 +84,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the authoring API plan's sitting 4 (2026-09-26): +28 and one file — `api/source-commit.test.ts`
 # (12), `createCommit`'s row in the authorization matrix (9), `pathProblem` (2), an invalid
 # validation announced (1), and Task 7's builds of the right spec (2) and the blueprint pin (2).
-EXPECT_TESTS=2131
-EXPECT_FILES=149
+# Then the authoring API plan's sitting 5 (2026-09-26): +66 and one file — `api/secrets.test.ts`
+# (16), the five secrets rows in the authorization matrix (45), the injection contract's declared
+# secrets (3), `secret:write` in the step-up set (1) and the keyed idempotency fingerprint (1).
+EXPECT_TESTS=2197
+EXPECT_FILES=150
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 

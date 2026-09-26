@@ -9,13 +9,14 @@ executed** (§2's table): an application goes from a bare repository to a produc
 on one laptop, offline — and its code can live in a GitHub organisation instead (D5's driver 2, the newest). **The authoring
 API's plan is being executed**; §7e says what is next. The roadmap's ledger outranks every document on status.
 
-*Last verified 2026-09-26, at the close of the authoring API plan's sitting 4 (Tasks 6 and 7 — committing over the API,
-and builds of the right spec). `pnpm test` **2131 passed, 0 skipped, in 149 files**, twice, identical, ~7 minutes a run
-(437 s, 431 s) — up 28 and one file (`api/source-commit.test.ts`). **`make doctor` 20 checks, 0 failed, 0 warnings**; the
-vulnerability database goes stale again after 2026-10-01 (`make refresh-vulndb`). **`make verify` 57**, clean at the open,
-after the Docker tier and at the close. `pnpm test:docker` **208 in 34**, owed and green first time (881 s). A commit and
-a build of a non-newest commit were driven through the edge after a real CWL sign-in.
-`scripts/ci-acceptance.sh` reads `2131 / 149 / 20 / 57`. **This line states only the latest sitting** — each sitting's
+*Last verified 2026-09-26, at the close of the authoring API plan's sitting 5 (Task 8 — app secret values). `pnpm test`
+**2197 passed, 0 skipped, in 150 files**, identical on every run, ~7.5 minutes a run (453 s, 451 s, 460 s, 463 s) — up 66 and one
+file (`api/secrets.test.ts`). **`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability database goes stale again
+after 2026-10-01 (`make refresh-vulndb`). **`make verify` 57**, clean at the open, after the Docker tier and at the close.
+`pnpm test:docker` **210 in 35**, owed — red first (a fixture cache macOS had half-deleted: F14), green after the fix
+(927 s). A secret declared, refused at deploy, set, rendered into a real container and refused to a token for production
+was driven through the edge after a real CWL sign-in. `scripts/ci-acceptance.sh` reads `2197 / 150 / 20 / 57`. **This line
+states only the latest sitting** — each sitting's
 numbers are in its plan's *What executing this plan found*, dated, where they cannot drift.*
 
 **Short of context? Read §7e, §2's numbers box, §6 and §4's curated traps, in that order.** The full trap catalogue
@@ -63,14 +64,15 @@ roadmap's table — every plan self-reviewed first. The roadmap's defect-rate ta
 a written plan as a hypothesis (§9).
 
 **The four numbers you will check first, re-measured 2026-09-26 on this machine at the open AND the close of the
-authoring API plan's sitting 4 (Tasks 6 and 7; its record is in the plan). ONE moved: `pnpm test` **2131** in **149** files
-(`api/source-commit.test.ts`, `createCommit`'s nine matrix rows, `pathProblem`, and Task 7's four); `make doctor` **20**
-with **0 warnings**; `make verify` **57**; `pnpm test:docker` **208** in 34, owed and green:**
+authoring API plan's sitting 5 (Task 8; its record is in the plan). TWO moved: `pnpm test` **2197** in **150** files
+(`api/secrets.test.ts`, the five secrets rows of the matrix, three injection cases, one step-up and one idempotency case);
+`make doctor` **20** with **0 warnings**; `make verify` **57**; `pnpm test:docker` **210** in **35** (`releases/app-secrets.docker.test.ts`),
+owed, and green after a fixture-cache fix:**
 
 | Gate | What it reads now |
 |---|---|
-| `pnpm test` (from the **repo root**) | **2131 passed, 0 skipped, 149 files**, **~7 min (420–440 s) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2131**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **208 tests, 0 SKIPPED, 34 files** (2026-09-26, the authoring API plan's sitting 4: 881 s, green first time, at load 3.7–4.6 — its sitting 3's 895 s, its sitting 2's 896 s and 878 s, and its sitting 1's 906 s; the D5 plan's sitting 8's 1341 s at load 5–16 — the Docker VM itself — and its sitting 7's 1201 s at load ~2–5. Its one wall-clock case — *a retire waits for a request that is in flight*, a drain bound — was red at load 12–15 in sittings 5 and 6 and green re-run alone at ~6; TRAPS.md has the re-run command, which leaves one dead network behind). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the cleanup scripts, because it regenerates seven dead app networks and one volume every time — and about thirteen app images, which `scripts/app-images.sh` removes — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`; sitting 6's two tiers did not show it). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test` (from the **repo root**) | **2197 passed, 0 skipped, 150 files**, **~7.5 min (450–460 s) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2197**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
+| `pnpm test:docker` | **210 tests, 0 SKIPPED, 35 files** (2026-09-26, the authoring API plan's sitting 5: 927 s, green on its SECOND run — the first, 895 s, was red in `sso/login.docker.test.ts` alone because macOS had half-deleted a cached fixture repository in `$TMPDIR` (that sitting's F14; `runtime/docker/testing.ts` now rebuilds one) — its sitting 4's 881 s, its sitting 3's 895 s, its sitting 2's 896 s and 878 s, and its sitting 1's 906 s; the D5 plan's sitting 8's 1341 s at load 5–16 — the Docker VM itself — and its sitting 7's 1201 s at load ~2–5. Its one wall-clock case — *a retire waits for a request that is in flight*, a drain bound — was red at load 12–15 in sittings 5 and 6 and green re-run alone at ~6; TRAPS.md has the re-run command, which leaves one dead network behind). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the cleanup scripts, because it regenerates seven dead app networks and one volume every time — and about thirteen app images, which `scripts/app-images.sh` removes — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`; sitting 6's two tiers did not show it). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **20 checks, 0 failed, 0 warnings** — one of them the GitHub fake's image (`make seed`, profile `github`); the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **57 checks, 0 failed, 0 warnings** — two of them the GitHub fake's, static, whether or not it runs. Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. Last green 2026-09-25 (the authoring API plan's sitting 2, after F7's (b)), FRESH, run by `make demo-releases` |
@@ -79,7 +81,7 @@ with **0 warnings**; `make verify` **57**; `pnpm test:docker` **208** in 34, owe
 | `make demo` | P3's acceptance, ~35 s, driver 1. **In no acceptance** — which is how it stayed red from P6a's step-up until the D5 plan's sitting 8 (F15); it now asserts `STEP_UP_REQUIRED`, steps up, and then §13's checklist refusal. Last green 2026-09-25, with the GitHub fake stopped |
 | `make demo-github` | **The D5 plan's acceptance — driver 2 ONLY** (`MANIFEST_SOURCE_DRIVER=github`, `make github-up`): ~70 s re-used, ~80 s fresh, ten steps against the GitHub fake, each phase ending `every check passed`. On driver 1 it stops at step 0 and creates nothing. Step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1. Green three times 2026-09-25 (fresh, re-use, after `make reset`) |
 | `make demo-journey` | P5a's acceptance: all eight steps, ~51 s, over the contract; last green 2026-09-25 in `make ci-acceptance` (the D5 plan's sitting 8) |
-| `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `2131 / 149 / 20 / 57` — and move with it** (§6). Last run 2026-09-25 on driver 1: every step PASS, `demo-github` NOT RUN, 732 s |
+| `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `2197 / 150 / 20 / 57` — and move with it** (§6). Last run 2026-09-25 on driver 1: every step PASS, `demo-github` NOT RUN, 732 s |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
 cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are
@@ -253,7 +255,7 @@ another module except through its `index.ts` or `testing.ts`**:
 | `runtime/` | §11's `Driver`, the fake driver, **`driver-contract.ts`**, the state machine; `runtime/docker/` is the one real driver |
 | `routing/` | §23 hostnames → Caddy routes; readiness and identity probes run from inside the edge. `caddy.ts` speaks `node:http`, not `fetch` — Caddy's admin API refuses any request carrying an `Origin` header |
 | `build/`, `services/`, `source/` | the build context, §12's gates and scan — and `secret-patterns.ts`, THE list of secret rules every path reads (the D5 plan's Task 11); per-app Mongo; D5's `SourceDriver` — bare git repositories (driver 1), `driver-contract.ts` (the suite every driver passes) and `github/` (driver 2 — a mirror, tokens in memory; `MANIFEST_SOURCE_DRIVER=github`, the D5 plan's Tasks 7–8; its sync reports to ONE observer, enforces private and scans every new commit, Tasks 9–11; `main` protected where GitHub will, Task 12), `plumbing.ts` (THE write path: every commit, on both drivers, planned against the base tree and built with no worktree — the authoring API plan's Task 3), `reading.ts` (THE read path: a tree, a text file, a first-parent history and one commit's changes, over a git dir each driver resolves — that plan's Task 4), `pre-receive.ts` (driver 1's secret-scanning hook, RENDERED from `build/secret-patterns.ts`), `scan-commits.ts` (the added lines of new commits; the pre-push scan and the path check), `queue.ts` (the webhook's serial queue) and `testing.ts` (a person pushing, rewriting or deleting on the fake; a recording observer) |
-| `identity/`, `sso/`, `secrets/` | sessions and Manifest's own SAML SP; per-app SP registration in the IdP; envelope encryption |
+| `identity/`, `sso/`, `secrets/` | sessions and Manifest's own SAML SP; per-app SP registration in the IdP; envelope encryption, and `app-env.ts` — an app's declared secrets, write-only (`env:<NAME>`; the authoring API plan's Task 8) behind `resolver.ts`'s bound resolver |
 | `projects/` | §13 authorization (`authz.ts`), the repository, reserved labels, `checkSlug`, §26's `fleet.ts`, and `source-attribution.ts` (who made a commit through Manifest, from `repository.committed` — the authoring API plan's Task 6) |
 | `releases/` | build (the `BuildRunner` a build runs on), release, deploy, retire, recover-at-boot; the approval, its stored preview (`preview.ts`'s `factsOf`) and `summary.ts` — the summary as STRUCTURED OUTPUT (the D5 plan's Task 13) |
 | `observability/` | events and every event type's payload schema (`event-schemas.ts`), redaction, build logs, Incidents, the event bus |
@@ -340,6 +342,11 @@ defect even when every test is green.**
   service has been deployed once is the trap P4a's Decision 8 describes. **`infra/secrets/master.key`,
   `infra/idp/cert/`, `infra/sp/` and the Caddy CA are minted by `make up`, gitignored, and NOT removed by `make
   reset`.**
+- **THE IDEMPOTENCY RECORD KEEPS NO HASH A READER OF THE DATABASE COULD CHECK A GUESS AGAINST** (the authoring API plan's
+  sitting 5, F3). `replayOrStore`'s request fingerprint is an HMAC under `config.sessionSecret` (a REQUIRED `hashKey`),
+  never a bare SHA-256 of the body — `setAppSecret`'s body IS the value. A retry spanning a `MANIFEST_SESSION_SECRET`
+  rotation answers `IDEMPOTENCY_KEY_REUSED`. **Its RESPONSE body is still stored as sent — including `mintToken`'s
+  plaintext secret, and nothing deletes a row** (F4; §8 *Open*).
 - **A migration is always its own file** — drizzle-kit keeps a journal and never re-runs an applied one — written
   by `pnpm --filter @manifest/control-plane db:generate` from `db/schema.ts` and applied with `db:migrate`.
   **`db:migrate` reads `MANIFEST_ADMIN_DATABASE_URL` FROM THE ENVIRONMENT, and nothing exports it for you**: run
@@ -465,6 +472,17 @@ defect even when every test is green.**
   came from. With no `commitSha` it still builds the newest RECORDED validation's commit (§4 trap 23), and its
   description says so. `ValidationContext.projectBlueprint` is REQUIRED, so a manifest whose `blueprint:` is not the
   project's pin — compared whole, major included — is `SPEC_BLUEPRINT_NOT_PINNED` at every validation.
+- **AN APP'S DECLARED SECRET IS SET WRITE-ONLY, PER ENVIRONMENT, AND A DEPLOY NEVER STARTS AN APP WITHOUT ONE** (the
+  authoring API plan's Task 8). `listAppSecrets`, `setAppSecret` (the API's first `PUT`) and `clearAppSecret` on
+  `/v1/environments/{environmentId}/secrets` answer NAMES — declared by the environment's newest valid manifest (resolved
+  for its kind by `resolveEnv`) or set — and **never a value**. Values are `env:<NAME>` in `secrets` (the third namespace
+  beside `app:` and `service:`), so §14's redactor covers them; a value is at least **six characters**, the redactor's own
+  `MIN_SECRET_LENGTH`, because a shorter one would be rendered and never redacted. **`secret:write`** — owner,
+  collaborator, administrator; mintable — sets sandbox and staging; **production is a stepped-up session's alone**
+  (`secret:write` is in `STEP_UP_GUARDED` and NOT in D24's four; a token is `TOKEN_CREDENTIAL_REFUSED`). **`deployRelease`
+  refuses a release whose frozen config declares a secret with no value in that environment — `409
+  RELEASE_SECRET_NOT_SET`, naming the names, before anything exists** — and `renderInjection` renders declared values only,
+  refusing a missing one itself (`INJECTION_SECRET_MISSING`). It DROPPED them silently until 2026-09-26.
 - **MANIFEST NEVER WRITES INSIDE A REPOSITORY'S OWN `.git`, NOR OUTSIDE IT** (the D5 plan's final review, Important 1; the
   authoring API plan's Task 3). `assertWritablePaths(paths)` (`source/scan-commits.ts`, beside `assertNoSecrets`) refuses
   any path with a `.git` component, in any case — macOS folds case — and any that is not inside the repository (a leading
@@ -1419,82 +1437,75 @@ named in the row below.*
 | **P6a** | [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), with [the P6 brief](plans/2026-09-19-p6-brief.md) — **EXECUTED 2026-09-22**, all eleven sittings | `make demo-production` — green on the fresh path, the re-use path and from a `make reset` machine; step 11 of the offline acceptance; **and a whole launch clicked by a person** | **Sitting 11's F6 is the one to read**: the acceptance's own control (e) stayed GREEN because `applyRoute` patched an existing route in place, so a production route kept whatever listener held it — a fail-open in the control the plan exists to build, found only by asking why a control was green. **Sitting 11's F2** is its mirror image in the instrument: a pooled keep-alive socket reported the production app on the internal listener when it was not there, and in the other order would have hidden a real leak. **Sitting 9's F5**: §8 sends a production app to real UBC Shibboleth, so R2's rehearsal could not pass on this laptop until `InjectionContext.purpose` existed. **Sitting 10's F17 and sitting 11's F10**: two console defects no gate could see, both found by clicking. |
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
 | **D5 driver 2** | [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — **EXECUTED 2026-09-25**, all eight sittings | `make demo-github` (driver 2) — green fresh, re-use and from a `make reset` machine; step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1; **clicked by a person on both drivers**; the real conformance leg 17 of 17 | **Sitting 8's F11 and F12 are the ones to read**, found by the plan's one fresh whole-branch review: a path into a worktree's own `.git` could be written on both drivers (`core.fsmonitor` is code execution — latent until the authoring API supplies paths), and a push a read synced first was never validated. **Sitting 8's F15/F16**: `make demo` and `make demo-token` were red for five days after P6a's step-up because nothing ran them. **Sitting 1's F6**: one rewrite of GitHub's `main` froze a non-forced mirror's `main` for ever — the two-refspec mirror is its fix. **Sitting 4's F6**: without `repositoryOf`, a GitHub-mode control plane BUILT a driver-1 project. |
-### 7e. Execute sitting 5 of the authoring API plan — Task 8 (app secret values) ← **START HERE**
+### 7e. Execute sitting 6 of the authoring API plan — Task 9 (the reference, completed) ← **START HERE**
 
 **The authoring API's plan is being executed**: [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — 13
 tasks in the **ten sittings Rich approved on 2026-09-25** (the plan's *How this plan is to be executed*; §8 *Decided*). It makes
 an app CREATABLE through the API, documents all of it well enough for a human and an agent to drive the API from the docs
-alone, and is accepted by an agent building a bulletin board from the bare skeleton, on both drivers. **Sittings 1 to 4 are
+alone, and is accepted by an agent building a bulletin board from the bare skeleton, on both drivers. **Sittings 1 to 5 are
 DONE** (2026-09-25/26): the measurements; F7 (option (b), Rich's) and every commit built with git plumbing and no worktree;
-both drivers' reads over the API (`getTree`, `getFile`, `listCommits`, `getCommit`); and **`createCommit` — committing over
-the API, checked before anything is written, attributed by the platform's own record — and builds of the right spec** (§3
-has all four invariants). Their records are the plan's *What executing this plan found*, *Sitting 1* to *Sitting 4*.
+both drivers' reads over the API; `createCommit` and builds of the right spec; and **an app's declared secrets — set
+write-only per environment, a deploy refused when one is missing, production a stepped-up person's alone** (§3 states
+each as an invariant, and a sixth for the idempotency record). Their records are the plan's *What executing this plan found*, *Sitting 1* to *Sitting 5*.
 
-**NOTHING NEEDS ASKING BEFORE SITTING 5: RICH ANSWERED SPEC ACTION 2 AT SITTING 4'S CLOSE — OPTION (a), APPLIED 2026-09-26**
-(§8 *Decided*): a delegated token sets sandbox and staging secrets; a production value is set only in an interactive
-session with step-up, and a token asking is refused outright. **That is exactly what Task 8's steps build** — its
-*"what changes if Rich chooses otherwise"* branches are not taken. Spec actions 1 and 3 wait for sitting 10.
+**NOTHING NEEDS ASKING BEFORE SITTING 6.** One question is open and NOT blocking: **F4 of sitting 5 — `mintToken`'s
+idempotency record stores the plaintext token** (§8 *Open*, first bullet: options (a)/(b)/(c), (a) recommended, placed at
+Task 12, sitting 9). Ask it in the sitting's first message so Rich can answer while you work; it changes nothing in Task 9.
+Spec actions 1 and 3 wait for sitting 10.
 
-**EXECUTE SITTING 5 — TASK 8 (APP SECRET VALUES).** `superpowers:executing-plans`, inline, no subagent per task (Rich,
-2026-09-25); **commit on `main`**. **Read, in this order:** the plan's header to the end of *The fixtures and helpers*; *What
-executing this plan found*, *Sitting 4* (F3–F6 and F18 above all); then **Task 8 in full, starting with its `[S3]` and
-`[S4]` blocks**. The ledger is `.superpowers/sdd/2026-09-25-authoring-api/progress.md` (git-ignored; `Task 1…7: complete` and
-every `Ruling:` line).
+**EXECUTE SITTING 6 — TASK 9 (THE REFERENCE, COMPLETED). THE PLAN CALLS IT ONE OF ITS TWO HEAVY SITTINGS** — every
+description in the document. `superpowers:executing-plans`, inline, no subagent per task (Rich, 2026-09-25); **commit on
+`main`**, **module by module** as Step 5 says, so a session limit loses nothing. **Read, in this order:** the plan's header to
+the end of *The fixtures and helpers*; *What executing this plan found*, *Sitting 5* (F2, F3, F10, F14 and F15 above all) and
+*Sitting 1*'s `[M6]`–`[M8]`; then **Task 9 in full, starting with its `[M6]`/`[M7]`/`[M8]` and `[S5]` blocks**. The ledger is
+`.superpowers/sdd/2026-09-25-authoring-api/progress.md` (git-ignored; `Task 1…8: complete` and every `Ruling:` line).
 
-- **The contract is `1.3.0`** — Task 2 took the plan's one bump. Task 8 regenerates inside it; never bump again.
-- **TASK 8'S `[S4]` BLOCK NAMES FIVE THINGS ITS FILES LIST DOES NOT, EACH OF WHICH TURNED A GATE RED FOR TASK 6**:
-  `isWellFormed` is a type error here (use `LONE_SURROGATE`); `secret:write` must go into the console's `tokens.tsx` list or
-  the console's `tsc` fails; `app_secret.set`/`.cleared` must be REACHED by `api/stream-contract.test.ts`'s lifecycle; **the
-  migration must be applied to `manifest_control` by hand before the unit tier** (`db:migrate`, §3's one-line form) or every
-  insert is a `500`; and the matrix's `RouteCase.request` may be async.
-- **Every new operation needs an `examples` entry and a console park** (sitting 3's F8): three more lines in
-  `DELIBERATELY_UNCALLED` naming Task 10, beside the five parked there now.
-- **The matrix cannot see which capability a route asserts when every passing actor holds both** (sitting 3's F9, sitting
-  4's F13): a token minted through the route with the ONE capability is what shows it — `api/source-commit.test.ts`'s
-  *project:write but not source:write* case is the pattern.
-- **`pnpm test:docker` IS OWED** (`secrets/`, `releases/`, `spec/`) — 881 s at its last run (sitting 4); background it, then
-  the three cleanup scripts and `make verify` — and restart the control plane only if it was running before.
+- **The contract is `1.3.0`** and stays there — Task 9 regenerates inside it. It reads **51 operations, 74 component schemas,
+  108 error codes and 11 tags, none of the 11 described** (Task 9's `[S5]` block, with the `jq` for the tags).
+- **Two packages come from the store, offline**: `zod-to-json-schema@3.25.2` and `@redocly/openapi-core@1.34.20` — **read
+  `pnpm-lock.yaml`'s peer suffix after the first: it must link `zod@3.25.76`**, because `zod@4.6.5` is in the store too and an
+  offline add can link the wrong one without a word (`[M7]`).
+- **Task 8's three examples are ILLUSTRATIVE** (a made-up environment id); Step 5's rule is *a real answer* — capture them.
+- **`pnpm test:docker` IS OWED**: the table says *"No — unless a change reaches the owing paths"*, and Task 9's Files list
+  modifies `observability/event-schemas.ts`. ~15 minutes; background it, then the three cleanup scripts and `make verify`.
 
-**WHERE THE SITTING STOPS, AND HOW IT ENDS.** After Task 8's commit and its controls. Then the plan's *every sitting ends the
+**WHERE THE SITTING STOPS, AND HOW IT ENDS.** After Task 9's commits and its controls. Then the plan's *every sitting ends the
 same way*: the four gates (`pnpm test` twice), the Docker tier, the dated record, the sittings table, and the close-out (§6) —
-the roadmap's defect-rate table with the count DERIVED, this §7e rewritten for sitting 6, §2's box when a gate moved.
-**Query the machine's state AFTER the last Vitest run of the close** (sitting 4's F1) — a post-sweep re-run of RUNBOOK's two
-readers truncates too. **Re-read the §7e you wrote as a cold agent, opening every file and command it names.**
+the roadmap's defect-rate table with the count DERIVED, this §7e rewritten for sitting 7, §2's box when a gate moved.
+**Query the machine's state AFTER the last Vitest run of the close.** **Re-read the §7e you wrote as a cold agent, opening
+every file and command it names.**
 
-**WHAT SITTINGS 1 TO 4 FOUND THAT THE NEXT SITTINGS MUST NOT LOSE** (each is a finding in the plan's record):
-- **NOTHING IN THE TREE MAY CHANGE WHILE `pnpm test` RUNS** (sitting 2's F1): Vitest reads a test file when it reaches it, and
-  `error-codes.test.ts` scans every source file at its turn. Write docs while it runs, never code or tests — and not
-  `RUNBOOK.md`, which `config.test.ts` reads. A defect found mid-run: stop the run, fix, start again.
-- **A REFUSAL IS NO EVIDENCE NOTHING HAPPENED** (sitting 1's F3): the attack cases assert the filesystem and a canary.
-- **A PUSH GIT REFUSED CAN READ AS SUCCESS** (sitting 2's F10, F11; TRAPS): read porcelain's own line (`pushVerdict`), and a
-  lost race is decided by reading the branch, not git's words.
-- **A PATH HANDED TO GIT IS A PATHSPEC** (sitting 3's F3; TRAPS): `GIT_LITERAL_PATHSPECS=1` AND an exact match.
-- **EVERY FREE-TEXT FIELD A WRITE CARRIES IS A PLACE A SECRET CAN GO** (sitting 4's F18): a commit's MESSAGE went into git
-  history and an event unscanned, and the redactor's heuristics miss a 20-character AWS key id. A secret's VALUE in Task 8
-  must reach no event, no operator line and no answer — assert it with `SAMPLE_SECRETS`, as `api/source-commit.test.ts` does.
-- **A scratch probe against `source/` needs `node --experimental-transform-types` and `MANIFEST_DATABASE_URL` pointed at an
-  unreachable address** (sitting 1's F1, F2); `spikes/authoring-baseline/probes/driver1-plumbing-escape.ts` is a working
-  example, with its usage on its first lines.
-- **`zod@4.6.5` is in the pnpm store** — an offline `pnpm add` can link the wrong zod (Task 9's `[M7]`); **pnpm 11 exits 1 on
-  ignored build scripts** (Task 11's `[M9]`); **the renderer is Scalar 1.72.0 and needs `agent: { disabled: true }`** (sitting 1's F9).
+**WHAT SITTINGS 1 TO 5 FOUND THAT THE NEXT SITTINGS MUST NOT LOSE** (each is a finding in the plan's record):
+- **NOTHING IN THE TREE MAY CHANGE WHILE `pnpm test` RUNS** (sitting 2's F1): write docs while it runs, never code or tests —
+  and not `RUNBOOK.md`, which `config.test.ts` reads.
+- **A NEGATIVE CONTROL WHOSE PATCH DID NOT APPLY IS A GREEN RUN OF THE UNBROKEN TREE** (sitting 5's F10): end each patch with
+  `|| exit 1` and print `git diff --stat` before the run.
+- **A REFUSAL IS NO EVIDENCE NOTHING HAPPENED** (sitting 1's F3), and **EVERY FREE-TEXT FIELD A WRITE CARRIES IS A PLACE A
+  SECRET CAN GO** (sitting 4's F18) — sitting 5 found one no plan named: the idempotency record (F3, F4).
+- **A red naming a path under `/var/folders/…/T/` or `/tmp/` wants an `ls` first** (sitting 5's F14): macOS deletes old temp
+  files one at a time; `runtime/docker/testing.ts` now rebuilds a half-deleted fixture cache.
+- **A bodyless `DELETE` is sent WITHOUT `Content-Type`** (sitting 5's F15), or it is `400 REQUEST_INVALID` with a hint that
+  asks for a body.
+- **A PUSH GIT REFUSED CAN READ AS SUCCESS** and **A PATH HANDED TO GIT IS A PATHSPEC** (sitting 2's F10/F11, sitting 3's F3).
+- **`zod@4.6.5` is in the pnpm store** (`[M7]`); **pnpm 11 exits 1 on ignored build scripts** (Task 11's `[M9]`); **the renderer
+  is Scalar 1.72.0 and needs `agent: { disabled: true }`** (sitting 1's F9).
 
 **THINGS MOST LIKELY TO COST YOU:**
 - **Rich may be testing by hand in parallel**: never run `pnpm test`, `pnpm contract:write`, a demo or `make reset` without
   checking what is running (`lsof -nP -iTCP:7100 -sTCP:LISTEN`, `docker ps`), and restart nothing he started.
-- **ONE SOURCE DRIVER PER CONTROL-PLANE PROCESS** — until Task 12, check the boot line's `"source"` before any demo.
+- **Every refusal asserts its CODE, and every negative control is predicted IN WRITING before it runs.**
 - **The vulnerability database goes stale after 2026-10-01** — past it `make demo-production` goes red; `make
   refresh-vulndb` is Rich's (network).
-- **Every refusal asserts its CODE, and every negative control is predicted IN WRITING before it runs** — sitting 4's
-  control (c) of Task 7 predicted a `202` and saw a `500`; the difference was a finding (F16).
 
-**THE MACHINE, AS SITTING 4 LEFT IT (queried at its close, 2026-09-26, AFTER its last Vitest run):** the control database
-is **EMPTY** — 0 projects, 0 events, 30 migrations (0029, the two `repository.*` literals, is applied). `.manifest/repos/`
-holds nine orphan bare repositories no project holds (a demo's `clear_orphan_repository` clears its own). **`launch-app`'s six
-`mf-launch-app-*` containers run with NO rows behind them** and **0 runtime routes** are applied (the Docker tier restarted
-the edge); nothing listens on 7100 or 7104; the GitHub fake is stopped; no model is resident; the three cleanup scripts read
-clean after `--apply`, and `make verify` reads 57/0/0 with `containers=6 networks=2 volumes=4`. **A demo that needs
-`launch-app` launched (`make demo-releases`) runs fresh from here.** Rich may test by hand afterwards, so query everything
-again at open — `psql`, `docker ps`, `lsof -nP -iTCP:7100 -sTCP:LISTEN`.
+**THE MACHINE, AS SITTING 5 LEFT IT (queried at its close, 2026-09-26, AFTER its last Vitest run):** the control database
+is **EMPTY** — 0 projects, 0 events, 0 secrets, 31 migrations (0030, the two `app_secret.*` literals, is applied).
+`.manifest/repos/` holds nine orphan bare repositories no project holds (a demo's `clear_orphan_repository` clears its own).
+**`launch-app`'s six `mf-launch-app-*` containers run with NO rows behind them** and **0 runtime routes** are applied (the
+Docker tier restarted the edge); nothing listens on 7100 or 7104; the GitHub fake is stopped; no model is resident; the
+three cleanup scripts read clean after `--apply`, and `make verify` reads 57/0/0 with `containers=6 networks=2 volumes=4`.
+**A demo that needs `launch-app` launched (`make demo-releases`) runs fresh from here.** Rich may test by hand afterwards,
+so query everything again at open — `docker exec manifest-postgres psql -U manifest -d manifest_control` (there is no
+`psql` on the host), `docker ps`, `lsof -nP -iTCP:7100 -sTCP:LISTEN`.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -1514,6 +1525,19 @@ reasoning is recorded.**
 
 ### Open
 
+- **`mintToken`'S IDEMPOTENCY RECORD STORES THE PLAINTEXT DELEGATED TOKEN — RAISED 2026-09-26 (the authoring API plan's
+  sitting 5, F4).** Measured: `idempotency_keys.response_body` for `POST /v1/projects/{id}/tokens` holds the minted
+  `secret`, and nothing ever deletes an `idempotency_keys` row — while the route's own description says *"the platform
+  stores only a hash of it and cannot show it again"* (D24). Anyone who can read the control plane's database holds every
+  token ever minted, until the table is truncated. P5b's code (2026-09-17), found while keying the request hash for
+  `setAppSecret`. **Options:** **(a) — recommended —** store the record WITHOUT the secret, and answer a replay of a mint
+  `409` with a code of its own naming the token that WAS minted, so a client that lost the answer revokes it and mints
+  again (D24's *shown exactly once* made true; D23.6's replay answers a refusal for this one operation — no second token
+  is ever minted); **(b)** store the answer ENCRYPTED under the master key and replay it within a short window, then drop
+  it (D23.6 unchanged; the credential exists at rest, encrypted like every other secret, for that window — and the
+  route's sentence changes); **(c)** leave it. **Either (a) or (b) wants a retention for `idempotency_keys`** beside it.
+  Recommended placement: **Task 12, sitting 9** (*what earlier plans hand over*). Nothing is lost by waiting that long on
+  this laptop — its tables are truncated by every `pnpm test` — but it must be fixed before a real deployment.
 - **THE AUTHORING API PLAN'S SPEC ACTIONS 1 AND 3 — RAISED 2026-09-25** (the plan's *Spec actions*; Spec action 2 is
   *Decided*, below). **Spec action 1** (§14: a bounded, redacted read of a running app's recent output, sandbox and staging
   only) **and where its plan goes** (recommended: straight after the authoring API), and **Spec action 3** (§17/§22: the

@@ -1747,6 +1747,21 @@ it belongs among the traps the next sitting is most likely to hit.
 - **A CLOSE'S STATE TABLE IS WRONG IF ANY VITEST RUN FOLLOWS THE QUERY** (2026-09-26, sitting 4, F1). Sitting 3 queried
   the database, then re-ran RUNBOOK's two readers (`config.test.ts`, `db/client.test.ts`) after its sweep — both truncate —
   and the next sitting found 0 projects where the hand-off said one. Query LAST.
+- **A NEGATIVE CONTROL WHOSE PATCH DID NOT APPLY IS A GREEN RUN OF THE UNBROKEN TREE** (2026-09-26, the authoring API
+  plan's sitting 5, F10). A control patched by `python3 - <<EOF … assert old in s …` failed its `assert` — Prettier had
+  re-wrapped the line since it was written — and the next commands on the same line ran anyway: **575 green**, which reads
+  exactly like *"this control cannot fail"*. End the patch with `|| exit 1`, and print `git diff --stat <path>` before the
+  run: an empty diff is a control that was never applied.
+- **macOS DELETES OLD FILES OUT OF `$TMPDIR` ONE AT A TIME, AND A CACHED FIXTURE REPOSITORY SURVIVES AS A HUSK** (2026-09-26,
+  the authoring API plan's sitting 5, F14). Two Docker-tier fixtures built four days earlier had lost `HEAD`, `config`,
+  their refs and most objects overnight while their stamp files — read every run — survived: `sso/login.docker.test.ts`
+  failed before its first test with *"not a git repository"*. `runtime/docker/testing.ts`'s `intactRepository` now
+  rebuilds such a cache. **A red that names a path under `/var/folders/…/T/` or `/tmp/` is worth an `ls` before anything
+  else.**
+- **THE IDEMPOTENCY RECORD STORES WHAT A MUTATION ANSWERED, AS IT ANSWERED IT** (2026-09-26, sitting 5, F3/F4). Its
+  request fingerprint is keyed now (a body can BE a secret); its `response_body` is not — `mintToken`'s holds the plaintext
+  token, and no row is ever deleted. A new route whose ANSWER carries a credential stores it in `idempotency_keys` unless
+  it says otherwise (ORIENTATION §8 *Open*).
 
 ## Images already pulled
 

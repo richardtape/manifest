@@ -54,8 +54,8 @@
 | 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | **DONE 2026-09-25** — F7's option (a) measured over 320 answers and NOT adopted — then, at Rich's answer, option (b): no model sentence for a CWL attribute change; `added`/`removed` published, contract `1.3.0`; every commit on both drivers built with plumbing and no worktree, the attacks contract cases; Docker tier green |
 | 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract regenerated INSIDE `1.3.0` (Task 2 already took the plan's one bump) | **Yes** — `source/`, `projects/` | **DONE 2026-09-25** — both drivers read a tree, a text file, a first-parent history and one commit's changes; `getTree`, `getFile`, `listCommits` and `getCommit` published inside `1.3.0` with examples; the mock answers them from the document (Task 10's Step 1, done early) and the console parks them for Task 10 |
 | 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | **DONE 2026-09-26** — `createCommit` published inside `1.3.0` with its dry run, `source:write` (mintable), the manifest validated before anything is written, `repository.committed` / `repository.secret_refused`, `spec.validated` on every validation and `madeThrough` on the history; a build of a named commit uses THAT commit's validation, and a manifest must name the project's pin (`SPEC_BLUEPRINT_NOT_PINNED`); driven through the edge; Docker tier green |
-| 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | ← **next** — Spec action 2 answered (a), applied 2026-09-26 |
-| 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths | |
+| 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | **DONE 2026-09-26** — `listAppSecrets`, `setAppSecret` (the first `PUT`) and `clearAppSecret` inside `1.3.0`, names only; values `env:<NAME>` in `secrets`, at least six characters; `secret:write` mintable, production a stepped-up session's alone (Spec action 2 (a)); a deploy refuses a declared secret with no value (`RELEASE_SECRET_NOT_SET`) and injection renders the rest; the idempotency fingerprint keyed; driven through the edge; Docker tier green after a harness fix |
+| 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths (it does: Task 9's Files list modifies `observability/event-schemas.ts`) | ← **next** |
 | 7 | 10 | **The console and the mock**: a Code screen (tree, file, edit, delete, commit, history, one commit) and a Secrets screen; the mock answers every new operation from the document's own examples; both coverage gates | **No** | |
 | 8 | 11 | **The guides, served**: `docs/api/` — hand-written guides whose code examples are real files, type-checked and run against the mock — a reference generated from the document, the journey as a gate, all served at `/v1/docs` and `/v1/openapi.json`, `llms.txt`, a console Docs screen, **the HTML reference page**, and the knowledge pack's pointer | **Yes** — `blueprints/` (the knowledge pack), `api/` boot | |
 | 9 | 12 | **What the D5 plan hands over**: the mirror's scan paged to the end, no PUID in any event's sentence, the review's six deferred minors, and every driver-1 demo refusing a driver-2 control plane before it creates anything | **Yes** — `source/`, `launch/`, `infra/` scripts | |
@@ -1736,6 +1736,17 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > does; **`no-unused-components` ×1** — `StreamFrame` is referenced only inside `x-manifest-websocket`, which the linter does
 > not walk: reference it from the `101` response's content, or disable the rule for that one name, saying so.
 
+> **`[S5]` — WHAT TASK 8 ADDED THAT THIS TASK DOCUMENTS (2026-09-26, sitting 5; its record).** Three operations
+> (`listAppSecrets`, `setAppSecret` — the API's first `PUT` — and `clearAppSecret`) under a NEW TAG, **`secrets`**, so `[M8]`'s
+> *"`tag-description` ×9"* (measured at `1.2.0`) is now **eleven** — Task 5 added `source`, Task 8 `secrets`; `jq '[.tags[] |
+> select(.description == null)] | length'` reads 11 of 11; three schemas
+> (`AppSecretStatus`, `AppSecretList`, `SetAppSecretRequest`), every property already described; two codes with a `summary`
+> and no `remedy` yet (`RELEASE_SECRET_NOT_SET`, `SECRET_NAME_RESERVED`); two event types (`app_secret.set`,
+> `app_secret.cleared`) with `EXAMPLE_DETAILS`. **The document now reads 51 operations, 74 component schemas and 108
+> error codes** (it read 48 / 71 / 106 at sitting 4's close). **The three examples are ILLUSTRATIVE, not captured** — their
+> environment id is made up — so Step 5's *"a real answer"* rule applies to them too. `SetAppSecretRequest.value` has
+> `minLength: 6` and says why (a shorter value could not be redacted from an Incident — the record's F2).
+
 **The largest writing task in the plan, and the one Rich called vital.** Its product is prose, so its definition of done is a GATE (Decision 14), written first and red, then brought to green module by module. **The gate's allowlist starts empty and ends empty.**
 
 **Files:**
@@ -1861,6 +1872,15 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > screen's history should show beside `authorName`: git's author text is a claim, `madeThrough` is the platform's record.
 > **`source:write` is already in `tokens.tsx`'s list** (`tsc` required it in Task 6), so the token screen offers it.
 
+> **`[S5]` (2026-09-26, sitting 5):** Task 8 parked **`listAppSecrets`, `setAppSecret` and `clearAppSecret`** beside the
+> five, naming this task's Secrets screen — **eight parks, and Step 5 empties them all**. `setAppSecret` is the API's first
+> **`PUT`** (`client.PUT` in `api.ts`, which the coverage regex already matches by method). What the screen must render, as
+> the platform answers it: a name **`declared: false, set: true`** is stored and never given to the app; a value shorter
+> than **six characters** is `400 REQUEST_INVALID` with the rule in the message; production answers a plain session `403
+> STEP_UP_REQUIRED` (step up, then retry) — and a token `403 TOKEN_CREDENTIAL_REFUSED`, which the console never is; clearing
+> answers the same state however often it is sent. **`secret:write` is already in `tokens.tsx`'s list** (`tsc` required it):
+> the token screen should say beside it that a token's covers **sandbox and staging only**.
+
 **D22's rule makes this task compulsory, not cosmetic**: `packages/console/src/coverage.test.ts` refuses an operation with no caller in `src/api.ts`, and `DELIBERATELY_UNCALLED` is empty. The screens are **plain but presentable** (§22's quality bar) — the product is the front-end project's.
 
 **Files:**
@@ -1902,6 +1922,20 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > necessarily `main`'s head: name the commit you mean"* — which is what the guide should quote (Task 7). A 413's hint names
 > both body limits (1 MiB, and `createCommit`'s 8 MiB). A `manifest.yaml` must name the project's own blueprint
 > (`SPEC_BLUEPRINT_NOT_PINNED`, compared whole, major included).
+
+> **`[S5]` (2026-09-26, sitting 5): what `secrets.md` must say, as built.** Declare the name in `manifest.yaml` (`env: -
+> { name: SIS_API_KEY, secret: true }`; an `environments.<kind>.env` entry declares it for that kind alone); set it per
+> environment with `setAppSecret` — **at least six characters** (a shorter value could not be redacted from the app's
+> Incidents), at most 16 KiB of UTF-8 — and **it takes effect at the next deploy**; `listAppSecrets` answers names, never a
+> value; a deploy of a release that declares a name with no value is **`409 RELEASE_SECRET_NOT_SET`, naming the names, and
+> nothing starts**; clearing keeps a running instance's value until its next deploy; a value may be set before the name is
+> declared, and only a declared name reaches the app; **production is a person's, in a stepped-up session** — a token is
+> refused outright. A retried `PUT` with the same `Idempotency-Key` replays; the key's fingerprint is now keyed with the
+> server's session secret, so **a retry spanning a `MANIFEST_SESSION_SECRET` rotation answers `IDEMPOTENCY_KEY_REUSED`** —
+> send a new key.
+> **And `conventions.md` must say that a bodyless `DELETE` is sent WITHOUT `Content-Type`** (sitting 5's F15): with
+> `content-type: application/json` and no body, Fastify answers `400 REQUEST_INVALID` whose hint asks for a JSON body —
+> `clearAppSecret` and `revokeToken` alike. The generated client already omits it; a `curl` example must too.
 
 > **`[M9]` — MEASURED (2026-09-25, sitting 1; F8, F9, F10, F16): THE RENDERER IS SCALAR, `@scalar/api-reference` 1.72.0
 > (MIT).** Redoc 2.5.4 fails the hard offline criterion — its side menu's *API docs by Redocly* footer fetches
@@ -2087,6 +2121,16 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > syncs its mirror after the push, and the mirror's observer publishes `repository.pushed` for any branch that moved —
 > so an API commit there probably reads as BOTH `repository.committed` and `repository.pushed`, and the fake's webhook
 > delivery for it then finds the head already validated. Assert what is seen, not this.
+
+> **`[S5]` — WHAT TASK 8 BUILT THAT THIS TASK DRIVES (2026-09-26, sitting 5; its record).** `setAppSecret` refuses a
+> value under **six characters** (`400 REQUEST_INVALID`), so the board's `BOARD_ADMIN_CODE` is at least that. Step 8's
+> refusal is built (`409 RELEASE_SECRET_NOT_SET`, the name in the message, no instance row) and step 10's
+> (`403 TOKEN_CREDENTIAL_REFUSED`). **Control (d)'s prediction below is WRONG as written**: with the
+> `RELEASE_SECRET_NOT_SET` check removed, the deploy is NOT healthy — `renderInjection` now refuses a declared secret with
+> no value (`INJECTION_SECRET_MISSING`), inside the deploy's `try`, so the answer is **`500 INTERNAL` with an instance row
+> left in `starting`** (measured in sitting 5, control (b)). Predict that, or remove both checks to see the old healthy
+> deploy. `app_secret.set` names the agent's token in its sentence — step 9's *"the value appears in no event"* holds (the
+> event's redactor is built with the value, too).
 
 **ALONE, AND LAST.** It drives the authoring path end to end through nothing but `@manifest/contract` — **as an agent, holding a delegated token** — from an empty skeleton to a running bulletin board, on driver 1 and on driver 2. It is **green three times on each driver**, a step of the offline acceptance and of `make ci-acceptance`, and **clicked by a person**: a student posts a question and an instructor replies.
 
@@ -2976,3 +3020,200 @@ parenthetical; `scripts/ci-acceptance.sh` (`2131 / 149 / 20 / 57`, and its histo
 F5, F17, F1); CLAUDE.md's *most recently* spec change; the spec's three edits and `manifest-decisions.html`. **CLAUDE.md's
 *State* unchanged** — no plan started or finished and no *Outstanding* item moved. **WALKTHROUGH and the other three HTML
 pages were checked and left alone**: none states the authoring API's status or what a token may set.
+
+### Sitting 5 — Task 8 (app secret values) — 2026-09-26
+
+**AN APP'S DECLARED SECRETS CAN NOW BE SET, AND A DEPLOY NO LONGER STARTS AN APP WITHOUT ONE.** Task 8 published
+`listAppSecrets`, `setAppSecret` (the API's first `PUT`) and `clearAppSecret` on `/v1/environments/{environmentId}/secrets`
+inside `1.3.0`, tag `secrets`: write-only — **no operation answers a value** — with the project read from the environment
+row. Values are stored as `env:<NAME>` in `secrets`, the third namespace beside `app:` and `service:`, so §14's redactor
+covers them with no change. **`secret:write`** is its own capability — owner, collaborator, administrator; mintable — and
+**production is Spec action 2's option (a)**: a session that has stepped up, a token refused outright
+(`TOKEN_CREDENTIAL_REFUSED`), and `secret:write` in `STEP_UP_GUARDED` without joining D24's four. **`deployRelease` refuses a
+release whose frozen config declares a secret that has no value in that environment — `409 RELEASE_SECRET_NOT_SET`, naming
+the names, before an instance row, a service or a network exists** — and `renderInjection` renders the declared values
+where it used to drop them, refusing a missing one itself (`INJECTION_SECRET_MISSING`, the second read). `SECRET_NAME_RESERVED`
+answers the platform's own names; `app_secret.set` and `app_secret.cleared` (migration 0030) name the person, never the value.
+**And the idempotency record no longer keeps an unkeyed hash of a request's body** (F3). Commit `0baec51`.
+
+#### The decisions this sitting made
+
+**1. A value is at least SIX characters, not one byte** (F2) — the redactor's own `MIN_SECRET_LENGTH`, exported and used
+by the request schema, so the two cannot drift.
+
+**2. The idempotency fingerprint is an HMAC under `config.sessionSecret`** (F3), for every mutation — `replayOrStore`'s
+`hashKey` is required, so `tsc` named its callers. The cost: a retry spanning a `MANIFEST_SESSION_SECRET` rotation answers
+`IDEMPOTENCY_KEY_REUSED`.
+
+**3. `renderInjection` refuses a declared secret with no value** rather than rendering it absent — the module's own rule
+for the AI key, and the second read behind `RELEASE_SECRET_NOT_SET`. `InjectionContext.secrets.appEnv` is a `ReadonlyMap`
+(required, so `tsc` named all seven callers).
+
+**4. Production's DELETE asks what production's PUT asks** — a stepped-up session (F11).
+
+**5. One producer, one query, one phrasing:** `resolveEnv` out of `resolveConfig` (an environment's `env` without a
+blueprint's resource defaults), `newestValidSpec` out of `sensitiveAgainstNewestValid`, and `actorPhrase` out of
+`routes/source.ts` into `projects/source-attribution.ts`.
+
+**6. `app_secret.set` is published for every successful set** (an unchanged value included — a person acting on a
+credential), `app_secret.cleared` only when a value was removed; the set's redactor is built WITH the value.
+
+Every other call is a `Ruling:` line in the ledger (the resolver's `setEnvSecret`, the resolver moved to
+`secrets/resolver.ts`, the reserved check on DELETE, the unit-tier deploy coverage).
+
+#### The findings
+
+**F1 — THE PLAN NAMES THE WRONG TEST FOR THE STEP-UP LIST.** Its Files line says `projects/privileged.test.ts`'s literal
+list; §20's step-up list is `projects/step-up-guarded.test.ts`'s `STEP_UP_SET`, whose `size === PRIVILEGED.size + 1` became
+`+ 2`. Red first (three cases), then the constant.
+
+**F2 — THE PLAN'S ONE-BYTE MINIMUM WOULD STORE A VALUE THE PLATFORM PROMISES TO HIDE AND CANNOT.** §14's redactor skips a
+secret shorter than `MIN_SECRET_LENGTH` (6), silently by design, so a 1–5 character value would be rendered into the app and
+never redacted from its Incident — Review Focus 4's failure through the value's own rule. Control (i) holds it.
+
+**F3 — THE IDEMPOTENCY RECORD KEPT AN UNKEYED SHA-256 OF EVERY MUTATION'S BODY — FOR `setAppSecret`, THE VALUE.** Measured
+with a throwaway probe test: the stored `request_hash` was exactly `sha256('{"value":"swordfish-7c2e"}')`, so anyone who
+can read `idempotency_keys` could check a guess against it — the attack §20's separate custody of the master key exists to
+prevent. **Sitting 4's F18 lesson again — every field a write carries is a place a secret can go — through a path no plan
+names.** Red first in `idempotency.test.ts` and `secrets.test.ts`; fixed (decision 2).
+
+**F4 — `mintToken`'S IDEMPOTENCY RECORD STORES THE PLAINTEXT DELEGATED TOKEN — NOT FIXED, RAISED TO RICH (§8).** The same
+probe: `idempotency_keys.response_body` for `POST …/tokens` holds the minted `secret`, and nothing ever deletes an
+`idempotency_keys` row. The route's own description says *"the platform stores only a hash of it and cannot show it
+again"* (D24). P5b's code, not this task's, and the fix changes what a replay of a mint answers — so it is Rich's to place
+(§8 *Open* has the options; recommended: Task 12, sitting 9).
+
+**F5 — THE PLAN'S RESOLVER CANNOT SET A VALUE.** It gives `AppSecretResolver` `envSecrets` alone and the route
+`setAppSecret(db, keys, …)` — but `ServerDeps` holds bound resolvers and never the keypair. `setEnvSecret` added, as
+`sessionSecret` is.
+
+**F6 — THE PLAN'S LAYOUT IS AN IMPORT CYCLE.** `app-env.ts` needs `store.ts`, and the resolver in `store.ts` needs
+`app-env.ts`; the resolver moved to `secrets/resolver.ts` (nothing imported it from `store.ts` directly).
+
+**F7 — *READ THIS FIRST* 5, CONFIRMED THROUGH THE ROUTES.** The first red was not only a missing route: a release that
+declared an unset secret was DEPLOYED — `200`, healthy, the variable absent.
+
+**F8 — THE PLAN'S CONTROL (c) CANNOT BE BUILT.** The list reads names and never opens a value, so there is no value to map
+into `name`. Control (c′) built the list from `envSecrets` instead — and it was refused by the RESPONSE schema (`500`,
+the name rule) before the test's own assertion: a layer the prediction did not count, and not a defect.
+
+**F9 — A SET WHOSE EVENT FAILS IS STORED AND UNANNOUNCED.** Control (d′) made the event unrecordable: every `PUT` answered
+`500` — after the value was stored. Named, not fixed: every write-then-publish pair in the codebase (the token mint, a
+commit, the launch records) has the same shape, and making one route transactional would be a second rule.
+
+**F10 — MY OWN CONTROL (e)'s FIRST RUN RAN AGAINST THE UNMODIFIED TREE.** Prettier had re-wrapped the line, the patch's
+`assert` failed with a traceback, and the shell ran the tests anyway — 575 green, which reads as *"the control cannot
+fail"*. Every control since is `python3 … || exit 1` and prints `git diff --stat` before it runs. TRAPS.md has it.
+
+**F11 — THE PLAN CONTRADICTS ITSELF ON PRODUCTION'S DELETE.** Step 5 says *each route* asks production for step-up; the
+Files line gives only the PUT a production row. Decision 4: both, and the matrix has both.
+
+**F12 — DECISION 13'S EVENT PAYLOAD NAMES NOBODY.** `{ environmentKind, name }` — and `audit.events` has no actor column,
+so a sentence would be the only record of who set a production credential. `via`, `userId`, `tokenId` added, as sitting 4's
+F9 did for `repository.committed`.
+
+**F13 — TASK 13'S CONTROL (d) PREDICTION IS NOW WRONG.** With `RELEASE_SECRET_NOT_SET` removed the deploy is not healthy:
+`renderInjection`'s refusal throws inside the deploy's `try`, after the instance row, as `500 INTERNAL` (control (b)).
+Task 13's `[S5]` block says so.
+
+**F14 — THE DOCKER TIER'S FIXTURE CACHE TRUSTED A STAMP OVER A REPOSITORY macOS HAD HALF-DELETED.** The tier on
+`0baec51` was red in one file, `sso/login.docker.test.ts`, before its first test: `fixtureBareRepo`'s
+`git rev-parse HEAD` answered *"not a git repository"* for `mf-saml-probe.git` and `mf-saml-unsigned.git` in `$TMPDIR`.
+Built on 2026-09-22, both had lost `HEAD`, `config`, their refs and most of their objects at 03:35 on the 26th — macOS
+removes temporary files nobody has read for about three days — while their stamp files, read on every run, survived, so
+the cache looked current. The four fixtures built on the 24th were whole. **Not this task's code, and it would have
+reddened the next sitting's tier the same way.** Fixed in `runtime/docker/testing.ts`: `intactRepository` (`git rev-list
+--objects --quiet HEAD`) — a matching stamp over a repository that is not whole is rebuilt — in `fixtureBareRepo` and in
+`ensureContractRepo`, which checked only that `HEAD` existed. The failing file alone, over the same broken caches: 6/6
+green, both rebuilt. TRAPS.md has it.
+
+**F15 — A BODYLESS `DELETE` SENT AS JSON IS REFUSED WITH A HINT THAT MISLEADS.** The drive's first run sent
+`clearAppSecret` with `content-type: application/json` and no body — my helper's header, which the generated client does
+not send (`openapi-fetch` 0.17.0 sets it only with a body) — and Fastify refused the empty JSON body: `400
+REQUEST_INVALID`, hint *"Send a well-formed JSON body with Content-Type: application/json"*, which is the opposite of the
+remedy. `revokeToken` answers the same (P5b's bodyless `DELETE`). An instrument defect that a `curl`-using agent will
+meet too: Task 11's `[S5]` block has it for the guides.
+
+**F16 — THE ROADMAP STILL SAID *"THREE SPEC ACTIONS ARE DRAFTED AND NONE APPLIED"*** a day after Spec action 2 was
+applied — sitting 4's sweep moved the section's heading and its item 2, and not the ledger paragraph's own sentence. Found
+by reading it to add sitting 5's; corrected. **The phrase, not the number**, is what a sweep must grep for.
+
+**Measured, and not a defect:** `putSecret` already moves `rotated_at` only when the plaintext changes (Step 3's
+question); a rehearsal wraps any deploy failure as `REHEARSAL_DEPLOY_FAILED` with the reason in its message, so it inherits
+the refusal with no change; the registry token is outside the idempotency wrapper, so `mintToken` is the only route whose
+answer carries a credential.
+
+#### Negative controls — each predicted in writing before it ran, on `0baec51`
+
+| # | Break | Predicted | Seen |
+|---|---|---|---|
+| (a) | injection's old `value !== undefined` filter | injection's render and refusal cases red; the route's deploy case red at `spec.env[NAME]`; the Docker case red at `Config.Env` — **not** the plan's "no unit test red" | exactly that (3 unit, 1 Docker) |
+| (b) | the `RELEASE_SECRET_NOT_SET` refusal disabled | the route's deploy case `{500, INTERNAL}` where `{409, …}`; the Docker case refused `INJECTION_SECRET_MISSING` | exactly that — the backstop holds, as a `500` |
+| (c′) | the list built from values, the value in `name` | the list's `toEqual` red; the matrix green | 5 red — at **`500`** (the response schema; F8); matrix 559 green |
+| (d) | the value in `app_secret.set`'s sentence | **green** — the event's redactor has the value | green |
+| (d″) | (d) with `makeRedactor([])` | red at `not.toContain('swordfish')` | exactly that — (d)'s break was live |
+| (d′) | the value in the event's `machineDetail` | every `PUT` `500` (the strict schema) | exactly that — and F9 |
+| (e) | the production branch removed | 2 route cases + the 10 production matrix cells | exactly that (12) — on the second attempt (F10) |
+| (f) | `secret:write` out of `STEP_UP_GUARDED` | the person case, 3 step-up cases, 6 matrix cells | exactly that (10) |
+| (h) | the reserved-name check removed | the reserved case alone | exactly that |
+| (i) *(added)* | the value's minimum back to 1 | the value-rules case red at `'abcde'` `{200}` | exactly that |
+| F3 | *(the fix's own red)* | the stored hash equals the unkeyed SHA-256 | exactly that, in both files |
+| stream | the lifecycle's set/clear removed | red naming both new types | exactly that |
+
+**Which could not fail, and why:** the plan's (c), because it could not be built as written (F8) — (c′) stands in for it.
+(d) stays green by design (the event's redactor holds the value), and (d″) is what shows its break was live.
+
+#### The gates, and the machine, at the close
+
+**`pnpm test` moved from 2131 in 149 files to 2197 in 150** — +66 and one file: `api/secrets.test.ts` (16), the matrix's
+five secrets rows (45), three injection cases, one step-up case and one idempotency case. **Identical on every run**: twice
+on `0baec51` (453 s, 451 s) and again with F14's fix in the tree (460 s) — and a fourth time, the close's last Vitest run, on `ee23faa` (463 s). The open read 2131 in 149
+(438 s). `pnpm lint`, `pnpm typecheck` (every package) and `pnpm format:check` clean. **`make doctor` 20/0/0** at the open
+and the close; **`make verify` 57/0/0** at the open, after the Docker tier and at the close. **`pnpm test:docker`** — owed by
+`secrets/`, `releases/`, `spec/` and a new `*.docker.test.ts` — was **red on `0baec51`** (204 passed, 6 skipped, one file
+failed, 895 s: F14), then **210 in 35, 0 skipped, 927 s, green, on `ee23faa`**; the host reached the edge afterwards with no
+restart. **Contract `1.3.0`**: three operations (51), three schemas (74), two codes (108), the tag `secrets` (11), two event
+types, `secret:write` in `Capability`, and `RELEASE_SECRET_NOT_SET` on `deploy`'s errors. **Migration 0030** (the `CHECK`'s two
+literals), applied — 31. Commits `0baec51` (Task 8) and `ee23faa` (F14).
+
+**Driven through the edge** (CLAUDE.md's first *Before you trust a green result*): the control plane started per RUNBOOK
+(`"driver":"docker","source":"local"`), a real CWL sign-in as `ins000001`, and a scratch script against `secrets-drive`
+(`fixture-node@1`, no starter): a commit declaring `BOARD_ADMIN_CODE` (`createCommit`); the list answering it declared and
+unset; **that commit built, released and deployed to staging → `409 RELEASE_SECRET_NOT_SET` naming it, and staging's
+containers unchanged**; the person setting staging's value (`200`, `set: true`, no value in the body); production without
+step-up `403 STEP_UP_REQUIRED`; `MONGODB_URI` `400 SECRET_NAME_RESERVED`; `abc` `400 REQUEST_INVALID`; **the deploy again →
+healthy, `docker inspect` holding `BOARD_ADMIN_CODE=<value>`, and the app's `/healthz` `200` through the edge**; a token
+minted with `project:read` + `secret:write` setting staging `200`, production **`403 TOKEN_CREDENTIAL_REFUSED`**, and
+clearing `200`; a stepped-up person setting production `200`. **The value in none of the run's 34 answer lines, and — by a
+regex on the value's own shape — in 0 events, 0 idempotency bodies, 0 Incidents and 0 build-log lines**; eight
+`app_secret.*` sentences, each naming *Test Instructor* or *Test Instructor's agent (token 'drive-agent')*. Its first run
+stopped at F15 and its next two at my own re-use path (a duplicate `env:` key the platform correctly refused `422`, and a
+value the first run had set); every check passed on the fourth. The control plane was stopped after (it was not running at
+the open), and the drive's containers, network and bare repository removed.
+
+**The machine, queried at the close — AFTER the last Vitest run** (`psql`, `docker`, `lsof`, the edge's admin API, Ollama's
+`/api/ps`, `make verify`): the control database is **EMPTY** — 0 projects, 0 events, 0 secrets, 0 idempotency records — with
+**31 migrations**. `.manifest/repos/` holds the same nine orphan bare repositories as at the open (the drive's own,
+`secrets-drive.git`, removed). `launch-app`'s six `mf-launch-app-*` containers run with no rows behind them, and **0 runtime
+routes** are applied on either listener (the Docker tier restarted the edge). Nothing listens on 7100 or 7104; the GitHub
+fake is not running (it was not at the open); no model is resident. **The three cleanup scripts, bare and then `--apply` by
+this session** (allowed): 8 dead networks (the tier's 7 and the drive's), 1 volume, the `p4b-probe-user` LiteLLM orphan
+and 21 app images, each re-measured bare — `none dead`, 0 orphans, 0 dead images; `make verify` 57/0/0, its per-app line
+`containers=6 networks=2 volumes=4`. `diff` of `scripts/snapshot-machine.sh` against the opening snapshot: uptimes, the
+edge's restart, `HEAD`, this sitting's files, and free disk 94 → 91 GiB — Docker's build cache from two tiers and the
+drive's builds, which no cleanup script touches. `docker-simple-saml-saml-idp-1` is `Exited` as it was at the open (three
+weeks), and was left alone.
+
+#### The sweep
+
+This plan's sittings table, this record, and `[S5]` blocks at the heads of Tasks 9, 10, 11 and 13 (Task 9: the new
+tag, schemas, codes and events, and the illustrative examples; Task 10: the three parks and what the Secrets screen must
+render; Task 11: what `secrets.md` and `conventions.md` must say; Task 13: the six-character value and control (d)'s
+changed prediction); the roadmap's ledger (the heading, a sitting-5 sentence, and the spec-actions sentence F16 found
+stale) and its defect-rate table (the count derived with the command above); ORIENTATION's top box and §2's box (two gates
+moved), §3 (two invariants — an app's declared secret, and the idempotency record — and `secrets/` in the module table),
+§7e (rewritten for sitting 6), §8 (F4 *Open*, with options); RUNBOOK's gate parenthetical; `scripts/ci-acceptance.sh`
+(`2197 / 150 / 20 / 57`, and its history comment); TRAPS.md (three traps: F10, F14, F3/F4). **CLAUDE.md's *State*
+unchanged** — no plan started or finished, and F4 is in §8, which its *Outstanding* line already names. **WALKTHROUGH and
+the four HTML pages were checked and left alone**: WALKTHROUGH describes what a person can click, and the Secrets screen is
+Task 10's; `manifest-decisions.html`'s D24 already says a token sets sandbox and staging secrets (sitting 4).
