@@ -618,11 +618,19 @@ export interface DiffSnapshotColumn {
    * `no-changes` (P6b Task 8): the fixed sentence for an empty diff, which no model wrote.
    * `withheld` (the D5 plan's Task 13): the model answered, and its answer broke the schema
    * or stated a decision, so it is not shown — `summaryWithheldBecause` says which rule.
+   * `not-modelled` (the authoring API plan's sitting 2, F7 option (b)): every change was one no
+   * model describes — a CWL attribute change — so none was asked.
    */
-  summarySource: 'llm' | 'unavailable' | 'no-previous-release' | 'no-changes' | 'withheld'
+  summarySource:
+    | 'llm'
+    | 'unavailable'
+    | 'no-previous-release'
+    | 'no-changes'
+    | 'withheld'
+    | 'not-modelled'
   /**
-   * The D5 plan's Task 13 (Decision 19): the model's one sentence per change, in the diff's
-   * order — what the console lays out under each change line. **Written, like `summary`, so
+   * The D5 plan's Task 13 (Decision 19): the model's one sentence per change it was asked about
+   * — never a CWL attribute change (F7, option (b)) — in the diff's order — what the console lays out under each change line. **Written, like `summary`, so
    * never a fact** (`releases/preview.ts`'s `factsOf` names it). Null unless the source is
    * `llm`; ABSENT on every row written before the task. No migration: a type over jsonb.
    */

@@ -510,13 +510,16 @@ async function readPreview(
   // THE D5 PLAN'S TASK 13: the model fills a schema, one sentence per change — and an answer
   // that breaks it or states a decision is WITHHELD, which is the platform working, not failing,
   // so it passes WITH its reason (and the reason is printed). A model's answer must cover
-  // exactly the changes the preview names, in their order.
+  // exactly the changes the preview names, in their order — EXCEPT a CWL attribute change, which
+  // no model describes (F7, option (b); the control plane's `NOT_MODELLED`, restated as THE rule).
+  const modelled = d.changes.map((c) => c.path).filter((p) => p !== 'auth.attributes')
   checks.ok(
-    'the summary is the model’s — one sentence per change — withheld with a reason, or unavailable (offline)',
+    'the summary is the model’s — one sentence per change but the attributes — withheld with a reason, or unavailable (offline)',
     (d.summarySource === 'llm' &&
       (d.summary ?? '').length > 0 &&
       JSON.stringify((d.summaryExposures ?? []).map((e) => e.path)) ===
-        JSON.stringify(d.changes.map((c) => c.path))) ||
+        JSON.stringify(modelled)) ||
+      (d.summarySource === 'not-modelled' && modelled.length === 0) ||
       (d.summarySource === 'withheld' &&
         d.summary === null &&
         (d.summaryWithheldBecause ?? '').length > 0) ||

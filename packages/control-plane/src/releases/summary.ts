@@ -8,9 +8,16 @@ import type { SensitiveField, SpecChange } from '../spec/index.js'
  * P6a recorded it as `llm`, and its acceptance printed it as "the model's summary".
  * `withheld` (the D5 plan's Task 13, Decision 19): the model answered, and its answer broke
  * the schema or stated a decision, so it is not shown — `summaryWithheldBecause` says which.
+ * `not-modelled` (F7, option (b)): every change in the diff is one no model describes
+ * (`NOT_MODELLED`), so no model was asked — by design, not an outage.
  */
 export type SummarySource =
-  'llm' | 'unavailable' | 'no-previous-release' | 'no-changes' | 'withheld'
+  | 'llm'
+  | 'unavailable'
+  | 'no-previous-release'
+  | 'no-changes'
+  | 'withheld'
+  | 'not-modelled'
 
 /**
  * What the SNAPSHOT records beside the changes (P6b Task 8, Decision 13): the deterministic
@@ -37,11 +44,26 @@ export interface ChangeSummary {
   /** The sentences joined, in the diff's order — for every reader that wants one string. */
   summary: string | null
   summarySource: SummarySource
-  /** What the console lays out, one per change; null unless `summarySource` is `llm`. */
+  /**
+   * What the console lays out, one per change the model was asked about — never a CWL attribute
+   * change (`NOT_MODELLED`); null unless `summarySource` is `llm`.
+   */
   exposures?: Exposure[] | null
   /** The rule a `withheld` answer broke — never the model's own text. */
   summaryWithheldBecause?: string
 }
+
+/**
+ * THE CHANGES NO MODEL DESCRIBES — F7, OPTION (b), DECIDED BY RICH 2026-09-25. A CWL attribute
+ * change is personal information, which is what an administrator is deciding on, and the model
+ * got it wrong: measured over 320 answers (the authoring API plan's sitting 2), the shipped
+ * summary said the app now RECEIVES a removed `sn` in 6% of two-change diffs and 21% of
+ * three-change ones, and called `sn` a student number or a social security number in 6–12 of
+ * 40. Handing it the added and removed halves read worse. So its change line — `describeDiff`'s
+ * *"no longer requests the sn attribute"*, which is always right — is the whole record: the
+ * change, and its security note, are left out of what the model is asked.
+ */
+export const NOT_MODELLED: ReadonlySet<string> = new Set(['auth.attributes'])
 
 /** The one sentence an empty diff has, whoever writes it — never a model. */
 const NO_CHANGES = 'Nothing in manifest.yaml changed since the last approved release.'
@@ -191,6 +213,10 @@ export async function summariseChanges(
   // AN EMPTY DIFF HAS ONE RIGHT ANSWER, and it needs no model — so it is given whether or not
   // one is configured, and recorded as what it is (`no-changes`), never as the model's.
   if (changes.length === 0) return { summary: NO_CHANGES, summarySource: 'no-changes' }
+  // F7, OPTION (b): what the model is asked about. None left is not an outage — nothing was
+  // to be asked — so it is said as itself, AI or no AI, before either is consulted.
+  const modelled = changes.filter((c) => !NOT_MODELLED.has(c.path))
+  if (modelled.length === 0) return { summary: null, summarySource: 'not-modelled' }
   // MANIFEST_AI_ENABLED=0 is a real configuration (`src/index.ts` builds no client at all),
   // so `ai` can be absent. NOT an error: it is the same "recorded as absent" answer by a
   // different route, and an administrator reads the diff — and the security notes — either way.
@@ -212,16 +238,16 @@ export async function summariseChanges(
             // mean, was MEASURED over 320 answers and read worse — the removed `sn` reversed 30
             // times against 22 (the authoring API plan's Task 2, F7). Re-measure before adding them.
             content: JSON.stringify({
-              changes: changes.map(({ path, from, to, summary }) => ({
+              changes: modelled.map(({ path, from, to, summary }) => ({
                 path,
                 from,
                 to,
                 summary,
               })),
-              securityNotes: context.security.map(({ field, note }) => ({
-                path: field,
-                note,
-              })),
+              // A change left out takes its note with it (F7, option (b)).
+              securityNotes: context.security
+                .filter(({ field }) => !NOT_MODELLED.has(field))
+                .map(({ field, note }) => ({ path: field, note })),
             }),
           },
         ],
@@ -230,12 +256,12 @@ export async function summariseChanges(
           json_schema: {
             name: 'change_exposures',
             strict: true,
-            schema: requestSchema(exposureSchema(changes)),
+            schema: requestSchema(exposureSchema(modelled)),
           },
         },
         // A TRUNCATED ANSWER IS INVALID JSON, so the budget grows with the diff: the flat 200
         // this had for prose would cut a large diff's answer short and withhold it.
-        max_tokens: 80 + 90 * changes.length,
+        max_tokens: 80 + 90 * modelled.length,
       },
     )
     text = answer.choices[0]?.message.content?.trim()
@@ -252,7 +278,7 @@ export async function summariseChanges(
   // AN EMPTY ANSWER IS AN ABSENT ONE, not an empty summary: a blank line in the record
   // would read as "nothing changed" beside a list of changes.
   if (!text) return { summary: null, summarySource: 'unavailable' }
-  const read = readExposures(changes, text)
+  const read = readExposures(modelled, text)
   if ('because' in read) {
     console.error(`[approval] the change summary was withheld: ${read.because}`)
     return {

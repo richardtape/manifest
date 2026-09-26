@@ -12,13 +12,15 @@ import { SECURITY_NOTES, securityNotesFor, type SpecChange } from '../spec/index
 import {
   checkExposure,
   exposureSchema,
+  NOT_MODELLED,
   summariseChanges,
   SUMMARY_MODEL,
 } from './summary.js'
 
 /**
  * A leg-A-shaped diff (P6b's acceptance, and the D5 plan's `[M15]`): one egress host added and
- * `sn` removed — the two changes F9's invented verdicts were written about.
+ * `sn` removed — the two changes F9's invented verdicts were written about — and a model added,
+ * so that TWO changes are still the model's once the attribute change is not (F7, option (b)).
  */
 const HOST = 'api-4f2a.example.org'
 const CHANGES: SpecChange[] = [
@@ -38,8 +40,20 @@ const CHANGES: SpecChange[] = [
     added: [],
     removed: ['sn'],
   },
+  {
+    path: 'ai.models',
+    from: 'none',
+    to: 'default-chat',
+    summary: 'now uses default-chat',
+    added: ['default-chat'],
+    removed: [],
+  },
 ]
-const PATHS = CHANGES.map((c) => c.path)
+/**
+ * F7, OPTION (b) — RICH, 2026-09-25: a CWL attribute change gets NO model sentence; its change
+ * line is the record. So the model is asked about every change but that one.
+ */
+const PATHS = CHANGES.map((c) => c.path).filter((p) => p !== 'auth.attributes')
 
 /**
  * What the SNAPSHOT records beside the changes. LITERALS, because this file is about what
@@ -51,6 +65,7 @@ const CONTEXT = {
   security: [
     { field: 'auth.attributes' as const, note: 'THE ATTRIBUTES NOTE.' },
     { field: 'egress.allow' as const, note: 'THE EGRESS NOTE.' },
+    { field: 'ai.models' as const, note: 'THE MODELS NOTE.' },
   ],
   review: {
     state: 'not_performed' as const,
@@ -75,8 +90,7 @@ const answer = (exposures: Record<string, string>) =>
   })
 const GOOD: Record<string, string> = {
   'egress.allow': `The app can now send data to ${HOST}, a host it could not reach before.`,
-  'auth.attributes':
-    'The app no longer receives the surname (sn) of the people who sign in.',
+  'ai.models': 'What people type into the app can now be sent to the default-chat model.',
 }
 
 /**
@@ -143,7 +157,7 @@ describe('F9 — the summary is STRUCTURED OUTPUT with no place for a verdict (t
   it('lays the sentences out in the DIFF’s order, whatever order the model answered in', async () => {
     const { client } = answering(
       answer({
-        'auth.attributes': GOOD['auth.attributes']!,
+        'ai.models': GOOD['ai.models']!,
         'egress.allow': GOOD['egress.allow']!,
       }),
     )
@@ -244,11 +258,14 @@ describe('F9 — the summary is STRUCTURED OUTPUT with no place for a verdict (t
     expect(Object.keys(user).sort()).toEqual(['changes', 'securityNotes'])
     // The diff's own words — and NOT `added`/`removed`, which F7 measured and did not adopt.
     expect(user['changes']).toEqual(
-      CHANGES.map(({ path, from, to, summary }) => ({ path, from, to, summary })),
+      CHANGES.filter((c) => c.path !== 'auth.attributes').map(
+        ({ path, from, to, summary }) => ({ path, from, to, summary }),
+      ),
     )
+    // The attribute change's note goes with it (F7, option (b)).
     expect(user['securityNotes']).toEqual([
-      { path: 'auth.attributes', note: 'THE ATTRIBUTES NOTE.' },
       { path: 'egress.allow', note: 'THE EGRESS NOTE.' },
+      { path: 'ai.models', note: 'THE MODELS NOTE.' },
     ])
     expect(JSON.stringify(user)).not.toContain(CONTEXT.review.detail)
     expect(JSON.stringify(user)).not.toContain(CONTEXT.coverage)
@@ -274,9 +291,9 @@ describe('F9 — the summary is STRUCTURED OUTPUT with no place for a verdict (t
 
   it('does NOT hand the model a change’s added and removed halves — measured worse over 320 answers (F7)', async () => {
     // THE PRECONDITION, so this cannot pass by having nothing to leave out: the diff carries both.
-    const attributes = CHANGES.find((c) => c.path === 'auth.attributes')!
-    expect(attributes.removed).toEqual(['sn'])
-    expect(attributes.added).toEqual([])
+    const egress = CHANGES.find((c) => c.path === 'egress.allow')!
+    expect(egress.added).toEqual([HOST])
+    expect(egress.removed).toEqual([])
     const { client, asked } = answering(answer(GOOD))
     await summariseChanges(client, CHANGES, CONTEXT)
     const facts = JSON.parse((asked[0] as AskedBody).messages.at(-1)!.content) as {
@@ -289,6 +306,53 @@ describe('F9 — the summary is STRUCTURED OUTPUT with no place for a verdict (t
       expect(change).not.toHaveProperty('removed')
     }
     expect((asked[0] as AskedBody).messages[0]!.content).not.toMatch(/`added`|`removed`/)
+  })
+
+  it('writes NO model sentence for a CWL attribute change — F7, option (b), Rich 2026-09-25', async () => {
+    // The precondition: the diff DOES carry an attribute change, beside two the model describes.
+    expect(CHANGES.map((c) => c.path)).toContain('auth.attributes')
+    expect(NOT_MODELLED.has('auth.attributes')).toBe(true)
+    const { client, asked } = answering(answer(GOOD))
+    const s = await summariseChanges(client, CHANGES, CONTEXT)
+    expect(s.summarySource).toBe('llm')
+    expect(s.exposures!.map((e) => e.path)).toEqual(['egress.allow', 'ai.models'])
+    // Not asked, so not answered: the request's enum, its facts and its notes leave it out.
+    const body = asked[0] as AskedBody
+    expect(
+      body.response_format.json_schema.schema.properties.changes.items.properties.path
+        .enum,
+    ).not.toContain('auth.attributes')
+    expect(body.messages.at(-1)!.content).not.toContain('auth.attributes')
+    expect(body.messages.at(-1)!.content).not.toContain('THE ATTRIBUTES NOTE.')
+  })
+
+  it('withholds an answer that describes the attribute change anyway', async () => {
+    const { client } = answering(
+      answer({
+        ...GOOD,
+        'auth.attributes': 'The app now receives the sn attribute.',
+      }),
+    )
+    const s = await summariseChanges(client, CHANGES, CONTEXT)
+    expect(s).toMatchObject({ summary: null, summarySource: 'withheld', exposures: null })
+    expect(s.summaryWithheldBecause).toMatch(/did not match the schema/)
+  })
+
+  it('asks NO model when the only change is to the attributes — `not-modelled`, with or without AI', async () => {
+    const only = CHANGES.filter((c) => c.path === 'auth.attributes')
+    const { client, asked } = answering('unused')
+    await expect(summariseChanges(client, only, CONTEXT)).resolves.toEqual({
+      summary: null,
+      summarySource: 'not-modelled',
+    })
+    expect(asked).toEqual([])
+    // NOT `unavailable`, which would send an administrator looking for an outage: nothing was
+    // asked, by design — and AI switched off says the same.
+    await expect(summariseChanges(undefined, only, CONTEXT)).resolves.toEqual({
+      summary: null,
+      summarySource: 'not-modelled',
+    })
+    expect(operator).not.toHaveBeenCalled()
   })
 
   it('checkExposure refuses the decision vocabulary and nothing else it was measured against', () => {
@@ -310,7 +374,7 @@ describe('F9 — the summary is STRUCTURED OUTPUT with no place for a verdict (t
   })
 
   it('exposureSchema accepts exactly this diff’s paths, once each', () => {
-    const schema = exposureSchema(CHANGES)
+    const schema = exposureSchema(CHANGES.filter((c) => !NOT_MODELLED.has(c.path)))
     expect(schema.safeParse(JSON.parse(answer(GOOD))).success).toBe(true)
     expect(schema.safeParse({ changes: [] }).success).toBe(false)
     expect(

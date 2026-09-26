@@ -344,7 +344,8 @@ function DiffView({ diff }: { diff: Schemas['ApprovalDiff'] }) {
             {diff.summaryExposures !== null && (
               <p className="hint">
                 What each change could expose — written by a language model; the change
-                lines are the record.
+                lines are the record. A change to the CWL attributes has no such sentence:
+                its line alone is the record.
               </p>
             )}
             <ul>
@@ -409,6 +410,14 @@ function Summary({ diff }: { diff: Schemas['ApprovalDiff'] }) {
   // the "could not be produced" fallback below, which would send a person looking for an outage.
   if (diff.summarySource === 'no-changes')
     return <em>Nothing in manifest.yaml changed since the last approved release.</em>
+  // F7, option (b): nothing was asked of a model, by design — never the outage sentence below.
+  if (diff.summarySource === 'not-modelled')
+    return (
+      <em>
+        The only change is to the CWL attributes, which no model describes: its line under
+        Changes is the record.
+      </em>
+    )
   if (diff.summarySource === 'no-previous-release')
     return (
       <em>
