@@ -196,8 +196,8 @@ const envSchema = z.object({
    * obligation (§9) — CHANGES THESE TWO SETTINGS AND NOTHING ELSE.** That is why they are
    * settings rather than a constant in `launch/`.
    *
-   * Not in `.env.example`: both have defaults that are correct for this machine, and a key
-   * there would be one more thing `make doctor` requires of every checkout.
+   * In `.env.example` only COMMENTED OUT, with their defaults: both are correct for this machine,
+   * and a live key there would be one more thing `make doctor` requires of every checkout.
    */
   MANIFEST_REHEARSAL_USER: z.string().min(1).default('instructor'),
   MANIFEST_REHEARSAL_PASSWORD: z.string().min(1).default('instructor'),
@@ -258,7 +258,8 @@ const envSchema = z.object({
    * outside development below, for the build credential's two reasons — and never
    * generated, because a generated key is one LiteLLM refuses on every call.
    *
-   * NOT in `.env.example`. LiteLLM itself reads `LITELLM_MASTER_KEY` from `.env`, and
+   * NOT a live key in `.env.example` (it is documented there, commented out, as the
+   * `${LITELLM_MASTER_KEY}` it is set from). LiteLLM itself reads `LITELLM_MASTER_KEY` from `.env`, and
    * RUNBOOK's export block names that one stored secret again here, at the point of
    * use, the way it builds MANIFEST_DATABASE_URL from MANIFEST_APP_PASSWORD. A second
    * stored copy would drift from the first the first time either changed, and a new

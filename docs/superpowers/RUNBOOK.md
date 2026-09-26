@@ -37,6 +37,10 @@ make down      # stops everything, including the profiled builder
 
 ## Running the control plane
 
+*Every setting the control plane reads is listed and explained in `.env.example`'s section 2, commented out with its
+default (added 2026-09-25); `packages/control-plane/src/config.ts` is the authority. The block below exports the few that
+are required, derived from the secrets in section 1.*
+
 *Moved here from `README.md` on 2026-09-24, word for word, when the README became a short description of what Manifest is.*
 
 
@@ -353,6 +357,13 @@ make github-up
 export MANIFEST_SOURCE_DRIVER=github     # every MANIFEST_GITHUB_* default is the fake's
 pnpm --filter @manifest/control-plane dev
 ```
+
+**Or set it in `.env`**: `.env.example`'s section 2a documents every driver setting, commented out with its default —
+uncomment `MANIFEST_SOURCE_DRIVER` and set it to `github`, and the block in *Running the control plane* (which starts
+with `set -a; . ./.env; set +a`) picks it up at the next start. The same section has the block that points driver 2 at a
+REAL GitHub App instead of the fake, with what changes when you do. **Comment it out again before running any other
+demo**, and don't run `pnpm test:docker` from a shell that sourced an overridden `.env`: its boot tests start control
+planes with that shell's environment.
 
 **Read the boot line**: it says `"source":"github"`, the API's host (`"github":"127.0.0.1:7110"`)
 and `"githubOrg":"manifest-apps"`. The App's private key is read at boot through the master key's
@@ -1096,6 +1107,32 @@ Three things it does that are easy to leave out:
 
 `default_user_id` is LiteLLM's own row and is never touched. An app that declares no models has no
 key, hashes to the empty string's digest, and is correctly not counted as holding one.
+
+## Removing app images no container uses
+
+*Added 2026-09-25. `scripts/app-images.sh`.*
+
+Every build pushes an app image to the platform registry as `127.0.0.1:7107/local/<slug>@sha256:…`, and every
+deploy pulls one into Docker. Nothing removed them, so they accumulate — about thirteen per `pnpm test:docker` and a
+few per demo. On 2026-09-25 there were **285, 283 of them used by no container, holding ~8.6 GB of their own**; all
+283 were removed with this script, at Rich's yes.
+
+```bash
+bash scripts/app-images.sh            # list only: what is dead, by app, and what it holds; changes nothing
+bash scripts/app-images.sh --apply    # remove every dead one, then re-measure
+```
+
+- **Safe because Docker's copy is a cache**: the registry keeps every image a build pushed, and a deploy pulls its
+  image by digest before it creates anything (`ensureImagePulled`) — an image removed here comes back when something
+  deploys it.
+- **Only app images are ever considered**: an image is dead only when every name it carries is under
+  `127.0.0.1:7107/local/` AND no container of ANY state uses it (a stopped app needs its image to start). The base-image
+  mirror, the platform's images, the upstream images Manifest needs offline and every other project's images are never
+  touched — re-pulling those needs the network.
+- **Not Docker's build cache** (~25 GB): it holds the cached `apk add git` layer the GitHub fake's image rebuilds from
+  offline. Pruning it costs a networked rebuild.
+- Removal is by every name an image carries, not by id (an app image has digests, not tags), and the re-measure at the
+  end — not the loop — is the answer.
 
 ## Minting a delegated token
 
