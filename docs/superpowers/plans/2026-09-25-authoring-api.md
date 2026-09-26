@@ -55,8 +55,8 @@
 | 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract regenerated INSIDE `1.3.0` (Task 2 already took the plan's one bump) | **Yes** — `source/`, `projects/` | **DONE 2026-09-25** — both drivers read a tree, a text file, a first-parent history and one commit's changes; `getTree`, `getFile`, `listCommits` and `getCommit` published inside `1.3.0` with examples; the mock answers them from the document (Task 10's Step 1, done early) and the console parks them for Task 10 |
 | 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | **DONE 2026-09-26** — `createCommit` published inside `1.3.0` with its dry run, `source:write` (mintable), the manifest validated before anything is written, `repository.committed` / `repository.secret_refused`, `spec.validated` on every validation and `madeThrough` on the history; a build of a named commit uses THAT commit's validation, and a manifest must name the project's pin (`SPEC_BLUEPRINT_NOT_PINNED`); driven through the edge; Docker tier green |
 | 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | **DONE 2026-09-26** — `listAppSecrets`, `setAppSecret` (the first `PUT`) and `clearAppSecret` inside `1.3.0`, names only; values `env:<NAME>` in `secrets`, at least six characters; `secret:write` mintable, production a stepped-up session's alone (Spec action 2 (a)); a deploy refuses a declared secret with no value (`RELEASE_SECRET_NOT_SET`) and injection renders the rest; the idempotency fingerprint keyed; driven through the edge; Docker tier green after a harness fix |
-| 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths (it does: Task 9's Files list modifies `observability/event-schemas.ts`) | ← **next** |
-| 7 | 10 | **The console and the mock**: a Code screen (tree, file, edit, delete, commit, history, one commit) and a Secrets screen; the mock answers every new operation from the document's own examples; both coverage gates | **No** | |
+| 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths (it does: Task 9's Files list modifies `observability/event-schemas.ts`) | **DONE 2026-09-26** — the gate (`docs.test.ts`) green with `ALLOWED_GAPS` empty, from 1079 gaps and 35 internal names at the open: every operation, parameter, tag, schema and property described; every JSON operation with a CAPTURED example, `examples` required and typed; every error code's meaning and remedy published, the 24 inside `details` too; every event type's sentence and example; `ManifestYaml`; the delegated token declared and fifteen operations session-only, refused by the wrapper itself; an independent linter clean but for three reasoned warnings; Docker tier green |
+| 7 | 10 | **The console and the mock**: a Code screen (tree, file, edit, delete, commit, history, one commit) and a Secrets screen; the mock answers every new operation from the document's own examples; both coverage gates | **No** | ← **next** |
 | 8 | 11 | **The guides, served**: `docs/api/` — hand-written guides whose code examples are real files, type-checked and run against the mock — a reference generated from the document, the journey as a gate, all served at `/v1/docs` and `/v1/openapi.json`, `llms.txt`, a console Docs screen, **the HTML reference page**, and the knowledge pack's pointer | **Yes** — `blueprints/` (the knowledge pack), `api/` boot | |
 | 9 | 12 | **What the D5 plan hands over**: the mirror's scan paged to the end, no PUID in any event's sentence, the review's six deferred minors, and every driver-1 demo refusing a driver-2 control plane before it creates anything — **and sitting 5's F4, Rich's option (a): a delegated token's secret kept in no idempotency record, a replayed mint answering `409 TOKEN_ALREADY_MINTED`** | **Yes** — `source/`, `launch/`, `infra/` scripts | |
 | 10 | 13 | **The acceptance**: `make demo-authoring` — an agent builds the bulletin board from the bare skeleton through the API, on driver 1 AND on driver 2, green three times on each — every other demo, `make ci-acceptance`, **and a clicked half**: a student posts, an instructor replies, and a person reads the Code screen, the Docs screen and the HTML reference. **Alone, and last** | **Yes** if any code changes | |
@@ -184,7 +184,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Vitest strips types; it does not check them.** `pnpm typecheck` is the only gate that sees a whole class of error. `exactOptionalPropertyTypes` is on: an optional field is a conditional spread.
 - **A route change is three files, in order**: the definition, then `pnpm contract:write`, then `pnpm contract:generate`. **`packages/contract/openapi.json` and `src/schema.d.ts` are generated; never edit them.** Registering an error code, an event type or a representation field moves the document too.
 - **A migration is `pnpm --filter @manifest/control-plane db:generate`, then READ what it wrote.** Drizzle rewrites the `audit.events` `CHECK` itself when `db/schema.ts`'s literal changes; **appending it by hand makes the migration fail to apply**. `db:migrate` needs RUNBOOK's export block (ORIENTATION §3). **Migration numbers here are predictions** (0029 onwards); take what drizzle writes.
-- **An EVENT TYPE is four edits and published surface**: `EVENT_TYPES` (`observability/events.ts`), its payload schema (`observability/event-schemas.ts`), the `CHECK` literal in `db/schema.ts`, and `EXAMPLE_DETAILS` (`observability/testing.ts`). **A payload never carries a secret's value, a file's content, a token or a laptop path.** A sentence names a person by name, never by PUID.
+- **An EVENT TYPE is four edits and published surface**: `EVENT_TYPES` (`observability/events.ts`), its payload schema (`observability/event-schemas.ts`), the `CHECK` literal in `db/schema.ts`, and `EXAMPLE_DETAILS` (`observability/examples.ts` since sitting 6; `testing.ts` re-exports it) — **and since Task 9 a `.describe()` sentence on its map entry and on every field, which the reference's gate refuses without**. **A payload never carries a secret's value, a file's content, a token or a laptop path.** A sentence names a person by name, never by PUID.
 - **EVERY REFUSAL ASSERTS ITS CODE, NEVER ITS STATUS ALONE** — `refusal()` from `api/testing.ts`. This plan adds `409 SOURCE_PATH_CONFLICT`, `SOURCE_PATH_NOT_FOUND`, `SOURCE_NOTHING_TO_COMMIT`, `SOURCE_FILE_NOT_TEXT`, `SOURCE_PATH_NOT_A_FILE`, `SOURCE_REF_NOT_FOUND`, `SOURCE_FILE_TOO_LARGE`, `409 RELEASE_SECRET_NOT_SET`, `400 SECRET_NAME_RESERVED`, `404 DOC_NOT_FOUND`, and the `ManifestError` code `SPEC_BLUEPRINT_NOT_PINNED`; it reuses `SOURCE_CONFLICT`, `SOURCE_PATH_ESCAPE`, `SOURCE_SECRET_DETECTED`, `SPEC_INVALID` and `STEP_UP_REQUIRED`. **Every new code is thrown as a literal** (`error-codes.test.ts` finds codes as `new SourceError('LITERAL'` and its siblings).
 - **A REFUSAL TEST NEEDS A POSITIVE CONTROL IN THE SAME FILE**, and so does a negative claim. *"Refuses a write under a symlink"* is true of a driver that refuses every write.
 - **Never accept a check you have not watched fail.** Every task ends by breaking what it built, **after committing the task**, and naming the test that goes red with its assertion quoted. **Predict what turns red before you run it.** A control that stays green is a question to chase, not a result.
@@ -1938,6 +1938,15 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 **D22's rule makes this task compulsory, not cosmetic**: `packages/console/src/coverage.test.ts` refuses an operation with no caller in `src/api.ts`, and `DELIBERATELY_UNCALLED` is empty. The screens are **plain but presentable** (§22's quality bar) — the product is the front-end project's.
 
+> **`[S6]` (2026-09-26, sitting 6): every operation now has an example — REAL answers, captured from the routes' own tests
+> and shortened (lists cut to two entries, strings to 280 characters and ` …`) — so `exampleOf` has one for all fifty JSON
+> operations.** Each PARSES through its zod schema (the gate, and `tsc`: `examples` is typed `z.input<R>`), but **none has
+> yet been through Ajv**, and the mock sends every answer through Ajv 2020 on its way out: a `format` zod checks differently
+> (`z.url()`, `z.iso.datetime()`, a `uuid`) would be the mock's `500`, not the gate's red. Run the mock's suite once with the
+> scripted `ANSWERS` set aside, to watch all fifty cross Ajv. **Fifteen operations are `credential: 'session'`** (their
+> `security` is the session alone); the console is a session client and is unaffected. **`mintToken`'s answer is replayed
+> with its secret today** (sitting 5's F4; Task 12 changes it), so the token screen must not rely on a replay.
+
 **Files:**
 - Modify: `packages/mock/src/server.ts` — `exampleOf(operation)`; the answer is `ANSWERS[id] ?? exampleOf(op)`; `packages/mock/src/server.test.ts` — the gate reads *"a scripted answer or a document example"*
 - Modify: `packages/console/src/api.ts` — `getTree`, `getFile`, `listCommits`, `getCommit`, `createCommit`, `listAppSecrets`, `setAppSecret`, `clearAppSecret`
@@ -2018,6 +2027,20 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > **Soft criteria:** a document example is shown. `x-enumDescriptions` — the bundle reads the key, but a probe value did
 > not appear on the rendered page in the time sitting 1 gave it: **check it on the real document once Task 9 publishes
 > it**; if Scalar does not show it, the generated Markdown reference still carries every code's remedy.
+
+> **`[S6]` (2026-09-26, sitting 6): what Task 9 published, for the generator and the guides.** Top level:
+> `x-manifest-errors` (every `ErrorCode`'s `status`, `summary` and `remedy`), `x-manifest-spec-errors` (the 24 codes inside
+> `details`: `summary`, `remedy`) and `x-manifest-unversioned`; `ErrorCode` and `ManifestErrorCode` carry
+> `x-enumDescriptions` — sitting 1's decision 6 left Scalar's reading of that key unestablished, so check it on this
+> document; the stream's path item carries `x-manifest-event-types` (`type`, `description`, `example`, in `EVENT_TYPES`
+> order); `ManifestYaml` is manifest.yaml as a JSON Schema — documentation, never the validator; and
+> `securitySchemes.delegatedToken` (`http` bearer, `mft_<id>_<secret>`) stands beside `session`, the global `security` is
+> either, and fifteen operations name the session alone. Every tag has a description. **`@redocly/openapi-core` is NOT a
+> dependency**: `pnpm add --offline` was refused by pnpm 11's supply-chain check of the whole lockfile (the record's F5), so
+> `lint.test.ts` resolves it through `openapi-typescript`. **Step 1's `pnpm add --offline @scalar/api-reference@1.72.0` may
+> be refused the same way — try it first; if it is, the add needs the network, which is Rich's yes.** `conventions.md` can
+> send a reader to `x-manifest-errors` for every code's remedy; sitting 5's F15 (a bodyless `DELETE` carries no
+> `Content-Type`) is now in `REQUEST_INVALID`'s remedy.
 
 **Files:**
 - Create: `docs/api/index.md`, `getting-started.md`, `authentication.md`, `conventions.md`, `journey.md` (its table generated), `authoring.md`, `secrets.md`, `events.md` (its table generated), `launching.md`, `agents.md`; `docs/api/reference/operations.md`, `errors.md`, `events.md`, `manifest-yaml.md` (all GENERATED); `docs/api/llms.txt` (GENERATED)
@@ -2130,6 +2153,15 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Task 12: What the D5 plan hands over — the mirror's scan paged to the end, no PUID in any sentence, the review's six deferred minors, every driver-1 demo refusing the wrong driver — and a delegated token's secret kept in no idempotency record
 
+> **`[S6]` (2026-09-26, sitting 6): the reference's gate now holds this task.** `TOKEN_ALREADY_MINTED` needs its
+> `ERROR_CODES` entry WITH a `remedy` (`docs.test.ts` refuses one without). **`mintToken`'s description and
+> `MintedToken.secret` state today's behaviour — a replayed mint answers the secret again — and Step 5 must rewrite both**
+> (`api/routes/tokens.ts`, `api/representations/tokens.ts`). `repository.scan_incomplete` is an event type: a `.describe()`
+> sentence on its map entry and on each field, and its `EXAMPLE_DETAILS` entry, which now lives in
+> `observability/examples.ts` (`testing.ts` re-exports it). A new route needs `examples` (REQUIRED, typed by its schemas), a
+> description on everything, and — if it refuses a token outright — `credential: 'session'`: the matrix's check refuses a
+> route whose token rows are all `TOKEN_CREDENTIAL_REFUSED` without it.
+
 **Files:**
 - Modify: `packages/control-plane/src/source/scan-commits.ts` — `scanNewCommits` pages; `packages/control-plane/src/source/github/driver.ts` — reads the pages, and `repository.scan_incomplete` for a commit too large to scan
 - Modify: `packages/control-plane/src/launch/records.ts` — names, not PUIDs; and **every other sentence** the sweep finds
@@ -2209,6 +2241,10 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > event's redactor is built with the value, too).
 
 **ALONE, AND LAST.** It drives the authoring path end to end through nothing but `@manifest/contract` — **as an agent, holding a delegated token** — from an empty skeleton to a running bulletin board, on driver 1 and on driver 2. It is **green three times on each driver**, a step of the offline acceptance and of `make ci-acceptance`, and **clicked by a person**: a student posts a question and an instructor replies.
+
+> **`[S6]` (2026-09-26, sitting 6):** nothing this task drives changed shape. Every `RouteDefinition` must carry `examples`
+> (`tsc` refuses one without), and the document is gated, so the acceptance can rely on every operation `/v1/openapi.json`
+> serves (Task 11) having a description, an example and its error codes' remedies.
 
 **Files:**
 - Create: `fixtures/bulletin-board/manifest.yaml`, `fixtures/bulletin-board/server.js`, `fixtures/bulletin-board/public/index.html`, `fixtures/bulletin-board/public/app.js` — the app the agent writes
@@ -3326,3 +3362,209 @@ publish no meaning at all, and the gate reads `ERROR_CODES` alone. A ruling for 
 **F22 — TASK 9'S ORDER BREAKS THE FOUR-GATES RULE**: its gate is written red first and `examples` made required at once,
 while Step 5 commits module by module — and every commit needs `pnpm test` and `pnpm typecheck` clean. Task 9's second
 `[S5]` block, point 9, gives an order that satisfies both.
+
+### Sitting 6 — Task 9 (the reference, completed) — 2026-09-26
+
+**THE PUBLISHED REFERENCE IS COMPLETE, AND A GATE KEEPS IT SO.** Every operation, parameter, tag, schema and property of
+`openapi.json` is described; every one of the fifty JSON operations carries a request and response example that is a REAL
+answer, captured from the route's own tests; all 108 error codes publish a meaning and a remedy (`x-manifest-errors`), and
+so do the 24 codes inside `details` (`x-manifest-spec-errors`); every event type publishes a sentence and an example on the
+stream (`x-manifest-event-types`); `manifest.yaml` is published as a JSON Schema (`ManifestYaml`), held to §7's own schema by
+a corpus; and **the document now tells an agent how to use a token** (F17 of sitting 5): a `delegatedToken` bearer scheme,
+either credential globally, and fifteen operations marked session-only — refused by the route wrapper itself. No public text
+names a plan, a task, a decision number or a person. **`api/contract/docs.test.ts` read 1079 gaps and 35 internal names at the
+open and reads none; its `ALLOWED_GAPS` is empty.** An independent linter (`@redocly/openapi-core` 1.34.20, `recommended`)
+reports no error and only warnings accepted with a reason. The contract stays `1.3.0`: 51 operations, 75 component schemas
+(+`ManifestYaml`), 108 error codes, 11 tags; the generated types, comments stripped, are identical to the open's but for the
+new `ManifestYaml`. Commits `06b4f07` (error codes, events, the token), `ee85bb5` (`ManifestYaml`), `53d1590` (every
+representation, parameter and description) and `6355b21` (the examples, the gate and the linter, green in one commit).
+
+#### The decisions this sitting made
+
+**1. The gate checks more than Step 1's snippet** (F1): tags, the PUBLISHED error tables rather than `ERROR_CODES`' source,
+the 24 `ManifestErrorCode`s (sitting 5's F21, the recommendation taken), every event type (Step 3), and a positive-control
+`it` that punches one hole of each kind into a copy of the document and must name every one.
+
+**2. F21: `MANIFEST_ERRORS` in `api/error-codes.ts`**, beside `MANIFEST_ERROR_CODE_LIST` — `Record<ManifestErrorCode, …>`,
+so `tsc` refuses a code added in `spec/` or `blueprints/` without a meaning and a remedy. Not beside each definition: it is
+public text, and one place publishes it.
+
+**3. F17: `RouteDefinition.credential?: 'session'`.** The wrapper calls `requireSession` for such a route — a token refused
+`403 TOKEN_CREDENTIAL_REFUSED` before a parameter or a project is read, identically for every id — and `document.ts` prints
+its `security` as the session alone. Declared on exactly the fifteen routes the authorization matrix refuses every token
+(a new matrix check, red first listing them); a refusal only for production (`setAppSecret`, `clearAppSecret`, `deploy`)
+is in the description. The whole matrix stayed green with the wrapper refusing early (560).
+
+**4. `EXAMPLE_DETAILS` moved to `observability/examples.ts`** (F2); `testing.ts` re-exports it, so no test changed. A few
+values made realistic for publication (a whole fingerprint, a real container-name handle, distinct commit ids).
+
+**5. The examples are CAPTURED, not written.** A temporary hook in `registerRoutes` (removed before any commit; `git diff`
+clean) wrote every successful request and answer while the API's own 28 test files ran — 887 tests, every one of the 50
+routes captured. `scratchpad/gen-examples.py` took each operation's richest answer, cut lists to two entries and strings to
+280 characters (` …`), and scanned for internal names (none). `examples` is REQUIRED and typed `z.input<B>` / `z.input<R>`,
+so `tsc` checks every example as well as the gate. Task 8's three illustrative ones were replaced by captured answers;
+sitting 3's and 4's source examples (captured then) kept, their consts gaining `satisfies`.
+
+**6. Path parameters are described once**, as `PATH` in `api/contract/schemas.ts`, and every route's params use them —
+41 gaps, one edit each.
+
+**7. The linter's warnings, each with its reason** (`lint.test.ts`'s `ACCEPTED`): `operation-4xx-response` (every refusal is
+one envelope, documented once per operation as `default`, with its codes listed and `x-manifest-errors` giving each status);
+`info-license` (Manifest has no stated licence yet — the project owner's to state); `no-unused-components` at exactly
+`StreamFrame` (the linter does not walk `x-manifest-websocket`) and `ManifestYaml` (deliberately referenced by no operation:
+`Spec.spec` is the PARSED file, typed loosely, and a `$ref` would change a generated type). `tag-description` was fixed,
+not accepted. A second `it` refuses an accepted rule that no longer fires.
+
+**8. The linter is resolved THROUGH `openapi-typescript`, not added** (F5): the generator of `@manifest/contract` depends on
+`@redocly/openapi-core` 1.34.20, so `lint.test.ts` resolves it from `packages/contract` through the generator, and asserts
+the version.
+
+**9. `pnpm test` once per module commit, twice on the task's last** — a descriptions-only module cannot leak state; the
+last commit ran it twice, identical.
+
+**10. Route descriptions:** the four fragments and the twelve naming a plan were rewritten; the other thirty-five were read
+against Step 5's rule (what it does, who may call it, what it answers, the one surprise) and judged to meet it — most already
+said all four. Every claim a new description makes was checked in the code before it was published (F9).
+
+Every other call is a `Ruling:` line in the ledger.
+
+#### The findings
+
+**F1 — THE PLAN'S GATE CHECKED LESS THAN DECISION 14 PROMISES.** Step 1's snippet reads `ERROR_CODES`' source object, not
+the document; has no check for tags (`[M8]`'s `tag-description`), for the codes inside `details` (F21), or for events (Step 3
+adds them later); and no positive control, so a gate green because the work is done could not show it would see a gap. The
+gate built has all of them — and read **1079 gaps and 35 internal names** at the open (the cold-start review's 840, plus 108
+unpublished summaries, 48 manifest-error entries, 72 event entries and 11 tags).
+
+**F2 — `EXAMPLE_DETAILS` LIVED IN A MODULE THAT IMPORTS `vitest`.** Step 3 has `websocket.ts` publish it, and the document is
+production code that Task 11 serves at boot; `observability/testing.ts` imports `expect` from `vitest`. Moved (decision 4).
+
+**F3 — THE WRAPPER'S CREDENTIAL REFUSAL WAS ASSERTED BY NOTHING ALONE** (control (f), predicted in writing). With it removed,
+the matrix and every credential test stayed green — 588 — because each of the fifteen handlers also calls `requireSession`
+for `tsc`'s sake. So the document's `security` was true only while every author remembered. `route.test.ts` now registers a
+session-only probe whose handler asks nothing: a token is refused `TOKEN_CREDENTIAL_REFUSED` by the wrapper alone, beside a
+token's `200` on an either-credential probe and a person's `200` — red with the wrapper removed, green restored.
+
+**F4 — THE PLAN'S FILES LIST OMITS AJV, WHICH `[M7]`'S CORPUS GATE NEEDS.** The gate runs Ajv 2020 over the emitted schema in
+the unit tier; `ajv@8.20.0` added to `@manifest/control-plane` as a dev dependency, offline (already pinned identically in
+`@manifest/mock` and `@manifest/github-fake`; 0 downloaded).
+
+**F5 — `pnpm add --offline @redocly/openapi-core@1.34.20` IS REFUSED IN THE WORKSPACE.** `[M8]` measured the add in an empty
+scratch package; in the workspace, pnpm 11.24.0 verifies the WHOLE lockfile against its supply-chain policy first (500
+entries), and that needs registry metadata for `@typescript-eslint/project-service`, which this machine has not cached:
+`✗ Lockfile failed supply-chain policy check` / `ERR_PNPM_NO_OFFLINE_META`, exit 1, nothing changed. (`zod-to-json-schema`
+and `ajv` added minutes earlier passed the same check — the second read *"verified 401ms ago"* — so what triggers a full
+verification is not established.) Decision 8. **Task 11's `pnpm add --offline @scalar/api-reference@1.72.0` may meet the
+same refusal** — its `[S6]` block says so.
+
+**F6 — THE API ANSWERED AN INTERNAL PLAN NAME ON THE WIRE.** `launch/readiness.ts`'s load-rehearsal item answered
+`builtBy: 'P9'`, which the console renders to a faculty member as *"Built by P9."*; the gate found it only because a captured
+example could have carried it. It now reads *"a later Manifest release (§24's load rehearsal)"*.
+
+**F7 — `mintToken`'s PUBLISHED DESCRIPTION WAS FALSE.** *"The secret is in the response and nowhere else — the platform
+stores only a hash of it and cannot show it again"*: sitting 5's F4 measured the idempotency record holding the plaintext, and
+a replay answers it again. Both it and `MintedToken.secret` now say what happens today; Task 12 rewrites them with
+`TOKEN_ALREADY_MINTED`.
+
+**F8 — `ai.budget.per_user_monthly_usd` IS APPLIED TO NOTHING.** §7 declares it (*"per_user_monthly_usd: 2"*); `spec/`
+resolves and diffs it, and no code reads it after that — `ai/keys.ts` puts the PROJECT budget on the app's LiteLLM user, and
+nothing sets a per-person ceiling from the manifest. An author who writes it expects a limit that does not exist. Named, not
+fixed; ORIENTATION §8 has it. Its `ManifestYaml` description says only what §7 says.
+
+**F9 — FOUR DESCRIPTIONS DRAFTED FROM A REPRESENTATION ALONE WERE WRONG**, each caught by reading the code before it was
+published: a collaborator cannot delete a project or promote to production either (not only *"manage members"*); `web` is the
+only instance kind the platform runs; `per_user_monthly_usd: 0` means nothing in particular (F8); and `getSpec` answers the
+newest RECORDED validation, refused `SPEC_INVALID` when it is invalid — not *"the newest valid"*. A description is a claim.
+
+**F10 — AN EXAMPLE READ AS A THROW.** Both runs of the final tree were red in one test, identically:
+`error-codes.test.ts`'s literal scan treats any `code: 'X'` under `api/` as a code the api layer throws, and `checkSlug`'s
+captured `200` carries `code: 'SLUG_RESERVED'` in its `reasons`. The scan now cuts each `examples: {…}` block first,
+string-aware (a shortened example can hold a lone brace); *"registers nothing the source never throws"* stays green, so
+nothing after an example was swallowed.
+
+**F11 — MY INSTRUMENT RAN TWO VITEST PROCESSES.** Module 3's first `pnpm test` was started with a shell `&` inside a
+foreground call, and my check that it had died — `pgrep -f "vitest run"` — cannot match `vitest.mjs run`; it was alive when
+I started the second. Two suites shared the database: **190 red in 20 files** (a `source_repositories` insert failing, a
+manifest read as `null`). Re-run alone: 2201 green. Only `run_in_background`, and check with `ps -Ao command | grep
+"[v]itest"`. TRAPS.md has it.
+
+**F12 — TWO OF MY PATCHES WERE NOT MEASUREMENTS.** Module 3's first patch script read files with comment and blank lines
+stripped, so a replacement spanning one matched nothing — all-or-nothing per file, nothing half-written — and control (g)'s
+first patch removed a comma with the `.describe()`, so the file failed to transform and read *"no tests"*, which is not a
+red. Both redone; sitting 5's F10 is the same family.
+
+**F13 — A DEMO'S APP REMOVED BY HAND LEAVES TWO THINGS NO CLEANUP SCRIPT SEES.** The close drove the wrapper's change
+through the edge with `make demo-token`, which deploys `token-app` to staging; removing its three containers with `docker rm
+-f` left **its edge route** (`mf-token-app-staging-manifest-internal`, `make verify`'s *"runtime routes currently applied: 1"*)
+and **an anonymous volume** its image declares (`docker rm` without `-v`), found only by diffing the machine snapshot. Both
+removed by hand — the route by id through the edge's admin API — and the three scripts cleared the rest (the network, two
+named volumes, its LiteLLM user). TRAPS.md has it.
+
+**Measured, and not a defect:** the emitted `ManifestYaml` compiles under Ajv 2020 (`strict: false`, as the mock compiles the
+document); the restated `env` rule is needed on exactly three items (the top level and two overrides) and `manifestYamlSchema`
+throws if that count moves; the `session` scheme's per-operation `security` changes no generated type.
+
+#### Negative controls — each predicted in writing before it ran (scratch `t9-predictions.md`), every patch asserted to apply
+
+| # | Break | Predicted | Seen |
+|---|---|---|---|
+| pre | the restated `env` `oneOf` renamed away (count kept) | `manifest-yaml.test`'s mutation case red at *"a value AND secret: true"* `{zod: false, json: true}` | exactly that |
+| (a) | `Token.name`'s `.describe()` removed | the gate red with EXACTLY `["Token.name: description"]` | exactly that |
+| (b) | `getMe`'s example `role: 42` | *"getMe's response example"* — false to be true | exactly that |
+| (c) | *"(the D5 plan's Decision 18)"* into `getTree`'s description | the internal-name `it` red at `.paths./v1/projects/{projectId}/tree.get.description` | exactly that |
+| (d) | the gate's parameter check removed | **green** — every parameter is described | green: (a) and the positive-control `it` show the checks live |
+| (e) | `credential: 'session'` off `getMe` | the matrix's credential check red, `GET /v1/me` missing; every `/v1/me` row green (its handler still asks) | exactly that (1 red, 559 green) |
+| (f) | the wrapper's `requireSession` removed | **green** — a finding if so | 588 green — **F3**; `route.test`'s new case red on it |
+| (g) | `build.started`'s sentence removed | TWO gaps: `EventFrame|2.machineDetail` and `event build.started` | exactly that (its first patch broke the syntax: F12) |
+| (h) | `lint.test`'s `ACCEPTED` narrowed to `StreamFrame` | *"warn no-unused-components at #/components/schemas/ManifestYaml"* | exactly that |
+
+**Which could not fail, and why:** (d), by construction — a gate green because the work is done cannot show that one of its
+checks is live; (a), (g) and the gate's own positive-control `it` are what do. (f) could not fail against the tree as it
+was, which is F3; it can now.
+
+#### The gates, and the machine, at the close
+
+**`pnpm test` moved from 2197 in 150 files to 2211 in 153** — +14 and three files: `api/contract/docs.test.ts` (5, the gate),
+`lint.test.ts` (4, the linter), `manifest-yaml.test.ts` (3, the corpus), the matrix's credential check (1) and the wrapper's
+own refusal (1). **Identical on every run of the final tree**: twice before the task's last commit (465 s, 468 s) and once as
+the close's last Vitest run (481 s); the open read 2197 in 150 (458 s). Each module commit ran it once, green — module 3's
+first run was two suites at once (F11) and is not counted. `pnpm lint`, `pnpm typecheck` (every package) and `pnpm
+format:check` clean. **`make doctor` 20/0/0** at the open and the close; **`make verify` 57/0/0** at the open, after the Docker
+tier and at the close. **`pnpm test:docker`** — owed by `observability/`, `spec/` and `launch/` — **210 in 35, 0 skipped, 943 s,
+green first time**, on `6355b21`, at load 4–9. **Contract `1.3.0`**: 51 operations, 75 component schemas (+`ManifestYaml`), 108
+error codes, 11 tags now described, 50 of 50 JSON operations with an example. No migration (31). Commits `06b4f07`, `ee85bb5`,
+`53d1590`, `6355b21`.
+
+**Driven through the edge**: the control plane per RUNBOOK (`"driver":"docker","source":"local"`) and `make demo-token` —
+every check passed in 30 s, among them *"the fleet is refused — 403 TOKEN_CREDENTIAL_REFUSED"* and *"it cannot create a
+project of its own"*: two of the fifteen session-only routes, refused now by the wrapper. The control plane was stopped (it
+was not running at the open), and the demo's app removed (F13).
+
+**The machine, queried at the close — AFTER the last Vitest run** (`psql`, `docker`, `lsof`, the edge's admin API, Ollama's
+`/api/ps`, `make verify`): the control database is **EMPTY** — 0 projects, 0 events, 0 secrets, 0 idempotency records — with
+**31 migrations**. `.manifest/repos/` holds the same nine orphan bare repositories as at the open. `launch-app`'s six
+`mf-launch-app-*` containers run with no rows behind them, and **0 runtime routes** are applied (after F13's). Nothing listens
+on 7100 or 7104; the GitHub fake is not running (it was not at the open); no model is resident (both unloaded). **The three
+cleanup scripts, bare and then `--apply` by this session** (allowed): 8 dead networks and 3 volumes (the tier's and the
+demo's), 2 LiteLLM orphans (`p4b-probe-user` and the demo's staging user) and 14 app images, each re-measured bare — `none
+dead`, 0 orphans, 0 dead images; `make verify` 57/0/0, its per-app line `containers=6 networks=2 volumes=4`. `diff` of
+`scripts/snapshot-machine.sh` against the opening snapshot: uptimes, the edge's restart, `HEAD`, this sitting's documents, and
+free disk 91 → 89 GiB — Docker's build cache, which no cleanup script touches. `docker-simple-saml-saml-idp-1` is `Exited` as
+it was at the open, and was left alone.
+
+#### The sweep
+
+This plan's sittings table (row 6 DONE, the marker on row 7), this record, the Global Constraints' event-type rule (a
+`.describe()` sentence; `EXAMPLE_DETAILS` in `observability/examples.ts`), and `[S6]` blocks at the heads of Tasks 10, 11, 12 and
+13 (Task 10: fifty captured examples that have not crossed Ajv, and a replayed mint; Task 11: what was published, and that its
+renderer's offline add may be refused; Task 12: `TOKEN_ALREADY_MINTED`'s remedy and the two sentences to rewrite; Task 13:
+examples required); the roadmap's ledger (the heading and a sitting-6 sentence) and its defect-rate table (the count derived
+with the command above); ORIENTATION's top box and §2's box (one gate moved, and the `ci-acceptance` row's copy), §3 (two
+invariants — the gated reference, and `credential: 'session'` — the event-type rule and two rows of the module table), §7e
+(rewritten for sitting 7, and its RUNBOOK reader corrected: `db/client.test.ts` reads it, not `config.test.ts`), §8 (two
+*Open* items: F8's per-user budget and the licence); RUNBOOK's gate parenthetical; `scripts/ci-acceptance.sh` (`2211 / 153 /
+20 / 57`, and its history comment); TRAPS.md (four traps: F11, F5, F12, F13); WALKTHROUGH (one clause: the API's reference is
+complete). **CLAUDE.md's *State* unchanged** — no plan started or finished, and §8's new items are covered by its
+*Outstanding* line's *"the rest of ORIENTATION §8"*. **The four HTML pages were checked and left alone**: they name the
+reference console, and nothing about the API's documentation.
+

@@ -87,8 +87,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the authoring API plan's sitting 5 (2026-09-26): +66 and one file — `api/secrets.test.ts`
 # (16), the five secrets rows in the authorization matrix (45), the injection contract's declared
 # secrets (3), `secret:write` in the step-up set (1) and the keyed idempotency fingerprint (1).
-EXPECT_TESTS=2197
-EXPECT_FILES=150
+# Then the authoring API plan's sitting 6 (2026-09-26): +14 and three files — the reference's
+# completeness gate `api/contract/docs.test.ts` (5), the independent linter `lint.test.ts` (4),
+# `manifest-yaml.test.ts`'s corpus (3), the matrix's `credential: session` check (1) and the
+# wrapper's own refusal of a token (1).
+EXPECT_TESTS=2211
+EXPECT_FILES=153
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 

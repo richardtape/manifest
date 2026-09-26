@@ -1763,6 +1763,27 @@ it belongs among the traps the next sitting is most likely to hit.
   token, and no row is ever deleted. A new route whose ANSWER carries a credential stores it in `idempotency_keys` unless
   it says otherwise — **until the authoring API plan's Task 12**, which adds `withholdOnReplay` for exactly that (Rich's
   option (a), ORIENTATION §8 *Decided*): after it, such a route declares it.
+- **A SUITE STARTED WITH `&` INSIDE A FOREGROUND TOOL CALL KEEPS RUNNING — AND `pgrep -f "vitest run"` CANNOT SEE IT**
+  (2026-09-26, the authoring API plan's sitting 6, F11). The command line is `node …/vitest.mjs run …`, so the pattern
+  matches nothing and the run reads as dead; a second `pnpm test` then shares the database with it, and the result was
+  **190 red in 20 files** — a `source_repositories` insert failing, a manifest read as `null` — for a tree that was green
+  alone. Start a suite ONLY with the tool's `run_in_background`, and look for one with `ps -Ao command | grep "[v]itest"`.
+- **pnpm 11 REFUSES AN OFFLINE `pnpm add` IN THIS WORKSPACE WHEN ITS SUPPLY-CHAIN CHECK WANTS METADATA IT HAS NOT
+  CACHED** (2026-09-26, sitting 6, F5). `pnpm --filter @manifest/control-plane add --offline -D @redocly/openapi-core@1.34.20`
+  — a package in the store, measured installing offline in a SCRATCH package — exits 1 in the workspace:
+  *"✗ Lockfile failed supply-chain policy check (500 entries)"*, `ERR_PNPM_NO_OFFLINE_META` for
+  `@typescript-eslint/project-service`; nothing is changed. Two adds minutes earlier passed the same check, so what forces a
+  full verification is not established. **A measurement of `pnpm add --offline` in a scratch package does not predict the
+  workspace**; try it there before relying on it, and a refusal means the network — which is Rich's yes.
+- **A PATCH WRITTEN FROM A FILE READ WITH ITS COMMENTS OR BLANK LINES STRIPPED MATCHES NOTHING** (2026-09-26, sitting 6,
+  F12) — and one that removes a `.describe(…)` together with the comma after it makes the file fail to transform, which a
+  test run reports as *"no tests"*, not as red. Read the target verbatim (`awk '/^export const X = /,/^\)/'`), assert the
+  patch applied, and treat *"no tests"* as a broken instrument.
+- **AN APP REMOVED BY HAND LEAVES ITS EDGE ROUTE AND ANY ANONYMOUS VOLUME, AND NO CLEANUP SCRIPT SEES EITHER** (2026-09-26,
+  sitting 6, F13). After `make demo-token`, `docker rm -f` of `token-app`'s containers left `mf-token-app-staging-manifest-internal`
+  on the edge (`make verify`: *"runtime routes currently applied: 1"*) and an unnamed volume its image declares (`docker rm`
+  without `-v`). Find the route with `curl -s http://127.0.0.1:7119/config/apps/http/servers/srv0/routes`, remove it with
+  `curl -X DELETE http://127.0.0.1:7119/id/<its @id>`, and `diff` two `scripts/snapshot-machine.sh` runs for the volume.
 
 ## Images already pulled
 
