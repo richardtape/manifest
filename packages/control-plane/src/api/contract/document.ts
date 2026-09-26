@@ -1,4 +1,6 @@
 import { z } from 'zod/v4'
+import { zodToJsonSchema } from 'zod-to-json-schema'
+import { manifestSchema } from '../../spec/index.js'
 import {
   ERROR_CODE_LIST,
   ERROR_CODES,
@@ -135,6 +137,7 @@ function components(): Record<string, JsonSchema> {
       ERROR_CODE_LIST.map((code) => [code, ERROR_CODES[code].summary]),
     ),
   }
+  all.ManifestYaml = manifestYamlSchema()
   all.ManifestErrorCode = {
     ...all.ManifestErrorCode,
     'x-enumDescriptions': Object.fromEntries(
@@ -146,6 +149,73 @@ function components(): Record<string, JsonSchema> {
       .sort()
       .map((id) => [id, strip(all[id]!)]),
   )
+}
+
+/**
+ * `manifest.yaml` AS A JSON SCHEMA, for an agent WRITING one (the authoring API plan's Task 9,
+ * Step 4, by Task 1's `[M7]` rule): §7's own zod schema, emitted by `zod-to-json-schema`
+ * (3.25.2, reading zod 3's API as `spec/` is written) — no port to zod/v4, whose emitter drops
+ * the same rule this one does. `jsonSchema7` because the emitter has no 2020-12 target and the
+ * schema uses nothing that differs; `$refStrategy: 'none'` so every field is inline; `$schema`
+ * dropped, as every component's is.
+ *
+ * **IT IS DOCUMENTATION FOR THE FILE, NOT THE VALIDATOR.** The platform validates with §7's own
+ * code, and a JSON Schema cannot say everything §7 does: the policy (a slug that matches the
+ * project, a model in the catalogue, a quota) lives in `spec/policy.ts`. The one cross-field
+ * rule the emitter drops SILENTLY — an `env` entry carries a `value` or `secret: true`, never
+ * both and never neither — is restated here by hand on every `env` item, and
+ * `manifest-yaml.test.ts` holds the result to zod's verdict over a corpus, refusing any
+ * disagreement.
+ */
+export function manifestYamlSchema(): JsonSchema {
+  const { $schema: _schema, ...emitted } = zodToJsonSchema(manifestSchema, {
+    $refStrategy: 'none',
+    target: 'jsonSchema7',
+  }) as JsonSchema
+  let restated = 0
+  const restate = (node: unknown): void => {
+    if (node === null || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      node.forEach(restate)
+      return
+    }
+    const schema = node as JsonSchema
+    const keys = Object.keys((schema.properties ?? {}) as JsonSchema).sort()
+    if (keys.join() === 'name,secret,value') {
+      // `(secret === true) !== (value !== undefined)`, as JSON Schema: a value (with `secret`
+      // absent or false), or `secret: true` with no value.
+      schema.oneOf = [
+        {
+          description: 'A value, written in the file.',
+          required: ['value'],
+          properties: {
+            secret: { const: false, description: 'Absent, or `false`, beside a value.' },
+          },
+        },
+        {
+          description: 'A secret, held by Manifest and set with `setAppSecret`.',
+          required: ['secret'],
+          properties: {
+            secret: { const: true, description: 'Exactly `true`, with no value.' },
+          },
+          not: { required: ['value'] },
+        },
+      ]
+      restated += 1
+    }
+    Object.values(schema).forEach(restate)
+  }
+  restate(emitted)
+  // The top-level `env`, and staging's and production's overrides: a fourth would be a new
+  // place an env entry can go, and a first-time reader of this function should hear of it.
+  if (restated !== 3) {
+    throw new Error(`restated the env rule on ${restated} items; expected 3`)
+  }
+  return {
+    ...emitted,
+    description:
+      'manifest.yaml, schema version 1 (§7), as a JSON Schema — DOCUMENTATION FOR THE FILE, for whoever writes it. The platform validates with its own code: `validateSpec` and a commit answer each problem as a `ManifestError` with a path, and some rules are not expressible here — the name must equal the project’s slug, a model must be in the catalogue and approved for `data.classification`, and what is asked for must fit the project’s quota.',
+  }
 }
 
 /**

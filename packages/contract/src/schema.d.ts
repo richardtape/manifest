@@ -3243,6 +3243,257 @@ export interface components {
          * @enum {string}
          */
         ManifestErrorCode: "BLUEPRINT_AI_UNSUPPORTED" | "BLUEPRINT_AUTH_UNSUPPORTED" | "BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED" | "BLUEPRINT_SERVICE_UNSUPPORTED" | "SPEC_AI_BUDGET_REQUIRED" | "SPEC_AI_DISABLED" | "SPEC_ATTRIBUTE_NOT_REGISTERED" | "SPEC_ATTRIBUTE_NOT_WHITELISTED" | "SPEC_BLUEPRINT_NOT_PINNED" | "SPEC_BUILD_BLOCK_FORBIDDEN" | "SPEC_ENV_NAME_RESERVED" | "SPEC_INVALID_BLUEPRINT_REF" | "SPEC_INVALID_SLUG" | "SPEC_INVALID_VALUE" | "SPEC_MODEL_CLASSIFICATION_TOO_LOW" | "SPEC_MODEL_UNCLASSIFIED" | "SPEC_MODEL_UNKNOWN" | "SPEC_NAME_SLUG_MISMATCH" | "SPEC_PATH_EXPECTED" | "SPEC_QUOTA_EXCEEDED" | "SPEC_RESERVED_BLOCK_NOT_EMPTY" | "SPEC_SERVICE_TYPE_UNKNOWN" | "SPEC_UNKNOWN_KEY" | "SPEC_YAML_PARSE_FAILED";
+        /** @description manifest.yaml, schema version 1 (§7), as a JSON Schema — DOCUMENTATION FOR THE FILE, for whoever writes it. The platform validates with its own code: `validateSpec` and a commit answer each problem as a `ManifestError` with a path, and some rules are not expressible here — the name must equal the project’s slug, a model must be in the catalogue and approved for `data.classification`, and what is asked for must fit the project’s quota. */
+        ManifestYaml: {
+            /**
+             * @description The schema version: `1`.
+             * @constant
+             */
+            manifest: 1;
+            /** @description The project’s slug, exactly (§23): 3 to 39 lower-case letters, digits and hyphens, starting with a letter. */
+            name: string;
+            /** @description The project’s blueprint and its major version, `name@major` — the project’s own pin (§25). A commit cannot change it. */
+            blueprint: string;
+            /** @description What the app is for, in a sentence or two. */
+            description?: string;
+            /** @description How the app runs. */
+            runtime: {
+                /** @description The port the app listens on inside its container. */
+                port: number;
+                /**
+                 * @description The path the platform checks before an instance serves: it must answer 200 (§11). A path, never a URL.
+                 * @default /healthz
+                 */
+                health: string;
+                /**
+                 * @description Overrides the blueprint’s entrypoint; null keeps it.
+                 * @default null
+                 */
+                command: string | null;
+                /** @description FORBIDDEN (D13): the Dockerfile is the blueprint’s. An app declares what it needs, never how to build it. */
+                build?: unknown;
+            };
+            /**
+             * @description What the app may use. Unset fields take the blueprint’s defaults; the total is bounded by the project’s quota.
+             * @default {}
+             */
+            resources: {
+                /** @description CPU cores: `0.5` is half of one. */
+                cpu?: number;
+                /** @description Memory, as `512Mi` or `1Gi`. */
+                memory?: string;
+                /** @description The most processes and threads the app may run at once — a fork-bomb ceiling. */
+                pids?: number;
+                /** @description The disk the app’s volume and logs may use, as `2Gi`. */
+                disk?: string;
+            };
+            /**
+             * @description The backing services the app needs; may be empty.
+             * @default []
+             */
+            services: {
+                /** @description Which service: one of the platform’s catalogue, such as `mongo` or `qdrant`. */
+                type: string;
+                /** @description The service’s version, as a string: `"7"`. */
+                version: string;
+                /** @description The app’s own name for it, unique in the manifest: lower-case letters, digits and hyphens. */
+                name: string;
+            }[];
+            /**
+             * @description Who may use the app, and what it learns about them (§9).
+             * @default {}
+             */
+            auth: {
+                /**
+                 * @description `cwl` signs people in with UBC’s CWL (§9); `none` signs nobody in.
+                 * @default none
+                 * @enum {string}
+                 */
+                provider: "cwl" | "none";
+                /**
+                 * @description The CWL attributes the app receives about a signed-in person — `ubcEduCwlPuid`, `mail`, `givenName`, `sn`, `eduPersonAffiliation`. The identifier is `ubcEduCwlPuid`, never `uid`.
+                 * @default []
+                 */
+                attributes: string[];
+                /**
+                 * @description The PATH the identity provider posts a sign-in to (D15) — Manifest derives the origin.
+                 * @default /auth/ubcshib/callback
+                 */
+                callback: string;
+                /**
+                 * @description The PATH single logout arrives at (D15).
+                 * @default /auth/logout
+                 */
+                logout: string;
+            };
+            /**
+             * @description The AI the app uses, through the platform’s gateway (§10).
+             * @default {}
+             */
+            ai: {
+                /**
+                 * @description The LOGICAL models the app may call — `default-chat`, `default-embed` — never a vendor’s model id. Each must be approved for `data.classification` (D17).
+                 * @default []
+                 */
+                models: string[];
+                /**
+                 * @description What the app’s AI may cost (§10).
+                 * @default {}
+                 */
+                budget: {
+                    /** @description The most the app may spend on AI in a month, in US dollars. Omitted, with models declared, it is the project’s AI quota; 0 is refused. */
+                    project_monthly_usd?: number;
+                    /**
+                     * @description The most one person may spend through the app in a month, in US dollars (§7).
+                     * @default 0
+                     */
+                    per_user_monthly_usd: number;
+                };
+            };
+            /**
+             * @description Environment variables the app is given, beside the ones the platform sets (§8).
+             * @default []
+             */
+            env: ({
+                /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself (§8). */
+                name: string;
+                /** @description Its value, written here and so in git — never a credential. */
+                value?: string;
+                /** @description `true` for a value held by Manifest and never in git: set it per environment with `setAppSecret`, and a deploy is refused until it is set. */
+                secret?: boolean;
+            } & ({
+                /**
+                 * @description Absent, or `false`, beside a value.
+                 * @constant
+                 */
+                secret?: false;
+            } | {
+                /**
+                 * @description Exactly `true`, with no value.
+                 * @constant
+                 */
+                secret: true;
+            }))[];
+            /**
+             * @description Where the app may connect to outside the platform.
+             * @default {}
+             */
+            egress: {
+                /**
+                 * @description Hostnames the app may reach outside the platform — `api.ubc.ca`. Everything else is refused.
+                 * @default []
+                 */
+                allow: string[];
+            };
+            /**
+             * @description What the app’s data is (§15).
+             * @default {}
+             */
+            data: {
+                /**
+                 * @description How sensitive the app’s data is: `public`, `internal` or `confidential` — what its models must be approved for (D17).
+                 * @default internal
+                 * @enum {string}
+                 */
+                classification: "public" | "internal" | "confidential";
+                /**
+                 * @description How many days the app keeps its data.
+                 * @default 365
+                 */
+                retention_days: number;
+            };
+            /**
+             * @description Reserved (§15): must be empty, or absent, in schema version 1.
+             * @default []
+             */
+            integrations: unknown[];
+            /**
+             * @description Reserved (§15): must be empty, or absent, in schema version 1.
+             * @default []
+             */
+            jobs: unknown[];
+            /**
+             * @description Reserved (§15): must be empty, or absent, in schema version 1.
+             * @default []
+             */
+            checks: unknown[];
+            /**
+             * @description Per-environment overrides of `resources` and `env` only. Sandbox takes the top level as written.
+             * @default {}
+             */
+            environments: {
+                /** @description What changes in staging. */
+                staging?: {
+                    /** @description Replaces the top-level `resources` in this environment, field by field. */
+                    resources?: {
+                        /** @description CPU cores: `0.5` is half of one. */
+                        cpu?: number;
+                        /** @description Memory, as `512Mi` or `1Gi`. */
+                        memory?: string;
+                        /** @description The most processes and threads the app may run at once — a fork-bomb ceiling. */
+                        pids?: number;
+                        /** @description The disk the app’s volume and logs may use, as `2Gi`. */
+                        disk?: string;
+                    };
+                    /** @description Adds to, or replaces by name, the top-level `env` in this environment. */
+                    env?: ({
+                        /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself (§8). */
+                        name: string;
+                        /** @description Its value, written here and so in git — never a credential. */
+                        value?: string;
+                        /** @description `true` for a value held by Manifest and never in git: set it per environment with `setAppSecret`, and a deploy is refused until it is set. */
+                        secret?: boolean;
+                    } & ({
+                        /**
+                         * @description Absent, or `false`, beside a value.
+                         * @constant
+                         */
+                        secret?: false;
+                    } | {
+                        /**
+                         * @description Exactly `true`, with no value.
+                         * @constant
+                         */
+                        secret: true;
+                    }))[];
+                };
+                /** @description What changes in production. */
+                production?: {
+                    /** @description Replaces the top-level `resources` in this environment, field by field. */
+                    resources?: {
+                        /** @description CPU cores: `0.5` is half of one. */
+                        cpu?: number;
+                        /** @description Memory, as `512Mi` or `1Gi`. */
+                        memory?: string;
+                        /** @description The most processes and threads the app may run at once — a fork-bomb ceiling. */
+                        pids?: number;
+                        /** @description The disk the app’s volume and logs may use, as `2Gi`. */
+                        disk?: string;
+                    };
+                    /** @description Adds to, or replaces by name, the top-level `env` in this environment. */
+                    env?: ({
+                        /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself (§8). */
+                        name: string;
+                        /** @description Its value, written here and so in git — never a credential. */
+                        value?: string;
+                        /** @description `true` for a value held by Manifest and never in git: set it per environment with `setAppSecret`, and a deploy is refused until it is set. */
+                        secret?: boolean;
+                    } & ({
+                        /**
+                         * @description Absent, or `false`, beside a value.
+                         * @constant
+                         */
+                        secret?: false;
+                    } | {
+                        /**
+                         * @description Exactly `true`, with no value.
+                         * @constant
+                         */
+                        secret: true;
+                    }))[];
+                };
+            };
+        };
         /** @description The person the session belongs to. */
         Me: {
             /** Format: uuid */
@@ -3579,9 +3830,11 @@ export interface components {
                 package: string;
             }[];
         };
-        /** @description D9. Reported, not yet enforced (P6). */
+        /** @description D9: which of §7’s sensitive fields this manifest changes against the project’s newest VALID one. Reported here, and enforced at a launched app’s production deploy, where such a change needs an administrator’s approval (§13). */
         SensitiveDiff: {
+            /** @description Whether any of §7’s sensitive fields changed. */
             sensitive: boolean;
+            /** @description Which of them changed — `services`, `auth.attributes`, `egress.allow` and so on. */
             fields: string[];
         };
         SetAppSecretRequest: {
@@ -3640,20 +3893,32 @@ export interface components {
             /** @description True when the tree has more than 10,000 entries and only the first 10,000, by path, are listed. */
             truncated: boolean;
         };
+        /** @description The project’s newest recorded validation of manifest.yaml, parsed (§7), when it is valid — an invalid one is answered `422 SPEC_INVALID` instead. Its commit is the one a build names when it names none. */
         Spec: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The recorded validation this is.
+             */
             appSpecId: string;
+            /** @description The commit whose manifest.yaml it is. */
             commitSha: string;
-            /** @description manifest.yaml v1 as parsed and validated (§7). Its own JSON Schema is not published in P5a. */
+            /** @description manifest.yaml v1 as parsed and validated (§7), every default filled in. `ManifestYaml` in this document describes each field. */
             spec: {
                 [key: string]: unknown;
             };
         };
+        /** @description One validation of manifest.yaml at one commit (§7), recorded — valid or not — and announced as `spec.validated`. */
         SpecValidation: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The validation, as recorded.
+             */
             appSpecId: string;
+            /** @description The commit whose manifest.yaml was validated. */
             commitSha: string;
+            /** @description Whether it is valid; a build of this commit needs it to be. */
             valid: boolean;
+            /** @description Every problem, each with its path and code; empty when `valid`. */
             errors: components["schemas"]["ManifestError"][];
             sensitiveDiff: components["schemas"]["SensitiveDiff"];
         };
@@ -3694,6 +3959,7 @@ export interface components {
             id: string;
             displayName: string;
         };
+        /** @description Which commit’s manifest.yaml to validate; `{}` validates `main`’s head. */
         ValidateSpecRequest: {
             /** @description Defaults to the repository’s HEAD. */
             commitSha?: string;
