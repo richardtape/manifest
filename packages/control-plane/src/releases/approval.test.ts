@@ -26,6 +26,7 @@ import {
   lastApprovedReleaseFor,
   sensitiveChangeOf,
 } from './approval.js'
+import { writeFiles } from '../source/testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -115,7 +116,8 @@ async function secondRelease(
   slug: string,
   memory: string,
 ) {
-  await ctx.deps.source.commitFiles(
+  await writeFiles(
+    ctx.deps.source,
     ctx.deps.source.repositoryFor(slug),
     {
       'manifest.yaml': [

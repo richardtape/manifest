@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { promisify } from 'node:util'
@@ -8,6 +8,7 @@ import { SAMPLE_SECRETS } from '../build/testing.js'
 import { describeSourceDriver } from './driver-contract.js'
 import type { RepoRef } from './git-driver.js'
 import { SourceError, createLocalSourceDriver } from './local-driver.js'
+import { writeFiles } from './testing.js'
 
 const run = promisify(execFile)
 
@@ -35,6 +36,8 @@ describeSourceDriver('local', async () => {
       pushByHand(join(repos, `${slug}.git`), files, message),
     forcePushMainAsPerson: async (slug) => forcePushByHand(join(repos, `${slug}.git`)),
     deleteMainAsPerson: async (slug) => deleteMainByHand(join(repos, `${slug}.git`)),
+    pushSymlinkAsPerson: async (slug, path, target, message) =>
+      pushSymlinkByHand(join(repos, `${slug}.git`), path, target, message),
     cleanup: () => rm(repos, { recursive: true, force: true }),
   }
 })
@@ -70,7 +73,8 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
     const { ref: repo } = await driver.createRepository('chem-labs', seed)
     const first = await driver.headCommit(repo)
 
-    await driver.commitFiles(
+    await writeFiles(
+      driver,
       repo,
       { 'manifest.yaml': 'manifest: 1\nname: renamed\n' },
       'edit',
@@ -231,6 +235,43 @@ async function pushByHand(
       await mkdir(dirname(join(work, relative)), { recursive: true })
       await writeFile(join(work, relative), content, 'utf8')
     }
+    await git('add', '-A')
+    await git(
+      '-c',
+      'user.name=person',
+      '-c',
+      'user.email=person@example.org',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-qm',
+      message,
+    )
+    await git('push', '-q', 'origin', 'HEAD:main')
+    return await git('rev-parse', 'HEAD')
+  } finally {
+    await rm(work, { recursive: true, force: true })
+  }
+}
+
+/**
+ * A PERSON pushing a SYMLINK — `path` → `target` — into the bare repository, through its own
+ * hook (the authoring API plan's Task 3). A symlink's content is its target, which the hook
+ * scans as an added line; a path is not secret-shaped.
+ */
+async function pushSymlinkByHand(
+  bare: string,
+  path: string,
+  target: string,
+  message: string,
+): Promise<string> {
+  const work = await mkdtemp(join(tmpdir(), 'manifest-person-'))
+  const git = async (...args: string[]) =>
+    (await run('git', args, { cwd: work })).stdout.trim()
+  try {
+    await git('clone', '-q', bare, '.')
+    await mkdir(dirname(join(work, path)), { recursive: true })
+    await symlink(target, join(work, path))
     await git('add', '-A')
     await git(
       '-c',

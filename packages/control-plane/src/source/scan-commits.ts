@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { scanText } from '../build/index.js'
-import { type CommitFinding, SourceError } from './git-driver.js'
+import { type Change, type CommitFinding, SourceError } from './git-driver.js'
 
 export type { CommitFinding } from './git-driver.js'
 
@@ -213,15 +213,35 @@ export async function scanNewCommits(
  * value, because it goes on the wire.
  */
 /**
- * THE WORKTREE'S OWN `.git` IS NEVER WRITTEN (the D5 plan's final review, Important 1): a path
- * that stays inside the worktree can still be `.git/config`, and `core.fsmonitor = <command>`
- * there is a command the control plane runs on its very next `git add`. Refused — before
- * anything is written, on both drivers, beside the secret scan — when ANY component is `.git`
- * in any case, because macOS's filesystem folds case and `.GIT/config` is the same file. Each
- * driver's own check that a path stays inside the worktree is the other half.
+ * A PATH NAMES A FILE INSIDE THE REPOSITORY, and never its `.git` — refused before anything is
+ * built, on both drivers, beside the secret scan.
+ *
+ * **Inside**: relative to the root, `/`-separated, with no empty, `.` or `..` component and no
+ * NUL (which would end a record of `update-index -z`). Until the authoring API plan's Task 3
+ * each driver's worktree answered this with `resolve()`; with no worktree it is stated here, so
+ * `../outside.txt` is still `SOURCE_PATH_ESCAPE` rather than whatever git makes of it.
+ *
+ * **Never `.git`, in any case** (the D5 plan's final review, Important 1): with a worktree,
+ * `.git/config` was a command the control plane ran on its next `git add`. There is no worktree
+ * now, and `.git` in a TREE is still a path every clone of it would refuse — so it is refused
+ * by name, as the request schema refuses it first (the authoring API plan's Decision 4).
  */
-export function assertWritablePaths(files: Readonly<Record<string, string>>): void {
-  const into = Object.keys(files).filter((path) =>
+export function assertWritablePaths(paths: readonly string[]): void {
+  const outside = paths.filter(
+    (path) =>
+      path.includes('\0') ||
+      path.startsWith('/') ||
+      path.split('/').some((part) => part === '' || part === '.' || part === '..'),
+  )
+  if (outside.length > 0) {
+    throw new SourceError(
+      'SOURCE_PATH_ESCAPE',
+      `a path names a file inside the repository, relative to its root, with no empty, '.' or '..' component, and nothing was committed: ${outside
+        .map((p) => `'${p.replace(/\0/g, '\\0')}'`)
+        .join(', ')}`,
+    )
+  }
+  const into = paths.filter((path) =>
     path.split('/').some((part) => part.toLowerCase() === '.git'),
   )
   if (into.length === 0) return
@@ -233,10 +253,16 @@ export function assertWritablePaths(files: Readonly<Record<string, string>>): vo
   )
 }
 
-export function assertNoSecrets(files: Readonly<Record<string, string>>): void {
-  const found = Object.entries(files).flatMap(([path, content]) =>
-    scanText(content, path),
-  )
+/** The writes of a set of changes, as the secret scan reads them. */
+export const writesOf = (
+  changes: readonly Change[],
+): { path: string; content: string }[] =>
+  changes.flatMap((c) => (c.op === 'write' ? [{ path: c.path, content: c.content }] : []))
+
+export function assertNoSecrets(
+  files: readonly { path: string; content: string }[],
+): void {
+  const found = files.flatMap(({ path, content }) => scanText(content, path))
   if (found.length === 0) return
   throw new SourceError(
     'SOURCE_SECRET_DETECTED',

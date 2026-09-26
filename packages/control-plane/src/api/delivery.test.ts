@@ -18,6 +18,7 @@ import {
   releasedProject,
   testDeps,
 } from './testing.js'
+import { writeFiles } from '../source/testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -337,7 +338,8 @@ describe('the delivery routes', () => {
     // answered the same code 422 with them, and no test built against an invalid spec,
     // so nothing could see the two disagree.
     const { app, deps, cookies, project } = await projectFor('bio_prof')
-    await deps.source.commitFiles(
+    await writeFiles(
+      deps.source,
       deps.source.repositoryFor('chem-labs'),
       {
         'manifest.yaml':

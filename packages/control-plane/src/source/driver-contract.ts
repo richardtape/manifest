@@ -1,7 +1,11 @@
 import { execFileSync } from 'node:child_process'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SAMPLE_SECRETS } from '../build/testing.js'
 import { SourceError, type SourceDriver } from './git-driver.js'
+import { writeFiles } from './testing.js'
 
 /** What one driver's run of the suite is handed (this plan's Task 2). */
 export interface SourceDriverHarness {
@@ -18,8 +22,20 @@ export interface SourceDriverHarness {
    */
   forcePushMainAsPerson(slug: string): Promise<{ ok: boolean; said: string }>
   deleteMainAsPerson(slug: string): Promise<{ ok: boolean; said: string }>
+  /**
+   * A PERSON pushing a SYMLINK to `main` — `path` → `target` — outside the driver (the
+   * authoring API plan's Task 3). Returns the commit.
+   */
+  pushSymlinkAsPerson(
+    slug: string,
+    path: string,
+    target: string,
+    message: string,
+  ): Promise<string>
   cleanup(): Promise<void>
 }
+
+const ADA = { name: 'Ada Lovelace', email: 'u1@users.manifest.internal' }
 
 const SEED = {
   'manifest.yaml':
@@ -116,7 +132,8 @@ export function describeSourceDriver(
     it('reads a file AT a commit, not at HEAD', async () => {
       const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const first = await h.driver.headCommit(repo)
-      const second = await h.driver.commitFiles(
+      const second = await writeFiles(
+        h.driver,
         repo,
         { 'manifest.yaml': 'manifest: 1\nname: renamed\n' },
         'edit',
@@ -217,7 +234,7 @@ export function describeSourceDriver(
         )
       const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       expect(
-        await code(h.driver.commitFiles(repo, { '../outside.txt': 'x' }, 'escape')),
+        await code(writeFiles(h.driver, repo, { '../outside.txt': 'x' }, 'escape')),
       ).toBe('SOURCE_PATH_ESCAPE')
     })
 
@@ -239,7 +256,7 @@ export function describeSourceDriver(
       ]) {
         expect(
           await code(
-            h.driver.commitFiles(repo, { [path]: '[core]\n\tfsmonitor = true\n' }, 'x'),
+            writeFiles(h.driver, repo, { [path]: '[core]\n\tfsmonitor = true\n' }, 'x'),
           ),
           path,
         ).toBe('SOURCE_PATH_ESCAPE')
@@ -249,7 +266,8 @@ export function describeSourceDriver(
       ).toBe('SOURCE_PATH_ESCAPE')
       expect(await h.driver.headCommit(repo)).toBe(before)
       // The positive control: names that merely START with `.git` are ordinary files.
-      const sha = await h.driver.commitFiles(
+      const sha = await writeFiles(
+        h.driver,
         repo,
         { '.gitignore': 'node_modules\n', '.github/CODEOWNERS': '* @x\n' },
         'dotfiles',
@@ -268,16 +286,15 @@ export function describeSourceDriver(
       const key = SAMPLE_SECRETS['an AWS access key id']
       const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const head = await h.driver.headCommit(repo)
-      const refused = await h.driver
-        .commitFiles(
-          repo,
-          { 'config/keys.js': `const a = 1\nconst k = '${key}'\n` },
-          'oops',
-        )
-        .then(
-          () => undefined,
-          (e: unknown) => e,
-        )
+      const refused = await writeFiles(
+        h.driver,
+        repo,
+        { 'config/keys.js': `const a = 1\nconst k = '${key}'\n` },
+        'oops',
+      ).then(
+        () => undefined,
+        (e: unknown) => e,
+      )
       expect(refused).toBeInstanceOf(SourceError)
       expect((refused as SourceError).code).toBe('SOURCE_SECRET_DETECTED')
       expect((refused as SourceError).message).toContain('config/keys.js:2')
@@ -285,7 +302,8 @@ export function describeSourceDriver(
       expect((refused as SourceError).message).not.toContain(key)
       expect(await h.driver.headCommit(repo)).toBe(head)
       // The positive control: the same commit without the key moves the head.
-      const clean = await h.driver.commitFiles(
+      const clean = await writeFiles(
+        h.driver,
         repo,
         { 'config/keys.js': 'const a = 1\n' },
         'ok',
@@ -300,6 +318,173 @@ export function describeSourceDriver(
       ).toBe('SOURCE_SECRET_DETECTED')
       const { ref: created } = await h.driver.createRepository('bio-labs', SEED)
       expect(created).toEqual({ projectSlug: 'bio-labs', provider: h.driver.name })
+    })
+
+    it('commits writes and deletions against main, and answers the commit and what changed (Task 3)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const base = await h.driver.headCommit(repo)
+      const r = await h.driver.commit(repo, {
+        base,
+        changes: [
+          { op: 'write', path: 'src/new.js', content: 'n\n' },
+          { op: 'delete', path: 'src/index.js' },
+        ],
+        message: 'add new.js, remove index.js',
+        author: ADA,
+      })
+      expect(r.commitSha).toMatch(/^[0-9a-f]{40}$/)
+      expect(r.parent).toBe(base)
+      expect(r.changes).toEqual([
+        { path: 'src/new.js', status: 'added' },
+        { path: 'src/index.js', status: 'deleted' },
+      ])
+      expect(await h.driver.headCommit(repo)).toBe(r.commitSha)
+      expect(await h.driver.readFile(repo, r.commitSha!, 'src/index.js')).toBeNull()
+      expect(await h.driver.readFile(repo, r.commitSha!, 'src/new.js')).toBe('n\n')
+    })
+
+    it('refuses a stale base with SOURCE_CONFLICT, and main does not move', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const base = await h.driver.headCommit(repo)
+      const moved = await h.pushAsPerson('chem-labs', { 'b.txt': 'b\n' }, 'a person')
+      expect(
+        await code(
+          h.driver.commit(repo, {
+            base,
+            changes: [{ op: 'write', path: 'c.txt', content: 'c' }],
+            message: 'm',
+            author: ADA,
+          }),
+        ),
+      ).toBe('SOURCE_CONFLICT')
+      expect(await h.driver.headCommit(repo)).toBe(moved)
+    })
+
+    it('refuses a write under a symlink a person pushed, and writes nothing outside (Read this first 1)', async () => {
+      const outside = mkdtempSync(join(tmpdir(), 'mf-outside-'))
+      try {
+        const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+        const head = await h.pushSymlinkAsPerson(
+          'chem-labs',
+          'out',
+          outside,
+          'a symlink out',
+        )
+        expect(
+          await code(
+            h.driver.commit(repo, {
+              base: head,
+              changes: [{ op: 'write', path: 'out/pwned.txt', content: 'x' }],
+              message: 'm',
+              author: ADA,
+            }),
+          ),
+        ).toBe('SOURCE_PATH_CONFLICT')
+        expect(existsSync(join(outside, 'pwned.txt'))).toBe(false)
+        expect(await h.driver.headCommit(repo)).toBe(head)
+      } finally {
+        rmSync(outside, { recursive: true, force: true })
+      }
+    })
+
+    it('refuses a write through a symlink to .git, and runs no command (Read this first 1)', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'mf-marker-'))
+      const marker = join(dir, 'FSMONITOR-RAN')
+      try {
+        const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+        const head = await h.pushSymlinkAsPerson(
+          'chem-labs',
+          'meta',
+          '.git',
+          'a symlink to .git',
+        )
+        const config = `[core]\n\tfsmonitor = touch ${marker}; false\n`
+        expect(
+          await code(
+            h.driver.commit(repo, {
+              base: head,
+              changes: [{ op: 'write', path: 'meta/config', content: config }],
+              message: 'm',
+              author: ADA,
+            }),
+          ),
+        ).toBe('SOURCE_PATH_CONFLICT')
+        // And a commit that DOES land afterwards runs nothing either — no worktree, no git add.
+        await h.driver.commit(repo, {
+          base: head,
+          changes: [{ op: 'write', path: 'ok.txt', content: 'ok' }],
+          message: 'm',
+          author: ADA,
+        })
+        expect(existsSync(marker)).toBe(false)
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+
+    it('refuses a file where a directory is and a directory where a file is — which --index-info would have done by deleting (Read this first 3)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      expect(
+        await code(
+          h.driver.commit(repo, {
+            base: head,
+            changes: [{ op: 'write', path: 'src', content: 'x' }],
+            message: 'm',
+            author: ADA,
+          }),
+        ),
+      ).toBe('SOURCE_PATH_CONFLICT')
+      expect(
+        await code(
+          h.driver.commit(repo, {
+            base: head,
+            changes: [{ op: 'write', path: 'manifest.yaml/x', content: 'x' }],
+            message: 'm',
+            author: ADA,
+          }),
+        ),
+      ).toBe('SOURCE_PATH_CONFLICT')
+      expect(await h.driver.headCommit(repo)).toBe(head)
+      expect(await h.driver.readFile(repo, head, 'src/index.js')).not.toBeNull()
+    })
+
+    it('a dry run answers what would change and moves nothing', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      const r = await h.driver.commit(repo, {
+        base: head,
+        changes: [{ op: 'write', path: 'd.txt', content: 'd' }],
+        message: 'm',
+        author: ADA,
+        dryRun: true,
+      })
+      expect(r).toEqual({
+        commitSha: null,
+        parent: head,
+        changes: [{ path: 'd.txt', status: 'added' }],
+      })
+      expect(await h.driver.headCommit(repo)).toBe(head)
+    })
+
+    it('loses a race at the push as SOURCE_CONFLICT — exactly one of two commits lands', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const base = await h.driver.headCommit(repo)
+      const one = (p: string) =>
+        h.driver.commit(repo, {
+          base,
+          changes: [{ op: 'write', path: p, content: p }],
+          message: p,
+          author: ADA,
+        })
+      const results = await Promise.allSettled([one('a.txt'), one('b.txt')])
+      const landed = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
+      const refused = results.flatMap((r) =>
+        r.status === 'rejected' && r.reason instanceof SourceError ? [r.reason.code] : [],
+      )
+      expect(landed).toHaveLength(1)
+      expect(refused).toEqual(['SOURCE_CONFLICT'])
+      expect(await h.driver.headCommit(repo)).toBe(landed[0]!.commitSha)
     })
 
     it('refuses a reference another provider made', async () => {

@@ -46,6 +46,38 @@ export interface LocalGitDir {
 export type SeedFiles = Readonly<Record<string, string>>
 
 /**
+ * ONE CHANGE A COMMIT MAKES (the authoring API plan's Task 3): a regular text file written with
+ * exactly these UTF-8 bytes, or a file deleted. Planned against the base tree before anything is
+ * built (`source/plumbing.ts`'s `planChanges`), never applied at the file's own path.
+ */
+export type Change =
+  { op: 'write'; path: string; content: string } | { op: 'delete'; path: string }
+
+export interface GitIdentity {
+  name: string
+  email: string
+}
+
+export interface CommitRequest {
+  /** The commit these changes were computed from; `main` must be exactly this (Decision 3). */
+  base: string
+  changes: readonly Change[]
+  message: string
+  author: GitIdentity
+  /** Every check, and the objects built — and nothing pushed (Decision 6). */
+  dryRun?: boolean
+}
+
+export type ChangeStatus = 'added' | 'modified' | 'deleted'
+
+export interface CommitResult {
+  /** The new commit — or null on a dry run, which pushes nothing. */
+  commitSha: string | null
+  parent: string
+  changes: readonly { path: string; status: ChangeStatus }[]
+}
+
+/**
  * WHAT ONE SYNC MOVED (the D5 plan's Task 9, Decision 11) — commit ids only: no author and no
  * message text, which are an app author's free text (§14's redaction applies to an event).
  * `ref` is GitHub's name for the branch, `refs/heads/<b>`.
@@ -104,11 +136,13 @@ export interface SourceObserver {
  * the wire** and a driver never puts a credential in it. Driver 1 throws
  * `SOURCE_INVALID_SLUG`, `SOURCE_PATH_ESCAPE`, `SOURCE_GIT_FAILED`, `SOURCE_COMMIT_NOT_FOUND`
  * and `SOURCE_PROVIDER_MISMATCH` (a reference another driver made — Decision 3); driver 2
- * those and `SOURCE_UNREACHABLE`, `SOURCE_CONFLICT`, `SOURCE_GITHUB_REFUSED`,
- * `SOURCE_REPOSITORY_EXISTS`, `SOURCE_REPOSITORY_NOT_PRIVATE` and `SOURCE_REPOSITORY_PUBLIC`
- * (a repository last read public is never built — Task 10). Both refuse
- * `SOURCE_SECRET_DETECTED` — a commit of Manifest's own carrying a secret-shaped value, before
- * it leaves (Task 11). Each is registered in `api/error-codes.ts`.
+ * those and `SOURCE_UNREACHABLE`, `SOURCE_GITHUB_REFUSED`, `SOURCE_REPOSITORY_EXISTS`,
+ * `SOURCE_REPOSITORY_NOT_PRIVATE` and `SOURCE_REPOSITORY_PUBLIC` (a repository last read public
+ * is never built — Task 10). Both refuse `SOURCE_SECRET_DETECTED` — a commit of Manifest's own
+ * carrying a secret-shaped value, before it leaves (Task 11) — and, since the authoring API
+ * plan's Task 3, `SOURCE_CONFLICT` (a moved `main`), `SOURCE_PATH_CONFLICT`,
+ * `SOURCE_PATH_NOT_FOUND` and `SOURCE_NOTHING_TO_COMMIT` (`source/plumbing.ts`'s planner). Each
+ * is registered in `api/error-codes.ts`.
  */
 export class SourceError extends Error {
   constructor(
@@ -143,7 +177,14 @@ export interface SourceDriver {
    * repository exists. Every other method already fails honestly if it does not.
    */
   repositoryFor(projectSlug: string): RepoRef
-  commitFiles(repo: RepoRef, files: SeedFiles, message: string): Promise<string>
+  /**
+   * THE ONE WRITE (the authoring API plan's Task 3): `changes` against `request.base`, which
+   * must be `main`'s head — or `SOURCE_CONFLICT`, whether the base was already stale or the race
+   * was lost at the push. Planned against the base's tree (`SOURCE_PATH_CONFLICT`,
+   * `SOURCE_PATH_NOT_FOUND`, `SOURCE_NOTHING_TO_COMMIT`), built with git plumbing and NO
+   * worktree, and pushed non-forced. A dry run makes every check and pushes nothing.
+   */
+  commit(repo: RepoRef, request: CommitRequest): Promise<CommitResult>
   headCommit(repo: RepoRef, ref?: string): Promise<string>
   /** The file's content at that commit, or null if the path is not in the tree. */
   readFile(repo: RepoRef, commitSha: string, path: string): Promise<string | null>

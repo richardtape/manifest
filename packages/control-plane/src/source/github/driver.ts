@@ -1,20 +1,32 @@
 import type { KeyObject } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve, sep } from 'node:path'
 import {
+  type Change,
+  type GitIdentity,
   type LocalGitDir,
   type MirrorAdvance,
   type RepositoryLink,
   type RepoRef,
-  type SeedFiles,
   SourceError,
   type SourceDriver,
   type SourceObserver,
 } from '../git-driver.js'
 import { ownRepositories } from '../local-driver.js'
-import { assertNoSecrets, assertWritablePaths, scanNewCommits } from '../scan-commits.js'
+import {
+  type BuiltCommit,
+  buildCommit,
+  MANIFEST_COMMITTER,
+  pushVerdict,
+} from '../plumbing.js'
+import {
+  assertNoSecrets,
+  assertWritablePaths,
+  scanNewCommits,
+  writesOf,
+} from '../scan-commits.js'
 import { createGithubClient } from './client.js'
 import { gitWithToken, isAuthRefusal } from './git.js'
 import { createTokenCache, type TokenPermissions } from './tokens.js'
@@ -45,16 +57,6 @@ const SLUG = /^[a-z][a-z0-9-]{2,38}$/
 /** A build and a read name a COMMIT: a full 40-character id, never a revision expression. */
 const COMMIT = /^[0-9a-f]{40}$/
 
-/** Deterministic authorship, driver 1's, so a seeded repository is reproducible. */
-const GIT_IDENTITY = [
-  '-c',
-  'user.name=Manifest',
-  '-c',
-  'user.email=manifest@manifest.internal',
-  '-c',
-  'commit.gpgsign=false',
-]
-
 /** Where the mirror keeps what GitHub has NOW (sitting 1's F6): forced, one per branch. */
 const UPSTREAM = 'refs/manifest/upstream'
 
@@ -84,7 +86,7 @@ const PORCELAIN = /^([ +*!=t-]) ([0-9a-f]{40}) ([0-9a-f]{40}) (\S+)$/
  * NON-forced, so a rewritten upstream `main` can never take away the history an approved
  * release names — it is the HISTORY KEEPER, and nothing reads "what GitHub has now" from it.
  * `refs/manifest/upstream/*` is fetched FORCED, one fetch with both refspecs, and is what
- * `headCommit`, `listBranches` and `commitFiles`' base read. Without it one rewrite froze
+ * `headCommit`, `listBranches` and `commit`'s base read. Without it one rewrite froze
  * `main` for good: every later push was refused as another rewrite, and `headCommit` answered
  * the frozen head as current — the stale answer Decision 18 forbids.
  *
@@ -452,51 +454,70 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     }
   }
 
-  /** Writes files in a throwaway worktree, commits, and pushes `main` to GitHub, non-forced. */
-  async function commitAndPush(
+  /**
+   * THE ONE WRITE PATH, driver 2's half (the authoring API plan's Task 3): a commit built with
+   * no worktree (`source/plumbing.ts`) — on `base`, borrowing the MIRROR's objects — and pushed
+   * to GitHub NON-FORCED with a `contents: write` token for this repository alone, which stays
+   * in git's environment (Decision 4). `gitWithToken` answers exit 1 as stdout, so the verdict
+   * is read from porcelain's own line for `main`: a moved branch is `SOURCE_CONFLICT`, and any
+   * other refusal — GH006, a hook — is never read as success.
+   */
+  async function buildAndPush(
     slug: string,
-    base: { mirror: string } | undefined,
-    files: SeedFiles,
+    input: { objects: string; base: string | null; changes: readonly Change[] },
     message: string,
-  ): Promise<string> {
-    const work = await mkdtemp(join(tmpdir(), 'manifest-worktree-'))
-    const git = (args: readonly string[]) => gitWithToken(args, { cwd: work })
+    author: GitIdentity,
+    push: boolean,
+  ): Promise<Omit<BuiltCommit, 'gitDir' | 'dispose'>> {
+    const built = await buildCommit({ ...input, message, author })
     try {
-      await git(['init', '-q', '--initial-branch=main', '.'])
-      if (base !== undefined) {
-        // GitHub NOW, from the shadow — never the mirror's `refs/heads/main`, which a
-        // rewrite freezes (F6): a commit on that would be refused non-fast-forward for ever.
-        await git([
-          'fetch',
-          '-q',
-          '--no-write-fetch-head',
-          base.mirror,
-          `+${UPSTREAM}/main:refs/remotes/base/main`,
-        ])
-        await git(['checkout', '-q', '-B', 'main', 'refs/remotes/base/main'])
-      }
-      for (const [relative, content] of Object.entries(files)) {
-        const target = resolve(work, relative)
-        if (!target.startsWith(resolve(work) + sep)) {
+      if (push) {
+        const said = await withToken(slug, { contents: 'write' }, (token) =>
+          gitWithToken(
+            [
+              '--git-dir',
+              built.gitDir,
+              'push',
+              '--porcelain',
+              remote(slug),
+              `${built.commit}:refs/heads/main`,
+            ],
+            { cwd: tmpdir(), token, acceptExit: [1] },
+          ),
+        )
+        const { verdict, line } = pushVerdict(said)
+        if (verdict === 'conflict') {
           throw new SourceError(
-            'SOURCE_PATH_ESCAPE',
-            `seed path '${relative}' escapes the worktree`,
+            'SOURCE_CONFLICT',
+            "GitHub's main moved while this commit was being made; read the tree again and retry",
           )
         }
-        await mkdir(dirname(target), { recursive: true })
-        await writeFile(target, content, 'utf8')
+        if (verdict === 'refused') {
+          // A MOVED BRANCH IS A CONFLICT however it is worded (driver 1 measured a race lost
+          // inside receive-pack as `[remote rejected]`): GitHub's `main` is read, not its words.
+          if (input.base !== null) {
+            await sync(slug, input.objects)
+            if (
+              (await commitOf(input.objects, `${UPSTREAM}/main^{commit}`)) !== input.base
+            ) {
+              throw new SourceError(
+                'SOURCE_CONFLICT',
+                "GitHub's main moved while this commit was being made; read the tree again and retry",
+              )
+            }
+          }
+          console.error(
+            `github driver: GitHub refused Manifest's own push to ${o.org}/${slug}: ${tokens.redact(line ?? said.trim().split('\n').slice(-3).join(' | '))}`,
+          )
+          throw new SourceError(
+            'SOURCE_GIT_FAILED',
+            'GitHub refused the push; nothing was committed',
+          )
+        }
       }
-      await git(['add', '-A'])
-      await git([...GIT_IDENTITY, 'commit', '-q', '-m', message])
-      await withToken(slug, { contents: 'write' }, (token) =>
-        gitWithToken(['push', '-q', remote(slug), 'HEAD:refs/heads/main'], {
-          cwd: work,
-          token,
-        }),
-      )
-      return (await git(['rev-parse', 'HEAD'])).trim()
+      return { commit: built.commit, parent: built.parent, changes: built.changes }
     } finally {
-      await rm(work, { recursive: true, force: true })
+      await built.dispose()
     }
   }
 
@@ -601,8 +622,8 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     async createRepository(projectSlug, seed) {
       const mirror = pathFor(projectSlug)
       // Before ANYTHING is asked of GitHub (Task 11): once pushed, a value is on GitHub for ever.
-      assertWritablePaths(seed)
-      assertNoSecrets(seed)
+      assertWritablePaths(Object.keys(seed))
+      assertNoSecrets(Object.entries(seed).map(([p, content]) => ({ path: p, content })))
       // A mirror already here is a repository this machine made once and did not delete —
       // refused, never reused or removed (Decision 16).
       if (existsSync(mirror)) {
@@ -643,11 +664,21 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
             `GitHub created ${o.org}/${projectSlug} ${String(body.visibility ?? 'without a visibility')}; it has been deleted`,
           )
         }
-        const seeded = await commitAndPush(
+        // No base, so nothing is borrowed — the mirror is made after this push.
+        const { commit: seeded } = await buildAndPush(
           projectSlug,
-          undefined,
-          seed,
+          {
+            objects: mirror,
+            base: null,
+            changes: Object.entries(seed).map(([p, content]) => ({
+              op: 'write' as const,
+              path: p,
+              content,
+            })),
+          },
           'chore: seed from blueprint skeleton',
+          MANIFEST_COMMITTER,
+          true,
         )
         if (typeof body.full_name !== 'string' || typeof body.html_url !== 'string') {
           throw client.refusal(
@@ -687,14 +718,35 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       return { ref: { projectSlug, provider: 'github' }, link }
     },
 
-    async commitFiles(repo, files, message) {
+    async commit(repo, request) {
       const mirror = mirrorOf(repo)
-      assertWritablePaths(files)
-      assertNoSecrets(files)
+      assertWritablePaths(request.changes.map((c) => c.path))
+      assertNoSecrets(writesOf(request.changes))
       await sync(repo.projectSlug, mirror)
-      const sha = await commitAndPush(repo.projectSlug, { mirror }, files, message)
-      await sync(repo.projectSlug, mirror)
-      return sha
+      // GitHub NOW, from the shadow — never the mirror's `refs/heads/main`, which a rewrite
+      // freezes (the D5 plan's F6).
+      const head = await commitOf(mirror, `${UPSTREAM}/main^{commit}`)
+      if (request.base !== head) {
+        throw new SourceError(
+          'SOURCE_CONFLICT',
+          `GitHub's main is ${head.slice(0, 12) || 'absent'} now, and these changes were computed from ${request.base.slice(0, 12)}; read the tree again and retry`,
+        )
+      }
+      // THE CLIENT'S BASE (driver 1's reason): with the check above lost, GitHub still
+      // refuses a stale base non-fast-forward at the push.
+      const built = await buildAndPush(
+        repo.projectSlug,
+        { objects: mirror, base: request.base, changes: request.changes },
+        request.message,
+        request.author,
+        request.dryRun !== true,
+      )
+      if (request.dryRun !== true) await sync(repo.projectSlug, mirror)
+      return {
+        commitSha: request.dryRun === true ? null : built.commit,
+        parent: request.base,
+        changes: built.changes,
+      }
     },
 
     async headCommit(repo, ref = 'main') {

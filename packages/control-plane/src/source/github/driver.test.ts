@@ -14,10 +14,12 @@ import { describeSourceDriver } from '../driver-contract.js'
 import { SourceError, type MirrorAdvance } from '../git-driver.js'
 import {
   pushAsPerson,
+  pushSymlinkAsPerson,
   recordingObserver,
   rewriteAsPerson,
   tryDeleteMainAsPerson,
   tryForcePushMainAsPerson,
+  writeFiles,
 } from '../testing.js'
 import { createGithubSourceDriver } from './driver.js'
 import { gitWithToken } from './git.js'
@@ -152,6 +154,8 @@ describeSourceDriver(
       pushAsPerson: (slug, files, message) => pushAsPerson(h.fake, slug, files, message),
       forcePushMainAsPerson: (slug) => tryForcePushMainAsPerson(h.fake, slug),
       deleteMainAsPerson: (slug) => tryDeleteMainAsPerson(h.fake, slug),
+      pushSymlinkAsPerson: (slug, path, target, message) =>
+        pushSymlinkAsPerson(h.fake, slug, path, target, message),
       cleanup: h.cleanup,
     }
   },
@@ -189,7 +193,7 @@ describeSourceDriver(
         expect((await g.driver.localGitDir(repo, first)).commitSha).toBe(first)
         // And Manifest's own commit lands on GitHub NOW, not on the frozen main — as written
         // first it was SOURCE_CONFLICT for ever, however often the caller retried.
-        const mine = await g.driver.commitFiles(repo, { 'x.txt': 'x\n' }, 'after')
+        const mine = await writeFiles(g.driver, repo, { 'x.txt': 'x\n' }, 'after')
         expect(await g.driver.headCommit(repo)).toBe(mine)
         expect(await lsRemoteMain(g.fake, 'chem-labs')).toBe(mine)
       } finally {
@@ -281,7 +285,7 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
     const h = await harness()
     try {
       const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
-      await h.driver.commitFiles(repo, { 'x.txt': 'x\n' }, 'one more')
+      await writeFiles(h.driver, repo, { 'x.txt': 'x\n' }, 'one more')
       await h.driver.destroyRepository(repo)
       const wide = h.mints.filter((m) => m.repositories === undefined)
       expect(wide).toEqual([

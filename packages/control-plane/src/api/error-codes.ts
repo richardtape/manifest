@@ -357,7 +357,7 @@ export const ERROR_CODES = {
     'The repository has no such commit — or what was named is not a full commit id — so there is nothing to build from it.',
   ),
   SOURCE_CONFLICT: source(
-    'GitHub’s branch moved between the read and the push; read it again and retry (the D5 plan’s driver 2).',
+    'The branch moved after the commit this request was computed from; read it again and retry.',
   ),
   SOURCE_GIT_FAILED: source('git failed; the message names the operation.'),
   SOURCE_GITHUB_KEY_UNREADABLE: source(
@@ -367,7 +367,18 @@ export const ERROR_CODES = {
     'GitHub refused the request; the message carries GitHub’s own message and nothing else of its answer.',
   ),
   SOURCE_INVALID_SLUG: source('The slug cannot name a repository.'),
-  SOURCE_PATH_ESCAPE: source('The slug resolves outside the repository root.'),
+  SOURCE_NOTHING_TO_COMMIT: source(
+    'Every change leaves its file as it is in the base commit, so there is nothing to commit.',
+  ),
+  SOURCE_PATH_CONFLICT: source(
+    'A change does not fit the base commit’s tree: a file where a directory is, a path under a file, a symlink or a submodule, something other than a regular file to overwrite or a file to delete, or one path named twice; the message names the path.',
+  ),
+  SOURCE_PATH_ESCAPE: source(
+    'A slug that would leave the repository root, or a path that is not inside the repository — absolute, or with an empty, `.` or `..` component — or into a repository’s own `.git`.',
+  ),
+  SOURCE_PATH_NOT_FOUND: source(
+    'A deletion names a path the base commit does not have, so there is nothing to delete.',
+  ),
   SOURCE_PROVIDER_MISMATCH: source(
     'The project’s repository was made by a different source driver from the one this control plane runs; the message names both (the D5 plan’s Decision 3).',
   ),

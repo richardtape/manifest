@@ -1,8 +1,13 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { StartedFake } from '@manifest/github-fake/testing'
-import type { MirrorAdvance, SourceObserver } from './git-driver.js'
+import type {
+  MirrorAdvance,
+  RepoRef,
+  SourceDriver,
+  SourceObserver,
+} from './git-driver.js'
 import { gitWithToken } from './github/git.js'
 
 /**
@@ -48,6 +53,61 @@ export async function pushAsPerson(
   } finally {
     await rm(work, { recursive: true, force: true })
   }
+}
+
+/**
+ * A person pushing a SYMLINK straight to GitHub — `path` pointing at `target`, which may be
+ * outside the repository or its own `.git` (the authoring API plan's *Read this first* 1).
+ * Returns the commit.
+ */
+export async function pushSymlinkAsPerson(
+  fake: Github,
+  slug: string,
+  path: string,
+  target: string,
+  message: string,
+): Promise<string> {
+  const work = await mkdtemp(join(tmpdir(), 'person-'))
+  const as = asPerson(fake, work)
+  try {
+    await gitWithToken(['clone', '-q', `${fake.gitUrl}/${fake.org}/${slug}.git`, '.'], as)
+    await mkdir(dirname(join(work, path)), { recursive: true })
+    await symlink(target, join(work, path))
+    await gitWithToken(['add', '-A'], as)
+    await gitWithToken([...PERSON, 'commit', '-qm', message], as)
+    await gitWithToken(['push', '-q', 'origin', 'HEAD:main'], as)
+    return (await gitWithToken(['rev-parse', 'HEAD'], as)).trim()
+  } finally {
+    await rm(work, { recursive: true, force: true })
+  }
+}
+
+/** Who a test's own commits are by — a person in the platform's zone, never a real mailbox. */
+export const TEST_AUTHOR = { name: 'A Test', email: 'test@users.manifest.internal' }
+
+/**
+ * WHAT `commitFiles` WAS, over the one write path (the authoring API plan's Task 3): reads
+ * `main`, writes `files` onto it, and answers the new commit. For the tests that need a
+ * commit and are not about how one is made.
+ */
+export async function writeFiles(
+  driver: SourceDriver,
+  repo: RepoRef,
+  files: Record<string, string>,
+  message: string,
+): Promise<string> {
+  const base = await driver.headCommit(repo)
+  const made = await driver.commit(repo, {
+    base,
+    changes: Object.entries(files).map(([path, content]) => ({
+      op: 'write' as const,
+      path,
+      content,
+    })),
+    message,
+    author: TEST_AUTHOR,
+  })
+  return made.commitSha!
 }
 
 /**

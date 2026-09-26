@@ -54,6 +54,7 @@ import {
   createRateLimiter,
   TOKEN_RATE_WINDOW_MS,
 } from './rate-limit.js'
+import { writeFiles } from '../source/testing.js'
 
 /**
  * THROWS RATHER THAN MINTING, for the reason `sso` does below. Every app the API suite
@@ -188,7 +189,8 @@ export async function commitManifest(
   valid: boolean
   sensitiveDiff: { sensitive: boolean; fields: string[] }
 }> {
-  await ctx.deps.source.commitFiles(
+  await writeFiles(
+    ctx.deps.source,
     ctx.deps.source.repositoryFor(ctx.project.slug),
     { 'manifest.yaml': [...yamlLines, ''].join('\n') },
     message,
@@ -291,7 +293,8 @@ export async function builtProject(
   // name and fails confusingly for any other.
   const { app, deps, cookies, project } = await projectFor('bio_prof', slug)
   if (options.env !== undefined) {
-    await deps.source.commitFiles(
+    await writeFiles(
+      deps.source,
       deps.source.repositoryFor(slug),
       {
         'manifest.yaml': [

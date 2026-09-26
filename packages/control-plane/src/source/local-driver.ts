@@ -1,8 +1,7 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { dirname, join, resolve, sep } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { promisify } from 'node:util'
 import {
   type CreatedRepository,
@@ -12,8 +11,9 @@ import {
   SourceError,
   type SourceDriver,
 } from './git-driver.js'
+import { type BuiltCommit, buildCommit, MANIFEST_COMMITTER, runGit } from './plumbing.js'
 import { installPreReceiveHook } from './pre-receive.js'
-import { assertNoSecrets, assertWritablePaths } from './scan-commits.js'
+import { assertNoSecrets, assertWritablePaths, writesOf } from './scan-commits.js'
 
 const run = promisify(execFile)
 
@@ -23,16 +23,6 @@ const run = promisify(execFile)
  * traversal defence must not depend on somebody else having checked something else.
  */
 const SLUG = /^[a-z][a-z0-9-]{2,38}$/
-
-/** Deterministic authorship so a seeded repo is reproducible across machines. */
-const GIT_IDENTITY = [
-  '-c',
-  'user.name=Manifest',
-  '-c',
-  'user.email=manifest@manifest.internal',
-  '-c',
-  'commit.gpgsign=false',
-]
 
 export { SourceError } from './git-driver.js'
 export type { RepoRef, SourceDriver } from './git-driver.js'
@@ -120,39 +110,54 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     await git(path, ['config', 'receive.denyDeletes', 'true'])
   }
 
-  /** Writes files in a throwaway worktree and pushes them into the bare repo. */
-  async function commitThroughWorktree(
-    bare: string,
-    files: SeedFiles,
-    message: string,
-    firstCommit: boolean,
-  ): Promise<string> {
-    const work = await mkdtemp(join(tmpdir(), 'manifest-worktree-'))
-    try {
-      if (firstCommit) {
-        await git(work, ['init', '--initial-branch=main', '.'])
-        await git(work, ['remote', 'add', 'origin', bare])
-      } else {
-        await git(work, ['clone', '--branch', 'main', bare, '.'])
-      }
-      for (const [relative, content] of Object.entries(files)) {
-        const target = resolve(work, relative)
-        if (!target.startsWith(resolve(work) + sep)) {
-          throw new SourceError(
-            'SOURCE_PATH_ESCAPE',
-            `seed path '${relative}' escapes the worktree`,
-          )
-        }
-        await mkdir(dirname(target), { recursive: true })
-        await writeFile(target, content, 'utf8')
-      }
-      await git(work, ['add', '-A'])
-      await git(work, [...GIT_IDENTITY, 'commit', '-m', message])
-      await git(work, ['push', 'origin', 'main'])
-      return (await git(work, ['rev-parse', 'HEAD'])).trim()
-    } finally {
-      await rm(work, { recursive: true, force: true })
+  /**
+   * Pushes a built commit into the bare repository, NON-FORCED, so its `pre-receive` runs (the
+   * D5 plan's Task 11) and a moved `main` is refused by git itself (the authoring API plan's
+   * Decision 3). `--porcelain` puts the verdict on STDOUT — measured: a refusal is exit 1 with
+   * `!\t<sha>:refs/heads/main\t[rejected] (non-fast-forward)` on stdout, and only `failed to
+   * push` and hints on stderr — so it is stdout that is read. **A push git refused never reads
+   * as success**: `runGit` answers the exit code, and this returns only on `0`.
+   */
+  async function pushInto(bare: string, built: BuiltCommit): Promise<void> {
+    const r = await runGit(built.gitDir, [
+      'push',
+      '--porcelain',
+      bare,
+      `${built.commit}:refs/heads/main`,
+    ])
+    if (r.code === 0) return
+    // A MOVED BRANCH IS A CONFLICT, however git words it: `[rejected]` when the client saw it
+    // move, and — when two pushes race inside receive-pack — the loser's `[remote rejected]
+    // (failed to update ref)`, `cannot lock ref 'refs/heads/main': is at X but expected <base>`
+    // (sitting 2, measured 3 of 3). So the branch itself is read rather than the words.
+    const now = await runGit(bare, [
+      'rev-parse',
+      '--verify',
+      '--quiet',
+      'refs/heads/main',
+    ])
+    if (
+      /\[rejected\] \((non-fast-forward|fetch first)\)/.test(r.stdout) ||
+      now.stdout.trim() !== (built.parent ?? '')
+    ) {
+      throw new SourceError(
+        'SOURCE_CONFLICT',
+        'main moved while this commit was being made; read the tree again and retry',
+      )
     }
+    // `[remote rejected] (pre-receive hook declined)`: the hook is the backstop behind the
+    // pre-push scan, and reaching it means the two disagree — an operator's problem, said once.
+    console.error(
+      `[source] the repository refused Manifest's own push: ${`${r.stdout}\n${r.stderr}`
+        .trim()
+        .split('\n')
+        .slice(-4)
+        .join(' | ')}`,
+    )
+    throw new SourceError(
+      'SOURCE_GIT_FAILED',
+      'the repository refused the push; nothing was committed',
+    )
   }
 
   return {
@@ -169,15 +174,32 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     ): Promise<CreatedRepository> {
       const path = pathFor(projectSlug)
       // Before ANYTHING is written (Task 11): a refused seed leaves no repository behind.
-      assertWritablePaths(seed)
-      assertNoSecrets(seed)
+      assertWritablePaths(Object.keys(seed))
+      assertNoSecrets(Object.entries(seed).map(([p, content]) => ({ path: p, content })))
       await mkdir(repoRoot, { recursive: true })
       await git(repoRoot, ['init', '--bare', '--initial-branch=main', path])
       // The hook and git's protection BEFORE the first push, so every commit this repository
       // ever takes — the seed's too — has been through both (§20; Task 12, Decision 13).
       await installPreReceiveHook(path)
       await protectHistory(path)
-      await commitThroughWorktree(path, seed, 'chore: seed from blueprint skeleton', true)
+      // The seed through THE write path (Task 3): no base, and pushed like any other commit, so
+      // the hook sees it too.
+      const built = await buildCommit({
+        objects: path,
+        base: null,
+        changes: Object.entries(seed).map(([p, content]) => ({
+          op: 'write' as const,
+          path: p,
+          content,
+        })),
+        message: 'chore: seed from blueprint skeleton',
+        author: MANIFEST_COMMITTER,
+      })
+      try {
+        await pushInto(path, built)
+      } finally {
+        await built.dispose()
+      }
       return {
         ref: { projectSlug, provider: 'local' },
         link: {
@@ -191,11 +213,43 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       }
     },
 
-    async commitFiles(repo, files, message) {
+    /**
+     * THE ONE WRITE (the authoring API plan's Task 3): checked, then built with no worktree
+     * (`source/plumbing.ts`), then pushed non-forced into the bare repository.
+     */
+    async commit(repo, request) {
       const path = assertOwned(repo)
-      assertWritablePaths(files)
-      assertNoSecrets(files)
-      return commitThroughWorktree(path, files, message, false)
+      assertWritablePaths(request.changes.map((c) => c.path))
+      assertNoSecrets(writesOf(request.changes))
+      const head = (
+        await git(path, ['rev-parse', '--verify', 'refs/heads/main^{commit}'])
+      ).trim()
+      if (request.base !== head) {
+        throw new SourceError(
+          'SOURCE_CONFLICT',
+          `main is ${head.slice(0, 12)} now, and these changes were computed from ${request.base.slice(0, 12)}; read the tree again and retry`,
+        )
+      }
+      // THE CLIENT'S BASE, never the head read above: were the check above ever lost, a commit
+      // built on the head would replay stale changes over a person's push; built on the base,
+      // git refuses it non-fast-forward at the push — two layers, each able to fail alone.
+      const built = await buildCommit({
+        objects: path,
+        base: request.base,
+        changes: request.changes,
+        message: request.message,
+        author: request.author,
+      })
+      try {
+        if (request.dryRun !== true) await pushInto(path, built)
+        return {
+          commitSha: request.dryRun === true ? null : built.commit,
+          parent: request.base,
+          changes: built.changes,
+        }
+      } finally {
+        await built.dispose()
+      }
     },
 
     async headCommit(repo, ref = 'main') {

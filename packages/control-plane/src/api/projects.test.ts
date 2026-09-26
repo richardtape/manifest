@@ -8,6 +8,7 @@ import { loginAs, mutationHeaders, projectBody, refusal, testDeps } from './test
 import type { TestUserPuid } from '../identity/testing.js'
 import { AI_CODES, AiError, disabledCatalogue, type ModelCatalogue } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
+import { writeFiles } from '../source/testing.js'
 
 // These drive a real server, so they cannot use withRollback. Each test starts
 // from an empty database; without this they collide on the unique project slug.
@@ -639,7 +640,8 @@ describe('POST /v1/projects/:id/spec', () => {
 
     // What an agent does: push a manifest declaring a database.
     const repo = deps.source.repositoryFor('chem-labs')
-    const commitSha = await deps.source.commitFiles(
+    const commitSha = await writeFiles(
+      deps.source,
       repo,
       {
         'manifest.yaml': [
@@ -732,7 +734,8 @@ describe('POST /v1/projects/:id/spec', () => {
     const projectId = created.json().id as string
 
     const repo = deps.source.repositoryFor('chem-labs')
-    await deps.source.commitFiles(
+    await writeFiles(
+      deps.source,
       repo,
       {
         'manifest.yaml': [
@@ -778,7 +781,8 @@ describe('POST /v1/projects/:id/spec', () => {
       headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
-    await deps.source.commitFiles(
+    await writeFiles(
+      deps.source,
       deps.source.repositoryFor('chem-labs'),
       {
         'manifest.yaml': [
@@ -821,7 +825,8 @@ describe('POST /v1/projects/:id/spec', () => {
     })
     const projectId = created.json().id as string
     const repo = deps.source.repositoryFor('chem-labs')
-    await deps.source.commitFiles(
+    await writeFiles(
+      deps.source,
       repo,
       { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' },
       'break it',
@@ -948,7 +953,8 @@ describe('the model catalogue a spec is validated against', () => {
       headers: mutationHeaders(deps),
     })
     expect(created.statusCode).toBe(201)
-    await deps.source.commitFiles(
+    await writeFiles(
+      deps.source,
       deps.source.repositoryFor(slug),
       { 'manifest.yaml': manifest },
       'feat: ask a model',
