@@ -1410,7 +1410,7 @@ with its `[S2]` block and its `[M10]` block**, and **Task 5 in full**. The ledge
   never bump again.
 - **Task 4 consumes what Task 3 built** — `listBase` and `runGit` from `source/plumbing.ts`, `writeFiles` and
   `pushSymlinkAsPerson` for its tests. **`runGit(gitDir, args, { input?, env? })` answers the exit code and never throws.**
-- **`pnpm test:docker` IS OWED** (`source/`, `projects/`) — 896 s at its last run; background it, then the three cleanup
+- **`pnpm test:docker` IS OWED** (`source/`, `projects/`) — 878 s at its last run; background it, then the three cleanup
   scripts and `make verify`.
 
 **WHERE THE SITTING STOPS, AND HOW IT ENDS.** After Task 5's commit and its controls. Then the plan's *every sitting ends the
