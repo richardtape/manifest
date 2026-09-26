@@ -661,7 +661,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-25 at the close of the authoring API plan's sitting 2 (Tasks 2 and 3 — F7 measured, the write primitive rebuilt), and one moved: `pnpm test` **2034 passed** in 146 files, twice, ~6½ minutes a run; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, clean at the open and after the Docker tier, and `pnpm test:docker` **208 in 34**, green first time (896 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-25 at the close of the authoring API plan's sitting 2 (Tasks 2 and 3 — F7 measured, the write primitive rebuilt), and one moved: `pnpm test` **2037 passed** in 146 files, twice (after F7's option (b), applied the same evening), ~6½ minutes a run; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, clean at the open and after the Docker tier, and `pnpm test:docker` **208 in 34**, green first time (896 s, and 878 s after (b)).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has THIRTEEN steps, 1 to 13, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,
@@ -911,8 +911,10 @@ security note per field without the model's words, and the approval goes ahead. 
 STRUCTURED OUTPUT**: the model is handed the diff's facts and fills a schema with one sentence per change and no place
 for a verdict, so an online run reads `summarySource llm` and prints the sentences joined — or `withheld` with the rule
 the answer broke, which the journey accepts WITH its reason. P6b sitting 7's invented *"administrator's verdict"* (F9)
-cannot be expressed in that shape. Read the sentences anyway: one in eight has been measured getting a removed CWL
-attribute backwards (ORIENTATION §8, *Decided*: its fix comes after the D5 plan), which is why the console shows them under the deterministic change line.
+cannot be expressed in that shape. **Since 2026-09-25 (F7, option (b)) a change to the CWL attributes gets NO model
+sentence** — the model got removed attributes backwards and misnamed `sn` — so leg A prints one sentence (egress), and
+leg C, whose only change is `sn`, reads **`summarySource not-modelled`**: no model was asked, by design (ORIENTATION §8,
+*Decided*). The console shows every sentence under the deterministic change line, which is the record.
 
 **A red phase stops the script** (`set -e`). **It leaves `launch-app` launched, on its leg C release in
 staging and production, the registration `active` five-wide, two more approvals** (three on a fresh

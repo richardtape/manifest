@@ -76,8 +76,9 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # drivers) and a push a read synced first still validated (1).
 # Then the authoring API plan's sitting 2 (2026-09-25): +29 and one file — F7's added/removed
 # (2) and its lock (1); `source/plumbing.test.ts` (12: the planner, the builder, pushVerdict);
-# and the write primitive's seven contract cases × 2 drivers (14).
-EXPECT_TESTS=2034
+# and the write primitive's seven contract cases × 2 drivers (14). Then, the same evening, +3 for
+# F7's option (b): no model sentence for a CWL attribute change (3).
+EXPECT_TESTS=2037
 EXPECT_FILES=146
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57

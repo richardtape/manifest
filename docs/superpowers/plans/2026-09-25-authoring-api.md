@@ -51,7 +51,7 @@
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Status |
 |---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on.** Measured while it was written, and to be re-measured: the symlink escape and `fsmonitor` through a worktree, the plumbing commit, `--index-info`'s silent replacements, the documentation baseline, a JSON Schema for `manifest.yaml`. **To be measured for the first time:** the HTML renderer's candidates offline (**network at Rich's yes**), the two store packages offline, a tree listing's cost at 10,000 files, the build context on a very large tree, `exec` against a real container (the brief's §7), and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-25** — every premise holds and no boundary moves; the renderer is Scalar 1.72.0; `zod-to-json-schema`, no v4 port; `[M<n>]` blocks on Tasks 2, 3, 4, 9, 11 |
-| 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | **DONE 2026-09-25** — F7's option (a) measured over 320 answers and NOT adopted (back to Rich); `added`/`removed` published, contract `1.3.0`; every commit on both drivers built with plumbing and no worktree, the attacks contract cases; Docker tier green |
+| 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | **DONE 2026-09-25** — F7's option (a) measured over 320 answers and NOT adopted — then, at Rich's answer, option (b): no model sentence for a CWL attribute change; `added`/`removed` published, contract `1.3.0`; every commit on both drivers built with plumbing and no worktree, the attacks contract cases; Docker tier green |
 | 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract to `1.3.0` | **Yes** — `source/`, `projects/` | ← **next** |
 | 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | |
 | 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | |
@@ -77,6 +77,7 @@
 **Each of these was answered by Rich from options with their costs stated. Do not re-ask any of them** (ORIENTATION §8, *Decided*).
 
 - **The authoring API is its own Phase 2 plan, after D5's GitHub driver** (2026-09-22), with **text files only in v1**, **the front-end project specced against this slice** rather than waiting for sandboxes, and **S5 not scheduled until after it**. *Cost, accepted:* a front-end team waited one plan longer.
+- **F7, AFTER TASK 2 MEASURED OPTION (a) AND IT READ WORSE: OPTION (b)** (2026-09-25, after sitting 2's close) — a CWL attribute change gets NO model sentence; its change line is the record. *Rejected:* (c) no sentences at all; (d) keep them shown and labelled. Applied the same evening (the record, *Sitting 2*, *After the close*).
 - **F7 is this plan's first task after the measurements** (2026-09-25) — Task 2. The approval summary's sentence reversed a removed CWL attribute 5 times in 40 (the D5 plan's sitting 7). The fix to try is handing the model each attribute change's added and removed halves as their own facts, measured over 40 answers before it is adopted. *Rejected (2026-09-25, the D5 plan):* no sentence for attribute changes; no sentences at all. *Offered and not chosen:* a separate small follow-up.
 - **The acceptance is a bulletin board** (2026-09-25): an agent builds it from the bare skeleton through the new API, and a student posts and an instructor replies in it.
 - **The plan considers the full end-to-end path, the API covers everything that can be foreseen on it, and the documentation is solid enough that humans and agents can use the API from it** (2026-09-25). Task 11's journey table is that path as a gate; *What this plan does not build* names every foreseeable step it leaves to another plan, and which.
@@ -2510,3 +2511,38 @@ F10 with F11); `spikes/authoring-baseline/` (*Task 2*, eight result files, the F
 and `results-task3-controls-2026-09-25.txt`). **CLAUDE.md's *State* unchanged** — no plan started or finished and no
 *Outstanding* item moved. **The four shared HTML pages were checked and left alone**: none states the authoring API's
 status or anything about the approval summary's sentences, and nothing this sitting built is visible to an outsider.
+
+#### After the close — F7, option (b), at Rich's answer (2026-09-25, the same evening)
+
+**Rich chose (b), taking the recommendation: no model sentence for a CWL attribute change** (ORIENTATION §8, *Decided*).
+Applied as its own commit (`05a5422`): `releases/summary.ts`'s **`NOT_MODELLED`** (`auth.attributes`) leaves such a change,
+and its security note, out of what the model is asked — the request's enum, its facts and its notes never name it, and an
+answer that describes it anyway breaks the schema and is withheld. **A diff whose only change is to the attributes asks no
+model at all** and records **`summarySource: 'not-modelled'`** — never `unavailable`, which would send an administrator
+looking for an outage — with AI on or off. Published in `ApprovalDiff` (an enum value and two descriptions, inside
+`1.3.0`); the console says it in its own sentence and its change-list hint says an attribute change has no model sentence;
+`make demo-releases`' summary check re-derives the rule — exposures cover every change but the attributes, or
+`not-modelled` when the attributes are all there is. The summary tests now carry a third, modelled change (`ai.models`) so
+that ordering and withholding are still tested over two modelled changes.
+
+**Controls, predicted in writing first:** (f) the filter removed (`modelled = changes`) — the three (b) cases and the
+positive control red, as predicted (nine in all: every case whose answer now lacks a path the schema demands); (g) only
+the note filter removed — exactly two red, the facts-only case on its notes and the (b) case, as predicted, though at its
+`not.toContain('auth.attributes')` (the note carries the path) one assertion before the one predicted.
+
+**Gates:** `pnpm test` **2037 in 146**, twice, identical (377 s, 381 s) — +3; `pnpm lint`, `pnpm typecheck` and
+`pnpm format:check` clean; **`pnpm test:docker` 208 in 34, green first time (878 s)** — owed by `releases/`.
+
+**Driven through the edge: `make demo-releases`, fresh, every check passed (140 s)** — a control plane on driver 1
+(`"source":"local"`), started per RUNBOOK and stopped after. It shows (b) exactly: **leg A's** preview (an egress host
+added, `sn` removed) is `llm` with ONE model sentence, the egress change's — *"The app can now send data to a specific host
+that was previously unreachable due to a default-deny policy."* — and **leg C's** (its only change is `sn` back) is
+**`not-modelled`**, no model asked; both approvals deep-equal their previews.
+
+**The machine after it** (queried): the control database holds `launch-app` alone (1 project, 4 releases, 29
+migrations), launched and on its leg C release, six containers and 1 runtime route; nothing on 7100 or 7104; no model
+resident; the cleanup scripts `--apply`-ed and re-measured clean (the tier's 7 networks and 1 volume, three LiteLLM
+orphans — `p4b-probe-user` and the previous `launch-app`'s two — and 17 app images); `make verify` 57/0/0.
+**Swept:** ORIENTATION's two boxes, §2's demo rows, §7e and §8 (*Decided*); RUNBOOK (the gate parenthetical, and
+`make demo-releases`' summary paragraph); WALKTHROUGH (the model's sentences); `scripts/ci-acceptance.sh`
+(`2037 / 146 / 20 / 57`); the roadmap's ledger; this plan's *Decided by Rich* and sittings table. No new finding.

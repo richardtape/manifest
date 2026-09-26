@@ -226,9 +226,11 @@ sign in once more and sign out again.
 
 **Read the model's sentences as a reviewer would.** Since the D5 plan's sitting 7 the model fills a schema with one
 sentence per change and has nowhere to write a verdict — P6b's *"The administrator's verdict was: …"* (F9) cannot be
-expressed — and an answer that decides anything is withheld, saying so. What remains is accuracy: about one sentence in
-eight has been measured getting a removed CWL attribute backwards, so the change line above each sentence is the
-record. And a code-only release in staging (row 2's) offers **no** approval link on the checklist at all.
+expressed — and an answer that decides anything is withheld, saying so. **A change to the CWL attributes has no model
+sentence at all** (since 2026-09-25): the model was measured getting a removed attribute backwards and calling `sn` a
+student number, so that change's line is the whole record — and a release whose only change is to the attributes shows
+*"The only change is to the CWL attributes, which no model describes"* rather than a summary. Elsewhere the change line
+above each sentence is still the record. And a code-only release in staging (row 2's) offers **no** approval link on the checklist at all.
 
 **Driving the console with no platform at all.** `manifest-mock` serves the same contract from
 fixtures in one process — no Docker, no Postgres, no control plane, and it signs its own cookie so
