@@ -78,6 +78,62 @@ export interface CommitResult {
 }
 
 /**
+ * THE READ PRIMITIVES' ANSWERS (the authoring API plan's Task 4; `source/reading.ts`). Every
+ * read names a COMMIT, and a symlink or a submodule is REPORTED, never followed.
+ */
+export type EntryType = 'file' | 'directory' | 'symlink' | 'submodule'
+
+export interface SourceEntry {
+  path: string
+  type: EntryType
+  /** git's mode: `100644`, `100755`, `120000`, `040000` or `160000`. */
+  mode: string
+  /** Bytes, for a file or a symlink (its target's length); null otherwise. */
+  size: number | null
+  /** Whether git calls a FILE binary; null for anything that is not a file. */
+  binary: boolean | null
+}
+
+/** One regular text file, exactly: its UTF-8 bytes decoded with nothing replaced or stripped. */
+export interface TextFile {
+  path: string
+  content: string
+  size: number
+  mode: string
+  blobSha: string
+}
+
+export interface CommitInfo {
+  commitSha: string
+  /** First parent first; empty for a root commit. */
+  parents: string[]
+  subject: string
+  message: string
+  messageTruncated: boolean
+  /** What git recorded — never its address, which can be a person's own. */
+  authorName: string
+  /** ISO 8601, in UTC. */
+  authoredAt: string
+}
+
+export type FileChangeStatus = 'added' | 'modified' | 'deleted' | 'type_changed'
+
+export interface FileChange {
+  path: string
+  status: FileChangeStatus
+  binary: boolean
+  additions: number | null
+  deletions: number | null
+  /** A unified diff; null for a binary file, or once the patch budget is spent. */
+  patch: string | null
+}
+
+export interface CommitDetail extends CommitInfo {
+  changes: FileChange[]
+  patchesTruncated: boolean
+}
+
+/**
  * WHAT ONE SYNC MOVED (the D5 plan's Task 9, Decision 11) — commit ids only: no author and no
  * message text, which are an app author's free text (§14's redaction applies to an event).
  * `ref` is GitHub's name for the branch, `refs/heads/<b>`.
@@ -185,7 +241,34 @@ export interface SourceDriver {
    * worktree, and pushed non-forced. A dry run makes every check and pushes nothing.
    */
   commit(repo: RepoRef, request: CommitRequest): Promise<CommitResult>
+  /**
+   * A BRANCH NAME OR A FULL COMMIT ID, as the commit it names NOW (the authoring API plan's
+   * Task 4) — on driver 2, GitHub's branch as of a sync made first. `SOURCE_REF_NOT_FOUND` for
+   * a branch that does not exist, or a name that could not be one (it is checked before git
+   * sees it: a name beginning `-` in argv is an option); `SOURCE_COMMIT_NOT_FOUND` for an id
+   * the repository lacks.
+   */
+  resolveRef(repo: RepoRef, ref: string): Promise<string>
+  /** `resolveRef(repo, ref)` — the one name its callers had before Task 4. */
   headCommit(repo: RepoRef, ref?: string): Promise<string>
+  /** Every entry of a commit's tree, sorted by path; the first 10,000 and `truncated` past it. */
+  listTree(
+    repo: RepoRef,
+    commitSha: string,
+  ): Promise<{ entries: SourceEntry[]; truncated: boolean }>
+  /**
+   * One regular text file at a commit — or `SOURCE_PATH_NOT_FOUND`, `SOURCE_PATH_NOT_A_FILE`,
+   * `SOURCE_FILE_TOO_LARGE` or `SOURCE_FILE_NOT_TEXT`.
+   */
+  readText(repo: RepoRef, commitSha: string, path: string): Promise<TextFile>
+  /** `limit` commits from `from`, newest first, and the id the next page starts AT. */
+  history(
+    repo: RepoRef,
+    from: string,
+    limit: number,
+  ): Promise<{ commits: CommitInfo[]; next: string | null }>
+  /** One commit and what it changed against its first parent, with a patch budget. */
+  describeCommit(repo: RepoRef, commitSha: string): Promise<CommitDetail>
   /** The file's content at that commit, or null if the path is not in the tree. */
   readFile(repo: RepoRef, commitSha: string, path: string): Promise<string | null>
   listBranches(repo: RepoRef): Promise<string[]>

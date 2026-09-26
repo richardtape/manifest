@@ -111,13 +111,13 @@ export function planChanges(
  * `GIT_CONFIG_PARAMETERS` or `GIT_OBJECT_DIRECTORY` would point this at another repository or
  * configure it (the D5 plan's review, minor 5, for the same reason). ANSWERS the exit code rather
  * than throwing, so a caller can never read a refusal as success by forgetting a `catch`; `must`
- * is the throwing form.
+ * is the throwing form. `stdout` is decoded as UTF-8; `bytes` is the same output, undecoded.
  */
 export function runGit(
   gitDir: string,
   args: readonly string[],
   o: { input?: string | Buffer; env?: Record<string, string> } = {},
-): Promise<{ stdout: string; code: number; stderr: string }> {
+): Promise<{ stdout: string; bytes: Buffer; code: number; stderr: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn('git', ['--git-dir', gitDir, ...args], {
       env: {
@@ -135,13 +135,12 @@ export function runGit(
     child.stdout.on('data', (b: Buffer) => out.push(b))
     child.stderr.on('data', (b: Buffer) => (err += b.toString()))
     child.on('error', reject)
-    child.on('close', (code) =>
-      resolve({
-        stdout: Buffer.concat(out).toString('utf8'),
-        code: code ?? 1,
-        stderr: err,
-      }),
-    )
+    child.on('close', (code) => {
+      // `bytes` is stdout AS GIT WROTE IT — a blob read as a string would already have had
+      // every invalid UTF-8 sequence replaced (the authoring API plan's Task 4).
+      const bytes = Buffer.concat(out)
+      resolve({ stdout: bytes.toString('utf8'), bytes, code: code ?? 1, stderr: err })
+    })
     child.stdin.end(o.input ?? '')
   })
 }

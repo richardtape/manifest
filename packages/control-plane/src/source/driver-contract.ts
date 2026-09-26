@@ -487,6 +487,140 @@ export function describeSourceDriver(
       expect(await h.driver.headCommit(repo)).toBe(landed[0]!.commitSha)
     })
 
+    /**
+     * THE READ PRIMITIVES (the authoring API plan's Task 4) — what an agent reads before it
+     * writes. A tree is listed AT a commit, a symlink a person pushed is reported as one and
+     * never followed, and a binary file is marked so a client can say so rather than show it.
+     */
+    it('lists a commit’s tree — files, directories, a symlink a person pushed — and marks a binary file (Task 4)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      await h.pushAsPerson(
+        'chem-labs',
+        { 'img/logo.bin': 'PNG\u0000\u0001' },
+        'a binary file',
+      )
+      const head = await h.pushSymlinkAsPerson(
+        'chem-labs',
+        'link',
+        'src/index.js',
+        'a symlink',
+      )
+      const { entries, truncated } = await h.driver.listTree(repo, head)
+      expect(truncated).toBe(false)
+      const by = new Map(entries.map((e) => [e.path, e]))
+      expect(by.get('src')).toMatchObject({ type: 'directory', size: null, binary: null })
+      expect(by.get('src/index.js')).toMatchObject({
+        type: 'file',
+        mode: '100644',
+        size: "console.log('hello')\n".length,
+        binary: false,
+      })
+      expect(by.get('img/logo.bin')).toMatchObject({ type: 'file', binary: true })
+      expect(by.get('link')).toMatchObject({
+        type: 'symlink',
+        mode: '120000',
+        size: 'src/index.js'.length,
+        binary: null,
+      })
+      expect(entries.map((e) => e.path)).toEqual([...entries.map((e) => e.path)].sort())
+    })
+
+    it('reads a text file, and refuses what is not one, each by its own code (Task 4)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      await h.pushAsPerson(
+        'chem-labs',
+        { 'img/logo.bin': 'PNG\u0000\u0001', 'latin1.txt': 'é' },
+        'x',
+      )
+      const head = await h.pushSymlinkAsPerson(
+        'chem-labs',
+        'link',
+        'src/index.js',
+        'a symlink',
+      )
+      expect(await h.driver.resolveRef(repo, 'main')).toBe(head)
+      const file = await h.driver.readText(repo, head, 'src/index.js')
+      expect(file).toMatchObject({
+        path: 'src/index.js',
+        content: "console.log('hello')\n",
+        size: 21,
+        mode: '100644',
+        blobSha: expect.stringMatching(/^[0-9a-f]{40}$/),
+      })
+      // `pushAsPerson` writes a string as UTF-8, so `é` IS text: the positive control beside
+      // the refusals (the invalid-UTF-8 refusal is `reading.test.ts`'s, which writes raw bytes).
+      expect((await h.driver.readText(repo, head, 'latin1.txt')).content).toBe('é')
+      expect(await code(h.driver.readText(repo, head, 'nope.txt'))).toBe(
+        'SOURCE_PATH_NOT_FOUND',
+      )
+      expect(await code(h.driver.readText(repo, head, 'src'))).toBe(
+        'SOURCE_PATH_NOT_A_FILE',
+      )
+      // A symlink is reported, never followed — its target's text is not what is at `link`.
+      expect(await code(h.driver.readText(repo, head, 'link'))).toBe(
+        'SOURCE_PATH_NOT_A_FILE',
+      )
+      expect(await code(h.driver.readText(repo, head, 'img/logo.bin'))).toBe(
+        'SOURCE_FILE_NOT_TEXT',
+      )
+    })
+
+    it('pages the history newest first, and describes one commit’s changes with a patch (Task 4)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const seed = await h.driver.headCommit(repo)
+      const a = await writeFiles(h.driver, repo, { 'a.txt': 'a\n' }, 'add a')
+      const b = await writeFiles(h.driver, repo, { 'a.txt': 'a\nb\n' }, 'change a')
+      const first = await h.driver.history(repo, b, 1)
+      expect(first.commits.map((c) => c.commitSha)).toEqual([b])
+      expect(first.next).toBe(a)
+      expect(first.commits[0]).toMatchObject({
+        subject: 'change a',
+        message: 'change a',
+        messageTruncated: false,
+        parents: [a],
+        authorName: 'A Test',
+        authoredAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$/),
+      })
+      // Never the author's address: git's can be a person's own.
+      expect(JSON.stringify(first)).not.toContain('@')
+      const rest = await h.driver.history(repo, first.next!, 30)
+      expect(rest.commits.map((c) => c.commitSha)).toEqual([a, seed])
+      expect(rest.next).toBeNull()
+      expect(rest.commits[1]!.parents).toEqual([])
+      const detail = await h.driver.describeCommit(repo, b)
+      expect(detail).toMatchObject({
+        commitSha: b,
+        subject: 'change a',
+        patchesTruncated: false,
+      })
+      expect(detail.changes).toEqual([
+        expect.objectContaining({
+          path: 'a.txt',
+          status: 'modified',
+          binary: false,
+          additions: 1,
+          deletions: 0,
+        }),
+      ])
+      expect(detail.changes[0]!.patch).toContain('+b')
+    })
+
+    it('resolves a branch to GitHub’s NOW on driver 2 and to the ref on driver 1, and refuses one that does not exist (Task 4)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const pushed = await h.pushAsPerson('chem-labs', { 'b.txt': 'b\n' }, 'a person')
+      expect(await h.driver.resolveRef(repo, 'main')).toBe(pushed)
+      expect(await h.driver.resolveRef(repo, pushed)).toBe(pushed)
+      expect(await code(h.driver.resolveRef(repo, 'no-such-branch'))).toBe(
+        'SOURCE_REF_NOT_FOUND',
+      )
+      // A name that begins `-` never reaches git's argv as an option.
+      expect(await code(h.driver.resolveRef(repo, '-x'))).toBe('SOURCE_REF_NOT_FOUND')
+      expect(await code(h.driver.resolveRef(repo, 'main^'))).toBe('SOURCE_REF_NOT_FOUND')
+      expect(await code(h.driver.resolveRef(repo, 'f'.repeat(40)))).toBe(
+        'SOURCE_COMMIT_NOT_FOUND',
+      )
+    })
+
     it('refuses a reference another provider made', async () => {
       const other = h.driver.name === 'local' ? 'github' : 'local'
       expect(
@@ -512,8 +646,11 @@ export function describeSourceDriver(
       const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       await h.driver.destroyRepository(repo)
       // A SourceError, not merely a throw: a driver that crashed on the missing repository
-      // would satisfy `toBeDefined()` with 'not a SourceError: …'.
-      expect(await code(h.driver.headCommit(repo))).toMatch(/^SOURCE_[A-Z_]+$/)
+      // would satisfy `toBeDefined()` with 'not a SourceError: …'. And NOT a missing branch
+      // (the authoring API plan's sitting 3): a repository that is not there has no branches
+      // to be missing, and `SOURCE_REF_NOT_FOUND` would send a client looking for a typo.
+      expect(await code(h.driver.headCommit(repo))).toBe('SOURCE_GIT_FAILED')
+      expect(await code(h.driver.resolveRef(repo, 'main'))).toBe('SOURCE_GIT_FAILED')
     })
 
     extra?.(() => h)

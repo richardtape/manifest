@@ -354,10 +354,16 @@ export const ERROR_CODES = {
   // reference no longer carries a path, so it cannot name a directory the driver did not
   // make, and the one foreign reference left — another driver's — is PROVIDER_MISMATCH.
   SOURCE_COMMIT_NOT_FOUND: source(
-    'The repository has no such commit — or what was named is not a full commit id — so there is nothing to build from it.',
+    'The repository has no such commit — or what was named is not a full commit id — so there is nothing to build or read from it.',
   ),
   SOURCE_CONFLICT: source(
     'The branch moved after the commit this request was computed from; read it again and retry.',
+  ),
+  SOURCE_FILE_NOT_TEXT: source(
+    'The file is binary or not UTF-8, which the API does not read or write in v1.',
+  ),
+  SOURCE_FILE_TOO_LARGE: source(
+    'The file is larger than 1 MiB, the most the API carries in one file.',
   ),
   SOURCE_GIT_FAILED: source('git failed; the message names the operation.'),
   SOURCE_GITHUB_KEY_UNREADABLE: source(
@@ -376,12 +382,16 @@ export const ERROR_CODES = {
   SOURCE_PATH_ESCAPE: source(
     'A slug that would leave the repository root, or a path that is not inside the repository — absolute, or with an empty, `.` or `..` component — or into a repository’s own `.git`.',
   ),
+  SOURCE_PATH_NOT_A_FILE: source(
+    'The path names a directory, a symlink or a submodule; the API reads and writes regular text files.',
+  ),
   SOURCE_PATH_NOT_FOUND: source(
-    'A deletion names a path the base commit does not have, so there is nothing to delete.',
+    'The commit has no such path — so there is nothing to read, or to delete.',
   ),
   SOURCE_PROVIDER_MISMATCH: source(
     'The project’s repository was made by a different source driver from the one this control plane runs; the message names both (the D5 plan’s Decision 3).',
   ),
+  SOURCE_REF_NOT_FOUND: source('No branch has that name.'),
   SOURCE_REPOSITORY_EXISTS: source(
     'A repository of that name already exists — on GitHub, or as a mirror on this machine — and Manifest never adopts one it did not create (the D5 plan’s Decision 16).',
   ),

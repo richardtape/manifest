@@ -12,6 +12,14 @@ import {
   type SourceDriver,
 } from './git-driver.js'
 import { type BuiltCommit, buildCommit, MANIFEST_COMMITTER, runGit } from './plumbing.js'
+import {
+  COMMIT_ID,
+  describeCommitIn,
+  historyIn,
+  listTreeIn,
+  readTextIn,
+  REF_NAME,
+} from './reading.js'
 import { installPreReceiveHook } from './pre-receive.js'
 import { assertNoSecrets, assertWritablePaths, writesOf } from './scan-commits.js'
 
@@ -160,6 +168,41 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     )
   }
 
+  /**
+   * A branch name or a full commit id, as the commit it names (the authoring API plan's Task 4).
+   * A NAME is only ever read as `refs/heads/<name>` — never a revision expression — and is
+   * checked before git sees it; an id must be a commit this repository has.
+   */
+  async function resolveRef(repo: RepoRef, ref: string): Promise<string> {
+    const path = assertOwned(repo)
+    if (COMMIT_ID.test(ref)) {
+      await assertCommit(path, repo, ref)
+      return ref
+    }
+    const noBranch = () =>
+      new SourceError(
+        'SOURCE_REF_NOT_FOUND',
+        `${repo.projectSlug} has no branch '${ref}'`,
+      )
+    if (!REF_NAME.test(ref)) throw noBranch()
+    // A repository that is not there has no branches to be missing — driver 2 says the same of
+    // a mirror (`mirrorOf`). `SOURCE_REF_NOT_FOUND` here would send a client looking for a typo.
+    if (!existsSync(join(path, 'HEAD'))) {
+      throw new SourceError(
+        'SOURCE_GIT_FAILED',
+        `${repo.projectSlug} has no repository on this machine`,
+      )
+    }
+    const r = await runGit(path, [
+      'rev-parse',
+      '--verify',
+      '--quiet',
+      `refs/heads/${ref}^{commit}`,
+    ])
+    if (r.code !== 0) throw noBranch()
+    return r.stdout.trim()
+  }
+
   return {
     name: 'local',
 
@@ -252,9 +295,35 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       }
     },
 
+    resolveRef,
+
     async headCommit(repo, ref = 'main') {
+      return resolveRef(repo, ref)
+    },
+
+    /** The read primitives (Task 4): the commit checked to be here, then `reading.ts`. */
+    async listTree(repo, commitSha) {
       const path = assertOwned(repo)
-      return (await git(path, ['rev-parse', ref])).trim()
+      await assertCommit(path, repo, commitSha)
+      return listTreeIn(path, commitSha)
+    },
+
+    async readText(repo, commitSha, filePath) {
+      const path = assertOwned(repo)
+      await assertCommit(path, repo, commitSha)
+      return readTextIn(path, commitSha, filePath)
+    },
+
+    async history(repo, from, limit) {
+      const path = assertOwned(repo)
+      await assertCommit(path, repo, from)
+      return historyIn(path, from, limit)
+    },
+
+    async describeCommit(repo, commitSha) {
+      const path = assertOwned(repo)
+      await assertCommit(path, repo, commitSha)
+      return describeCommitIn(path, commitSha)
     },
 
     async readFile(repo, commitSha, filePath) {

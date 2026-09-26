@@ -22,6 +22,14 @@ import {
   pushVerdict,
 } from '../plumbing.js'
 import {
+  COMMIT_ID,
+  describeCommitIn,
+  historyIn,
+  listTreeIn,
+  readTextIn,
+  REF_NAME,
+} from '../reading.js'
+import {
   assertNoSecrets,
   assertWritablePaths,
   scanNewCommits,
@@ -749,24 +757,56 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       }
     },
 
-    async headCommit(repo, ref = 'main') {
+    /**
+     * GitHub's branch NOW (Decision 18): a sync first, then the SHADOW's ref — never the
+     * history keeper's, which a rewrite freezes (the D5 plan's F6). An id is `present` — fetched
+     * if the mirror lacks it — and a name is checked before git sees it (Task 4).
+     */
+    async resolveRef(repo, ref) {
       const mirror = mirrorOf(repo)
-      await sync(repo.projectSlug, mirror)
-      try {
-        return (
-          await local(mirror, [
-            'rev-parse',
-            '--verify',
-            '--quiet',
-            `${UPSTREAM}/${ref}^{commit}`,
-          ])
-        ).trim()
-      } catch {
-        throw new SourceError(
-          'SOURCE_GIT_FAILED',
+      if (COMMIT_ID.test(ref)) {
+        await present(repo, mirror, ref)
+        return ref
+      }
+      const noBranch = () =>
+        new SourceError(
+          'SOURCE_REF_NOT_FOUND',
           `${repo.projectSlug} has no branch '${ref}' on GitHub`,
         )
-      }
+      if (!REF_NAME.test(ref)) throw noBranch()
+      await sync(repo.projectSlug, mirror)
+      const head = await commitOf(mirror, `${UPSTREAM}/${ref}^{commit}`)
+      if (head === '') throw noBranch()
+      return head
+    },
+
+    async headCommit(repo, ref = 'main') {
+      return driver.resolveRef(repo, ref)
+    },
+
+    /** The read primitives (Task 4): the commit `present` in the MIRROR, then `reading.ts`. */
+    async listTree(repo, commitSha) {
+      const mirror = mirrorOf(repo)
+      await present(repo, mirror, commitSha)
+      return listTreeIn(mirror, commitSha)
+    },
+
+    async readText(repo, commitSha, path) {
+      const mirror = mirrorOf(repo)
+      await present(repo, mirror, commitSha)
+      return readTextIn(mirror, commitSha, path)
+    },
+
+    async history(repo, from, limit) {
+      const mirror = mirrorOf(repo)
+      await present(repo, mirror, from)
+      return historyIn(mirror, from, limit)
+    },
+
+    async describeCommit(repo, commitSha) {
+      const mirror = mirrorOf(repo)
+      await present(repo, mirror, commitSha)
+      return describeCommitIn(mirror, commitSha)
     },
 
     async readFile(repo, commitSha, path) {
