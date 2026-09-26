@@ -1,0 +1,16 @@
+=== with (a)+(b) broken
+write under the symlink out: LANDED 1ba0d282eb01 — tree: README.md 100644, manifest.yaml 100644, meta 120000, out/pwned.txt 100644
+write through meta -> .git: LANDED 0559ff5d5665 — tree: README.md 100644, manifest.yaml 100644, meta/config 100644, out/pwned.txt 100644
+a later ordinary commit: LANDED 9f20332e3744 — tree: README.md 100644, manifest.yaml 100644, meta/config 100644, ok.txt 100644, out/pwned.txt 100644
+write under the FILE manifest.yaml: LANDED 69506468b6bc — tree: README.md 100644, manifest.yaml/x 100644, meta/config 100644, ok.txt 100644, out/pwned.txt 100644
+outside/pwned.txt exists: false
+fsmonitor marker exists: false
+=== on the committed tree (1e94519)
+write under the symlink out: REFUSED SOURCE_PATH_CONFLICT — 'out/pwned.txt' cannot be written: 'out' is a symlink in the base commit, not a directory
+write through meta -> .git: REFUSED SOURCE_PATH_CONFLICT — 'meta/config' cannot be written: 'meta' is a symlink in the base commit, not a directory
+a later ordinary commit: LANDED 39afa142915a — tree: README.md 100644, manifest.yaml 100644, meta 120000, ok.txt 100644, out 120000
+write under the FILE manifest.yaml: REFUSED SOURCE_PATH_CONFLICT — 'manifest.yaml/x' cannot be written: 'manifest.yaml' is a file in the base commit, not a directory
+outside/pwned.txt exists: false
+fsmonitor marker exists: false
+=== (b') the here check AND assertTreeIs broken
+a file named src: LANDED — tree: README.md

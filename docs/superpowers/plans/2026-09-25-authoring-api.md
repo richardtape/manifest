@@ -51,8 +51,8 @@
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Status |
 |---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on.** Measured while it was written, and to be re-measured: the symlink escape and `fsmonitor` through a worktree, the plumbing commit, `--index-info`'s silent replacements, the documentation baseline, a JSON Schema for `manifest.yaml`. **To be measured for the first time:** the HTML renderer's candidates offline (**network at Rich's yes**), the two store packages offline, a tree listing's cost at 10,000 files, the build context on a very large tree, `exec` against a real container (the brief's §7), and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-25** — every premise holds and no boundary moves; the renderer is Scalar 1.72.0; `zod-to-json-schema`, no v4 port; `[M<n>]` blocks on Tasks 2, 3, 4, 9, 11 |
-| 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | ← **next** |
-| 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract to `1.3.0` | **Yes** — `source/`, `projects/` | |
+| 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | **DONE 2026-09-25** — F7's option (a) measured over 320 answers and NOT adopted (back to Rich); `added`/`removed` published, contract `1.3.0`; every commit on both drivers built with plumbing and no worktree, the attacks contract cases; Docker tier green |
+| 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract to `1.3.0` | **Yes** — `source/`, `projects/` | ← **next** |
 | 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | |
 | 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | |
 | 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths | |
@@ -1033,6 +1033,18 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Task 4: The read primitives — a tree, a text file, a history and one commit's changes, on both drivers
 
+> **`[S2]` — WHAT TASK 3 BUILT, WHERE IT DIFFERS FROM THE TEXT BELOW (2026-09-25, sitting 2; its record).**
+> `source/plumbing.ts` exports `planChanges`, `buildCommit`, `listBase`, `runGit`, `pushVerdict` and `MANIFEST_COMMITTER`.
+> **`runGit(gitDir, args, { input?, env? })`** answers `{ stdout, code, stderr }` and never throws; the scratch-path
+> scrubbing is the private `must`'s, not `runGit`'s. **`assertWritablePaths(paths)` also refuses a path that is not inside
+> the repository** (a leading `/`, an empty, `.` or `..` component, a NUL) as `SOURCE_PATH_ESCAPE` (F9), and
+> **`assertNoSecrets` takes `{ path, content }[]`**, with `writesOf(changes)` beside it in `scan-commits.ts`. **Tests commit
+> through `source/testing.ts`'s `writeFiles(driver, repo, files, message)`**, authored `TEST_AUTHOR`, and both harnesses
+> have `pushSymlinkAsPerson(slug, path, target, message)`. **A refused push reads the BRANCH on both drivers** — a race lost
+> inside git's receive-pack is `SOURCE_CONFLICT` too (F11). And the record's F14: with the planner AND the tree check
+> broken, a write can delete what it replaces and vanish itself — a read primitive that trusts a tree it did not list is
+> the same class of mistake.
+
 > **`[M10]` — MEASURED (2026-09-25, sitting 1, F13): THE CAPS STAND.** On a bare repository of 10,001 files (10,000 of ~30
 > bytes across 200 directories, and one of 20 MB), `git ls-tree -r -t -l -z --full-tree HEAD` takes 0.02 s and writes
 > 763,670 bytes, and `git diff --numstat <empty tree> HEAD` 0.05–0.06 s (10,001 lines), at load ~3.8. So a listing AT the
@@ -1261,6 +1273,11 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 ---
 
 ## Task 6: Committing over the API — `createCommit`, its dry run, `source:write`, the manifest validated first, and the platform's own record of who
+
+> **`[S2]` (2026-09-25, sitting 2):** Task 3 built `commit`, `writesOf` and `assertNoSecrets(files: { path, content }[])`
+> as this task's snippets assume, and `assertWritablePaths(paths)` already refuses the escape shapes Decision 4's schema
+> refuses first (F9). **`SOURCE_CONFLICT` now also answers a race lost inside receive-pack** (F11), so *refuses a stale
+> base* and a retry after a lost race read the same code. Task 4's `[S2]` block has the rest.
 
 **Files:**
 - Modify: `packages/control-plane/src/api/representations/source.ts` — `CreateCommitRequest`, `CommitOutcome`; `CommitSummary` gains `madeThrough`
@@ -2336,3 +2353,160 @@ map and tree, §7e (rewritten for sitting 2) and §8 (the split and the executio
 RUNBOOK's gate parenthetical; `scripts/ci-acceptance.sh` (checked — `2005 / 145 / 20 / 57`, unchanged); CLAUDE.md's *State*
 (a plan has started); TRAPS.md (four traps: F1, F2, F10 with F4, F17); S5's brief (F14). **The four shared HTML pages were
 checked and left alone**: none states the authoring API's status, and sitting 1 built nothing an outsider would see.
+
+### Sitting 2 — Task 2 (F7) and Task 3 (the write primitive, rebuilt) — 2026-09-25
+
+**F7'S FIX DOES NOT MEASURE BETTER, SO IT IS NOT ADOPTED; THE WRITE PRIMITIVE IS REBUILT ON BOTH DRIVERS.** Task 2 measured
+option (a) through the shipped function over **320 hand-read answers** — two replicates of before and after, at two and at
+three changes — and it read worse overall (22 → 30 reversals of the removed `sn`); by Step 5's rule the prompt sentence and
+the facts are reverted, `added`/`removed` stay on `SpecChange` and on the published `ApprovalDiff` (**contract `1.3.0`**), a
+test locks the model's facts to exclude them, and **F7 goes back to Rich** with options (b) and (c) (§8, *Open*). Task 3
+replaced both drivers' worktree commits with `source/plumbing.ts`: planned against the base tree, built with no worktree,
+the tree checked against the plan, pushed non-forced. **The attacks of *Read this first* 1 are contract cases on both
+drivers, asserted by the filesystem and a canary**; running them found that a race lost INSIDE git's receive-pack is not the
+`[rejected]` the plan's push reader looked for (F11), and that the plan's driver-2 reader would have read a `[remote
+rejected]` push as a success (F10). Every raw F7 answer, and its hand read, is in
+[`spikes/authoring-baseline/`](../spikes/authoring-baseline/README.md) (*Task 2*).
+
+#### The decisions this sitting made
+
+**1. Task 2 measured more than the plan asked, before ruling.** Step 5's first three-change run read 10 reversals in 40 and
+Step 1 had no three-change baseline to set it against, so this sitting measured the shipped function at three changes and
+then a second replicate of all four cells — 320 answers, about ten minutes of model time. *Changing course* costs nothing:
+the files are the record.
+
+**2. F7's option (a) is NOT ADOPTED** — replicate 1 met the rule (1 ≤ 1, fewer than 2, none withheld), replicate 2 did not
+(2 > 1), and at three changes it read worse (17 → 27 in 80, Fisher p = 0.11). None of the differences is significant; the
+rule's word is *better*, and it is not. *Changing course* is two edits in `summary.ts` and the lock test.
+
+**3. `writeFiles(driver, repo, files, message)` in `source/testing.ts` is what the eighteen `commitFiles` call sites became**,
+as the plan said; its author is `TEST_AUTHOR`, `test@users.manifest.internal` — the platform's zone, nobody's mailbox.
+
+**4. The escape half of the path check moved into `assertWritablePaths`** (F9): with no worktree, nothing else refused
+`../outside.txt`. **5. A refused push reads the BRANCH, on both drivers** (F11): a `main` that is no longer the base is
+`SOURCE_CONFLICT` however git worded it. **6. Driver 2 reads its push through `pushVerdict`** (F10). **7. `alternates` only
+when there is a base** (F12). Each is a `Ruling:` line in the ledger.
+
+#### The findings
+
+**F1 — `pnpm test` READS THE WORKING TREE AS IT GOES, AND THIS SITTING CONTAMINATED TWO OF ITS OWN RUNS.** The opening run
+picked up Task 2's test edits made after it started (Vitest reads a test file when it reaches it) — its three reds were
+exactly those new tests, and 2005 others passed; and Task 2's gate run went red at `error-codes.test.ts`, which scans every
+source file at its turn and found Task 3's `plumbing.ts`, created mid-run, throwing three unregistered codes. **Nothing in
+the tree may change while `pnpm test` runs** — not a test, not a new source file. TRAPS.md has it.
+
+**F2 — STEP 1'S BASELINE WAS 2 REVERSALS IN 40, NOT THE ~5 PREDICTED** (the D5 plan's sitting 7 measured 5). Its second
+replicate read 3; the shipped function's two-change rate is 5 in 80.
+
+**F3 — F7's OPTION (a) DOES NOT MEASURE BETTER** (Decision 2): reversals by hand, before → after — two changes 2 → 1 and
+3 → 2; three changes 6 → 10 and 11 → 17; all 320, 22 → 30. Kept 40 of 40 in every run; nothing withheld.
+
+**F4 — THE REVERSAL RATE DEPENDS ON THE DIFF'S SIZE, AND THE D5 PLAN'S NUMBER UNDERSTATED IT.** The SHIPPED function reverses
+the `sn` removal in 5 of 80 two-change answers and **17 of 80 three-change answers** — one more, unrelated change (a raised
+memory limit) more than triples it. The 5 in 40 Rich decided on was measured at two changes.
+
+**F5 — THE MODEL DOES NOT KNOW WHAT `sn` IS.** It names it a *student number*, *student ID*, *serial number*, *subject name*
+or a **social security number** in 6–12 of 40 answers a run, in both variants; Step 1's hand read found 10 of 40, four a
+social security number, and one said `givenName` — which is kept — was removed. No schema or rule can see a wrong fact.
+
+**F6 — THE PLAN'S CLASSIFIER WAS WRONG 18 TIMES IN 320**: seven sentences marked REVERSAL whose direction is right
+(*"receives less personal information, specifically the surname"*), and eleven reversals it missed because they name `sn`
+as something else or not at all (*"may receive the student number attribute in addition to …"*). The hand read is the
+measurement; the classifier only sorted.
+
+**F7 — THE INTERFACES LINE "NEVER BOTH EMPTY" IS FALSE FOR `services` AND `env`**: Step 3 itself puts a changed version, or
+a changed value, in neither list. Built as Step 3 says, and the doc comment says both can be empty.
+
+**F8 — STEP 6'S CONTROL PREDICTED A RED THE REVERTED DESIGN CANNOT GIVE**: the summary test's `CHANGES` are literals and
+the summary no longer reads the lists, so swapping `setChange`'s filters reddens the diff case alone — predicted so and
+seen. A second control was added for what the task now ships, the lock (*Negative controls*).
+
+**F9 — WITH NO WORKTREE, NOTHING REFUSED `../outside.txt` AS AN ESCAPE.** The contract's own case (*refuses a slug that
+could escape, and a path that could*) relied on the worktree's `resolve()` check. `assertWritablePaths` now refuses a
+leading `/`, an empty, `.` or `..` component and a NUL (which would end an `update-index -z` record) as
+`SOURCE_PATH_ESCAPE`, before anything is built; Task 6's schema refuses them first.
+
+**F10 — THE PLAN'S DRIVER-2 PUSH READER WOULD HAVE READ A REFUSED PUSH AS A SUCCESS.** `gitWithToken` with `acceptExit`
+answers exit 1 as STDOUT and nothing else, and porcelain writes a hook's or GitHub's refusal as `!\t…\t[remote rejected]
+(…)` — which `/\[rejected\]|non-fast-forward|fetch first|GH006/` does not match (GH006 is on stderr). `pushVerdict`
+(`source/plumbing.ts`) reads porcelain's own line for `main`: ` `, `*` or `=` is ok; `[rejected] (non-fast-forward|fetch
+first)` is a conflict; anything else — no line at all included — is refused.
+
+**F11 — A RACE LOST INSIDE RECEIVE-PACK IS NOT `[rejected]`: MEASURED 3 OF 3 ON DRIVER 1.** Two commits on one base both
+pass the base check, both push, and git's client-side fast-forward check passes for both; the loser's ref update is
+refused by git's own compare-and-swap — `[remote rejected] (failed to update ref)`, with `cannot lock ref
+'refs/heads/main': is at <X> but expected <base>` on stderr — and `pushInto` as the plan wrote it answered
+`SOURCE_GIT_FAILED`. **Both drivers now read the branch after a refused push**: `main` no longer the base is
+`SOURCE_CONFLICT`. The contract's *loses a race at the push* is what found it; driver 2's run against the fake never
+reached receive-pack together, and what real GitHub says for a lost ref lock is unmeasured — which is why the rule reads
+the branch rather than the words.
+
+**F12 — DRIVER 2 BUILDS ITS SEED BEFORE ITS MIRROR EXISTS**, so the plan's `buildCommit({ objects: mirror, base: null })`
+named a directory that is not there. `buildCommit` writes `alternates` only when there is a base to borrow.
+
+**F13 — THIS SITTING'S FIRST "NOTHING COPIED" ASSERTION COULD NOT FAIL**: it proved only that the base was readable, which
+it is through `alternates` or a copy alike. It now asserts the `alternates` file names the repository's objects and the
+base commit has no loose copy in the scratch, while still reading as a commit.
+
+**F14 — WITH BOTH OF THE PLANNER'S LAYERS BROKEN, A FILE NAMED `src` DELETES THE DIRECTORY AND DOES NOT APPEAR EITHER.**
+Control (b′) below: `--index-info` given `100644 <blob>\tsrc` over an index holding `src/index.js` and `src/b.js` wrote a
+tree of `README.md` alone, while the driver would have answered `src: added`. *Read this first* 3 recorded the deletion;
+the lost write is new. The tree check is what turns it into a refusal.
+
+**F15 — TWO OF THE PLAN'S STEP 8 PREDICTIONS DID NOT HOLD, and both are corrected by what this sitting measured.** (a)+(b)
+does not delete `src/index.js` — the `src` write is refused by the check on the path itself, not the ancestor loop, so the
+plan's scenario needs (b′); and with only `pushInto` broken the race case is RED, not green (control (c3)), because both
+racers pass the base check (F11). Both were predicted in writing, before running, as corrected.
+
+#### Negative controls — each predicted in writing before it ran, each on the committed tree (`1e94519`)
+
+| # | Break | Predicted | Seen |
+|---|---|---|---|
+| T2 | `setChange`'s two filters swapped | the diff case alone red — the summary no longer reads the lists (F8) | `expected [ 'sn' ] to deeply equal [ 'givenName' ]`, one red, as predicted |
+| T2′ | the lists put back into the model's facts | the lock and the facts-only case red | `expected { path: 'egress.allow', …(5) } to not have property "added"`, and the facts-only equality — as predicted |
+| (a) | `planChanges` without the ancestor loop | the planner case `undefined`; every contract attack case `SOURCE_GIT_FAILED` — the tree check | exactly that, on BOTH drivers: `expected 'SOURCE_GIT_FAILED' to be 'SOURCE_PATH_CONFLICT'` ×6, and `expected undefined …` ×1 |
+| (b) | `assertTreeIs` returns at once | every test green — the braces cannot fail while the planner holds | 142 of 142 green, as predicted |
+| (a)+(b) | both | all three attacks LAND, on both drivers — and still nothing outside, no command run | `expected undefined to be 'SOURCE_PATH_CONFLICT'` ×7; **the probe (`probes/driver1-plumbing-escape.ts`) shows the writes in the TREE — the person's `out` and `meta` symlinks replaced by directories, `manifest.yaml` deleted by `manifest.yaml/x` — and `outside/pwned.txt` absent, the `fsmonitor` marker absent.** No worktree, so no escape and no command, even with the planner gone |
+| (b′) | the check on the path itself (a write onto a non-regular path) and `assertTreeIs` | `src` as a file lands, `src/` deleted | red on both drivers and in the planner; the tree holds `README.md` ALONE — the write lost too (F14) |
+| (c) | driver 1's base check removed | GREEN — built on the client's base, git refuses the push non-fast-forward | green, twice |
+| (c2) | …and `pushInto` returns whatever git said | stale-base red (`undefined`); race red (two fulfilled) | exactly that |
+| (c3) | only `pushInto` broken | stale-base green; **race RED** (the plan said green — F15) | race red 3 of 3: `expected [ { …(3) }, { …(3) } ] to have a length of 1 but got 2` |
+| (d) *(added)* | `pushVerdict` always `ok` | driver 2's race red | red, twice — so driver 2's push reading is held, but only on its conflict path |
+| (e) *(added)* | `pushVerdict` replaced by THE PLAN'S reader | the new `pushVerdict` case red on a remote rejection read as success (F10) | `pre-receive hook declined: expected 'ok' to be 'refused'` — the test was added for this (`686b1ba`) |
+
+**Which could not fail, and why:** (b), by construction — the braces fire only on a planner defect, and (a)+(b) and (b′)
+are how they were seen. The builder's *exact bytes* case cannot fail by removing `--no-filters` alone: in the bare
+`--git-dir` shape no filter runs without the flag either (sitting 1's F12) — it holds the property, not the flag.
+
+#### The gates, and the machine, at the close
+
+**`pnpm test` moved: 2034 passed in 146 files**, twice at the close, alone and identical (380 s, 390 s) — +29 and one file
+(Task 2's three cases; `source/plumbing.test.ts`'s twelve; the seven contract cases on both drivers). Its opening run was
+2005 green beside Task 2's three new reds (F1). `pnpm lint`, `pnpm typecheck` (all six packages) and `pnpm format:check`
+clean. **`make doctor` 20/0/0** at the open and the close; **`make verify` 57/0/0** at the open and after the Docker tier;
+**`pnpm test:docker` 208 in 34, 0 skipped, 896 s, green first time** — owed by `source/`, run on `1e94519`. The load was
+3–5 throughout. **Contract `1.3.0`** (Task 2): `ApprovalDiff.changes[]`'s `added`/`removed`, and Task 3's three codes in
+`ErrorCode`.
+
+**The machine, queried at the close** (`psql`, `docker`, `lsof`, Ollama's `/api/ps`): the control database EMPTY (0
+projects, 29 migrations — the close's `pnpm test` truncated it); nothing listening on 7100 or 7104; `launch-app`'s six
+`mf-launch-app-*` containers running with no rows behind them and **0 runtime routes** (the Docker tier restarted the edge,
+as at the open); the GitHub fake not running (it was not at the open). **The three cleanup scripts, run bare and then
+`--apply` by this session** (allowed): the tier's 7 networks and 1 volume, the `p4b-probe-user` LiteLLM orphan and 12 app
+images removed, each re-measured bare — `none dead`, 0 orphans, 0 dead images; `make verify`'s per-app line
+`containers=6 networks=2 volumes=4`. The chat and embedding models were unloaded (`keep_alive: 0`); none was resident at
+the open. `diff` of `scripts/snapshot-machine.sh` against the opening snapshot: uptimes, the edge's restart, `HEAD` and
+this sitting's files — nothing else.
+
+#### The sweep
+
+This plan's sittings table, this record, and `[S2]` blocks at the heads of Tasks 4 and 6 (what Task 3 built that they
+inherit); the roadmap's ledger (the section's heading and its sitting-2 sentence) and its defect-rate table (the count
+derived with the command above); ORIENTATION's top box and §2's box (the unit count moved), §3 (*A commit is built with
+git plumbing and no worktree*, the `.git`-and-outside invariant, and `plumbing.ts` in the module table), §7e (rewritten
+for sitting 3) and §8 (**F7 open again**, with options and a recommendation; its *Decided* entry points there); RUNBOOK's
+gate parenthetical; `scripts/ci-acceptance.sh` (`2034 / 146 / 20 / 57`, and its history comment); TRAPS.md (two traps: F1;
+F10 with F11); `spikes/authoring-baseline/` (*Task 2*, eight result files, the F7 probe; `probes/driver1-plumbing-escape.ts`
+and `results-task3-controls-2026-09-25.txt`). **CLAUDE.md's *State* unchanged** — no plan started or finished and no
+*Outstanding* item moved. **The four shared HTML pages were checked and left alone**: none states the authoring API's
+status or anything about the approval summary's sentences, and nothing this sitting built is visible to an outsider.

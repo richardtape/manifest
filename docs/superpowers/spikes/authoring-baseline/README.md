@@ -297,3 +297,16 @@ back to Rich with options (b) *no sentence for attribute changes* and (c) *no se
    ID*, *serial number*, *subject name* or a **social security number** in 6–12 of 40 answers per run, in both variants
    — Step 1's hand read found 10 of 40, four of them a social security number, and one said `givenName`, which is kept,
    was removed.
+
+## Task 3 — the write primitive's controls, through the SHIPPED driver 1 (sitting 2, 2026-09-25)
+
+[`probes/driver1-plumbing-escape.ts`](probes/driver1-plumbing-escape.ts) is `driver1-escape.ts`'s two attacks, plus a write
+under a FILE, through driver 1's new `commit` (plumbing, no worktree); its output, with the one-off `src` probe of control
+(b′), is [`results-task3-controls-2026-09-25.txt`](results-task3-controls-2026-09-25.txt). **On the committed tree
+(`1e94519`)** all three are refused `SOURCE_PATH_CONFLICT`, naming the symlink or file in the way, and the person's
+symlinks survive. **With the planner's ancestor loop AND the tree check both broken**, all three LAND in the tree — the
+symlinks `out` and `meta` replaced by directories, `manifest.yaml` deleted by `manifest.yaml/x` — **and still nothing is
+written outside and no `fsmonitor` command runs**: with no worktree, the escape and the code execution are gone by
+construction, and the planner and the tree check guard the tree's integrity. With the check on the path itself broken
+instead, a file named `src` deletes `src/` and is itself absent from the tree (the plan's F14). The plan's record,
+*Sitting 2*, has every control and its prediction.

@@ -74,8 +74,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # at a repository's html_url (1) and its delivery log kept across a restart (1); then its final
 # review's fix pass: +3 — a path into the worktree's own .git refused (1 contract case × 2
 # drivers) and a push a read synced first still validated (1).
-EXPECT_TESTS=2005
-EXPECT_FILES=145
+# Then the authoring API plan's sitting 2 (2026-09-25): +29 and one file — F7's added/removed
+# (2) and its lock (1); `source/plumbing.test.ts` (12: the planner, the builder, pushVerdict);
+# and the write primitive's seven contract cases × 2 drivers (14).
+EXPECT_TESTS=2034
+EXPECT_FILES=146
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 

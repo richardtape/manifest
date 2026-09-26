@@ -1704,6 +1704,19 @@ it belongs among the traps the next sitting is most likely to hit.
   typescript-eslint's `recommended` forbids `require()`, so a `.cjs` probe turns the gate red. Write probes as `.mjs` or
   `.ts`; to wrap a builtin that CommonJS code calls, import its DEFAULT export (`import dns from 'node:dns'`) — the same
   object `require` returns — never the namespace, which is frozen.
+- **`pnpm test` READS THE WORKING TREE AS IT GOES — CHANGE NOTHING WHILE IT RUNS** (2026-09-25, the authoring API plan's
+  sitting 2, F1). Vitest reads each test file when it reaches it, not at the start, and `api/error-codes.test.ts` scans
+  every source file at its own turn. So a test edited after the run began is run in its NEW form, and a source file
+  created mid-run is scanned — sitting 2 turned two of its own runs red that way (its new tests; a new module's three
+  unregistered codes). A red run with the tree changed under it is not a measurement: re-run with nothing in flight.
+- **A PUSH GIT REFUSED CAN STILL READ AS A SUCCESS, TWO WAYS** (2026-09-25, the authoring API plan's sitting 2, F10 and
+  F11). **(1)** `gitWithToken(…, { acceptExit: [1] })` answers exit 1 as its STDOUT and nothing else, and `push
+  --porcelain` writes a hook's or GitHub's refusal as `!\t<src>:<ref>\t[remote rejected] (…)` — which a regex for
+  `\[rejected\]` does not match, and GH006 is on STDERR. Read porcelain's own line for the ref (`source/plumbing.ts`'s
+  `pushVerdict`). **(2)** Two pushes racing on one base BOTH pass git's client-side fast-forward check, and the loser is
+  refused INSIDE receive-pack: `[remote rejected] (failed to update ref)`, `cannot lock ref 'refs/heads/main': is at <X>
+  but expected <base>` — not `[rejected] (non-fast-forward)` (measured 3 of 3, driver 1). To tell a lost race from a real
+  refusal, read the BRANCH afterwards, not git's words.
 
 ## Images already pulled
 
