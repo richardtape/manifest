@@ -473,10 +473,13 @@ describe('createCommit — changes checked before anything is written (Task 6)',
         path: `g${i}.txt`,
         content: 'b'.repeat(MiB),
       }))
-      expect(refusal(await post(ctx, commitBody(base, nine)))).toEqual({
-        status: 413,
-        code: 'REQUEST_BODY_TOO_LARGE',
-      })
+      const tooLarge = await post(ctx, commitBody(base, nine))
+      expect(refusal(tooLarge)).toEqual({ status: 413, code: 'REQUEST_BODY_TOO_LARGE' })
+      // The hint says what the limits ARE — it said "no API request needs more than 1 MiB",
+      // which this route made false.
+      expect(
+        (JSON.parse(tooLarge.body) as { error: { hint: string } }).error.hint,
+      ).toMatch(/1 MiB.*createCommit.*8 MiB/)
       // …and no other route widened: 2 MiB to POST …/spec is still past the default.
       expect(
         refusal(

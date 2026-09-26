@@ -149,7 +149,9 @@ function frameworkRefusal(
         error: {
           code: 'REQUEST_BODY_TOO_LARGE',
           message: 'the request body is larger than the API accepts',
-          hint: 'Send a smaller body. No API request needs more than 1 MiB.',
+          // Both limits, since `createCommit` took its own (the authoring API plan's Decision
+          // 11): this said "no API request needs more than 1 MiB" until a route needed more.
+          hint: 'Send a smaller body. An API request takes at most 1 MiB, but for createCommit, which takes up to 8 MiB.',
         },
       },
     }
