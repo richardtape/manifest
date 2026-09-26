@@ -1,6 +1,6 @@
 # The Authoring API Implementation Plan
 
-> **WRITTEN 2026-09-25 — NOT YET EXECUTED. ITS SITTINGS SPLIT IS PROPOSED, AND WAITS FOR RICH'S APPROVAL BEFORE SITTING 1.**
+> **WRITTEN 2026-09-25 — BEING EXECUTED. ITS TEN-SITTING SPLIT WAS APPROVED BY RICH ON 2026-09-25**, at the opening of sitting 1 (*How this plan is to be executed* has his four answers).
 > Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else. Every fact in
 > *Read this first* was read from the code at `8534e2e` or measured on this machine while the plan was written; Task 1
 > re-measures each one into `spikes/authoring-baseline/`. *What executing this plan found* is where every sitting's
@@ -30,20 +30,27 @@
 
 **One sitting per session, with a check-in at each boundary.** This pattern has carried every plan since P4a. It means a session limit never lands in the middle of a task. This plan commits after every task: a stop *between* tasks is recoverable, a stop *inside* one is not.
 
-> **TEN SITTINGS — PROPOSED 2026-09-25, AWAITING RICH'S APPROVAL.** 1 the measurements; 2 F7 and the write
+> **TEN SITTINGS — APPROVED BY RICH 2026-09-25, as proposed.** 1 the measurements; 2 F7 and the write
 > primitive; 3 the read primitives and reading over the API; 4 committing over the API, and builds of the right spec;
 > 5 app secrets; 6 the reference completed; 7 the console and the mock; 8 the guides, served, and the HTML reference;
 > 9 what the D5 plan hands over; 10 the acceptance. **The heavy ones are 2 (Task 3 rebuilds the write path on both
 > drivers) and 6 (every description in the document)**: if sitting 2 runs long, stop after Task 2 and sweep, and Task 3
-> opens sitting 3 ahead of Task 4. *Offered:* **nine** — Task 12 joins sitting 5 beside Task 8, which puts the
+> opens sitting 3 ahead of Task 4. *Offered, and not chosen:* **nine** — Task 12 joins sitting 5 beside Task 8, which puts the
 > inheritance in a sitting that already adds a feature; **eleven** — Task 9 split into the gate and the writing,
 > which buys nothing a sitting boundary needs.
+
+**RICH'S ANSWERS AT THE OPENING OF SITTING 1 (2026-09-25) — recorded before anything was executed; do not re-ask them:**
+
+1. **The split: APPROVED as proposed — ten sittings.**
+2. **The network for Task 1 Step 6: YES.** Fetch the two HTML-renderer candidates, `@scalar/api-reference` and `redoc`, at their current versions into `$SCRATCH`, so they land in the pnpm store. **That is the only outward action sitting 1 may take.** Judge them offline by the browser's network log, not by turning the network off.
+3. **Spec action 2 (production secrets): NOT ANSWERED YET** — it is needed before sitting 5, not before sitting 1. **Spec actions 1 and 3 can wait until sitting 10.** *Sitting 4's close must ask it again if it is still open.*
+4. **Execution: `superpowers:executing-plans`, inline — no subagent per task.** The plan's one fresh whole-branch review happens at the END of the plan (sitting 10), not in any earlier sitting.
 
 *The **Status** column records what a sitting made true, never how many findings it produced. That number lives once, in the roadmap's defect-rate table (Rich, 2026-09-20).*
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Status |
 |---|---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on.** Measured while it was written, and to be re-measured: the symlink escape and `fsmonitor` through a worktree, the plumbing commit, `--index-info`'s silent replacements, the documentation baseline, a JSON Schema for `manifest.yaml`. **To be measured for the first time:** the HTML renderer's candidates offline (**network at Rich's yes**), the two store packages offline, a tree listing's cost at 10,000 files, the build context on a very large tree, `exec` against a real container (the brief's §7), and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | ← **next, once Rich approves the split** |
+| 1 | 1 | **The measurements this plan rests on.** Measured while it was written, and to be re-measured: the symlink escape and `fsmonitor` through a worktree, the plumbing commit, `--index-info`'s silent replacements, the documentation baseline, a JSON Schema for `manifest.yaml`. **To be measured for the first time:** the HTML renderer's candidates offline (**network at Rich's yes**), the two store packages offline, a tree listing's cost at 10,000 files, the build context on a very large tree, `exec` against a real container (the brief's §7), and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | ← **next — the split is approved (2026-09-25); in progress** |
 | 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | |
 | 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract to `1.3.0` | **Yes** — `source/`, `projects/` | |
 | 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | |
@@ -85,9 +92,9 @@
 
 **Six things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
 
-1. **Approve the sittings split** — before sitting 1. Ten are proposed; nine and eleven are offered above.
+1. **Approve the sittings split** — before sitting 1. **DONE 2026-09-25: ten, as proposed.**
 2. **Read and decide the three spec actions** (*Spec actions*, below) — **Spec action 2 before sitting 5** (Task 8 builds whichever he chooses), Spec actions 1 and 3 any time before sitting 10's sweep. **And place Spec action 1's plan**: this plan recommends directly after this one, ahead of the vulnerability database in the console, for the reason Rich gave when he placed that plan — `make refresh-vulndb` already meets the laptop's need, and an agent debugging a running app blind does not have one.
-3. **The network, and a yes, for the HTML renderer — sitting 1 (Task 1, `[M9]`).** Task 1 installs the candidates into a scratch directory, so that each lands in this machine's pnpm store; Task 11's `pnpm add --offline` then needs no network. The one outward action is fetching two packages from the npm registry.
+3. **The network, and a yes, for the HTML renderer — sitting 1 (Task 1, `[M9]`). YES, 2026-09-25 — that fetch and nothing else.** Task 1 installs the candidates into a scratch directory, so that each lands in this machine's pnpm store; Task 11's `pnpm add --offline` then needs no network. The one outward action is fetching two packages from the npm registry.
 4. **The clicked half of the acceptance — sitting 10.** A person clicks, the agent reads the screens, and **Rich types every password** (ORIENTATION §4 trap 6: the Chrome extension is refused on `idp.manifest.internal`, and a password is never an agent's to type).
 5. **`make refresh-vulndb`, with the network on, if execution runs past 2026-10-01.** Past it, `make demo-production` and `make demo-releases` go red at §13's `scans` item.
 6. **The conformance run's real leg, if a sitting asks** — Task 3 changes how driver 2 pushes, and `make github-conformance` against `Manifest (local dev)` checks nothing about pushing that the fake does not; **it is not owed by this plan**, and a sitting that wants it asks first.

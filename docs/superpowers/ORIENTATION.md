@@ -1445,12 +1445,12 @@ reasoning is recorded.**
 
 ### Open
 
-- **THE AUTHORING API PLAN'S SPLIT, AND ITS THREE SPEC ACTIONS — RAISED 2026-09-25** (the plan's *How this plan is to be
-  executed* and *Spec actions*). **The split**: ten sittings proposed, nine and eleven offered — needed before sitting 1.
-  **Spec action 2** (§20/D24: a production app secret set only in an interactive session with step-up; tokens set sandbox
-  and staging) — needed before sitting 5. **Spec action 1** (§14: a bounded, redacted read of a running app's recent output,
-  sandbox and staging only) **and where its plan goes** (recommended: straight after the authoring API), and **Spec action 3**
-  (§17/§22: the slice in Phase 2, and the API's documentation served by the API) — before sitting 10's sweep.
+- **THE AUTHORING API PLAN'S THREE SPEC ACTIONS — RAISED 2026-09-25** (the plan's *Spec actions*). **Spec action 2**
+  (§20/D24: a production app secret set only in an interactive session with step-up; tokens set sandbox and staging) —
+  **needed before sitting 5**; Rich said on 2026-09-25 it is not answered yet. **Spec action 1** (§14: a bounded, redacted
+  read of a running app's recent output, sandbox and staging only) **and where its plan goes** (recommended: straight after
+  the authoring API), and **Spec action 3** (§17/§22: the slice in Phase 2, and the API's documentation served by the API) —
+  both can wait until sitting 10 (Rich, 2026-09-25).
 - **Should Manifest's OWN commits on driver 1 skip the secret-scanning hook, to win back ~75 s a unit-suite run? —
   RAISED 2026-09-25 (the D5 plan's sitting 6, F6).** Since Task 11 every push into a driver-1 bare repository runs the
   rendered `pre-receive` (~40 ms a push, measured), and the suite pushes on every project a test creates: `pnpm test`
@@ -1505,6 +1505,12 @@ reasoning is recorded.**
 
 ### Decided
 
+- **The authoring API plan's split and how it is executed — DECIDED 2026-09-25** (Rich, at the opening of its sitting 1;
+  the plan's *How this plan is to be executed* has the four answers). **Ten sittings, as proposed.** **Sitting 1 may fetch
+  the two HTML-renderer candidates** (`@scalar/api-reference`, `redoc`) into the scratchpad so they land in the pnpm store —
+  its only outward action — judged offline by the browser's network log. **Executed inline with
+  `superpowers:executing-plans`, no subagent per task**; the one fresh whole-branch review is at the plan's end. Spec action
+  2 stays open (above). — do not re-raise
 - **The authoring API plan's scope — SIX DECISIONS, 2026-09-25**, all recorded in the plan's *Decided by Rich*: **F7's fix is
   its first task** after the measurements; **the acceptance is a bulletin board** an agent builds from the bare skeleton through
   the API; **the plan covers the full end-to-end path and the documentation must let humans and agents drive the API alone**;
