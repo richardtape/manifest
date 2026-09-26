@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Scalar 1.72.0 — offline configuration</title></head>
+<body><div id="app"></div>
+<script src="./scalar/standalone.js"></script>
+<script>
+  Scalar.createApiReference('#app', {
+    url: './openapi.json',
+    withDefaultFonts: false,      // no fonts.scalar.com
+    telemetry: false,             // no telemetry
+    hideClientButton: true,       // no API client (it can send requests)
+    hideTestRequestButton: true,
+    mcp: { disabled: true },
+    showDeveloperTools: 'never',
+    agent: { disabled: true },
+  })
+</script></body></html>

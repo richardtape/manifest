@@ -628,6 +628,13 @@ blind.
 - [ ] Attempting a privileged action — promotion to production — produces a
       `PendingAction` awaiting a human, not an action (D14, D24)
 
+> **Measured 2026-09-25 — the authoring API plan's Task 1, Step 8** ([`spikes/authoring-baseline/README.md`](../spikes/authoring-baseline/README.md)):
+> `runtime/docker/exec.ts`'s `containerExec`, driven once against a container of the blueprint's own base image, returns
+> stdout, stderr and the exit code, and both streams end — **but it BUFFERS**: `drain` awaits the exec's end, so no line
+> is yielded while the command runs (`echo first; sleep 2; echo second` delivered its first line at 2,042 ms, with its
+> exit). The third box above — *its output streams out over the API* — needs a reader that yields as the daemon's
+> multiplexed stream arrives. Nothing calls `exec` yet; the authoring API does not build on it.
+
 ### The honesty clause
 
 §21 states that a 7–8B model through Ollama exercises the *mechanism* end to end but

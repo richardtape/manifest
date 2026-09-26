@@ -1,0 +1,877 @@
+# The authoring API plan's Task 1 — every command's output, 2026-09-25 (sitting 1). README.md is the reading of it.
+# $SCRATCH is the session's scratchpad: /private/tmp/claude-501/-Users-rich-Developer-manifest/fd5c9c99-6d40-4f7d-8e68-1c0afbc11259/scratchpad
+
+=================== [M13] make-up.txt
+ensure-cp-sp-keypair: present (infra/sp/control-plane.crt)
+ Container manifest-egress Running 
+ Container manifest-registry Running 
+ Container manifest-caddy Running 
+ Container manifest-idp Running 
+ Container manifest-dns-host Running 
+ Container manifest-litellm Running 
+ Container manifest-postgres Running 
+ Container manifest-dns-containers Running 
+ Container manifest-verdaccio Running 
+ Container manifest-postgres Waiting 
+ Container manifest-postgres Waiting 
+ Container manifest-postgres Healthy 
+ Container manifest-postgres Healthy 
+ Container manifest-egress Waiting 
+ Container manifest-caddy Waiting 
+ Container manifest-idp Waiting 
+ Container manifest-dns-host Waiting 
+ Container manifest-litellm Waiting 
+ Container manifest-postgres Waiting 
+ Container manifest-dns-containers Waiting 
+ Container manifest-verdaccio Waiting 
+ Container manifest-registry Waiting 
+ Container manifest-dns-host Healthy 
+ Container manifest-dns-containers Healthy 
+ Container manifest-verdaccio Healthy 
+ Container manifest-postgres Healthy 
+ Container manifest-caddy Healthy 
+ Container manifest-egress Healthy 
+ Container manifest-idp Healthy 
+ Container manifest-litellm Healthy 
+ Container manifest-registry Healthy 
+DO
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+DO
+DO
+ALTER ROLE
+GRANT
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ensure-app-role: manifest_app present, granted on public, no reach into audit
+
+  platform up. Next: make doctor && make verify
+  edge: https://edge.manifest.internal/   console and API: https://console.manifest.internal/v1/
+
+=================== [M13] doctor-open.txt
+manifest doctor — Fri 25 Sep 2026 19:10:16 PDT
+
+Host
+  INFO  architecture
+          arm64 
+  INFO  macOS
+          26.6.2 
+
+Docker
+  PASS  docker is running
+          29.7.2
+  PASS  Docker VM memory >= 8.00 GB decimal
+          8319238144 bytes = 8.32 GB decimal / 7.75 GiB binary; floor is 8.00 GB decimal
+  PASS  disk >= 40 GB free
+          100 GB free on /
+
+Host tools the control plane spawns
+  PASS  git, tar, openssl and buildx do what the control plane asks of them
+          git version 2.50.1 (Apple Git-155) · bsdtar 3.5.3 · OpenSSL 3.6.3 at /opt/homebrew/bin/openssl · github.com/docker/buildx v0.36.1-desktop.1
+
+Ports
+  PASS  ports 7100-7199 free, or held only by Manifest
+          7100-7199 free except 7103 7106 7107 7108 7109 7119 7122 7153, which Manifest's own containers publish
+  INFO  port 53 owner
+          nothing visible to this user — lsof cannot see other users' sockets without sudo, and Valet's dnsmasq runs as nobody 
+  INFO  port 443 owner
+          com.docke (rich) nginx (rich)  
+
+Zone
+  PASS  nothing but Manifest claims manifest.internal
+          manifest.internal resolves to 127.0.0.3 (the bare zone is production, so 127.0.0.3)
+
+Host setup (make host-setup)
+  PASS  /etc/resolver/manifest.internal installed and correct
+          /etc/resolver/manifest.internal -> 127.0.0.1:7153
+  PASS  both loopback aliases exist
+          127.0.0.2 and 127.0.0.3 present on lo0
+  PASS  the production zone answers the public address, and the console does not
+          production=127.0.0.3  console=127.0.0.2  (nested zones, pinned back)
+  PASS  the platform CA is trusted in the macOS keychain
+          1 Caddy root(s) in the System keychain
+  PASS  host Node trusts the CA (needs NODE_EXTRA_CA_CERTS)
+          node reached the edge with NODE_EXTRA_CA_CERTS=./infra/ca/manifest-root.crt, status 200
+
+Ollama (host application — §21)
+  PASS  Ollama is running
+          {"version":"0.34.4"}
+  PASS  the models infra/models.txt names are present
+          all models in infra/models.txt present
+
+Seed state
+  PASS  infra/images.lock exists and pins every base image
+          7 images pinned by digest
+  PASS  the running LiteLLM is the digest infra/images.lock pins
+          litellm lock=sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4 running=sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4
+  PASS  base images are IN the local registry, not merely pulled
+          every base image is in the local registry
+  PASS  the GitHub fake's image is built (make seed, profile github)
+          manifest-github-fake:local 0b2e8c95daef
+  PASS  the vulnerability database is fresh
+          vulnerability database built 2026-09-24T06:31:52Z, 1.8 days old (the scan gate calls it stale above 7.0 and warns rather than blocks; refresh with 'make refresh-vulndb')
+  PASS  .env exists and carries every key .env.example declares
+          .env present, with every key .env.example declares (9)
+  PASS  the Docker API version the driver pins is inside the daemon's window
+          daemon serves API [1.40, 1.55]; the driver pins v1.44
+
+  20 checks, 0 failed, 0 warnings
+
+=================== [M13] verify-open.txt
+manifest verify — Fri 25 Sep 2026 19:10:27 PDT
+
+DNS — the split-horizon property (S7)
+  PASS  containers resolve the zone to Caddy's platform IP
+          container sees console.manifest.internal = 10.89.0.10 (want 10.89.0.10)
+  PASS  the host resolves the zone to the loopback alias
+          host sees console.manifest.internal = 127.0.0.2 (want 127.0.0.2)
+  PASS  AAAA returns NODATA, not SERVFAIL
+          AAAA status = NOERROR (want NOERROR, i.e. NODATA; anything else means --local is missing)
+  PASS  non-zone queries still reach Docker's resolver
+          Docker service name manifest-dns-host = 10.89.0.54 (want 10.89.0.54)
+
+Edge — the custom Caddy build (§20)
+  PASS  Caddy carries the rate-limit and Coraza modules
+          modules: http.handlers.rate_limit http.handlers.waf  (want http.handlers.rate_limit http.handlers.waf)
+  PASS  Caddy is pinned to v2.11.4
+          caddy v2.11.4 (Coraza v2.6.0 requires exactly v2.11.4)
+  PASS  a container reaches https://edge.manifest.internal with the platform CA
+          manifest OK host=edge.manifest.internal scheme=https remote=10.89.0.8 listener=internal
+  PASS  the edge serves two listeners, internal and public
+          servers=srv0,srv1
+  PASS  the public listener answers a production name on 127.0.0.3
+          manifest OK host=cdn.manifest.internal scheme=https remote=10.89.0.1 listener=public  (probe port 8443 = compose 8443)
+  PASS  neither listener answers for the other's zone
+          no crossover — neither name is served by the other's listener (empty = no site matched):
+    production on 127.0.0.2:        ''
+    staging on 127.0.0.3:    ''
+
+Postgres — one server, three databases (§21)
+  PASS  manifest_control, litellm and manifest_idp all exist
+          found: litellm manifest_control manifest_idp (want litellm manifest_control manifest_idp)
+  PASS  Postgres is reachable from the host on 7103
+          Connection to 127.0.0.1 port 7103 [tcp/*] succeeded!
+127.0.0.1:7103 accepting connections
+
+Supply chain (§12)
+  PASS  the registry refuses an anonymous request and advertises its realm
+          HTTP/1.1 401 Unauthorized
+  PASS  the registry's realm is the control plane's, for the service it mints
+          Www-Authenticate: Bearer realm="http://127.0.0.1:7100/internal/registry/token",service="manifest-registry"
+  PASS  the registry accepts a correctly scoped token
+          scoped token -> 200 (want 200)
+  PASS  Verdaccio answers on the host's published port
+          http://127.0.0.1:7108/-/ping -> 200
+  PASS  registry and mirror are reachable from the internal build network
+          registry=401 mirror=200
+  PASS  NEGATIVE CONTROL: the internal network cannot reach the public internet
+          curl exited 6 on manifest-build-internal and 0 on manifest-platform — the network is the difference
+  PASS  the egress proxy denies an undeclared destination, and allows a declared one
+          example.com -> CONNECT 403 (want 403, D18); allowlisted registry -> 401 (want 200 or 401)
+  PASS  the egress proxy survives denying a request
+          restart count 0 -> 0 across one denial (want no change)
+
+Builder (§12, S1)
+  PASS  NEGATIVE CONTROL: --internal still denies egress after any Docker restart
+          curl to npmjs from manifest-build-internal exited 6 (want non-zero)
+  INFO  builder properties
+          rootless, non-privileged, rootlesskit, no egress, mirror reachable: asserted in           builder.docker.test.ts against the container the driver creates           (pnpm test:docker). Not duplicated here — a second definition drifts. 
+
+AI (§10, S3)
+  PASS  LiteLLM is up with its database connected
+          {"status":"healthy","db":"connected"}
+  PASS  only logical model names are exposed (§7)
+          catalogue: default-chat default-chat-onprem default-chat-onprem-reasoning default-chat-reasoning default-embed 
+  PASS  a streamed completion returns non-empty content
+          5 streamed frames carried content (0 means default-chat is a THINKING model)
+  PASS  an embedding comes back at full dimension
+          embedding dimension = 768 (want 768 for nomic-embed-text)
+  PASS  no prompt content is persisted
+          0 of 33 spend rows carry request content (want 0 — §7's retention decision)
+  PASS  spend is actually attributed, not $0.00 (S3)
+          highest recorded spend = 0.001657 (want > 0; $0.00 means the synthetic cost is missing)
+
+Identity (§9, S2)
+  PASS  the Manifest IdP serves, and its redirect target works
+          http://127.0.0.1:7122/ -> 303, and after redirects -> 200 (want 200)
+  PASS  the IdP image has pdo_pgsql
+          pdo_pgsql loaded: 1 (needs libpq-dev at build time — S2)
+  PASS  one INSERT registers an SP, read back through SimpleSAMLphp (S2)
+          SimpleSAMLphp read the probe SP back as: https://verify-probe.manifest.internal/acs
+  PASS  the SQL session store is a DIFFERENT subsystem, and also works (S2)
+          SimpleSAML\Store\SQLStore 'ok'
+  PASS  the IdP serves SAML metadata with our entityID and a certificate
+          metadata carries the configured entityID and a signing certificate
+  PASS  the IdP entityID is configured, not derived from the request host
+          entityID carries no port: https://idp.manifest.internal/idp/shibboleth
+  PASS  the control plane's own SP keypair is a usable pair (§9)
+          one RSA pair, Public-Key: (4096 bit), SAN carries the control plane entityID
+  PASS  the IdP is reachable through the edge over trusted TLS
+          https://idp.manifest.internal/module.php/core/welcome -> 200 (want 200, from SimpleSAMLphp)
+  PASS  the IdP signs an app's user out to the app, and to nowhere else
+          ReturnTo=https://verify-probe.staging.manifest.internal -> the IdP sends the browser to https://verify-probe.staging.manifest.internal/ after 2 hop(s), last 303 (want the app)
+ReturnTo=https://verify-probe.sandbox.manifest.internal -> the IdP sends the browser to https://verify-probe.sandbox.manifest.internal/ after 2 hop(s), last 303 (want the app)
+ReturnTo=https://verify-probe.manifest.internal -> the IdP sends the browser to https://verify-probe.manifest.internal/ after 2 hop(s), last 303 (want the app)
+ReturnTo=https://evil.example -> 500 (want refused: URL not allowed)
+ReturnTo=https://verify-probe.staging.manifest.internal.evil.example -> 500 (want refused: URL not allowed)
+ReturnTo=https://a.b.staging.manifest.internal -> 500 (want refused: URL not allowed)
+  PASS  the IdP loads core:AttributeLimit (without it release fails OPEN)
+          authproc.idp = [core:AttributeLimit,core:AttributeMap]
+  PASS  the database refuses a row whose attributes list is empty
+          INSERT of a row with attributes:[] exited 1 (want non-zero)
+  PASS  the database refuses a row with no attributes key at all
+          INSERT of a row with NO attributes key exited 1 (want non-zero)
+  PASS  the SimpleSAMLphp metadata user can read and cannot write (§9)
+          ssp_ro INSERT exited 1 (want non-zero)
+  PASS  the events table is append-only by GRANT, and unreachable through the FK (§20)
+          manifest_app: 4 write paths attempted, 4 refused; readable = yes
+  PASS  a login releases exactly the declared attributes, named by OID (§9)
+          5 attributes in, row declares 2, released: urn:oid:0.9.2342.19200300.100.1.3,urn:oid:1.3.6.1.4.1.60.6.1.6
+                                   wanted: urn:oid:0.9.2342.19200300.100.1.3,urn:oid:1.3.6.1.4.1.60.6.1.6
+  PASS  the IdP can instantiate the auth source its test users are defined with
+          manifest-test-users resolves to: SimpleSAML\Module\exampleauth\Auth\Source\UserPass
+  PASS  the IdP ships no flatfile SP metadata (§9)
+          no flatfile saml20-sp-remote.php; the SQL store is the only place an SP is defined
+
+C1 — host/container parity (S7 §Evidence 4, 5)
+  PASS  the host reaches https://edge.manifest.internal with no -k and no port
+          manifest OK host=edge.manifest.internal scheme=https remote=10.89.0.1 listener=internal
+  PASS  the certificate verifies against the macOS keychain
+          ssl_verify_result=0 (0 means the macOS keychain trusts it)
+  PASS  host and container see a byte-identical hostname and scheme
+          host     : manifest OK host=edge.manifest.internal scheme=https
+container: manifest OK host=edge.manifest.internal scheme=https
+  PASS  the host reaches https://console.manifest.internal and is not refused
+           [502]
+  PASS  a container on manifest-platform is refused by https://console.manifest.internal (§12)
+          manifest: the control plane is not reachable from this network [403]
+  PASS  the console's one allowed source is the platform network's gateway
+          platform gateway=10.89.0.1 Caddyfile allows=10.89.0.1 common.sh HOST_SOURCE_IP=10.89.0.1
+  PASS  all three §23 platform zones serve with a trusted certificate
+          served: chem-labs.manifest.internal chem-labs.sandbox.manifest.internal chem-labs.staging.manifest.internal
+  PASS  a name allocated at runtime resolves, routes and gets a certificate — on both listeners
+              srv1  late-arrival.manifest.internal -> runtime route OK
+    srv0  late-arrival.staging.manifest.internal -> runtime route OK
+  PASS  the package mirror holds every blueprint's closure as tarballs
+          250 pinned tarballs across every blueprint and fixture lockfile; 0 missing from the mirror
+  PASS  no platform container runs under emulation
+          every running platform container is native aarch64
+
+GitHub fake — D5's driver 2, locally (the D5 plan, Task 5)
+  PASS  the GitHub fake's four credential files are owner-only
+          all four infra/secrets/github-fake-* are 600 and rich's
+  PASS  compose gives the fake no App private key, and publishes it on 127.0.0.1 only
+          no App private key mounted; published on 127.0.0.1:7110 only
+Per-app resources (P3)
+  INFO  routing
+          runtime routes currently applied: 1 (the control plane re-applies these on edge start) 
+  INFO  per-app resources
+          mf- containers=6 networks=2 volumes=4 (0/0/0 immediately after make reset) 
+  PASS  nothing this platform owns has removed somebody else's containers or the CA
+          all four pre-existing containers and the CA volume are present
+
+  57 checks, 0 failed, 0 warnings
+
+=================== [M13] pnpm test at the open (summary lines)
+ Test Files  145 passed (145)
+      Tests  2005 passed (2005)
+   Duration  359.24s (transform 1.20s, setup 169ms, collect 23.05s, tests 321.01s, environment 11ms, prepare 3.54s)
+exit 0
+
+=================== s1a-escape
+$ node docs/superpowers/spikes/authoring-baseline/probes/escape.mjs "$SCRATCH"
+git version 2.50.1 (Apple Git-155)
+v24.12.0
+warning: You appear to have cloned an empty repository.
+  git add/commit failed: 
+(1) outside/pwned.txt exists after an API write of out/pwned.txt: true
+warning: Empty last update token.
+touch: : No such file or directory
+touch: : No such file or directory
+(2) worktree .git/config now names fsmonitor: true
+(2) the fsmonitor command RAN during git add: true
+exit 0
+
+=================== s1b-driver1
+$ MANIFEST_DATABASE_URL=postgres://nobody:nobody@127.0.0.1:1/unreachable node --experimental-transform-types --import ./packages/github-fake/resolve-ts.mjs docs/superpowers/spikes/authoring-baseline/probes/driver1-escape.ts "$SCRATCH"
+(node:71317) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+created { projectSlug: 'escape-lab', provider: 'local' } mainProtected true
+person pushed: 100644 blob e31de1f3a235fd5e8f97207b8e43cd2aa06a6417	README.md | 120000 blob 191381ee74dec49c89f99a62d055cb1058ba0de9	meta | 120000 blob 9a99a4a7bed400fd4932da29378f497b2b570163	out
+(a) out/pwned.txt: commitFiles THREW SOURCE_GIT_FAILED — git -c failed: Error: Command failed: git -c user.name=Manifest -c user.email=manifest@manifest.internal -c commit.gpgsign=false commit -m api: (a) out/pwned.tx
+(a) <outside>/pwned.txt exists: true
+(b) meta/config: commitFiles THREW SOURCE_GIT_FAILED — git push failed: Error: Command failed: git push origin main
+(b) the fsmonitor marker exists (a command RAN): true
+main after both: 5439945 person: two symlinks | 3768a75 chore: seed from blueprint skeleton
+exit 0
+
+=================== s2a-plumbing
+$ bash probes/plumbing.sh "$SCRATCH"
+base 4d9d1bb14e7413e47618167d73209e0c25de41e3
+fatal: this operation must be run in a work tree
+--- write THROUGH the symlink 'out' (out/pwned):
+fatal: git update-index: --cacheinfo cannot add out/pwned
+exit 0
+--- write THROUGH 'meta' (meta/config):
+fatal: git update-index: --cacheinfo cannot add meta/config
+--- the new tree:
+100644 blob f17a8185bfd5c7553cb956c714c1b12cc3d49513      15	README.md
+120000 blob 191381ee74dec49c89f99a62d055cb1058ba0de9       4	meta
+120000 blob 34ed534fa65f0c6634f8606abb21db4120a3016c       4	out
+100755 blob 1a2485251c33a70432394c93fb89330ef214bfc9      10	run.sh
+100644 blob 78981922613b2afb6025042ff6bd878ac1994e85       2	src/a.js
+100644 blob d122f2c93940ab31e9a59e25d550e6d4e74b80af      26	src/b.js
+--- push, non-forced:
+remote: pre-receive ran: 4d9d1bb14e7413e47618167d73209e0c25de41e3 791f4582c3418ec6cae6b1b65933c7ac0351f7d1 refs/heads/main        
+   4d9d1bb..791f458  791f4582c3418ec6cae6b1b65933c7ac0351f7d1 -> main
+--- nothing written outside: /etc/pwned exists?
+ls: /etc/pwned: No such file or directory
+--- a STALE base: a second commit on the old base, pushed non-forced:
+ ! [rejected]        abb30f408eb6109e33407c612eee5a8e9659202b -> main (non-fast-forward)
+error: failed to push some refs to '/private/tmp/claude-501/-Users-rich-Developer-manifest/fd5c9c99-6d40-4f7d-8e68-1c0afbc11259/scratchpad/lab2/app.git'
+hint: Updates were rejected because a pushed branch tip is behind its remote
+hint: counterpart. If you want to integrate the remote changes, use 'git pull'
+hint: before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+push exit 1
+--- objects copied into the target by the push (loose count before/after is not the question; the push worked from alternates)
+791f458 api commit
+4d9d1bb person
+exit 0
+
+=================== s2c-seams
+$ bash probes/seams.sh "$SCRATCH"
+== init with --git-dir naming the same directory:
+exit 0
+config description HEAD hooks info objects refs 
+== hash-object -w --no-filters --stdin-paths:
+4565b4dcbbb38e655115621f1fbf039ec31fd3d0
+c6003325155f475bd7c87731607525dce73be9cf
+exit 0
+4565b4dcbbb38e655115621f1fbf039ec31fd3d0
+c6003325155f475bd7c87731607525dce73be9cf
+== push --porcelain, rejected non-fast-forward: stdout vs stderr
+exit 1
+-- stdout:
+To /private/tmp/claude-501/-Users-rich-Developer-manifest/fd5c9c99-6d40-4f7d-8e68-1c0afbc11259/scratchpad/lab3/t.git
+!	4e7c6783ff05865eac977ac96619ea7f9765aa8e:refs/heads/main	[rejected] (non-fast-forward)
+Done
+-- stderr:
+error: failed to push some refs to '/private/tmp/claude-501/-Users-rich-Developer-manifest/fd5c9c99-6d40-4f7d-8e68-1c0afbc11259/scratchpad/lab3/t.git'
+hint: Updates were rejected because a pushed branch tip is behind its remote
+hint: counterpart. If you want to integrate the remote changes, use 'git pull'
+hint: before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+exit 0
+
+=================== s2d-filters
+$ bash probes/filters.sh "$SCRATCH"
+== the raw bytes' blob ids (no path, no attributes):
+ce013625030ba8dba906f756967f9e9ca394464a
+e019be006cf33489e2d0177a3837a2384eddebc5
+== (A1) positive control — worktree, filter defined, WITHOUT --no-filters:
+e427984d4a2c1904681f2e2ee5980f37640d353f
+11546abdde1fb78050e2c7ff4c8a7ecf002a5c11
+exit 0 ; marker: PRESENT
+== (A2) the same, WITH --no-filters:
+ce013625030ba8dba906f756967f9e9ca394464a
+e019be006cf33489e2d0177a3837a2384eddebc5
+exit 0 ; marker: absent
+== (B1) bare --git-dir, filter defined, WITHOUT --no-filters:
+ce013625030ba8dba906f756967f9e9ca394464a
+e019be006cf33489e2d0177a3837a2384eddebc5
+exit 0 ; marker: absent
+== (B2) the same, WITH --no-filters:
+ce013625030ba8dba906f756967f9e9ca394464a
+e019be006cf33489e2d0177a3837a2384eddebc5
+exit 0 ; marker: absent
+exit 0
+
+=================== s2b-indexinfo
+$ bash probes/indexinfo.sh "$SCRATCH"
+== delete src/a.js: update-index exit 0 
+   write-tree: 00ee273327db68abd2de419929dd7c23b28615d7
+README.md meta out run.sh src/b.js 
+== delete a path that is not there: update-index exit 0 
+   write-tree: db61a894d10f3189699e13fb3f8f76b164bd716e
+README.md meta out run.sh src/a.js src/b.js 
+== write under the symlink out: update-index exit 0 
+   write-tree: a4ebb4c30a5c8c0073c36b8b770a37f348ad8e63
+README.md meta out/pwned run.sh src/a.js src/b.js 
+== a FILE where the directory src is: update-index exit 0 
+   write-tree: aca1dc353a3759a27f2048295648b089106a98dc
+README.md meta out run.sh src 
+== a directory where the file README.md is: update-index exit 0 
+   write-tree: 32dc098a00a8b7ca190f1496d67c40ffc0fb34ff
+README.md/inner meta out run.sh src/a.js src/b.js 
+exit 0
+$ git -C lab2/app.git rev-parse main^{tree}   # the base tree, vs the "not there" case
+db61a894d10f3189699e13fb3f8f76b164bd716e
+
+=================== s3-docs
+$ jq '.info.version, (.paths|to_entries|map(.value|keys|length)|add), (.components.schemas|keys|length)' packages/contract/openapi.json
+"1.2.0"
+43
+64
+$ jq '[.. | objects | select(has("properties")) | .properties | to_entries[]] | length' packages/contract/openapi.json
+786
+$ ... select(.value.description==null) ... | length
+556
+$ grep -c '"example' packages/contract/openapi.json
+0
+$ jq '.components.schemas.ErrorCode.enum|length' packages/contract/openapi.json
+99
+$ grep -nE '<internal-artefact pattern>' packages/contract/openapi.json | wc -l
+      35
+--- extra: operations counted by HTTP method only (keys under .paths include 'parameters'/'x-*' if any)
+43
+{
+  "delete": 2,
+  "get": 26,
+  "post": 15
+}
+--- extra: schemas with no description
+34
+--- extra: operations whose description is under 40 characters
+getBlueprint	30
+listBuilds	28
+listReleases	28
+getRelease	28
+--- extra: the internal-artefact lines themselves (first 40)
+359:eploy is a 200 whose state is `failed` (R3, §14). The previous instance 
+830:e project and cannot make another (D24, P5b Decision 13), which is also w
+1018:s 202 at once with the build `running` (R6); its log lines arrive as `lo
+1324:        "description": "§9, D19 and R1: an administrator records the
+1404:        "description": "§9, D19 and R1: the same shape as the IAM re
+1532:: a delegated token will never hold it (P5b).",
+1613:tes a pending action a person confirms (P5b). Idempotent — removing someb
+1745:        "description": "D21, as P6a redefines it for a laptop (R2
+2312:’s exact diff, computed NOW and STORED (Rich, 2026-09-22; P6b Decision 10)
+2383:administrator what they read before it (P6b Task 9). 404 for a preview of
+2446:are recomputed and must not have moved (P6b Task 9). `previewId` is optio
+2728:/login (§9). Delegated tokens arrive in P5b."
+2787:else, and a user id tells them nothing (P6b Decision 18).",
+2815:or read, whose diff this record COPIES (P6b Task 9). Null only for a deci
+2950:ged. **Null is a state, not an error** (Decision 7): an approval gate that fails
+2983:d fills a schema with no place for one (the D5 plan’s Decision 19). The change li
+3011:st launch, and for a record made before P6b.",
+3040:            "description": "R4(d): what each changed field m
+3069:ode. Null only for a record made before P6b.",
+3080:            "description": "R4 (D33, §15): the code reviewer
+3149:           "description": "Who took it (P6b Decision 18).",
+3389:d` or `failed` on the project’s stream (R6).",
+3740: (§6 Route); for an app deployed before P4c, its newest instance. Null be
+7835:AL, production-shaped rehearsal (D21 as P6a redefines it for a laptop): i
+7864:iption": "What the registration listed. Decision 10 compares these with what the 
+8154: the app declares — never their values (P5a Decision 22).",
+8283: the app declares — never their values (P5a Decision 22).",
+8412: the app declares — never their values (P5a Decision 22).",
+8648:tion": "D9. Reported, not yet enforced (P6).",
+8726:Its own JSON Schema is not published in P5a.",
+8824:ke, enforced in the control plane (§20, P5b Task 9). Past it, every route
+8932:why": "§20's step-up re-authentication (P6a Task 8). A browser navigation
+8942: logout, so the IdP's session ends too (P6b F10); not a resource."
+8947:sole sign-out. Declared POST-only until P5c sitting 9 found that single l
+8962:hy": "GitHub's deliveries (D5 driver 2, the D5 plan's Task 9): its caller is GitH
+
+=================== s4a-zjs-install
+$ pnpm add --offline zod-to-json-schema@3.25.2   (in $SCRATCH/zjs)
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +2
+++
+Packages are cloned from the content-addressable store to the virtual store.
+  Content-addressable store is at: /Users/rich/Library/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+[ERR_PNPM_NO_OFFLINE_TARBALL] A package is missing from the store but cannot download it in offline mode. The missing package may be downloaded from https://registry.npmjs.org/zod/-/zod-4.6.5.tgz.
+
+This error happened while installing a direct dependency of /private/tmp/claude-501/-Users-rich-Developer-manifest/fd5c9c99-6d40-4f7d-8e68-1c0afbc11259/scratchpad/zjs
+exit 1
+$ pnpm add --offline zod@3.25.76 zod-to-json-schema@3.25.2   (in $SCRATCH/zjs)
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 2, reused 2, downloaded 0, added 2, done
+
+dependencies:
++ zod 3.25.76 (4.6.5 is available)
++ zod-to-json-schema 3.25.2
+
+Done in 396ms using pnpm v11.24.0
+exit 0
+{"name":"zjs-probe","private":true,"type":"module","dependencies":{"zod":"3.25.76","zod-to-json-schema":"3.25.2"}}
+69:  "peerDependencies": {
+70-    "zod": "^3.25.28 || ^4"
+71-  },
+72-  "devDependencies": {
+
+=================== s4b-zod-to-json
+$ node docs/superpowers/spikes/authoring-baseline/probes/zod-to-json.mjs "$SCRATCH/zjs"
+== target jsonSchema7: 4192 bytes, $schema http://json-schema.org/draft-07/schema#
+== target jsonSchema2019-09: 4303 bytes, $schema https://json-schema.org/draft/2019-09/schema#
+== target openApi3: 4253 bytes, $schema (none)
+top-level keys: manifest,name,blueprint,description,runtime,resources,services,auth,ai,env,egress,data,integrations,jobs,checks,environments
+top-level required: ["manifest","name","blueprint","runtime"]  additionalProperties: false
+runtime.build: {"not":{}}  runtime.required: ["port"]
+integrations: {"type":"array","items":{"not":{}},"maxItems":0,"default":[]}
+jobs: {"type":"array","items":{"not":{}},"maxItems":0,"default":[]}
+checks: {"type":"array","items":{"not":{}},"maxItems":0,"default":[]}
+env item: {"type":"object","properties":{"name":{"type":"string","pattern":"^[A-Z][A-Z0-9_]*$"},"value":{"type":"string"},"secret":{"type":"boolean"}},"required":["name"],"additionalProperties":false}
+defaults present: 23 — "/healthz" null {} [] "none" [] "/auth/ubcshib/callback" "/auth/logout" {} [] 0 {} {} [] [] {} "internal" 365 {} [] [] [] {}
+agree    zod=valid   ajv=valid    the proof-app starter
+agree    zod=valid   ajv=valid    the bare skeleton seed
+agree    zod=invalid ajv=invalid  an unknown top-level key
+agree    zod=invalid ajv=invalid  runtime.build declared
+agree    zod=invalid ajv=invalid  a bad name
+agree    zod=invalid ajv=invalid  a reserved hook used
+DISAGREE zod=invalid ajv=valid    env: a value AND secret: true (the refine)
+DISAGREE zod=invalid ajv=valid    env: neither value nor secret (the refine)
+agree    zod=valid   ajv=valid    env: secret: true alone
+exit 0
+
+=================== s4c-zod4port
+$ node docs/superpowers/spikes/authoring-baseline/probes/zod4port.mjs
+1638 bytes; manifest,name,blueprint,description,runtime,resources,services,env,integrations
+runtime.build: {"not":{}}  integrations: {"default":[],"maxItems":0,"type":"array","items":{"not":{}}}
+throw mode: ok
+exit 0
+
+=================== s5a-redocly-install
+$ pnpm add --offline @redocly/openapi-core@1.34.20   (in $SCRATCH/redocly)
+  Content-addressable store is at: /Users/rich/Library/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 20, reused 20, downloaded 0, added 20, done
+
+dependencies:
++ @redocly/openapi-core 1.34.20 (2.53.2 is available)
+
+Done in 475ms using pnpm v11.24.0
+exit 0
+
+=================== s5b-redocly-lint
+$ node docs/superpowers/spikes/authoring-baseline/probes/redocly-lint.mjs "$SCRATCH/redocly"
+53 problems, 4 rules
+  42  warn	operation-4xx-response
+        e.g. #/paths/~1v1~1blueprints/get/responses — Operation must have at least one `4XX` response.
+        e.g. #/paths/~1v1~1blueprints~1{blueprintRef}/get/responses — Operation must have at least one `4XX` response.
+        e.g. #/paths/~1v1~1blueprints~1{blueprintRef}~1knowledge-pack/get/responses — Operation must have at least one `4XX` response.
+   9  warn	tag-description
+        e.g. #/tags/0/description — Tag object should contain `description` field.
+        e.g. #/tags/1/description — Tag object should contain `description` field.
+        e.g. #/tags/2/description — Tag object should contain `description` field.
+   1  warn	info-license
+        e.g. #/info — Info object should contain `license` field.
+   1  warn	no-unused-components
+        e.g. #/components/schemas/StreamFrame — Component: "StreamFrame" is never used.
+network attempts during the lint: 0
+canary positive control (dns.lookup('localhost') after the lint): 1 attempt seen
+exit 0
+
+=================== s6a-install
+$ pnpm add @scalar/api-reference   (in $SCRATCH/renderer-scalar, NETWORK at Rich's yes)
+Progress: resolved 268, reused 15, downloaded 253, added 268, done
+
+dependencies:
++ @scalar/api-reference 1.72.0
+
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: vue-demi@0.14.10
+
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+exit 1
+$ pnpm add redoc   (in $SCRATCH/renderer-redoc, NETWORK at Rich's yes)
+Packages are cloned from the content-addressable store to the virtual store.
+  Content-addressable store is at: /Users/rich/Library/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 110, reused 36, downloaded 73, added 109
+Progress: resolved 110, reused 36, downloaded 74, added 110, done
+
+dependencies:
++ redoc 2.5.4
+
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: core-js@3.50.0
+
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+exit 1
+
+=================== s6b-offline-reinstall
+$ pnpm add --offline @scalar/api-reference@1.72.0   (in $SCRATCH/renderer-offline, a fresh package — Task 11 mirrored)
+Progress: resolved 268, reused 268, downloaded 0, added 268, done
+
+dependencies:
++ @scalar/api-reference 1.72.0
+
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: vue-demi@0.14.10
+
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+exit 1
+
+=================== s6-server-log
+127.0.0.1 - - [25/Sep/2026 19:20:14] "GET /scalar-default.html HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:20:14] "GET /scalar/standalone.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:20:15] "GET /openapi.json HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:20:16] code 404, message File not found
+127.0.0.1 - - [25/Sep/2026 19:20:16] "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - - [25/Sep/2026 19:20:29] "GET /scalar-default.html HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:20:29] "GET /scalar/standalone.js HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:20:29] "GET /openapi.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:20:43] "GET /scalar.html HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:20:43] "GET /scalar/standalone.js HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:20:43] "GET /openapi.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:21:02] "GET /scalar.html HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:21:02] "GET /scalar/standalone.js HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:21:02] "GET /openapi.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:21:35] "GET /scalar-all.html HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:21:35] "GET /scalar/standalone.js HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:21:35] "GET /openapi.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:22:09] "GET /openapi.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:22:30] "GET /openapi.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:22:52] "GET /redoc.html HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:22:52] "GET /redoc/redoc.standalone.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:22:52] "GET /openapi.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:23:27] "GET /redoc.html HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:23:27] "GET /redoc/redoc.standalone.js HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:23:27] "GET /openapi.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:23:55] "GET /scalar-variant.html HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:23:55] "GET /scalar/standalone.js HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:23:55] "GET /openapi-variant.json HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:24:07] "GET /redoc-variant.html HTTP/1.1" 200 -
+127.0.0.1 - - [25/Sep/2026 19:24:07] "GET /redoc/redoc.standalone.js HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:24:07] "GET /openapi-variant.json HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:24:27] "GET /scalar-variant.html HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:24:27] "GET /scalar/standalone.js HTTP/1.1" 304 -
+127.0.0.1 - - [25/Sep/2026 19:24:27] "GET /openapi-variant.json HTTP/1.1" 304 -
+
+=================== s6c-browser
+Chrome, the claude-in-chrome extension's read_network_requests (tracking on before each load), 2026-09-25 ~19:20–19:30.
+Pages served by `python3 -m http.server 8931 --bind 127.0.0.1` from $SCRATCH/renderer-site (probes/renderer/*.html,
+openapi.json copied from packages/contract, scalar/standalone.js, redoc/redoc.standalone.js).
+
+--- scalar-default.html (Scalar 1.72.0 at its DEFAULTS — the positive control), reload, 6 s:
+1. http://127.0.0.1:8931/scalar-default.html GET 200
+2. http://127.0.0.1:8931/scalar/standalone.js GET 304
+3. http://127.0.0.1:8931/openapi.json GET 200
+4. https://fonts.scalar.com/inter-latin.woff2 GET 200
+5. https://fonts.scalar.com/inter-symbols.woff2 GET 200
+6. https://fonts.scalar.com/mono-latin.woff2 GET 200
+(page shows: Ask AI, Generate MCP, Developer Tools, Configure, Share, Deploy)
+
+--- scalar.html (the offline configuration, agent.disabled included), 6 s:
+1. http://127.0.0.1:8931/scalar.html GET 200
+2. http://127.0.0.1:8931/scalar/standalone.js GET 200
+3. http://127.0.0.1:8931/openapi.json GET 200
+console: [INFO] @scalar/api-reference@1.72.0 (only message)
+--- scalar.html again, then search typed ("commit"), Escape, a sidebar group clicked: the same 3 requests, nothing else.
+
+--- scalar-all.html (offline configuration WITHOUT agent.disabled, plus defaultOpenAllTags/expandAllModelSections/expandAllResponses), 8 s:
+1. http://127.0.0.1:8931/scalar-all.html GET 200
+2. http://127.0.0.1:8931/scalar/standalone.js GET 200
+3. http://127.0.0.1:8931/openapi.json GET 200
+DOM: { askAI: true, generateMCP: false, errorWords: [] }
+coverage (document fetched same-origin by the probe script): { pathsMissing: [], opsTotal: 43, opsWithSummary: 43,
+  opSummariesMissing: [], schemasTotal: 64, schemasMissing: [] }
+nullable (Approval.reason): "reason ⏎ Type: ⏎ string ⏎ nullable ⏎ required"
+const (ControlFrame): "kind ⏎ const: ⏎ control ⏎ required … type ⏎ const: ⏎ manifest.stream.ready ⏎ required"
+stream operation (after opening it, #tag/events/GET/v1/projects/{projectId}/events): "Upgrade to a WebSocket. … Responses ⏎ 101
+  ⏎ Switching Protocols. Every message is one StreamFrame, as JSON. ⏎ 426 ⏎ Type: ⏎ ErrorEnvelope … ⏎ default ⏎ Type: ⏎ ErrorEnvelope"
+after all of that: only the probe's own two fetches of http://127.0.0.1:8931/openapi.json; console: no error or warning.
+
+--- redoc.html (Redoc 2.5.4, Redoc.init with default options), 8 s, twice:
+1. data:image/svg+xml;base64,… GET 200
+2. https://cdn.redoc.ly/redoc/logo-mini.svg GET 200
+coverage: { pathsMissing: 0, opSummariesMissing: [], schemasMissingByName: 56, schemasTotal: 64, constShown: false, errors: 0 }
+bundle: …createElement("a",{target:"_blank",rel:"noopener noreferrer",href:"https://redocly.com/redoc/"},n.createElement(pw,null),"API docs by Redocly")…
+        function pw(){…e?n.createElement("img",{alt:"redocly logo",onError:()=>t(!1),src:"https://cdn.redoc.ly/redoc/logo-mini.svg"}):null}
+        — no option guards it; `hideLogo` is in the options schema beside hideDownloadButton etc. and concerns the document's x-logo.
+
+--- the variant document (ErrorCode x-enumDescriptions for SOURCE_CONFLICT and NOT_FOUND with ENUMDESC-PROBE text; an example
+    on GET /v1/fleet's 200), scalar-variant.html and redoc-variant.html:
+Scalar: { enumDescShown: false, exampleShown: true }; network: 127.0.0.1:8931 only. Opening ErrorCode by script and by
+        #model/errorcode did not put the enum's values in the page text — NOT ESTABLISHED.
+Redoc:  { enumDescShown: false, exampleShown: true }
+bundles: scalar/standalone.js reads x-enumDescriptions (8), x-enum-descriptions (7), x-enum-varnames (8), x-enumNames (6);
+         redoc.standalone.js reads x-enumDescriptions (7).
+
+=================== s7-large-tree-FAILED-clone
+$ bash probes/large-tree.sh "$SCRATCH"
+big.txt bytes: 20971605
+fatal: failed to copy file to 'app.git/objects/fa/18a84fd290e6ad4a7655923d6cd91ebba80e1d': No such file or directory
+fatal: cannot change to 'app.git': No such file or directory
+files in HEAD: 0
+uptime: 19:17  up 15 days,  7:18, 5 users, load averages: 3.75 3.71 3.53
+-- run 1
+ls-tree -r -t -l -z --full-tree HEAD: fatal: cannot change to 'app.git': No such file or directory
+0.013 s
+   bytes of listing: 0
+diff --numstat <empty> HEAD:            fatal: cannot change to 'app.git': No such file or directory
+0.012 s
+   lines: 0
+archive --format=tar -o:               fatal: not a git repository: '/private/tmp/claude-501/-Users-rich-Developer-manifest/fd5c9c99-6d40-4f7d-8e68-1c0afbc11259/scratchpad/lab5/app.git'
+0.011 s
+   archive bytes: 0
+tar -x -f (the context unpacked):      0.004 s
+-- run 2
+ls-tree -r -t -l -z --full-tree HEAD: fatal: cannot change to 'app.git': No such file or directory
+0.010 s
+   bytes of listing: 0
+diff --numstat <empty> HEAD:            fatal: cannot change to 'app.git': No such file or directory
+0.011 s
+   lines: 0
+archive --format=tar -o:               fatal: not a git repository: '/private/tmp/claude-501/-Users-rich-Developer-manifest/fd5c9c99-6d40-4f7d-8e68-1c0afbc11259/scratchpad/lab5/app.git'
+0.011 s
+   archive bytes: 0
+tar -x -f (the context unpacked):      0.004 s
+-- run 3
+ls-tree -r -t -l -z --full-tree HEAD: fatal: cannot change to 'app.git': No such file or directory
+0.012 s
+   bytes of listing: 0
+diff --numstat <empty> HEAD:            fatal: cannot change to 'app.git': No such file or directory
+0.011 s
+   lines: 0
+archive --format=tar -o:               fatal: not a git repository: '/private/tmp/claude-501/-Users-rich-Developer-manifest/fd5c9c99-6d40-4f7d-8e68-1c0afbc11259/scratchpad/lab5/app.git'
+0.012 s
+   archive bytes: 0
+tar -x -f (the context unpacked):      0.004 s
+uptime after: 19:17  up 15 days,  7:18, 5 users, load averages: 3.75 3.71 3.53
+exit 0
+
+=================== s7-large-tree
+$ bash probes/large-tree.sh "$SCRATCH"
+big.txt bytes: 20971605
+files in HEAD: 10001
+uptime: 19:18  up 15 days,  7:18, 5 users, load averages: 3.67 3.69 3.52
+-- run 1
+ls-tree -r -t -l -z --full-tree HEAD: 0.020 s
+   bytes of listing: 763670
+diff --numstat <empty> HEAD:            0.064 s
+   lines: 10001
+archive --format=tar -o:               0.079 s
+   archive bytes: 31324160
+tar -x -f (the context unpacked):      0.970 s
+-- run 2
+ls-tree -r -t -l -z --full-tree HEAD: 0.019 s
+   bytes of listing: 763670
+diff --numstat <empty> HEAD:            0.052 s
+   lines: 10001
+archive --format=tar -o:               0.068 s
+   archive bytes: 31324160
+tar -x -f (the context unpacked):      0.844 s
+-- run 3
+ls-tree -r -t -l -z --full-tree HEAD: 0.020 s
+   bytes of listing: 763670
+diff --numstat <empty> HEAD:            0.052 s
+   lines: 10001
+archive --format=tar -o:               0.053 s
+   archive bytes: 31324160
+tar -x -f (the context unpacked):      0.878 s
+uptime after: 19:18  up 15 days,  7:18, 5 users, load averages: 3.93 3.75 3.54
+exit 0
+
+=================== s8-exec
+$ docker run -d --rm --name mf-exec-probe 127.0.0.1:7107/base/node@sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a sleep 300
+257f2e843062feb4b95c3748f12f317b898592f11c2bbaf21ea678b462305120
+$ MANIFEST_DATABASE_URL=postgres://nobody:nobody@127.0.0.1:1/unreachable node --experimental-transform-types --import ./packages/github-fake/resolve-ts.mjs docs/superpowers/spikes/authoring-baseline/probes/exec-probe.ts mf-exec-probe
+(1) the plan's command: stdout=["out"] stderr=["err"] exit=3 first stdout line after 32 ms; exit known after 32 ms; streams ended: yes
+(2) streamed or buffered?: stdout=["first","second"] stderr=[] exit=0 first stdout line after 2042 ms; exit known after 2042 ms; streams ended: yes
+$ docker rm -f mf-exec-probe
+mf-exec-probe
+mf-exec-probe containers left: 0
+
+=================== s9-seams
+$ grep -rn commitFiles packages/control-plane/src/
+packages/control-plane/src/releases/approval.test.ts:118:  await ctx.deps.source.commitFiles(
+packages/control-plane/src/source/driver-contract.ts:119:      const second = await h.driver.commitFiles(
+packages/control-plane/src/source/driver-contract.ts:220:        await code(h.driver.commitFiles(repo, { '../outside.txt': 'x' }, 'escape')),
+packages/control-plane/src/source/driver-contract.ts:242:            h.driver.commitFiles(repo, { [path]: '[core]\n\tfsmonitor = true\n' }, 'x'),
+packages/control-plane/src/source/driver-contract.ts:252:      const sha = await h.driver.commitFiles(
+packages/control-plane/src/source/driver-contract.ts:272:        .commitFiles(
+packages/control-plane/src/source/driver-contract.ts:288:      const clean = await h.driver.commitFiles(
+packages/control-plane/src/source/git-driver.ts:146:  commitFiles(repo: RepoRef, files: SeedFiles, message: string): Promise<string>
+packages/control-plane/src/source/local-driver.test.ts:73:    await driver.commitFiles(
+packages/control-plane/src/source/local-driver.ts:194:    async commitFiles(repo, files, message) {
+packages/control-plane/src/source/github/driver.ts:87: * `headCommit`, `listBranches` and `commitFiles`' base read. Without it one rewrite froze
+packages/control-plane/src/source/github/driver.ts:690:    async commitFiles(repo, files, message) {
+packages/control-plane/src/source/github/driver.test.ts:192:        const mine = await g.driver.commitFiles(repo, { 'x.txt': 'x\n' }, 'after')
+packages/control-plane/src/source/github/driver.test.ts:284:      await h.driver.commitFiles(repo, { 'x.txt': 'x\n' }, 'one more')
+packages/control-plane/src/api/testing.ts:191:  await ctx.deps.source.commitFiles(
+packages/control-plane/src/api/testing.ts:294:    await deps.source.commitFiles(
+packages/control-plane/src/api/projects.test.ts:642:    const commitSha = await deps.source.commitFiles(
+packages/control-plane/src/api/projects.test.ts:735:    await deps.source.commitFiles(
+packages/control-plane/src/api/projects.test.ts:781:    await deps.source.commitFiles(
+packages/control-plane/src/api/projects.test.ts:824:    await deps.source.commitFiles(
+packages/control-plane/src/api/projects.test.ts:951:    await deps.source.commitFiles(
+packages/control-plane/src/api/delivery.test.ts:340:    await deps.source.commitFiles(
+
+$ jq ApprovalDiff.changes items
+["from","path","summary","to"]
+
+=================== [M13] pnpm test:docker at the open (summary lines)
+ Test Files  34 passed (34)
+      Tests  208 passed (208)
+   Duration  905.68s (transform 638ms, setup 54ms, collect 8.81s, tests 892.44s, environment 3ms, prepare 1.00s)
+exit 0
+
+=================== [M13] the cleanup scripts after the Docker tier: bare, --apply
+=== dead-app-resources (bare)
+  KEEP   mf-launch-app-production-db-data — held by mf-launch-app-production-db
+  KEEP   mf-launch-app-staging-db-data — held by mf-launch-app-staging-db
+  KEEP   mf-launch-app-staging-defdeda2-852041a5-app-files — held by mf-launch-app-staging-defdeda2-852041a5-app
+
+Nothing was changed. 7 network(s) and 1 volume(s) are dead.
+  Run: bash scripts/dead-app-resources.sh --apply
+  An agent session cannot: the classifier refuses 'docker network rm' as
+  [Interfere With Workloads]. Hand this output over rather than working around it.
+=== litellm-orphans (bare)
+
+Orphaned (1) — no app holds any of their keys
+  p4b-probe-user
+
+  (read 2 app container(s); 'default_user_id' is LiteLLM's own and is never touched)
+
+LISTED ONLY — nothing was changed.
+  To delete them:  bash scripts/litellm-orphans.sh --apply
+=== app-images (bare)
+       1 chem-labs
+       1 boot-recover
+       1 blueprint-ntm
+  DEAD   12 image(s) no container uses, holding 0.1 GB of their own
+  (kept: 2)
+
+Nothing was changed. 12 app image(s) are dead.
+  Run: bash scripts/app-images.sh --apply
+=== dead-app-resources --apply
+  removed volume mf-chem-labs-staging-db-data
+
+Re-measuring, from scratch — never from the list above
+  networks left: 2
+  volumes left:  4
+  Now run `make verify` and read its per-app resources INFO line.
+=== litellm-orphans --apply
+  deleted p4b-probe-user (0 key(s))
+
+Re-reading the list — the answer, not that an answer arrived
+  2 user(s) remain (was 4)
+
+Done. Every held user survived and every orphan is gone.
+=== app-images --apply
+  Docker's own figures:
+    TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+    Images          42        15        21.35GB   12.93GB (60%)
+    Containers      20        18        53.74MB   213kB (0%)
+    Local Volumes   22        13        6.751GB   4.683GB (69%)
+    Build Cache     182       0         25.14GB   20.92GB
+
+=================== [M13] make verify after the Docker tier and the cleanup
+          all four infra/secrets/github-fake-* are 600 and rich's
+  PASS  compose gives the fake no App private key, and publishes it on 127.0.0.1 only
+          no App private key mounted; published on 127.0.0.1:7110 only
+Per-app resources (P3)
+  INFO  routing
+          runtime routes currently applied: 0 (the control plane re-applies these on edge start) 
+  INFO  per-app resources
+          mf- containers=6 networks=2 volumes=4 (0/0/0 immediately after make reset) 
+  PASS  nothing this platform owns has removed somebody else's containers or the CA
+          all four pre-existing containers and the CA volume are present
+
+  57 checks, 0 failed, 0 warnings

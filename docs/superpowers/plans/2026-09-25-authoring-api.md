@@ -50,8 +50,8 @@
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Status |
 |---|---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on.** Measured while it was written, and to be re-measured: the symlink escape and `fsmonitor` through a worktree, the plumbing commit, `--index-info`'s silent replacements, the documentation baseline, a JSON Schema for `manifest.yaml`. **To be measured for the first time:** the HTML renderer's candidates offline (**network at Rich's yes**), the two store packages offline, a tree listing's cost at 10,000 files, the build context on a very large tree, `exec` against a real container (the brief's §7), and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | ← **next — the split is approved (2026-09-25); in progress** |
-| 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | |
+| 1 | 1 | **The measurements this plan rests on.** Measured while it was written, and to be re-measured: the symlink escape and `fsmonitor` through a worktree, the plumbing commit, `--index-info`'s silent replacements, the documentation baseline, a JSON Schema for `manifest.yaml`. **To be measured for the first time:** the HTML renderer's candidates offline (**network at Rich's yes**), the two store packages offline, a tree listing's cost at 10,000 files, the build context on a very large tree, `exec` against a real container (the brief's §7), and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-25** — every premise holds and no boundary moves; the renderer is Scalar 1.72.0; `zod-to-json-schema`, no v4 port; `[M<n>]` blocks on Tasks 2, 3, 4, 9, 11 |
+| 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | ← **next** |
 | 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract to `1.3.0` | **Yes** — `source/`, `projects/` | |
 | 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | |
 | 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | |
@@ -349,6 +349,15 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Task 2: F7 — an attribute change's added and removed halves, handed to the model as their own facts, and adopted only if it measures better
 
+> **`[M15]` — CONFIRMED, AND ONE PATH CORRECTED (2026-09-25, sitting 1, F15; `spikes/authoring-baseline/README.md`).**
+> This task is the first to move `openapi.json` **whatever Step 5 decides**: `ApprovalDiff.changes[]` is published inline as
+> `{ from, path, summary, to }`, and Step 5 keeps the published `added`/`removed` even when the prompt change is reverted.
+> **Every command naming `spikes/authoring-baseline/probes/f7.mjs` resolves only from `docs/superpowers/`** — from the
+> repository root it is `node docs/superpowers/spikes/authoring-baseline/probes/f7.mjs 40 2` (and `… 40 3`). Its parent,
+> `spikes/d5-baseline/probes/structured.mjs`, exists and imports the shipped `summary.ts` under Node's type stripping; if
+> `f7.mjs`'s import graph ever reaches a class with a parameter property (`SourceError` is one), strip-only mode refuses it
+> and `--experimental-transform-types` loads it (F1).
+
 **Rich's decision, 2026-09-25: this is the first task after the measurements.** The D5 plan's sitting 7 measured **5 of 40** `auth.attributes` sentences saying the app now RECEIVES `sn` when the change removes it. The model is handed `from: "eduPersonAffiliation, givenName, mail, sn, ubcEduCwlPuid"` and `to: "eduPersonAffiliation, givenName, mail, ubcEduCwlPuid"` and must work out the difference itself. **The fix to try**: every change to a set-valued path carries `added` and `removed` as lists, computed by `describeDiff`, and the model is handed them. **Adopted only if the measurement says so** (Step 5); otherwise reverted, and options (b) and (c) of the D5 plan's sitting 7 go back to Rich.
 
 **Files:**
@@ -438,6 +447,20 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 ---
 
 ## Task 3: The write primitive, rebuilt — plumbing commits with no worktree, planned against the base tree, verified, and pushed non-forced, on both drivers
+
+> **`[M1]`, `[M2]`, `[M3]` AND `[M15]` — CONFIRMED, WITH TWO THINGS ADDED (2026-09-25, sitting 1, F3 and F12;
+> `spikes/authoring-baseline/README.md`).** Both holes are in the SHIPPED driver 1, not only in the copy
+> (`probes/driver1-escape.ts`) — **and in both cases `commitFiles` THREW `SOURCE_GIT_FAILED` AFTER the damage was done**:
+> the file outside was written before git refused to add it, and through `meta → .git` `git add` ran the `fsmonitor`
+> command, `git commit` SUCCEEDED, and only the push failed, because the replaced config had lost `remote.origin`. So this
+> task's attack cases must go on asserting the FILESYSTEM and the canary, never the refusal alone — a refusal is no evidence
+> that nothing happened. **Every plumbing prediction held exactly** (`plumbing.sh`, `indexinfo.sh`, `seams.sh`). **The
+> `hash-object` filter case now has the positive control it lacked** (`probes/filters.sh`): with a clean filter DEFINED, a
+> worktree runs it without `--no-filters` (the blob ids change, the marker appears) and not with it; in the bare
+> `--git-dir` shape this task builds it does not run even WITHOUT the flag — so `--no-filters` is a second layer that
+> holds alone. **The eighteen call sites are exactly the plan's.** *A scratch probe against `source/`* runs as `node
+> --experimental-transform-types --import ./packages/github-fake/resolve-ts.mjs <probe>.ts` with `MANIFEST_DATABASE_URL`
+> pointed at an address nothing listens on (F1, F2).
 
 **This task closes *Read this first* 1 by removing the thing that has the hole.** After it, nothing in the control plane writes a repository's file at that file's own path.
 
@@ -1009,6 +1032,12 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 ---
 
 ## Task 4: The read primitives — a tree, a text file, a history and one commit's changes, on both drivers
+
+> **`[M10]` — MEASURED (2026-09-25, sitting 1, F13): THE CAPS STAND.** On a bare repository of 10,001 files (10,000 of ~30
+> bytes across 200 directories, and one of 20 MB), `git ls-tree -r -t -l -z --full-tree HEAD` takes 0.02 s and writes
+> 763,670 bytes, and `git diff --numstat <empty tree> HEAD` 0.05–0.06 s (10,001 lines), at load ~3.8. So a listing AT the
+> 10,000-entry cap is fast, and its answer is of the order of a megabyte of JSON: keep the cap, and do not raise it for
+> speed's sake. Nothing measured contradicts the 256 KiB patch cap.
 
 **Files:**
 - Create: `packages/control-plane/src/source/reading.ts`, `packages/control-plane/src/source/reading.test.ts`
@@ -1624,6 +1653,38 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Task 9: The reference, completed — every operation, parameter, schema, property, error code and event documented, an example on every operation, and a gate that keeps it so
 
+> **`[M6]`, `[M7]` AND `[M8]` — MEASURED (2026-09-25, sitting 1; F4, F5, F6, F7, F11; `spikes/authoring-baseline/README.md`).**
+>
+> **`[M6]`**: every predicted count held (`1.2.0`, 43 / 64 / 786 / 556 / 0 / 99); **35 lines** of public text name an
+> internal artefact; 34 schemas have no description; and **four** operation descriptions are fragments — `getBlueprint`
+> (30 characters) as well as the three at 28.
+>
+> **`[M7]` — Ruling, by the decision rule's own terms: `zod-to-json-schema` 3.25.2, and NO port to zod/v4.** The `env`
+> entry's `.refine` (`value` XOR `secret: true`) is dropped SILENTLY by `zod-to-json-schema` and ALSO by zod/v4's
+> `z.toJSONSchema`, whose `unrepresentable: 'throw'` does not throw for a refine — so porting buys nothing. Everything else
+> an agent writes is represented (`runtime.build` as `{"not":{}}`, the hooks `maxItems: 0`, `additionalProperties: false`,
+> 23 defaults). So: **(1) restate the XOR by hand** on the `env` item of the emitted schema; **(2) hold the emitted schema to
+> zod with a corpus gate** — every starter's `manifest.yaml`, the skeleton's seed and a mutation per rule, each through
+> `manifestSchema.safeParse` AND Ajv 2020 over the emitted schema, **refusing any disagreement** (measured: 7 of 9 agree
+> before the restatement, and the two refine cases are the ones it must close); **(3) there is no 2020-12 target**
+> (`jsonSchema7`, `jsonSchema2019-09`, `openApi3`, `openAi`) — emit `jsonSchema7` with `$refStrategy: 'none'` and drop its
+> `$schema` when embedding it in the 3.1 document; the schema uses no construct that differs; **(4) add it to
+> `packages/control-plane`**, which already depends on `zod@3.25.76`, with `pnpm add --offline zod-to-json-schema@3.25.2`,
+> and **read `pnpm-lock.yaml`'s peer suffix — it must link `zod@3.25.76`**. In an empty package its peer auto-installs as
+> `zod@4.6.5`, and sitting 1's Scalar fetch put `zod@4.6.5` in the store, so an offline add now succeeds either way and
+> could link the wrong zod without a word.
+>
+> **`[M8]`**: `@redocly/openapi-core` 1.34.20 installs offline (20 reused, 0 downloaded); the API is `createConfig({
+> extends: ['recommended'] })` and `lintFromString({ source, absoluteRef, config })`. **53 warnings, 0 errors, 4 rules, 0
+> network attempts** (a canary with a positive control). Each needs a decision in `lint.test.ts`, none silent:
+> **`operation-4xx-response` ×42** — every route's errors are ONE `default` response whose description lists its codes
+> (`document.ts`), so no `4XX` key exists: either print each route's `errors:` as explicit `4XX` responses by status (more
+> precise, a larger document), or disable it saying *every refusal is the one D23.7 envelope, documented once as
+> `default`*; **`tag-description` ×9** — fix it: the nine tags gain descriptions, and this task's completeness gate should
+> demand them; **`info-license` ×1** — Manifest's licence is Rich's to state, so disable it with that sentence until he
+> does; **`no-unused-components` ×1** — `StreamFrame` is referenced only inside `x-manifest-websocket`, which the linter does
+> not walk: reference it from the `101` response's content, or disable the rule for that one name, saying so.
+
 **The largest writing task in the plan, and the one Rich called vital.** Its product is prose, so its definition of done is a GATE (Decision 14), written first and red, then brought to green module by module. **The gate's allowlist starts empty and ends empty.**
 
 **Files:**
@@ -1766,6 +1827,33 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 ---
 
 ## Task 11: The guides, served — `docs/api/`, examples that are run, a generated reference, the journey as a gate, `/v1/docs`, `/v1/openapi.json`, `llms.txt`, a console Docs screen, and the HTML reference page
+
+> **`[M9]` — MEASURED (2026-09-25, sitting 1; F8, F9, F10, F16): THE RENDERER IS SCALAR, `@scalar/api-reference` 1.72.0
+> (MIT).** Redoc 2.5.4 fails the hard offline criterion — its side menu's *API docs by Redocly* footer fetches
+> `https://cdn.redoc.ly/redoc/logo-mini.svg` unconditionally, and no option guards it. Scalar, with **exactly this
+> configuration**, made **zero** requests to any host but the page's own — on load, fully expanded, and while searched and
+> opened — and rendered 37/37 paths, 43/43 operations and 64/64 schemas with no error: `withDefaultFonts: false, telemetry:
+> false, hideClientButton: true, hideTestRequestButton: true, mcp: { disabled: true }, showDeveloperTools: 'never', agent: {
+> disabled: true }`. **`agent: { disabled: true }` is not in `@scalar/types@0.22.0`'s configuration file, and without it
+> the page shows *Ask AI*** — Scalar's cloud chat, which the bundle turns on by default on a local address. This task's test
+> of the page should assert that *Ask AI* and *Generate MCP* are absent. **Three corrections to Decision 17's steps:**
+>
+> 1. **What was measured is `dist/browser/standalone.js`** (4,331,361 bytes, one file, no build step), loaded by a
+>    `<script>` and mounted with `Scalar.createApiReference('#app', { url, …the configuration above })`. Importing the
+>    package's ESM entry through Vite is a DIFFERENT artefact (Vue and its 268 packages, bundled by Vite). Either serve the
+>    standalone bundle as the page's static asset — the thing measured — or **repeat the network-log measurement on the page
+>    Vite builds**, with a default-fonts page as its positive control. Recommended: the standalone bundle, copied in by a
+>    named build step, so `reference/` imports nothing and its boundary test holds trivially.
+> 2. **`pnpm add --offline @scalar/api-reference@1.72.0` EXITS 1 under pnpm 11** — `ERR_PNPM_IGNORED_BUILDS: vue-demi@0.14.10`
+>    — although every package is installed (268 reused, 0 downloaded). Name `vue-demi` in `pnpm-workspace.yaml`'s
+>    `allowBuilds` (`false`, with the reason: its postinstall only switches Vue 2/3 entry points, and the standalone bundle
+>    does not use it), or the install stays red.
+> 3. **Its peers came too**: `tailwindcss@4.3.3` and `zod@4.6.5` are now in the store. Read the lockfile after the add, and
+>    keep `zod@4.6.5` away from any package that uses zod 3 (Task 9's `[M7]`).
+>
+> **Soft criteria:** a document example is shown. `x-enumDescriptions` — the bundle reads the key, but a probe value did
+> not appear on the rendered page in the time sitting 1 gave it: **check it on the real document once Task 9 publishes
+> it**; if Scalar does not show it, the generated Markdown reference still carries every code's remedy.
 
 **Files:**
 - Create: `docs/api/index.md`, `getting-started.md`, `authentication.md`, `conventions.md`, `journey.md` (its table generated), `authoring.md`, `secrets.md`, `events.md` (its table generated), `launching.md`, `agents.md`; `docs/api/reference/operations.md`, `errors.md`, `events.md`, `manifest-yaml.md` (all GENERATED); `docs/api/llms.txt` (GENERATED)
@@ -1974,11 +2062,11 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 **Named so the next plan inherits a list rather than a surprise** — and, since Rich asked on 2026-09-25 that the API cover everything foreseeable on the end-to-end path, **each foreseeable step it leaves has its plan or phase named** (Task 11's `JOURNEY` holds the same list as a gate).
 
 - **A running app's recent output** — Spec action 1, and its own plan (placement: *What Rich does* 2). Until then an agent debugging a running app has an Incident's `log_tail` on failure and nothing on a `500`.
-- **Branches, preview deploys, sandboxes with `exec`, `AgentSession`s and per-session keys (D2, D8), D14's branch-scoped credential, and the MCP server** — Phase 3, blocked on S5 (§17). Writes go to `main` only (Decision 9); a `branch` field is additive later. **Task 1 measured `exec` once** for S5's brief.
+- **Branches, preview deploys, sandboxes with `exec`, `AgentSession`s and per-session keys (D2, D8), D14's branch-scoped credential, and the MCP server** — Phase 3, blocked on S5 (§17). Writes go to `main` only (Decision 9); a `branch` field is additive later. **Task 1 measured `exec` once** for S5's brief: it works, and it BUFFERS until the command exits (F14; S5's brief has the pointer).
 - **Binary files** — Rich's *text files only in v1*. An optional `encoding` on a write is additive (Decision 4).
 - **Changing a project's audience** — §24: raising it is a request an administrator approves in the admin queue (§26). An admin-console plan.
 - **Deleting a project, and a rollback operation** — P6b's list; still open.
-- **A bound on a repository's total size, or on the build context** — the limits here bound one commit (500 changes, 1 MiB a file). Task 1's `[M10]` records what a 10,000-file tree costs to list and to archive; a total bound is a later decision with that number in front of it.
+- **A bound on a repository's total size, or on the build context** — the limits here bound one commit (500 changes, 1 MiB a file). **Task 1's `[M10]` measured it (2026-09-25)**: 10,000 small files and one of 20 MB archive to **31.3 MB** in 0.05–0.08 s (tar spends ~1 KiB on each small file) and unpack in 0.84–0.97 s, and the tree lists in 0.02 s; a total bound is a later decision with those numbers in front of it.
 - **Listing a subtree** (`?path=` on `getTree`) and **searching file contents** server-side — a tree past 10,000 entries is `truncated`, and a client searches what it reads. Both are additive.
 - **Rename detection, blame, and a three-way merge** — history is `--no-renames`, and a moved branch is `SOURCE_CONFLICT` (Decision 3), never merged for an agent.
 - **A real code `Reviewer` (D33)** — still the null implementation. **This plan makes it more pressing, not less**: an authoring API is a machine for producing unreviewed code faster, which is exactly §13's stated residual risk.
@@ -2064,3 +2152,187 @@ awk '/^### Sitting 2 —/,/^### Sitting 3 —/' docs/superpowers/plans/2026-09-2
 **The honest prior, from the defect-rate table: 7.6 to 9.8 findings per task across the last five plans, and it has never fallen with practice.** At thirteen tasks that is **roughly 100–130 findings.** This plan adds the platform's first write path for code over the API, its first `PUT`, and its first served documentation. **This project's worst discoveries have all arrived at a first.** Treat this plan as a hypothesis.
 
 *One dated section per sitting, added as it runs.*
+
+### Sitting 1 — Task 1, the measurements, alone and first — 2026-09-25
+
+**EVERY PREMISE THE PLAN WAS WRITTEN AGAINST HOLDS, AND NO TASK BOUNDARY MOVES — RICH'S TEN SITTINGS STAND.** `[M1]`,
+`[M2]`, `[M3]`, `[M6]`, `[M10]` and `[M15]` measured exactly as *Read this first* and Task 1 predicted; `[M7]`, `[M8]` and
+`[M9]` answered their questions with a correction each; Step 8 answered S5's. **`[M1]` is now measured in the SHIPPED
+driver 1, not only in a copy of its loop — and in both attacks `commitFiles` threw `SOURCE_GIT_FAILED` after the damage
+was done** (F3), which is the property Task 3's contract cases already assert by reading the filesystem rather than the
+answer. **The renderer is Scalar 1.72.0** (Redoc fails the hard offline criterion by an unconditional CDN logo, F8), and
+its offline configuration needs a key its own types file does not name (F9). **The JSON Schema route is
+`zod-to-json-schema`, with no port to zod/v4**, because both routes drop the one cross-field rule silently (F6). Every
+raw answer is in [`spikes/authoring-baseline/`](../spikes/authoring-baseline/README.md), one section per measurement,
+with the untrimmed output beside it; the `[M<n>]` blocks at the top of **Tasks 2, 3, 4, 9 and 11** carry the
+corrections, and *What this plan does not build* carries `[M10]`'s numbers.
+
+**Rich's four answers were recorded before anything ran** (commit `0571df5`): the ten-sitting split, the network for
+`[M9]` only, Spec action 2 still open (needed before sitting 5), and inline execution with the one fresh review at the
+plan's end.
+
+#### The decisions this sitting made
+
+**1. The network was used once, at Rich's yes, for `[M9]` alone** — `pnpm add @scalar/api-reference` and `pnpm add redoc`
+into the scratchpad. Nothing else reached outside the machine; the renderers were judged by Chrome's network log with
+the network left on, as the plan says.
+
+**2. `[M7]`: `zod-to-json-schema` 3.25.2, and no port to zod/v4** — by the decision rule's own terms. The rule said to port
+only if `zod-to-json-schema` cannot represent a field an agent writes; it cannot represent the `env` refine, but zod/v4
+cannot either (`unrepresentable: 'throw'` does not throw for a refine), so the port would buy nothing. Task 9 restates the
+XOR by hand and holds the emitted schema to zod with an agreement gate over a corpus. *Changing course* is the rule's
+other branch: port `spec/schema.ts` in Task 9.
+
+**3. `[M9]`: Scalar 1.72.0.** Chosen by the two hard criteria Redoc misses, not by the prediction (which was also Scalar).
+Redoc's reason is recorded: an unconditional `https://cdn.redoc.ly/redoc/logo-mini.svg`, and 8 of 64 schema names shown.
+
+**4. The plan's filter case got the positive control it lacked** (F12): a filter DEFINED, and watched running.
+
+**5. Step 8's answer went into S5's brief** (`plans/2026-08-29-phase-0-spike-briefs.md`, a dated note under *What "yes"
+looks like*), a file Task 1's *Files* does not list, because the step says the answer goes there.
+
+**6. The x-enumDescriptions soft criterion was left NOT ESTABLISHED**, time-boxed: both bundles read the key, and a probe
+value did not appear on either page. Task 11 checks it on the real document once Task 9 publishes it.
+
+**7. The Docker tier ran at the open although sitting 1 owes none**, because Step 0 asks for all four gate numbers.
+
+#### The findings
+
+**F1 — THE PLAN'S PROBE RECIPE CANNOT LOAD THE CONTROL PLANE'S `source/` MODULE.** Step 1 (and Step 8) say to run a
+scratch script *"under Node 24's type stripping"* with the fake's resolve hook. Node refuses it: `SyntaxError
+[ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]: TypeScript parameter property is not supported in strip-only mode`, at
+`source/git-driver.ts:115` — `SourceError`'s `constructor(readonly code: string, …)`. **`node
+--experimental-transform-types --import ./packages/github-fake/resolve-ts.mjs` loads it** (with an ExperimentalWarning).
+Every later probe that imports control-plane source through a class like it needs the flag; Task 2's `[M15]` says so.
+
+**F2 — IMPORTING `source/` CONSTRUCTS THE DATABASE POOL.** `source/pre-receive.ts` and `source/scan-commits.ts` import
+`../build/index.js`, whose barrel reaches `db/client.ts`, which throws at import when `MANIFEST_DATABASE_URL` is unset
+and otherwise builds a `pg.Pool`. A probe sets it to `postgres://nobody:nobody@127.0.0.1:1/unreachable`: `pg.Pool`
+connects lazily, so nothing is dialled. *Named, not changed*: the module boundary makes `build/index.ts` the only door,
+and nothing in this plan needs `source/` without a database.
+
+**F3 — `[M1]` IN THE SHIPPED DRIVER: THE DAMAGE PRECEDES THE REFUSAL.** `probes/driver1-escape.ts` drives
+`createLocalSourceDriver` → `createRepository` → a person's push of `out → <outside>` and `meta → .git` through the real
+`pre-receive` → `commitFiles`. **(a)** `<outside>/pwned.txt` was written, then `commitFiles` threw `SOURCE_GIT_FAILED`
+(git would not add beyond a symlink, so `git commit` had nothing). **(b)** `git add` RAN the `fsmonitor` command, `git
+commit` SUCCEEDED, and only the push failed — because the replaced `.git/config` no longer named `remote.origin`. A config
+that keeps `[remote "origin"]` would have pushed too. `main` did not move in either case. **A refusal is no evidence that
+nothing happened**: Task 3's cases assert the filesystem and a canary, and must stay that way.
+
+**F4 — `pnpm add --offline zod-to-json-schema@3.25.2` FAILS WHERE NO ZOD IS INSTALLED.** Its peer `zod: "^3.25.28 || ^4"`
+auto-installs as `zod@4.6.5`, the newest in pnpm's cached metadata, which the store lacked: `ERR_PNPM_NO_OFFLINE_TARBALL`.
+With `zod@3.25.76` named beside it: 2 reused, 0 downloaded. **And since `[M9]`, `zod@4.6.5` IS in the store** (a Scalar
+peer), so the offline add would now succeed either way and could link the wrong zod silently. Task 9 adds it to
+`packages/control-plane` and reads the lockfile's peer suffix.
+
+**F5 — `zod-to-json-schema` 3.25.2 HAS NO JSON SCHEMA 2020-12 TARGET**, OpenAPI 3.1's dialect: `jsonSchema7`,
+`jsonSchema2019-09`, `openApi3`, `openAi`. The manifest schema uses nothing that differs, so Task 9 emits `jsonSchema7`
+with `$refStrategy: 'none'` and drops its `$schema` when embedding.
+
+**F6 — THE `env` REFINE IS DROPPED BY BOTH ROUTES, SO THE DECISION RULE'S PORT BRANCH BUYS NOTHING.** Ajv 8.20.0 over the
+emitted schema against `manifestSchema.safeParse`: 7 of 9 agree; `value` with `secret: true`, and neither, are refused by
+zod and accepted by Ajv. zod/v4's port drops it too, with `unrepresentable: 'throw'` answering `ok`. *Read this first* 7
+said the v4 route drops it; it did not say the other route does as well.
+
+**F7 — THE INDEPENDENT LINTER OBJECTS TO THE ERROR MODEL, NOT TO THE PROSE.** `@redocly/openapi-core` 1.34.20,
+`recommended`: 53 warnings, 0 errors, **42 of them `operation-4xx-response`** — every operation but the stream publishes
+its refusals as one `default` response (the codes listed in its description), so no `4XX` key exists. Also
+`tag-description` ×9, `info-license` ×1 and `no-unused-components` ×1 (`StreamFrame`, referenced only inside
+`x-manifest-websocket`, which the linter does not walk). Task 9's `[M8]` block states the decision each needs; the
+licence is Rich's to state. 0 network attempts, by a canary whose positive control fired.
+
+**F8 — REDOC 2.5.4 CANNOT BE MADE OFFLINE BY ITS OWN CONFIGURATION.** Its side menu renders *API docs by Redocly* with an
+`<img src="https://cdn.redoc.ly/redoc/logo-mini.svg">` unconditionally; `hideLogo` concerns the document's `x-logo`. It
+also names only 8 of the 64 schemas (no models section).
+
+**F9 — SCALAR'S OFFLINE CONFIGURATION NEEDS `agent: { disabled: true }`, A KEY ITS TYPES FILE DOES NOT NAME.** The one
+page that omitted it showed *Ask AI* — Scalar's cloud agent chat — and the bundle enables it by default when the page's
+address is local (`agentEnabled: …agent?.disabled ? false : <local address> ? true : …`). With it and six documented keys,
+the page made 3 requests, all to its own origin, on load, fully expanded and while used; at its defaults it fetched three
+fonts from `fonts.scalar.com` (the positive control) and showed *Generate MCP*, *Share* and *Deploy*.
+
+**F10 — pnpm 11 EXITS 1 ON BOTH CANDIDATES' INSTALLS**, with every package installed: `ERR_PNPM_IGNORED_BUILDS` —
+`vue-demi@0.14.10` (Scalar) and `core-js@3.50.0` (Redoc). Task 11's `pnpm add --offline @scalar/api-reference@1.72.0`
+(measured: 268 reused, 0 downloaded) will exit 1 in the workspace too unless `allowBuilds` names `vue-demi`.
+
+**F11 — `[M6]`: FOUR FRAGMENT DESCRIPTIONS, NOT THREE.** `getBlueprint`'s is 30 characters, beside the three at 28 that
+*Read this first* 6 names. Task 9's gate catches all four either way.
+
+**F12 — THE PLAN'S FILTER CASE COULD NOT FAIL.** Step 2 asked that `hash-object --no-filters --stdin-paths` beside a
+`.gitattributes` of `* filter=evil` run no filter — with no filter defined anywhere, which is true of a git that ignores
+attributes altogether. `probes/filters.sh` defines one (`-c filter.evil.clean=…`) and watches it run in a worktree without
+the flag (the blob ids change, a marker appears); with the flag it does not; and **in the bare `--git-dir` shape Task 3
+builds, it does not run even without the flag** — so `--no-filters` is a second layer, not the only one.
+
+**F13 — `[M10]`: THE BUILD CONTEXT OF 10,000 SMALL FILES AND ONE OF 20 MB IS 31.3 MB.** Every git command took ≤ 0.08 s
+and `tar -x` 0.84–0.97 s, as predicted; the size is this sitting's own wrong guess (~20–25 MB) — tar spends a 512-byte
+header and pads each file to 512 bytes. The *does not build* bullet carries the numbers.
+
+**F14 — `exec` WORKS, AND BUFFERS UNTIL THE COMMAND EXITS.** `containerExec` against a container of the blueprint's own
+base image: `stdout=["out"] stderr=["err"] exit=3`, both streams end. But `echo first; sleep 2; echo second` delivered its
+first line at 2,042 ms, with the exit: `drain` awaits the exec's end. S5's *"its output streams out over the API"* needs a
+different reader; its brief now says so.
+
+**F15 — TASK 2'S PROBE COMMAND RESOLVES ONLY FROM `docs/superpowers/`.** `node spikes/authoring-baseline/probes/f7.mjs 40
+2`; from the repository root it is `node docs/superpowers/spikes/authoring-baseline/probes/f7.mjs 40 2`. Task 2's `[M15]`.
+
+**F16 — WHAT `[M9]` MEASURED IS THE STANDALONE BUNDLE, AND DECISION 17 MOUNTS THE PACKAGE THROUGH VITE.**
+`dist/browser/standalone.js` is one 4.3 MB file loaded by a `<script>`; importing the package's ESM entry into
+`reference/main.ts` is a different artefact (Vue and its 268 packages, bundled by Vite), whose network behaviour nobody
+has measured. Task 11's `[M9]` recommends serving the measured bundle, or re-measuring the built page.
+
+**F17 — A PROBE UNDER `docs/` IS INSIDE `eslint .`**, and typescript-eslint's `recommended` forbids `require()`: this
+sitting's first `redocly-lint.cjs` turned `pnpm lint` red (7 errors). Rewritten as ESM (a builtin's default export is the
+object CommonJS code gets, so the canary still wraps what openapi-core calls), re-run to the same answer, lint clean.
+*Probes live beside the record and are linted like code — write them as `.mjs` or `.ts`.*
+
+**F18 — `scripts/litellm-orphans.sh --apply` REPORTS "2 user(s) remain (was 4)" AFTER DELETING ONE.** Its `was` is
+`held + orphans + 1` — the `+ 1` is `default_user_id` — while `remain` lists the held users only (line 205), so the line
+reads as two deletions. It deleted exactly `p4b-probe-user`, and the bare re-run read *Orphaned (0)*. The answer's SHAPE
+is wrong, not its effect. *Named, not fixed* — a script outside this plan; a one-line fix for whoever next touches it.
+
+*Measured as predicted, and recorded without a finding*: `[M2]`'s every seam (the hook runs on a plumbing push; a stale
+base is `non-fast-forward`; `--force-remove` needs a worktree; `--cacheinfo` refuses under a symlink; `init --bare` with
+`--git-dir`; `--stdin-paths` answers the single-file ids; `push --porcelain`'s verdict on stdout); `[M3]`'s five shapes;
+`[M6]`'s six counts and 35 internal-artefact lines; `[M15]`'s two predictions. *Observed and not reproduced*: a local
+`git clone --bare` of the 10,001-file repository failed once copying an object (likely a detached auto-gc packing the
+loose objects mid-copy; three repeats succeeded).
+
+#### Negative controls, and which could not fail
+
+Task 1 builds nothing, so its controls are the measurements' own positive controls — each added so a zero could not be
+vacuous: **the network canary around the linter** saw a deliberate `dns.lookup('localhost')` (1 attempt) after reporting 0
+during the lint; **Scalar at its defaults** fetched three outside fonts, so the log that showed Scalar's offline page and
+Redoc's CDN logo is one that sees outside requests; **the defined clean filter** ran in a worktree, so its absence in the
+bare shape is a measurement (F12 — the plan's own version could not fail); and **the escape probes' markers** exist only
+because the attacks worked. *None of these could fail silently as run.*
+
+#### The gates, and the machine, at the close
+
+**No gate moved.** `pnpm test` **2005 passed in 145 files** — once at the open (359 s) and twice at the close, alone and
+identical (369 s, 371 s); `pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean at the close (lint once red, on this
+sitting's own `.cjs` probe — F17); **`make doctor` 20/0/0** at the open and the close; **`make verify` 57/0/0** at the open
+and after the Docker tier; **`pnpm test:docker` 208 in 34, 0 skipped, 905.68 s**, not owed and run at the open for Step 0.
+The load was 3.3–4.9 throughout, 5–6 during the Docker tier.
+
+**The machine, queried at the close** (`psql`, `docker`, `lsof`): the control database EMPTY (0 projects, 29 migrations —
+the close's `pnpm test` truncated it, as the open's had); nothing listening on 7100, 7104 or the probe server's 8931;
+`launch-app`'s six `mf-launch-app-*` containers running; the GitHub fake not running (it was not at the open; the Docker
+tier's fake-image test starts and removes its own); `manifest-caddy` restarted by the Docker tier, with **0 runtime routes**
+(1 at the open, which no control plane can restore from an empty database). **The three cleanup scripts, run bare and then
+`--apply` by this session** (allowed): the tier's 7 networks and 1 volume, the `p4b-probe-user` LiteLLM orphan and 12 app
+images removed, and each re-measured bare — `none dead`, 0 orphans, 0 dead images; `make verify`'s per-app line
+`containers=6 networks=2 volumes=4`. The `mf-exec-probe` container is gone. `diff` of `scripts/snapshot-machine.sh` against
+the opening snapshot: the edge's restart, 2 GiB of disk (the two renderers' packages in the pnpm store, and the scratch
+labs), the local `base/alpine:3.22` now listed with its digest (the tier's pull), and this sitting's files — nothing else.
+The chat and embedding models the Docker tier loaded were unloaded (`keep_alive: 0`).
+
+#### The sweep
+
+This plan's header, *How this plan is to be executed* (Rich's four answers) and sittings table; the `[M<n>]` blocks on Tasks
+2, 3, 4, 9 and 11 and *What this plan does not build*; the roadmap's ledger (three status statements) and its defect-rate
+table (the count derived with the command above); ORIENTATION's top box and §2's box, §3's
+map and tree, §7e (rewritten for sitting 2) and §8 (the split and the execution *Decided*; the spec actions still *Open*);
+RUNBOOK's gate parenthetical; `scripts/ci-acceptance.sh` (checked — `2005 / 145 / 20 / 57`, unchanged); CLAUDE.md's *State*
+(a plan has started); TRAPS.md (four traps: F1, F2, F10 with F4, F17); S5's brief (F14). **The four shared HTML pages were
+checked and left alone**: none states the authoring API's status, and sitting 1 built nothing an outsider would see.
