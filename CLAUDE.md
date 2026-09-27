@@ -16,10 +16,11 @@ other document on status.*
 
 **The design is approved and complete, five spikes are done, and thirteen plans are executed** — Phase 1c,
 and Phase 2's first four plans, P6a (the first production launch), P6b (subsequent releases), D5's
-GitHub source driver and the authoring API. Every one has an acceptance that passes. **No plan is being
-executed. The next — the front-end enablement plan, which replaced Spec action 1's plan and folds in its
-recent-output read — was WRITTEN on 2026-09-27, overnight and with recommendations, and waits for Rich's review;
-its four spec actions are drafted and not applied** — ORIENTATION §7e says what to ask him first. Each plan's
+GitHub source driver and the authoring API. Every one has an acceptance that passes. **The front-end
+enablement plan is being executed** — it replaced Spec action 1's plan and folds in its recent-output read. It was
+WRITTEN on 2026-09-27, overnight and with recommendations, and **its sitting 1 (the measurements, which build
+nothing) ran the same night at Rich's instruction, BEFORE his review — which, with his approval of the split, comes
+before sitting 2; its four spec actions are drafted and not applied** — ORIENTATION §7e says what to ask him first. Each plan's
 *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
@@ -38,7 +39,10 @@ its four spec actions are drafted and not applied** — ORIENTATION §7e says wh
 | D5 driver 2 | 2026-09-25 | An app's code in a GitHub organisation: private and kept private, pushes by HMAC-verified webhook, every commit scanned for secrets, `main` protected, built offline from a mirror — against a GitHub fake, checked against a real App | `make demo-github` (driver 2), **and a person clicking both drivers** |
 | Authoring API | 2026-09-27 | An app CREATED through the API: files read and committed against the commit read (git plumbing, no worktree, both drivers), history attributed by the platform's own record, app secrets set write-only, a build of exactly the commit written with its own manifest — and the API's documentation served by the API | `make demo-authoring` (either driver), **and a person clicking it** |
 
-**Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
+**Outstanding, and Rich's:** **`pnpm lint` is RED on the design session's console mockup**
+(`docs/superpowers/design/admin/components.js:52` and `console.js:735`, an unused name each, committed 2026-09-27 in
+`312ce2d`/`e1712d8`) — not a plan's files, so it is that session's to fix or Rich's to hand on; until then a sitting
+lints its own paths and says so. The offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has FOURTEEN steps**, the
 newest being `make demo-authoring` (step 14), which runs on EITHER driver; `make demo-github` (step 13) needs the control
 plane on DRIVER 2 while steps 6 to 12 need driver 1 — each step asks which answers and reads SKIPPED on the wrong one; step 12's preview summary may

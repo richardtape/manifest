@@ -1998,6 +1998,10 @@ it delivers or when. **Approving the split is still Rich's.**
     plan's 0.5 s prediction — and was the time `git diff` takes to print its usage. It was caught only because the probe printed
     its record count (0 where 10,000 belonged). *Assert the shape of the answer, not that one arrived* — CLAUDE.md's rule, paid for
     again.
+20. **F20 The close-out's own §7e draft said `listInstances` is refused in production** — only `getInstanceOutput` is
+    (Decisions 4 and 6); `listInstances` needs `project:read` and answers in every environment. Found by the post-sweep check
+    (ORIENTATION §6: open what the hand-off points at), before the sweep was committed — the shape §6 says a hand-off defect
+    takes, a wrong pointer the next sitting would have built a test on.
 
 **The negative controls** — a measurement sitting's are its probes' own negatives, and each answered with its own code:
 `[M3]`'s unlisted URL (the IdP does not echo whatever it is asked — it fell back to index 0); `[M7]`'s expired key (`401

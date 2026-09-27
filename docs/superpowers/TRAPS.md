@@ -1866,6 +1866,25 @@ it belongs among the traps the next sitting is most likely to hit.
 - **`git commit -F <msg> -- <paths>` REFUSES A PATH GIT DOES NOT TRACK YET** — `pathspec … did not match any file(s) known to
   git` — so a commit of new files is `git add -- <paths>` first, then the explicit-path commit (sitting 10). Stage by name,
   never `-A`.
+- **DOCKER'S LOG `tail` COUNTS `json-file` ENTRIES OF AT MOST 16 KiB, NOT LINES — AND STAMPS EACH ENTRY** (2026-09-27, the
+  front-end enablement plan's sitting 1, `[M1]`/`[M2]`; Docker 29.7.2). A 1 MiB line is 64 entries plus one for its `\n`, so
+  `tail: 200` over a window holding one answered 136 lines. With `timestamps=1` EVERY entry is prefixed — the 64 chunks carry
+  identical stamps and the lone `\n` arrives as `<stamp> \n` — so a parser that strips one stamp per line leaves 63 in the text.
+  **A line with no trailing newline is withheld while the process runs** and written only when it exits, stamped with the exit
+  time. A tail can begin inside a long line, so its first line may be a fragment. The raw frames are in
+  `spikes/frontend-baseline/results-task1-2026-09-27.txt`.
+- **SIMPLESAMLphp DOES NOT REFUSE AN AuthnRequest NAMING AN ASSERTION-CONSUMER URL ITS ROW DOES NOT LIST** (2026-09-27,
+  `[M3]`). It shows the login form, authenticates, and posts to the DEFAULT endpoint (index 0) — logging nothing in either log.
+  Fail-safe (the assertion never goes to the unlisted URL), but a control written as *"refused at the IdP"* is wrong; assert
+  where it WAS posted. A URL the row does list (index 1) is honoured.
+- **`git diff` HAS NO `--pathspec-from-file`** (2026-09-27, `[M12]`, git 2.50.1). It prints its usage and exits 129 — `add`,
+  `checkout`, `commit`, `reset`, `restore`, `rm` and `stash` take it; `diff` does not. And a probe timing the command read
+  0.03 s — the usage — which looked like a fast limited diff until the record count (0) was printed. Pass paths as literal
+  pathspec arguments after `--` (`GIT_LITERAL_PATHSPECS=1`), chunked under `ARG_MAX` (1,048,576 on this Mac).
+- **ON THE HOST, `dig` CANNOT SEE `*.manifest.internal`** (2026-09-27, `[M4]`). macOS resolves the zone through
+  `/etc/resolver/`, which `dig` bypasses, so `dig +short app.manifest.internal` answers NOTHING while curl reaches it. Use
+  `dscacheutil -q host -a name <name>` (it answered `127.0.0.3` for `app.`, `127.0.0.2` for `console.`) or curl. Inside a
+  container `dig` against dnsmasq is fine — that is the trap at the top of this file, which is the opposite symptom.
 
 ## Images already pulled
 
