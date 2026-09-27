@@ -1,6 +1,7 @@
 import type { AnyRoute } from '../contract/route.js'
 import { blueprintRoutes } from './blueprints.js'
 import { buildRoutes } from './builds.js'
+import { docRoutes } from './docs.js'
 import { fleetRoutes } from './fleet.js'
 import { launchRoutes } from './launch.js'
 import { meRoutes } from './me.js'
@@ -33,4 +34,5 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...tokenRoutes,
   ...pendingActionRoutes,
   ...pendingActionReads,
+  ...docRoutes,
 ]

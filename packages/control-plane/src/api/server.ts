@@ -39,6 +39,7 @@ import { registryTokenRoutes } from './routes/registry-token.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { registerRoutes } from './contract/route.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
+import type { ServedDocs } from './served-docs.js'
 import { requireActor } from './actor.js'
 import { readBearer, tokenActor } from '../tokens/index.js'
 
@@ -134,6 +135,11 @@ export interface ServerDeps {
   sourceSync: SerialQueue
   /** §23's reserved labels, loaded once at boot (P5a Task 9). */
   reservedLabels: ReservedLabels
+  /**
+   * The API's documentation and its OpenAPI document, built once at boot (the authoring API
+   * plan's Task 11, Decision 18) — what `listDocs`, `getDoc` and `getOpenApiDocument` answer.
+   */
+  docs: ServedDocs
   /** In-process request limits, one limiter per purpose, shared by every request (P5a Task 9). */
   limits: {
     slugCheck: RateLimiter
@@ -372,7 +378,7 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
         message: `no route ${request.method} ${request.url.split('?')[0]!.slice(0, 200)}`,
         hint:
           'Every resource route is under /v1/ (D23.8). Signing in is /auth/login; ' +
-          'the document at packages/contract/openapi.json lists every route.',
+          '`GET /v1/openapi.json` lists every route.',
       },
     }),
   )

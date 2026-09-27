@@ -128,6 +128,12 @@ const envSchema = z.object({
    * Repo-relative for the reason `fromRepoRoot` records.
    */
   MANIFEST_RESERVED_LABELS_DIR: z.string().min(1).default('infra/reserved-labels'),
+  /**
+   * The API's documentation (the authoring API plan's Task 11, Decision 18): every `*.md` under
+   * it is served at `GET /v1/docs`, read once at boot. A missing or unreadable page refuses the
+   * boot. Repo-relative for the reason `fromRepoRoot` records.
+   */
+  MANIFEST_API_DOCS_ROOT: z.string().min(1).default('docs/api'),
   // §23: one zone setting per environment kind. Laptop defaults, verified in S7.
   MANIFEST_ZONE_SANDBOX: z.string().min(1).default('sandbox.manifest.internal'),
   MANIFEST_ZONE_STAGING: z.string().min(1).default('staging.manifest.internal'),
@@ -342,6 +348,8 @@ export interface Config {
   reposRoot: string
   /** Absolute. §23's reserved labels. */
   reservedLabelsDir: string
+  /** Absolute. The API's documentation, served at `/v1/docs`. */
+  apiDocsRoot: string
   zones: { sandbox: string; staging: string; production: string }
   registryTokenKeyPath: string
   registryTokenCertPath: string
@@ -543,6 +551,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     blueprintsRoot: raw.MANIFEST_BLUEPRINTS_ROOT,
     reposRoot: raw.MANIFEST_REPOS_ROOT,
     reservedLabelsDir: fromRepoRoot(raw.MANIFEST_RESERVED_LABELS_DIR),
+    apiDocsRoot: fromRepoRoot(raw.MANIFEST_API_DOCS_ROOT),
     zones: {
       sandbox: raw.MANIFEST_ZONE_SANDBOX,
       staging: raw.MANIFEST_ZONE_STAGING,

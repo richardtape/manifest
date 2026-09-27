@@ -104,6 +104,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The API’s documentation
+         * @description Every page of the API’s documentation, with the sentence that says what each is for — the guides for a person writing a client and for an AI agent, and the reference generated from this document. An agent’s first call is `getDoc` for `agents`. Any credential may read them.
+         */
+        get: operations["listDocs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/docs/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A page of the documentation
+         * @description One page, as Markdown. Its links name other pages by their file (`authoring.md`); read each by its slug. Any credential may read it.
+         */
+        get: operations["getDoc"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/environments/{environmentId}": {
         parameters: {
             query?: never;
@@ -240,6 +280,26 @@ export interface paths {
          * @description Who this session belongs to, and the platform role it is authorized as. Every client calls it first. Interactive sessions only: a delegated token carries no platform role at all (D24), so there is nothing truthful for this to answer it — an agent reads GET /v1/projects, which answers exactly the project it is scoped to.
          */
         get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/openapi.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * This OpenAPI document
+         * @description The OpenAPI 3.1 document describing every operation, representation, error code and event — generated from the platform’s own route definitions when it starts, so it is exactly the document the platform publishes. Any credential may read it.
+         */
+        get: operations["getOpenApiDocument"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1461,6 +1521,27 @@ export interface components {
              */
             releaseId: string;
         };
+        /** @description The API’s documentation: every page Manifest serves, for a person and for an agent. */
+        DocIndex: {
+            /** @description Every page, the index first, then the guides, then the generated reference. */
+            pages: {
+                /** @description The page’s name in `getDoc`: its path under the documentation without `.md`, `/` as `-` — `reference-errors` is `reference/errors.md`. */
+                slug: string;
+                /** @description The page’s title — its first heading. */
+                title: string;
+                /** @description The page’s first paragraph: what it is for and who it is for, in a sentence or two. */
+                summary: string;
+            }[];
+        };
+        /** @description One page of the API’s documentation, as the platform serves it. */
+        DocPage: {
+            /** @description The page’s name in `getDoc`: its path under the documentation without `.md`, `/` as `-` — `reference-errors` is `reference/errors.md`. */
+            slug: string;
+            /** @description The page’s title — its first heading. */
+            title: string;
+            /** @description The page, as Markdown. Its links name other pages by their file, as `authoring.md` — `getDoc` reads each by its slug. */
+            markdown: string;
+        };
         /** @description A mutation that takes no fields still sends a JSON object: `{}`, with `Content-Type: application/json`. */
         EmptyRequest: Record<string, never>;
         /** @description One of a project’s three environments (§11): where a release is deployed, and what is serving there now. */
@@ -1496,7 +1577,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -3788,6 +3869,10 @@ export interface components {
             /** @description The token, in full: `mft_<id>_<secret>` — what an agent sends as `Authorization: Bearer`. Store it now: `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key, which replays this answer. */
             secret: string;
         };
+        /** @description This API’s OpenAPI 3.1 document — the one the platform publishes, generated from its own route definitions when it starts, so what is served is what is published. */
+        OpenApiDocument: {
+            [key: string]: unknown;
+        };
         /** @description D24: a delegated token asked for one of the privileged four. A person confirms or rejects it; a confirmation grants that one request a single retry. */
         PendingAction: {
             /**
@@ -4698,6 +4783,85 @@ export interface operations {
             };
         };
     };
+    listDocs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "pages": [
+                     *         {
+                     *           "slug": "index",
+                     *           "title": "Manifest’s API",
+                     *           "summary": "Manifest’s API is how a person’s tools and an AI agent create, build, deploy and launch an application on Manifest — the same API the platform’s own console uses, and the only one."
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["DocIndex"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getDoc: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The page’s `slug`, as `listDocs` answers it — `agents`, `reference-errors`. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "slug": "index",
+                     *       "title": "Manifest’s API",
+                     *       "markdown": "# Manifest’s API\n\nManifest’s API is how a person’s tools and an AI agent create, build, deploy and launch an application on Manifest — the same API the platform’s own console uses, and the only one.\n"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["DocPage"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: DOC_NOT_FOUND, INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getEnvironment: {
         parameters: {
             query?: never;
@@ -5143,6 +5307,45 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getOpenApiDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The document. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "openapi": "3.1.0",
+                     *       "info": {
+                     *         "title": "Manifest",
+                     *         "version": "1.3.0"
+                     *       },
+                     *       "paths": {}
+                     *     }
+                     */
+                    "application/json": components["schemas"]["OpenApiDocument"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

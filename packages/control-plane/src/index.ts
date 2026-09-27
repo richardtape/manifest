@@ -3,6 +3,7 @@ import {
   buildServer,
   createKeyedRateLimiter,
   createRateLimiter,
+  loadServedDocs,
   TOKEN_RATE_WINDOW_MS,
 } from './api/index.js'
 import { loadBlueprints } from './blueprints/index.js'
@@ -131,6 +132,11 @@ const blueprints = await loadBlueprints(config.blueprintsRoot)
 // Docker, so a missing or malformed list refuses the boot having changed nothing. A list
 // this process half-read would reserve half the names, silently.
 const reservedLabels = await loadReservedLabels(config.reservedLabelsDir)
+
+// The API's documentation and the OpenAPI document (the authoring API plan's Task 11, Decision
+// 18), read before the driver for the same reason: a missing page refuses the boot, naming it,
+// having changed nothing.
+const docs = await loadServedDocs(config.apiDocsRoot)
 
 const driver = await createDockerDriver({
   engine: createEngineClient({ socketPath: config.dockerSocket }),
@@ -356,6 +362,7 @@ const app = await buildServer({
   builds,
   sourceSync,
   reservedLabels,
+  docs,
   // §23: the slug check is asked while a person types (P5a Decision 26).
   limits: {
     slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }),
@@ -457,6 +464,8 @@ console.log(
     msg: 'control plane ready',
     // How many names §23's list reserves: 0 would mean nothing is reserved.
     reservedLabels: reservedLabels.size,
+    // How many pages of the API's documentation `/v1/docs` serves: 0 would refuse the boot.
+    docsPages: docs.pages.pages.length,
     // The COUNT, never the names' values. A zero here means the scrub did not
     // run, which is indistinguishable from a clean environment without it.
     secretsScrubbed: secretsScrubbed.length,

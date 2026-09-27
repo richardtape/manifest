@@ -46,6 +46,7 @@ import { NullReviewer } from '../launch/index.js'
 import type { AiKeyService } from '../ai/index.js'
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
 import { buildServer, type ServerDeps } from './server.js'
+import { loadServedDocs, type ServedDocs } from './served-docs.js'
 import { resetDatabase } from '../db/testing.js'
 import { addMember } from '../projects/index.js'
 import { testReservedLabels } from '../projects/testing.js'
@@ -716,6 +717,17 @@ async function testSamlMaterial(): Promise<{ idp: TestIdp; keypair: SpKeypair }>
   return testSp
 }
 
+/**
+ * `docs/api/` and the OpenAPI document, built once per test file (the authoring API plan's Task
+ * 11): generating the document is not free, `testDeps` is called per test, and both are the
+ * repository's own — the same for every server a run builds.
+ */
+let servedDocs: Promise<ServedDocs> | undefined
+function servedDocsOnce(root: string): Promise<ServedDocs> {
+  servedDocs ??= loadServedDocs(root)
+  return servedDocs
+}
+
 export async function testDeps(): Promise<ServerDeps> {
   await mkdir(TEST_REPOS_ROOT, { recursive: true })
   const reposRoot = await mkdtemp(join(TEST_REPOS_ROOT, 'run-'))
@@ -771,6 +783,8 @@ export async function testDeps(): Promise<ServerDeps> {
     // reads what a webhook caused awaits `sourceSync.idle()`.
     sourceSync: createSerialQueue(),
     reservedLabels: await testReservedLabels(),
+    // The REAL `docs/api/` and the REAL document, built once per run: both are the repository's.
+    docs: await servedDocsOnce(config.apiDocsRoot),
     // The production limit, so a test of the limit tests the number the boot uses.
     limits: {
       slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }),

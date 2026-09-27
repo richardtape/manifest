@@ -104,6 +104,19 @@ export class LastOwnerError extends Error {
 }
 
 /**
+ * A slug that names no page of the API's documentation (the authoring API plan's Task 11). 404,
+ * like every read of something that is not there; its own code, because the remedy — read the
+ * index — is not `NOT_FOUND`'s, which is about projects a caller may not see.
+ */
+export class DocNotFoundError extends Error {
+  readonly code = 'DOC_NOT_FOUND'
+  constructor(readonly slug: string) {
+    super(`no page of the documentation is named '${slug}'`)
+    this.name = 'DocNotFoundError'
+  }
+}
+
+/**
  * Every failure leaves through here, so no route invents its own shape. D23.7:
  * stable codes plus remediation hints, "so an agent can correct itself rather than
  * surfacing a wall of text to its user".
@@ -375,6 +388,18 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
     }
   }
 
+  if (error instanceof DocNotFoundError) {
+    return {
+      status: 404,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'GET /v1/docs lists every page, each with the slug to read it by.',
+        },
+      },
+    }
+  }
   if (error instanceof LastOwnerError) {
     return {
       status: 409,

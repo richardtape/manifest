@@ -5,6 +5,7 @@ import { signIn, signOut } from './auth'
 import { href, useRoute, type Route } from './router'
 import { Approval } from './screens/approvals'
 import { Blueprints } from './screens/blueprints'
+import { Doc, Docs } from './screens/docs'
 import { Fleet } from './screens/fleet'
 import { Project } from './screens/project'
 import { Projects } from './screens/projects'
@@ -67,6 +68,7 @@ export function App() {
         <nav>
           <a {...href('/')}>Projects</a>
           <a {...href('/blueprints')}>Blueprints</a>
+          <a {...href('/docs')}>Docs</a>
           {/*
             AN AFFORDANCE, NEVER A CONTROL. `GET /v1/fleet` answers a non-administrator
             `403`, not `404` — there is no tenant's resource to hide (§26, P5a Task 16) —
@@ -141,6 +143,10 @@ function Screen({ route, isAdmin }: { route: Route; isAdmin: boolean }) {
       return <Projects api={api} />
     case 'blueprints':
       return <Blueprints api={api} />
+    case 'docs':
+      return <Docs api={api} />
+    case 'doc':
+      return <Doc key={route.slug} api={api} slug={route.slug} />
     // THE ROUTE IS NOT HIDDEN FOR A NON-ADMINISTRATOR, only the link is (see the nav). A
     // person who types this path is answered `403 FORBIDDEN` by the platform and shown it,
     // which is what proves the console enforces nothing.

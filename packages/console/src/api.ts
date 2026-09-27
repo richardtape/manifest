@@ -98,6 +98,26 @@ export function createApi(options: ApiOptions) {
     },
 
     /**
+     * THE API'S DOCUMENTATION (the authoring API plan's Task 11): the pages the platform serves
+     * and the OpenAPI document it publishes. No project's data — any credential reads them —
+     * so the Docs screen sits in the header beside Projects and Blueprints.
+     */
+    async listDocs(): Promise<Schemas['DocIndex']> {
+      return unwrap(await client.GET('/v1/docs'), 'listDocs')
+    },
+
+    async getDoc(slug: string): Promise<Schemas['DocPage']> {
+      return unwrap(
+        await client.GET('/v1/docs/{slug}', { params: { path: { slug } } }),
+        'getDoc',
+      )
+    },
+
+    async getOpenApiDocument(): Promise<Schemas['OpenApiDocument']> {
+      return unwrap(await client.GET('/v1/openapi.json'), 'getOpenApiDocument')
+    },
+
+    /**
      * `?expand=environments` is D23.1's one expansion, and the project screen always wants
      * it: §23's three hostnames are what a person came to see.
      */

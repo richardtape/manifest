@@ -494,6 +494,60 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // The authoring API plan's Task 11 (Decision 18): documentation is no project's data, so
+    // every credential reads it — a token of any project included — and only anonymous is refused.
+    method: 'GET',
+    url: '/v1/docs',
+    request: () => ({ url: '/v1/docs' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    // The authoring API plan's Task 11 (Decision 18): documentation is no project's data, so
+    // every credential reads it — a token of any project included — and only anonymous is refused.
+    method: 'GET',
+    url: '/v1/docs/:slug',
+    request: () => ({ url: '/v1/docs/index' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    // The authoring API plan's Task 11 (Decision 18): documentation is no project's data, so
+    // every credential reads it — a token of any project included — and only anonymous is refused.
+    method: 'GET',
+    url: '/v1/openapi.json',
+    request: () => ({ url: '/v1/openapi.json' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
+    },
+  },
+  {
     method: 'GET',
     url: '/v1/projects/:projectId',
     request: (f) => ({ url: `/v1/projects/${f.projectId}` }),

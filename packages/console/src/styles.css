@@ -470,3 +470,20 @@ textarea.source {
   background: transparent;
   color: inherit;
 }
+
+/* The Docs screen (the authoring API plan's Task 11): each page's summary under its title, and a
+   page's Markdown as wrapped plain text — no renderer in src/. */
+.doc-index li {
+  margin-bottom: 0.75rem;
+}
+
+.doc-index p {
+  margin: 0.2rem 0 0;
+}
+
+pre.doc {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}

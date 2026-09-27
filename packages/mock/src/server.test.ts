@@ -277,6 +277,42 @@ describe('manifest-mock refuses what the platform refuses', () => {
     })
   })
 
+  /**
+   * THE DOCUMENTATION (the authoring API plan's Task 11). A page's Markdown is answered for ITS
+   * slug alone — the example's — as `getFile` answers one path; and the OpenAPI document is
+   * answered as the document this mock serves from, whole, because an HTML reference or a Docs
+   * screen pointed at the mock must render the API, not the example's three keys.
+   */
+  describe('answers the documentation', () => {
+    const codeOf = async (response: Response) =>
+      ((await response.json()) as { error: { code: string } }).error.code
+
+    it('getDoc — the example’s page is answered, any other slug is DOC_NOT_FOUND', async () => {
+      const document = (await readDocument()) as unknown as {
+        paths: Record<string, { get: { responses: Record<string, unknown> } }>
+      }
+      const responses = document.paths['/v1/docs/{slug}']!.get.responses as Record<
+        string,
+        { content: Record<string, { example: { slug: string } }> }
+      >
+      const page = responses['200']!.content['application/json']!.example
+      const read = (slug: string) =>
+        fetch(`${origin}/v1/docs/${slug}`, { headers: session })
+      const held = await read(page.slug)
+      expect(held.status).toBe(200)
+      expect(await held.json()).toEqual(page)
+      const other = await read('no-such-page')
+      expect(other.status).toBe(404)
+      expect(await codeOf(other)).toBe('DOC_NOT_FOUND')
+    })
+
+    it('getOpenApiDocument — the whole document the mock serves from', async () => {
+      const response = await fetch(`${origin}/v1/openapi.json`, { headers: session })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual(await readDocument())
+    })
+  })
+
   it('answers the stream’s plain GET 426 EVENTS_UPGRADE_REQUIRED', async () => {
     const response = await fetch(
       `${origin}/v1/projects/22222222-2222-4222-8222-222222222222/events`,

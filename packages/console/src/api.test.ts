@@ -414,6 +414,34 @@ describe('the console’s data layer against manifest-mock', () => {
    * at compile time. That is the control working, one layer earlier than this test — the
    * raw `fetch` below is the only way to reach the refusal, and it asserts the CODE.
    */
+  /**
+   * THE DOCS SCREEN'S THREE CALLS (the authoring API plan's Task 11): the index, one page, and
+   * the OpenAPI document — whose `info.version` the screen shows. Against the mock, a page is
+   * answered for its own slug alone, so the one the index names first is the one read here.
+   */
+  it('reads the documentation: the index, a page, and the OpenAPI document', async () => {
+    await withMock(async (origin) => {
+      const a = api(origin)
+      const index = await a.listDocs()
+      expect(index.pages.length).toBeGreaterThan(0)
+      const first = index.pages[0]!
+      expect(first).toEqual({
+        slug: expect.any(String),
+        title: expect.any(String),
+        summary: expect.any(String),
+      })
+      const page = await a.getDoc(first.slug)
+      expect(page.slug).toBe(first.slug)
+      expect(page.markdown.startsWith(`# ${page.title}`)).toBe(true)
+      const document = await a.getOpenApiDocument()
+      expect(document.openapi).toBe('3.1.0')
+      expect((document.info as { version: string }).version).toMatch(/^\d+\.\d+\.\d+$/)
+      await expect(a.getDoc('no-such-page')).rejects.toMatchObject({
+        code: 'DOC_NOT_FOUND',
+      })
+    })
+  })
+
   it('replays a repeated key and refuses one reused with a different body', async () => {
     await withMock(async (origin) => {
       const a = api(origin)

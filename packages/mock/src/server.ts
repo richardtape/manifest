@@ -55,6 +55,8 @@ interface Context {
   buildIsRunning: boolean
   /** The operation's success example in the document, if it prints one (Decision 15). */
   example: Answer | undefined
+  /** The document this mock serves from, as read — what `getOpenApiDocument` answers. */
+  document: Document
 }
 
 interface Answer {
@@ -292,6 +294,22 @@ const ANSWERS: Record<string, Answerer> = {
       )
     return example
   },
+  // THE DOCUMENTATION (Task 11). A page is answered for ITS slug alone, as `getFile` is for its
+  // path; the OpenAPI document is the one this mock serves from, whole — an HTML reference or a
+  // Docs screen pointed here renders the API, never the example's three keys.
+  getDoc: (ctx) => {
+    const example = documentExample(ctx)
+    const held = (example.body as { slug: string }).slug
+    if (ctx.params.slug !== held)
+      throw new MockRefusal(
+        404,
+        'DOC_NOT_FOUND',
+        `manifest-mock holds one page, the document's example '${held}'`,
+        'Open that page here, or drive the platform to read the others.',
+      )
+    return example
+  },
+  getOpenApiDocument: (ctx) => ok('OpenApiDocument', ctx.document),
   // A DRY RUN IS ANSWERED AS ONE — `commitSha: null`, no recorded validation — and it echoes
   // nothing else of the request. The one fact the Check button exists for is that nothing was
   // written; answering it the example's commit would tell a person it had been (the reason
@@ -318,6 +336,7 @@ export const FROM_EXAMPLE: readonly string[] = [
   'getCommit',
   'listCommits',
   'createCommit',
+  'getDoc',
 ]
 
 interface Operation {
@@ -489,10 +508,18 @@ export function createMockServer(options: MockOptions = {}): Server {
 
   // Both are created once and awaited per request: reading and compiling the document on
   // every call would make the scripted timings meaningless.
-  const ready = (async (): Promise<{ validate: Validate; operations: Operation[] }> => ({
-    validate: await createValidator(),
-    operations: operationsOf(await readDocument()),
-  }))()
+  const ready = (async (): Promise<{
+    validate: Validate
+    operations: Operation[]
+    document: Document
+  }> => {
+    const document = await readDocument()
+    return {
+      validate: await createValidator(),
+      operations: operationsOf(document),
+      document,
+    }
+  })()
   ready.catch(() => undefined)
 
   const seen = new Map<string, Stored>()
@@ -544,7 +571,7 @@ export function createMockServer(options: MockOptions = {}): Server {
       return
     }
 
-    const { validate, operations } = await ready
+    const { validate, operations, document } = await ready
     const body = await readBody(request)
 
     try {
@@ -621,6 +648,7 @@ export function createMockServer(options: MockOptions = {}): Server {
         options: resolved,
         buildIsRunning: buildSucceedsAt !== undefined && Date.now() < buildSucceedsAt,
         example,
+        document,
       })
 
       // EVERY BODY IS VALIDATED ON ITS WAY OUT, in-process. A mock that lies is worse than

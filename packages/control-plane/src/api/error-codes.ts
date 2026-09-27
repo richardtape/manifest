@@ -297,6 +297,12 @@ export const ERROR_CODES = {
     'A delegated token asked for a person-only action (D24) — approving a release, or recording UBC’s IAM or privacy decision. Refused outright; no pending action is created.',
     'A person does this, in the console, in their own session. No token can hold it and no confirmation grants it — do not ask for one.',
   ),
+  // GET /v1/docs/{slug} (the authoring API plan's Task 11)
+  DOC_NOT_FOUND: api(
+    404,
+    'No page of the API’s documentation has this slug.',
+    'Read the index (`listDocs`): it names every page with the slug to read it by. A page’s links name files — `authoring.md` is the slug `authoring`, `reference/errors.md` is `reference-errors`.',
+  ),
   PROJECT_LAST_OWNER: api(
     409,
     'A project must always have an owner, so the last one cannot be removed.',

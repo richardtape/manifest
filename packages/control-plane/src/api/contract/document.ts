@@ -64,6 +64,7 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
     'The blueprints an app is built from (§25): what each provides, its starters, and the knowledge pack an agent reads before writing code.',
   delivery:
     'From a commit to a running app (§11–§13): build it, release the build, deploy the release, and — for production — the approval an administrator gives. Incidents say why an instance failed.',
+  docs: 'This documentation, served: the guides for a person writing a client and for an AI agent, the reference generated from this document, and the document itself.',
   events:
     'The project’s event stream (D23.2): every audit event and build log line, live, over a WebSocket.',
   identity: 'Who the caller is: the person behind the session, and their platform role.',
