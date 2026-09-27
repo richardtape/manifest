@@ -95,8 +95,14 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # every document example and its FROM_EXAMPLE gate (2) and four keyed answers (4) in
 # `packages/mock/src/server.test.ts`, the Code screen's pure half `code-state.test.ts` (9), and
 # the console's calls of the eight new operations against the mock (1).
-EXPECT_TESTS=2227
-EXPECT_FILES=154
+# Then the authoring API plan's sitting 8 (2026-09-26): +71 and five files — the docs loader
+# `docs/load.test.ts` (10), the served docs `api/docs.test.ts` (6), the three docs rows in the
+# authorization matrix (27), the platform's emptied-manifest envelope (1), the mock's keyed docs and
+# two refusals (4), the journey gate `coverage.test.ts` (3), the guides' examples run against the
+# mock `examples.test.ts` (12), the docs drift gate `packages/journey/src/docs.test.ts` (5), the
+# console's docs calls (1) and the HTML reference's boundary (2).
+EXPECT_TESTS=2298
+EXPECT_FILES=159
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 

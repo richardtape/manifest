@@ -229,6 +229,22 @@ acceptance under `preview`**, which holds no socket. Either way **stop it by por
 `lsof -nP -iTCP:7104 -sTCP:LISTEN -t | xargs kill` — because each shell is its own and
 `kill %1` has no job table to read.
 
+### The documentation, and the HTML reference
+
+*Added by the authoring API plan's sitting 8, 2026-09-26 (Task 11).* The console's header has **Docs**: the pages
+`GET /v1/docs` lists, each as plain text, and the contract's version. The Docs screen links **`/reference.html`**, a second
+Vite page outside `src/` that mounts Scalar 1.72.0's **standalone bundle** over `GET /v1/openapi.json` — served by
+`vite.config.ts`'s `scalarStandalone` step from `node_modules` (under `dev` a middleware, under `build` an emitted
+`dist/reference/scalar-standalone.js`, 4,331,361 bytes) and never from a CDN. Signed out, it offers CWL sign-in. **Open it
+with the browser's network log**: every request goes to the console's own origin, and one to any other host is a defect.
+`vite build` warns that the page's classic `<script>` *"can't be bundled without type="module""* — that is the point.
+
+The pages themselves are `docs/api/`, read by the control plane **once, at boot** (a page with no `# ` title or no first
+paragraph refuses the boot, naming it — restart the control plane to serve an edit). **`pnpm docs:write`** regenerates
+`docs/api/reference/`, `journey.md`'s and `events.md`'s tables, the guides' inlined code and `llms.txt` (with its copy in
+`packages/console/public/`, which the console serves at `/llms.txt`); run it after `pnpm contract:write && pnpm
+contract:generate`, and commit what it writes, or `pnpm test` is red naming the page.
+
 ## Running `manifest-mock`
 
 *Added by P5c sitting 8, 2026-09-19 (Task 12). §21: "front-end developers are not
@@ -302,14 +318,21 @@ platform (the P5 brief's §8). Specifically:
   journey’s row 3, and the mock cannot show it.
 - **An operation with no fixture is answered with the DOCUMENT's own example** (the
   authoring API plan's Decision 15), through the same Ajv check — and `server.test.ts` holds
-  all fifty examples to crossing it. **Four are answered only for what their example is
+  every example to crossing it. **Five are answered only for what their example is
   of** (`FROM_EXAMPLE`, 2026-09-26): `getFile` reads `src/app.js` alone, `getCommit`
-  describes one commit, `listCommits` has one page, and `createCommit` answers a dry run as
-  a dry run. Anything else is `409 SOURCE_PATH_NOT_FOUND` or `SOURCE_COMMIT_NOT_FOUND` **in
-  the mock's own words** (*"manifest-mock holds the text of one file…"*) — the mock, not the
-  platform. **It validates no request**, so a refusal the platform gives a malformed body —
-  a secret's value under six characters, a commit's bad path — is a `200` here, and
-  `SOURCE_CONFLICT`, `SPEC_INVALID` and `SOURCE_SECRET_DETECTED` are never answered. **Its
+  describes one commit, `listCommits` has one page, `createCommit` answers a dry run as
+  a dry run, and `getDoc` reads the page `index` alone. Anything else is `409
+  SOURCE_PATH_NOT_FOUND`, `SOURCE_COMMIT_NOT_FOUND` or `404 DOC_NOT_FOUND` **in the mock's
+  own words** (*"manifest-mock holds the text of one file…"*) — the mock, not the platform.
+  `getOpenApiDocument` answers the WHOLE document it serves from, so `/reference.html`
+  renders the API against the mock. **It plays two platform refusals over its one state**
+  (the authoring API plan's sitting 8): `main` is the tree example's commit (`c2ac2119…`), so
+  a commit — or a dry run — based on any other is `409 SOURCE_CONFLICT`, the document's own
+  request example included; and one that deletes or empties `manifest.yaml` is the
+  platform's `422 SPEC_INVALID` word for word. **Otherwise it validates no request**, so a
+  refusal the platform gives a malformed body — a secret's value under six characters, a
+  commit's bad path — is a `200` here, any other invalid manifest is answered valid, and
+  `SOURCE_SECRET_DETECTED` is never answered. **Its
   secrets are the example's**: every environment lists the same two declared names, a Set
   answers the example's name whatever was sent, and the list still reads *not set* after
   it. **It serves no `/auth/step-up`**, so production's round trip is the platform's.
@@ -674,7 +697,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-26 at the close of the authoring API plan's sitting 7 (Task 10 — the console and the mock), and one moved: `pnpm test` **2227 passed** in 154 files on every run of the sitting's final tree, ~7.9 minutes a run — the mock's gates over the document's examples and its keyed answers, the Code screen's pure half (`code-state.test.ts`), and the console's calls of the eight new operations; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 at the open and the close, and `pnpm test:docker` **210 in 35**, not owed this sitting (sitting 6's, 943 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-26 at the close of the authoring API plan's sitting 8 (Task 11 — the guides, served, and the HTML reference), and one moved: `pnpm test` **2298 passed** in 159 files on every run of the sitting's final tree, ~8.1 minutes a run — the docs loader and the served docs, the matrix's three new rows, the journey gate, the guides' examples run against the mock, the docs drift gate, the mock's keyed docs and two refusals, and the HTML reference's boundary; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 at the open and the close, and `pnpm test:docker` **210 in 35** (owed by the boot and the knowledge pack; green first time, 932 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has THIRTEEN steps, 1 to 13, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,

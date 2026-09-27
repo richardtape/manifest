@@ -1788,13 +1788,39 @@ it belongs among the traps the next sitting is most likely to hit.
   on the edge (`make verify`: *"runtime routes currently applied: 1"*) and an unnamed volume its image declares (`docker rm`
   without `-v`). Find the route with `curl -s http://127.0.0.1:7119/config/apps/http/servers/srv0/routes`, remove it with
   `curl -X DELETE http://127.0.0.1:7119/id/<its @id>`, and `diff` two `scripts/snapshot-machine.sh` runs for the volume.
-- **`manifest-mock` ANSWERS FOUR OPERATIONS FROM THE DOCUMENT'S EXAMPLE ONLY FOR WHAT THE EXAMPLE IS OF** (2026-09-26, the
-  authoring API plan's sitting 7, F1). `getFile` reads `src/app.js` alone, `getCommit` describes `c2ac2119…` alone,
+- **`manifest-mock` ANSWERS FIVE OPERATIONS FROM THE DOCUMENT'S EXAMPLE ONLY FOR WHAT THE EXAMPLE IS OF** (2026-09-26, the
+  authoring API plan's sitting 7, F1; `getDoc`, the fifth, since sitting 8). `getFile` reads `src/app.js` alone, `getCommit` describes `c2ac2119…` alone,
   `listCommits` has one page (its `next` is refused), and `createCommit` answers a dry run as a dry run — anything else is
   `409 SOURCE_PATH_NOT_FOUND` or `SOURCE_COMMIT_NOT_FOUND` **in the mock's own words** (`manifest-mock holds the text of one
   file…`). A screen, a guide's example or a test that reads another path against the mock meets that refusal: it is the
   mock, not the platform. The mock also validates NO request (a five-character secret is its `200`, the platform's `400`)
-  and serves no `/auth/step-up`; `FROM_EXAMPLE` in `packages/mock/src/server.ts` lists the four.
+  and serves no `/auth/step-up`; `FROM_EXAMPLE` in `packages/mock/src/server.ts` lists the five.
+- **NOT EVEN A WORKSPACE LINK CAN BE ADDED OFFLINE** (2026-09-26, the authoring API plan's sitting 8, F2). Naming
+  `@manifest/mock` in `packages/journey/package.json`'s `devDependencies` and running `pnpm install --offline` fails on the
+  same supply-chain check as an external add — *"✗ Lockfile failed supply-chain policy check (500 entries)"*,
+  `ERR_PNPM_NO_OFFLINE_META` — though a workspace link downloads nothing: pnpm 11 verifies the whole lockfile before it
+  links anything. Nothing changes (`cmp` the lockfile). A TEST file can import a sibling package by its path when the
+  package's `tsconfig` excludes tests, which is what `packages/journey/src/examples.test.ts` does.
+- **A FILTERED `pnpm add` CAN MOVE ANOTHER PACKAGE'S RESOLUTION — AND LEAVE `node_modules` BEHIND THE LOCKFILE** (2026-09-26,
+  sitting 8, F5). `pnpm --filter @manifest/console add @scalar/api-reference@1.72.0` re-resolved the CONTROL PLANE's
+  `drizzle-orm@0.45.2` to its optional-peer variant with `@opentelemetry/api@1.9.0`, because Scalar's tree brought that
+  package into the workspace — and linked only the console, so `packages/control-plane/node_modules` still pointed at the old
+  variant until a following `pnpm install --offline` relinked it. **Read the lockfile's `importers:` diff after any add**
+  (`diff <(sed -n '/^importers:/,/^packages:/p' old) <(sed -n '/^importers:/,/^packages:/p' pnpm-lock.yaml)`), and check each
+  change for a runtime effect (drizzle's here: none — its `tracing.js` never assigns `otel`).
+- **BSD `sed` HAS NO GNU `0,/re/` ADDRESS — AND EXITS 0 HAVING CHANGED NOTHING** (2026-09-26, sitting 8, its control (a)).
+  `sed -i '' '0,/x/s//y/' f || python3 …` never reaches the fallback, so a negative control's patch silently does not apply
+  and its green run is the unbroken tree. Patch with Python and `assert old in s`, and print `git diff --stat` before the run.
+- **EVERY CHANGE TO THE OPENAPI DOCUMENT IS THREE COMMANDS, NOT TWO** (2026-09-26, sitting 8): `pnpm contract:write && pnpm
+  contract:generate && pnpm docs:write`. `docs/api/reference/*.md`, `journey.md`'s and `events.md`'s tables and `llms.txt`
+  are generated from the document, and `packages/journey/src/docs.test.ts` is red naming any committed page older than it.
+  **A hand edit to a generated page is red the same way** — change the document, or the hand-written page around the
+  markers, and run `docs:write`.
+- **`manifest-mock` REFUSES A COMMIT WHOSE BASE IS NOT ITS `main`** (2026-09-26, sitting 8): `main` is the `getTree`
+  example's commit (`c2ac2119…`), so a `createCommit` naming any other `baseCommit` — the document's own request example,
+  based on the parent, included — is `409 SOURCE_CONFLICT` in the mock's words; and a change deleting or emptying
+  `manifest.yaml` is the platform's `422 SPEC_INVALID` word for word (`fixtures.EMPTIED_MANIFEST`). `getDoc` answers the
+  example's slug (`index`) alone. Read the tree, then commit against it.
 
 ## Images already pulled
 
