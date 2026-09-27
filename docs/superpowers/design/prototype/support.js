@@ -239,7 +239,7 @@
       mount.replaceChildren(tree);
 
       for (var i = 0; i < refs.length; i += 1) {
-        try { refs[i][0](refs[i][1]); } catch (e) { /* a ref must never break a render */ }
+        try { refs[i][0](refs[i][1]); } catch { /* a ref must never break a render */ }
       }
 
       if (focusId) {
@@ -247,7 +247,7 @@
         if (again) {
           again.focus();
           if (start !== null && 'setSelectionRange' in again) {
-            try { again.setSelectionRange(start, end); } catch (e) { /* not a text input */ }
+            try { again.setSelectionRange(start, end); } catch { /* not a text input */ }
           }
         }
       }
@@ -256,13 +256,13 @@
         mounted = true;
         if (instance.componentDidMount) { try { instance.componentDidMount(); } catch (e) { fail('componentDidMount threw — ' + e.message); } }
       } else if (instance.componentDidUpdate) {
-        try { instance.componentDidUpdate(); } catch (e) { /* non-fatal */ }
+        try { instance.componentDidUpdate(); } catch { /* non-fatal */ }
       }
     }
 
     global.addEventListener('pagehide', function () {
       if (instance && instance.componentWillUnmount) {
-        try { instance.componentWillUnmount(); } catch (e) { /* leaving anyway */ }
+        try { instance.componentWillUnmount(); } catch { /* leaving anyway */ }
       }
     });
 
