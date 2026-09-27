@@ -1084,6 +1084,21 @@ path on the wire (F10); the docs loader's two refusals (F11); a real gitlink in 
 ≥5.33 MiB run overflows V8's backtrack stack in the new lookbehind forms (a person's push only), and the review's eight other
 minors — the alternates path's scrub handed to Task 12, the message refusal's wording to Task 13.
 
+**SITTING 5 — Tasks 6 and 7, a project's name and people by CWL login name or email — DONE 2026-09-27** (`186fa34`,
+`e832bd5`, `3bc386d`, `5ba2fa3`; the count is in the defect-rate table). **A project has a `name`** — the slug when none is
+given, one visible line, renamed by `PATCH /v1/projects/{projectId}` (`updateProject`, the API's first `PATCH`) and published as
+`project.renamed`; it reaches nothing §23 derives. **The control plane asks the IdP for `uid` and keeps it as
+`users.cwl_login`**, and an owner adds a colleague by exactly one of PUID, CWL login name or email (`MEMBER_USER_AMBIGUOUS` for a
+shared address; the lookup after `members:manage` and step-up); `member.added` and `member.removed` name the person as
+`memberId`. **The sitting's most useful finding was the plan's own**: a unique login written on every sign-in locks out the new
+holder of a login UBC reassigns — a `500`, measured — so a login now follows whoever signed in with it last, and an assertion
+without `uid` leaves a stored one alone. **Its one fresh whole-branch review found two Importants** (a login miss whose hint
+looped an agent where `uid` was never released; the only owner able to make themselves a collaborator — pre-existing) **and two
+minors re-graded Important** (bidi marks and line separators in a name; no test holding CSRF on the first `PATCH`), all fixed
+red-first. **`make verify` then found what no test could**: its audit probe could no longer seed a project, and read the no-op
+as the audit log being editable — repaired. `docs/external-track.md`'s list of the control plane's own attributes, wrong since it
+was written, now reads `ubcEduCwlPuid`, `mail`, `givenName`, `sn` and `uid`.
+
 *The record of the placement it replaces:*
 
 
@@ -1379,6 +1394,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | Front-end enablement Tasks 2–3 (sitting 2, recent output end to end — a demuxer that decoded each frame alone, cut-then-redact half-showing a secret, the matrix's staging instance retired by its own deploy rows; and the whole-branch review's Critical: a key printed line by line redacted line by line, its body readable through the new route while its Incident hid it — plus a removed instance answering 200 with no lines) | 2 | 16 | 8.0 |
 | Front-end enablement Task 4 (sitting 3, binary files — the plan's own byte-scanner overflowing the stack at 2 MiB, a refinement that could not see `encoding`, four published text-only sentences; and the whole-branch review's three Importants: a PDF-headed `manifest.yaml` and a PDF-headed `<script>` page each committed `201` — a media type is a byte prefix — and the scan's unnamed blind spots; plus a pre-existing quadratic `scanText`, measured and handed to Task 5) | 1 | 14 | 14.0 |
 | Front-end enablement Task 5 (sitting 4, what the authoring API handed over — `[S3]`'s quadratic line found in the redactor's three rules and `trimCut`'s tail too, an UNAUTHENTICATED logout inflated with no bound before its signature, oracles whose first generators matched nothing; and the whole-branch review's Critical: node-saml reads a `SAMLRequest` beside the bounded response, so the bound was bypassed — plus a close-out ruling that no Docker case ran the fix, when one does, and a miscounted hand-off) | 1 | 16 | 16.0 |
+| Front-end enablement Tasks 6–7 (sitting 5, a project's name and people by CWL login — a unique login written on every sign-in locking out the new holder of a reassigned login (a `500`, measured), a missing `uid` that would have erased one, an event field whose name meant the opposite of every other event's, a generated migration that fails on a populated table, two controls that could not fail as written; the whole-branch review's two Importants — a login miss whose hint loops an agent, the only owner able to demote themselves — and two re-graded minors; and `make verify`'s audit probe reading its own failed seed as an editable audit log — plus a hand-off line pointer Prettier moved) | 2 | 17 | 8.5 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each

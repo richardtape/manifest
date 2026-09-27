@@ -1937,6 +1937,23 @@ it belongs among the traps the next sitting is most likely to hit.
   `SAMLResponse` with an 8 MiB `SAMLRequest` beside it passed a bound on the response alone (the sitting's review, C1 — 1.5 s
   again). `identity/saml.ts`'s `requireBoundedMessage` bounds what node-saml reads, to 64 KiB, on both logout paths, and the SP
   path refuses a query carrying both. **The refusal's CODE is the same whatever refused** — assert the operator line's reason.
+- **`ls` IN A PIPE, INSIDE `$(…)`, CAN TURN ONE TEST FILE INTO THE WHOLE SUITE** (2026-09-27, the front-end enablement plan's
+  sitting 5, F14). `ls` is aliased to a long listing (§4's trap 2), so `$(ls src/api/*.test.ts | xargs grep -l "/members")`
+  handed `xargs grep` lines like `-rw-r--r-- 1 rich …`; grep refused them, the substitution was EMPTY, and `pnpm exec vitest run
+  --project unit $(…)` with no file arguments ran the entire unit project — ~9 minutes, in the background, holding the
+  database while nothing else could run. Use a glob or `find … -name '*.test.ts'`, never `ls`, in anything that feeds a
+  command; and when a narrowing expression can come back empty, check it before the command that treats "none" as "all".
+- **`pgrep -f PATTERN` MATCHES ANY PROCESS WHOSE COMMAND LINE CARRIES THE PATTERN — INCLUDING ANOTHER WAITER** (2026-09-27,
+  sitting 5). Two watchers waited for one Vitest run with `until ! pgrep -f "vitest run --project unit"; do sleep 5; done` — a
+  Monitor and a background shell — and each one's own command line carries the pattern, so each kept the other's `pgrep`
+  answering: the Monitor expired after 15 minutes with no event, and the background wait ended only after it did, long after
+  the run itself had finished. Wait on something the watched process WRITES (`until grep -q '^exit ' log`), or bracket the
+  pattern (`pgrep -f "[v]itest run"`), which no watcher's command line matches.
+- **A UNIQUE COLUMN WRITTEN FROM AN ASSERTION MUST LET GO OF WHO HELD IT** (2026-09-27, sitting 5, F1). `users.cwl_login` is
+  unique and comes from `uid`, and a CWL login can be reassigned at UBC — so writing it on every sign-in made the NEW holder's
+  first sign-in collide with the old holder's stale row: `500 INTERNAL`, measured. `upsertUserFromAssertion` clears the login
+  from any other row in the same transaction first. An attribute an IdP releases is a claim about NOW, never a key: key on the
+  PUID, and treat anything else unique as held by whoever last presented it.
 
 ## Images already pulled
 

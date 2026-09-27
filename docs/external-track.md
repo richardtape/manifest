@@ -91,9 +91,19 @@ entirely independent of any app's.
 These gate *deploying the control plane at all* — that is, Phase 5 — which sounds
 distant until you price the turnaround. **Raise both now.** Nothing about Phases
 0–4 is blocked by them, and nothing about them is blocked by Phases 0–4: the control
-plane's own attribute needs (`ubcEduCwlPuid`, `mail`, `eduPersonAffiliation`) are
-already known from §6's `User` entity and do not depend on a line of code being
-written.
+plane's own attribute needs are already known from §6's `User` entity and do not depend
+on a line of code being written. **They are `ubcEduCwlPuid`, `mail`, `givenName`, `sn` and —
+since 2026-09-27 — `uid`, the CWL login name** (`CONTROL_PLANE_ATTRIBUTES` in
+`packages/control-plane/src/sso/platform.ts`; §9 as Spec action 4 amended it). `uid` is
+ASKED FOR AND NEVER REQUIRED: a person whose assertion lacks it still signs in, and only
+adding them to a project by login name stops working. **`eduPersonAffiliation` is NOT
+among them** — this line named it until 2026-09-27, wrongly: a platform role is
+Manifest's to decide (§9), so the control plane never asks for one. *(Corrected by the
+front-end enablement plan's sitting 5. The same registration gains a second
+assertion-consumer URL, `app`'s, with that plan's Task 8.)* The one-name lookup `uid` and
+`mail` make possible — an owner adding a colleague — also lets anyone who creates a project
+learn whether a given login or address has signed in to Manifest (Decision 14 accepted it);
+**the platform PIA should say so.**
 
 ### 3–4 — The proof app's registration and PIA
 

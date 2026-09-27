@@ -48,8 +48,8 @@
 | 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) | **DONE 2026-09-27** — `readRecentOutput`, THE reader, redacting lines JOINED (a key printed line by line) and before any cut; `listInstances` and `getInstanceOutput` under `output:read`, production `403`, a removed instance `409`; contract **1.4.0**; one fresh whole-branch review, its Critical and three Importants fixed |
 | 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | **DONE 2026-09-27** — `source/binary.ts`; bytes through `Change` to `planChanges` (the blob is git's own id for the bytes, both drivers); a base64 write canonical, ≤ 2 MiB, never text, NAMED as one of the ten kinds (the review's I1/I2) and one of them by its bytes; printable runs scanned — the only layer for a binary write, its blind spots named; `getFile?encoding=base64`; a real PNG and TTF built, deployed and served byte-exact through the edge; one fresh whole-branch review, three Importants fixed and one (a pre-existing quadratic scan) handed to Task 5 |
 | 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) — **and `scanText`'s quadratic long line** (Task 5's `[S3]`, from sitting 3) | **Yes** — `blueprints/`, `source/`, `build/` | none | **DONE 2026-09-27** — `[S3]` fixed by one regex source read from the token's first dot, and its class found and fixed in §14's redactor (PEM, JWT, URL, `trimCut`'s tail) and in the unauthenticated logout (a bounded inflate, of the message node-saml reads); F1 (pinned by a test), F4, F7–F12; `CommitDetail.truncated` published; one fresh whole-branch review, its Critical (a request beside a response bypassed the bound) fixed red-first |
-| 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | ← next |
-| 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | |
+| 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.name` (the slug when none is given; one visible line), renamed by `PATCH /v1/projects/{projectId}`, `project.renamed`; `uid` asked for and kept as `users.cwl_login`, HELD BY WHOEVER SIGNED IN WITH IT LAST; `addMember` by exactly one of `puid`/`cwlLogin`/`email`, `MEMBER_USER_AMBIGUOUS`, `member.added`/`member.removed` naming `memberId`; one fresh whole-branch review, two Importants and two re-graded minors fixed (the last owner kept, a login miss that names email and PUID); `make verify`'s audit probe repaired (F16) |
+| 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | ← next |
 | 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **If it runs long, stop after Task 9 and sweep** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27 | |
 | 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | |
 | 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | |
@@ -301,7 +301,7 @@
 
 **Decision 14. People are found by `cwlLogin`, `email` or `puid` — exactly one.** `AddMemberRequest` keeps `puid` and gains `cwlLogin` and `email`, each optional, **exactly one present** (`400 REQUEST_INVALID` otherwise) — additive, so today's clients are unchanged. `cwlLogin` matches the stored login exactly, lowercased. `email` matches case-insensitively, and **two people sharing one address is `400 MEMBER_USER_AMBIGUOUS`** — a `BadRequestError` like its sibling `MEMBER_USER_NOT_FOUND`, because the request named nobody in particular — naming neither. Nobody found is today's `MEMBER_USER_NOT_FOUND`, whose message names what was looked for and nothing else. *Rejected:* **a people search** — a directory of everyone who has signed in, readable by every owner, is a privacy surface the PIA would have to describe; a lookup of ONE name the owner already knows is not.
 
-**Decision 15. `uid` is asked for, kept, and published as `cwlLogin` on a member.** `CONTROL_PLANE_ATTRIBUTES` gains `uid`, `toIdentity` reads it (optional — an assertion without it still signs in, with `cwl_login` left null), and `users.cwl_login` is unique where not null. The local IdP's three test users gain `uid` equal to their login. **Membership changes publish `member.added` and `member.removed`**, the sentence naming the person, because a People screen has nothing else to learn from. *Rejected:* **requiring `uid`** — Manifest's own UBC registration does not ask for it yet (*What Rich does* 6), and a hard requirement would lock out every person until it does.
+**Decision 15. `uid` is asked for, kept, and published as `cwlLogin` on a member.** `CONTROL_PLANE_ATTRIBUTES` gains `uid`, `toIdentity` reads it (optional — an assertion without it still signs in, with `cwl_login` left null), and `users.cwl_login` is unique where not null. The local IdP's three test users gain `uid` equal to their login. **Membership changes publish `member.added` and `member.removed`**, the sentence naming the person, because a People screen has nothing else to learn from. *(**As built, sitting 5 (2026-09-27):** `member.added` is `{ memberId, role, previousRole, via, userId, tokenId }` and `member.removed` `{ memberId, via, userId, tokenId }` — `userId` keeps its meaning in every other event, WHO ACTED, so the person the change is about is `memberId`; neither is published for a request that changed nothing. And the login FOLLOWS ITS HOLDER: a sign-in clears it from any other row first, and an assertion without `uid` leaves a stored one alone — the sitting's F1 and F2.)* *Rejected:* **requiring `uid`** — Manifest's own UBC registration does not ask for it yet (*What Rich does* 6), and a hard requirement would lock out every person until it does.
 
 ### The `app` origin (Task 8)
 
@@ -1178,6 +1178,16 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > answers NOTHING on macOS**, because it bypasses `/etc/resolver`: a host-side check uses `dscacheutil -q host -a name …` or
 > curl, never `dig`.
 
+> **[S5] — FROM SITTING 5 (Tasks 6 and 7; 2026-09-27).** (1) **Step 11's file is the wrong one**, exactly as Task 7's was:
+> `sso/login.docker.test.ts` signs people into throwaway APP SPs (`startSamlSp`) and never boots a control plane; **the control
+> plane's own real sign-in is `identity/saml.docker.test.ts`** (it builds `dist/`, spawns the control plane on a loopback port and
+> signs `instructor` in through the real IdP — Task 7 extended it to read `cwl_login`). Put the two-origin case there, or beside
+> it. (2) **`CONTROL_PLANE_ATTRIBUTES` is FIVE names since Task 7** (`uid` added) — `sso/platform.test.ts` and
+> `boot.docker.test.ts:153` pin the list; Step 4's row test reads it. (3) **`docs/external-track.md` already says Manifest's own
+> registration asks for `uid`** (sitting 5 corrected the line, which also named `eduPersonAffiliation` wrongly) — Step 12 adds only
+> the second assertion-consumer URL. (4) The IdP reads `authsources.php` without a restart (opcache revalidates every 2 s,
+> measured) — but the CADDYFILE is a different container; `[M10]`'s restart rule still stands for it.
+
 **SPEC ACTION 2 MUST BE DECIDED BEFORE THIS TASK STARTS.** The steps build its recommended option (a). **`[M3]` must have held**: if SimpleSAMLphp posted to index 0 whatever the request named, this task is re-cut with Rich before sitting 6 (the fallback is option (b), two SP entities).
 
 **Files:**
@@ -1708,6 +1718,18 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > project's starting point, made by Manifest"* (F4, `commitOrigin` in `code-state.ts`) — the mock's history example has no
 > seed commit, so a mock-driven check never shows it.
 
+> **[S5] — FROM SITTING 5 (Tasks 6 and 7; 2026-09-27).** (1) **`updateProject` is parked** in `DELIBERATELY_UNCALLED` naming
+> this task — the Project screen's rename removes it. (2) **The mock answers `updateProject` from its example** — a different
+> id and slug (`chem-labs`) from its own `mock-app` — so script it to answer the mock's project renamed; **the mock scripts
+> neither `project.renamed` nor `member.added`/`member.removed`**, and `packages/mock/src/script.ts:39` still says `addMember`
+> publishes no event (the review's minor 7). (3) **The People screen adds by ONE of `puid`, `cwlLogin` or `email`** — a CWL
+> login misses for a person who has not signed in since Manifest asked CWL for it, and the refusal's hint says to use email or
+> PUID; an email two people share is `400 MEMBER_USER_AMBIGUOUS`; making the only owner a collaborator is `409
+> PROJECT_LAST_OWNER`. `Member.cwlLogin` is new (null when unknown). (4) **The fleet representation has no `name`**
+> (`api/representations/fleet.ts`) — an administrator's list still reads slugs (the review's minor 5). (5) The rule that a
+> request names exactly one key is a `superRefine`, invisible to the generated client (`schema.d.ts` types `{ role }` as valid —
+> the review's minor 3): the console must hold it itself, or this task makes the schema a `oneOf`.
+
 **D22's rule, unchanged: the console is the proof that the API is complete, not the product.** Its quality bar is §22's — *"plain but presentable"* — and **none of this task is the faculty front-end's design**, which is drawn screen by screen after this plan against the design system (`docs/superpowers/design/`). What a screen here must do is CALL each operation the way a real client would, and show a person the answer honestly.
 
 **Files:**
@@ -1747,6 +1769,16 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > `repository.secret_refused`'s `line` counts runs in a base64 file. **Stale sentences today** (the review's minor 9):
 > `authoring.md:8` (*"one text file’s content"*), `:193` (*"**Text only.**"*), and the *"A binary file … cannot be read as
 > text"* samples at `authoring.md:34` and `getting-started.md:86`. Two 2 MiB files fit in one commit's 8 MiB body.
+
+> **[S5] — WHAT SITTING 5 BUILT THAT THE GUIDES MUST SAY (Tasks 6 and 7; 2026-09-27).** **A project has a `name`** — what
+> people read; 1 to 80 characters, trimmed, one line with something visible, no control character, line separator or
+> bidirectional mark; the slug when none is given; changed by `PATCH /v1/projects/{projectId}` (`updateProject`), which needs
+> `project:write`, an `Origin` and an `Idempotency-Key` like every mutation, and publishes `project.renamed` (not for a rename
+> to the same name). **The slug is still called "the project's name" in published text** — `projects/slugs.ts:35,36,52`,
+> `api/routes/slugs.ts:12` (*"Would this project name work?"*), `project.created`'s `slug` description, `fleet.ts:12` and two
+> error remedies — say *slug* (the review's minor 5). **A person is added by exactly ONE of `puid`, `cwlLogin` or `email`**;
+> the CWL login is known only for a person who has signed in since Manifest began asking CWL for `uid`; an email two people
+> share is `MEMBER_USER_AMBIGUOUS`; `member.added` / `member.removed` name the person as `memberId` and who acted as `userId`.
 
 > **[S4] — WHAT SITTING 4 CHANGED THAT THE GUIDES MUST SAY (Task 5; 2026-09-27).** *Authoring*: **a commit message** is
 > well-formed Unicode with **no control character but a line break and a tab** — a NUL, a carriage return or an escape is
@@ -1815,7 +1847,7 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
   4. **The agent writes the app:** the fixture's files as text and **`logo.png` as bytes**; a dry run, then the commit. **Controls**: the fixture's `server.js` sent as base64 → `400 REQUEST_INVALID` (text as bytes); an ELF header named `logo2.png` → `400 REQUEST_INVALID`; `getFile?encoding=base64` of `logo.png` → the same bytes.
   5. **Build, release, deploy to staging** (the token). The student signs in INSIDE the app (`idp_login` against the app's own login; **F1's guard — a fixture without `express.urlencoded` signs nobody in**) and posts a response; `curl` the page, which prints its output line.
   6. **The agent reads what the app printed:** `listInstances` names the serving instance; `getInstanceOutput` holds the marker line, **and `[REDACTED]` where the app printed its own `MONGODB_URI`**, and never the URI. **A control**: `getInstanceOutput` for a production instance is shown in the unit tier, not here — say so in the script.
-  7. **People:** the instructor steps up (on `app`) and adds `student` **by CWL login name** as a collaborator (`member.added`); adding `nobody` → `400 MEMBER_USER_NOT_FOUND`.
+  7. **People:** the instructor steps up (on `app`) and adds `student` **by CWL login name** as a collaborator (`member.added`); adding `nobody` → `400 MEMBER_USER_NOT_FOUND`. *(Sitting 5: assert `member.added`'s **`memberId`** is `student`'s user id — its `userId` is the INSTRUCTOR, who acted — and that `student` has signed in since the platform row asked for `uid`, or the login is unknown and the answer is `MEMBER_USER_NOT_FOUND` with a hint naming email and PUID.)*
   8. **Archive** (stepped up): the staging name answers **`410`** and the page; the agent's key is **refused by LiteLLM**; the token is `401`; the instructor's `startBuild` → `409 PROJECT_ARCHIVED`. **Restore**, deploy the same release: the page shows **the response the student posted before the archive**.
   9. **Delete** `frontend-scratch-<driver>` (created, deployed once, never launched): its name no longer answers the app, `checkSlug` says available, its repository is gone. **When `launch-app` has launched, `deleteProject` on it → `409 PROJECT_LAUNCHED_NOT_DELETABLE`** (read-only: the call is refused before anything is touched — say so beside it, because this is the one call the demo makes to a project it did not create).
   10. **End the session** the demo started; revoke the token.
@@ -2516,3 +2548,166 @@ HTML pages were checked** — they state a plan's milestones, and this sitting's
 
 **Next: sitting 5 (Tasks 6 and 7 — a project's name, and people by CWL login name or email)**; Spec action 4 is applied;
 `pnpm test:docker` owed (`identity/`, `sso/`, `projects/`, `infra/`).
+
+### Sitting 5 — 2026-09-27: Tasks 6 and 7, a project's name and people by CWL login name or email
+
+**Run cold from ORIENTATION §7e**, at Rich's *"read ORIENTATION.md and proceed with the next sitting"*, on the LEAN budget
+(single files while working, the Docker tier once beside the reviewer, the whole suite twice on the final tree). Inline
+execution (`superpowers:executing-plans`), committing on `main`; one fresh whole-branch reviewer (Opus, read-only, told never
+to run a test) run beside the Docker tier, and one fix pass. Commits: `186fa34` (Task 6), `e832bd5` (Task 7), `3bc386d` (the
+review's fix pass). Migrations `0033` (`projects.name`, hand-edited) and `0034` (`users.cwl_login`), both applied before the unit
+tier. The contract is still **`1.4.0`**: 57 operations (`updateProject`, the API's first `PATCH`), 82 schemas, 114 error codes
+(`MEMBER_USER_AMBIGUOUS`), 40 event types (`project.renamed`, `member.added`, `member.removed`). The ledger's `Ruling:` lines are
+reproduced here as the rulings.
+
+**Rulings.**
+- **The "slug when none is given" default lives in `createProject`** (`CreateProjectInput.name` optional), not the route — the
+  rule stated once, every creation path through it, and the ~15 test callers unchanged; the 8 direct test inserts gained a name.
+- **`project.renamed` carries `{ from, to, via, userId, tokenId }`**, not the plan's `{ from, to }` — the house pattern since
+  `app_secret.set` (*"`audit.events` has no actor column and a sentence is not a record"*), and §8's open non-repudiation
+  question is exactly who-acted being half-recorded. A rename to the name it already has publishes nothing.
+- **`renameProject` and `addMember` read and write under a lock** (`SELECT … FOR UPDATE`), answering what the row HAD, so racing
+  requests each record the other's value and a change is published once. (The review's minor 9: `FOR NO KEY UPDATE` suffices.)
+- **Migration 0033 was edited by hand** into add-nullable / backfill-from-slug / `SET NOT NULL` — measured on a real row in a
+  rolled-back transaction before it was applied (F4).
+- **THE CWL LOGIN FOLLOWS ITS HOLDER** — a sign-in clears the login from any OTHER row, in the same transaction, before writing
+  it (F1) — **and an assertion without `uid` leaves a stored login alone** (F2).
+- **`member.added` is `{ memberId, role, previousRole, via, userId, tokenId }` and `member.removed` `{ memberId, via, userId,
+  tokenId }`**, not the plan's `{ userId, role }` / `{ userId }` (F3); neither is published for a request that changed nothing.
+- **Task 7's tests are in a new `api/members.test.ts`**, the `uid`-reading unit tests in `api/auth.test.ts`, and **its Docker case
+  in `identity/saml.docker.test.ts`'s real control-plane sign-in**, not `sso/login.docker.test.ts` (F8).
+- **The IdP was not restarted after the in-place `authsources.php` edit** — measured instead: the same inode (`41391714`), the
+  container's `sha256` equal at once (`ca7e4d6d…`), and PHP's opcache revalidating every 2 s (`validate_timestamps=1`,
+  `revalidate_freq=2`). The Docker tier's real sign-in, and a real `student` sign-in through the edge, were the proof.
+- **The review's Minor 1 and Minor 6 were re-graded Important and fixed** (F12, F13); **its Important 2, pre-existing, was fixed
+  rather than recorded** — the lock and the old role were already in hand (F11).
+- **No Docker re-run after the fix pass** — GREPPED the Docker tier for `/members`, `addMember`, `findPerson`, `renameProject`,
+  `ProjectName`, `updateProject` and `PATCH`: only `boot.docker.test.ts` names `/members`, as a path in `pending_actions` rows it
+  inserts directly; no Docker case executes a line the fix pass changed (sitting 4's F15 rule, applied first this time).
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 The plan's unique `cwl_login`, written on every sign-in, locks out the new holder of a login UBC reassigns.** A CWL login
+   can change and be given to somebody else; the second person's first sign-in collides with the first's stale row on
+   `users_cwl_login_unique`. Control (d) measured it: **`500 INTERNAL`** on the second sign-in. Fixed by the holder rule
+   (`upsertUserFromAssertion`), held by *a login follows its holder*.
+2. **F2 The plan's "writes `cwl_login` on every sign-in" would erase a stored login whenever an assertion lacks `uid`** — absent
+   is "not released", not "none" (a registration that stops asking would unmake every login). Control (e): `null` for
+   `instructor`, red.
+3. **F3 The plan's `member.added { userId, role }` gives `userId` the OPPOSITE of the meaning it has in every other event** —
+   there, `ActingUser`, *"the person who acted"*; here, the person acted upon. Renamed `memberId`, with the actor triple and
+   `previousRole` (an addition and a role change are different sentences).
+4. **F4 The migration drizzle wrote for `projects.name` fails on any table with a row** — `ADD COLUMN "name" text NOT NULL` with
+   no default. Hand-edited into three statements; the backfill measured on a real row, rolled back, before `db:migrate`.
+5. **F5 Step 5(b)'s control as written cannot fail its test**: *"derive `hostnameFor` from `name`"* — hostnames are derived once,
+   at creation, so a before-and-after-RENAME comparison never sees a creation-time derivation. Realised as the rename rewriting
+   the environments' hostnames; red on the hostnames.
+6. **F6 Control (c)'s first form stayed GREEN** — moving `findPerson`'s QUERY ahead of `members:manage` changed no answer, because
+   its two refusals still came after the capability check; the property the test holds is the REFUSALS' order. The second form
+   (query and refusals) went red, `400` for `403`. *A green control is a question* — answered, not recorded as "cannot fail".
+7. **F7 *Refuses two keys, or none* was GREEN before the feature** — today's strict body refuses `cwlLogin` as an unknown key. A
+   positive control in the same test (ONE key → `201`) made it red first.
+8. **F8 The plan names `sso/login.docker.test.ts` for the control plane's real sign-in** — that file signs people into
+   throwaway APP SPs (`startSamlSp`) and never writes a `users` row; `identity/saml.docker.test.ts` boots the control plane and
+   signs `instructor` in. **Task 8's Step 11 names the same file** — its `[S5]` block says so.
+9. **F9 `docs/external-track.md` listed the control plane's own attribute needs wrongly before this sitting** — it named
+   `eduPersonAffiliation`, which `CONTROL_PLANE_ATTRIBUTES` deliberately never requests (§9), and omitted `givenName` and `sn`.
+   Corrected, with `uid`, and with the PIA note the review's declined-to-judge list raised (the one-name lookup is an oracle).
+10. **F10 (review I1) `MEMBER_USER_NOT_FOUND` was false, and its remedy looped, for a person who signed in before `uid` was
+    released** — *"nobody … has signed in"* and *"sign in once"*, where they had, and would again to no effect; and
+    `MEMBER_USER_AMBIGUOUS` sent the client to `cwlLogin`, the key dead in that state. Each key now says what it means and
+    names the keys that work; RED (the hint lacked `email`) → GREEN.
+11. **F11 (review I2, pre-existing since P5a) `addMember` let the only owner make themselves a collaborator** — a project with
+    no owner, which `removeMember`'s guard exists to prevent (and the new event would have announced it). `409
+    PROJECT_LAST_OWNER`, counted under the project's lock; RED (`201`) → GREEN, with a positive control (two owners, allowed).
+12. **F12 (review Minor 1, re-graded Important) `ProjectName` admitted a bidi override (U+202E), line and paragraph separators
+    (U+2028/2029) and a name of only zero-width spaces** — measured by the reviewer on the exact zod chain — while its published
+    description promised *"on one line"*; and `project.renamed`'s sentence did not quote the names, so a name a prompt-injected
+    agent wrote (D14; `project:write` is mintable) could read as a second activity line or reverse its owner's sentence. Now
+    refused, and a name must have something visible; the sentence quotes both. RED at U+2028 → GREEN; control (h) (the
+    visible rule off) red at the zero-width name.
+13. **F13 (review Minor 6, re-graded Important) Nothing held §20's CSRF or D23.6's Idempotency-Key on the API's first `PATCH`**
+    — every rename test sent both, so dropping `'PATCH'` from `server.ts`'s `MUTATING` left all of Task 6 green. A test now;
+    control (g) (the drop) red, `200` for `403 CSRF_ORIGIN_REFUSED`.
+14. **F14 ORIENTATION §4's trap 2 sprung: `ls … | xargs grep -l` fed `xargs` the long listing `ls` is aliased to**, so a
+    `$(…)` meant to name six test files named none and Vitest ran the WHOLE unit project in the background — ~9 minutes, 2312 of
+    2314 on the pre-commit tree. Let finish rather than killed: its two reds were tests pinning the `Member` shape and the
+    replay's event list, both then updated to name `cwlLogin` and `member.added`. Use `find` or a glob, never `ls`, in a pipe.
+
+15. **F15 Two waiters built on `pgrep -f "vitest run --project unit"` kept each other alive** — a Monitor and a background wait,
+    each one's command line carrying the pattern the other searched for: the Monitor expired after 15 minutes with no event,
+    and the wait ended only after it did. TRAPS.md has it (wait on a line the process writes, or bracket the pattern).
+
+16. **F16 `make verify`'s append-only probe could no longer seed its project — and read that as the audit log being
+    EDITABLE.** Task 6 made `projects.name` `NOT NULL`; the probe's raw `INSERT INTO projects` did not name one; psql carried on
+    past the failed statement and exited 0; so no project and no event existed, the application role's `DELETE` of the probe's
+    project removed NOTHING and succeeded, and the check printed *"NOT REFUSED: CASCADE — the audit log is editable by the
+    application"* — a false red on the platform's own meter for §20. **Found only by `make verify` at the close**: no Vitest
+    case reads a shell script, and the reviewer's *"no script inserts projects"* grepped TypeScript. Fixed (`5ba2fa3`): the probe
+    names its project, and its seed runs in ONE transaction with `ON_ERROR_STOP`, so a seed that fails answers *"could not seed
+    the probe row"* and leaves no probe user — each measured: the false CASCADE red; then 4 of 4 refused; then the unnamed seed
+    under the new flags failing honestly with no row left.
+
+17. **F17 The close-out's own hand-off cited `boot.docker.test.ts:152` — the pinned list is at `:153`**, because Prettier split
+    Task 7's longer array across lines after the line was noted. Found by the post-sweep check opening what §7e points at, in
+    §7e and in Task 8's `[S5]` block; both corrected.
+
+**Deferred minors** (the review's, not numbered): a brand-new user's first two sign-ins with a `uid` racing each other end in a
+`500` (the login's unique index is not the upsert's arbiter; before Task 7 the race resolved; remedy named — insert `ON CONFLICT
+(puid) DO NOTHING` then `UPDATE`, or retry once on `23505`) (2); `AddMemberRequest`'s exactly-one rule is a `superRefine`,
+invisible to the JSON Schema and so to the generated client and the mock (3 — Task 13's `[S5]`); `cwlLogin` is not trimmed (4);
+the SLUG is still called *"the project's name"* in published text, and the fleet has no `name` (5 — Tasks 13 and 14's `[S5]`);
+the mock's `script.ts:39` and its missing `project.renamed`/`member.*` scripts, and its `updateProject` answered from the example
+(7 — Task 13's `[S5]`); the two examples are hand-written, not captured (8); `FOR UPDATE` where `FOR NO KEY UPDATE` suffices (9);
+two concurrent removals of one collaborator answer the second `409 PROJECT_LAST_OWNER` (10, pre-existing). **Declined to judge,
+all nine standing**: the one-name lookup IS an oracle for anyone who creates a project and steps up (Decision 14 — the PIA should
+say so; `docs/external-track.md` now does); the pending action's unkeyed `bodySha256`; a confirmed grant not spent on a `400`; UBC
+releasing `uid`; `toIdentity`'s PUID-as-display-name fallback; the mock's missing request validation; a reassigned login naming
+its old holder until the new one signs in; `lower(email)` unindexed; and the demos (process).
+
+**Measured, and as the plan predicted** (not findings): the contract stayed `1.4.0`; `[M10]`'s bind mount took an in-place edit
+at once (inode unchanged); the real IdP releases `uid` only because the platform row names it (control (a)); `make demo-identity`
+and `make demo-token` green and unchanged — and `demo-token`'s confirmed token retry published `member.added` with `via: token`,
+its sentence *"Test Instructor's agent (token 'p5b acceptance …') added Test Student to the project as a collaborator."*; a real
+`student` sign-in through the edge kept `cwl_login = student`, the platform row reading `["ubcEduCwlPuid","mail","givenName","sn","uid"]`.
+
+**The negative controls — every one predicted in writing (`t6-predictions.md`, `t7-predictions.md` in the workspace), run after
+its commit, and restored:**
+- Task 6: (a) publish on a no-op rename — the same-key retry GREEN, as predicted; *a rename to the name it already has …
+  publishes nothing* RED (2 events). (b) the rename rewrites the hostnames — RED (F5). (c) the control-character refine off — RED
+  at the tab; (c2) the class narrowed to C0 — RED at the C1 case alone. (d) the route asserts `project:read` — the read-only
+  token RED (`200` for `403 FORBIDDEN`).
+- Task 7: (a) `uid` dropped from `CONTROL_PLANE_ATTRIBUTES` — the Docker case RED (`cwl_login: null`); in the unit tier only the
+  pinned list red, every `uid` unit test green (the in-process IdP signs what it is handed) — **only the real IdP enforces
+  release**. (b) email matched exactly — RED on *whatever its case* and on AMBIGUOUS. (c) the lookup before `members:manage` —
+  first form GREEN (F6), second form RED. (d) the holder rule off — RED, `500` (F1). (e) a sign-in without `uid` writes null —
+  RED. (f) an unchanged role published — RED (four events).
+- The fix pass: (g) `'PATCH'` out of `MUTATING` — RED (F13). (h) the visible-character rule off — RED at the zero-width name.
+
+**Gates at close**: **`pnpm test` 2484 passed in 167 files**, twice on the final tree (`3bc386d`: 615 s and 559 s, identical;
+`5ba2fa3` after it changes only `scripts/verify.sh`, which no test reads — grepped) — up from 2451 in 166 by 33 tests and one file
+(`api/members.test.ts`): 8 in Task 6, 13 in Task 7 (4 in `auth.test.ts`, 9 in `members.test.ts`) and 3 in the fix pass — the 24
+predicted before the runs — **plus 9 the prediction missed**: the authorization matrix's new `PATCH` row runs once per actor
+(`authz-contract.test.ts` 614 → 623, found by diffing the two sittings' per-file counts, not assumed). **`pnpm test:docker` 217 in
+36 files** — owed, run once on `e832bd5` beside the reviewer, green first time in 940 s at load ~4; its count unchanged (Task 7
+EXTENDED `identity/saml.docker.test.ts`'s real sign-in); the fix pass touched no line a Docker case runs (grepped). `pnpm
+typecheck`, `pnpm lint` and `pnpm format:check` clean. **`make doctor` 20/0/0; `make verify` 57/0/0** — after F16's fix; its
+per-app line `mf- containers=6 networks=2 volumes=4`, as at open. **`make demo-identity` and `make demo-token` green** (32 s
+each). The contract is still **`1.4.0`** (57 operations, 82 schemas, 114 error codes, 40 event types).
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 secrets, 0 instances, 0 users, **35
+migrations** (`0033` and `0034` this sitting; the final runs truncated it); `launch-app`'s six `mf-launch-app-*` containers running,
+untouched, and no other `mf-` container (the two demos' six removed with `docker rm -f -v`, their two runtime routes deleted by
+id); nothing listening on 7100, 7102, 7104, 7105, 7110 or 8765 — **the control plane is not running** (started for the live
+sign-in and the demos, then stopped); the edge (`manifest-caddy`) restarted by the Docker tier, as it always is; the GitHub fake
+absent; **both models unloaded** (warmed for the tier; unloaded at close — Ollama's `/api/ps` lists none). The three cleanup
+scripts, after `--apply` (allowed — 9 networks and 5 volumes: the tier's 7 and 1 and the demos' apps; 3 LiteLLM users:
+`p4b-probe-user` and the two demo apps'; 16 app images) and run bare again: `none dead`, 0 orphaned, 0 dead app images.
+`infra/idp/config/authsources.php` and the IdP's copy agree (`ca7e4d6d…`, inode `41391714`, unchanged). The snapshot diff shows
+only uptimes, the edge's restart and **2 GiB less free disk** (76 → 74 Gi); Docker's build cache is 25.1 GB (20.9 GB
+reclaimable), which no cleanup script touches. `docker-simple-saml-saml-idp-1` exited, as at open; `docker-simple-saml` clean but
+its old untracked `cert.zip`. **The four shared HTML pages were checked** — none restates a project's fields or Manifest's own
+attribute request (Spec action 4's *Shared pages*, rechecked).
+
+**Next: sitting 6 (Task 8 — the `app` origin)**; Spec action 2 is applied; `pnpm test:docker` owed (`identity/`, `sso/`,
+`infra/`); its Step 10 drives a sign-in on `https://app.manifest.internal` in a browser, and **Rich types the password**.
