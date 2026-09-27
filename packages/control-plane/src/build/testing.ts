@@ -28,6 +28,30 @@ export const SAMPLE_SECRETS = {
     'github' + '_pat_' + '11ABCDEFG0123456789_abcdefghijklmnop',
 } as const satisfies Record<string, string>
 
+/** `unit` repeated to exactly `length` characters. */
+const repeatTo = (unit: string, length: number) =>
+  unit.repeat(Math.ceil(length / unit.length)).slice(0, length)
+
+/** A text write's limit (`createCommit`), and so the longest line the API can hand a scan. */
+const MIB = 1024 * 1024
+
+/**
+ * LINES BUILT TO MAKE A RULE BACKTRACK (the front-end enablement plan's Task 5, `[S3]`), 1 MiB
+ * each. Most are one long run of `[A-Za-z0-9_-]` with a rule's opening every few bytes and never
+ * the dot its first part must end at, so a rule written `\beyJ[…]{10,}\.` reads the whole run
+ * again from every opening: quadratic, ~100 s for the first line below until 2026-09-27. The
+ * rest aim at the linear form's own reads — a dot every ten bytes, one dot then a run with no
+ * second. **None of them is a secret**: scanned, each finds nothing.
+ */
+export const BACKTRACKING_LINES: Readonly<Record<string, string>> = {
+  'JWT openings, and no dot': repeatTo('-eyJaaaaaaaaaa', MIB),
+  'JWT openings, then ONE dot and a second part with no dot after it': `${repeatTo('-eyJaaaaaaaaaa', MIB - 13)}.bbbbbbbbbbbb`,
+  'installation-token openings, and no dot': repeatTo('-ghs_1_aaaaaaaaaa', MIB),
+  'installation-token openings with long App ids': repeatTo('-ghs_1111111111_', MIB),
+  'a dot every ten bytes': repeatTo('aaaaaaaaa.', MIB),
+  'one opening and a dot, then a run with no second dot': `eyJaaaaaaaaaaaa.${repeatTo('-', MIB - 16)}`,
+}
+
 export interface CorpusEntry {
   /** What the entry is for, in a test's name. */
   name: string
@@ -59,6 +83,13 @@ export const SECRET_CORPUS: readonly CorpusEntry[] = [
     name: 'two secrets on two lines of one file',
     path: 'deploy/.env',
     text: `A=1\nSLACK=${S['a Slack token']}\nB=2\nC=3\nGOOGLE=${S['a Google API key']}\n`,
+  },
+  {
+    // A 1 MiB line of both backtracking openings, a real token at its end: the hook and the
+    // build's gate read it as fast as `scanText` does, and still name the token (`[S3]`).
+    name: 'a 1 MiB line built to make the scan backtrack, a JWT at its end',
+    path: 'public/bundle.min.js',
+    text: `// built\n${repeatTo('-eyJaaaaaaaaaa-ghs_1_aaaaaaaaaa', MIB)} ${S['a JSON Web Token']}\n`,
   },
   {
     name: 'a file with nothing secret-shaped in it',

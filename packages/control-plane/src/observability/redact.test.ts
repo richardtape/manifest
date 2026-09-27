@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { makeRedactor, REDACTED } from './redact.js'
+import { HEURISTICS, makeRedactor, REDACTED } from './redact.js'
 
 describe('redaction at capture (§14)', () => {
   it('replaces a secret wherever it appears, at any depth', () => {
@@ -299,5 +299,215 @@ describe('redacting lines that must stay lines (§14)', () => {
         'a line that ends in punctuation.',
       )
     })
+  })
+})
+
+/**
+ * `[S3]`'s CLASS, IN THE REDACTOR (the front-end enablement plan's Task 5). Three of §14's
+ * pattern rules and `trimCut`'s tail read a run again from every place a match could begin — one
+ * crafted 1 MiB line took 11 s (the PEM rule), ~100 s (the JWT rule) and ~280 s (the URL rule),
+ * the event loop blocked. The redactor reads an app's output (up to 1000 lines of 8 KiB,
+ * JOINED), an Incident's tail and every line of a build's log, so an app that prints the line
+ * reached it. Rewritten to read each run once; these hold the speed, and the rules as they were
+ * written before are the oracle for the answer.
+ */
+describe('redaction reads a long line once (§14; [S3]’s class)', () => {
+  const MIB = 1024 * 1024
+  const repeatTo = (unit: string, length: number) =>
+    unit.repeat(Math.ceil(length / unit.length)).slice(0, length)
+  // The PEM rule's line first: it fails in seconds where the others take minutes.
+  const CRAFTED: Readonly<Record<string, string>> = {
+    'PEM headers, and no footer': repeatTo('-----BEGIN RSA PRIVATE KEY-----', MIB),
+    'JWT openings, and no dot': repeatTo('-eyJaaaaaaaaaa', MIB),
+    'a scheme’s characters, and no ://': repeatTo('a.', MIB),
+  }
+
+  it('redacts a 1 MiB line built to make a rule backtrack in well under a second, and changes nothing in it', () => {
+    const redact = makeRedactor([])
+    for (const [name, line] of Object.entries(CRAFTED)) {
+      const started = performance.now()
+      const out = redact(line)
+      const ms = performance.now() - started
+      expect(ms, `${name}: ${Math.round(ms)} ms`).toBeLessThan(1000)
+      expect(out === line, name).toBe(true) // none of them is a secret
+    }
+  })
+
+  it('redacts a thousand 1 KiB lines of them JOINED, as an app’s output is read, in well under a second', () => {
+    const redact = makeRedactor(['a-secret-from-the-set'])
+    const lines = Object.values(CRAFTED).flatMap((line) =>
+      Array.from({ length: 334 }, (_, i) => line.slice(i * 1024, (i + 1) * 1024)),
+    )
+    expect(lines.length).toBeGreaterThan(1000)
+    const started = performance.now()
+    const out = redact.lines(lines)
+    const ms = performance.now() - started
+    expect(ms, `${Math.round(ms)} ms`).toBeLessThan(1000)
+    expect(out).toEqual(lines)
+  })
+
+  it('trims the end of a 128 KiB cut line in well under a second', () => {
+    // A cut line is `lineBytes` plus the room the longest secret needs — kilobytes, not this.
+    // 128 KiB took ~11 s before, and 1 MiB would have taken minutes.
+    const redact = makeRedactor([])
+    const line = `${'a'.repeat(128 * 1024)}!`
+    const started = performance.now()
+    expect(redact.trimCut(line)).toBe(line)
+    const ms = performance.now() - started
+    expect(ms, `${Math.round(ms)} ms`).toBeLessThan(1000)
+    // …and still drops a short token the cut left, after a long line of anything.
+    expect(redact.trimCut(`${'a. '.repeat(1000)}{"key":"Zq8Lr2Vx9T`)).toBe(
+      `${'a. '.repeat(1000)}{"key":"`,
+    )
+  })
+
+  it('answers exactly what the rules answered before they read each run once, over 20,000 generated texts', () => {
+    // THE ORACLE: the three rules and the tail exactly as written until 2026-09-27.
+    const perLine = (match: string) =>
+      match
+        .split('\n')
+        .map((piece) => (piece === '' ? '' : REDACTED))
+        .join('\n')
+    const before = {
+      'a PEM private key block': [
+        /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
+        REDACTED,
+      ],
+      'a credential in a URL': [
+        /(\b[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:)([^\s@/]+)(@)/gi,
+        `$1${REDACTED}$3`,
+      ],
+      'a JSON Web Token': [
+        /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/g,
+        REDACTED,
+      ],
+    } as const
+    const tailBefore = (text: string) => {
+      const tail = /[A-Za-z0-9+_-]+={0,2}$/.exec(text)
+      return tail !== null && tail[0].length < 24 ? text.slice(0, tail.index) : text
+    }
+    // mulberry32, seeded, so a disagreement reproduces.
+    let state = 20260927
+    const random = () => {
+      state = (state + 0x6d2b79f5) | 0
+      let t = Math.imul(state ^ (state >>> 15), 1 | state)
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+    const pick = <T>(xs: readonly T[]): T => xs[Math.floor(random() * xs.length)]!
+    const PIECES: Record<keyof typeof before | 'tail', readonly string[]> = {
+      'a PEM private key block': [
+        '-----BEGIN ',
+        '-----END ',
+        'RSA ',
+        'EC ',
+        'PRIVATE KEY-----',
+        'PRIVATE KEY',
+        '-----',
+        '-----BEGIN PRIVATE KEY-----',
+        '-----END RSA PRIVATE KEY-----',
+        'MIIE',
+        '\n',
+        ' ',
+        'x',
+        'A',
+        '-',
+      ],
+      'a credential in a URL': [
+        'mongodb',
+        'a',
+        'Z',
+        'b1',
+        '.',
+        '+',
+        '-',
+        ':',
+        '//',
+        '://',
+        '@',
+        ' ',
+        '/',
+        'user',
+        'pw',
+        '\n',
+        '1',
+        ':@',
+        'https://',
+        'app:',
+        'x:y@',
+        'mongodb://app:',
+        'pw@',
+        's3cr3t',
+      ],
+      'a JSON Web Token': [
+        'eyJ',
+        '-eyJ',
+        'xeyJ',
+        '_eyJ',
+        'eyj',
+        '.',
+        '..',
+        '-',
+        '_',
+        ' ',
+        '"',
+        'aaaaaaaa',
+        'Z9',
+        'a',
+        'eyJhbGciOi.',
+        'payload9.',
+        'sig-',
+        '.eyJ',
+      ],
+      tail: [
+        'a',
+        'Z9',
+        '+',
+        '_',
+        '-',
+        '=',
+        '==',
+        '===',
+        '.',
+        ' ',
+        '"',
+        '{',
+        'Zq8Lr2Vx9T',
+      ],
+    }
+    const text = (pieces: readonly string[]) =>
+      Array.from({ length: 1 + Math.floor(random() * 30) }, () => pick(pieces)).join('')
+    const disagree: string[] = []
+    const changed: Record<string, number> = {}
+    for (const [rule, [pattern, replacement]] of Object.entries(before)) {
+      const now = HEURISTICS.find((h) => h.name === rule)
+      expect(now, rule).toBeDefined()
+      for (let n = 0; n < 5000; n++) {
+        const s = text(PIECES[rule as keyof typeof before])
+        const was = s.replace(pattern, replacement)
+        if (was !== s) changed[rule] = (changed[rule] ?? 0) + 1
+        if (now!.apply(s, false) !== was && disagree.length < 5)
+          disagree.push(`${rule}: ${JSON.stringify(s)}`)
+        if (rule === 'a PEM private key block') {
+          const wasLines = s.replace(pattern, perLine)
+          if (now!.apply(s, true) !== wasLines && disagree.length < 5)
+            disagree.push(`${rule}, keeping lines: ${JSON.stringify(s)}`)
+        }
+      }
+    }
+    const redact = makeRedactor([])
+    for (let n = 0; n < 5000; n++) {
+      const s = text(PIECES.tail)
+      const was = tailBefore(s)
+      if (was !== s) changed.tail = (changed.tail ?? 0) + 1
+      if (redact.trimCut(s) !== was && disagree.length < 5)
+        disagree.push(`tail: ${JSON.stringify(s)}`)
+    }
+    expect(disagree).toEqual([])
+    // Not vacuous: each rule changed hundreds of the texts, and left most of the rest alone.
+    for (const rule of [...Object.keys(before), 'tail']) {
+      expect(changed[rule] ?? 0, rule).toBeGreaterThan(100)
+      expect(changed[rule] ?? 0, rule).toBeLessThan(4900)
+    }
   })
 })

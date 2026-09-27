@@ -1,3 +1,4 @@
+import { deflateRawSync } from 'node:zlib'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from '../db/testing.js'
 import { verifySession } from '../identity/index.js'
@@ -379,4 +380,46 @@ describe('the redirect binding’s values are URI components, not form fields (F
     expect(rawQueryValues('a=%2F%2B').a).toBe('/+')
     expect(rawQueryValues('a=%ZZ').a).toBe('%ZZ')
   })
+})
+
+/**
+ * `[S3]`'S CLASS, UNAUTHENTICATED (the front-end enablement plan's Task 5). `GET /auth/logout`
+ * inflated a redirect-binding message with NO bound, before any signature was checked: node-saml
+ * inflates and parses it twice (`validateRedirectAsync`), and the LogoutResponse's own check ran
+ * a quadratic expression over it. Deflate shrinks repetition about a thousandfold, so a query
+ * inside Node's 16 KiB header limit inflates to megabytes. Anyone could send one.
+ */
+describe('a logout message is inflated only so far, before anything reads it ([S3]’s class)', () => {
+  const SIGNED = `Signature=AAAA&SigAlg=${encodeURIComponent('http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')}`
+  const deflated = (xml: string) =>
+    encodeURIComponent(deflateRawSync(Buffer.from(xml)).toString('base64'))
+  const filler = '<x/>'.repeat(2 * 1024 * 1024) // 8 MiB
+
+  it.each([
+    [
+      'a LogoutRequest',
+      'SAMLRequest',
+      `<samlp:LogoutRequest ID="_x">${filler}</samlp:LogoutRequest>`,
+    ],
+    [
+      'a LogoutResponse',
+      'SAMLResponse',
+      `<samlp:LogoutResponse InResponseTo="_x">${filler}</samlp:LogoutResponse>`,
+    ],
+  ])(
+    'refuses %s that inflates to 8 MiB, unauthenticated, in well under a second',
+    async (_name, key, xml) => {
+      const query = `${key}=${deflated(xml)}&${SIGNED}`
+      expect(query.length).toBeLessThan(16 * 1024) // Node's own limit lets it through
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const started = performance.now()
+      const res = await app.inject({ method: 'GET', url: `/auth/logout?${query}` })
+      const ms = performance.now() - started
+      expect(res.statusCode, res.body).toBe(400)
+      expect(code(res)).toBe('SAML_LOGOUT_REJECTED')
+      expect(ms, `${Math.round(ms)} ms`).toBeLessThan(1000)
+      await app.close()
+    },
+  )
 })

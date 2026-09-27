@@ -28,9 +28,17 @@ export const SECRET_PATTERNS: readonly SecretPattern[] = [
   { name: 'a GitHub token', pattern: /\bgh[pousr]_[A-Za-z0-9]{36,}\b/ },
   { name: 'a Slack token', pattern: /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/ },
   { name: 'a Google API key', pattern: /\bAIza[0-9A-Za-z_-]{35}\b/ },
+  // LINEAR, NOT AS IT READS (the front-end enablement plan's Task 5, `[S3]`): the match begins
+  // at the token's FIRST DOT and reads BACK to `eyJ` with a lookbehind, so a run of
+  // `[A-Za-z0-9_-]` is read once, by the dot that ends it. Written `\beyJ[…]{10,}\.…`, the rule
+  // read the whole run again from every `eyJ` in it: one crafted 1 MiB line took 100 s, the
+  // event loop blocked, three times per commit. The two forms answer the same —
+  // `secret-patterns.test.ts` holds this one to the old over 20,000 generated lines — and
+  // nothing asks a rule WHERE it matched, only whether (`scanText`, the hook). The installation
+  // token's rule below has the same shape and the same fix.
   {
     name: 'a JSON Web Token',
-    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
+    pattern: /\.(?<=\beyJ[A-Za-z0-9_-]{10,}\.)[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
   },
   {
     name: 'a generic assigned secret',
@@ -43,7 +51,8 @@ export const SECRET_PATTERNS: readonly SecretPattern[] = [
   // Measured (Task 1, `[M6]`).
   {
     name: 'a GitHub App installation token',
-    pattern: /\bghs_\d+_[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+    pattern:
+      /\.(?<=\bghs_\d+_[A-Za-z0-9_-]{10,}\.)[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
   },
   { name: 'a GitHub fine-grained token', pattern: /\bgithub_pat_[A-Za-z0-9_]{22,}/ },
 ]

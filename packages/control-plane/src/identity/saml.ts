@@ -180,17 +180,60 @@ function requireRedirectSignature(query: Record<string, unknown>): void {
 }
 
 /**
+ * The most a redirect-binding logout message may inflate to. Over that binding the signature
+ * travels in the query, not the XML, so a real one is about a kilobyte. **The bound is the point**
+ * (the front-end enablement plan's Task 5, `[S3]`'s class): node-saml's `validateRedirectAsync`
+ * inflates with none and parses the XML twice BEFORE it checks the signature, and deflate shrinks
+ * repetition about a thousandfold — a query inside Node's 16 KiB header limit inflated to 8 MiB
+ * and held the control plane 1.5 s, for anyone who sent it.
+ */
+const LOGOUT_MESSAGE_BYTES = 64 * 1024
+
+/** A redirect-binding message's XML, inflated no further than `LOGOUT_MESSAGE_BYTES`. */
+function inflateLogoutMessage(value: string, kind: string): string {
+  try {
+    return inflateRawSync(Buffer.from(value, 'base64'), {
+      maxOutputLength: LOGOUT_MESSAGE_BYTES,
+    }).toString('utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ERR_BUFFER_TOO_LARGE') {
+      throw new Error(`the ${kind} inflates past ${LOGOUT_MESSAGE_BYTES / 1024} KiB`)
+    }
+    throw new Error(`the ${kind} could not be inflated`)
+  }
+}
+
+/**
+ * Whether a LogoutResponse's XML answers a request: some `<…LogoutResponse` opening carries a
+ * non-empty `InResponseTo` before its tag ends. **Read once** (`[S3]`'s class): as one expression,
+ * `<LogoutResponse\b[^>]*\bInResponseTo="[^"]+"`, it read to a tag's end again from every opening
+ * in it — 1.65 s for 256 KiB of openings. Openings that share a tag's end share its answer, so
+ * each tag is read from its first opening, once. `saml.test.ts` holds it to the old expression.
+ */
+export function answersARequest(xml: string): boolean {
+  const OPENING = /<(?:[\w-]+:)?LogoutResponse\b/g
+  const ANSWER = /\bInResponseTo="/g
+  for (let open = OPENING.exec(xml); open !== null; open = OPENING.exec(xml)) {
+    const close = xml.indexOf('>', open.index)
+    const tag = xml.slice(open.index, close === -1 ? xml.length : close)
+    ANSWER.lastIndex = 0
+    for (let found = ANSWER.exec(tag); found !== null; found = ANSWER.exec(tag)) {
+      // The value may run past the tag's `>`, as `[^"]+"` let it; it must not be empty.
+      const value = open.index + found.index + found[0].length
+      if (xml.indexOf('"', value) > value) return true
+    }
+    if (close === -1) return false
+    OPENING.lastIndex = close + 1
+  }
+  return false
+}
+
+/**
  * node-saml checks `InResponseTo` on a LogoutResponse only when one is PRESENT, so a
  * response answering nothing would pass. Read off the message itself, before node-saml.
  */
 function requireInResponseTo(samlResponse: string): void {
-  let xml: string
-  try {
-    xml = inflateRawSync(Buffer.from(samlResponse, 'base64')).toString('utf8')
-  } catch {
-    throw new Error('the LogoutResponse could not be inflated')
-  }
-  if (!/<(?:[\w-]+:)?LogoutResponse\b[^>]*\bInResponseTo="[^"]+"/.test(xml)) {
+  if (!answersARequest(inflateLogoutMessage(samlResponse, 'LogoutResponse'))) {
     throw new Error('the LogoutResponse answers no request (no InResponseTo)')
   }
 }
@@ -316,6 +359,10 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
       let profile
       try {
         requireRedirectSignature(query)
+        // Bounded BEFORE node-saml, which inflates with no bound (`LOGOUT_MESSAGE_BYTES`).
+        if (typeof query.SAMLRequest === 'string') {
+          inflateLogoutMessage(query.SAMLRequest, 'LogoutRequest')
+        }
         ;({ profile } = await saml.validateRedirectAsync(
           query as Parameters<typeof saml.validateRedirectAsync>[0],
           originalQuery,

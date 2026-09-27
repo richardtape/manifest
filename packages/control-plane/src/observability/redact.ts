@@ -44,6 +44,83 @@ function escapeForRegExp(literal: string): string {
   return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+/** One of §14's pattern heuristics, as a function of the text it redacts. */
+export interface Heuristic {
+  readonly name: string
+  /** `keepLines`: a match that spans lines answers one `[REDACTED]` per line it covered. */
+  apply(text: string, keepLines: boolean): string
+}
+
+/** What a match that spans lines becomes when lines must stay lines: one `[REDACTED]` each. */
+const perLine = (match: string): string =>
+  match
+    .split('\n')
+    .map((piece) => (piece === '' ? '' : REDACTED))
+    .join('\n')
+
+/** A rule that is one regular expression, replaced as `String.replace` replaces it. */
+const byPattern = (name: string, pattern: RegExp, replacement: string): Heuristic => ({
+  name,
+  apply: (text) => text.replace(pattern, replacement),
+})
+
+const PEM_HEADER = /-----BEGIN [A-Z ]*PRIVATE KEY-----/g
+const PEM_FOOTER = /-----END [A-Z ]*PRIVATE KEY-----/g
+
+/**
+ * The whole block, header to footer: a key is many lines, and a line-by-line redactor leaves
+ * the body behind. **Read once** (the front-end enablement plan's Task 5, `[S3]`'s class): the
+ * first header, then the first footer after it — and when there is none, no later header has
+ * one either, so it stops. As one expression, `HEADER[\s\S]*?FOOTER` read to the end of the text
+ * again from every header: 11 s for 1 MiB of headers.
+ */
+function redactPemBlocks(text: string, keepLines: boolean): string {
+  let out = ''
+  let last = 0
+  for (;;) {
+    PEM_HEADER.lastIndex = last
+    const header = PEM_HEADER.exec(text)
+    if (header === null) break
+    PEM_FOOTER.lastIndex = header.index + header[0].length
+    const footer = PEM_FOOTER.exec(text)
+    if (footer === null) break
+    const end = footer.index + footer[0].length
+    const block = text.slice(header.index, end)
+    out += text.slice(last, header.index) + (keepLines ? perLine(block) : REDACTED)
+    last = end
+  }
+  return out + text.slice(last)
+}
+
+/**
+ * A JWT, found from its FIRST DOT, reading back to `eyJ` with a lookbehind whose capture says
+ * where the token begins (`d`). Read once: as `\beyJ[…]{8,}\.…`, the rule read a whole run again
+ * from every `eyJ` in it (~100 s for a crafted 1 MiB line).
+ */
+const JWT_AT_ITS_FIRST_DOT =
+  /\.(?<=\b(eyJ)[A-Za-z0-9_-]{8,}\.)[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/dg
+
+function redactJwts(text: string): string {
+  let out = ''
+  let last = 0
+  JWT_AT_ITS_FIRST_DOT.lastIndex = 0
+  for (;;) {
+    const found = JWT_AT_ITS_FIRST_DOT.exec(text)
+    if (found === null) break
+    const start = found.indices![1]![0]
+    if (start < last) {
+      // Its opening is inside the token just redacted, whose last part took the whole run: not
+      // a token the rule reads. Look again from the next character, not from this match's end,
+      // or a token that begins inside it is missed.
+      JWT_AT_ITS_FIRST_DOT.lastIndex = found.index + 1
+      continue
+    }
+    out += text.slice(last, start) + REDACTED
+    last = found.index + found[0].length
+  }
+  return out + text.slice(last)
+}
+
 /**
  * §14's pattern heuristics (P4b Task 12). Ordered, and each is anchored on
  * something a SECRET has and prose does not — a PEM armour, a scheme with a
@@ -54,22 +131,28 @@ function escapeForRegExp(literal: string): string {
  * ordinary text, and the order is observable in one place: a JWT whose payload and
  * signature segments are 24+ characters is redacted whole this way, and in pieces
  * the other — `eyJhbGciOiJIUzI1NiJ9.[REDACTED].[REDACTED]` (measured 2026-09-14).
+ *
+ * **Each reads a line in time linear in its length** (the front-end enablement plan's Task 5):
+ * the redactor reads an app's output, an Incident's tail and every line of a build's log, and
+ * three of these rules, written as they read, were quadratic — a crafted line blocked the event
+ * loop for minutes. `redact.test.ts` holds each rewritten rule to its old expression's answer.
  */
-const PATTERNS: readonly (readonly [RegExp, string])[] = [
-  // The whole block, header to footer: a key is many lines, and a line-by-line
-  // redactor leaves the body behind.
-  [
-    /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
-    REDACTED,
-  ],
+export const HEURISTICS: readonly Heuristic[] = [
+  { name: 'a PEM private key block', apply: redactPemBlocks },
   // The password only; the host and database are what make the line diagnosable.
   // The password holds no `/` — RFC 3986 userinfo cannot — and that is not a nicety:
   // measured 2026-09-14, `[^\s@]+` read `4873/` as the password in npm's
   // `GET http://manifest-verdaccio:4873/@scope%2fpkg`, a scoped package's 404.
-  [/(\b[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:)([^\s@/]+)(@)/gi, `$1${REDACTED}$3`],
-  [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/g, REDACTED],
-  [/\bsk-[A-Za-z0-9_-]{16,}/g, REDACTED],
-  [/(\bBearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi, `$1${REDACTED}`],
+  // Found from its `://`, reading back to the scheme: as `\b[a-z][a-z0-9+.-]*:\/\/…`, the rule
+  // read a run of scheme characters again from every word in it (~280 s for 1 MiB of `a.`).
+  byPattern(
+    'a credential in a URL',
+    /:\/\/(?<=\b[a-z][a-z0-9+.-]*:\/\/)([^\s:/@]+:)([^\s@/]+)@/gi,
+    `://$1${REDACTED}@`,
+  ),
+  { name: 'a JSON Web Token', apply: redactJwts },
+  byPattern('an API key', /\bsk-[A-Za-z0-9_-]{16,}/g, REDACTED),
+  byPattern('a bearer token', /(\bBearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi, `$1${REDACTED}`),
 ]
 
 /**
@@ -122,13 +205,6 @@ function secretShaped(token: string): boolean {
   return shannonEntropy(run) > 3.0
 }
 
-/** What a match that spans lines becomes when lines must stay lines: one `[REDACTED]` each. */
-const perLine = (match: string): string =>
-  match
-    .split('\n')
-    .map((piece) => (piece === '' ? '' : REDACTED))
-    .join('\n')
-
 /**
  * The PEM rule is the one heuristic that spans lines; with `keepLines` it answers one
  * `[REDACTED]` per line it covered. The others match within a line (`Bearer\s+` may cross one,
@@ -136,17 +212,25 @@ const perLine = (match: string): string =>
  */
 function redactHeuristically(text: string, keepLines = false): string {
   let out = text
-  PATTERNS.forEach(([pattern, replacement], index) => {
-    out =
-      keepLines && index === 0
-        ? out.replace(pattern, perLine)
-        : out.replace(pattern, replacement)
-  })
+  for (const heuristic of HEURISTICS) out = heuristic.apply(out, keepLines)
   return out.replace(TOKEN, (token) => (secretShaped(token) ? REDACTED : token))
 }
 
-/** The characters of an entropy-rule token (`TOKEN`, less the digest case). */
-const TOKEN_TAIL = /[A-Za-z0-9+_-]+={0,2}$/
+/** A character of an entropy-rule token (`TOKEN`, less the digest case). */
+const TOKEN_CHAR = /[A-Za-z0-9+_-]/
+
+/**
+ * Where the token the text ENDS in begins — a run of token characters and at most two `=` —
+ * or -1. Read backwards, once: `/[…]+={0,2}$/` tried every start in a long run before failing
+ * at the end (`[S3]`'s class — 11 s for a cut line of 128 KiB).
+ */
+function tokenTailStart(text: string): number {
+  let at = text.length
+  for (let pads = 0; pads < 2 && at > 0 && text[at - 1] === '='; pads += 1) at -= 1
+  const runEnd = at
+  while (at > 0 && TOKEN_CHAR.test(text[at - 1]!)) at -= 1
+  return at === runEnd ? -1 : at
+}
 
 /**
  * §14's redactor, in full: *"every value in the app's own secret set (an exact,
@@ -222,8 +306,8 @@ export function makeRedactor(secretValues: Iterable<string>): LineRedactor {
       }
     }
     const kept = text.slice(0, end)
-    const tail = TOKEN_TAIL.exec(kept)
-    return tail !== null && tail[0].length < 24 ? kept.slice(0, tail.index) : kept
+    const tail = tokenTailStart(kept)
+    return tail !== -1 && kept.length - tail < 24 ? kept.slice(0, tail) : kept
   }
 
   return Object.assign(walk, {
