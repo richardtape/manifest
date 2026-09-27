@@ -1484,19 +1484,14 @@ over the API; `createCommit` and builds of the right spec; an app's declared sec
 to its validator** (§3 states both as invariants). Their records are the plan's *What executing this plan found*, *Sitting 1*
 to *Sitting 7*.
 
-**ASK RICH ONE THING IN YOUR FIRST MESSAGE — HOW SCALAR ARRIVES — before Task 11's Step 6 needs it.** Sitting 7 MEASURED it
-(its record, *The gates, and the machine*): `pnpm --filter @manifest/console add --offline @scalar/api-reference@1.72.0` in a
-scratch COPY of the workspace's manifests and lockfile **exits 1** — *"✗ Lockfile failed supply-chain policy check (500
-entries)"*, `ERR_PNPM_NO_OFFLINE_META` for a different package on each run — with `vue-demi` named in `allowBuilds` or not.
-The pnpm store DOES hold the package (`index.db`: `@scalar/api-reference@1.72.0`). The options, as a decision:
-- **(a) The network, at his yes, for that one add** — `pnpm --filter @manifest/console add @scalar/api-reference@1.72.0`,
-  with `vue-demi: false` in `pnpm-workspace.yaml`'s `allowBuilds` and its reason (`[M9]` correction 2). *Recommended*: it is
-  what Rich chose on 2026-09-25 (*"one new pinned package, installed with the network on at Rich's yes"*), and the lockfile
-  then pins it. Cost: one networked command.
-- **(b) No network: copy `dist/browser/standalone.js` (4,331,361 bytes — the artefact `[M9]` measured) out of the store into
-  the repository** as the page's static asset, with its version and hash recorded, and no dependency edge. Cost: 4.3 MB
-  committed, an upgrade done by hand, and **the extraction itself is unmeasured** (pnpm 11's store is content-addressed).
-Everything else in Task 11 needs no network, so the sitting can start while he answers.
+**NOTHING NEEDS ASKING BEFORE SITTING 8 — RICH ANSWERED THE ONE QUESTION ON 2026-09-26, AFTER SITTING 7'S CLOSE: THE
+NETWORK, FOR THE RENDERER'S ONE ADD** (§8, *Decided*; do not re-ask). Sitting 7 measured the offline add refused — `pnpm
+--filter @manifest/console add --offline @scalar/api-reference@1.72.0` in a scratch COPY of the workspace exits 1 on pnpm 11's
+supply-chain check, *"✗ Lockfile failed supply-chain policy check (500 entries)"*, `ERR_PNPM_NO_OFFLINE_META` — so **Task 11
+runs `pnpm --filter @manifest/console add @scalar/api-reference@1.72.0` with the network on**, after naming `vue-demi: false`
+in `pnpm-workspace.yaml`'s `allowBuilds` with its reason (`[M9]` correction 2), and reads the lockfile afterwards (`[M9]`
+correction 3: keep `zod@4.6.5` away from zod 3's packages). **The yes covers that one command and nothing else.** Everything
+else in Task 11 needs no network.
 
 **EXECUTE SITTING 8 — TASK 11 (THE GUIDES, SERVED).** `superpowers:executing-plans`, inline, no subagent per task (Rich,
 2026-09-25); **commit on `main`**. **Read, in this order:** the plan's header to the end of *The fixtures and helpers*;
@@ -1642,6 +1637,14 @@ reasoning is recorded.**
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **HOW SCALAR ARRIVES — OPTION (a): THE NETWORK, FOR THAT ONE ADD, IN THE AUTHORING API PLAN'S SITTING 8** (Rich,
+  2026-09-26, after its sitting 7, taking the recommendation). Sitting 7 measured `pnpm --filter @manifest/console add
+  --offline @scalar/api-reference@1.72.0` refused by pnpm 11's supply-chain check in a scratch copy of the workspace, so
+  Task 11 runs the add WITH the network — `vue-demi: false` in `allowBuilds` with its reason (`[M9]` correction 2) — and
+  the lockfile pins it. **The yes covers that one add and nothing else**; any other networked command is asked again.
+  *Rejected:* (b) copying `dist/browser/standalone.js` out of the pnpm store and committing it (4.3 MB, upgraded by hand,
+  the extraction unmeasured). The plan's *Decided by Rich* and sitting 7's record have it.
 
 - **THE PER-USER AI BUDGET — SPEC ACTION 4, OPTION (a), AS WORDED** (Rich, 2026-09-26, after the authoring API plan's sitting
   6; applied the same evening). §7's schema line gains *"# validated, NOT enforced, before Phase 4 (§10)"*, and §7's

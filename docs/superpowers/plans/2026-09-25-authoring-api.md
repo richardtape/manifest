@@ -76,6 +76,11 @@
 
 **Each of these was answered by Rich from options with their costs stated. Do not re-ask any of them** (ORIENTATION §8, *Decided*).
 
+- **THE RENDERER'S ADD — OPTION (a): THE NETWORK, FOR THAT ONE COMMAND, IN SITTING 8** (2026-09-26, after sitting 7's close,
+  taking the recommendation). Sitting 7 measured `pnpm --filter @manifest/console add --offline @scalar/api-reference@1.72.0`
+  refused by pnpm 11's supply-chain check in a scratch copy of the workspace; Task 11 runs it with the network on, after
+  naming `vue-demi: false` in `allowBuilds` (`[M9]` correction 2). The yes covers that one add and nothing else.
+  *Rejected:* (b) copying the standalone bundle out of the pnpm store and committing it.
 - **The authoring API is its own Phase 2 plan, after D5's GitHub driver** (2026-09-22), with **text files only in v1**, **the front-end project specced against this slice** rather than waiting for sandboxes, and **S5 not scheduled until after it**. *Cost, accepted:* a front-end team waited one plan longer.
 - **SPEC ACTION 4 — THE PER-USER AI BUDGET: OPTION (a), AS WORDED, BUILT IN TASK 12** (2026-09-26, after sitting 6's close). Sitting 6's F8 found `ai.budget.per_user_monthly_usd` applied to nothing; §10 had already decided it (validated, not enforced before Phase 4), and the gap was §7 not saying so and §10's quota check unbuilt. §7 now says both, and a validation warns that the value binds no one. *Rejected:* (b) the words without a warning; (c) the schema comment alone.
 - **SITTING 5'S F4 — `mintToken`'S IDEMPOTENCY RECORD: OPTION (a), BUILT IN TASK 12** (2026-09-26, after sitting 5's close, taking the recommendation). The record keeps the token WITHOUT its secret; a replay of a mint answers `409 TOKEN_ALREADY_MINTED` naming the token the first request minted, so a client that lost the answer revokes it and mints again — D24's *shown exactly once* made true, and no second token ever minted; a custom migration scrubs the secrets already stored. Task 12's Step 5 has the design. *Rejected:* (b) store the answer encrypted and replay it within a short window; (c) leave it. A retention for `idempotency_keys` is not part of it (*What this plan does not build*).
@@ -98,7 +103,7 @@
 
 1. **Approve the sittings split** — before sitting 1. **DONE 2026-09-25: ten, as proposed.**
 2. **Read and decide the three spec actions** (*Spec actions*, below) — **Spec action 2 before sitting 5 (DONE 2026-09-26: option (a), applied)** (Task 8 builds whichever he chooses), Spec actions 1 and 3 any time before sitting 10's sweep. **And place Spec action 1's plan**: this plan recommends directly after this one, ahead of the vulnerability database in the console, for the reason Rich gave when he placed that plan — `make refresh-vulndb` already meets the laptop's need, and an agent debugging a running app blind does not have one.
-3. **The network, and a yes, for the HTML renderer — sitting 1 (Task 1, `[M9]`). YES, 2026-09-25 — that fetch and nothing else.** Task 1 installs the candidates into a scratch directory, so that each lands in this machine's pnpm store; Task 11's `pnpm add --offline` then needs no network. The one outward action is fetching two packages from the npm registry.
+3. **The network, and a yes, for the HTML renderer — sitting 1 (Task 1, `[M9]`). YES, 2026-09-25 — that fetch and nothing else. AND YES AGAIN, 2026-09-26, for Task 11's add in sitting 8** — the offline add was measured refused (sitting 7), so the one `pnpm add` runs with the network on. Task 1 installs the candidates into a scratch directory, so that each lands in this machine's pnpm store; Task 11's `pnpm add --offline` then needs no network. The one outward action is fetching two packages from the npm registry.
 4. **The clicked half of the acceptance — sitting 10.** A person clicks, the agent reads the screens, and **Rich types every password** (ORIENTATION §4 trap 6: the Chrome extension is refused on `idp.manifest.internal`, and a password is never an agent's to type).
 5. **`make refresh-vulndb`, with the network on, if execution runs past 2026-10-01.** Past it, `make demo-production` and `make demo-releases` go red at §13's `scans` item.
 6. **The conformance run's real leg, if a sitting asks** — Task 3 changes how driver 2 pushes, and `make github-conformance` against `Manifest (local dev)` checks nothing about pushing that the fake does not; **it is not owed by this plan**, and a sitting that wants it asks first.
@@ -2039,7 +2044,8 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > either, and fifteen operations name the session alone. Every tag has a description. **`@redocly/openapi-core` is NOT a
 > dependency**: `pnpm add --offline` was refused by pnpm 11's supply-chain check of the whole lockfile (the record's F5), so
 > `lint.test.ts` resolves it through `openapi-typescript`. **Step 1's `pnpm add --offline @scalar/api-reference@1.72.0` may
-> be refused the same way — try it first; if it is, the add needs the network, which is Rich's yes.** `conventions.md` can
+> be refused the same way — try it first; if it is, the add needs the network, which is Rich's yes.** *(Sitting 7 measured it
+> refused; Rich said yes to the network for that one add on 2026-09-26 — *Decided by Rich*.)* `conventions.md` can
 > send a reader to `x-manifest-errors` for every code's remedy; sitting 5's F15 (a bodyless `DELETE` carries no
 > `Content-Type`) is now in `REQUEST_INVALID`'s remedy.
 
@@ -3797,7 +3803,8 @@ half is sitting 10's, and Task 13's `[S7]` block lists the eight things the mock
 --filter @manifest/console add --offline @scalar/api-reference@1.72.0` exits 1 — *"✗ Lockfile failed supply-chain policy check
 (500 entries)"*, `ERR_PNPM_NO_OFFLINE_META` naming `@redocly/openapi-core` — and again with `vue-demi: false` in `allowBuilds`,
 naming `@typescript-eslint/project-service` (pnpm 11.24.0, Node 24.12.0). The pnpm store's `index.db` does hold
-`@scalar/api-reference@1.72.0`. ORIENTATION §7e asks Rich which way the renderer arrives.
+`@scalar/api-reference@1.72.0`. **Rich chose the network for that one add the same evening** (*Decided by Rich*; ORIENTATION
+§8).
 
 **The machine, queried at the close — AFTER the last Vitest run** (`psql`, `docker`, `lsof`, the edge's admin API, Ollama's
 `/api/ps`, `make verify`): the control database is **EMPTY** — 0 projects, 0 events, 0 secrets, 0 idempotency records — with
