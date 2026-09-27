@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Manifest design system</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>
+/* @ds-bundle: {"format":4,"namespace":"Manifest","components":[{"name":"StateChip"},{"name":"LiveSteps"},{"name":"Timeline"},{"name":"ProgressBar"},{"name":"TwoFacts"},{"name":"ClockItem"},{"name":"Button"},{"name":"Card"},{"name":"FormField"},{"name":"SideNav"},{"name":"AppBar"},{"name":"ProjectBar"},{"name":"InverseSurface"},{"name":"LogPane"},{"name":"BrowserFrame"},{"name":"SegmentedControl"},{"name":"Choice"},{"name":"LockedRow"}]} */
+(function (global) {
+  'use strict';
+
+  var React = global.React;
+  var h = React.createElement;
+
+  function cx() {
+    var out = [];
+    for (var i = 0; i < arguments.length; i += 1) {
+      if (arguments[i]) out.push(arguments[i]);
+    }
+    return out.join(' ');
+  }
+
+  function icon(d, size, stroke, width) {
+    return h('svg', {
+      width: size || 16, height: size || 16, viewBox: '0 0 24 24', fill: 'none',
+      stroke: stroke || 'currentColor', strokeWidth: width || 2,
+      strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true',
+      style: { flexShrink: 0 }
+    }, d.map(function (p, i) { return h('path', { key: i, d: p }); }));
+  }
+
+  var TICK = ['M5 13l4 4L19 7'];
+  var LOCK_BODY = { x: 4, y: 10, width: 16, height: 10, rx: 2 };
+
+  function lockIcon(size, stroke) {
+    return h('svg', {
+      width: size || 14, height: size || 14, viewBox: '0 0 24 24', fill: 'none',
+      stroke: stroke || 'currentColor', strokeWidth: 2, strokeLinecap: 'round',
+      'aria-hidden': 'true', style: { flexShrink: 0 }
+    }, h('rect', LOCK_BODY), h('path', { d: 'M8 10V7a4 4 0 0 1 8 0v3' }));
+  }
+
+  /* ---- StateChip ------------------------------------------------------- */
+
+  var STATES = ['working', 'waiting', 'attention', 'steady', 'notyet'];
+
+  function StateChip(props) {
+    var state = STATES.indexOf(props.state) === -1 ? 'notyet' : props.state;
+    var pulse = props.pulse === undefined
+      ? (state === 'working' || state === 'attention')
+      : props.pulse;
+    return h('span', { className: cx('mf-chip', 'mf-is-' + state, props.className) },
+      h('span', { className: cx('mf-chip__dot', pulse && 'mf-pulse') }),
+      props.label);
+  }
+
+  /* ---- LiveSteps ------------------------------------------------------- */
+
+  function LiveSteps(props) {
+    var steps = props.steps || [];
+    return h('ol', { className: cx('mf-steps', props.className), style: { listStyle: 'none', margin: 0, padding: 0 } },
+      steps.map(function (s, i) {
+        var state = s.state || 'next';
+        return h('li', {
+          key: i,
+          className: cx('mf-step', 'mf-step--' + state),
+          'aria-current': state === 'now' ? 'step' : undefined
+        },
+          h('span', { className: cx('mf-step__mark', 'mf-step__mark--' + state, state === 'now' && 'mf-pulse') },
+            state === 'done' ? icon(TICK, 11, 'var(--ink-inverse-strong)', 3.4) : null),
+          h('span', null,
+            h('span', { className: 'mf-step__text' }, s.text),
+            s.note ? h('span', { className: 'mf-step__note', style: { display: 'block' } }, s.note) : null));
+      }));
+  }
+
+  /* ---- Timeline -------------------------------------------------------- */
+
+  function Timeline(props) {
+    var stations = props.stations || [];
+    var last = stations.length - 1;
+    return h('ol', { className: cx('mf-timeline', props.className), style: { listStyle: 'none', margin: 0, padding: 0 } },
+      stations.map(function (s, i) {
+        var state = s.state || 'next';
+        var before = i === 0 ? 'none' : (state === 'done' || state === 'now' || state === 'halted' ? 'on' : 'off');
+        var after = i === last || state === 'halted' ? 'none' : (state === 'done' ? 'on' : 'off');
+        return h('li', {
+          key: i,
+          className: cx('mf-station', 'mf-station--' + state),
+          'aria-current': state === 'now' ? 'step' : undefined
+        },
+          h('span', { className: 'mf-station__rail' },
+            h('span', { className: 'mf-station__line mf-station__line--' + before }),
+            h('span', { className: cx('mf-station__dot', 'mf-station__dot--' + state, state === 'now' && 'mf-pulse') }),
+            h('span', { className: 'mf-station__line mf-station__line--' + after })),
+          h('span', { className: 'mf-station__label' }, s.label),
+          s.note ? h('span', { className: 'mf-station__note' }, s.note) : null);
+      }));
+  }
+
+  /* ---- ProgressBar ----------------------------------------------------- */
+
+  function ProgressBar(props) {
+    var kind = props.kind || 'working';
+    if (kind === 'clock') {
+      return h('div', { className: props.className },
+        h('div', { className: 'mf-clock' }),
+        h('div', { className: 'mf-bar__meta', style: { color: 'var(--waiting)' } },
+          h('span', null, props.label || 'Nothing counting yet'),
+          h('span', { style: { fontWeight: 600 } }, props.meta || 'Takes weeks')));
+    }
+    var pct = Math.max(0, Math.min(100, props.value === undefined ? 100 : props.value));
+    return h('div', { className: props.className },
+      h('div', {
+        className: 'mf-bar', role: 'progressbar',
+        'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100,
+        'aria-label': props.label
+      }, h('div', { className: 'mf-bar__fill mf-bar__fill--' + kind, style: { width: pct + '%' } })),
+      (props.label || props.meta) ? h('div', { className: 'mf-bar__meta' },
+        h('span', { style: { fontWeight: 600, color: kind === 'done' ? 'var(--steady)' : 'var(--working-deep)' } }, props.label),
+        h('span', { style: { color: 'var(--ink-subtle)' } }, props.meta)) : null);
+  }
+
+  /* ---- TwoFacts -------------------------------------------------------- */
+
+  var TONE = {
+    steady: { bg: 'var(--steady-tint)', bd: 'var(--steady-border)', fg: 'var(--steady)', note: 'var(--steady-muted)' },
+    attention: { bg: 'var(--attention-tint)', bd: 'var(--attention-border)', fg: 'var(--attention)', note: 'var(--attention-muted)' },
+    working: { bg: 'var(--working-tint)', bd: 'var(--working-border)', fg: 'var(--working-deep)', note: 'var(--working-deep)' },
+    neutral: { bg: 'var(--surface-sunken)', bd: 'var(--border-subtle)', fg: 'var(--ink-subtle)', note: 'var(--ink-muted)' }
+  };
+
+  function fact(f, fallbackTone, key) {
+    var t = TONE[f.tone || fallbackTone] || TONE.neutral;
+    return h('div', { key: key, className: 'mf-fact', style: { background: t.bg, border: '1px solid ' + t.bd } },
+      h('span', { className: 'mf-overline', style: { color: t.fg } }, f.overline),
+      h('span', { className: 'mf-fact__title' }, f.title),
+      f.note ? h('span', { className: 'mf-fact__note', style: { color: t.note } }, f.note) : null);
+  }
+
+  function TwoFacts(props) {
+    return h('div', { className: props.className },
+      h('div', { className: 'mf-facts' },
+        fact(props.serving || {}, 'steady', 'a'),
+        fact(props.attempt || {}, 'neutral', 'b')),
+      props.foot === null ? null : h('p', { className: 'mf-facts__foot' },
+        props.foot || 'Two facts, not one. The older version keeps answering until a new one proves it can.'));
+  }
+
+  /* ---- ClockItem ------------------------------------------------------- */
+
+  function ClockItem(props) {
+    return h('div', { className: cx('mf-clockitem', props.className) },
+      h('div', { className: 'mf-clockitem__top' },
+        h('h3', { className: 'mf-clockitem__title' }, props.title),
+        h(StateChip, { state: 'waiting', label: props.chip || 'Not started', pulse: false })),
+      h('p', { className: 'mf-clockitem__body' }, props.body),
+      h(ProgressBar, { kind: 'clock', label: props.clockLabel, meta: props.clockMeta }),
+      props.admissionTitle ? h('div', { className: 'mf-admit' },
+        h('span', { className: 'mf-admit__title' }, props.admissionTitle),
+        h('p', { className: 'mf-admit__body' }, props.admissionBody)) : null,
+      props.action ? h(Button, { kind: 'primary', href: props.actionHref || '#', style: { width: '100%' } }, props.action) : null);
+  }
+
+  /* ---- Button ---------------------------------------------------------- */
+
+  function Button(props) {
+    var kind = props.kind || 'primary';
+    var tag = props.href ? 'a' : 'button';
+    var attrs = {
+      className: cx('mf-btn', 'mf-btn--' + kind, props.size === 'sm' && 'mf-btn--sm', props.className),
+      style: props.style,
+      onClick: props.onClick
+    };
+    if (props.href) attrs.href = props.href;
+    else { attrs.type = props.type || 'button'; attrs.disabled = props.disabled; }
+    return h(tag, attrs, props.children);
+  }
+
+  /* ---- Card ------------------------------------------------------------ */
+
+  function Card(props) {
+    var tone = props.tone || 'plain';
+    return h('div', { className: cx('mf-card', tone !== 'plain' && 'mf-card--' + tone, props.className), style: props.style },
+      props.title ? h('h3', { className: 'mf-card__title' }, props.title) : null,
+      props.children);
+  }
+
+  /* ---- FormField ------------------------------------------------------- */
+
+  function FormField(props) {
+    var id = props.id || 'mf-field';
+    var msg = props.message;
+    var t = msg ? (TONE[msg.tone] || TONE.neutral) : null;
+    return h('div', { className: cx('mf-field', props.className) },
+      h('label', { className: 'mf-field__label', htmlFor: id }, props.label),
+      props.hint ? h('p', { className: 'mf-field__hint' }, props.hint) : null,
+      h('input', {
+        id: id, type: 'text', className: cx('mf-field__input', props.mono && 'mf-field__input--mono'),
+        value: props.value, onChange: props.onChange, placeholder: props.placeholder,
+        'aria-describedby': msg ? id + '-msg' : undefined, readOnly: !props.onChange
+      }),
+      msg ? h('div', {
+        id: id + '-msg', className: 'mf-msg', role: 'status',
+        style: { background: t.bg, border: '1px solid ' + t.bd, alignItems: msg.body ? 'flex-start' : 'center' }
+      },
+        msg.tone === 'steady'
+          ? icon(TICK, 17, 'var(--steady)', 2.2)
+          : icon(['M12 7v6', 'M12 16.5v.01'], 17, 'var(--attention)', 2),
+        h('div', null,
+          h('p', { className: 'mf-msg__title', style: { color: t.fg } }, msg.title),
+          msg.body ? h('p', { className: 'mf-msg__body', style: { color: t.note } }, msg.body) : null)) : null);
+  }
+
+  /* ---- SideNav --------------------------------------------------------- */
+
+  var NAV_ICONS = {
+    apps: ['M4 4.5h6.5V11H4z', 'M13.5 4.5H20V11h-6.5z', 'M4 13.5h6.5V20H4z', 'M13.5 13.5H20V20h-6.5z'],
+    overview: ['M12 4l8 4.5-8 4.5-8-4.5z', 'M4 14l8 4.5 8-4.5'],
+    preview: ['M3.5 5.5h17v10.5h-17z', 'M9 20h6', 'M12 16v4'],
+    talk: ['M4.5 5.5h15v9.5h-9l-6 4.5z'],
+    live: ['M6.5 20.5V4', 'M6.5 4.5h11l-2 3.5 2 3.5h-11'],
+    people: ['M4 20a5 5 0 0 1 9.5 0', 'M8.75 11.2a3.1 3.1 0 1 0 0-6.2 3.1 3.1 0 0 0 0 6.2', 'M16.5 20a5 5 0 0 0-2.6-4.4'],
+    agent: ['M13.5 3.5L6 14h5.5l-1 6.5L18 10h-5.5z'],
+    plus: ['M12 5.5v13', 'M5.5 12h13']
+  };
+
+  function navItem(it, active, key) {
+    var on = it.label === active;
+    var paths = NAV_ICONS[it.icon] || NAV_ICONS.overview;
+    return h('a', {
+      key: key, href: it.href || '#',
+      className: cx('mf-rail__item', on && 'mf-rail__item--on'),
+      'aria-current': on ? 'page' : undefined
+    },
+      h('svg', {
+        width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
+        strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round',
+        'aria-hidden': 'true', style: { flexShrink: 0 }
+      }, paths.map(function (d, i) { return h('path', { key: i, d: d }); })),
+      it.label);
+  }
+
+  function SideNav(props) {
+    var items = props.items || [];
+    return h('nav', { className: cx('mf-rail', props.className), 'aria-label': props.name || 'Manifest', style: props.style },
+      h('a', { className: 'mf-rail__mark', href: props.homeHref || '#' },
+        h('span', { className: 'mf-rail__sq' },
+          h('svg', {
+            width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'var(--nav-surface)',
+            strokeWidth: 2.3, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true'
+          }, h('path', { d: 'M4 19V9.5L12 4l8 5.5V19' }), h('path', { d: 'M9.5 19v-6h5v6' }))),
+        h('span', { className: 'mf-rail__name' }, props.name || 'Manifest'),
+        h('span', { className: 'mf-rail__bar' }),
+        h('span', { className: 'mf-rail__org' }, props.org || 'UBC')),
+
+      navItem({ label: props.homeLabel || 'Your apps', href: props.homeHref || '#', icon: 'apps' }, props.active, 'home'),
+      props.newLabel === null ? null
+        : navItem({ label: props.newLabel || 'Start something new', href: props.newHref || '#', icon: 'plus' }, props.active, 'new'),
+
+      items.length ? h('div', { className: 'mf-rail__rule' }) : null,
+      items.length && props.projectName ? h('span', { className: 'mf-rail__over' }, props.projectName) : null,
+      items.map(function (it, i) { return navItem(it, props.active, i); }),
+
+      h('div', { style: { flexGrow: 1 } }),
+      props.user ? h('div', { className: 'mf-rail__foot' },
+        h('span', { className: 'mf-rail__who' }, props.user),
+        h('a', { className: 'mf-rail__out', href: props.signOutHref || '#' }, 'Sign out')) : null);
+  }
+
+  /* ---- AppBar / ProjectBar --------------------------------------------- */
+
+  function Mark(props) {
+    return h('a', { className: 'mf-mark', href: props.href || '#' },
+      h('span', { className: 'mf-mark__sq' },
+        h('svg', {
+          width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none',
+          stroke: 'var(--ink-inverse-strong)', strokeWidth: 2.3,
+          strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true'
+        }, h('path', { d: 'M4 19V9.5L12 4l8 5.5V19' }), h('path', { d: 'M9.5 19v-6h5v6' }))),
+      h('span', { className: 'mf-mark__name' }, props.name || 'Manifest'),
+      h('span', { className: 'mf-mark__rule' }),
+      h('span', { className: 'mf-mark__org' }, props.org || 'UBC'));
+  }
+
+  function AppBar(props) {
+    return h('header', { className: cx('mf-appbar', props.className) },
+      h(Mark, { name: props.name, org: props.org }),
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 22, fontSize: 13, color: 'var(--ink-secondary)' } },
+        props.user ? h('span', null, props.user) : null,
+        props.children));
+  }
+
+  function ProjectBar(props) {
+    var tabs = props.tabs || [];
+    return h('div', { className: cx('mf-projbar', props.className) },
+      h('h1', { className: 'mf-projbar__title' }, props.title),
+      props.meta ? h('p', { className: 'mf-projbar__meta' }, props.meta) : null,
+      h('nav', { className: 'mf-projbar__nav' }, tabs.map(function (t, i) {
+        var label = typeof t === 'string' ? t : t.label;
+        return h('a', {
+          key: i, href: (t && t.href) || '#',
+          className: cx('mf-tab', label === props.active && 'mf-tab--on'),
+          'aria-current': label === props.active ? 'page' : undefined
+        }, label);
+      })));
+  }
+
+  /* ---- InverseSurface / LogPane ---------------------------------------- */
+
+  function InverseSurface(props) {
+    return h('div', { className: cx('mf-inverse', props.className), style: props.style },
+      props.title ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        props.warn ? icon(['M12 4l9 16H3z', 'M12 10v4', 'M12 17v.01'], 18, 'var(--warning-mark)', 2) : null,
+        h('h3', { className: 'mf-inverse__title' }, props.title)) : null,
+      props.body ? h('p', { className: 'mf-inverse__body' }, props.body) : null,
+      props.inset ? h('div', { className: 'mf-inverse__inset' }, props.inset) : null,
+      props.children);
+  }
+
+  function LogPane(props) {
+    var lines = props.lines || [];
+    var written = props.writtenBefore === undefined ? 0 : props.writtenBefore;
+    return h('div', { className: cx('mf-log', props.className), style: props.style },
+      lines.map(function (text, i) {
+        return h('div', { key: i, className: i < written ? 'mf-log__line--old' : undefined },
+          h('span', { className: 'mf-log__num' }, String(i + 1).padStart(3, ' ') + '  '), text);
+      }));
+  }
+
+  /* ---- BrowserFrame ---------------------------------------------------- */
+
+  function BrowserFrame(props) {
+    return h('div', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flexGrow: props.phone ? 0 : 1 } },
+      h('div', {
+        className: cx('mf-frame', props.phone && 'mf-frame--phone', props.className),
+        style: props.style
+      },
+        h('div', { className: 'mf-frame__bar' },
+          props.phone ? null : h('span', { className: 'mf-frame__dots' },
+            h('span', { className: 'mf-frame__dot' }), h('span', { className: 'mf-frame__dot' }), h('span', { className: 'mf-frame__dot' })),
+          h('span', { className: 'mf-frame__url' },
+            props.secure === false ? null : lockIcon(11, 'var(--steady)'),
+            props.url)),
+        h('div', { className: 'mf-frame__body' }, props.children)),
+      props.caption ? h('p', { className: 'mf-frame__caption' }, props.caption) : null);
+  }
+
+  /* ---- SegmentedControl ------------------------------------------------ */
+
+  function SegmentedControl(props) {
+    var options = props.options || [];
+    return h('div', { className: cx('mf-seg', props.className), role: props.role || 'tablist' },
+      options.map(function (o, i) {
+        var value = typeof o === 'string' ? o : o.value;
+        var label = typeof o === 'string' ? o : o.label;
+        var on = value === props.value;
+        return h('button', {
+          key: i, type: 'button', role: props.role === 'radiogroup' ? 'radio' : 'tab',
+          className: cx('mf-seg__tab', on && 'mf-seg__tab--on'),
+          'aria-selected': props.role === 'radiogroup' ? undefined : on,
+          'aria-checked': props.role === 'radiogroup' ? on : undefined,
+          onClick: function () { if (props.onChange) props.onChange(value); }
+        }, label);
+      }));
+  }
+
+  /* ---- Choice / LockedRow ---------------------------------------------- */
+
+  function Choice(props) {
+    var type = props.type === 'checkbox' ? 'checkbox' : 'radio';
+    var options = props.options || [];
+    return h('div', { className: cx('mf-choices', props.className), role: type === 'radio' ? 'radiogroup' : 'group', 'aria-label': props.label },
+      options.map(function (o, i) {
+        var on = type === 'radio' ? o.value === props.value : !!o.checked;
+        return h('label', { key: i, className: cx('mf-choice', on && 'mf-choice--on') },
+          h('input', {
+            type: type, name: props.name, checked: on,
+            onChange: function () { if (props.onChange) props.onChange(o.value); }
+          }),
+          h('span', null,
+            h('span', { className: 'mf-choice__title', style: { display: 'block' } }, o.title),
+            o.note ? h('span', { className: 'mf-choice__note', style: { display: 'block' } }, o.note) : null));
+      }));
+  }
+
+  function LockedRow(props) {
+    return h('div', { className: cx('mf-locked', props.className) },
+      lockIcon(14),
+      props.children || props.label);
+  }
+
+  global.Manifest = {
+    StateChip: StateChip, LiveSteps: LiveSteps, Timeline: Timeline, ProgressBar: ProgressBar,
+    TwoFacts: TwoFacts, ClockItem: ClockItem, Button: Button, Card: Card, FormField: FormField,
+    SideNav: SideNav, AppBar: AppBar, ProjectBar: ProjectBar, InverseSurface: InverseSurface, LogPane: LogPane,
+    BrowserFrame: BrowserFrame,
+    SegmentedControl: SegmentedControl, Choice: Choice, LockedRow: LockedRow
+  };
+})(window);
+
+</script>
+<style>
+/* GENERATED from tokens.json — do not edit. Regenerate with build-tokens-css.mjs. */
+
+:root, [data-theme="light"] {
+  --surface-page: #f4f6fa;
+  --surface-card: #ffffff;
+  --surface-sunken: #eef2f8;
+  --surface-raised: #f9fbfd;
+  --surface-hover: #e8eef7;
+  --surface-inverse: #0d1522;
+  --surface-inverse-deep: #070c15;
+  --scrim: rgba(14, 22, 38, 0.55);
+  --border-default: #e3e8f0;
+  --border-subtle: #dce3ef;
+  --border-strong: #c4cddd;
+  --border-hover: #aab7cc;
+  --border-muted: #ced7e5;
+  --border-inverse: #28344a;
+  --ink: #0e1626;
+  --ink-secondary: #33415c;
+  --ink-muted: #4b5a75;
+  --ink-subtle: #5c6a85;
+  --ink-disabled: #9aa5b8;
+  --ink-inverse: #e8ecf3;
+  --ink-inverse-muted: #8794ab;
+  --ink-inverse-strong: #ffffff;
+  --brand: #003468;
+  --brand-hover: #00254a;
+  --brand-tint: #e6edf6;
+  --nav-surface: var(--brand);
+  --nav-ink: #ffffff;
+  --nav-ink-muted: #b8cde4;
+  --nav-ink-subtle: #9db8d6;
+  --nav-active: #14508a;
+  --nav-hover: #0a4276;
+  --nav-rule: rgba(255, 255, 255, 0.16);
+  --brand-on: #ffffff;
+  --focus-ring: var(--brand);
+  --working: #0e6d84;
+  --working-deep: #0a4e60;
+  --working-bright: #1e8ba6;
+  --working-tint: #e3f1f5;
+  --working-border: #b3dae4;
+  --waiting: #8a5a0b;
+  --waiting-deep: #7a5008;
+  --waiting-tint: #fdf3df;
+  --waiting-border: #ebd5a6;
+  --waiting-hatch: #f5e9ce;
+  --attention: #b3261e;
+  --attention-deep: #8c1c16;
+  --attention-muted: #8a3a33;
+  --attention-tint: #fceae7;
+  --attention-border: #f4c7c2;
+  --attention-border-soft: #f0cdc8;
+  --steady: #146b3d;
+  --steady-deep: #124f2e;
+  --steady-muted: #155a33;
+  --steady-tint: #e6f4ec;
+  --steady-border: #bbe2cd;
+  --speculative-hatch-a: #eaeff7;
+  --speculative-hatch-b: #dee6f2;
+  --warning-mark: #e8b04b;
+  --shadow-raise: 0 1px 2px rgba(14, 22, 38, 0.10);
+  --shadow-float: 0 10px 30px rgba(14, 22, 38, 0.08);
+  --shadow-overlay: 0 24px 60px rgba(14, 22, 38, 0.28);
+}
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-pill: 999px;
+  --font-sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+.hero { font-family: var(--font-sans); font-size: 40px; line-height: 44px; font-weight: 700; letter-spacing: -0.035em; }
+.page-title { font-family: var(--font-sans); font-size: 31px; line-height: 36px; font-weight: 700; letter-spacing: -0.03em; }
+.moment { font-family: var(--font-sans); font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.025em; }
+.heading { font-family: var(--font-sans); font-size: 17px; line-height: 23px; font-weight: 600; letter-spacing: -0.02em; }
+.subheading { font-family: var(--font-sans); font-size: 15px; line-height: 21px; font-weight: 600; }
+.body-lead { font-family: var(--font-sans); font-size: 15px; line-height: 24px; font-weight: 400; }
+.body { font-family: var(--font-sans); font-size: 14px; line-height: 21px; font-weight: 400; }
+.body-small { font-family: var(--font-sans); font-size: 13px; line-height: 20px; font-weight: 400; }
+.label { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 500; }
+.caption { font-family: var(--font-sans); font-size: 12px; line-height: 17px; font-weight: 400; }
+.overline { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.1em; }
+.mono { font-family: var(--font-mono); font-size: 12.5px; line-height: 18px; font-weight: 400; }
+.mono-address { font-family: var(--font-mono); font-size: 17px; line-height: 25px; font-weight: 400; }
+.mono-log { font-family: var(--font-mono); font-size: 12.5px; line-height: 22px; font-weight: 400; }
+
+/* Manifest design system — component stylesheet. Loaded after tokens.css. */
+
+.mf-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 9px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; font-family: var(--font-sans); }
+.mf-chip__dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.mf-pulse { animation: mf-breathe 1.4s ease-in-out infinite; }
+@keyframes mf-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes mf-drift { 0% { background-position: 0 0; } 100% { background-position: 44px 0; } }
+@keyframes mf-arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.mf-is-working { background: var(--working-tint); border: 1px solid var(--working-border); color: var(--working-deep); }
+.mf-is-waiting { background: var(--waiting-tint); border: 1px solid var(--waiting-border); color: var(--waiting); }
+.mf-is-attention { background: var(--attention-tint); border: 1px solid var(--attention-border); color: var(--attention); }
+.mf-is-steady { background: var(--steady-tint); border: 1px solid var(--steady-border); color: var(--steady); }
+.mf-is-notyet { background: var(--surface-sunken); border: 1px dashed var(--border-strong); color: var(--ink-subtle); }
+
+.mf-steps { display: flex; flex-direction: column; gap: 3px; font-family: var(--font-sans); }
+.mf-step { display: flex; align-items: flex-start; gap: 13px; padding: 9px 0; }
+.mf-step--next { opacity: 0.35; }
+.mf-step__mark { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.mf-step__mark--done { background: var(--steady); }
+.mf-step__mark--now { background: var(--working); }
+.mf-step__mark--next { border: 2px solid var(--border-muted); }
+.mf-step__mark--halted { background: var(--attention); }
+.mf-step__text { font-size: 15.5px; line-height: 1.4; color: var(--ink-secondary); }
+.mf-step--now .mf-step__text { font-weight: 600; color: var(--ink); }
+.mf-step--halted .mf-step__text { font-weight: 600; color: var(--attention); }
+.mf-step__note { font-size: 13px; line-height: 1.45; color: var(--ink-subtle); margin-top: 2px; }
+/* A finished step states its colour rather than inheriting it, so the state is a real hook. */
+.mf-step--done .mf-step__text { color: var(--ink-secondary); }
+
+.mf-bar { border-radius: var(--radius-xs); overflow: hidden; background: var(--border-default); height: 4px; }
+.mf-bar__fill { height: 100%; transition: width 0.4s linear; }
+.mf-bar__fill--working { background: repeating-linear-gradient(115deg, var(--working) 0 14px, var(--working-bright) 14px 22px); animation: mf-drift 1.1s linear infinite; }
+.mf-bar__fill--done { background: var(--steady); }
+.mf-clock { height: 8px; border-radius: var(--radius-xs); border: 1px solid var(--waiting-border); background: repeating-linear-gradient(115deg, var(--waiting-hatch) 0 9px, var(--surface-page) 9px 18px); }
+.mf-bar__meta { display: flex; justify-content: space-between; font-size: 12.5px; margin-top: 7px; font-family: var(--font-sans); }
+
+.mf-overline { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.mf-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); font-family: var(--font-sans); }
+.mf-fact { border-radius: var(--radius-md); padding: 15px 17px; display: flex; flex-direction: column; gap: 7px; }
+.mf-fact__title { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--ink); }
+.mf-fact__note { font-size: 13px; line-height: 1.5; }
+.mf-facts__foot { margin: var(--space-4) 0 0; font-size: 13px; line-height: 1.55; color: var(--ink-subtle); font-family: var(--font-sans); }
+
+.mf-card { border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); font-family: var(--font-sans); background: var(--surface-card); border: 1px solid var(--border-default); box-sizing: border-box; }
+.mf-card--working { background: var(--working-tint); border-color: var(--working-border); }
+.mf-card--waiting { background: var(--waiting-tint); border-color: var(--waiting-border); }
+.mf-card--steady { background: var(--steady-tint); border-color: var(--steady-border); }
+.mf-card--attention { background: var(--attention-tint); border-color: var(--attention-border); }
+.mf-card__title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+.mf-card--working .mf-card__title { color: var(--working-deep); }
+.mf-card--waiting .mf-card__title { color: var(--waiting-deep); }
+
+.mf-clockitem { border-radius: var(--radius-lg); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); background: var(--surface-card); border: 1px solid var(--waiting-border); font-family: var(--font-sans); box-sizing: border-box; }
+.mf-clockitem__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.mf-clockitem__title { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.3; color: var(--ink); }
+.mf-clockitem__body { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-secondary); }
+.mf-admit { display: flex; flex-direction: column; gap: 8px; padding: 13px 15px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px dashed var(--border-strong); }
+.mf-admit__title { font-size: 12px; font-weight: 600; color: var(--ink-secondary); }
+.mf-admit__body { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-muted); }
+
+.mf-btn { height: 44px; padding: 0 20px; border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 14.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: none; text-decoration: none; box-sizing: border-box; transition: background 0.12s ease, border-color 0.12s ease; }
+.mf-btn--sm { height: 38px; padding: 0 14px; font-size: 13px; }
+.mf-btn--primary { background: var(--brand); color: var(--brand-on); }
+.mf-btn--primary:hover { background: var(--brand-hover); }
+.mf-btn--primary:active { background: var(--brand-hover); transform: translateY(1px); }
+.mf-btn--secondary { background: transparent; color: var(--ink-secondary); border: 1px solid var(--border-strong); font-weight: 500; }
+.mf-btn--secondary:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+.mf-btn--secondary:active { transform: translateY(1px); }
+.mf-btn--tertiary { background: var(--surface-sunken); color: var(--ink-secondary); border: 1px solid var(--border-subtle); font-weight: 500; }
+.mf-btn--tertiary:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+.mf-btn--danger { background: var(--attention); color: var(--ink-inverse-strong); }
+.mf-btn--danger:hover { background: var(--attention-deep); }
+.mf-btn--ghostDanger { background: transparent; color: var(--attention); border: 1px solid var(--attention-border-soft); font-weight: 500; }
+.mf-btn--ghostDanger:hover { background: var(--attention-tint); }
+.mf-btn[disabled] { background: var(--border-default); color: var(--ink-disabled); cursor: default; border: none; transform: none; }
+.mf-btn:focus-visible, .mf-seg__tab:focus-visible, .mf-field__input:focus-visible, .mf-choice:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+
+.mf-field { display: flex; flex-direction: column; gap: var(--space-3); font-family: var(--font-sans); }
+.mf-field__label { font-size: 15px; font-weight: 600; color: var(--ink); }
+.mf-field__hint { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-muted); }
+.mf-field__input { height: 46px; padding: 0 16px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--surface-card); font-size: 15px; color: var(--ink); box-sizing: border-box; width: 100%; transition: border-color 0.12s ease; font-family: var(--font-sans); }
+.mf-field__input--mono { font-family: var(--font-mono); }
+.mf-field__input:hover { border-color: var(--border-hover); }
+.mf-msg { display: flex; gap: 11px; padding: 13px 15px; border-radius: var(--radius-md); }
+.mf-msg__title { margin: 0; font-size: 14px; font-weight: 600; }
+.mf-msg__body { margin: 3px 0 0; font-size: 13px; }
+
+.mf-appbar { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-12); height: 60px; border-bottom: 1px solid var(--border-default); background: var(--surface-card); font-family: var(--font-sans); box-sizing: border-box; }
+.mf-mark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.mf-mark__sq { width: 26px; height: 26px; border-radius: 7px; background: var(--brand); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mf-mark__name { font-weight: 600; font-size: 17px; color: var(--ink); letter-spacing: -0.02em; }
+.mf-mark__rule { width: 1px; height: 14px; background: var(--border-subtle); }
+.mf-mark__org { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-subtle); }
+.mf-projbar { background: var(--surface-card); border-bottom: 1px solid var(--border-default); padding: var(--space-5) var(--space-12) 0; font-family: var(--font-sans); box-sizing: border-box; }
+.mf-projbar__title { margin: 0; font-size: 31px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
+.mf-projbar__meta { margin: 7px 0 0; font-size: 14.5px; color: var(--ink-muted); }
+.mf-projbar__nav { display: flex; gap: 28px; margin-top: var(--space-5); }
+.mf-tab { padding-bottom: 12px; border-bottom: 2px solid transparent; font-size: 14.5px; color: var(--ink-muted); text-decoration: none; cursor: pointer; }
+.mf-tab:hover { color: var(--ink); }
+.mf-tab--on { border-bottom-color: var(--brand); color: var(--ink); font-weight: 600; }
+
+.mf-inverse { border-radius: var(--radius-lg); background: var(--surface-inverse); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); font-family: var(--font-sans); box-sizing: border-box; }
+.mf-inverse__title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink-inverse-strong); }
+.mf-inverse__body { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-inverse-muted); }
+.mf-inverse__inset { padding: 14px 15px; border-radius: var(--radius-sm); background: var(--surface-inverse-deep); border: 1px solid var(--border-inverse); font-family: var(--font-mono); font-size: 12px; line-height: 1.7; color: var(--ink-inverse); word-break: break-all; user-select: all; }
+.mf-log { font-family: var(--font-mono); font-size: 12.5px; line-height: 22px; color: var(--ink-inverse); overflow-y: auto; }
+.mf-log__line--old { color: var(--ink-inverse-muted); }
+.mf-log__num { color: var(--ink-inverse-muted); user-select: none; white-space: pre; }
+
+
+.mf-timeline { display: flex; align-items: flex-start; font-family: var(--font-sans); }
+.mf-station { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.mf-station--next { opacity: 0.4; }
+.mf-station__rail { display: flex; align-items: center; width: 100%; }
+.mf-station__line { flex-grow: 1; height: 2px; }
+.mf-station__line--on { background: var(--steady-border); }
+.mf-station__line--off { background: var(--border-default); }
+.mf-station__line--none { background: transparent; }
+.mf-station__dot { width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0; box-sizing: border-box; }
+.mf-station__dot--done { background: var(--steady); }
+.mf-station__dot--now { background: var(--working); }
+.mf-station__dot--next { background: var(--surface-page); border: 2px solid var(--border-muted); }
+.mf-station__dot--halted { background: var(--attention); }
+.mf-station__label { font-size: 14.5px; text-align: center; font-weight: 500; color: var(--ink-secondary); }
+.mf-station--now .mf-station__label { font-weight: 600; color: var(--ink); }
+.mf-station--halted .mf-station__label { font-weight: 600; color: var(--attention); }
+.mf-station__note { font-size: 12.5px; line-height: 1.4; color: var(--ink-subtle); text-align: center; max-width: 21ch; }
+.mf-station--done .mf-station__label { color: var(--ink-secondary); }
+
+.mf-frame { display: flex; flex-direction: column; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-subtle); background: var(--surface-card); box-shadow: var(--shadow-float); font-family: var(--font-sans); box-sizing: border-box; }
+.mf-frame--phone { width: 390px; max-width: 100%; }
+.mf-frame__bar { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface-sunken); border-bottom: 1px solid var(--border-subtle); }
+.mf-frame__dots { display: flex; gap: 5px; flex-shrink: 0; }
+.mf-frame__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border-muted); }
+.mf-frame__url { flex-grow: 1; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 11px; border-radius: var(--radius-sm); background: var(--surface-card); border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-secondary); overflow: hidden; white-space: nowrap; }
+.mf-frame__body { flex-grow: 1; min-height: 0; overflow: hidden; }
+.mf-frame__caption { margin: 10px 0 0; font-size: 12.5px; color: var(--ink-subtle); text-align: center; }
+
+.mf-seg { display: inline-flex; gap: 4px; padding: 3px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-subtle); }
+.mf-seg__tab { height: 32px; padding: 0 14px; border-radius: var(--radius-sm); border: none; background: transparent; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; }
+.mf-seg__tab:hover { color: var(--ink); }
+.mf-seg__tab--on { background: var(--surface-card); color: var(--ink); font-weight: 600; box-shadow: var(--shadow-raise); }
+
+.mf-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-family: var(--font-sans); }
+.mf-choice { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--surface-card); border: 1px solid var(--border-subtle); margin: 1px; cursor: pointer; box-sizing: border-box; }
+.mf-choice:hover { border-color: var(--border-hover); }
+.mf-choice--on { border: 2px solid var(--brand); margin: 0; }
+.mf-choice--on:hover { border-color: var(--brand); }
+.mf-choice input { accent-color: var(--brand); width: 17px; height: 17px; margin: 0; flex-shrink: 0; }
+.mf-choice__title { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.mf-choice__note { font-size: 13px; color: var(--ink-muted); margin-top: 2px; }
+.mf-locked { display: flex; align-items: center; gap: 10px; padding: 11px 13px; border-radius: var(--radius-md); background: var(--surface-page); border: 1px dashed var(--border-strong); font-size: 13.5px; color: var(--ink-subtle); font-family: var(--font-sans); }
+
+.mf-rail { width: 240px; flex-shrink: 0; box-sizing: border-box; background: var(--nav-surface); display: flex; flex-direction: column; padding: 22px 0 18px; font-family: var(--font-sans); }
+.mf-rail__mark { display: flex; align-items: center; gap: 10px; margin: 0 24px 22px; text-decoration: none; }
+.mf-rail__sq { width: 26px; height: 26px; border-radius: 7px; background: var(--nav-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mf-rail__name { font-weight: 600; font-size: 17px; color: var(--nav-ink); letter-spacing: -0.02em; }
+.mf-rail__bar { width: 1px; height: 14px; background: var(--nav-rule); }
+.mf-rail__org { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--nav-ink-subtle); }
+.mf-rail__rule { height: 1px; background: var(--nav-rule); margin: 20px 24px 18px; }
+.mf-rail__over { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--nav-ink-subtle); margin: 0 24px 10px; }
+.mf-rail__item { display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; color: var(--nav-ink-muted); text-decoration: none; box-sizing: border-box; transition: background 0.12s ease; }
+.mf-rail__item:hover { background: var(--nav-hover); color: var(--nav-ink); }
+.mf-rail__item--on { background: var(--nav-active); color: var(--nav-ink); font-weight: 600; }
+.mf-rail__item--on:hover { background: var(--nav-active); }
+.mf-rail__foot { margin: 18px 24px 0; padding-top: 16px; border-top: 1px solid var(--nav-rule); display: flex; flex-direction: column; gap: 4px; }
+.mf-rail__who { font-size: 13.5px; color: var(--nav-ink); }
+.mf-rail__out { font-size: 12.5px; color: var(--nav-ink-subtle); text-decoration: none; }
+.mf-rail__out:hover { color: var(--nav-ink); }
+
+body { margin: 0; background: var(--surface-page); color: var(--ink); font-family: var(--font-sans); }
+.g-wrap { max-width: 1040px; margin: 0 auto; padding: 48px 24px 96px; }
+.g-lede { margin: 0 0 40px; font-size: 15px; line-height: 1.6; color: var(--ink-muted); max-width: 62ch; }
+.g-group { margin: 40px 0 16px; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-subtle); }
+.g-card { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; }
+.g-head { padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: baseline; gap: 12px; }
+.g-name { font-size: 15px; font-weight: 600; }
+.g-sub { font-size: 13px; color: var(--ink-subtle); }
+.g-body { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="g-wrap">
+  <h1 style="margin:0 0 12px; font-size:31px; font-weight:700; letter-spacing:-.03em;">Manifest design system</h1>
+  <p class="g-lede">Every component, rendered from the same <code>bundle.js</code> a product would load.
+  Generated by <code>build-gallery.mjs</code> — open this file in a browser, no server needed.
+  Needs a network connection for React and the two typefaces.</p>
+  <div class="g-group">Cover</div>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">Cover</span><span class="g-sub"></span></div>
+    <div class="g-body">
+<style>
+  .cv { position: relative; width: 960px; height: 300px; background: var(--surface-page); font-family: var(--font-sans); overflow: hidden; }
+  .cv-art { position: absolute; inset: 0; }
+  .cv-text { position: absolute; left: 64px; bottom: 44px; width: 440px; }
+  .cv-name { margin: 0; font-size: 80px; line-height: 0.92; font-weight: 700; letter-spacing: -0.035em; color: var(--ink); }
+  .cv-tag { margin: 14px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-subtle); }
+  .tile { rx: var(--radius-lg); }
+  .pill { rx: var(--radius-sm); fill: var(--surface-page); }
+  .b-brand { fill: var(--brand); }
+  .b-working { fill: var(--working); }
+  .b-steady { fill: var(--steady); }
+  .b-waiting { fill: var(--waiting); }
+  .b-inverse { fill: var(--surface-inverse); }
+</style>
+<div class="cv">
+  <!--
+    blocks — brand 168x236, working 120x140, steady 120x80, waiting 96x96, surface-inverse 96x124; every corner rx var(--radius-lg)
+    arrangement — one tall brand slab with four satellites in two columns, space-4 (16px) gutters, the whole group right of x=480
+    pattern — pills, from "geometric, modular, dense UI: tiles cut by the radius tokens": every Manifest screen is state chips lying on cards, so the ground is cut back out of each block as radius-pill bars
+    scales — gutters space-4 and space-5, block sides multiples of 4, pill height 12px with rx var(--radius-sm) = half the short side
+  -->
+  <svg class="cv-art" viewBox="0 0 960 300" width="960" height="300" aria-hidden="true" focusable="false">
+    <rect class="tile b-brand"   x="512" y="32"  width="168" height="236"/>
+    <rect class="tile b-working" x="696" y="32"  width="120" height="140"/>
+    <rect class="tile b-steady"  x="696" y="188" width="120" height="80"/>
+    <rect class="tile b-waiting" x="832" y="32"  width="96"  height="96"/>
+    <rect class="tile b-inverse" x="832" y="144" width="96"  height="124"/>
+
+    <rect class="pill" x="532" y="64"  width="128" height="12"/>
+    <rect class="pill" x="532" y="92"  width="96"  height="12"/>
+    <rect class="pill" x="532" y="120" width="112" height="12"/>
+    <rect class="pill" x="532" y="148" width="72"  height="12"/>
+    <rect class="pill" x="532" y="176" width="104" height="12"/>
+
+    <rect class="pill" x="712" y="64"  width="88" height="12"/>
+    <rect class="pill" x="712" y="88"  width="64" height="12"/>
+    <rect class="pill" x="712" y="112" width="76" height="12"/>
+
+    <rect class="pill" x="712" y="212" width="72" height="12"/>
+    <rect class="pill" x="712" y="236" width="52" height="12"/>
+
+    <rect class="pill" x="848" y="60"  width="64" height="12"/>
+    <rect class="pill" x="848" y="84"  width="44" height="12"/>
+
+    <rect class="pill" x="848" y="176" width="60" height="12"/>
+    <rect class="pill" x="848" y="200" width="40" height="12"/>
+  </svg>
+  <div class="cv-text">
+    <h1 class="cv-name">Manifest</h1>
+    <p class="cv-tag">Describe it, and it runs at a UBC address.</p>
+  </div>
+</div>
+    </div>
+  </section>
+  <div class="g-group">Foundations</div>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">AppBar</span><span class="g-sub">The mark, and a project\u2019s own navigation</span></div>
+    <div class="g-body">
+<div id="root-AppBar" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { margin: -20 } },
+    h(M.AppBar, { user: 'Instructor One' },
+      h('a', { href: '#', style: { color: 'var(--ink-muted)', textDecoration: 'none', borderBottom: '1px solid var(--border-muted)' } }, 'Sign out')),
+    h(M.ProjectBar, {
+      title: 'mock-app',
+      meta: 'Yours \u00b7 made 18 September \u00b7 for one class, all arriving at once',
+      tabs: ['Overview', 'Preview', 'Conversations', 'Going live', 'People'],
+      active: 'Overview' }));
+  ReactDOM.createRoot(document.getElementById('root-AppBar')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">Button</span><span class="g-sub">Four kinds, and a disabled state that explains itself</span></div>
+    <div class="g-body">
+<div id="root-Button" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var row = { display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' };
+  var note = { fontSize: 12, color: 'var(--ink-subtle)' };
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+    h('div', { style: row },
+      h(M.Button, { kind: 'primary' }, 'Make it'),
+      h(M.Button, { kind: 'secondary' }, 'Watch again'),
+      h(M.Button, { kind: 'tertiary' }, 'Open the app'),
+      h(M.Button, { kind: 'danger' }, 'Yes, revoke it'),
+      h(M.Button, { kind: 'ghostDanger', size: 'sm' }, 'Revoke it')),
+    h('div', { style: row },
+      h(M.Button, { kind: 'primary', disabled: true }, 'Building\u2026'),
+      h('span', { style: note }, 'Disabled buttons say what they are waiting for, never just grey out.')),
+    h('div', { style: row },
+      h(M.Button, { kind: 'primary', style: { outline: '2px solid var(--focus-ring)', outlineOffset: 3 } }, 'Focus ring'),
+      h('span', { style: note }, '2px brand at 3px offset, on every focusable thing.')));
+  ReactDOM.createRoot(document.getElementById('root-Button')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">Card</span><span class="g-sub">The default surface, and the tinted variants</span></div>
+    <div class="g-body">
+<div id="root-Card" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var p = { margin: 0, fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink-muted)' };
+  var demo = h('div', { style: { display: 'flex', gap: 16, alignItems: 'flex-start' } },
+    h(M.Card, { title: 'Next: build it', style: { flex: '1 1 0' } },
+      h('p', { style: p }, 'A few minutes. Watch it, or walk away.'),
+      h('a', { href: '#', style: { fontSize: 13.5, fontWeight: 600, color: 'var(--brand)', textDecoration: 'none' } }, 'Build it \u2192')),
+    h(M.Card, { tone: 'working', title: 'You can close this page', style: { flex: '1 1 0' } },
+      h('p', { style: p }, 'It keeps going without you. Everything will still be here.')),
+    h(M.Card, { tone: 'waiting', title: 'Worth knowing now', style: { flex: '1 1 0' } },
+      h('p', { style: p }, 'Once it\u2019s live, the name can never change.')));
+  ReactDOM.createRoot(document.getElementById('root-Card')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">Choice</span><span class="g-sub">Radio cards, capability checkboxes, and the four that can never be ticked</span></div>
+    <div class="g-body">
+<div id="root-Choice" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  function Demo() {
+    var s = React.useState('class'), scale = s[0], setScale = s[1];
+    var c = React.useState({ 'project:read': true, 'build:create': true }), caps = c[0], setCaps = c[1];
+    var t = React.useState(false), saved = t[0], setSaved = t[1];
+    var head = { fontSize: 15, fontWeight: 600, color: 'var(--ink)' };
+    var col = { flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 };
+    function toggle(v) { var next = Object.assign({}, caps); next[v] = !next[v]; setCaps(next); }
+    return h('div', { style: { display: 'flex', gap: 20, alignItems: 'flex-start' } },
+      h('div', { style: col },
+        h('span', { style: head }, 'Who is going to use it?'),
+        h(M.Choice, { name: 'mf-scale', label: 'Who is going to use it?', value: scale, onChange: setScale, options: [
+          { title: 'Just me', note: 'The only person who will open it', value: 'solo' },
+          { title: 'One class', note: 'A section or a seminar group', value: 'class' },
+          { title: 'A large course', note: 'Hundreds of students at once', value: 'large_course' },
+          { title: 'Anyone at all', note: 'Open beyond UBC', value: 'public' }] })),
+      h('div', { style: col },
+        h('span', { style: head }, 'What may it do?'),
+        h(M.Choice, { type: 'checkbox', onChange: toggle, options: [
+          { title: 'Look at this project', value: 'project:read', checked: !!caps['project:read'] },
+          { title: 'Build it', value: 'build:create', checked: !!caps['build:create'] },
+          { title: 'Prepare a version', value: 'release:create', checked: !!caps['release:create'] },
+          { title: 'Delete the project', value: 'project:delete', checked: !!caps['project:delete'] }] }),
+        h(M.LockedRow, { label: 'Change who can get in \u2014 never available' }),
+        h(M.InverseSurface, { style: { padding: '14px 16px' } },
+          h('label', { style: { display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer' } },
+            h('input', { type: 'checkbox', checked: saved, onChange: function () { setSaved(!saved); },
+              style: { accentColor: 'var(--brand)', width: 17, height: 17, margin: 0 } }),
+            h('span', { style: { fontSize: 13.5, lineHeight: 1.5, color: 'var(--ink-inverse)' } }, 'I have put it somewhere safe')))));
+  }
+  var demo = h(Demo);
+  ReactDOM.createRoot(document.getElementById('root-Choice')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">FormField</span><span class="g-sub">Label, hint, control, and a refusal in the platform\u2019s own words</span></div>
+    <div class="g-body">
+<div id="root-FormField" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  function Demo() {
+    var s = React.useState('mock-app'), name = s[0], set = s[1];
+    var taken = name.trim() === 'mock-app';
+    var msg = name.trim() === '' ? undefined : (taken
+      ? { tone: 'attention', title: 'a project already has this name', body: 'Pick another name, or ask its owner to add you.' }
+      : { tone: 'steady', title: 'Yours. It will live at ' + name.trim() + '.manifest.internal' });
+    return h('div', { style: { maxWidth: 560 } }, h(M.FormField, {
+      id: 'mf-demo-name', label: 'What should we call it?',
+      hint: 'Lower case, hyphens between words. This becomes its web address.',
+      value: name, mono: true, message: msg,
+      onChange: function (e) { set(e.target.value); } }));
+  }
+  var demo = h(Demo);
+  ReactDOM.createRoot(document.getElementById('root-FormField')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">InteractionStates</span><span class="g-sub">Hover, focus, active, disabled \u2014 the four that are usually invented</span></div>
+    <div class="g-body">
+<div id="root-InteractionStates" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var row = { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' };
+  var lab = { width: 108, flexShrink: 0, fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-subtle)' };
+  var note = { fontSize: 12.5, color: 'var(--ink-subtle)' };
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+    h('p', { style: { margin: 0, fontSize: 13, lineHeight: 1.55, color: 'var(--ink-muted)' } },
+      'Hover these. Nothing here moves more than 1px, and nothing changes size \u2014 a control that grows under the cursor pushes the thing beside it.'),
+    h('div', { style: row },
+      h('span', { style: lab }, 'Buttons'),
+      h(M.Button, { kind: 'primary' }, 'Primary'),
+      h(M.Button, { kind: 'secondary' }, 'Secondary'),
+      h(M.Button, { kind: 'primary', style: { outline: '2px solid var(--focus-ring)', outlineOffset: 3 } }, 'Focus, always visible'),
+      h(M.Button, { kind: 'primary', disabled: true }, 'Building\u2026')),
+    h('div', { style: row },
+      h('span', { style: lab }, 'Input'),
+      h('div', { style: { width: 260 } }, h(M.FormField, { id: 'mf-ix', label: '', value: 'reading-responses', mono: true })),
+      h('span', { style: note }, 'hover for the border, focus for the ring')),
+    h('div', { style: row },
+      h('span', { style: lab }, 'Link'),
+      h('a', { href: '#', style: { fontSize: 14.5, color: 'var(--brand)', textDecoration: 'none', borderBottom: '1px solid var(--border-muted)' } }, 'See what going live needs'),
+      h(M.Card, { style: { padding: '13px 16px', display: 'inline-block' } }, 'A whole row that is a link')));
+  ReactDOM.createRoot(document.getElementById('root-InteractionStates')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">SegmentedControl</span><span class="g-sub">Switching what you are looking at, never what you are doing</span></div>
+    <div class="g-body">
+<div id="root-SegmentedControl" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  function Demo() {
+    var a = React.useState('staging'), b = React.useState('desktop'), c = React.useState('all');
+    var row = { display: 'flex', alignItems: 'center', gap: 16 };
+    var lab = { fontSize: 12, color: 'var(--ink-subtle)' };
+    return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 20 } },
+      h('div', { style: row },
+        h(M.SegmentedControl, { value: a[0], onChange: a[1], options: [
+          { label: 'Your draft', value: 'sandbox' },
+          { label: 'Trying out', value: 'staging' },
+          { label: 'Students', value: 'production' }] }),
+        h('span', { style: lab }, 'Which address you are looking at \u2014 three exist from the day a project is made.')),
+      h('div', { style: row },
+        h(M.SegmentedControl, { role: 'radiogroup', value: b[0], onChange: b[1], options: ['desktop', 'phone'].map(function (v) {
+          return { value: v, label: v === 'desktop' ? 'Desktop' : 'Phone' }; }) }),
+        h('span', { style: lab }, 'How it is being shown to you. Two options, so a pair rather than a menu.')),
+      h('div', { style: row },
+        h(M.SegmentedControl, { value: c[0], onChange: c[1], options: [
+          { label: 'All 4', value: 'all' }, { label: 'Needs you 1', value: 'needs' },
+          { label: 'Working 1', value: 'working' }, { label: 'Over 2', value: 'ended' }] }),
+        h('span', { style: lab }, 'A filter carries its count in the label, so the numbers are readable unfiltered.')));
+  }
+  var demo = h(Demo);
+  ReactDOM.createRoot(document.getElementById('root-SegmentedControl')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">SideNav</span><span class="g-sub">The whole navigation, in UBC blue, on every signed-in screen</span></div>
+    <div class="g-body">
+<div id="root-SideNav" style="font-family: var(--font-sans); background: var(--surface-page); display: flex; height: 440px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+  function Demo() {
+    var s = React.useState('Going live'), active = s[0], set = s[1];
+    var items = [
+      { label: 'Overview', icon: 'overview' }, { label: 'Preview', icon: 'preview' },
+      { label: 'Conversations', icon: 'talk' }, { label: 'Going live', icon: 'live' },
+      { label: 'People', icon: 'people' }, { label: 'Agents', icon: 'agent' }
+    ].map(function (it) { return Object.assign({}, it, { href: '#' }); });
+    return h('div', { style: { display: 'flex', width: '100%' }, onClick: function (e) {
+      var t = e.target.closest ? e.target.closest('.mf-rail__item') : null;
+      if (t) { e.preventDefault(); set(t.textContent.trim()); }
+    } },
+      h(M.SideNav, { active: active, projectName: 'mock-app', items: items, user: 'Instructor One' }),
+      h('div', { style: { flexGrow: 1, padding: 40, minWidth: 0 } },
+        h('h1', { style: { margin: 0, fontSize: 31, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--ink)' } }, active),
+        h('p', { style: { margin: '10px 0 0', fontSize: 15, lineHeight: 1.6, color: 'var(--ink-muted)', maxWidth: '46ch' } },
+          'Click the rail. The active item is a fill, a weight change and aria-current — three signals, so it survives without colour.')));
+  }
+  ReactDOM.createRoot(document.getElementById('root-SideNav')).render(h(Demo));
+})();
+</script>
+    </div>
+  </section>
+  <div class="g-group">States</div>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">ClockItem</span><span class="g-sub">A long-lead item, shown before anyone needs it</span></div>
+    <div class="g-body">
+<div id="root-ClockItem" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { maxWidth: 560 } }, h(M.ClockItem, {
+    title: 'A privacy assessment',
+    body: 'Your app keeps what students write, so the Privacy Office has to look at it. The most common reason a launch slips.',
+    admissionTitle: 'Manifest can\u2019t do this one for you yet',
+    admissionBody: 'We know what it stores and who signs in, so most of the form answers itself. Three questions are yours.',
+    action: 'Fill in what we know' }));
+  ReactDOM.createRoot(document.getElementById('root-ClockItem')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">LiveSteps</span><span class="g-sub">Progress without showing the machine</span></div>
+    <div class="g-body">
+<div id="root-LiveSteps" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var col = { flex: '1 1 0', minWidth: 0 };
+  var cap = { fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-subtle)', marginBottom: 12, display: 'block' };
+  var demo = h('div', { style: { display: 'flex', gap: 32 } },
+    h('div', { style: col },
+      h('span', { style: cap }, 'Running'),
+      h(M.LiveSteps, { steps: [
+        { text: 'Reading how your app is put together', state: 'done' },
+        { text: 'Fetching the JavaScript toolkit it runs on', state: 'done' },
+        { text: 'Installing the 135 pieces it depends on', state: 'now' },
+        { text: 'Packaging it up', state: 'next' },
+        { text: 'Storing it, ready to run', state: 'next' }] })),
+    h('div', { style: col },
+      h('span', { style: cap }, 'Stopped at a wall'),
+      h(M.LiveSteps, { steps: [
+        { text: 'Made the change', state: 'done' },
+        { text: 'Put it where you can try it', state: 'done' },
+        { text: 'Tried to go live for your class', state: 'halted',
+          note: 'And was stopped at the door. Nothing about your running app has changed.' }] })));
+  ReactDOM.createRoot(document.getElementById('root-LiveSteps')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">ProgressBar</span><span class="g-sub">Drifting, done, and a clock that has not started</span></div>
+    <div class="g-body">
+<div id="root-ProgressBar" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 20 } },
+    h(M.ProgressBar, { kind: 'working', value: 62, label: 'Working, a few minutes', meta: 'you can leave' }),
+    h(M.ProgressBar, { kind: 'done', value: 100, label: 'Built', meta: '2 minutes 14 seconds' }),
+    h('div', null,
+      h('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--waiting)', marginBottom: 7 } }, 'A privacy assessment'),
+      h(M.ProgressBar, { kind: 'clock' })));
+  ReactDOM.createRoot(document.getElementById('root-ProgressBar')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">StateChip</span><span class="g-sub">The five states, and nothing else</span></div>
+    <div class="g-body">
+<div id="root-StateChip" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var row = { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' };
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+    h('div', { style: row },
+      h(M.StateChip, { state: 'working', label: 'Working, a few minutes' }),
+      h(M.StateChip, { state: 'waiting', label: 'Waiting on someone' }),
+      h(M.StateChip, { state: 'attention', label: 'Needs you' }),
+      h(M.StateChip, { state: 'steady', label: 'Steady' }),
+      h(M.StateChip, { state: 'notyet', label: 'Not yet' })),
+    h('div', { style: row },
+      h(M.StateChip, { state: 'waiting', label: 'Waiting on someone' }),
+      h('span', { style: { fontSize: 12, color: 'var(--ink-subtle)' } },
+        'waiting 42 seconds \u00b7 about a day left to answer')),
+    h('p', { style: { margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--ink-subtle)' } },
+      'Only Working and Needs you ever pulse. A wait measured in weeks is completely still.'));
+  ReactDOM.createRoot(document.getElementById('root-StateChip')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">Timeline</span><span class="g-sub">A run of stations an app passes through, live</span></div>
+    <div class="g-body">
+<div id="root-Timeline" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var card = { background: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)', padding: '24px 30px' };
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+    h('div', { style: card }, h(M.Timeline, { stations: [
+      { label: 'Waiting its turn', note: 'In the queue behind anything else going out', state: 'done' },
+      { label: 'Making room', note: 'Somewhere to run, and a place to keep things', state: 'done' },
+      { label: 'Starting up', note: 'Your app is running its first few seconds', state: 'now' },
+      { label: 'Answering', note: 'It replied to us, so it will reply to people', state: 'next' }] })),
+    h('div', { style: card }, h(M.Timeline, { stations: [
+      { label: 'Making room', state: 'done' },
+      { label: 'Starting up', state: 'done' },
+      { label: 'It never answered', note: 'It started, then stopped replying to us', state: 'halted' }] })));
+  ReactDOM.createRoot(document.getElementById('root-Timeline')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">TwoFacts</span><span class="g-sub">What is serving, and what the last attempt did</span></div>
+    <div class="g-body">
+<div id="root-TwoFacts" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { background: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)', padding: 24 } },
+    h(M.TwoFacts, {
+      serving: { overline: 'What people get', title: 'The version from 18 September, 9:00am', note: 'Running without complaint for 9 hours.' },
+      attempt: { overline: 'What you tried last', title: 'A change that didn\u2019t take, 4 minutes ago', note: 'What went wrong \u2192', tone: 'attention' } }));
+  ReactDOM.createRoot(document.getElementById('root-TwoFacts')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <div class="g-group">Surfaces</div>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">BrowserFrame</span><span class="g-sub">The app you made, behind glass</span></div>
+    <div class="g-body">
+<div id="root-BrowserFrame" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var app = h('div', { style: { background: '#FDFDFB', height: '100%' } },
+    h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid #E8E6DF' } },
+      h('span', { style: { fontWeight: 600, fontSize: 15, color: '#23211C' } }, 'Reading responses'),
+      h('span', { style: { fontSize: 12, color: '#6A665C' } }, 'Instructor One')),
+    h('div', { style: { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 11 } },
+      h('span', { style: { fontSize: 13.5, fontWeight: 600, color: '#23211C' } }, 'Week 3 \u2014 Enclosure and the commons'),
+      h('div', { style: { padding: '12px 14px', borderRadius: 8, border: '1px solid #E0DDD4', background: '#FFFFFF', fontSize: 12.5, lineHeight: 1.55, color: '#3A362F' } },
+        'The reading treats enclosure as an economic event, but the parish records suggest it was read at the time as a change in who could speak\u2026'),
+      h('div', { style: { height: 10, borderRadius: 3, background: '#EDEBE4', width: '88%' } }),
+      h('div', { style: { height: 10, borderRadius: 3, background: '#EDEBE4', width: '74%' } })));
+
+  var empty = h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 30, height: '100%', background: 'var(--surface-raised)', boxSizing: 'border-box' } },
+    h('span', { style: { fontSize: 14, fontWeight: 600, color: 'var(--ink)' } }, 'Not live yet'),
+    h('p', { style: { margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--ink-muted)', textAlign: 'center' } }, 'It stays empty until you go live.'));
+
+  var demo = h('div', { style: { display: 'flex', gap: 20, alignItems: 'stretch', height: 270 } },
+    h(M.BrowserFrame, { url: 'mock-app.staging.manifest.internal', caption: 'What a person reaching this address sees, after they have signed in with CWL.' }, app),
+    h(M.BrowserFrame, { url: 'mock-app.manifest.internal', phone: true, caption: '390pt \u2014 a phone in a lecture theatre.', style: { width: 214 } }, empty));
+  ReactDOM.createRoot(document.getElementById('root-BrowserFrame')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+  <section class="g-card">
+    <div class="g-head"><span class="g-name">InverseSurface</span><span class="g-sub">The three places machine text is shown on purpose</span></div>
+    <div class="g-body">
+<div id="root-InverseSurface" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { display: 'flex', gap: 16, alignItems: 'stretch' } },
+    h(M.InverseSurface, { style: { flex: '1 1 0', minWidth: 0 } },
+      h(M.LogPane, { writtenBefore: 2, lines: [
+        '#1 [internal] load build definition',
+        '#1 transferring dockerfile: 892B done',
+        '#1 DONE 0.1s',
+        '#7 [4/8] RUN npm ci --omit=dev',
+        '#7 added 135 packages in 6s'] })),
+    h(M.InverseSurface, {
+      style: { flex: '1 1 0', minWidth: 0 },
+      warn: true,
+      title: 'The only time you will see this',
+      body: 'We keep a fingerprint, not the key. Once you close this we cannot show it again.',
+      inset: 'mft_77777777-7777-4777-8777-777777777777_ZmFrZS1zZWNyZXQ' },
+      h(M.Button, { kind: 'secondary', style: { borderColor: 'var(--border-inverse)', color: 'var(--ink-inverse-strong)' } }, 'Copy it')));
+  ReactDOM.createRoot(document.getElementById('root-InverseSurface')).render(demo);
+})();
+</script>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -40,10 +40,18 @@ system/components/bundle.css    their styles, every value from a token
 system/components/index.d.ts    every prop, with the rules that matter written into the comments
 system/components/<Comp>/README.md    the guidelines for that component
 system/components/<Comp>/preview.html a worked example that mounts the real export
+system/gallery.html                  GENERATED — all previews on one page, openable in a browser
+system/build-gallery.mjs             the generator for it
 ```
 
 **Load order in a consuming page:** `tokens.css`, `bundle.css`, React 18 + ReactDOM 18, `bundle.js`.
-Then `window.Manifest.StateChip` and the rest are available.
+Then `window.Manifest.StateChip` and the rest are available. **Load the runtime before anything that
+mounts** — that ordering is easy to get wrong and fails with `React is not defined`.
+
+**To see the components rendered, open [`system/gallery.html`](./system/gallery.html) in a browser.**
+One self-contained page, no server and no build: it inlines `tokens.css`, `bundle.css` and
+`bundle.js`, pulls React from a CDN, and mounts all seventeen previews. Regenerate it with
+`node system/build-gallery.mjs` after changing a token, a style or a component.
 
 **Mount them rather than retyping the markup.** Retyped markup is how a system and its product drift
 apart, and that drift is the reason this directory exists.
@@ -53,9 +61,17 @@ generator is fifteen lines and is described in the commit that added this direct
 
 ## 3. The prototype: what is real and what is not
 
-`prototype/` holds seventeen screens as `.dc.html` — the Design-canvas format, which needs that
-runtime to *run*, but which reads perfectly well as HTML for layout, composition and copy.
-`canvas.json` gives each screen its title, size and position.
+`prototype/` holds seventeen screens as `.dc.html`.
+
+> **These are not standalone HTML. Opening one in a browser shows `{{st.label}}` and similar.**
+> Each file's `<head>` loads `./support.js` — the Design-canvas runtime, which is not in this
+> repository and is not something you can build. It resolves `{{holes}}`, `<sc-for>`, `<sc-if>` and
+> the `class Component extends DCLogic` block. **To see the screens rendered and clickable, open the
+> prototype Artifact** (linked at the top). There is no local viewer for them.
+
+What the files *are* good for offline is reading: the layout, the component composition, the exact
+copy and the state logic are all plain and legible in the source. `canvas.json` gives each screen its
+title, size and position.
 
 **Ten screens are the real journey.** Every value on them comes from the published contract's
 fixtures — the slug, all three hostnames, the twenty build-log lines, the 135 packages, the scan
