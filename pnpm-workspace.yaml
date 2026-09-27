@@ -15,5 +15,12 @@ packages:
 #   esbuild — vitest's bundler. Its postinstall (`node install.js`) fetches the
 #   platform binary; without it vitest cannot start. Pinned transitively by
 #   vitest 2.1.9 as esbuild@0.21.5.
+#
+#   vue-demi — false, DELIBERATELY NOT RUN. A dependency of @scalar/api-reference (the console's
+#   HTML reference, the authoring API plan's Task 11). Its postinstall only switches its entry
+#   points between Vue 2 and Vue 3, and the page loads Scalar's STANDALONE bundle, which carries
+#   its own Vue and never resolves vue-demi. Named so pnpm 11 does not refuse the install for an
+#   unapproved build script (measured: ERR_PNPM_IGNORED_BUILDS, vue-demi@0.14.10).
 allowBuilds:
   esbuild: true
+  vue-demi: false

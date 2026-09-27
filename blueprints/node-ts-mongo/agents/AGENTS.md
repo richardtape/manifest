@@ -229,3 +229,18 @@ check and by the deploy's readiness gate through the edge. It must answer
   reports healthy for an app that cannot serve a request.
 
 Keep both properties if you change it.
+
+---
+
+## Putting your code into Manifest
+
+This file says how to write an app for this blueprint; how to drive the platform is
+Manifest's own guide, served by the same API: **`GET /v1/docs/agents`** (and
+`GET /v1/docs` lists the rest). Read it before your first commit — it has the rules for
+retries, refusals and what waits for a person.
+
+Your code reaches Manifest as commits through the API: read the tree (`getTree`) and
+keep the `commitSha` it answers, then send your writes and deletions to `createCommit`
+with that commit as `baseCommit`. `manifest.yaml` is validated before anything is
+written — an invalid one is refused with every problem in `details` — and `dryRun: true`
+checks a change without writing it. Build the commit you wrote by naming it.

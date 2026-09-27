@@ -197,3 +197,50 @@ describe('the console’s imports (D22, §22, §16 API completeness)', () => {
     )
   })
 })
+
+/**
+ * THE HTML REFERENCE'S OWN BOUNDARY (the authoring API plan's Task 11, Decision 17). It lives
+ * OUTSIDE `src/`, so D22's rule above is unchanged, and its rule is narrower still: `reference/`
+ * imports NOTHING — the renderer arrives as the one classic script `reference.html` loads, the
+ * standalone bundle `vite.config.ts` serves from the pinned package — and it is mounted with the
+ * configuration measured to make no request to any other host (`[M9]`).
+ */
+describe('the HTML reference (Decision 17)', () => {
+  const PAGE = new URL('../reference.html', import.meta.url)
+  const DIR = new URL('../reference/', import.meta.url)
+
+  it('imports nothing — the renderer is the one script the page loads', async () => {
+    const files = (await readdir(DIR)).filter((f) => /\.(ts|tsx|js)$/.test(f))
+    expect(files, 'reference/ holds no source').toContain('main.ts')
+    const imports: string[] = []
+    for (const file of files) {
+      const text = executableSource(await readFile(new URL(file, DIR), 'utf8'))
+      for (const m of text.matchAll(
+        /(?:\bfrom\s+|\bimport\s*\(\s*|\bimport\s+)['"]([^'"]+)['"]/g,
+      ))
+        imports.push(`${file}: ${m[1]!}`)
+    }
+    expect(imports).toEqual([])
+    const page = await readFile(PAGE, 'utf8')
+    const scripts = [...page.matchAll(/<script\b([^>]*)>/g)].map((m) => m[1]!.trim())
+    expect(scripts).toEqual([
+      'src="/reference/scalar-standalone.js"',
+      'type="module" src="/reference/main.ts"',
+    ])
+  })
+
+  it('mounts the renderer with the configuration measured to stay offline', async () => {
+    const main = await readFile(new URL('main.ts', DIR), 'utf8')
+    for (const setting of [
+      "url: '/v1/openapi.json'",
+      'withDefaultFonts: false',
+      'telemetry: false',
+      'hideClientButton: true',
+      'hideTestRequestButton: true',
+      'mcp: { disabled: true }',
+      "showDeveloperTools: 'never'",
+      'agent: { disabled: true }',
+    ])
+      expect(main, setting).toContain(setting)
+  })
+})

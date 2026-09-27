@@ -23,7 +23,9 @@ export function Docs({ api }: { api: Api }) {
         {info?.version === undefined ? '…' : <code>{info.version}</code>}
       </Field>
       <Field label="OpenAPI document">
-        <code>GET /v1/openapi.json</code>
+        <code>GET /v1/openapi.json</code> ·{' '}
+        {/* A second page, not a route of this one: the renderer lives outside `src/`. */}
+        <a href="/reference.html">the API reference, rendered</a>
       </Field>
       <ul className="doc-index">
         {(index.value?.pages ?? []).map((page) => (

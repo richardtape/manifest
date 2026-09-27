@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@manifest/contract": "workspace:*",
+    "@scalar/api-reference": "1.72.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

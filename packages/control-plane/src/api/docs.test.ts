@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
+import { fileURLToPath } from 'node:url'
+import { loadBlueprints } from '../blueprints/index.js'
 import { loadApiDocs } from '../docs/index.js'
 import { mutationHeaders, refusal, withProjectServer } from './testing.js'
 
@@ -11,6 +13,7 @@ import { mutationHeaders, refusal, withProjectServer } from './testing.js'
  */
 const DOCS_ROOT = new URL('../../../../docs/api/', import.meta.url).pathname
 const PUBLISHED = new URL('../../../contract/openapi.json', import.meta.url)
+const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.meta.url))
 
 describe('the documentation, served (Decision 18)', () => {
   it('lists every page under docs/api — its slug, title and summary — in the loader’s order', async () => {
@@ -104,5 +107,20 @@ describe('the documentation, served (Decision 18)', () => {
       const anonymous = await ctx.app.inject({ method: 'GET', url: '/v1/docs' })
       expect(refusal(anonymous)).toMatchObject({ status: 401, code: 'UNAUTHENTICATED' })
     })
+  })
+
+  /**
+   * THE KNOWLEDGE PACK POINTS AT THE GUIDE (the authoring API plan's Task 11, Step 7): an agent
+   * reading `node-ts-mongo@1`'s AGENTS.md is sent to `GET /v1/docs/agents` for how to drive the
+   * platform — so every page it names must be one the API serves, or the pointer is a dead end
+   * nothing else would notice.
+   */
+  it('the knowledge pack names only pages the API serves — the agents guide among them', async () => {
+    const pack = (await loadBlueprints(BLUEPRINTS_ROOT)).knowledgePack('node-ts-mongo@1')
+    const agents = pack?.find((f) => f.path === 'AGENTS.md')?.content ?? ''
+    const named = [...agents.matchAll(/GET \/v1\/docs\/([a-z0-9-]+)/g)].map((m) => m[1]!)
+    expect(named).toContain('agents')
+    const docs = await loadApiDocs(DOCS_ROOT)
+    expect(named.filter((slug) => docs.page(slug) === undefined)).toEqual([])
   })
 })

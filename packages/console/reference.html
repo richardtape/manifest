@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Manifest API reference</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!--
+      The renderer is Scalar's standalone bundle, served by vite.config.ts's `scalarStandalone`
+      step from the pinned package — never a CDN — and `reference/main.ts` mounts it offline.
+    -->
+    <script src="/reference/scalar-standalone.js"></script>
+    <script type="module" src="/reference/main.ts"></script>
+  </body>
+</html>
