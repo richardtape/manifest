@@ -15,6 +15,8 @@ import type { EventType } from './events.js'
  * imports `vitest`.
  */
 const UUID = '6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f'
+/** A second person, for the details that name two: who acted, and who it was about. */
+const OTHER_UUID = '2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57'
 const SHA = '0123456789abcdef0123456789abcdef01234567'
 /** A second commit, for the details that name two: a move from one to the other. */
 const NEXT_SHA = '89abcdef0123456789abcdef0123456789abcdef'
@@ -212,6 +214,20 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
   'project.renamed': {
     from: 'chem-labs',
     to: 'CHEM 121 — Lab notebook',
+    via: 'session',
+    userId: UUID,
+    tokenId: null,
+  },
+  'member.added': {
+    memberId: OTHER_UUID,
+    role: 'collaborator',
+    previousRole: null,
+    via: 'session',
+    userId: UUID,
+    tokenId: null,
+  },
+  'member.removed': {
+    memberId: OTHER_UUID,
     via: 'session',
     userId: UUID,
     tokenId: null,

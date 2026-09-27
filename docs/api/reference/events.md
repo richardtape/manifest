@@ -510,3 +510,31 @@ The project’s name — what people call it — changed. Its slug, and so every
   "tokenId": null
 }
 ```
+
+## `member.added`
+
+A person was added to the project, or their role on it changed (§13). Not published when nothing changed.
+
+```json
+{
+  "memberId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+  "role": "collaborator",
+  "previousRole": null,
+  "via": "session",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": null
+}
+```
+
+## `member.removed`
+
+A person was taken off the project (§13). Not published for somebody who was not a member.
+
+```json
+{
+  "memberId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+  "via": "session",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": null
+}
+```

@@ -144,5 +144,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `app_secret.set` | A value was set for one of the app’s secrets in one environment; the next deploy there renders it. Never the value. |
 | `app_secret.cleared` | A secret’s value was removed from one environment; deploying a release that declares it there is refused until it is set again. |
 | `project.renamed` | The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not. |
+| `member.added` | A person was added to the project, or their role on it changed (§13). Not published when nothing changed. |
+| `member.removed` | A person was taken off the project (§13). Not published for somebody who was not a member. |
 
 <!-- /event-types -->

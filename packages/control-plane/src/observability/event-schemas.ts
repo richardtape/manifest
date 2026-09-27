@@ -4,6 +4,7 @@ import {
   environmentKind,
   iamRegistrationState,
   instanceState,
+  memberRole,
   privacyAssessmentState,
 } from '../db/index.js'
 import type { EventType } from './events.js'
@@ -55,6 +56,8 @@ const Via = z
 const ActingUser = Uuid.describe(
   'The person who acted — for a token, the person who minted it. `listMembers` names them.',
 )
+/** §13's two roles on a project — the database's own enum, as the Member representation reads it. */
+const MemberRole = z.enum(memberRole.enumValues)
 const ActingToken = Uuid.nullable().describe(
   'The delegated token that acted (`listTokens`); null when the person acted in their own session.',
 )
@@ -612,5 +615,34 @@ export const EVENT_DETAIL_SCHEMAS = {
     })
     .describe(
       'The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not.',
+    ),
+  /**
+   * The front-end enablement plan's Task 7. `memberId` is the person the change is ABOUT;
+   * `userId` keeps the meaning it has in every other event — who ACTED — beside `via` and
+   * `tokenId`, because `audit.events` has no actor column and a sentence is not a record.
+   */
+  'member.added': z
+    .strictObject({
+      memberId: Uuid.describe('The person added — `listMembers` names them.'),
+      role: MemberRole.describe('The role they now have.'),
+      previousRole: MemberRole.nullable().describe(
+        'The role they had before; null when they were not a member.',
+      ),
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe(
+      'A person was added to the project, or their role on it changed (§13). Not published when nothing changed.',
+    ),
+  'member.removed': z
+    .strictObject({
+      memberId: Uuid.describe('The person taken off the project.'),
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe(
+      'A person was taken off the project (§13). Not published for somebody who was not a member.',
     ),
 } satisfies Record<EventType, z.ZodType>

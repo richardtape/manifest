@@ -2624,6 +2624,7 @@ Answer, `200`:
   {
     "userId": "39414511-6e5d-46e9-a47a-090166426ed3",
     "puid": "bio_prof",
+    "cwlLogin": null,
     "displayName": "Bio Prof",
     "email": "bio_prof@example.ubc.ca",
     "role": "owner"
@@ -2631,6 +2632,7 @@ Answer, `200`:
   {
     "userId": "9a77d151-997d-49f4-8c60-23c009fa18db",
     "puid": "bio_student",
+    "cwlLogin": null,
     "displayName": "Bio Student",
     "email": "bio_student@example.ubc.ca",
     "role": "collaborator"
@@ -2650,7 +2652,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/members` · a session or a delegated token
 
-Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.
+Grants a person who has signed in once a role on the project, naming them by EXACTLY ONE of their PUID, CWL login name or email (an email two people share is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when it changed something. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2660,7 +2662,7 @@ Request:
 
 ```json
 {
-  "puid": "platform_admin",
+  "cwlLogin": "student",
   "role": "collaborator"
 }
 ```
@@ -2669,10 +2671,11 @@ Answer, `201`:
 
 ```json
 {
-  "userId": "042c5573-8a82-4e7c-b411-40f0e80060ae",
-  "puid": "platform_admin",
-  "displayName": "Platform Admin",
-  "email": "platform_admin@example.ubc.ca",
+  "userId": "5d0f7c3e-9b21-4f6a-8e47-2c1a9b3d6e80",
+  "puid": "stu000001",
+  "cwlLogin": "student",
+  "displayName": "Test Student",
+  "email": "student@student.ubc.ca",
   "role": "collaborator"
 }
 ```
@@ -2684,7 +2687,8 @@ Answer, `201`:
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
-| `MEMBER_USER_NOT_FOUND` | 400 | Ask the person to sign in to Manifest once with CWL, then add them again. |
+| `MEMBER_USER_AMBIGUOUS` | 400 | Add the person by their CWL login name (`cwlLogin`) instead. |
+| `MEMBER_USER_NOT_FOUND` | 400 | Check the spelling, or ask the person to sign in to Manifest once with CWL, then add them again. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
@@ -2699,7 +2703,7 @@ Answer, `201`:
 
 `DELETE /v1/projects/{projectId}/members/{userId}` · a session or a delegated token
 
-Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.
+Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`. Idempotent — removing somebody who is not a member answers the members as they are, and publishes nothing — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2713,6 +2717,7 @@ Answer, `200`:
   {
     "userId": "6e78f827-89cd-4186-80e6-549dcaa4d76a",
     "puid": "bio_student",
+    "cwlLogin": null,
     "displayName": "Bio Student",
     "email": "bio_student@example.ubc.ca",
     "role": "owner"

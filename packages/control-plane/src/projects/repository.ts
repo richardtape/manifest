@@ -256,6 +256,8 @@ export async function listProjectsFor(db: Db, actor: Actor): Promise<Project[]> 
 export interface MemberRow {
   userId: string
   puid: string
+  /** Their CWL login name, from `uid` at sign-in; null if no assertion ever carried it (Task 7). */
+  cwlLogin: string | null
   displayName: string
   email: string
   role: ProjectRole
@@ -267,6 +269,7 @@ export async function listMembers(db: Db, projectId: string): Promise<MemberRow[
     .select({
       userId: users.id,
       puid: users.ubcCwlPuid,
+      cwlLogin: users.cwlLogin,
       displayName: users.displayName,
       email: users.email,
       role: projectMembers.role,
@@ -331,20 +334,66 @@ export async function instancesOf(
  * Idempotent by conflict target, so a retried invitation updates the role rather
  * than violating the (project, user) primary key. D23.6 covers the HTTP replay; this
  * covers the same action arriving twice by any other route.
+ *
+ * **Answers the role they HAD** — null when they were not a member — so the route publishes
+ * `member.added` only for a change (the front-end enablement plan's Task 7). The project's row
+ * is locked for the read and the write, so two additions of one person racing each read what
+ * the other wrote, and only one of them reads "not a member".
  */
 export async function addMember(
   db: Db,
   projectId: string,
   userId: string,
   role: 'owner' | 'collaborator',
-): Promise<void> {
-  await db
-    .insert(projectMembers)
-    .values({ projectId, userId, role })
-    .onConflictDoUpdate({
-      target: [projectMembers.projectId, projectMembers.userId],
-      set: { role },
-    })
+): Promise<{ previousRole: ProjectRole | null }> {
+  return db.transaction(async (tx) => {
+    await tx
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .for('update')
+    const [before] = await tx
+      .select({ role: projectMembers.role })
+      .from(projectMembers)
+      .where(
+        and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)),
+      )
+    await tx
+      .insert(projectMembers)
+      .values({ projectId, userId, role })
+      .onConflictDoUpdate({
+        target: [projectMembers.projectId, projectMembers.userId],
+        set: { role },
+      })
+    return { previousRole: before?.role ?? null }
+  })
+}
+
+/**
+ * THE PERSON AN OWNER NAMES, by exactly one key (the front-end enablement plan's Task 7, Decision
+ * 14): their PUID exactly; their CWL login name, lowercased, against the stored lowercased login;
+ * or their email, case-insensitively — where two people sharing one address is `ambiguous`,
+ * never a guess. A lookup of ONE name the owner already knows, never a search: nothing here
+ * lists who has signed in.
+ */
+export async function findPerson(
+  db: Db,
+  key: { puid: string } | { cwlLogin: string } | { email: string },
+): Promise<
+  | { kind: 'found'; user: typeof users.$inferSelect }
+  | { kind: 'nobody' }
+  | { kind: 'ambiguous' }
+> {
+  const where =
+    'puid' in key
+      ? eq(users.ubcCwlPuid, key.puid)
+      : 'cwlLogin' in key
+        ? eq(users.cwlLogin, key.cwlLogin.toLowerCase())
+        : sql`lower(${users.email}) = lower(${key.email})`
+  const rows = await db.select().from(users).where(where).limit(2)
+  if (rows.length === 0) return { kind: 'nobody' }
+  if (rows.length > 1) return { kind: 'ambiguous' }
+  return { kind: 'found', user: rows[0]! }
 }
 
 /**

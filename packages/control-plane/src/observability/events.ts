@@ -144,6 +144,14 @@ export const EVENT_TYPES = [
    * rename to the name it already has: the event is a change, and there was none.
    */
   'project.renamed',
+  /**
+   * A PERSON WAS ADDED to the project, or their role on it changed (the front-end enablement
+   * plan's Task 7, Decision 15) — who, as what, what they were before, and who did it. Not
+   * published when the request changed nothing: the same person, the same role.
+   */
+  'member.added',
+  /** …and TAKEN OFF it. Not published for somebody who was not a member: removal is idempotent. */
+  'member.removed',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

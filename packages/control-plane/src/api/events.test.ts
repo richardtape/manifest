@@ -4,7 +4,7 @@ import pg from 'pg'
 import WebSocket from 'ws'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { events } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { SESSION_COOKIE } from '../identity/index.js'
@@ -232,6 +232,13 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
       headers: mutationHeaders(deps),
     })
     expect(added.statusCode).toBeLessThan(300)
+    // Adding a member is itself an event since the front-end enablement plan's Task 7, so the
+    // replay carries it between the creation and the row recorded below.
+    const [memberAdded] = await deps.db
+      .select({ id: events.id })
+      .from(events)
+      .where(and(eq(events.projectId, projectId), eq(events.type, 'member.added')))
+    expect(memberAdded).toBeDefined()
     const recorded = await recordEvent(
       deps.db,
       {
@@ -248,8 +255,14 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
     await waitUntil(() => frames.some(isReady), 'the ready frame')
     deps.bus.publish(liveFrame(projectId, 'live-1'))
     await waitUntil(() => frames.some((f) => f.id === 'live-1'), 'the live frame')
-    expect(frames.map((f) => f.id)).toEqual([...creation, recorded.id, 'ready', 'live-1'])
-    expect(frames[3]).toEqual(eventFrame(recorded))
+    expect(frames.map((f) => f.id)).toEqual([
+      ...creation,
+      memberAdded!.id,
+      recorded.id,
+      'ready',
+      'live-1',
+    ])
+    expect(frames[4]).toEqual(eventFrame(recorded))
   })
 
   it('delivers a frame published WHILE the replay is being read — once, after the boundary', async () => {

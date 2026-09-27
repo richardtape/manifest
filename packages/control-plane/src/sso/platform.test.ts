@@ -68,14 +68,23 @@ describe('the control plane’s own Service Provider (§9)', () => {
     }
   })
 
-  it('asks for four attributes, and NOT for eduPersonAffiliation', () => {
+  it('asks for five attributes — uid among them — and NOT for eduPersonAffiliation', () => {
     // The omission is the assertion. A platform role is Manifest's to decide
     // (§9 — the IdP authenticates, it does not authorize), so an attribute
     // saying `faculty` has no consumer here; requesting it anyway would put a
     // value in every assertion that nothing may act on, which is how it
     // eventually gets acted on. §9 enforces release at the IdP against this
     // list, so an attribute absent here is never sent at all.
-    expect(CONTROL_PLANE_ATTRIBUTES).toEqual(['ubcEduCwlPuid', 'mail', 'givenName', 'sn'])
+    //
+    // `uid` since the front-end enablement plan's Task 7 (§9 as Spec action 4 amended it): the
+    // CWL login name, kept so an owner can add a colleague by the name they sign in with.
+    expect(CONTROL_PLANE_ATTRIBUTES).toEqual([
+      'ubcEduCwlPuid',
+      'mail',
+      'givenName',
+      'sn',
+      'uid',
+    ])
     expect(CONTROL_PLANE_ATTRIBUTES).not.toContain('eduPersonAffiliation')
   })
 

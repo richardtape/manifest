@@ -331,8 +331,13 @@ export const ERROR_CODES = {
     'Choose one from `listBlueprints` and name it `name@major`.',
   ),
   MEMBER_USER_NOT_FOUND: bad(
-    'No user with this PUID has ever signed in.',
-    'Ask the person to sign in to Manifest once with CWL, then add them again.',
+    'Nobody with the PUID, CWL login name or email given has ever signed in to Manifest.',
+    'Check the spelling, or ask the person to sign in to Manifest once with CWL, then add them again.',
+  ),
+  // The front-end enablement plan's Task 7 (Decision 14): an email two people share.
+  MEMBER_USER_AMBIGUOUS: bad(
+    'More than one person who has signed in to Manifest has the email given, so it names nobody in particular. The answer names none of them.',
+    'Add the person by their CWL login name (`cwlLogin`) instead.',
   ),
   SPEC_NOT_FOUND: bad(
     'The project has no validated spec yet.',

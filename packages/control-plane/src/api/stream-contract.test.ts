@@ -237,6 +237,24 @@ describe('the stream in the contract (D23.2)', () => {
     })
     expect(renamed.statusCode, renamed.body).toBe(200)
 
+    // PEOPLE (the front-end enablement plan's Task 7): a member added and removed, so
+    // `member.added` and `member.removed` are REACHED and parsed here too. Stepped up, because
+    // `members:manage` is §20-guarded; `bio_student` is the person, by PUID.
+    const steppedUp = await loginAs(deps, 'bio_prof', { steppedUp: true })
+    const student = await ensureTestUser(deps.db, 'bio_student')
+    await post(
+      `/v1/projects/${project.id}/members`,
+      { puid: 'bio_student', role: 'collaborator' },
+      steppedUp,
+    )
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/v1/projects/${project.id}/members/${student.id}`,
+      cookies: steppedUp,
+      headers: mutationHeaders(deps),
+    })
+    expect(removed.statusCode, removed.body).toBe(200)
+
     // The unit tier's whole lifecycle, as `delivery.test.ts` drives it, plus a redeploy so
     // the retirer publishes too: a build that fails, one that succeeds, a release, a
     // healthy deploy, a second that replaces it, and one whose instance never starts.

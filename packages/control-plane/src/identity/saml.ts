@@ -1,6 +1,6 @@
 import { inflateRawSync } from 'node:zlib'
 import { SAML, ValidateInResponseTo } from '@node-saml/node-saml'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { users } from '../db/index.js'
 import { MANIFEST_IDP_PATHS } from '../spec/index.js'
@@ -78,6 +78,12 @@ export interface SamlIdentity {
   ubcCwlPuid: string
   email: string
   displayName: string
+  /**
+   * The CWL login name, from `uid`, lowercased (the front-end enablement plan's Task 7, Decision
+   * 15). `null` when the assertion carried none — which still signs the person in: the PUID is
+   * the only key a person is identified by, and a login is only how a colleague finds them.
+   */
+  cwlLogin: string | null
   /**
    * The session the IdP now holds for this person, as the assertion named it — what a
    * console sign-out quotes back (P6b F10). `null` only if the assertion carried no NameID.
@@ -492,8 +498,10 @@ function toIdentity(profile: Record<string, unknown>): SamlIdentity {
     typeof value === 'string' && value.length > 0 ? value : null
   const nameID = text(profile.nameID)
   const nameIDFormat = text(profile.nameIDFormat)
+  const uid = read('uid')?.trim().toLowerCase()
   return {
     ubcCwlPuid,
+    cwlLogin: uid === undefined || uid === '' ? null : uid,
     email: read('mail') ?? '',
     // Falls back to the PUID rather than to an empty string: `display_name` is
     // NOT NULL and is what a member list shows, and a blank row there reads as
@@ -533,18 +541,41 @@ export async function upsertUserFromAssertion(
   db: Db,
   identity: SamlIdentity,
 ): Promise<typeof users.$inferSelect> {
-  await db
-    .insert(users)
-    .values({
-      ubcCwlPuid: identity.ubcCwlPuid,
-      email: identity.email,
-      displayName: identity.displayName,
-      role: 'member',
-    })
-    .onConflictDoUpdate({
-      target: users.ubcCwlPuid,
-      set: { email: identity.email, displayName: identity.displayName },
-    })
+  /**
+   * THE CWL LOGIN FOLLOWS ITS HOLDER (the front-end enablement plan's Task 7). A login can
+   * change at UBC and later be given to somebody else, and `cwl_login` is unique — so the newest
+   * assertion is what says who holds it now. Any OTHER row still holding it lets go first, in
+   * the same transaction, or the new holder's sign-in would fail on the old holder's stale row.
+   * An assertion WITHOUT `uid` leaves a stored login alone: absent is "not released", not "none".
+   */
+  const cwlLogin = identity.cwlLogin
+  await db.transaction(async (tx) => {
+    if (cwlLogin !== null) {
+      await tx
+        .update(users)
+        .set({ cwlLogin: null })
+        .where(
+          and(eq(users.cwlLogin, cwlLogin), ne(users.ubcCwlPuid, identity.ubcCwlPuid)),
+        )
+    }
+    await tx
+      .insert(users)
+      .values({
+        ubcCwlPuid: identity.ubcCwlPuid,
+        email: identity.email,
+        displayName: identity.displayName,
+        cwlLogin,
+        role: 'member',
+      })
+      .onConflictDoUpdate({
+        target: users.ubcCwlPuid,
+        set: {
+          email: identity.email,
+          displayName: identity.displayName,
+          ...(cwlLogin === null ? {} : { cwlLogin }),
+        },
+      })
+  })
   const [user] = await db
     .select()
     .from(users)

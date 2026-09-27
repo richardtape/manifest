@@ -42,7 +42,7 @@ export const CONTROL_PLANE_ENVIRONMENT = 'platform'
 /**
  * What the control plane asks the IdP to release about the person logging in.
  *
- * Four names, and the omission is the interesting one: **`eduPersonAffiliation`
+ * Five names, and the omission is the interesting one: **`eduPersonAffiliation`
  * is not requested.** A platform role is Manifest's to decide (§9 —
  * authentication is the IdP's job, authorization is not), so an attribute
  * saying `faculty` has no consumer here; requesting it anyway would put a value
@@ -50,7 +50,16 @@ export const CONTROL_PLANE_ENVIRONMENT = 'platform'
  * acted on. §9's attribute release is enforced at the IdP against this list, so
  * an attribute absent here is not sent at all.
  */
-export const CONTROL_PLANE_ATTRIBUTES = ['ubcEduCwlPuid', 'mail', 'givenName', 'sn']
+export const CONTROL_PLANE_ATTRIBUTES = [
+  'ubcEduCwlPuid',
+  'mail',
+  'givenName',
+  'sn',
+  // The CWL login name (§9 as Spec action 4 amended it; the front-end enablement plan's Task 7):
+  // kept as `users.cwl_login`, so an owner can add a colleague by the name they sign in with.
+  // Asked for, never required — an assertion without it still signs a person in.
+  'uid',
+]
 
 const ORIGIN = /^https?:\/\/[^/?#]+$/
 

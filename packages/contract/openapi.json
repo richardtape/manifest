@@ -3286,6 +3286,28 @@
               "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "tokenId": null
             }
+          },
+          {
+            "type": "member.added",
+            "description": "A person was added to the project, or their role on it changed (§13). Not published when nothing changed.",
+            "example": {
+              "memberId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+              "role": "collaborator",
+              "previousRole": null,
+              "via": "session",
+              "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "tokenId": null
+            }
+          },
+          {
+            "type": "member.removed",
+            "description": "A person was taken off the project (§13). Not published for somebody who was not a member.",
+            "example": {
+              "memberId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+              "via": "session",
+              "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "tokenId": null
+            }
           }
         ],
         "x-manifest-websocket": {
@@ -3841,6 +3863,7 @@
                   {
                     "userId": "39414511-6e5d-46e9-a47a-090166426ed3",
                     "puid": "bio_prof",
+                    "cwlLogin": null,
                     "displayName": "Bio Prof",
                     "email": "bio_prof@example.ubc.ca",
                     "role": "owner"
@@ -3848,6 +3871,7 @@
                   {
                     "userId": "9a77d151-997d-49f4-8c60-23c009fa18db",
                     "puid": "bio_student",
+                    "cwlLogin": null,
                     "displayName": "Bio Student",
                     "email": "bio_student@example.ubc.ca",
                     "role": "collaborator"
@@ -3881,7 +3905,7 @@
           "projects"
         ],
         "summary": "Add or change a member",
-        "description": "Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.",
+        "description": "Grants a person who has signed in once a role on the project, naming them by EXACTLY ONE of their PUID, CWL login name or email (an email two people share is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when it changed something. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.",
         "parameters": [
           {
             "name": "projectId",
@@ -3914,7 +3938,7 @@
                 "$ref": "#/components/schemas/AddMemberRequest"
               },
               "example": {
-                "puid": "platform_admin",
+                "cwlLogin": "student",
                 "role": "collaborator"
               }
             }
@@ -3929,17 +3953,18 @@
                   "$ref": "#/components/schemas/Member"
                 },
                 "example": {
-                  "userId": "042c5573-8a82-4e7c-b411-40f0e80060ae",
-                  "puid": "platform_admin",
-                  "displayName": "Platform Admin",
-                  "email": "platform_admin@example.ubc.ca",
+                  "userId": "5d0f7c3e-9b21-4f6a-8e47-2c1a9b3d6e80",
+                  "puid": "stu000001",
+                  "cwlLogin": "student",
+                  "displayName": "Test Student",
+                  "email": "student@student.ubc.ca",
                   "role": "collaborator"
                 }
               }
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3955,6 +3980,7 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
+          "MEMBER_USER_AMBIGUOUS",
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
           "RATE_LIMITED",
@@ -3975,7 +4001,7 @@
           "projects"
         ],
         "summary": "Remove a member",
-        "description": "Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.",
+        "description": "Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`. Idempotent — removing somebody who is not a member answers the members as they are, and publishes nothing — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.",
         "parameters": [
           {
             "name": "projectId",
@@ -4024,6 +4050,7 @@
                   {
                     "userId": "6e78f827-89cd-4186-80e6-549dcaa4d76a",
                     "puid": "bio_student",
+                    "cwlLogin": null,
                     "displayName": "Bio Student",
                     "email": "bio_student@example.ubc.ca",
                     "role": "owner"
@@ -6135,14 +6162,27 @@
     },
     "schemas": {
       "AddMemberRequest": {
-        "description": "Who to add, and as what. Adding someone who is already a member changes their role.",
+        "description": "Who to add, and as what — the person by EXACTLY ONE of their PUID, CWL login name or email. They must have signed in to Manifest once. Adding someone who is already a member changes their role.",
         "type": "object",
         "properties": {
           "puid": {
-            "description": "The person’s ubcEduCwlPuid. They must have signed in once.",
+            "description": "The person’s ubcEduCwlPuid.",
             "type": "string",
             "minLength": 1,
             "maxLength": 64
+          },
+          "cwlLogin": {
+            "description": "The person’s CWL login name, as they type it to sign in — matched whatever its case.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "email": {
+            "description": "The person’s email address, as UBC releases it — matched whatever its case. Two people sharing one address is `MEMBER_USER_AMBIGUOUS`; add them by CWL login name instead.",
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "role": {
             "description": "The role to grant: `owner` or `collaborator`.",
@@ -6154,7 +6194,6 @@
           }
         },
         "required": [
-          "puid",
           "role"
         ],
         "additionalProperties": false
@@ -7944,6 +7983,7 @@
           "INTERNAL",
           "LAUNCH_RECORD_INVALID",
           "LAUNCH_TRANSITION_INVALID",
+          "MEMBER_USER_AMBIGUOUS",
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
           "PENDING_ACTION_RESOLVED",
@@ -8059,7 +8099,8 @@
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
-          "MEMBER_USER_NOT_FOUND": "No user with this PUID has ever signed in.",
+          "MEMBER_USER_AMBIGUOUS": "More than one person who has signed in to Manifest has the email given, so it names nobody in particular. The answer names none of them.",
+          "MEMBER_USER_NOT_FOUND": "Nobody with the PUID, CWL login name or email given has ever signed in to Manifest.",
           "NOT_FOUND": "No such resource — or one the caller has no business knowing exists.",
           "PENDING_ACTION_RESOLVED": "This pending action has already been confirmed or rejected; it cannot be answered twice.",
           "PROJECT_LAST_OWNER": "A project must always have an owner, so the last one cannot be removed.",
@@ -11695,6 +11736,227 @@
               "createdAt"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "member.added"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "A person was added to the project, or their role on it changed (§13). Not published when nothing changed.",
+                "type": "object",
+                "properties": {
+                  "memberId": {
+                    "description": "The person added — `listMembers` names them.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "role": {
+                    "description": "The role they now have.",
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "collaborator"
+                    ]
+                  },
+                  "previousRole": {
+                    "description": "The role they had before; null when they were not a member.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "collaborator"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "via": {
+                    "description": "How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.",
+                    "type": "string",
+                    "enum": [
+                      "session",
+                      "token"
+                    ]
+                  },
+                  "userId": {
+                    "description": "The person who acted — for a token, the person who minted it. `listMembers` names them.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "description": "The delegated token that acted (`listTokens`); null when the person acted in their own session.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "memberId",
+                  "role",
+                  "previousRole",
+                  "via",
+                  "userId",
+                  "tokenId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "member.removed"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "A person was taken off the project (§13). Not published for somebody who was not a member.",
+                "type": "object",
+                "properties": {
+                  "memberId": {
+                    "description": "The person taken off the project.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "via": {
+                    "description": "How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.",
+                    "type": "string",
+                    "enum": [
+                      "session",
+                      "token"
+                    ]
+                  },
+                  "userId": {
+                    "description": "The person who acted — for a token, the person who minted it. `listMembers` names them.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "description": "The delegated token that acted (`listTokens`); null when the person acted in their own session.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "memberId",
+                  "via",
+                  "userId",
+                  "tokenId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -13345,8 +13607,19 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "puid": {
-            "description": "Their ubcEduCwlPuid (§9) — what `addMember` names.",
+            "description": "Their ubcEduCwlPuid (§9) — the one key a person is identified by.",
             "type": "string"
+          },
+          "cwlLogin": {
+            "description": "Their CWL login name, lowercased, as they last signed in with it (§9) — what a colleague adds them by. Null if CWL has never released it.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "displayName": {
             "description": "Their name, as CWL gave it.",
@@ -13368,6 +13641,7 @@
         "required": [
           "userId",
           "puid",
+          "cwlLogin",
           "displayName",
           "email",
           "role"
@@ -15498,10 +15772,15 @@
       "summary": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
       "remedy": "Move the record along §9’s states one step at a time, to one of the states the message names."
     },
+    "MEMBER_USER_AMBIGUOUS": {
+      "status": 400,
+      "summary": "More than one person who has signed in to Manifest has the email given, so it names nobody in particular. The answer names none of them.",
+      "remedy": "Add the person by their CWL login name (`cwlLogin`) instead."
+    },
     "MEMBER_USER_NOT_FOUND": {
       "status": 400,
-      "summary": "No user with this PUID has ever signed in.",
-      "remedy": "Ask the person to sign in to Manifest once with CWL, then add them again."
+      "summary": "Nobody with the PUID, CWL login name or email given has ever signed in to Manifest.",
+      "remedy": "Check the spelling, or ask the person to sign in to Manifest once with CWL, then add them again."
     },
     "NOT_FOUND": {
       "status": 404,

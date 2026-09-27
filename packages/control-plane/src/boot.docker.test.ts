@@ -148,8 +148,15 @@ describeDocker('the boot entry point', () => {
         )
         // §9's fail-open rule: a row with no attribute list releases everything.
         // `eduPersonAffiliation` is deliberately NOT among them — a platform
-        // role is Manifest's to decide, so the IdP is never asked for one.
-        expect(row?.attributes).toEqual(['ubcEduCwlPuid', 'mail', 'givenName', 'sn'])
+        // role is Manifest's to decide, so the IdP is never asked for one. `uid` — the
+        // CWL login name — since the front-end enablement plan's Task 7.
+        expect(row?.attributes).toEqual([
+          'ubcEduCwlPuid',
+          'mail',
+          'givenName',
+          'sn',
+          'uid',
+        ])
         expect(row?.certData).toBeTruthy()
         expect(row?.['validate.authnrequest']).toBe(true)
       } finally {

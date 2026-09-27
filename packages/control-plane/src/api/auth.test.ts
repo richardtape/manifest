@@ -21,6 +21,7 @@ const OID = {
   givenName: 'urn:oid:2.5.4.42',
   sn: 'urn:oid:2.5.4.4',
   eduPersonAffiliation: 'urn:oid:1.3.6.1.4.1.5923.1.1.1.1',
+  uid: 'urn:oid:0.9.2342.19200300.100.1.1',
 } as const
 
 const INSTRUCTOR: Record<string, string> = {
@@ -271,6 +272,83 @@ describe('Manifest is its own SP (§9)', () => {
       role: 'member',
     })
     await app.close()
+  })
+
+  /**
+   * A PERSON'S CWL LOGIN NAME (§9 as Spec action 4 amended it; the front-end enablement plan's
+   * Task 7, Decision 15): asked for as `uid`, kept lowercased as `users.cwl_login`, so an owner
+   * can add a colleague by the name they sign in with. The PUID stays the only key a person is
+   * identified by — which is why a login is never required, and why it follows its holder.
+   */
+  describe('the CWL login name (Task 7)', () => {
+    const cwlLoginOf = async (
+      deps: Awaited<ReturnType<typeof testDeps>>,
+      puid: string,
+    ) => {
+      const [row] = await deps.db
+        .select({ cwlLogin: users.cwlLogin })
+        .from(users)
+        .where(eq(users.ubcCwlPuid, puid))
+      return row?.cwlLogin
+    }
+    const signIn = async (app: App, idp: TestIdp, attributes: Record<string, string>) => {
+      const login = await pendingLogin(app)
+      const res = await post(app, assertion(idp, login.requestId, { attributes }), login)
+      expect(res.statusCode, res.body).toBe(302)
+    }
+
+    it('keeps the login an assertion released as uid, lowercased', async () => {
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      await signIn(app, idp, { ...INSTRUCTOR, [OID.uid]: 'Instructor' })
+      expect(await cwlLoginOf(deps, 'ins000001')).toBe('instructor')
+      await app.close()
+    })
+
+    it('signs a person in whose assertion carries no uid, and keeps no login for them', async () => {
+      // Decision 15: Manifest's own UBC registration does not ask for uid yet (What Rich
+      // does 6), so requiring it would lock out every person until it does.
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      await signIn(app, idp, INSTRUCTOR)
+      expect(await cwlLoginOf(deps, 'ins000001')).toBeNull()
+      await app.close()
+    })
+
+    it('an assertion without uid leaves a login already kept as it was', async () => {
+      // Absent is "not released", not "no login" — a registration that stops asking must
+      // not erase what a person was found by.
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      await signIn(app, idp, { ...INSTRUCTOR, [OID.uid]: 'instructor' })
+      await signIn(app, idp, INSTRUCTOR)
+      expect(await cwlLoginOf(deps, 'ins000001')).toBe('instructor')
+      await app.close()
+    })
+
+    it('a login follows its holder: the person who signs in with it last holds it', async () => {
+      // A CWL login can change at UBC and be given to somebody else, and `cwl_login` is
+      // unique. The newest assertion is the one that says who holds it now — so the
+      // second person signs in (rather than failing on the first's stale row), and an
+      // owner adding "jsmith" finds them, not the person it used to name.
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      await signIn(app, idp, { ...INSTRUCTOR, [OID.uid]: 'jsmith' })
+      await signIn(app, idp, {
+        [OID.ubcEduCwlPuid]: 'new000001',
+        [OID.mail]: 'jsmith@ubc.ca',
+        [OID.givenName]: 'Jo',
+        [OID.sn]: 'Smith',
+        [OID.uid]: 'jsmith',
+      })
+      expect(await cwlLoginOf(deps, 'new000001')).toBe('jsmith')
+      expect(await cwlLoginOf(deps, 'ins000001')).toBeNull()
+      await app.close()
+    })
   })
 
   it('sets a session cookie without Secure only on a loopback http origin', async () => {

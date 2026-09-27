@@ -1,12 +1,17 @@
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
-import { appSpecs, environments, users, type Db } from '../../db/index.js'
+import { appSpecs, environments, type Db } from '../../db/index.js'
+import { makeRedactor, publishEvent } from '../../observability/index.js'
 import {
+  actorPhrase,
   addMember,
   assertCapability,
   assertStepUp,
   AuthorizationError,
+  findPerson,
   getProject,
+  personName,
+  type Actor,
   listEnvironments as environmentsOf,
   listMembers,
   listProjectsFor,
@@ -33,6 +38,16 @@ import { Project, ProjectList, toProject } from '../representations/projects.js'
 import { Spec, SpecValidation, ValidateSpecRequest } from '../representations/specs.js'
 
 const ProjectParams = z.strictObject({ projectId: PATH.projectId })
+
+/** A role as a sentence reads it — *"as a collaborator"*, *"an owner of"*. */
+const ROLE_PHRASE = { owner: 'an owner', collaborator: 'a collaborator' } as const
+
+/** Who acted, as every event records it beside its sentence: `audit.events` has no actor column. */
+const actorDetail = (actor: Actor) => ({
+  via: actor.credential,
+  userId: actor.userId,
+  tokenId: actor.credential === 'token' ? actor.tokenId : null,
+})
 /** The member routes that name a person: `userId` is the §6 `users.id`, not a PUID. */
 const MemberParams = z.strictObject({ projectId: PATH.projectId, userId: PATH.userId })
 const EnvironmentParams = z.strictObject({ environmentId: PATH.environmentId })
@@ -319,6 +334,7 @@ export const projectReadRoutes = [
         {
           userId: '39414511-6e5d-46e9-a47a-090166426ed3',
           puid: 'bio_prof',
+          cwlLogin: null,
           displayName: 'Bio Prof',
           email: 'bio_prof@example.ubc.ca',
           role: 'owner',
@@ -326,6 +342,7 @@ export const projectReadRoutes = [
         {
           userId: '9a77d151-997d-49f4-8c60-23c009fa18db',
           puid: 'bio_student',
+          cwlLogin: null,
           displayName: 'Bio Student',
           email: 'bio_student@example.ubc.ca',
           role: 'collaborator',
@@ -344,7 +361,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Add or change a member',
     description:
-      'Grants a person who has signed in once a role on the project. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.',
+      'Grants a person who has signed in once a role on the project, naming them by EXACTLY ONE of their PUID, CWL login name or email (an email two people share is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when it changed something. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.',
     params: ProjectParams,
     query: NO_QUERY,
     body: AddMemberRequest,
@@ -353,6 +370,7 @@ export const projectReadRoutes = [
       'NOT_FOUND',
       'FORBIDDEN',
       'MEMBER_USER_NOT_FOUND',
+      'MEMBER_USER_AMBIGUOUS',
       // D24's central refusal (P5b Task 6). Listed on the two routes whose capability is
       // one of `PRIVILEGED` rather than on every route, because only these two can answer
       // it — `members:manage` here, `release:promote` on the production deploy.
@@ -366,12 +384,13 @@ export const projectReadRoutes = [
       'STEP_UP_REQUIRED',
     ],
     examples: {
-      request: { puid: 'platform_admin', role: 'collaborator' },
+      request: { cwlLogin: 'student', role: 'collaborator' },
       response: {
-        userId: '042c5573-8a82-4e7c-b411-40f0e80060ae',
-        puid: 'platform_admin',
-        displayName: 'Platform Admin',
-        email: 'platform_admin@example.ubc.ca',
+        userId: '5d0f7c3e-9b21-4f6a-8e47-2c1a9b3d6e80',
+        puid: 'stu000001',
+        cwlLogin: 'student',
+        displayName: 'Test Student',
+        email: 'student@student.ubc.ca',
         role: 'collaborator',
       },
     },
@@ -385,21 +404,67 @@ export const projectReadRoutes = [
       // control is an EXISTING passing test going red rather than a new test nobody has
       // seen fail. AFTER `assertCapability`, never inside it (see `assertStepUp`).
       assertStepUp(actor, 'members:manage')
-      const [user] = await deps.db
-        .select()
-        .from(users)
-        .where(eq(users.ubcCwlPuid, body.puid))
-      if (user === undefined) {
+      // THE LOOKUP COMES AFTER BOTH (the front-end enablement plan's Task 7): a person who may
+      // not manage members is refused the same way for a login that exists and one that does
+      // not, so they learn nothing about who has signed in.
+      // Exactly one of the three is present: the request's own refinement says so.
+      const [how, value, key] =
+        body.puid !== undefined
+          ? (['PUID', body.puid, { puid: body.puid }] as const)
+          : body.cwlLogin !== undefined
+            ? (['CWL login name', body.cwlLogin, { cwlLogin: body.cwlLogin }] as const)
+            : (['email', body.email!, { email: body.email! }] as const)
+      const person = await findPerson(deps.db, key)
+      if (person.kind === 'nobody') {
         throw new BadRequestError(
           'MEMBER_USER_NOT_FOUND',
-          `no user with PUID '${body.puid}' has ever signed in`,
-          'A person must sign in once before they can be added to a project.',
+          `nobody with the ${how} '${value}' has signed in to Manifest`,
+          'A person must sign in to Manifest once with CWL before they can be added to a project.',
         )
       }
-      await addMember(deps.db, params.projectId, user.id, body.role)
+      if (person.kind === 'ambiguous') {
+        // NAMING NEITHER: who shares an address is not the asker's to learn from a refusal.
+        throw new BadRequestError(
+          'MEMBER_USER_AMBIGUOUS',
+          `more than one person who has signed in to Manifest has the email '${value}'`,
+          'Add them by their CWL login name instead.',
+        )
+      }
+      const user = person.user
+      const { previousRole } = await addMember(
+        deps.db,
+        params.projectId,
+        user.id,
+        body.role,
+      )
+      if (previousRole !== body.role) {
+        const who = await actorPhrase(deps.db, actor)
+        const them = await personName(deps.db, user.id)
+        await publishEvent(
+          deps.db,
+          deps.bus,
+          {
+            projectId: params.projectId,
+            subject: `member:${user.id}`,
+            type: 'member.added',
+            machineDetail: {
+              memberId: user.id,
+              role: body.role,
+              previousRole,
+              ...actorDetail(actor),
+            },
+            humanMessage:
+              previousRole === null
+                ? `${who} added ${them} to the project as ${ROLE_PHRASE[body.role]}.`
+                : `${who} made ${them} ${ROLE_PHRASE[body.role]} of the project; they were ${ROLE_PHRASE[previousRole]}.`,
+          },
+          makeRedactor([]),
+        )
+      }
       return toMember({
         userId: user.id,
         puid: user.ubcCwlPuid,
+        cwlLogin: user.cwlLogin,
         displayName: user.displayName,
         email: user.email,
         role: body.role,
@@ -413,7 +478,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Remove a member',
     description:
-      'Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.',
+      'Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`. Idempotent — removing somebody who is not a member answers the members as they are, and publishes nothing — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.',
     params: MemberParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -441,6 +506,7 @@ export const projectReadRoutes = [
         {
           userId: '6e78f827-89cd-4186-80e6-549dcaa4d76a',
           puid: 'bio_student',
+          cwlLogin: null,
           displayName: 'Bio Student',
           email: 'bio_student@example.ubc.ca',
           role: 'owner',
@@ -450,8 +516,23 @@ export const projectReadRoutes = [
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, 'members:manage')
       assertStepUp(actor, 'members:manage')
-      if ((await removeMember(deps.db, params.projectId, params.userId)) === 'last owner')
-        throw new LastOwnerError()
+      const outcome = await removeMember(deps.db, params.projectId, params.userId)
+      if (outcome === 'last owner') throw new LastOwnerError()
+      // Published only for a removal: taking off somebody who was not a member changed nothing.
+      if (outcome === 'removed') {
+        await publishEvent(
+          deps.db,
+          deps.bus,
+          {
+            projectId: params.projectId,
+            subject: `member:${params.userId}`,
+            type: 'member.removed',
+            machineDetail: { memberId: params.userId, ...actorDetail(actor) },
+            humanMessage: `${await actorPhrase(deps.db, actor)} removed ${await personName(deps.db, params.userId)} from the project.`,
+          },
+          makeRedactor([]),
+        )
+      }
       return (await listMembers(deps.db, params.projectId)).map(toMember)
     },
   }),

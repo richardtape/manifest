@@ -512,6 +512,8 @@ describe('project reads answer representations (P5a Task 8)', () => {
       {
         userId: expect.any(String),
         puid: 'bio_prof',
+        // Null: this owner's session was signed in-process, never by an assertion carrying uid.
+        cwlLogin: null,
         displayName: 'Bio Prof',
         email: 'bio_prof@example.ubc.ca',
         role: 'owner',

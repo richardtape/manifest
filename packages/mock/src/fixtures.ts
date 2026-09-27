@@ -636,6 +636,7 @@ export const MEMBERS: Schemas['MemberList'] = [
   {
     userId: USER_ID,
     puid: 'ins000001',
+    cwlLogin: 'instructor',
     displayName: 'Instructor One',
     email: 'instructor@example.test',
     role: 'owner',
@@ -645,6 +646,7 @@ export const MEMBERS: Schemas['MemberList'] = [
 export const MEMBER: Schemas['Member'] = {
   userId: STUDENT_ID,
   puid: 'stu000001',
+  cwlLogin: 'student',
   displayName: 'Student One',
   email: 'student@example.test',
   role: 'collaborator',

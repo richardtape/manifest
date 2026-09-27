@@ -272,7 +272,7 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     await removeOwnSpRow()
   }, 30_000)
 
-  it('logs a real test user in, end to end, through the row it registered itself', async () => {
+  it('logs a real test user in, end to end, through the row it registered itself — and keeps their CWL login name', async () => {
     const idpJar = cookieJar()
     const appJar = cookieJar()
 
@@ -354,6 +354,22 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     })
     expect(me.status).toBe(200)
     expect(JSON.parse(me.body)).toMatchObject({ puid: 'ins000001', role: 'member' })
+
+    // A REAL SIGN-IN KEEPS THE PERSON'S CWL LOGIN NAME (the front-end enablement plan's Task 7).
+    // Only this tier can see it: §9's release is enforced by the REAL IdP against the row this
+    // control plane registered, so `uid` arrives only if `CONTROL_PLANE_ATTRIBUTES` names it —
+    // and the auth source holds it (`infra/idp/config/authsources.php`).
+    const control = new pg.Client({ connectionString: process.env.MANIFEST_DATABASE_URL })
+    await control.connect()
+    try {
+      const { rows } = await control.query<{ cwl_login: string | null }>(
+        'SELECT cwl_login FROM users WHERE ubc_cwl_puid = $1',
+        ['ins000001'],
+      )
+      expect(rows).toEqual([{ cwl_login: 'instructor' }])
+    } finally {
+      await control.end()
+    }
   }, 300_000)
 
   /**
