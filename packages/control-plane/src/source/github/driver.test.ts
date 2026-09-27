@@ -44,6 +44,11 @@ interface Harness {
   advances: MirrorAdvance[]
   /** Makes the observer throw from now on (`undefined` stops it). */
   failObserver(error: Error | undefined): void
+  /**
+   * GitHub's REST read of a repository fails as a network failure, while git, token mints and
+   * every other call still answer — a GitHub partly down (the authoring API plan's Task 12).
+   */
+  failRepositoryReads(on: boolean): void
   /** The same GitHub, restarted: same data, same App key, same port — and a new token key. */
   restart(): Promise<void>
   cleanup(): Promise<void>
@@ -59,8 +64,16 @@ async function harness(
   const mints: Mint[] = []
   let fake = await startFake({ ...options, dataDir })
   const observer = recordingObserver()
-  // A spy on the wire. It never changes an answer.
+  let repositoryReadsFail = false
+  // A spy on the wire. It never changes an answer — unless a test fails the repository read.
   const spyFetch: typeof fetch = async (input, init) => {
+    if (
+      repositoryReadsFail &&
+      (init?.method ?? 'GET') === 'GET' &&
+      /\/repos\/[^/]+\/[^/]+$/.test(String(input))
+    ) {
+      throw new TypeError('fetch failed')
+    }
     const res = await fetch(input, init)
     if (String(input).endsWith('/access_tokens')) {
       const asked = JSON.parse(String(init?.body ?? '{}')) as Partial<Mint>
@@ -96,6 +109,9 @@ async function harness(
     driver,
     advances: observer.advances,
     failObserver: (error) => observer.fail(error),
+    failRepositoryReads: (on) => {
+      repositoryReadsFail = on
+    },
     async restart() {
       const port = Number(new URL(fake.url).port)
       await fake.stop()
@@ -670,8 +686,16 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
       // GitHub answers: the build path reads it first — private — and builds (the positive control).
       expect((await h.driver.localGitDir(repo, head)).commitSha).toBe(head)
       expect(await h.driver.lastVisibility(repo)).toBe('private')
-      // GitHub gone and nothing read: FAIL CLOSED, rather than build what may be public.
+      // GitHub's git answers and its API does not: the sync FETCHES and still cannot read the
+      // visibility — the case the refusal after the sync exists for. (Offline, below, the sync
+      // itself refuses first; control (h) of sitting 9 found that case alone could not see it.)
       await unset()
+      h.failRepositoryReads(true)
+      expect(await codeOf(h.driver.localGitDir(repo, head))).toBe('SOURCE_UNREACHABLE')
+      expect(await h.driver.lastVisibility(repo)).toBeNull()
+      h.failRepositoryReads(false)
+      // GitHub gone and nothing read (the key is still unset): FAIL CLOSED, rather than build
+      // what may be public.
       await h.fake.stop()
       expect(await codeOf(h.driver.localGitDir(repo, head))).toBe('SOURCE_UNREACHABLE')
     } finally {
