@@ -1821,6 +1821,11 @@ it belongs among the traps the next sitting is most likely to hit.
   based on the parent, included — is `409 SOURCE_CONFLICT` in the mock's words; and a change deleting or emptying
   `manifest.yaml` is the platform's `422 SPEC_INVALID` word for word (`fixtures.EMPTIED_MANIFEST`). `getDoc` answers the
   example's slug (`index`) alone. Read the tree, then commit against it.
+- **ANOTHER SESSION'S FILES CAN BE STAGED IN THE SHARED INDEX — AND A BARE `git commit` TAKES THEM** (2026-09-26, after the
+  authoring API plan's sitting 8). Staging your own paths by name is not enough when a parallel session has run `git add`
+  on its own: `git status` showed some forty `A  docs/superpowers/design/…` files, staged by the design agent, and `git
+  commit` commits EVERYTHING in the index. **Commit with an explicit path list — `git commit -F <msg> -- <your paths>`** —
+  which records only those paths and leaves the other session's staging exactly as it was; then `git show --stat HEAD`.
 
 ## Images already pulled
 
