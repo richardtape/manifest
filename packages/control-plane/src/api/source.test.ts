@@ -123,6 +123,38 @@ describe('reading source over the API (Task 5)', () => {
     })
   })
 
+  /**
+   * THE BYTE READ (the front-end enablement plan's Task 4, Decision 7): `encoding=base64` answers
+   * ANY file up to 2 MiB — text too — and every answer says which encoding its `content` is in.
+   */
+  it('reads a text file as base64 too, and as utf8 by default with encoding: utf8', async () => {
+    await withProjectServer(async (ctx) => {
+      const plain = await get(ctx, '/file?path=server.js')
+      expect(plain.statusCode, plain.body).toBe(200)
+      const text = plain.json() as { content: string; encoding: string; blobSha: string }
+      expect(text.encoding).toBe('utf8')
+      // `utf8` named is the default, answered the same.
+      expect((await get(ctx, '/file?path=server.js&encoding=utf8')).json()).toEqual(text)
+      const bytes = await get(ctx, '/file?path=server.js&encoding=base64')
+      expect(bytes.statusCode, bytes.body).toBe(200)
+      expect(bytes.json()).toMatchObject({
+        encoding: 'base64',
+        content: Buffer.from(text.content, 'utf8').toString('base64'),
+        blobSha: text.blobSha,
+      })
+      // An encoding the API does not speak is the request's fault, and a directory is still not
+      // a file, however it is read.
+      expect(refusal(await get(ctx, '/file?path=server.js&encoding=hex'))).toEqual({
+        status: 400,
+        code: 'REQUEST_INVALID',
+      })
+      expect(refusal(await get(ctx, '/file?path=nope.js&encoding=base64'))).toEqual({
+        status: 409,
+        code: 'SOURCE_PATH_NOT_FOUND',
+      })
+    })
+  })
+
   it('pages the history and describes a commit', async () => {
     await withProjectServer(async (ctx) => {
       const repo = ctx.deps.source.repositoryFor(await slugOf(ctx))

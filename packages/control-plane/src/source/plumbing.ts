@@ -122,14 +122,19 @@ export function planChanges(
     }
     if (here !== undefined && !(here.type === 'blob' && REGULAR.has(here.mode))) {
       conflict(
-        `'${change.path}' is ${kind(here)} in the base commit; Manifest writes regular text files only`,
+        `'${change.path}' is ${kind(here)} in the base commit; Manifest writes regular files only`,
       )
     }
     return {
       path: change.path,
       status: here === undefined ? 'added' : 'modified',
       mode: here?.mode ?? '100644',
-      bytes: Buffer.from(change.content, 'utf8'),
+      // Text as its UTF-8 bytes; bytes AS THEMSELVES (the front-end enablement plan's Task 4 —
+      // `[M11]` measured the UTF-8 path turning a PNG into U+FFFDs).
+      bytes:
+        typeof change.content === 'string'
+          ? Buffer.from(change.content, 'utf8')
+          : Buffer.from(change.content),
     }
   })
 }

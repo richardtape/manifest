@@ -2422,7 +2422,7 @@ Answer, `201`:
 | `SOURCE_GIT_FAILED` | 409 | Retry once; if it recurs, report the time and the operation the message names to the platform’s operator. |
 | `SOURCE_REPOSITORY_EXISTS` | 409 | Choose another project name. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over. |
 | `SOURCE_REPOSITORY_NOT_PRIVATE` | 409 | Create the project again. If it recurs, the GitHub organisation’s settings forbid private repositories, and its administrator changes them. |
-| `SOURCE_SECRET_DETECTED` | 409 | Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again. |
+| `SOURCE_SECRET_DETECTED` | 409 | Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again. In a file written with `encoding: base64`, the line counts runs of printable text, not lines. |
 | `SOURCE_UNREACHABLE` | 503 | Retry when the git host answers. Meanwhile a commit already mirrored still builds, releases and deploys. |
 | `STARTER_NOT_FOUND` | 400 | Choose one of the starters `getBlueprint` lists, or leave `starter` out for the skeleton alone. |
 | `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
@@ -3044,7 +3044,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/commits` · a session or a delegated token
 
-Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values in the files and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
+Writes and deletes files on the project’s `main`, as one commit computed from `baseCommit` — text, or, with `encoding: base64`, an image, a PDF or a font, recognised by its bytes. Every change is checked before anything is written — the paths, the text or the bytes, secret-shaped values in the files (in a binary file, its printable text) and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3118,7 +3118,7 @@ Answer, `201`:
 | `SOURCE_PATH_ESCAPE` | 409 | Name a path relative to the repository root, `/`-separated, with no empty, `.`, `..` or `.git` component. |
 | `SOURCE_PATH_NOT_FOUND` | 409 | Check the path against `getTree` at the same commit; paths are case-sensitive. |
 | `SOURCE_PROVIDER_MISMATCH` | 409 | Use a control plane running the project’s own driver: a project stays with the driver that created its repository. |
-| `SOURCE_SECRET_DETECTED` | 409 | Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again. |
+| `SOURCE_SECRET_DETECTED` | 409 | Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again. In a file written with `encoding: base64`, the line counts runs of printable text, not lines. |
 | `SOURCE_UNREACHABLE` | 503 | Retry when the git host answers. Meanwhile a commit already mirrored still builds, releases and deploys. |
 | `SPEC_INVALID` | 422 | Read `details`: each entry names a path in manifest.yaml, a code (`ManifestErrorCode`), a message and usually a hint. Correct each one and commit the file again (`createCommit`); `validateSpec` checks it without building. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
@@ -3179,15 +3179,16 @@ Answer, `200`:
 | `SOURCE_UNREACHABLE` | 503 | Retry when the git host answers. Meanwhile a commit already mirrored still builds, releases and deploys. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
-### `getFile` — Read one text file of the project’s repository
+### `getFile` — Read one file of the project’s repository
 
 `GET /v1/projects/{projectId}/file` · a session or a delegated token
 
-The file at `path`, at `ref`, exactly as its UTF-8 bytes — with the commit it was read at and git’s id for its content. Only regular text files are read: a directory, symlink or submodule, a binary or non-UTF-8 file, and a file larger than 1 MiB are each refused with their own code.
+The file at `path`, at `ref`, whole — with the commit it was read at and git’s id for its content. By default the file is read as TEXT, exactly as its UTF-8 bytes: a binary or non-UTF-8 file is refused `SOURCE_FILE_NOT_TEXT`, and one larger than 1 MiB `SOURCE_FILE_TOO_LARGE`. With `encoding=base64` ANY regular file up to 2 MiB — an image, a PDF, a font, or text — is answered as its bytes in canonical base64. A directory, symlink or submodule is refused `SOURCE_PATH_NOT_A_FILE` either way.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
 | `projectId` | path | yes | The project whose repository is read. |
+| `encoding` | query | no | `utf8` (the default) reads the file as text; `base64` reads any file up to 2 MiB as its bytes. |
 | `path` | query | yes | The file’s path from the repository root, `/`-separated. |
 | `ref` | query | no | A branch name, or a full 40-character commit id. Defaults to `main`. |
 
@@ -3199,6 +3200,7 @@ Answer, `200`:
   "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
   "path": "src/app.js",
   "content": "export const greeting = 'hello, world'\n",
+  "encoding": "utf8",
   "size": 39,
   "mode": "100644",
   "blobSha": "ab8ad63341ecd0ef59bca0c95797269774a62583"
@@ -3213,8 +3215,8 @@ Answer, `200`:
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `SOURCE_COMMIT_NOT_FOUND` | 409 | Name the full 40-character id of a commit the repository has; `listCommits` lists them. |
-| `SOURCE_FILE_NOT_TEXT` | 409 | Change the file with git directly, by a push: the API reads and writes UTF-8 text files only. `getTree` marks a binary file `binary: true`. |
-| `SOURCE_FILE_TOO_LARGE` | 409 | Read or change the file with git directly, by a push; `getTree` gives every file’s `size`. |
+| `SOURCE_FILE_NOT_TEXT` | 409 | Read it as bytes: `getFile` with `encoding=base64` answers any file up to 2 MiB. `getTree` marks a binary file `binary: true`. |
+| `SOURCE_FILE_TOO_LARGE` | 409 | A text file between 1 and 2 MiB can be read with `encoding=base64`; past that, read or change it with git directly, by a push. `getTree` gives every file’s `size`. |
 | `SOURCE_GIT_FAILED` | 409 | Retry once; if it recurs, report the time and the operation the message names to the platform’s operator. |
 | `SOURCE_PATH_NOT_A_FILE` | 409 | Name a file; `getTree` says what each path is, and lists a directory’s contents. |
 | `SOURCE_PATH_NOT_FOUND` | 409 | Check the path against `getTree` at the same commit; paths are case-sensitive. |

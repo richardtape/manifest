@@ -491,7 +491,7 @@ export interface paths {
         put?: never;
         /**
          * Commit changes to main
-         * @description Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values in the files and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
+         * @description Writes and deletes files on the project’s `main`, as one commit computed from `baseCommit` — text, or, with `encoding: base64`, an image, a PDF or a font, recognised by its bytes. Every change is checked before anything is written — the paths, the text or the bytes, secret-shaped values in the files (in a binary file, its printable text) and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
          */
         post: operations["createCommit"];
         delete?: never;
@@ -568,8 +568,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Read one text file of the project’s repository
-         * @description The file at `path`, at `ref`, exactly as its UTF-8 bytes — with the commit it was read at and git’s id for its content. Only regular text files are read: a directory, symlink or submodule, a binary or non-UTF-8 file, and a file larger than 1 MiB are each refused with their own code.
+         * Read one file of the project’s repository
+         * @description The file at `path`, at `ref`, whole — with the commit it was read at and git’s id for its content. By default the file is read as TEXT, exactly as its UTF-8 bytes: a binary or non-UTF-8 file is refused `SOURCE_FILE_NOT_TEXT`, and one larger than 1 MiB `SOURCE_FILE_TOO_LARGE`. With `encoding=base64` ANY regular file up to 2 MiB — an image, a PDF, a font, or text — is answered as its bytes in canonical base64. A directory, symlink or submodule is refused `SOURCE_PATH_NOT_A_FILE` either way.
          */
         get: operations["getFile"];
         put?: never;
@@ -1478,7 +1478,7 @@ export interface components {
              */
             type: "manifest.stream.ready";
         };
-        /** @description Changes to make on `main`, computed from `baseCommit`: whole-file writes and deletions of text files. */
+        /** @description Changes to make on `main`, computed from `baseCommit`: whole-file writes — text, or an image, PDF or font as base64 — and deletions. */
         CreateCommitRequest: {
             /** @description The commit these changes were computed from — `commitSha` from the tree or file you read. `main` must still be exactly this commit, or the request is refused `SOURCE_CONFLICT`. */
             baseCommit: string;
@@ -1493,8 +1493,13 @@ export interface components {
                 op: "write";
                 /** @description A relative path, `/`-separated: at most 1024 bytes, 255 per component and 32 components; no empty, `.` or `..` component, no leading or trailing `/`, no backslash, no control character, and no `.git` component. */
                 path: string;
-                /** @description The whole new content of the file, as text: at most 1 MiB of UTF-8, with no NUL character. A new file is mode `100644`; an existing file keeps its mode. */
+                /** @description The whole new content of the file. As text (the default): at most 1 MiB of UTF-8, with no NUL character. With `encoding: base64`: the file’s bytes as canonical base64, at most 2 MiB decoded — an image (PNG, JPEG, GIF, WebP, ICO), a PDF or a font (WOFF, WOFF2, TTF, OTF), recognised by its bytes, never its name. A new file is mode `100644`; an existing file keeps its mode. */
                 content: string;
+                /**
+                 * @description How `content` carries the file: `utf8` (the default) for text, `base64` for bytes. Text sent as base64 is refused — send it as text.
+                 * @enum {string}
+                 */
+                encoding?: "utf8" | "base64";
             } | {
                 /**
                  * @description Remove the file. It must exist in `baseCommit`.
@@ -4537,7 +4542,7 @@ export interface components {
                 hint: string;
             }[];
         };
-        /** @description One text file at one commit, whole. */
+        /** @description One file at one commit, whole — as text, or as base64 bytes. */
         SourceFile: {
             /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
             ref: string;
@@ -4545,8 +4550,13 @@ export interface components {
             commitSha: string;
             /** @description The file’s path from the repository root. */
             path: string;
-            /** @description The file’s text, exactly — UTF-8, at most 1 MiB. */
+            /** @description The file’s content, whole: its text exactly (`encoding: utf8`, at most 1 MiB), or its bytes as canonical base64 (`encoding: base64`, at most 2 MiB decoded). */
             content: string;
+            /**
+             * @description How `content` carries the file: `utf8` — text, the default read — or `base64`, when the read asked for `encoding=base64`.
+             * @enum {string}
+             */
+            encoding: "utf8" | "base64";
             /** @description The file’s size in bytes. */
             size: number;
             /** @description `100644`, or `100755` for an executable file — kept when the file is changed. */
@@ -4573,7 +4583,7 @@ export interface components {
                 mode: string;
                 /** @description Bytes, for a file or a symlink; null otherwise. */
                 size: number | null;
-                /** @description Whether git calls this file binary — such a file is not readable or writable through the API in v1. Null for anything that is not a file. */
+                /** @description Whether git calls this file binary — read it with `getFile`’s `encoding=base64`, and write it with `encoding: base64`. Null for anything that is not a file. */
                 binary: boolean | null;
             }[];
             /** @description True when the tree has more than 10,000 entries and only the first 10,000, by path, are listed. */
@@ -6573,6 +6583,8 @@ export interface operations {
     getFile: {
         parameters: {
             query: {
+                /** @description `utf8` (the default) reads the file as text; `base64` reads any file up to 2 MiB as its bytes. */
+                encoding?: "utf8" | "base64";
                 /** @description The file’s path from the repository root, `/`-separated. */
                 path: string;
                 /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
@@ -6599,6 +6611,7 @@ export interface operations {
                      *       "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
                      *       "path": "src/app.js",
                      *       "content": "export const greeting = 'hello, world'\n",
+                     *       "encoding": "utf8",
                      *       "size": 39,
                      *       "mode": "100644",
                      *       "blobSha": "ab8ad63341ecd0ef59bca0c95797269774a62583"

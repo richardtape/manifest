@@ -5,3 +5,4 @@ export { createGithubSourceDriver, type GithubDriverOptions } from './github/dri
 export { createSerialQueue, type SerialQueue } from './queue.js'
 export { secretFindings, secretRefusal, writesOf } from './scan-commits.js'
 export { pathProblem } from './plumbing.js'
+export { BINARY_FILE_BYTES, isText, mediaTypeOf, printableRuns } from './binary.js'

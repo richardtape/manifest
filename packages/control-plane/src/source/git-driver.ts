@@ -49,12 +49,16 @@ export interface LocalGitDir {
 export type SeedFiles = Readonly<Record<string, string>>
 
 /**
- * ONE CHANGE A COMMIT MAKES (the authoring API plan's Task 3): a regular text file written with
- * exactly these UTF-8 bytes, or a file deleted. Planned against the base tree before anything is
- * built (`source/plumbing.ts`'s `planChanges`), never applied at the file's own path.
+ * ONE CHANGE A COMMIT MAKES (the authoring API plan's Task 3): a regular file written, or a file
+ * deleted. Planned against the base tree before anything is built (`source/plumbing.ts`'s
+ * `planChanges`), never applied at the file's own path. A write's `content` is TEXT — written as
+ * its UTF-8 bytes — or, since the front-end enablement plan's Task 4, the BYTES themselves: a
+ * string cannot carry a PNG (`[M11]`: every invalid UTF-8 sequence became U+FFFD, and an
+ * 18,403-byte PNG a 33,360-byte blob). The route decides which, from the request's `encoding`.
  */
 export type Change =
-  { op: 'write'; path: string; content: string } | { op: 'delete'; path: string }
+  | { op: 'write'; path: string; content: string | Uint8Array }
+  | { op: 'delete'; path: string }
 
 export interface GitIdentity {
   name: string
@@ -101,6 +105,18 @@ export interface SourceEntry {
 export interface TextFile {
   path: string
   content: string
+  size: number
+  mode: string
+  blobSha: string
+}
+
+/**
+ * ONE REGULAR FILE AT A COMMIT, AS BYTES (the front-end enablement plan's Task 4): any file — text
+ * or binary — of at most 2 MiB, exactly as git holds it. What `getFile?encoding=base64` answers.
+ */
+export interface FileBytes {
+  path: string
+  content: Buffer
   size: number
   mode: string
   blobSha: string
@@ -271,6 +287,12 @@ export interface SourceDriver {
    * `SOURCE_FILE_TOO_LARGE` or `SOURCE_FILE_NOT_TEXT`.
    */
   readText(repo: RepoRef, commitSha: string, path: string): Promise<TextFile>
+  /**
+   * One regular file at a commit AS BYTES, text or binary (the front-end enablement plan's Task
+   * 4) — or `SOURCE_PATH_NOT_FOUND`, `SOURCE_PATH_NOT_A_FILE` or `SOURCE_FILE_TOO_LARGE` past
+   * 2 MiB. Neither text rule applies.
+   */
+  readBytes(repo: RepoRef, commitSha: string, path: string): Promise<FileBytes>
   /** `limit` commits from `from`, newest first, and the id the next page starts AT. */
   history(
     repo: RepoRef,

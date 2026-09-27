@@ -827,3 +827,230 @@ describe('createCommit — changes checked before anything is written (Task 6)',
     })
   })
 })
+
+/**
+ * BINARY FILES (the front-end enablement plan's Task 4, Decisions 7–10; Review Focus 5): a write's
+ * `encoding: 'base64'`, confined to ten media types by their bytes, refused for text sent as bytes,
+ * and scanned for secrets by its printable runs — and `getFile?encoding=base64` reading the bytes
+ * back. Every sample is BUILT from its magic bytes.
+ */
+describe('createCommit — binary files, as base64 (the front-end enablement plan’s Task 4)', () => {
+  const MiB = 1024 * 1024
+  /** A PNG's head, then every byte value — most of them no UTF-8 sequence at all. */
+  const PNG = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]),
+    Buffer.from('IHDR', 'latin1'),
+    Buffer.from(Array.from({ length: 1024 }, (_, i) => 255 - (i % 256))),
+  ])
+  const b64 = (bytes: Buffer | string) =>
+    (typeof bytes === 'string' ? Buffer.from(bytes, 'utf8') : bytes).toString('base64')
+  const bytesWrite = (path: string, bytes: Buffer | string) => ({
+    op: 'write',
+    path,
+    content: b64(bytes),
+    encoding: 'base64',
+  })
+
+  it('commits a PNG as bytes, and reads back exactly those bytes', async () => {
+    await withProjectServer(async (ctx) => {
+      const res = await post(
+        ctx,
+        commitBody(ctx.commitSha, [
+          bytesWrite('public/logo.png', PNG),
+          // A text write beside it, with its encoding said — the default made explicit.
+          {
+            op: 'write',
+            path: 'public/index.html',
+            content: '<img src=logo.png>\n',
+            encoding: 'utf8',
+          },
+        ]),
+      )
+      expect(res.statusCode, res.body).toBe(201)
+      const head = (res.json() as { commitSha: string }).commitSha
+      const read = await get(
+        ctx,
+        `/file?path=public/logo.png&ref=${head}&encoding=base64`,
+      )
+      expect(read.statusCode, read.body).toBe(200)
+      expect(read.json()).toMatchObject({
+        commitSha: head,
+        path: 'public/logo.png',
+        encoding: 'base64',
+        content: b64(PNG),
+        size: PNG.length,
+        mode: '100644',
+      })
+      // git's own id for the bytes: what a person's `git hash-object` says of the same file.
+      expect((read.json() as { blobSha: string }).blobSha).toBe(
+        execFileSync('git', ['hash-object', '--stdin'], { input: PNG }).toString().trim(),
+      )
+      const tree = (await get(ctx, `/tree?ref=${head}`)).json() as {
+        entries: { path: string; binary: boolean | null }[]
+      }
+      expect(tree.entries.find((e) => e.path === 'public/logo.png')?.binary).toBe(true)
+      expect(tree.entries.find((e) => e.path === 'public/index.html')?.binary).toBe(false)
+      // …and as TEXT it is still refused, by the read's own code, pointing at the byte read.
+      const asText = await get(ctx, `/file?path=public/logo.png&ref=${head}`)
+      expect(refusal(asText)).toEqual({ status: 409, code: 'SOURCE_FILE_NOT_TEXT' })
+      expect(errorOf(asText).message).toMatch(/encoding=base64/)
+      // A binary manifest.yaml is not a manifest: the commit is refused as one would be.
+      expect(
+        refusal(await post(ctx, commitBody(head, [bytesWrite('manifest.yaml', PNG)]))),
+      ).toEqual({ status: 422, code: 'SPEC_INVALID' })
+      expect(await headOf(ctx)).toBe(head)
+    })
+  })
+
+  it('refuses text sent as bytes', async () => {
+    await withProjectServer(async (ctx) => {
+      const commit = vi.spyOn(ctx.deps.source, 'commit')
+      const res = await post(
+        ctx,
+        commitBody(ctx.commitSha, [bytesWrite('src/run.js', 'console.log(1)\n')]),
+      )
+      expect(refusal(res)).toEqual({ status: 400, code: 'REQUEST_INVALID' })
+      expect(errorOf(res).message).toMatch(/body\.changes\.0\.content/)
+      expect(errorOf(res).message).toMatch(
+        /'src\/run\.js' is text; send it with encoding: 'utf8'/,
+      )
+      expect(commit).not.toHaveBeenCalled()
+      // The positive control: the same text, sent as text, commits.
+      const ok = await post(
+        ctx,
+        commitBody(ctx.commitSha, [
+          { op: 'write', path: 'src/run.js', content: 'console.log(1)\n' },
+        ]),
+      )
+      expect(ok.statusCode, ok.body).toBe(201)
+    })
+  })
+
+  it('refuses an executable whatever its name', async () => {
+    await withProjectServer(async (ctx) => {
+      const commit = vi.spyOn(ctx.deps.source, 'commit')
+      const elf = Buffer.concat([
+        Buffer.from([0x7f, 0x45, 0x4c, 0x46, 2, 1, 1, 0]),
+        PNG.subarray(16),
+      ])
+      const zip = Buffer.concat([
+        Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0]),
+        PNG.subarray(16),
+      ])
+      for (const [path, bytes] of [
+        ['public/logo.png', elf],
+        ['fonts/body.woff2', zip],
+      ] as const) {
+        const res = await post(ctx, commitBody(ctx.commitSha, [bytesWrite(path, bytes)]))
+        expect(refusal(res), path).toEqual({ status: 400, code: 'REQUEST_INVALID' })
+        expect(errorOf(res).message).toContain(`'${path}'`)
+        expect(errorOf(res).message).toMatch(
+          /only images \(PNG, JPEG, GIF, WebP, ICO\), PDF and fonts \(WOFF, WOFF2, TTF, OTF\) may be written as bytes/,
+        )
+      }
+      expect(commit).not.toHaveBeenCalled()
+      // The positive control: a real PNG's bytes at the same path commit.
+      const ok = await post(
+        ctx,
+        commitBody(ctx.commitSha, [bytesWrite('public/logo.png', PNG)]),
+      )
+      expect(ok.statusCode, ok.body).toBe(201)
+    })
+  })
+
+  it('refuses a key inside a PDF’s printable text, naming the path and rule, never the value', async () => {
+    await withProjectServer(async (ctx) => {
+      const value = SAMPLE_SECRETS['an AWS access key id']
+      const pdf = (inside: string) =>
+        Buffer.concat([
+          Buffer.from('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n', 'latin1'),
+          Buffer.from([0]),
+          Buffer.from(`(${inside}) Tj`, 'latin1'),
+          Buffer.from([0, 0xff, 0xfe]),
+        ])
+      const res = await post(
+        ctx,
+        commitBody(ctx.commitSha, [bytesWrite('docs/syllabus.pdf', pdf(`key ${value}`))]),
+      )
+      expect(refusal(res)).toEqual({ status: 409, code: 'SOURCE_SECRET_DETECTED' })
+      expect(res.body).toContain('docs/syllabus.pdf:1')
+      expect(res.body).toContain('an AWS access key id')
+      expect(res.body).not.toContain(value)
+      const refused = await eventsOf(ctx, ['repository.secret_refused'])
+      expect(refused.map((e) => e.machineDetail)).toEqual([
+        {
+          findings: [
+            { path: 'docs/syllabus.pdf', line: 1, rule: 'an AWS access key id' },
+          ],
+        },
+      ])
+      expect(JSON.stringify(refused)).not.toContain(value)
+      expect(await headOf(ctx)).toBe(ctx.commitSha)
+      // The positive control: the same PDF without the key commits.
+      const ok = await post(
+        ctx,
+        commitBody(ctx.commitSha, [
+          bytesWrite('docs/syllabus.pdf', pdf('Chemistry 101')),
+        ]),
+      )
+      expect(ok.statusCode, ok.body).toBe(201)
+    })
+  })
+
+  it('refuses base64 that is not canonical', async () => {
+    await withProjectServer(async (ctx) => {
+      const good = b64(PNG)
+      for (const content of [
+        `${good.slice(0, 8)} ${good.slice(8)}`, // a space
+        `${good.slice(0, 76)}\n${good.slice(76)}`, // a MIME line break
+        good.replace(/=+$/, ''), // padding dropped
+        b64(Buffer.concat([PNG, Buffer.from([0xfb, 0xff])]))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_'), // base64url
+      ]) {
+        expect(content).not.toBe(good)
+        const res = await post(
+          ctx,
+          commitBody(ctx.commitSha, [
+            { op: 'write', path: 'public/logo.png', content, encoding: 'base64' },
+          ]),
+        )
+        expect(refusal(res), content.slice(0, 20)).toEqual({
+          status: 400,
+          code: 'REQUEST_INVALID',
+        })
+        expect(errorOf(res).message).toMatch(/canonical base64/)
+      }
+      // The positive control: the canonical form of the same bytes commits.
+      const ok = await post(
+        ctx,
+        commitBody(ctx.commitSha, [
+          { op: 'write', path: 'public/logo.png', content: good, encoding: 'base64' },
+        ]),
+      )
+      expect(ok.statusCode, ok.body).toBe(201)
+    })
+  })
+
+  it('refuses a binary over 2 MiB', async () => {
+    await withProjectServer(async (ctx) => {
+      const sized = (n: number) =>
+        Buffer.concat([PNG, Buffer.alloc(n - PNG.length, 0xab)])
+      const over = await post(
+        ctx,
+        commitBody(ctx.commitSha, [bytesWrite('public/big.png', sized(2 * MiB + 1))]),
+      )
+      expect(refusal(over)).toEqual({ status: 400, code: 'REQUEST_INVALID' })
+      expect(errorOf(over).message).toMatch(/2 MiB/)
+      // The positive control: exactly 2 MiB commits, and reads back whole.
+      const exact = await post(
+        ctx,
+        commitBody(ctx.commitSha, [bytesWrite('public/big.png', sized(2 * MiB))]),
+      )
+      expect(exact.statusCode, exact.body.slice(0, 300)).toBe(201)
+      const head = (exact.json() as { commitSha: string }).commitSha
+      const read = await get(ctx, `/file?path=public/big.png&ref=${head}&encoding=base64`)
+      expect((read.json() as { size: number }).size).toBe(2 * MiB)
+    })
+  })
+})

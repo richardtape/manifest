@@ -90,8 +90,30 @@ async function manifestAfter(
   changes: readonly Change[],
 ): Promise<string> {
   const change = changes.find((c) => c.path === 'manifest.yaml')
-  if (change !== undefined) return change.op === 'write' ? change.content : ''
-  return (await deps.source.readFile(repo, base, 'manifest.yaml')) ?? ''
+  if (change === undefined) {
+    return (await deps.source.readFile(repo, base, 'manifest.yaml')) ?? ''
+  }
+  if (change.op === 'delete') return ''
+  // Bytes written at manifest.yaml are read as the text they would be — which no manifest is.
+  return typeof change.content === 'string'
+    ? change.content
+    : Buffer.from(change.content).toString('utf8')
+}
+
+/**
+ * The request's changes as the driver takes them: a `base64` write DECODED to its bytes — the
+ * request schema has already refused anything but canonical base64 of a recognised kind — and a
+ * text write as its text. `encoding` stops here; a driver sees only `string | Uint8Array`.
+ */
+function changesOf(body: z.output<typeof CreateCommitRequest>): Change[] {
+  return body.changes.map((c): Change => {
+    if (c.op === 'delete') return { op: 'delete', path: c.path }
+    return {
+      op: 'write',
+      path: c.path,
+      content: c.encoding === 'base64' ? Buffer.from(c.content, 'base64') : c.content,
+    }
+  })
 }
 
 /** A commit message's subject: its first line, cut at 72 characters. */
@@ -301,9 +323,9 @@ export const sourceRoutes = [
     method: 'GET',
     path: '/v1/projects/{projectId}/file',
     tag: 'source',
-    summary: 'Read one text file of the project’s repository',
+    summary: 'Read one file of the project’s repository',
     description:
-      'The file at `path`, at `ref`, exactly as its UTF-8 bytes — with the commit it was read at and git’s id for its content. Only regular text files are read: a directory, symlink or submodule, a binary or non-UTF-8 file, and a file larger than 1 MiB are each refused with their own code.',
+      'The file at `path`, at `ref`, whole — with the commit it was read at and git’s id for its content. By default the file is read as TEXT, exactly as its UTF-8 bytes: a binary or non-UTF-8 file is refused `SOURCE_FILE_NOT_TEXT`, and one larger than 1 MiB `SOURCE_FILE_TOO_LARGE`. With `encoding=base64` ANY regular file up to 2 MiB — an image, a PDF, a font, or text — is answered as its bytes in canonical base64. A directory, symlink or submodule is refused `SOURCE_PATH_NOT_A_FILE` either way.',
     params: ProjectParams,
     query: z.strictObject({
       path: z
@@ -312,6 +334,12 @@ export const sourceRoutes = [
         .max(1024)
         .describe('The file’s path from the repository root, `/`-separated.'),
       ref: refQuery,
+      encoding: z
+        .enum(['utf8', 'base64'])
+        .default('utf8')
+        .describe(
+          '`utf8` (the default) reads the file as text; `base64` reads any file up to 2 MiB as its bytes.',
+        ),
     }),
     body: NO_BODY,
     success: {
@@ -333,6 +361,7 @@ export const sourceRoutes = [
         commitSha: HEAD,
         path: 'src/app.js',
         content: "export const greeting = 'hello, world'\n",
+        encoding: 'utf8',
         size: 39,
         mode: '100644',
         blobSha: 'ab8ad63341ecd0ef59bca0c95797269774a62583',
@@ -341,8 +370,18 @@ export const sourceRoutes = [
     handler: async ({ deps, actor, params, query }) => {
       const repo = await repositoryFor(deps, actor, params.projectId)
       const commitSha = await deps.source.resolveRef(repo, query.ref)
+      if (query.encoding === 'base64') {
+        const file = await deps.source.readBytes(repo, commitSha, query.path)
+        return {
+          ref: query.ref,
+          commitSha,
+          ...file,
+          content: file.content.toString('base64'),
+          encoding: 'base64' as const,
+        }
+      }
       const file = await deps.source.readText(repo, commitSha, query.path)
-      return { ref: query.ref, commitSha, ...file }
+      return { ref: query.ref, commitSha, ...file, encoding: 'utf8' as const }
     },
   }),
   defineRoute({
@@ -458,7 +497,7 @@ export const sourceRoutes = [
     tag: 'source',
     summary: 'Commit changes to main',
     description:
-      'Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values in the files and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.',
+      'Writes and deletes files on the project’s `main`, as one commit computed from `baseCommit` — text, or, with `encoding: base64`, an image, a PDF or a font, recognised by its bytes. Every change is checked before anything is written — the paths, the text or the bytes, secret-shaped values in the files (in a binary file, its printable text) and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.',
     params: ProjectParams,
     query: NO_QUERY,
     body: CreateCommitRequest,
@@ -498,7 +537,7 @@ export const sourceRoutes = [
       }
       const repo = await repositoryOf(deps, project)
       const dryRun = body.dryRun === true
-      const changes: Change[] = body.changes
+      const changes = changesOf(body)
       // 1. Secrets — found HERE, as data, so the refusal is published without the value. The
       // MESSAGE too: it goes into git history and its subject into `repository.committed`'s
       // sentence, where the redactor's heuristics miss an AWS key id — and no driver scans it.

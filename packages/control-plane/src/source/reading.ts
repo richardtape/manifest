@@ -1,6 +1,8 @@
+import { BINARY_FILE_BYTES } from './binary.js'
 import {
   type CommitDetail,
   type CommitInfo,
+  type FileBytes,
   type FileChange,
   type FileChangeStatus,
   type SourceEntry,
@@ -126,17 +128,17 @@ export async function listTreeIn(
 }
 
 /**
- * ONE TEXT FILE AT A COMMIT, exactly (Decision 4): its UTF-8 bytes decoded with nothing
- * replaced and nothing stripped — a byte-order mark stays. Refused, each by its own code: no
- * such path; a directory, symlink or submodule (NEVER followed); past 1 MiB, from the SIZE
- * `ls-tree` reports, before the blob is read; binary (a NUL in the first 8000 bytes, git's own
- * rule) or not UTF-8.
+ * ONE REGULAR FILE'S BLOB AT A COMMIT, read no further than `limit` bytes — THE LOOKUP BOTH READS
+ * SHARE (the text read, and since the front-end enablement plan's Task 4 the byte read). Refused,
+ * each by its own code: no such path; a directory, symlink or submodule (NEVER followed); past
+ * `limit`, from the SIZE `ls-tree` reports, before the blob is read.
  */
-export async function readTextIn(
+async function blobAt(
   gitDir: string,
   commit: string,
   path: string,
-): Promise<TextFile> {
+  limit: number,
+): Promise<{ bytes: Buffer; mode: string; sha: string }> {
   assertCommitId(commit)
   const notFound = () =>
     new SourceError(
@@ -172,23 +174,37 @@ export async function readTextIn(
           : 'a symlink'
     throw new SourceError(
       'SOURCE_PATH_NOT_A_FILE',
-      `'${path}' is ${what}; the API reads regular text files`,
+      `'${path}' is ${what}; the API reads regular files`,
     )
   }
-  if (Number(found.size) > READ_LIMITS.fileBytes) {
+  if (Number(found.size) > limit) {
     throw new SourceError(
       'SOURCE_FILE_TOO_LARGE',
-      `'${path}' is ${found.size} bytes; the API carries at most ${READ_LIMITS.fileBytes} in one file`,
+      `'${path}' is ${found.size} bytes; the API carries at most ${limit} in one file`,
     )
   }
   const blob = await runGit(gitDir, ['cat-file', 'blob', found.sha])
   if (blob.code !== 0) {
     throw new SourceError('SOURCE_GIT_FAILED', `git cat-file failed (${blob.code})`)
   }
+  return { bytes: blob.bytes, mode: found.mode, sha: found.sha }
+}
+
+/**
+ * ONE TEXT FILE AT A COMMIT, exactly (Decision 4): its UTF-8 bytes decoded with nothing
+ * replaced and nothing stripped — a byte-order mark stays. `blobAt`'s refusals at 1 MiB, then
+ * binary (a NUL in the first 8000 bytes, git's own rule) or not UTF-8.
+ */
+export async function readTextIn(
+  gitDir: string,
+  commit: string,
+  path: string,
+): Promise<TextFile> {
+  const blob = await blobAt(gitDir, commit, path, READ_LIMITS.fileBytes)
   const notText = () =>
     new SourceError(
       'SOURCE_FILE_NOT_TEXT',
-      `'${path}' is binary or not UTF-8, which the API does not read or write in v1`,
+      `'${path}' is binary or not UTF-8, so it is not read as text — read it with encoding=base64`,
     )
   if (blob.bytes.subarray(0, 8000).includes(0)) throw notText()
   let content: string
@@ -199,7 +215,26 @@ export async function readTextIn(
   } catch {
     throw notText()
   }
-  return { path, content, size: blob.bytes.length, mode: found.mode, blobSha: found.sha }
+  return { path, content, size: blob.bytes.length, mode: blob.mode, blobSha: blob.sha }
+}
+
+/**
+ * ONE REGULAR FILE AT A COMMIT, AS BYTES (the front-end enablement plan's Task 4): text or binary,
+ * at most `BINARY_FILE_BYTES`, exactly as git holds it — `blobAt`'s refusals and neither text rule.
+ */
+export async function readBytesIn(
+  gitDir: string,
+  commit: string,
+  path: string,
+): Promise<FileBytes> {
+  const blob = await blobAt(gitDir, commit, path, BINARY_FILE_BYTES)
+  return {
+    path,
+    content: blob.bytes,
+    size: blob.bytes.length,
+    mode: blob.mode,
+    blobSha: blob.sha,
+  }
 }
 
 /** A message's first `READ_LIMITS.messageChars` CODE POINTS — never half a surrogate pair. */

@@ -565,6 +565,142 @@ export function describeSourceDriver(
       )
     })
 
+    /**
+     * BYTES, EXACTLY (the front-end enablement plan's Task 4, Review Focus 5). `[M11]` measured
+     * today's write turning an 18,403-byte PNG into a 33,360-byte blob — every invalid UTF-8
+     * sequence became U+FFFD — so the proof is git's own id for the bytes, read back by a person
+     * with git, and the bytes themselves.
+     */
+    it('writes bytes exactly, and a person reads them back with git (the front-end enablement plan’s Task 4)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const base = await h.driver.headCommit(repo)
+      // A PNG's head, then every byte value — most of them no UTF-8 sequence at all.
+      const png = Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.from(Array.from({ length: 4096 }, (_, i) => 255 - (i % 256))),
+      ])
+      const r = await h.driver.commit(repo, {
+        base,
+        changes: [{ op: 'write', path: 'img/logo.png', content: new Uint8Array(png) }],
+        message: 'the logo',
+        author: ADA,
+      })
+      expect(r.changes).toEqual([{ path: 'img/logo.png', status: 'added' }])
+      const sha = r.commitSha!
+      const { gitDir } = await h.driver.localGitDir(repo, sha)
+      const git = (args: string[], input?: Buffer) =>
+        execFileSync('git', args, {
+          ...(input === undefined ? {} : { input }),
+          env: {
+            PATH: process.env.PATH ?? '/usr/bin:/bin',
+            GIT_CONFIG_NOSYSTEM: '1',
+            GIT_CONFIG_GLOBAL: '/dev/null',
+          },
+        })
+      const blob = git(['--git-dir', gitDir, 'rev-parse', `${sha}:img/logo.png`])
+        .toString()
+        .trim()
+      expect(blob).toBe(git(['hash-object', '--stdin'], png).toString().trim())
+      expect(
+        git(['--git-dir', gitDir, 'cat-file', 'blob', blob]).equals(png),
+        'the blob is the bytes',
+      ).toBe(true)
+      // …and the driver reads them back the same: bytes, size, mode and id.
+      const read = await h.driver.readBytes(repo, sha, 'img/logo.png')
+      expect(read.content.equals(png)).toBe(true)
+      expect(read).toMatchObject({
+        path: 'img/logo.png',
+        size: png.length,
+        mode: '100644',
+        blobSha: blob,
+      })
+      const { entries } = await h.driver.listTree(repo, sha)
+      expect(entries.find((e) => e.path === 'img/logo.png')).toMatchObject({
+        type: 'file',
+        binary: true,
+      })
+      // A TEXT write is still its UTF-8 bytes — the positive control beside the bytes.
+      const text = await writeFiles(h.driver, repo, { 'src/é.js': 'é\n' }, 'text')
+      expect(
+        (await h.driver.readBytes(repo, text, 'src/é.js')).content.equals(
+          Buffer.from('é\n', 'utf8'),
+        ),
+      ).toBe(true)
+    })
+
+    /**
+     * A BINARY WRITE IS SCANNED BY ITS PRINTABLE RUNS (Decision 10). Neither push-time scan reads
+     * a binary file — it has no hunk (`scan-commits.ts`, and driver 1's hook) — so each driver's
+     * own scan before it writes is what refuses a key pasted into a PDF.
+     */
+    it('refuses a key in a binary write’s printable text, and the head does not move (Task 4)', async () => {
+      const key = SAMPLE_SECRETS['an AWS access key id']
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const base = await h.driver.headCommit(repo)
+      const pdf = (inside: string) =>
+        new Uint8Array(
+          Buffer.concat([
+            Buffer.from('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n', 'latin1'),
+            Buffer.from([0]),
+            Buffer.from(inside, 'latin1'),
+            Buffer.from([0, 0xff]),
+          ]),
+        )
+      const write = (content: Uint8Array) =>
+        h.driver.commit(repo, {
+          base,
+          changes: [{ op: 'write', path: 'docs/syllabus.pdf', content }],
+          message: 'the syllabus',
+          author: ADA,
+        })
+      const refused = await write(pdf(`aws_key ${key} end`)).then(
+        () => undefined,
+        (e: unknown) => e,
+      )
+      expect(refused).toBeInstanceOf(SourceError)
+      expect((refused as SourceError).code).toBe('SOURCE_SECRET_DETECTED')
+      expect((refused as SourceError).message).toContain('docs/syllabus.pdf:1')
+      expect((refused as SourceError).message).toContain('an AWS access key id')
+      expect((refused as SourceError).message).not.toContain(key)
+      expect(await h.driver.headCommit(repo)).toBe(base)
+      // The positive control: the same PDF without the key is written.
+      const ok = await write(pdf('a syllabus for chemistry 101'))
+      expect(await h.driver.headCommit(repo)).toBe(ok.commitSha)
+    })
+
+    it('reads any file as bytes up to 2 MiB, and refuses what is not a file or is larger (Task 4)', async () => {
+      const MiB = 1024 * 1024
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      await h.pushAsPerson(
+        'chem-labs',
+        { 'exact.txt': 'a'.repeat(2 * MiB), 'over.txt': 'b'.repeat(2 * MiB + 1) },
+        'two large files',
+      )
+      const head = await h.pushSymlinkAsPerson(
+        'chem-labs',
+        'link',
+        'src/index.js',
+        'a symlink',
+      )
+      // At the limit is read — the positive control beside the refusal one byte past it.
+      expect((await h.driver.readBytes(repo, head, 'exact.txt')).size).toBe(2 * MiB)
+      expect(await code(h.driver.readBytes(repo, head, 'over.txt'))).toBe(
+        'SOURCE_FILE_TOO_LARGE',
+      )
+      expect(await code(h.driver.readBytes(repo, head, 'nope.bin'))).toBe(
+        'SOURCE_PATH_NOT_FOUND',
+      )
+      expect(await code(h.driver.readBytes(repo, head, 'src'))).toBe(
+        'SOURCE_PATH_NOT_A_FILE',
+      )
+      expect(await code(h.driver.readBytes(repo, head, 'link'))).toBe(
+        'SOURCE_PATH_NOT_A_FILE',
+      )
+      expect(await code(h.driver.readBytes(repo, 'f'.repeat(40), 'src/index.js'))).toBe(
+        'SOURCE_COMMIT_NOT_FOUND',
+      )
+    })
+
     it('pages the history newest first, and describes one commit’s changes with a patch (Task 4)', async () => {
       const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const seed = await h.driver.headCommit(repo)

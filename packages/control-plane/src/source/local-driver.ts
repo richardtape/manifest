@@ -17,6 +17,7 @@ import {
   describeCommitIn,
   historyIn,
   listTreeIn,
+  readBytesIn,
   readTextIn,
   REF_NAME,
 } from './reading.js'
@@ -312,6 +313,12 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       const path = assertOwned(repo)
       await assertCommit(path, repo, commitSha)
       return readTextIn(path, commitSha, filePath)
+    },
+
+    async readBytes(repo, commitSha, filePath) {
+      const path = assertOwned(repo)
+      await assertCommit(path, repo, commitSha)
+      return readBytesIn(path, commitSha, filePath)
     },
 
     async history(repo, from, limit) {

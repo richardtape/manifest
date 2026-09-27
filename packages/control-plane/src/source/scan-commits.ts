@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { scanText } from '../build/index.js'
+import { printableRuns } from './binary.js'
 import { type Change, type CommitFinding, SourceError } from './git-driver.js'
 
 export type { CommitFinding } from './git-driver.js'
@@ -289,11 +290,26 @@ export function assertWritablePaths(paths: readonly string[]): void {
   )
 }
 
-/** The writes of a set of changes, as the secret scan reads them. */
+/**
+ * The writes of a set of changes, as the secret scan reads them: a text write's content, and a
+ * BINARY write's printable runs (the front-end enablement plan's Decision 10), one per line — so
+ * `createCommit`'s scan and each driver's `assertNoSecrets` read a key pasted into a PDF with the
+ * rules they already have. **These are the only scans a binary write meets**: both push-time
+ * scans skip a file with no hunk. A finding's `line` then counts runs, not lines.
+ */
 export const writesOf = (
   changes: readonly Change[],
 ): { path: string; content: string }[] =>
-  changes.flatMap((c) => (c.op === 'write' ? [{ path: c.path, content: c.content }] : []))
+  changes.flatMap((c) =>
+    c.op === 'write'
+      ? [
+          {
+            path: c.path,
+            content: typeof c.content === 'string' ? c.content : printableRuns(c.content),
+          },
+        ]
+      : [],
+  )
 
 /** Every secret-shaped line of `files`, as data: where, and which rule — never the value. */
 export function secretFindings(

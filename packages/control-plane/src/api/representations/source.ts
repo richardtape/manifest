@@ -1,5 +1,10 @@
 import { z } from 'zod/v4'
-import { pathProblem } from '../../source/index.js'
+import {
+  BINARY_FILE_BYTES,
+  isText,
+  mediaTypeOf,
+  pathProblem,
+} from '../../source/index.js'
 import {
   ManifestErrorSchema,
   representation,
@@ -48,7 +53,7 @@ const Entry = z.object({
     .boolean()
     .nullable()
     .describe(
-      'Whether git calls this file binary — such a file is not readable or writable through the API in v1. Null for anything that is not a file.',
+      'Whether git calls this file binary — read it with `getFile`’s `encoding=base64`, and write it with `encoding: base64`. Null for anything that is not a file.',
     ),
 })
 
@@ -79,7 +84,16 @@ export const SourceFile = representation(
       ref: Ref,
       commitSha: CommitSha.describe('The commit the file was read at.'),
       path: z.string().describe('The file’s path from the repository root.'),
-      content: z.string().describe('The file’s text, exactly — UTF-8, at most 1 MiB.'),
+      content: z
+        .string()
+        .describe(
+          'The file’s content, whole: its text exactly (`encoding: utf8`, at most 1 MiB), or its bytes as canonical base64 (`encoding: base64`, at most 2 MiB decoded).',
+        ),
+      encoding: z
+        .enum(['utf8', 'base64'])
+        .describe(
+          'How `content` carries the file: `utf8` — text, the default read — or `base64`, when the read asked for `encoding=base64`.',
+        ),
       size: z.number().int().nonnegative().describe('The file’s size in bytes.'),
       mode: Mode.describe(
         '`100644`, or `100755` for an executable file — kept when the file is changed.',
@@ -89,7 +103,7 @@ export const SourceFile = representation(
         .regex(/^[0-9a-f]{40}$/)
         .describe("git's id for this content; equal ids mean equal bytes."),
     })
-    .describe('One text file at one commit, whole.'),
+    .describe('One file at one commit, whole — as text, or as base64 bytes.'),
 )
 
 const summaryShape = {
@@ -212,32 +226,76 @@ export const RepoPath = z
 /** A lone surrogate: `JSON.parse` accepts one, and it would be written as U+FFFD, silently. */
 export const LONE_SURROGATE = /\p{Surrogate}/u
 
-const WriteChange = z.strictObject({
-  op: z.literal('write').describe('Create the file, or replace its content.'),
-  path: RepoPath,
-  content: z
-    .string()
-    .superRefine((c, ctx) => {
-      if (LONE_SURROGATE.test(c)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'content is not well-formed Unicode (a lone surrogate)',
-        })
-      }
-      if (c.includes('\u0000')) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'content contains a NUL character; the API writes text files only',
-        })
-      }
-      if (Buffer.byteLength(c, 'utf8') > 1024 * 1024) {
-        ctx.addIssue({ code: 'custom', message: 'content is larger than 1 MiB of UTF-8' })
-      }
-    })
-    .describe(
-      'The whole new content of the file, as text: at most 1 MiB of UTF-8, with no NUL character. A new file is mode `100644`; an existing file keeps its mode.',
-    ),
-})
+/** Decision 9's refusal, in the words a person reads — one sentence beside `BINARY_KINDS`. */
+export const BINARY_KINDS_SENTENCE =
+  'only images (PNG, JPEG, GIF, WebP, ICO), PDF and fonts (WOFF, WOFF2, TTF, OTF) may be written as bytes'
+
+/**
+ * WHAT A WRITE'S `content` BREAKS, by its `encoding` — null when nothing does. TEXT (the default):
+ * the authoring API's three rules, unchanged. BYTES (the front-end enablement plan's Task 4,
+ * Decisions 7–9): canonical base64, at most 2 MiB decoded, NOT text (or base64 is a way past the
+ * text rules, the diff and the push-time scan's hunk reader), and one of the ten kinds by its
+ * first bytes. The route decodes a base64 write again (`bytesOf`) — twice 2 MiB at most.
+ */
+export function contentProblems(
+  path: string,
+  content: string,
+  encoding: 'utf8' | 'base64' | undefined,
+): string[] {
+  if (encoding !== 'base64') {
+    const problems: string[] = []
+    if (LONE_SURROGATE.test(content)) {
+      problems.push('content is not well-formed Unicode (a lone surrogate)')
+    }
+    if (content.includes('\u0000')) {
+      problems.push(
+        'content contains a NUL character; text is written with no NUL — send bytes with encoding: base64',
+      )
+    }
+    if (Buffer.byteLength(content, 'utf8') > 1024 * 1024) {
+      problems.push('content is larger than 1 MiB of UTF-8')
+    }
+    return problems
+  }
+  const bytes = Buffer.from(content, 'base64')
+  // Node decodes leniently — whitespace, `-` and `_`, missing padding — so the ROUND TRIP is the
+  // rule: the only string accepted for these bytes is the one Node would write for them.
+  if (bytes.toString('base64') !== content) {
+    return [
+      'content is not canonical base64 — the standard alphabet with its padding, and no whitespace or line break',
+    ]
+  }
+  if (bytes.length > BINARY_FILE_BYTES) {
+    return [`content decodes to ${bytes.length} bytes; a binary file is at most 2 MiB`]
+  }
+  if (isText(bytes)) return [`'${path}' is text; send it with encoding: 'utf8'`]
+  if (mediaTypeOf(bytes) === null) {
+    return [`'${path}' is not a kind the API writes: ${BINARY_KINDS_SENTENCE}`]
+  }
+  return []
+}
+
+const WriteChange = z
+  .strictObject({
+    op: z.literal('write').describe('Create the file, or replace its content.'),
+    path: RepoPath,
+    content: z
+      .string()
+      .describe(
+        'The whole new content of the file. As text (the default): at most 1 MiB of UTF-8, with no NUL character. With `encoding: base64`: the file’s bytes as canonical base64, at most 2 MiB decoded — an image (PNG, JPEG, GIF, WebP, ICO), a PDF or a font (WOFF, WOFF2, TTF, OTF), recognised by its bytes, never its name. A new file is mode `100644`; an existing file keeps its mode.',
+      ),
+    encoding: z
+      .enum(['utf8', 'base64'])
+      .optional()
+      .describe(
+        'How `content` carries the file: `utf8` (the default) for text, `base64` for bytes. Text sent as base64 is refused — send it as text.',
+      ),
+  })
+  .superRefine((change, ctx) => {
+    for (const message of contentProblems(change.path, change.content, change.encoding)) {
+      ctx.addIssue({ code: 'custom', path: ['content'], message })
+    }
+  })
 
 const DeleteChange = z.strictObject({
   op: z.literal('delete').describe('Remove the file. It must exist in `baseCommit`.'),
@@ -269,7 +327,7 @@ export const CreateCommitRequest = request(
         ),
     })
     .describe(
-      'Changes to make on `main`, computed from `baseCommit`: whole-file writes and deletions of text files.',
+      'Changes to make on `main`, computed from `baseCommit`: whole-file writes — text, or an image, PDF or font as base64 — and deletions.',
     ),
 )
 

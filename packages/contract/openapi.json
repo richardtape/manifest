@@ -2439,7 +2439,7 @@
           "source"
         ],
         "summary": "Commit changes to main",
-        "description": "Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values in the files and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.",
+        "description": "Writes and deletes files on the project’s `main`, as one commit computed from `baseCommit` — text, or, with `encoding: base64`, an image, a PDF or a font, recognised by its bytes. Every change is checked before anything is written — the paths, the text or the bytes, secret-shaped values in the files (in a binary file, its printable text) and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.",
         "parameters": [
           {
             "name": "projectId",
@@ -3188,8 +3188,8 @@
         "tags": [
           "source"
         ],
-        "summary": "Read one text file of the project’s repository",
-        "description": "The file at `path`, at `ref`, exactly as its UTF-8 bytes — with the commit it was read at and git’s id for its content. Only regular text files are read: a directory, symlink or submodule, a binary or non-UTF-8 file, and a file larger than 1 MiB are each refused with their own code.",
+        "summary": "Read one file of the project’s repository",
+        "description": "The file at `path`, at `ref`, whole — with the commit it was read at and git’s id for its content. By default the file is read as TEXT, exactly as its UTF-8 bytes: a binary or non-UTF-8 file is refused `SOURCE_FILE_NOT_TEXT`, and one larger than 1 MiB `SOURCE_FILE_TOO_LARGE`. With `encoding=base64` ANY regular file up to 2 MiB — an image, a PDF, a font, or text — is answered as its bytes in canonical base64. A directory, symlink or submodule is refused `SOURCE_PATH_NOT_A_FILE` either way.",
         "parameters": [
           {
             "name": "projectId",
@@ -3201,6 +3201,21 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "encoding",
+            "in": "query",
+            "description": "`utf8` (the default) reads the file as text; `base64` reads any file up to 2 MiB as its bytes.",
+            "required": false,
+            "schema": {
+              "description": "`utf8` (the default) reads the file as text; `base64` reads any file up to 2 MiB as its bytes.",
+              "default": "utf8",
+              "type": "string",
+              "enum": [
+                "utf8",
+                "base64"
+              ]
             }
           },
           {
@@ -3241,6 +3256,7 @@
                   "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
                   "path": "src/app.js",
                   "content": "export const greeting = 'hello, world'\n",
+                  "encoding": "utf8",
                   "size": 39,
                   "mode": "100644",
                   "blobSha": "ab8ad63341ecd0ef59bca0c95797269774a62583"
@@ -7370,7 +7386,7 @@
         "additionalProperties": false
       },
       "CreateCommitRequest": {
-        "description": "Changes to make on `main`, computed from `baseCommit`: whole-file writes and deletions of text files.",
+        "description": "Changes to make on `main`, computed from `baseCommit`: whole-file writes — text, or an image, PDF or font as base64 — and deletions.",
         "type": "object",
         "properties": {
           "baseCommit": {
@@ -7405,8 +7421,16 @@
                       "minLength": 1
                     },
                     "content": {
-                      "description": "The whole new content of the file, as text: at most 1 MiB of UTF-8, with no NUL character. A new file is mode `100644`; an existing file keeps its mode.",
+                      "description": "The whole new content of the file. As text (the default): at most 1 MiB of UTF-8, with no NUL character. With `encoding: base64`: the file’s bytes as canonical base64, at most 2 MiB decoded — an image (PNG, JPEG, GIF, WebP, ICO), a PDF or a font (WOFF, WOFF2, TTF, OTF), recognised by its bytes, never its name. A new file is mode `100644`; an existing file keeps its mode.",
                       "type": "string"
+                    },
+                    "encoding": {
+                      "description": "How `content` carries the file: `utf8` (the default) for text, `base64` for bytes. Text sent as base64 is refused — send it as text.",
+                      "type": "string",
+                      "enum": [
+                        "utf8",
+                        "base64"
+                      ]
                     }
                   },
                   "required": [
@@ -7938,8 +7962,8 @@
           "SLUG_TAKEN": "Another project holds the name.",
           "SOURCE_COMMIT_NOT_FOUND": "The repository has no such commit — or what was named is not a full commit id — so there is nothing to build or read from it.",
           "SOURCE_CONFLICT": "The branch moved after the commit this request was computed from; read it again and retry.",
-          "SOURCE_FILE_NOT_TEXT": "The file is binary or not UTF-8, which the API does not read or write in v1.",
-          "SOURCE_FILE_TOO_LARGE": "The file is larger than 1 MiB, the most the API carries in one file.",
+          "SOURCE_FILE_NOT_TEXT": "The file is binary or not UTF-8, so it is not read as text.",
+          "SOURCE_FILE_TOO_LARGE": "The file is larger than the API carries in one read — 1 MiB as text, 2 MiB with `encoding=base64`.",
           "SOURCE_GITHUB_KEY_UNREADABLE": "The GitHub App’s private key cannot be read, or is not an RSA key; the message names the file.",
           "SOURCE_GITHUB_REFUSED": "GitHub refused the request; the message carries GitHub’s own message and nothing else of its answer.",
           "SOURCE_GIT_FAILED": "git failed; the message names the operation.",
@@ -14610,7 +14634,7 @@
         "additionalProperties": false
       },
       "SourceFile": {
-        "description": "One text file at one commit, whole.",
+        "description": "One file at one commit, whole — as text, or as base64 bytes.",
         "type": "object",
         "properties": {
           "ref": {
@@ -14628,8 +14652,16 @@
             "type": "string"
           },
           "content": {
-            "description": "The file’s text, exactly — UTF-8, at most 1 MiB.",
+            "description": "The file’s content, whole: its text exactly (`encoding: utf8`, at most 1 MiB), or its bytes as canonical base64 (`encoding: base64`, at most 2 MiB decoded).",
             "type": "string"
+          },
+          "encoding": {
+            "description": "How `content` carries the file: `utf8` — text, the default read — or `base64`, when the read asked for `encoding=base64`.",
+            "type": "string",
+            "enum": [
+              "utf8",
+              "base64"
+            ]
           },
           "size": {
             "description": "The file’s size in bytes.",
@@ -14653,6 +14685,7 @@
           "commitSha",
           "path",
           "content",
+          "encoding",
           "size",
           "mode",
           "blobSha"
@@ -14712,7 +14745,7 @@
                   ]
                 },
                 "binary": {
-                  "description": "Whether git calls this file binary — such a file is not readable or writable through the API in v1. Null for anything that is not a file.",
+                  "description": "Whether git calls this file binary — read it with `getFile`’s `encoding=base64`, and write it with `encoding: base64`. Null for anything that is not a file.",
                   "anyOf": [
                     {
                       "type": "boolean"
@@ -15424,13 +15457,13 @@
     },
     "SOURCE_FILE_NOT_TEXT": {
       "status": 409,
-      "summary": "The file is binary or not UTF-8, which the API does not read or write in v1.",
-      "remedy": "Change the file with git directly, by a push: the API reads and writes UTF-8 text files only. `getTree` marks a binary file `binary: true`."
+      "summary": "The file is binary or not UTF-8, so it is not read as text.",
+      "remedy": "Read it as bytes: `getFile` with `encoding=base64` answers any file up to 2 MiB. `getTree` marks a binary file `binary: true`."
     },
     "SOURCE_FILE_TOO_LARGE": {
       "status": 409,
-      "summary": "The file is larger than 1 MiB, the most the API carries in one file.",
-      "remedy": "Read or change the file with git directly, by a push; `getTree` gives every file’s `size`."
+      "summary": "The file is larger than the API carries in one read — 1 MiB as text, 2 MiB with `encoding=base64`.",
+      "remedy": "A text file between 1 and 2 MiB can be read with `encoding=base64`; past that, read or change it with git directly, by a push. `getTree` gives every file’s `size`."
     },
     "SOURCE_GITHUB_KEY_UNREADABLE": {
       "status": 409,
@@ -15505,7 +15538,7 @@
     "SOURCE_SECRET_DETECTED": {
       "status": 409,
       "summary": "A commit Manifest was asked to make carries a secret-shaped value, and nothing was committed; the message names path:line and the rule, never the value (§20).",
-      "remedy": "Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again."
+      "remedy": "Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again. In a file written with `encoding: base64`, the line counts runs of printable text, not lines."
     },
     "SOURCE_UNREACHABLE": {
       "status": 503,

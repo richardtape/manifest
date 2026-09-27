@@ -27,6 +27,7 @@ import {
   describeCommitIn,
   historyIn,
   listTreeIn,
+  readBytesIn,
   readTextIn,
   REF_NAME,
 } from '../reading.js'
@@ -825,6 +826,12 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       const mirror = mirrorOf(repo)
       await present(repo, mirror, commitSha)
       return readTextIn(mirror, commitSha, path)
+    },
+
+    async readBytes(repo, commitSha, path) {
+      const mirror = mirrorOf(repo)
+      await present(repo, mirror, commitSha)
+      return readBytesIn(mirror, commitSha, path)
     },
 
     async history(repo, from, limit) {

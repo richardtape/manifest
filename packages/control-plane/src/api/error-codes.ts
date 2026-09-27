@@ -507,12 +507,12 @@ export const ERROR_CODES = {
     'Read the tree again (`getTree`) for its `commitSha`, recompute your changes against it, and commit with that as `baseCommit`.',
   ),
   SOURCE_FILE_NOT_TEXT: source(
-    'The file is binary or not UTF-8, which the API does not read or write in v1.',
-    'Change the file with git directly, by a push: the API reads and writes UTF-8 text files only. `getTree` marks a binary file `binary: true`.',
+    'The file is binary or not UTF-8, so it is not read as text.',
+    'Read it as bytes: `getFile` with `encoding=base64` answers any file up to 2 MiB. `getTree` marks a binary file `binary: true`.',
   ),
   SOURCE_FILE_TOO_LARGE: source(
-    'The file is larger than 1 MiB, the most the API carries in one file.',
-    'Read or change the file with git directly, by a push; `getTree` gives every file’s `size`.',
+    'The file is larger than the API carries in one read — 1 MiB as text, 2 MiB with `encoding=base64`.',
+    'A text file between 1 and 2 MiB can be read with `encoding=base64`; past that, read or change it with git directly, by a push. `getTree` gives every file’s `size`.',
   ),
   SOURCE_GIT_FAILED: source(
     'git failed; the message names the operation.',
@@ -572,7 +572,7 @@ export const ERROR_CODES = {
   ),
   SOURCE_SECRET_DETECTED: source(
     'A commit Manifest was asked to make carries a secret-shaped value, and nothing was committed; the message names path:line and the rule, never the value (§20).',
-    'Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again.',
+    'Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again. In a file written with `encoding: base64`, the line counts runs of printable text, not lines.',
   ),
   // NOT a state conflict: a client retries a 503 and does not "fix" a 409 (Decision 18).
   SOURCE_UNREACHABLE: {
