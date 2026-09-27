@@ -3,6 +3,7 @@ import { blueprintRoutes } from './blueprints.js'
 import { buildRoutes } from './builds.js'
 import { docRoutes } from './docs.js'
 import { fleetRoutes } from './fleet.js'
+import { instanceRoutes } from './instances.js'
 import { launchRoutes } from './launch.js'
 import { meRoutes } from './me.js'
 import { pendingActionReads, pendingActionRoutes } from './pending-actions.js'
@@ -28,6 +29,7 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...sourceRoutes,
   ...buildRoutes,
   ...releaseRoutes,
+  ...instanceRoutes,
   ...secretRoutes,
   ...launchRoutes,
   ...fleetRoutes,

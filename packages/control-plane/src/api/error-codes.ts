@@ -42,6 +42,7 @@ export type ErrorFamily =
   | 'LaunchRecordError'
   | 'RehearsalError'
   | 'ProductionGateError'
+  | 'OutputError'
 
 interface Entry {
   status: number
@@ -580,6 +581,26 @@ export const ERROR_CODES = {
     summary: 'The git host did not answer. A commit already mirrored still builds.',
     remedy:
       'Retry when the git host answers. Meanwhile a commit already mirrored still builds, releases and deploys.',
+  },
+
+  // observability/output.ts — reading a running app's recent output (§14; the front-end
+  // enablement plan's Task 3). Each its own status: production is a refusal of the READ, not a
+  // conflict a client can resolve; an instance that no longer runs is a state conflict.
+  INSTANCE_OUTPUT_PRODUCTION: {
+    status: 403,
+    families: ['OutputError'],
+    summary:
+      'A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.',
+    remedy:
+      'Read a sandbox or staging instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production.',
+  },
+  INSTANCE_OUTPUT_UNAVAILABLE: {
+    status: 409,
+    families: ['OutputError'],
+    summary:
+      'The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.',
+    remedy:
+      'Read the environment’s Incidents (`listIncidents`): a failed instance’s last lines are in its Incident. `listInstances` says which instance is running now.',
   },
 
   // config.ts — mapped by toErrorResponse, raised at boot

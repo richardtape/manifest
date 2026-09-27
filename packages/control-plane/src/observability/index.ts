@@ -34,6 +34,7 @@ export {
   OUTPUT_DEFAULTS,
   OUTPUT_MAX_LINES,
   OUTPUT_REDACTION_MARGIN,
+  OutputError,
   readRecentOutput,
   type OutputBounds,
   type OutputLine,

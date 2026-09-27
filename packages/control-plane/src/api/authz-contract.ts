@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
+import { instances } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
@@ -101,6 +102,13 @@ const SESSION_ONLY = { status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' } as const
  * that says `pass` after Task 9 is a row testing a guard that is not there.
  */
 const STEP_UP = { status: 403, code: 'STEP_UP_REQUIRED' } as const
+
+/**
+ * §14: a production instance's output is never readable (the front-end enablement plan's
+ * Task 3, Decision 6) — the SIXTH `403` in this file, answered to everyone who HOLDS
+ * `output:read`, so a row reading a bare `403` would be green against `FORBIDDEN` too.
+ */
+const PRODUCTION_OUTPUT = { status: 403, code: 'INSTANCE_OUTPUT_PRODUCTION' } as const
 
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
@@ -204,6 +212,16 @@ interface Fixture {
   removableUserId: string
   /** `main`'s head NOW — read per case by `createCommit`'s row (Task 6). */
   mainHead: () => Promise<string>
+  /**
+   * One instance in SANDBOX and one in production, written directly (the front-end enablement
+   * plan's Task 3) — what the output rows are aimed at. Both `failed`, so neither serves, and no
+   * other row moves. A failed instance with a handle is still readable; the fake driver answers
+   * it no lines. **Not staging**: the staging deploy rows run first, and a deploy retires every
+   * instance of its environment that is not serving (P4c) — so a staging row read `gone` and
+   * answered `409 INSTANCE_OUTPUT_UNAVAILABLE` to every `pass` (measured, sitting 2). Nothing in
+   * this table deploys to sandbox.
+   */
+  instanceId: { sandbox: string; production: string }
 }
 
 const SESSION_ACTORS: SessionActor[] = [
@@ -1343,6 +1361,64 @@ const ROUTES: RouteCase[] = [
       'token-privileged': 'pass',
     },
   },
+  /**
+   * AN ENVIRONMENT'S INSTANCES, AND A RUNNING APP'S RECENT OUTPUT (the front-end enablement
+   * plan's Task 3; §14). Listing is `project:read`; reading output is `output:read`, which
+   * `token-capable` holds because the mint route would give it (`CAPABLE` below); a token
+   * holding `project:read` alone is refused in `api/instances.test.ts`. Production is
+   * refused by its OWN code to everyone who holds the capability (`PRODUCTION_OUTPUT`).
+   */
+  {
+    method: 'GET',
+    url: '/v1/environments/:environmentId/instances',
+    request: (f) => ({ url: `/v1/environments/${f.environmentId.staging}/instances` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/instances/:instanceId/output',
+    label: 'sandbox',
+    request: (f) => ({ url: `/v1/instances/${f.instanceId.sandbox}/output` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/instances/:instanceId/output',
+    label: 'production',
+    request: (f) => ({ url: `/v1/instances/${f.instanceId.production}/output` }),
+    expect: {
+      owner: PRODUCTION_OUTPUT,
+      collaborator: PRODUCTION_OUTPUT,
+      stranger: 404,
+      admin: PRODUCTION_OUTPUT,
+      anonymous: 401,
+      'token-capable': PRODUCTION_OUTPUT,
+      // The capability is checked FIRST: a token without it never learns which environment.
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': PRODUCTION_OUTPUT,
+    },
+  },
   // §14's Incidents (P4b Task 13): a failed app's last 200 log lines, so a stranger's
   // 404 matters here as much as on the build log.
   {
@@ -1830,6 +1906,11 @@ export function describeAuthorizationContract(
         // `SESSION_ONLY` is the credential-class refusal, not a missing capability. The
         // `secret:write`-alone and `project:write`-alone tokens are `api/secrets.test.ts`'s.
         'secret:write',
+        // The front-end enablement plan's Task 3: `getInstanceOutput` asserts `output:read`,
+        // which the mint route gives an owner's token (neither privileged nor person-only).
+        // `token-incapable` holds neither; the `project:read`-alone token Decision 5 is about
+        // is `api/instances.test.ts`'s, since this actor cannot tell the two apart.
+        'output:read',
       ]
       const tokenFor = async (
         actor: TokenActor,
@@ -1886,6 +1967,24 @@ export function describeAuthorizationContract(
           await Promise.all(ALL_ACTORS.map(async (a) => [a, await askFor(how, a)])),
         ) as Record<Actor, string>
 
+      // The output rows' targets (Task 3): written directly, both failed — see `Fixture`.
+      const instanceIn = async (environmentId: string, handle: string) => {
+        const [row] = await deps.db
+          .insert(instances)
+          .values({
+            environmentId,
+            releaseId: release.json().id,
+            driver: 'fake',
+            kind: 'web',
+            state: 'failed',
+            handle,
+          })
+          .returning()
+        return row!.id
+      }
+      const environmentOf = (kind: string): string =>
+        body.environments.find((e: { kind: string }) => e.kind === kind).id
+
       // The removal row's target: a member whose going changes no other expectation.
       const removable = await ensureTestUser(deps.db, 'platform_admin')
       await addMember(deps.db, body.id, removable.id, 'collaborator')
@@ -1906,6 +2005,13 @@ export function describeAuthorizationContract(
         releaseId: release.json().id,
         // Set below, once the preview is taken — after the collaborator is made a member.
         previewId: '',
+        instanceId: {
+          sandbox: await instanceIn(environmentOf('sandbox'), 'authz-sandbox-instance'),
+          production: await instanceIn(
+            environmentOf('production'),
+            'authz-production-instance',
+          ),
+        },
         environmentId: {
           staging: body.environments.find((e: { kind: string }) => e.kind === 'staging')
             .id,
@@ -2089,7 +2195,8 @@ export function describeAuthorizationContract(
           })
 
           if (expected === 'pass') {
-            expect(response.statusCode).toBeLessThan(400)
+            // The body in the message: a `pass` that fails says WHICH refusal it met.
+            expect(response.statusCode, response.body).toBeLessThan(400)
           } else {
             expect({ status: response.statusCode, code: codeOf(response.body) }).toEqual(
               refusalOf(expected),

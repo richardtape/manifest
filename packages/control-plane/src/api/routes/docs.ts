@@ -103,7 +103,7 @@ export const docRoutes = [
     examples: {
       response: {
         openapi: '3.1.0',
-        info: { title: 'Manifest', version: '1.3.0' },
+        info: { title: 'Manifest', version: '1.4.0' },
         paths: {},
       },
     },

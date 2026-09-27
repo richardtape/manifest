@@ -1,6 +1,23 @@
 import { REDACTED, type Redactor } from './redact.js'
 
 /**
+ * Why an instance's output was not read (the front-end enablement plan's Task 3) — a wire
+ * family like `SourceError`, each code with its own status in `api/error-codes.ts`:
+ * `INSTANCE_OUTPUT_PRODUCTION` (403) — production's output is never readable (§14), decided
+ * from the environment row before the driver is asked; `INSTANCE_OUTPUT_UNAVAILABLE` (409) —
+ * the instance no longer runs, so its Incident is the place to look.
+ */
+export class OutputError extends Error {
+  constructor(
+    readonly code: 'INSTANCE_OUTPUT_PRODUCTION' | 'INSTANCE_OUTPUT_UNAVAILABLE',
+    message: string,
+  ) {
+    super(message)
+    this.name = 'OutputError'
+  }
+}
+
+/**
  * A line as a source answers it. Restated structurally, as `IncidentSource` is, so that
  * `observability/` never imports `runtime/` (`module-boundaries.test.ts`) and a `Driver` is
  * assignable. Only `text` is required: a source that knows nothing else — an Incident's test

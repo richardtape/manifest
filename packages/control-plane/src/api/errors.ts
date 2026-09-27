@@ -8,6 +8,7 @@ import type { ManifestError } from '../errors/index.js'
 import { IdempotencyConflictError } from './idempotency.js'
 import { CsrfRefusedError } from './csrf.js'
 import { AiError, CatalogueError } from '../ai/index.js'
+import { OutputError } from '../observability/index.js'
 import { ERROR_CODES } from './error-codes.js'
 import { RequestValidationError } from './contract/route.js'
 import { TokenCredentialRefusedError } from './actor.js'
@@ -706,6 +707,16 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           hint: 'The git host did not answer. A commit already mirrored still builds; try again when it is reachable.',
         },
       },
+    }
+  }
+
+  // §14's bounded read (the front-end enablement plan's Task 3): a refusal of the READ in
+  // production (403) and a state conflict for an instance that no longer runs (409) — each
+  // code's status is the registry's, so the two cannot drift apart.
+  if (error instanceof OutputError) {
+    return {
+      status: ERROR_CODES[error.code].status,
+      body: { error: { code: error.code, message: error.message } },
     }
   }
 

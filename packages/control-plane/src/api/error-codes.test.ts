@@ -83,6 +83,7 @@ const WIRE_CLASSES = [
   'LaunchRecordError',
   'RehearsalError',
   'ProductionGateError',
+  'OutputError',
 ] as const
 
 /**

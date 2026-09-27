@@ -44,11 +44,16 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * `ApprovalDiff.changes[]` gains `added` and `removed` (F7). This bump covers every additive
  * change the authoring API plan makes, once, because nothing is published between its tasks.
  *
+ * **`1.4.0` SINCE THE FRONT-END ENABLEMENT PLAN'S TASK 3 (2026-09-27)**, as that plan predicted:
+ * `listInstances` and `getInstanceOutput` (§14's bounded read), the `output:read` capability
+ * and two `OutputError` codes. This bump covers every additive change that plan makes, once,
+ * because nothing is published between its tasks.
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.3.0'
+export const CONTRACT_VERSION = '1.4.0'
 
 type JsonSchema = Record<string, unknown>
 

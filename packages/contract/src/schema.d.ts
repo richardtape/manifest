@@ -204,6 +204,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/environments/{environmentId}/instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * An environment’s instances
+         * @description §11: the environment’s instances, the one seen most recently first — at most 50 — each marked whether the hostname reaches it now. A failed instance stays listed after it is replaced, so an agent can find it and read its Incident; a running one’s last lines are `getInstanceOutput`.
+         */
+        get: operations["listInstances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/environments/{environmentId}/secrets": {
         parameters: {
             query?: never;
@@ -260,6 +280,26 @@ export interface paths {
          * @description §26: the fleet, for platform administrators — an admin-scoped read on the one public API (D31), not a second API. Everyone else is refused 403, and so is every delegated token however it was minted (D24): this is cross-tenant data and a token is scoped to one project.
          */
         get: operations["listFleet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/instances/{instanceId}/output": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A running instance’s recent output
+         * @description §14: the last lines a sandbox or staging instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never production**: its output is refused, and its Incident is the only window onto it.
+         */
+        get: operations["getInstanceOutput"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1579,7 +1619,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -3475,6 +3515,99 @@ export interface components {
             /** @description When the platform last saw it running; null before it started. */
             lastSeenAt: string | null;
         };
+        /** @description An environment’s instances (§11), newest first. */
+        InstanceList: {
+            /**
+             * Format: uuid
+             * @description The environment.
+             */
+            environmentId: string;
+            /** @description The environment’s instances, the one seen most recently first — at most 50. A failed instance stays listed after it is replaced, so an agent can read why it failed (`listIncidents`). */
+            instances: components["schemas"]["InstanceSummary"][];
+            /** @description True when the environment has had more than 50 instances and only the 50 seen most recently are listed. */
+            truncated: boolean;
+        };
+        /** @description A running instance’s recent output (§14): read on request, never streamed, never stored — in sandbox and staging only. */
+        InstanceOutput: {
+            /**
+             * Format: uuid
+             * @description The instance.
+             */
+            instanceId: string;
+            /**
+             * Format: uuid
+             * @description The environment it runs in.
+             */
+            environmentId: string;
+            /**
+             * @description Only sandbox and staging output is readable (§14).
+             * @enum {string}
+             */
+            environmentKind: "sandbox" | "staging";
+            /**
+             * Format: date-time
+             * @description When Manifest read it. Nothing is kept: read again to see newer lines.
+             */
+            readAt: string;
+            /** @description The last lines the app printed, oldest first — redacted at read with the rules that redact an Incident’s log tail. At most `lines`, and fewer when a line the runtime stored in pieces began before the window. */
+            lines: {
+                /**
+                 * Format: date-time
+                 * @description When the line was printed, as the runtime recorded it — or, when `stamped` is false, when Manifest read it.
+                 */
+                at: string;
+                /** @description Whether `at` is the runtime’s own time for the line. */
+                stamped: boolean;
+                /**
+                 * @description Which of the app’s two outputs it printed to.
+                 * @enum {string}
+                 */
+                stream: "stdout" | "stderr";
+                /** @description The line, redacted. A line longer than 4 KiB is cut and ends `…[cut: N bytes]`. */
+                text: string;
+            }[];
+            /** @description Which bound the answer met. */
+            truncated: {
+                /** @description The app printed more lines than were read. */
+                lines: boolean;
+                /** @description The lines read were more than 256 KiB together, and the oldest were dropped. */
+                bytes: boolean;
+            };
+            /** @description Why reading stopped early, when it did — an error’s code or name, never its message. The lines before it are still answered. */
+            failure: string | null;
+        };
+        /** @description An instance, and whether it is the one serving. */
+        InstanceSummary: {
+            /**
+             * Format: uuid
+             * @description The instance.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The environment it runs in.
+             */
+            environmentId: string;
+            /**
+             * Format: uuid
+             * @description The release it runs (`getRelease`).
+             */
+            releaseId: string;
+            /**
+             * @description What kind of process it is; `web`, which answers requests, is the only kind the platform runs today.
+             * @enum {string}
+             */
+            kind: "web" | "worker" | "cron";
+            /**
+             * @description Where it is in its life (§11): `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.
+             * @enum {string}
+             */
+            state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
+            /** @description When the platform last saw it running; null before it started. */
+            lastSeenAt: string | null;
+            /** @description Whether the environment’s hostname reaches this instance now. At most one instance of an environment serves, and a failed one never does. */
+            serving: boolean;
+        };
         /** @description D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it. */
         KnowledgePack: {
             /** @description The blueprint it belongs to, `name@major`. */
@@ -3896,7 +4029,7 @@ export interface components {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
             /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve or launch:record, which are person-only and refused outright. */
-            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "quota:set" | "secret:read")[];
+            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "quota:set" | "secret:read")[];
             /** @description How long the token lives, in days. D24: a token has an expiry, and at most 365 days of one. */
             expiresInDays: number;
         };
@@ -5061,6 +5194,64 @@ export interface operations {
             };
         };
     };
+    listInstances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The environment’s id, from `listEnvironments` — one each for sandbox, staging and production. */
+                environmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The instances. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
+                     *       "instances": [
+                     *         {
+                     *           "id": "d5201f1e-4d56-4088-9530-cc4c1a0a50fa",
+                     *           "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
+                     *           "releaseId": "5ec6bd7a-22c6-45f8-a439-8fe6d8ee84da",
+                     *           "kind": "web",
+                     *           "state": "failed",
+                     *           "lastSeenAt": "2026-09-27T16:34:54.739Z",
+                     *           "serving": false
+                     *         },
+                     *         {
+                     *           "id": "3124947b-b928-4e66-be25-59a427f96569",
+                     *           "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
+                     *           "releaseId": "165db6ac-7e38-43a3-a869-275bb9ccbf76",
+                     *           "kind": "web",
+                     *           "state": "healthy",
+                     *           "lastSeenAt": "2026-09-27T16:34:54.691Z",
+                     *           "serving": true
+                     *         }
+                     *       ],
+                     *       "truncated": false
+                     *     }
+                     */
+                    "application/json": components["schemas"]["InstanceList"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     listAppSecrets: {
         parameters: {
             query?: never;
@@ -5325,6 +5516,74 @@ export interface operations {
             };
         };
     };
+    getInstanceOutput: {
+        parameters: {
+            query?: {
+                /** @description How many of the last lines to read: 200 by default, at most 1000. */
+                lines?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The instance’s id, from `listInstances`, `getEnvironment` or `deploy`. */
+                instanceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The output. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "instanceId": "3124947b-b928-4e66-be25-59a427f96569",
+                     *       "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
+                     *       "environmentKind": "staging",
+                     *       "readAt": "2026-09-27T16:34:54.701Z",
+                     *       "lines": [
+                     *         {
+                     *           "at": "2026-09-27T16:34:54.698Z",
+                     *           "stamped": true,
+                     *           "stream": "stdout",
+                     *           "text": "GET /healthz 200 — session store connected with [REDACTED]"
+                     *         },
+                     *         {
+                     *           "at": "2026-09-27T16:34:54.698Z",
+                     *           "stamped": true,
+                     *           "stream": "stderr",
+                     *           "text": "Error: MONGODB_URI is not set"
+                     *         },
+                     *         {
+                     *           "at": "2026-09-27T16:34:54.698Z",
+                     *           "stamped": true,
+                     *           "stream": "stdout",
+                     *           "text": "listening on 3000"
+                     *         }
+                     *       ],
+                     *       "truncated": {
+                     *         "lines": true,
+                     *         "bytes": false
+                     *       },
+                     *       "failure": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["InstanceOutput"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INSTANCE_OUTPUT_PRODUCTION, INSTANCE_OUTPUT_UNAVAILABLE, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getMe: {
         parameters: {
             query?: never;
@@ -5383,7 +5642,7 @@ export interface operations {
                      *       "openapi": "3.1.0",
                      *       "info": {
                      *         "title": "Manifest",
-                     *         "version": "1.3.0"
+                     *         "version": "1.4.0"
                      *       },
                      *       "paths": {}
                      *     }

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Manifest",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "description": "Manifest's public API (§22). Generated from the control plane's route definitions; do not edit. Resource routes are under /v1 (D23.8); a breaking change is a new prefix beside it. Response objects may gain fields under /v1 — a client ignores fields it does not know. Every mutation carries an Idempotency-Key, and a session-bearing mutation carries Origin (§20)."
   },
   "servers": [
@@ -794,6 +794,83 @@
         ]
       }
     },
+    "/v1/environments/{environmentId}/instances": {
+      "get": {
+        "operationId": "listInstances",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "An environment’s instances",
+        "description": "§11: the environment’s instances, the one seen most recently first — at most 50 — each marked whether the hostname reaches it now. A failed instance stays listed after it is replaced, so an agent can find it and read its Incident; a running one’s last lines are `getInstanceOutput`.",
+        "parameters": [
+          {
+            "name": "environmentId",
+            "in": "path",
+            "description": "The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.",
+            "required": true,
+            "schema": {
+              "description": "The environment’s id, from `listEnvironments` — one each for sandbox, staging and production.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The instances.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceList"
+                },
+                "example": {
+                  "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
+                  "instances": [
+                    {
+                      "id": "d5201f1e-4d56-4088-9530-cc4c1a0a50fa",
+                      "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
+                      "releaseId": "5ec6bd7a-22c6-45f8-a439-8fe6d8ee84da",
+                      "kind": "web",
+                      "state": "failed",
+                      "lastSeenAt": "2026-09-27T16:34:54.739Z",
+                      "serving": false
+                    },
+                    {
+                      "id": "3124947b-b928-4e66-be25-59a427f96569",
+                      "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
+                      "releaseId": "165db6ac-7e38-43a3-a869-275bb9ccbf76",
+                      "kind": "web",
+                      "state": "healthy",
+                      "lastSeenAt": "2026-09-27T16:34:54.691Z",
+                      "serving": true
+                    }
+                  ],
+                  "truncated": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/environments/{environmentId}/secrets": {
       "get": {
         "operationId": "listAppSecrets",
@@ -1183,6 +1260,105 @@
         ]
       }
     },
+    "/v1/instances/{instanceId}/output": {
+      "get": {
+        "operationId": "getInstanceOutput",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "A running instance’s recent output",
+        "description": "§14: the last lines a sandbox or staging instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never production**: its output is refused, and its Incident is the only window onto it.",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "description": "The instance’s id, from `listInstances`, `getEnvironment` or `deploy`.",
+            "required": true,
+            "schema": {
+              "description": "The instance’s id, from `listInstances`, `getEnvironment` or `deploy`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "lines",
+            "in": "query",
+            "description": "How many of the last lines to read: 200 by default, at most 1000.",
+            "required": false,
+            "schema": {
+              "description": "How many of the last lines to read: 200 by default, at most 1000.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceOutput"
+                },
+                "example": {
+                  "instanceId": "3124947b-b928-4e66-be25-59a427f96569",
+                  "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
+                  "environmentKind": "staging",
+                  "readAt": "2026-09-27T16:34:54.701Z",
+                  "lines": [
+                    {
+                      "at": "2026-09-27T16:34:54.698Z",
+                      "stamped": true,
+                      "stream": "stdout",
+                      "text": "GET /healthz 200 — session store connected with [REDACTED]"
+                    },
+                    {
+                      "at": "2026-09-27T16:34:54.698Z",
+                      "stamped": true,
+                      "stream": "stderr",
+                      "text": "Error: MONGODB_URI is not set"
+                    },
+                    {
+                      "at": "2026-09-27T16:34:54.698Z",
+                      "stamped": true,
+                      "stream": "stdout",
+                      "text": "listening on 3000"
+                    }
+                  ],
+                  "truncated": {
+                    "lines": true,
+                    "bytes": false
+                  },
+                  "failure": null
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INSTANCE_OUTPUT_PRODUCTION, INSTANCE_OUTPUT_UNAVAILABLE, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "FORBIDDEN",
+          "INSTANCE_OUTPUT_PRODUCTION",
+          "INSTANCE_OUTPUT_UNAVAILABLE",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/me": {
       "get": {
         "operationId": "getMe",
@@ -1256,7 +1432,7 @@
                   "openapi": "3.1.0",
                   "info": {
                     "title": "Manifest",
-                    "version": "1.3.0"
+                    "version": "1.4.0"
                   },
                   "paths": {}
                 }
@@ -7597,6 +7773,8 @@
           "FORBIDDEN",
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
+          "INSTANCE_OUTPUT_PRODUCTION",
+          "INSTANCE_OUTPUT_UNAVAILABLE",
           "INTERNAL",
           "LAUNCH_RECORD_INVALID",
           "LAUNCH_TRANSITION_INVALID",
@@ -7710,6 +7888,8 @@
           "FORBIDDEN": "A member of the project whose role does not hold this capability.",
           "IDEMPOTENCY_KEY_REQUIRED": "A mutation arrived without an Idempotency-Key of at least 8 characters (D23.6).",
           "IDEMPOTENCY_KEY_REUSED": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
+          "INSTANCE_OUTPUT_PRODUCTION": "A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.",
+          "INSTANCE_OUTPUT_UNAVAILABLE": "The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.",
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
@@ -11727,6 +11907,223 @@
         ],
         "additionalProperties": false
       },
+      "InstanceList": {
+        "description": "An environment’s instances (§11), newest first.",
+        "type": "object",
+        "properties": {
+          "environmentId": {
+            "description": "The environment.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "instances": {
+            "description": "The environment’s instances, the one seen most recently first — at most 50. A failed instance stays listed after it is replaced, so an agent can read why it failed (`listIncidents`).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceSummary"
+            }
+          },
+          "truncated": {
+            "description": "True when the environment has had more than 50 instances and only the 50 seen most recently are listed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "environmentId",
+          "instances",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "InstanceOutput": {
+        "description": "A running instance’s recent output (§14): read on request, never streamed, never stored — in sandbox and staging only.",
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "description": "The instance.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "environmentId": {
+            "description": "The environment it runs in.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "environmentKind": {
+            "description": "Only sandbox and staging output is readable (§14).",
+            "type": "string",
+            "enum": [
+              "sandbox",
+              "staging"
+            ]
+          },
+          "readAt": {
+            "description": "When Manifest read it. Nothing is kept: read again to see newer lines.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "lines": {
+            "description": "The last lines the app printed, oldest first — redacted at read with the rules that redact an Incident’s log tail. At most `lines`, and fewer when a line the runtime stored in pieces began before the window.",
+            "type": "array",
+            "items": {
+              "description": "One line the app printed.",
+              "type": "object",
+              "properties": {
+                "at": {
+                  "description": "When the line was printed, as the runtime recorded it — or, when `stamped` is false, when Manifest read it.",
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                "stamped": {
+                  "description": "Whether `at` is the runtime’s own time for the line.",
+                  "type": "boolean"
+                },
+                "stream": {
+                  "description": "Which of the app’s two outputs it printed to.",
+                  "type": "string",
+                  "enum": [
+                    "stdout",
+                    "stderr"
+                  ]
+                },
+                "text": {
+                  "description": "The line, redacted. A line longer than 4 KiB is cut and ends `…[cut: N bytes]`.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "at",
+                "stamped",
+                "stream",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "truncated": {
+            "description": "Which bound the answer met.",
+            "type": "object",
+            "properties": {
+              "lines": {
+                "description": "The app printed more lines than were read.",
+                "type": "boolean"
+              },
+              "bytes": {
+                "description": "The lines read were more than 256 KiB together, and the oldest were dropped.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "lines",
+              "bytes"
+            ],
+            "additionalProperties": false
+          },
+          "failure": {
+            "description": "Why reading stopped early, when it did — an error’s code or name, never its message. The lines before it are still answered.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "instanceId",
+          "environmentId",
+          "environmentKind",
+          "readAt",
+          "lines",
+          "truncated",
+          "failure"
+        ],
+        "additionalProperties": false
+      },
+      "InstanceSummary": {
+        "description": "An instance, and whether it is the one serving.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The instance.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "environmentId": {
+            "description": "The environment it runs in.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "releaseId": {
+            "description": "The release it runs (`getRelease`).",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "kind": {
+            "description": "What kind of process it is; `web`, which answers requests, is the only kind the platform runs today.",
+            "type": "string",
+            "enum": [
+              "web",
+              "worker",
+              "cron"
+            ]
+          },
+          "state": {
+            "description": "Where it is in its life (§11): `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.",
+            "type": "string",
+            "enum": [
+              "pending",
+              "building",
+              "provisioning",
+              "starting",
+              "healthy",
+              "failed",
+              "hibernated",
+              "waking",
+              "destroying",
+              "gone"
+            ]
+          },
+          "lastSeenAt": {
+            "description": "When the platform last saw it running; null before it started.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serving": {
+            "description": "Whether the environment’s hostname reaches this instance now. At most one instance of an environment serves, and a failed one never does.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "environmentId",
+          "releaseId",
+          "kind",
+          "state",
+          "lastSeenAt",
+          "serving"
+        ],
+        "additionalProperties": false
+      },
       "KnowledgePack": {
         "description": "D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it.",
         "type": "object",
@@ -12737,6 +13134,7 @@
                 "project:delete",
                 "source:write",
                 "secret:write",
+                "output:read",
                 "members:manage",
                 "build:create",
                 "release:create",
@@ -14773,6 +15171,16 @@
       "status": 409,
       "summary": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
       "remedy": "Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`)."
+    },
+    "INSTANCE_OUTPUT_PRODUCTION": {
+      "status": 403,
+      "summary": "A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.",
+      "remedy": "Read a sandbox or staging instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production."
+    },
+    "INSTANCE_OUTPUT_UNAVAILABLE": {
+      "status": 409,
+      "summary": "The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.",
+      "remedy": "Read the environment’s Incidents (`listIncidents`): a failed instance’s last lines are in its Incident. `listInstances` says which instance is running now."
     },
     "INTERNAL": {
       "status": 500,

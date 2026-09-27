@@ -276,6 +276,26 @@ export async function servingInstanceOf(
 }
 
 /**
+ * An environment's instances, the one seen most recently first — at most `limit`, and
+ * whether there were more (the front-end enablement plan's Task 3, `listInstances`). A
+ * failed instance stays listed after it is replaced: it is what an agent reads to learn why.
+ * `id` breaks ties, so a page never reorders between two reads.
+ */
+export async function instancesOf(
+  db: Db,
+  environment: Environment,
+  limit: number,
+): Promise<{ rows: (typeof instances.$inferSelect)[]; truncated: boolean }> {
+  const rows = await db
+    .select()
+    .from(instances)
+    .where(eq(instances.environmentId, environment.id))
+    .orderBy(sql`${instances.lastSeenAt} desc nulls last`, instances.id)
+    .limit(limit + 1)
+  return { rows: rows.slice(0, limit), truncated: rows.length > limit }
+}
+
+/**
  * Idempotent by conflict target, so a retried invitation updates the role rather
  * than violating the (project, user) primary key. D23.6 covers the HTTP replay; this
  * covers the same action arriving twice by any other route.

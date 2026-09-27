@@ -78,6 +78,9 @@ export const PATH = {
   userId: z.uuid().describe('The member’s user id, from `listMembers`.'),
   tokenId: z.uuid().describe('The token’s id, from `listTokens`.'),
   previewId: z.uuid().describe('The preview’s id, from `createApprovalPreview`.'),
+  instanceId: z
+    .uuid()
+    .describe('The instance’s id, from `listInstances`, `getEnvironment` or `deploy`.'),
 } as const
 
 /** Never a `Date`: `z.date()` has no JSON Schema (Decision 3). Mappers call `toISOString()`. */

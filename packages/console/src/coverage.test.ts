@@ -17,6 +17,12 @@ import { describe, expect, it } from 'vitest'
  * and the list is where that claim is recorded.
  */
 const DELIBERATELY_UNCALLED: Record<string, string> = {
+  // The front-end enablement plan's Task 3 (sitting 2): §14's bounded read. Its screen is the
+  // plan's Task 13, which adds the callers and removes both parks in one commit.
+  listInstances:
+    'the front-end enablement plan’s Task 13 adds the console’s instances list and removes this',
+  getInstanceOutput:
+    'the front-end enablement plan’s Task 13 adds the console’s recent-output view and removes this',
   // **EMPTY AGAIN SINCE THE AUTHORING API PLAN'S TASK 10 (sitting 7, 2026-09-26)**, and that
   // is a measurement: all 51 operations have a caller. That plan's Tasks 5, 6 and 8 parked
   // eight here naming Task 10 as their remover — `getTree`, `getFile`, `listCommits`,

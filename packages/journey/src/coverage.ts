@@ -83,11 +83,7 @@ export const JOURNEY: readonly JourneyStep[] = [
   {
     step: 'Read a running app’s recent output to debug it',
     who: 'either',
-    operations: [],
-    later: {
-      plan: 'the next release',
-      why: 'live tailing of a running app’s own output stays out of the first version (§14); a bounded, redacted read of its recent output, in sandbox and staging only, is agreed and is the next to be built',
-    },
+    operations: ['listInstances', 'getInstanceOutput'],
   },
   {
     step: 'Ask for a privileged action and wait for a person',
