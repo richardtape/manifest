@@ -1383,9 +1383,11 @@ describe('a project’s name (Task 6)', () => {
       // … and recorded, its sentence naming the person and never a PUID.
       const recorded = await renamedEvents(ctx)
       expect(recorded).toHaveLength(1)
-      expect(recorded[0]!.humanMessage).toContain('Bio Prof')
-      expect(recorded[0]!.humanMessage).toContain('Organic Chemistry Labs')
-      expect(recorded[0]!.humanMessage).not.toContain('bio_prof')
+      // Both names QUOTED (the review's Minor 1): a name is somebody's free text inside a
+      // sentence the owner reads, and quotes keep it one phrase.
+      expect(recorded[0]!.humanMessage).toBe(
+        `Bio Prof renamed the project from “${before.json().slug}” to “Organic Chemistry Labs”.`,
+      )
     })
   })
 
@@ -1438,6 +1440,14 @@ describe('a project’s name (Task 6)', () => {
         'a lone \ud800 surrogate',
         '   ',
         '',
+        // The review's Minor 1, re-graded: "on one line", with something to see, and no mark
+        // that reorders the sentence a name is read in.
+        'a line\u2028separator',
+        'a paragraph\u2029separator',
+        'a \u202eright-to-left override',
+        'an \u2066isolate\u2069',
+        'a \u200eleft-to-right mark',
+        '\u200b\u200b',
       ]) {
         expect(refusal(await rename(ctx, name)), JSON.stringify(name)).toEqual({
           status: 400,
@@ -1460,6 +1470,25 @@ describe('a project’s name (Task 6)', () => {
         cookies: ctx.ownerCookies,
       })
       expect(read.json().name).toBe(eighty)
+    })
+  })
+
+  it('the first PATCH is a mutation: a session’s needs its Origin and an Idempotency-Key', async () => {
+    // The review's Minor 6, re-graded: every rename test sends both, so dropping 'PATCH' from
+    // the server's MUTATING set left all of Task 6 green. §20's CSRF and D23.6's key, asserted.
+    await withProjectServer(async (ctx) => {
+      const { origin, 'idempotency-key': key } = mutationHeaders(ctx.deps)
+      const noOrigin = await rename(ctx, 'No origin', {
+        headers: { 'idempotency-key': key },
+      })
+      expect(refusal(noOrigin)).toEqual({ status: 403, code: 'CSRF_ORIGIN_REFUSED' })
+      const noKey = await rename(ctx, 'No key', { headers: { origin } })
+      expect(refusal(noKey)).toEqual({ status: 400, code: 'IDEMPOTENCY_KEY_REQUIRED' })
+      // The positive control: both present, and it renames.
+      expect(
+        (await rename(ctx, 'Both', { headers: { origin, 'idempotency-key': key } }))
+          .statusCode,
+      ).toBe(200)
     })
   })
 

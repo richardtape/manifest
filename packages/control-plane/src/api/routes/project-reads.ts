@@ -371,6 +371,8 @@ export const projectReadRoutes = [
       'FORBIDDEN',
       'MEMBER_USER_NOT_FOUND',
       'MEMBER_USER_AMBIGUOUS',
+      // The only owner made a collaborator would leave the project with none (§13).
+      'PROJECT_LAST_OWNER',
       // D24's central refusal (P5b Task 6). Listed on the two routes whose capability is
       // one of `PRIVILEGED` rather than on every route, because only these two can answer
       // it — `members:manage` here, `release:promote` on the production deploy.
@@ -416,10 +418,15 @@ export const projectReadRoutes = [
             : (['email', body.email!, { email: body.email! }] as const)
       const person = await findPerson(deps.db, key)
       if (person.kind === 'nobody') {
+        // EACH KEY SAYS WHAT IT MEANS (the review's I1). A CWL login is known only for a person
+        // who has signed in since Manifest began asking CWL for it — so somebody who HAS signed
+        // in can miss by login, and "sign in once" would be false and loop an agent.
         throw new BadRequestError(
           'MEMBER_USER_NOT_FOUND',
           `nobody with the ${how} '${value}' has signed in to Manifest`,
-          'A person must sign in to Manifest once with CWL before they can be added to a project.',
+          body.cwlLogin !== undefined
+            ? 'Manifest knows a CWL login name only for a person who has signed in since it began asking CWL for one. Add them by their email or PUID instead, or ask them to sign in to Manifest again.'
+            : 'Check it, or ask the person to sign in to Manifest once with CWL, then add them again.',
         )
       }
       if (person.kind === 'ambiguous') {
@@ -427,16 +434,15 @@ export const projectReadRoutes = [
         throw new BadRequestError(
           'MEMBER_USER_AMBIGUOUS',
           `more than one person who has signed in to Manifest has the email '${value}'`,
-          'Add them by their CWL login name instead.',
+          'Add them by their CWL login name or their PUID instead.',
         )
       }
       const user = person.user
-      const { previousRole } = await addMember(
-        deps.db,
-        params.projectId,
-        user.id,
-        body.role,
-      )
+      const added = await addMember(deps.db, params.projectId, user.id, body.role)
+      // THE LAST OWNER STAYS AN OWNER (the review's I2): `removeMember`'s rule, on the other way
+      // a project could lose its last owner — being made a collaborator.
+      if (added === 'last owner') throw new LastOwnerError()
+      const { previousRole } = added
       if (previousRole !== body.role) {
         const who = await actorPhrase(deps.db, actor)
         const them = await personName(deps.db, user.id)

@@ -9,9 +9,15 @@ import { SpecValidation } from './specs.js'
  * A control character — `\p{Cc}`: C0, DEL and C1 — refused rather than stripped: a name a person
  * typed with one is a paste gone wrong. The class a commit message refuses (`messageProblems` in
  * `source.ts`), WHOLE: a message may carry a line break and a tab, and a name, which is one line
- * of a heading, carries neither.
+ * of a heading, carries neither. AND, since the sitting's review (its Minor 1, re-graded): the
+ * line and paragraph separators (`\p{Zl}`, `\p{Zp}`), which break a line as surely as `\n`, and
+ * the bidirectional marks, embeddings, overrides and isolates, which reorder the sentence a name
+ * is read in — `project.renamed`'s, in its owner's activity.
  */
-const CONTROL = /\p{Cc}/u
+const CONTROL = /[\p{Cc}\p{Zl}\p{Zp}\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u
+
+/** Something to SEE: a letter, a digit, punctuation or a symbol — so no name renders blank. */
+const VISIBLE = /[\p{L}\p{N}\p{P}\p{S}]/u
 
 /**
  * WHAT PEOPLE CALL A PROJECT (§6 as Spec action 4 amended it; the front-end enablement plan's
@@ -24,11 +30,11 @@ export const ProjectName = z
   .min(1)
   .max(80)
   .refine(
-    (s) => !CONTROL.test(s) && !LONE_SURROGATE.test(s),
-    'a name is text, with no control character (no tab or line break) and no lone surrogate',
+    (s) => !CONTROL.test(s) && !LONE_SURROGATE.test(s) && VISIBLE.test(s),
+    'a name is one line of visible text: no control character, tab, line or paragraph separator, bidirectional mark or lone surrogate',
   )
   .describe(
-    'What people call the project — any text of 1 to 80 characters, trimmed, on one line. Never part of an address: the slug is.',
+    'What people call the project — text of 1 to 80 characters, trimmed, on one line, with something visible in it; no control character, line separator or bidirectional mark. Never part of an address: the slug is.',
   )
 
 export const UserSummary = representation(
@@ -194,7 +200,7 @@ export const CreateProjectRequest = request(
         .min(1)
         .describe('Checked by the same function as GET /v1/slugs/{slug} (§23).'),
       name: ProjectName.optional().describe(
-        'What people call the project — any text of 1 to 80 characters, trimmed, on one line. The slug, when none is given; `updateProject` changes it later.',
+        'What people call the project — `ProjectName`’s rules. The slug, when none is given; `updateProject` changes it later.',
       ),
       blueprint: z.string().min(1).describe('`name@major`, from GET /v1/blueprints.'),
       starter: z

@@ -1529,7 +1529,7 @@ export interface components {
         CreateProjectRequest: {
             /** @description Checked by the same function as GET /v1/slugs/{slug} (§23). */
             slug: string;
-            /** @description What people call the project — any text of 1 to 80 characters, trimmed, on one line. The slug, when none is given; `updateProject` changes it later. */
+            /** @description What people call the project — `ProjectName`’s rules. The slug, when none is given; `updateProject` changes it later. */
             name?: string;
             /** @description `name@major`, from GET /v1/blueprints. */
             blueprint: string;
@@ -1556,7 +1556,7 @@ export interface components {
             id: string;
             /** @description The project’s permanent identifier, and the first label of every hostname it has (§23). It never changes; `name` is what people read. */
             slug: string;
-            /** @description What people call the project — any text of 1 to 80 characters, trimmed, on one line. Never part of an address: the slug is. */
+            /** @description What people call the project — text of 1 to 80 characters, trimmed, on one line, with something visible in it; no control character, line separator or bidirectional mark. Never part of an address: the slug is. */
             name: string;
             /** @description `name@major` (§25). */
             blueprint: string;
@@ -4314,7 +4314,7 @@ export interface components {
             id: string;
             /** @description The project’s permanent identifier, and the first label of every hostname it has (§23). It never changes; `name` is what people read. */
             slug: string;
-            /** @description What people call the project — any text of 1 to 80 characters, trimmed, on one line. Never part of an address: the slug is. */
+            /** @description What people call the project — text of 1 to 80 characters, trimmed, on one line, with something visible in it; no control character, line separator or bidirectional mark. Never part of an address: the slug is. */
             name: string;
             /** @description `name@major` (§25). */
             blueprint: string;
@@ -4843,7 +4843,7 @@ export interface components {
         TokenList: components["schemas"]["Token"][];
         /** @description What to change about a project. Only its name can change; its slug never does (§23, D26). */
         UpdateProjectRequest: {
-            /** @description What people call the project — any text of 1 to 80 characters, trimmed, on one line. Never part of an address: the slug is. */
+            /** @description What people call the project — text of 1 to 80 characters, trimmed, on one line, with something visible in it; no control character, line separator or bidirectional mark. Never part of an address: the slug is. */
             name: string;
         };
         /** @description A person, by name. */
@@ -7252,7 +7252,7 @@ export interface operations {
                     "application/json": components["schemas"]["Member"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

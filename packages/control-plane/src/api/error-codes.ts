@@ -311,8 +311,8 @@ export const ERROR_CODES = {
   ),
   PROJECT_LAST_OWNER: api(
     409,
-    'A project must always have an owner, so the last one cannot be removed.',
-    'Make another member an owner first (`addMember` with role `owner`), then remove this one.',
+    'A project must always have an owner, so the last one cannot be removed or made a collaborator.',
+    'Make another member an owner first (`addMember` with role `owner`), then remove this one or change their role.',
   ),
   /** A pending action already has an answer, and one question has one (P5b Task 7). */
   PENDING_ACTION_RESOLVED: api(
@@ -331,13 +331,13 @@ export const ERROR_CODES = {
     'Choose one from `listBlueprints` and name it `name@major`.',
   ),
   MEMBER_USER_NOT_FOUND: bad(
-    'Nobody with the PUID, CWL login name or email given has ever signed in to Manifest.',
-    'Check the spelling, or ask the person to sign in to Manifest once with CWL, then add them again.',
+    'Nobody Manifest knows by the PUID, CWL login name or email given has signed in. A CWL login name is known only for a person who has signed in since Manifest began asking CWL for one, so a person who has signed in can still miss by login.',
+    'Check it. For a CWL login name, add the person by their email or PUID instead; otherwise ask them to sign in to Manifest once with CWL, then add them again.',
   ),
   // The front-end enablement plan's Task 7 (Decision 14): an email two people share.
   MEMBER_USER_AMBIGUOUS: bad(
     'More than one person who has signed in to Manifest has the email given, so it names nobody in particular. The answer names none of them.',
-    'Add the person by their CWL login name (`cwlLogin`) instead.',
+    'Add the person by their CWL login name (`cwlLogin`) or their PUID (`puid`) instead.',
   ),
   SPEC_NOT_FOUND: bad(
     'The project has no validated spec yet.',

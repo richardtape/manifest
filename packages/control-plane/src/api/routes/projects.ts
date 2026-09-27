@@ -477,7 +477,9 @@ export const projectWriteRoutes = [
               userId: actor.userId,
               tokenId: actor.credential === 'token' ? actor.tokenId : null,
             },
-            humanMessage: `${await actorPhrase(deps.db, actor)} renamed ${renamed.from} to ${body.name}.`,
+            // Both names QUOTED: each is somebody's free text inside a sentence another
+            // person reads (the review's Minor 1).
+            humanMessage: `${await actorPhrase(deps.db, actor)} renamed the project from “${renamed.from}” to “${body.name}”.`,
           },
           makeRedactor([]),
         )

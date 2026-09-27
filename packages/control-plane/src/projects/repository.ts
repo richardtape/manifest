@@ -336,7 +336,8 @@ export async function instancesOf(
  * covers the same action arriving twice by any other route.
  *
  * **Answers the role they HAD** — null when they were not a member — so the route publishes
- * `member.added` only for a change (the front-end enablement plan's Task 7). The project's row
+ * `member.added` only for a change (the front-end enablement plan's Task 7) — or `'last owner'`,
+ * changing nothing, when it would make the project's only owner a collaborator. The project's row
  * is locked for the read and the write, so two additions of one person racing each read what
  * the other wrote, and only one of them reads "not a member".
  */
@@ -345,7 +346,7 @@ export async function addMember(
   projectId: string,
   userId: string,
   role: 'owner' | 'collaborator',
-): Promise<{ previousRole: ProjectRole | null }> {
+): Promise<{ previousRole: ProjectRole | null } | 'last owner'> {
   return db.transaction(async (tx) => {
     await tx
       .select({ id: projects.id })
@@ -358,6 +359,18 @@ export async function addMember(
       .where(
         and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)),
       )
+    // The LAST OWNER stays one — `removeMember`'s rule, which a demotion would otherwise route
+    // around (the review's I2). Counted under the project's lock, so two demotions racing
+    // cannot each see the other still an owner.
+    if (before?.role === 'owner' && role !== 'owner') {
+      const [counted] = await tx
+        .select({ owners: sql<number>`count(*)::int` })
+        .from(projectMembers)
+        .where(
+          and(eq(projectMembers.projectId, projectId), eq(projectMembers.role, 'owner')),
+        )
+      if ((counted?.owners ?? 0) <= 1) return 'last owner'
+    }
     await tx
       .insert(projectMembers)
       .values({ projectId, userId, role })

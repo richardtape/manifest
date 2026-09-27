@@ -187,6 +187,59 @@ describe('people by CWL login name or email (Task 7)', () => {
     })
   })
 
+  it('a CWL login nobody is known by says how else to find the person — and so does a shared email', async () => {
+    // The review's I1: a person who signed in before Manifest asked for uid (or where UBC does
+    // not release it) HAS signed in, so "ask them to sign in once" is false and loops. Each key
+    // says what it means, and names the keys that still work.
+    await withProjectServer(async (ctx) => {
+      await signedInOnce(ctx, { cwlLogin: null })
+      const missed = await add(ctx, { cwlLogin: 'student', role: 'collaborator' })
+      expect(refusal(missed)).toEqual({ status: 400, code: 'MEMBER_USER_NOT_FOUND' })
+      expect(missed.json().error.message).toContain("CWL login name 'student'")
+      expect(missed.json().error.hint).toMatch(/email/)
+      expect(missed.json().error.hint).toMatch(/PUID/)
+      // … and the key it names works: the same person, by email.
+      expect(
+        (await add(ctx, { email: 'student@student.ubc.ca', role: 'collaborator' }))
+          .statusCode,
+      ).toBe(201)
+
+      await signedInOnce(ctx, {
+        ubcCwlPuid: 'stu000002',
+        displayName: 'Other Student',
+        email: 'student@student.ubc.ca',
+        cwlLogin: null,
+      })
+      const shared = await add(ctx, { email: 'student@student.ubc.ca', role: 'owner' })
+      expect(refusal(shared)).toEqual({ status: 400, code: 'MEMBER_USER_AMBIGUOUS' })
+      expect(shared.json().error.hint).toMatch(/PUID/)
+    })
+  })
+
+  it('refuses to make the last owner a collaborator, and publishes nothing — beside a demotion that leaves one', async () => {
+    // The review's I2 (pre-existing): `addMember` with the only owner's own key and role
+    // `collaborator` left a project with NO owner — what `removeMember`'s guard exists to stop.
+    await withProjectServer(async (ctx) => {
+      const demoted = await add(ctx, { puid: 'bio_prof', role: 'collaborator' })
+      expect(refusal(demoted)).toEqual({ status: 409, code: 'PROJECT_LAST_OWNER' })
+      const members = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/members`,
+        cookies: ctx.ownerCookies,
+      })
+      expect(members.json().map((m: { role: string }) => m.role)).toEqual(['owner'])
+      expect(await memberEvents(ctx)).toEqual([])
+      // The positive control: with a second owner, the first may become a collaborator.
+      await signedInOnce(ctx)
+      expect((await add(ctx, { cwlLogin: 'student', role: 'owner' })).statusCode).toBe(
+        201,
+      )
+      const allowed = await add(ctx, { puid: 'bio_prof', role: 'collaborator' })
+      expect(allowed.statusCode, allowed.body).toBe(201)
+      expect(allowed.json().role).toBe('collaborator')
+    })
+  })
+
   it('a collaborator asking learns nothing about who has signed in', async () => {
     // `members:manage` is asserted BEFORE the lookup, so a person who may not manage members
     // gets the same refusal for a login that exists and one that does not.

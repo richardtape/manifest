@@ -2687,9 +2687,10 @@ Answer, `201`:
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
-| `MEMBER_USER_AMBIGUOUS` | 400 | Add the person by their CWL login name (`cwlLogin`) instead. |
-| `MEMBER_USER_NOT_FOUND` | 400 | Check the spelling, or ask the person to sign in to Manifest once with CWL, then add them again. |
+| `MEMBER_USER_AMBIGUOUS` | 400 | Add the person by their CWL login name (`cwlLogin`) or their PUID (`puid`) instead. |
+| `MEMBER_USER_NOT_FOUND` | 400 | Check it. For a CWL login name, add the person by their email or PUID instead; otherwise ask them to sign in to Manifest once with CWL, then add them again. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `PROJECT_LAST_OWNER` | 409 | Make another member an owner first (`addMember` with role `owner`), then remove this one or change their role. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
@@ -2733,7 +2734,7 @@ Answer, `200`:
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
-| `PROJECT_LAST_OWNER` | 409 | Make another member an owner first (`addMember` with role `owner`), then remove this one. |
+| `PROJECT_LAST_OWNER` | 409 | Make another member an owner first (`addMember` with role `owner`), then remove this one or change their role. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
