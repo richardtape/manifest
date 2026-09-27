@@ -46,8 +46,8 @@
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**: a container's output at a large tail and its bytes; Docker's timestamps; the redactor over an app's own output; a SimpleSAMLphp SP row with TWO assertion-consumer URLs, and an AuthnRequest naming the second; a logout's `RelayState` round trip; `app.manifest.internal` today; LiteLLM 1.98.0's key `duration`, key `max_budget`, `key_alias` deletion and a user's spend; a stopped service's data volume surviving a re-create; a binary blob through the write path and the build gate; the local IdP releasing `uid`; the gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-27**, at Rich's instruction before his review — the measurements in `spikes/frontend-baseline/`; `[M<n>]` blocks at Tasks 2, 4, 5, 7, 8, 9, 10, 11; **the split stands** (`[M3]` held) |
 | 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) | **DONE 2026-09-27** — `readRecentOutput`, THE reader, redacting lines JOINED (a key printed line by line) and before any cut; `listInstances` and `getInstanceOutput` under `output:read`, production `403`, a removed instance `409`; contract **1.4.0**; one fresh whole-branch review, its Critical and three Importants fixed |
-| 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | ← next |
-| 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) | **Yes** — `blueprints/`, `source/` | none | |
+| 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | **DONE 2026-09-27** — `source/binary.ts`; bytes through `Change` to `planChanges` (the blob is git's own id for the bytes, both drivers); a base64 write canonical, ≤ 2 MiB, never text, NAMED as one of the ten kinds (the review's I1/I2) and one of them by its bytes; printable runs scanned — the only layer for a binary write, its blind spots named; `getFile?encoding=base64`; a real PNG and TTF built, deployed and served byte-exact through the edge; one fresh whole-branch review, three Importants fixed and one (a pre-existing quadratic scan) handed to Task 5 |
+| 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) — **and `scanText`'s quadratic long line** (Task 5's `[S3]`, from sitting 3) | **Yes** — `blueprints/`, `source/`, `build/` | none | ← next |
 | 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | |
 | 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | |
 | 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **If it runs long, stop after Task 9 and sweep** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27 | |
@@ -900,7 +900,7 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 - Consumes: `scanText` (`build/secret-patterns.ts`); `planChanges`, `buildCommit`; `READ_LIMITS`.
 - Produces: `WriteChange.encoding?: 'utf8' | 'base64'`; `SourceFile.encoding: 'utf8' | 'base64'`; `getFile`'s query `encoding`; `mediaTypeOf(bytes: Uint8Array): string | null`; `isText(bytes: Uint8Array): boolean`; `printableRuns(bytes: Uint8Array, min?: number): string`; `BINARY_FILE_BYTES = 2 * 1024 * 1024`. **Tasks 13, 14 and 15 use these names.**
 
-- [ ] **Step 1: `source/binary.ts`, test first.**
+- [x] **Step 1: `source/binary.ts`, test first.**
   ```ts
   // binary.test.ts — every sample is BUILT in the test from its magic bytes, never read from disk.
   const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52])
@@ -946,7 +946,7 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
   ```
   **`[M11]` decides the minimum run**: if Task 1 found a secret rule firing on a legitimate file's printable run at 16, raise it, and say which file and which rule in a comment here.
 
-- [ ] **Step 2: The request.** `WriteChange` gains `encoding: z.enum(['utf8', 'base64']).optional()`. Its refinement branches: for `utf8` (or absent), today's three rules unchanged. For `base64`:
+- [x] **Step 2: The request.** `WriteChange` gains `encoding: z.enum(['utf8', 'base64']).optional()`. Its refinement branches: for `utf8` (or absent), today's three rules unchanged. For `base64`:
   - **canonical** — `Buffer.from(c, 'base64').toString('base64') === c`, which refuses whitespace, `-`/`_`, and bad padding;
   - decoded **≤ `BINARY_FILE_BYTES`**;
   - **`!isText(bytes)`**, with the message *"this is text; send it with `encoding: 'utf8'`"*;
@@ -954,11 +954,11 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
   Each is `400 REQUEST_INVALID` naming the change's index and path. The route decodes once, and hands the driver `content: Uint8Array` for a base64 write.
 
-- [ ] **Step 3: The drivers and the plan.** `Change`'s write becomes `{ op: 'write'; path: string; content: string | Uint8Array }` — **`tsc` finds every consumer**. `planChanges` computes `typeof content === 'string' ? Buffer.from(content, 'utf8') : Buffer.from(content)`; nothing else in `buildCommit` changes (*Read this first* 11). `writesOf` answers `{ path, content: typeof c.content === 'string' ? c.content : printableRuns(c.content) }`, so the route's scan and each driver's `assertNoSecrets` read a binary write's printable runs with the rules they already have. **The refusal is the existing `SOURCE_SECRET_DETECTED` with `repository.secret_refused`** — path and rule, never the value, and a line number that counts runs rather than lines (say so in the event's description). `SeedFiles` stays text: a blueprint is text by construction (`blueprints/tree.ts`).
+- [x] **Step 3: The drivers and the plan.** `Change`'s write becomes `{ op: 'write'; path: string; content: string | Uint8Array }` — **`tsc` finds every consumer**. `planChanges` computes `typeof content === 'string' ? Buffer.from(content, 'utf8') : Buffer.from(content)`; nothing else in `buildCommit` changes (*Read this first* 11). `writesOf` answers `{ path, content: typeof c.content === 'string' ? c.content : printableRuns(c.content) }`, so the route's scan and each driver's `assertNoSecrets` read a binary write's printable runs with the rules they already have. **The refusal is the existing `SOURCE_SECRET_DETECTED` with `repository.secret_refused`** — path and rule, never the value, and a line number that counts runs rather than lines (say so in the event's description). `SeedFiles` stays text: a blueprint is text by construction (`blueprints/tree.ts`).
 
-- [ ] **Step 4: The read.** `readBytesIn(gitDir, commitSha, path)` is `readTextIn` with the size cap at `BINARY_FILE_BYTES` and neither text rule. `SourceDriver.readBytes` answers `{ ..., content: Buffer }`. `getFile`'s query gains `encoding: z.enum(['utf8', 'base64']).optional()`. `base64` reads bytes and answers `content: bytes.toString('base64')`, `encoding: 'base64'`. `utf8` (the default) is today's read, and now answers `encoding: 'utf8'`. `SourceFile.encoding` is required in the representation, so every answer carries it.
+- [x] **Step 4: The read.** `readBytesIn(gitDir, commitSha, path)` is `readTextIn` with the size cap at `BINARY_FILE_BYTES` and neither text rule. `SourceDriver.readBytes` answers `{ ..., content: Buffer }`. `getFile`'s query gains `encoding: z.enum(['utf8', 'base64']).optional()`. `base64` reads bytes and answers `content: bytes.toString('base64')`, `encoding: 'base64'`. `utf8` (the default) is today's read, and now answers `encoding: 'utf8'`. `SourceFile.encoding` is required in the representation, so every answer carries it.
 
-- [ ] **Step 5: The failing tests, then green** — in the API's commit and read test files, and the driver contract (both drivers):
+- [x] **Step 5: The failing tests, then green** — in the API's commit and read test files, and the driver contract (both drivers):
   ```ts
   it('commits a PNG as bytes, and reads back exactly those bytes', async () => { /* write png (base64) → getFile?encoding=base64 → same base64; getTree lists it binary: true */ })
   it('refuses text sent as bytes', async () => { /* base64 of 'console.log(1)\n' → 400 REQUEST_INVALID, message names utf8 */ })
@@ -972,16 +972,31 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
   ```
   In `source/driver-contract.ts`: `it('writes bytes exactly, and a person reads them back with git', …)` — the blob id equals `git hash-object` of the same bytes, on both drivers. *(Review Focus 5.)*
 
-- [ ] **Step 6: The gates; commit.** `pnpm contract:write && pnpm contract:generate` (inside `1.4.0` — Task 3 took the bump; if this sitting runs before Task 3's, take it here and say so); the four gates; `pnpm test` twice; **`pnpm test:docker` in the background** (`source/`). **And one build through the edge**: a project whose tree holds the PNG builds and deploys (`make demo` shape, or the Docker tier's deploy harness) — **the build gate reads every file of 2 MB or less as UTF-8** (*Read this first* 11), and `[M11]` said what it makes of a PNG; a build refused by a binary is this task's defect. Commit:
+- [x] **Step 6: The gates; commit.** `pnpm contract:write && pnpm contract:generate` (inside `1.4.0` — Task 3 took the bump; if this sitting runs before Task 3's, take it here and say so); the four gates; `pnpm test` twice; **`pnpm test:docker` in the background** (`source/`). **And one build through the edge**: a project whose tree holds the PNG builds and deploys (`make demo` shape, or the Docker tier's deploy harness) — **the build gate reads every file of 2 MB or less as UTF-8** (*Read this first* 11), and `[M11]` said what it makes of a PNG; a build refused by a binary is this task's defect. Commit:
   ```bash
   git commit -m "feat(source): binary files — a write's encoding, ten media types recognised by their bytes, text refused as bytes, printable runs scanned for secrets; getFile's encoding"
   ```
 
-- [ ] **Step 7: Watch it fail.** (a) Drop `!isText(bytes)` — predict *refuses text sent as bytes* red. (b) Make `writesOf` answer `''` for bytes — predict *refuses a key inside a PDF* red, **and the push-time scan does NOT catch it** (it skips binary files) — record that the API's scan is the only layer. (c) Replace the ELF entry in the test with a real `mediaTypeOf` lookup table entry for `application/octet-stream` that answers for anything — predict *recognises nothing for an ELF* red.
+- [x] **Step 7: Watch it fail.** (a) Drop `!isText(bytes)` — predict *refuses text sent as bytes* red. (b) Make `writesOf` answer `''` for bytes — predict *refuses a key inside a PDF* red, **and the push-time scan does NOT catch it** (it skips binary files) — record that the API's scan is the only layer. (c) Replace the ELF entry in the test with a real `mediaTypeOf` lookup table entry for `application/octet-stream` that answers for anything — predict *recognises nothing for an ELF* red.
 
 ---
 
 ## Task 5: What the authoring API hands over — `express.urlencoded` in the knowledge pack, the seed commit's wording, and the review's six minors
+
+> **[S3] — HANDED TO THIS TASK BY SITTING 3 (2026-09-27): `scanText` IS QUADRATIC ON ONE LONG LINE, AND ONE REQUEST CAN STALL
+> THE CONTROL PLANE.** Found by sitting 3's whole-branch review (its I4), MEASURED by sitting 3 and ruled here rather than into
+> Task 4's fix pass — it predates this plan (the authoring API made it reachable) and its fix is a design choice. The JWT
+> pattern (`build/secret-patterns.ts:33`; `ghs_`'s at `:46` has the same shape) backtracks across every `eyJ` start in a long
+> run of `[A-Za-z0-9_-]`: `'-eyJaaaaaaaaaa'` repeated to 16/32/64/128/256 KiB took **25/101/407/1654/6609 ms** (4× per
+> doubling; the control, 264 KiB of minified JS, 0 ms). Extrapolated: **~106 s for a 1 MiB text line** (a `createCommit`
+> text write, since the authoring API) and **~7 min for a 2 MiB printable run** (a Task 4 binary write) — the EVENT LOOP
+> blocked, scanned by the route, then the driver, then the build gate (in-process, which also reads a person's pushed
+> one-line 2 MB file). A delegated token holding `source:write` is enough (D14). **The fix lives in `scanText` AND driver
+> 1's hook's hand-kept JavaScript copy** (`source/pre-receive.ts`; `pre-receive.test.ts` holds the two to one answer).
+> Choose, measure and record: overlapping windows over a long line (cheap; a secret longer than the overlap can be missed at
+> a window's edge — a JWT's payload can be KBs) or a linear matcher per pattern (exact; written twice). Test: a 1 MiB line of
+> the crafted input scanned under a bound (say 1 s), beside a secret still found inside a long line. **Owed by this sitting's
+> Docker tier anyway** (`source/`, `build/`).
 
 > **[M12] — MEASURED 2026-09-27 BY TASK 1. `git diff` DOES NOT TAKE `--pathspec-from-file`** on git 2.50.1: it prints its usage
 > and exits **129** (the option belongs to `add`, `checkout`, `commit`, `reset`, `restore`, `rm` and `stash`). Decision 12's
@@ -1669,6 +1684,15 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Task 13: The console and the mock — every new operation called, `DELIBERATELY_UNCALLED` empty again, the mock scripting what examples cannot
 
+> **[S3] — FROM SITTING 3 (Task 4, binary files; 2026-09-27).** (1) **manifest-mock answers `getFile`'s `utf8` example to
+> `?encoding=base64`** (`packages/mock/src/server.ts:260`; the review's minor 7) — honest about its encoding, but a front-end
+> built against the mock cannot exercise the byte read: script a base64 answer. (2) **The console's Code screen says *"a
+> symlink — Manifest reads and writes regular text files only"*** (`packages/console/src/code-state.ts:25`, `:37`, its test
+> at `code-state.test.ts:46`, and WALKTHROUGH's clicked row 4 quotes it) — false since Task 4: *regular files*; and a
+> binary file (`binary: true`) can now be SHOWN (an image through `getFile?encoding=base64`) rather than named unreadable.
+> (3) `createCommit`'s write takes `encoding: 'base64'` only at a path ending in one of the ten kinds' extensions
+> (`BINARY_EXTENSIONS`, `source/binary.ts`) — any upload control says so before it sends.
+
 **D22's rule, unchanged: the console is the proof that the API is complete, not the product.** Its quality bar is §22's — *"plain but presentable"* — and **none of this task is the faculty front-end's design**, which is drawn screen by screen after this plan against the design system (`docs/superpowers/design/`). What a screen here must do is CALL each operation the way a real client would, and show a person the answer honestly.
 
 **Files:**
@@ -1698,6 +1722,16 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 ---
 
 ## Task 14: The guides — *Building a front-end*, and every guide the API's new surface touches; every code block a run example
+
+> **[S3] — WHAT SITTING 3 BUILT THAT THE GUIDES MUST SAY (Task 4, binary files; 2026-09-27).** A write's `encoding: 'base64'`
+> takes canonical base64 of at most 2 MiB decoded, **at a path ending in `.png .jpg .jpeg .gif .webp .ico .pdf .woff .woff2
+> .ttf .otf`** (any of them for any kind — **a PNG named `.jpg` is accepted as a PNG**, `[M11]`), whose first bytes are one of
+> the ten kinds; **text sent as base64 is refused** — send it as text. `getFile?encoding=base64` reads ANY file up to 2 MiB
+> (text too); every `SourceFile` carries `encoding`. **The secret scan reads a binary file's printable text only** — text a
+> PDF compresses (how exporters write a page), UTF-16 text and a PNG's `zTXt` chunks are NOT scanned; say so, and say that
+> `repository.secret_refused`'s `line` counts runs in a base64 file. **Stale sentences today** (the review's minor 9):
+> `authoring.md:8` (*"one text file’s content"*), `:193` (*"**Text only.**"*), and the *"A binary file … cannot be read as
+> text"* samples at `authoring.md:34` and `getting-started.md:86`. Two 2 MiB files fit in one commit's 8 MiB body.
 
 > **[S2] — WHAT SITTING 2 BUILT THAT THE GUIDES MUST SAY (2026-09-27).** `getInstanceOutput`'s answer, as built and reviewed:
 > `lines` is AT MOST what was asked (a runtime's `tail` counts records, and a long line is several — [M1]); when every record
@@ -2189,3 +2223,137 @@ only uptime, the edge's restart and **4 GB less free disk** (83 → 79 Gi) — D
 20.9 GB reclaimable), which no cleanup script touches. `docker-simple-saml-saml-idp-1` exited, as at open.
 
 **Next: sitting 3 (Task 4, binary files)** — `[M11]` first; `pnpm test:docker` owed (`source/`, `build/`).
+
+### Sitting 3 — 2026-09-27: Task 4, binary files
+
+**Run cold from ORIENTATION §7e, at Rich's *"read the ORIENTATION.md file and proceed with the next sitting"*, with his
+instruction to cut test runs to what is absolutely necessary** (the LEAN budget: single files while working, the Docker tier
+once, the whole suite twice on the final tree). Inline execution (`superpowers:executing-plans`), committing on `main`; one
+fresh whole-branch reviewer (Opus, read-only) run beside the Docker tier, and one fix pass. Commits: `f8c7154` (Task 4),
+`26f7101` (a test Task 4's control (a) showed was missing), `bdb3afa` (the review's fix pass). The ledger's `Ruling:` lines
+are reproduced here as the rulings.
+
+**Rulings.**
+- **`binary.ts`'s `ascii` decodes through a Buffer VIEW**, not the plan's `String.fromCharCode(...bytes)` — F1.
+- **The request's content rules moved from the `content` field to a `WriteChange`-level refinement** (`contentProblems(path,
+  content, encoding)`, issues pathed `['content']`), because only the object sees `encoding` — F2.
+- **A base64 write is decoded twice** — the refinement's checks, then `changesOf` in the handler — rather than a transform in a
+  request schema (none exists; the document converts requests with `io: 'input'`). At most 2 MiB each.
+- **A binary write at `manifest.yaml` was first read as its UTF-8 decoding and refused `422 SPEC_INVALID`** (`manifestAfter`,
+  the one consumer `tsc` found of the widened `Change`) — **overturned by the review** (F5): now `400` by its name.
+- **THE EXTENSION RULE NARROWS DECISION 9 ON THE PATH ONLY** (the fix for F5 and F6): a base64 write's path must end in `.png
+  .jpg .jpeg .gif .webp .ico .pdf .woff .woff2 .ttf .otf`, ANY of them for ANY kind — the kind is still decided by the bytes,
+  and `[M11]`'s PNG named `.jpg` is still taken. Rich approved Decision 9 as written; this tightens it so that Decision 8's own
+  stated reason — the diff a person reads — holds. *Cost if wrong:* an image under a name without one of the eleven extensions
+  must be pushed; one list to widen.
+- **The review's minors 1–6 and 8 were re-graded into the fix pass**: each was a published sentence false or overclaiming after
+  Task 4, a plan step's explicit requirement left unmet, or a test comment claiming a check it did not make (F9–F11). 7 and 9
+  went to Tasks 13 and 14 (their `[S3]` blocks).
+- **The review's I4 — `scanText` quadratic on one long line — DEFERRED to Task 5**, measured here (F8): it predates this plan,
+  its fix is in `build/secret-patterns.ts` AND driver 1's hook's hand-kept copy, and it is a design choice. *Cost if wrong:*
+  until sitting 4, one request by a token holding `source:write` can block the control plane's event loop for ~2–7 minutes.
+- **`pnpm test:docker` ran ONCE, on `26f7101`, before the fix pass**, and was not re-run after it: the fix pass changed
+  `api/` (not an owing path), comments in `source/binary.ts` and `source/scan-commits.ts`, one exported list and predicate in
+  `source/binary.ts` read only by the request schema, and a description string in `observability/event-schemas.ts` — no line
+  any Docker case executes differently. *Cost if wrong:* the 217/36 is one commit behind the final tree.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 The plan's `printableRuns` snippet overflows the stack.** `String.fromCharCode(...b.subarray(from, to))` spreads every
+   byte into an argument list: run verbatim against a new case, one 2 MiB printable run threw `RangeError: Maximum call stack
+   size exceeded` (five other cases green), which the route would have answered `500`. TRAPS.md has it.
+2. **F2 Step 2's refinement "branches" on `encoding`, and today's rules could not see it.** They sat on the `content` FIELD,
+   and a field's refinement cannot read a sibling — left there, the *"larger than 1 MiB of UTF-8"* bound reads the base64
+   STRING and refuses any file over ~768 KiB, the plan's own positive control (*exactly 2 MiB commits*) included. The first RED
+   run showed exactly that message for the 2 MiB case (`body.changes.0.content: content is larger than 1 MiB`). The rules moved
+   to the object (the ruling above).
+3. **F3 Control (a) as the plan wrote it could turn a case red only on a MESSAGE.** Plain text sent as base64 also fails the
+   media-type rule, so with the text rule removed it is still `400`. The input only the text rule refuses is text that BEGINS
+   with a magic string — `%PDF-1.4\nrequire('child_process')…`, `OTTO = 1`, `GIF89a; …` — now in *refuses text sent as bytes*
+   (`26f7101`); control (a) then went red as predicted.
+4. **F4 Four published sentences said the API is text-only** and would have been false the moment Task 4 shipped —
+   `SOURCE_FILE_NOT_TEXT`'s meaning and remedy (*"change the file with git directly"*), `SOURCE_FILE_TOO_LARGE`'s, the tree's
+   `binary` description (*"not readable or writable through the API in v1"*) and the NUL refusal (*"the API writes text files
+   only"*). The plan's Files list did not name `api/error-codes.ts`. Found by `grep` before the first commit.
+5. **F5 (review I1) A crafted binary `manifest.yaml` committed `201`.** `%PDF-1.4\n---\n<the seeded manifest># \0\n` is not text
+   (a NUL), is a PDF by its head, and parses as valid YAML — so the ruling *"no manifest is a PNG"* rested on a premise a PDF head
+   breaks: a manifest no diff and no text read could show (`getTree` `binary: true`, `getFile` `SOURCE_FILE_NOT_TEXT`). Measured
+   RED with the crafted case run first: `manifest.yaml: expected { status: 201 }`.
+6. **F6 (review I2) A polyglot page committed `201`.** `%PDF-1.4\n\0<script>…</script>` at `public/index.html`: not text, a PDF
+   by its head — and an app serves it as HTML by its name while git says *Binary files differ*. Decision 9's ten kinds are ten
+   4–8-byte PREFIXES. Fixed with F5 by one rule (the ruling above); **the residual, named in `binary.ts`**: a payload BEHIND a
+   prefix at a kind's name (a ZIP after a PDF head) is still taken — concealment, not a capability text lacks.
+7. **F7 (review I3) Decision 10's scan cannot see the realistic case, and nothing said so.** The reviewer measured a 546 KB
+   licence PDF with 255 `FlateDecode` streams and no printable run containing *copyright*; a UTF-16LE key after a font head has
+   no run at all. Text a PDF compresses, UTF-16 text and a PNG's `zTXt`/`iTXt` chunks are now NAMED in `printableRuns`,
+   `writesOf` and `createCommit`'s published description — *narrows* the push-time scans' hole, never *closes* it (Decision 10's
+   word).
+8. **F8 (review I4, pre-existing) `scanText` is quadratic on one long line** — the JWT rule (and `ghs_`'s) backtracks from every
+   `eyJ` start: `'-eyJaaaaaaaaaa'` at 16/32/64/128/256 KiB took 25/101/407/1654/6609 ms (control: 264 KiB of minified JS, 0
+   ms). ~106 s for a 1 MiB text line, ~7 min for a 2 MiB printable run, the event loop blocked, three scans per commit. Handed
+   to Task 5 (`[S3]`); TRAPS.md has it.
+9. **F9 (review minors 2–4) The first sweep of published sentences missed three**: `SOURCE_PATH_NOT_A_FILE`'s *"reads and writes
+   regular text files"*, the tree's `binary` claiming any binary file can be written back (only the ten kinds), and
+   `SOURCE_FILE_TOO_LARGE`'s remedy implying a 1–2 MiB text file can be CHANGED (only read).
+10. **F10 (review minors 1, 5) Two plan requirements left unmet**: Step 2's *"each names the change's index and path"* (the
+    canonical and size refusals named only the index) and Step 3's *"say so in the event's description"* (the finding's `line`
+    counts runs in a base64 file — only the error's remedy said so).
+11. **F11 (review minor 6) A test comment claimed a check it did not make** — *"a directory is still not a file, however it is
+    read"* above an assertion on a MISSING path. Now asserted: `path=src&encoding=base64` → `409 SOURCE_PATH_NOT_A_FILE` (green
+    before the fix — existing behaviour, now held at the API).
+12. **F12 The console's Code screen says *"Manifest reads and writes regular text files only"*** (`code-state.ts:25`, `:37`, its
+    test, and WALKTHROUGH's clicked row 4) — found by the close-out's grep; the console is Task 13's (`[S3]`).
+13. **F13 (review minor 7) manifest-mock answers `getFile`'s `utf8` example to `?encoding=base64`** — Task 13's (`[S3]`).
+14. **F14 (review minor 9) Four guide sentences say text only** (`authoring.md:8`, `:193`, `:34`; `getting-started.md:86`) —
+    Task 14's (`[S3]`).
+
+**Measured, and as the plan predicted** (not findings): **the push-time scans do not read a binary file** — control (b) landed a
+PDF carrying an AWS key on BOTH drivers once the pre-write scan was blinded, driver 1's `pre-receive` installed
+(`local-driver.ts:227`) — so the pre-write scan is the only layer. **The build gate's UTF-8 read of a real PNG and TTF finds
+nothing** (below).
+
+**Step 6's build through the edge — PASSED** (driver 1; the control plane started per RUNBOOK): project `bin-check` on
+`fixture-node@1`; ONE `createCommit` of a real 66 KB PNG (macOS `Folder_128x128@2x.png`) and a 64 KB TrueType font
+(`SFHebrew.ttf`) as base64, and a `server.js` serving them; `getFile?encoding=base64` answered the PNG's exact bytes (SHA-256);
+the build succeeded (`sha256:86563b25…`) — the gate read both; staging healthy; **through the edge, from a container with
+`--cacert`: `logo.png` `e65df7fd…` and `font.ttf` `9b492b1a…`, each equal to its file's**, and `/` the app's own body, never the
+wildcard. All 25 `public`/`audit` tables were then searched for the PNG's base64: **none holds it** (events carry counts and the
+subject; the idempotency row an HMAC of the body).
+
+**The negative controls — every one predicted, run after its commit, and restored:**
+- Task 4, the plan's three: (a) no text rule — RED on *refuses text sent as bytes*' message (status still `400`: F3); (b)
+  `writesOf` answering `''` for bytes — RED on the API's PDF-key case (`201` for `409`) and on BOTH drivers' contract case with the
+  commit LANDED (*"expected undefined to be an instance of SourceError"*); (c) a catch-all `application/octet-stream` kind — RED
+  on *recognises nothing for an ELF* (`expected 'application/octet-stream' to be null`), the kinds list, and the API's executable
+  case (`201`).
+- Three more, one per rule the task added: (d) `[M11]` reproduced — bytes decoded lossily then written as UTF-8 — RED: the blob
+  `1894c34c…` for `9637311e…` on both drivers, the API round trip and the 2 MiB read; (e) `getFile` ignoring `encoding` — RED
+  (`409 SOURCE_FILE_NOT_TEXT` for the PNG; the text-as-base64 read); (f) no canonical check — RED (a spaced base64 committed
+  `201`).
+- The fix pass: its RED run before the fix is its control — the page `201` at `public/index.html`, the crafted manifest `201`
+  (run first), `BINARY_EXTENSIONS` undefined.
+
+**Deferred minors**: none beyond 7 and 9, both handed on (F13, F14).
+
+**Gates at close**: **`pnpm test` 2425 passed in 165 files**, twice on the final tree (`bdb3afa`: 520 s and
+514 s, identical) — up from 2404 in 164 by this sitting's 21 tests and one file (`source/binary.test.ts` 7, the driver contract's
+three cases on each driver 6, `api/source-commit.test.ts` 7, `api/source.test.ts` 1). **`pnpm test:docker` 217 in 36 files** —
+owed, run once, on `26f7101`, green first time in 940 s at load ~3.5 (the wall-clock retire case green in the full run); unchanged
+in count, because Task 4 adds no Docker case — Step 6's build through the edge is the Docker-shaped proof, run by hand. `pnpm
+typecheck`, `pnpm lint` and `pnpm format:check` clean. **`make doctor` 20/0/0; `make verify` 57/0/0**, its per-app line `mf-
+containers=6 networks=2 volumes=4`, as at open. The contract is still **1.4.0** (56 operations).
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 secrets, 0 instances, **33
+migrations** (this sitting added none); `launch-app`'s six `mf-launch-app-*` containers running, untouched; nothing listening on
+7100, 7102, 7104, 7105, 7110 or 8765 — **the control plane is not running**, as at open (it ran for Step 6's check, before the
+Docker tier, and was stopped); the edge (`manifest-caddy`) restarted by the Docker tier, as it always is; the GitHub fake absent;
+**both models unloaded** (Ollama's `/api/ps` lists none — the chat model was warmed for the tier). **Step 6's own leftovers
+removed by this sitting**: `bin-check`'s two containers (its app and egress proxy, rowless after the tier) by `docker rm -f`, and
+`.manifest/repos/bin-check.git`; then the three cleanup scripts, after `--apply` (allowed — 8 networks: the tier's seven and
+`bin-check`'s; 1 volume; `p4b-probe-user` — a `fixture-node` app has no AI key, so `bin-check` made no LiteLLM user; 15 app
+images, `bin-check`'s among them) and run bare again: `none dead`, 0
+orphaned, 0 dead app images. The snapshot diff shows only uptimes, the edge's restart and **1 GiB less free disk** (79 → 78 Gi);
+Docker's build cache is 25.1 GB (20.9 GB reclaimable), as sitting 2 left it. `docker-simple-saml-saml-idp-1` exited, as at open.
+
+**Next: sitting 4 (Task 5, what the authoring API hands over — and `[S3]`, `scanText`'s quadratic long line)**; `pnpm test:docker`
+owed (`blueprints/`, `source/`, `build/`).

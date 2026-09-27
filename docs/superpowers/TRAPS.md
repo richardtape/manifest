@@ -1906,6 +1906,22 @@ it belongs among the traps the next sitting is most likely to hit.
   secret makes the later joined exact match fail. Output that must stay lines goes through `LineRedactor.lines` (joined, one
   entry per line). A test of it needs body lines with `/` — a 32-character body line is redacted by entropy alone, and the
   test cannot fail.
+- **`String.fromCharCode(...bytes)` OVERFLOWS THE STACK ON A LONG ARRAY** (2026-09-27, the front-end enablement plan's
+  sitting 3, F1). Spreading an array into an argument list puts every element on the stack: the plan's `printableRuns`
+  snippet threw `RangeError: Maximum call stack size exceeded` on one 2 MiB printable run — which a route would have answered
+  `500`. Decode bytes through a view instead: `Buffer.from(b.buffer, b.byteOffset + from, length).toString('latin1')`
+  (`source/binary.ts`'s `ascii`). The same holds for `Math.max(...xs)` and `push(...xs)` over anything a client sizes.
+- **A MEDIA TYPE RECOGNISED "BY ITS BYTES" IS A 4–8-BYTE PREFIX, AND ANYTHING CAN FOLLOW IT** (2026-09-27, sitting 3's
+  whole-branch review, I1/I2). `%PDF-1.4\n` and one NUL make any text "binary" (git's rule is a NUL in the first 8000 bytes)
+  AND "a PDF": a `<script>` page committed `201` at `public/index.html`, served as HTML by its name while every diff said
+  *Binary files differ*, and a crafted `manifest.yaml` parsed as valid YAML. What a prefix check cannot prove, a NAME rule
+  can bound: a base64 write's path must end in one of the ten kinds' extensions (`BINARY_EXTENSIONS`). A payload behind a
+  prefix (a ZIP after a PDF head) is still accepted — concealment, not a new capability, since text carries base64 already.
+- **`scanText` IS QUADRATIC ON ONE LONG LINE OF `[A-Za-z0-9_-]` WITH MANY `eyJ` STARTS** (2026-09-27, sitting 3's review, I4
+  — measured, NOT YET FIXED: the plan's Task 5 `[S3]`). The JWT rule backtracks across the whole run from every start:
+  16→256 KiB of `'-eyJaaaaaaaaaa'` took 25 ms → 6.6 s, 4× per doubling (264 KiB of minified JS: 0 ms). A 1 MiB line blocks
+  the control plane's event loop for ~100 s, three times per commit (route, driver, build gate). Until Task 5 lands, a
+  red-by-timeout on a test that writes one huge line is this, not load.
 
 ## Images already pulled
 

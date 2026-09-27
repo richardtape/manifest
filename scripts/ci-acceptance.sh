@@ -119,8 +119,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # the fake driver's run of *honours tail* (1), `listInstances` and `getInstanceOutput` in
 # `api/instances.test.ts` (12, new), and the authorization matrix's three rows (27); minus
 # nothing — `events.test.ts`'s three reads were scoped, not removed.
-EXPECT_TESTS=2404
-EXPECT_FILES=164
+# Then the front-end enablement plan's sitting 3 (2026-09-27, binary files): +21 and one file —
+# `source/binary.test.ts` (7, new), the source driver contract's three byte cases on each driver
+# (6), `api/source-commit.test.ts`'s binary writes (7) and `api/source.test.ts`'s byte read (1).
+EXPECT_TESTS=2425
+EXPECT_FILES=165
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 
