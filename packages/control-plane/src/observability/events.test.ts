@@ -37,8 +37,10 @@ describe('recordEvent (§14, §20)', () => {
       )
       // Search the whole row, not the field we expect it in. §14's rule is about
       // what is persisted, and a canary in `human_message` is just as persisted
-      // as one in `machine_detail`.
-      const [row] = await db.select().from(events)
+      // as one in `machine_detail`. THIS PROJECT'S row: the table is not empty when another
+      // file's committed rows precede this one (the front-end enablement plan's sitting 2
+      // measured three cases here reading a fixture's `project.created` instead).
+      const [row] = await db.select().from(events).where(eq(events.projectId, projectId))
       expect(JSON.stringify(row)).not.toContain('STUDENT-PII-CANARY')
       expect(JSON.stringify(row)).toContain('[REDACTED]')
     })
@@ -60,7 +62,7 @@ describe('recordEvent (§14, §20)', () => {
         },
         makeRedactor(['hunter2xyz']),
       )
-      const [row] = await db.select().from(events)
+      const [row] = await db.select().from(events).where(eq(events.projectId, projectId))
       expect(row!.humanMessage).not.toContain('hunter2xyz')
       expect(row!.humanMessage).toContain('[REDACTED]')
     })
@@ -148,7 +150,9 @@ describe('recordEvent (§14, §20)', () => {
         message: expect.stringContaining("'build.started'") as unknown,
       })
       // Refused before anything was written: the trail holds no half-described event.
-      expect(await db.select().from(events)).toEqual([])
+      expect(
+        await db.select().from(events).where(eq(events.projectId, projectId)),
+      ).toEqual([])
     })
   })
 
