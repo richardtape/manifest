@@ -894,10 +894,11 @@ describe('createCommit — binary files, as base64 (the front-end enablement pla
       const asText = await get(ctx, `/file?path=public/logo.png&ref=${head}`)
       expect(refusal(asText)).toEqual({ status: 409, code: 'SOURCE_FILE_NOT_TEXT' })
       expect(errorOf(asText).message).toMatch(/encoding=base64/)
-      // A binary manifest.yaml is not a manifest: the commit is refused as one would be.
+      // A binary manifest.yaml is refused by its NAME before its bytes are read as a manifest
+      // (the whole-branch review's I1: a PDF-headed manifest parsed as valid YAML).
       expect(
         refusal(await post(ctx, commitBody(head, [bytesWrite('manifest.yaml', PNG)]))),
-      ).toEqual({ status: 422, code: 'SPEC_INVALID' })
+      ).toEqual({ status: 400, code: 'REQUEST_INVALID' })
       expect(await headOf(ctx)).toBe(head)
     })
   })
@@ -1068,6 +1069,47 @@ describe('createCommit — binary files, as base64 (the front-end enablement pla
       const head = (exact.json() as { commitSha: string }).commitSha
       const read = await get(ctx, `/file?path=public/big.png&ref=${head}&encoding=base64`)
       expect((read.json() as { size: number }).size).toBe(2 * MiB)
+    })
+  })
+
+  /**
+   * THE WHOLE-BRANCH REVIEW'S I1 AND I2: Decision 8's text rule reads only UTF-8 and a NUL, and
+   * Decision 9's kinds only a 4–8-byte prefix — so a page that begins `%PDF-1.4\n\0` is neither
+   * text nor refused, and an app serves `index.html` as HTML by its name while git and every diff
+   * call it binary. A binary write's PATH must end in one of the ten kinds' extensions — any of
+   * them for any kind, so `[M11]`'s PNG named `.jpg` is still taken.
+   */
+  it('refuses bytes at a path that is none of the ten kinds’ names — a PDF-headed page, a crafted manifest — and takes a PNG named .JPG', async () => {
+    await withProjectServer(async (ctx) => {
+      const commit = vi.spyOn(ctx.deps.source, 'commit')
+      const page = Buffer.from(
+        '%PDF-1.4\n\u0000<script>alert(document.cookie)</script>\n',
+        'latin1',
+      )
+      const manifest = (await get(ctx, '/file?path=manifest.yaml')).json() as {
+        content: string
+      }
+      const crafted = Buffer.from(`%PDF-1.4\n---\n${manifest.content}# \u0000\n`, 'utf8')
+      for (const [path, bytes] of [
+        ['public/index.html', page],
+        ['manifest.yaml', crafted],
+        ['server.js', page],
+        ['public/logo.png.sh', PNG],
+      ] as const) {
+        const res = await post(ctx, commitBody(ctx.commitSha, [bytesWrite(path, bytes)]))
+        expect(refusal(res), path).toEqual({ status: 400, code: 'REQUEST_INVALID' })
+        expect(errorOf(res).message).toContain(`'${path}'`)
+        expect(errorOf(res).message).toMatch(
+          /\.png, \.jpg, \.jpeg, \.gif, \.webp, \.ico, \.pdf, \.woff, \.woff2, \.ttf, \.otf/,
+        )
+      }
+      expect(commit).not.toHaveBeenCalled()
+      // The positive control: a PNG named .JPG — another kind's name, in capitals — commits.
+      const ok = await post(
+        ctx,
+        commitBody(ctx.commitSha, [bytesWrite('public/logo.JPG', PNG)]),
+      )
+      expect(ok.statusCode, ok.body).toBe(201)
     })
   })
 })

@@ -1,6 +1,8 @@
 import { z } from 'zod/v4'
 import {
+  BINARY_EXTENSIONS,
   BINARY_FILE_BYTES,
+  hasBinaryExtension,
   isText,
   mediaTypeOf,
   pathProblem,
@@ -53,7 +55,7 @@ const Entry = z.object({
     .boolean()
     .nullable()
     .describe(
-      'Whether git calls this file binary — read it with `getFile`’s `encoding=base64`, and write it with `encoding: base64`. Null for anything that is not a file.',
+      'Whether git calls this file binary — read it with `getFile`’s `encoding=base64`. An image, PDF or font (the ten kinds `createCommit` writes as bytes) can be written back with `encoding: base64`; any other binary file only by a push. Null for anything that is not a file.',
     ),
 })
 
@@ -231,11 +233,13 @@ export const BINARY_KINDS_SENTENCE =
   'only images (PNG, JPEG, GIF, WebP, ICO), PDF and fonts (WOFF, WOFF2, TTF, OTF) may be written as bytes'
 
 /**
- * WHAT A WRITE'S `content` BREAKS, by its `encoding` — null when nothing does. TEXT (the default):
+ * WHAT A WRITE'S `content` BREAKS, by its `encoding` — none when nothing does. TEXT (the default):
  * the authoring API's three rules, unchanged. BYTES (the front-end enablement plan's Task 4,
- * Decisions 7–9): canonical base64, at most 2 MiB decoded, NOT text (or base64 is a way past the
- * text rules, the diff and the push-time scan's hunk reader), and one of the ten kinds by its
- * first bytes. The route decodes a base64 write again (`bytesOf`) — twice 2 MiB at most.
+ * Decisions 7–9), in the order a client would fix them: canonical base64, at most 2 MiB decoded,
+ * NOT text (or base64 is a way past the text rules, the diff and the push-time scan's hunk
+ * reader), NAMED as one of the ten kinds (the whole-branch review's I1 and I2: a PDF head and one
+ * NUL made a page or a manifest "binary"), and one of the ten kinds by its first bytes. The route
+ * decodes a base64 write again (`changesOf`) — twice 2 MiB at most.
  */
 export function contentProblems(
   path: string,
@@ -262,13 +266,20 @@ export function contentProblems(
   // rule: the only string accepted for these bytes is the one Node would write for them.
   if (bytes.toString('base64') !== content) {
     return [
-      'content is not canonical base64 — the standard alphabet with its padding, and no whitespace or line break',
+      `'${path}': content is not canonical base64 — the standard alphabet with its padding, and no whitespace or line break`,
     ]
   }
   if (bytes.length > BINARY_FILE_BYTES) {
-    return [`content decodes to ${bytes.length} bytes; a binary file is at most 2 MiB`]
+    return [
+      `'${path}': content decodes to ${bytes.length} bytes; a binary file is at most 2 MiB`,
+    ]
   }
   if (isText(bytes)) return [`'${path}' is text; send it with encoding: 'utf8'`]
+  if (!hasBinaryExtension(path)) {
+    return [
+      `'${path}' is not named as a file the API writes as bytes — its name must end in ${BINARY_EXTENSIONS.join(', ')}`,
+    ]
+  }
   if (mediaTypeOf(bytes) === null) {
     return [`'${path}' is not a kind the API writes: ${BINARY_KINDS_SENTENCE}`]
   }
@@ -282,7 +293,7 @@ const WriteChange = z
     content: z
       .string()
       .describe(
-        'The whole new content of the file. As text (the default): at most 1 MiB of UTF-8, with no NUL character. With `encoding: base64`: the file’s bytes as canonical base64, at most 2 MiB decoded — an image (PNG, JPEG, GIF, WebP, ICO), a PDF or a font (WOFF, WOFF2, TTF, OTF), recognised by its bytes, never its name. A new file is mode `100644`; an existing file keeps its mode.',
+        'The whole new content of the file. As text (the default): at most 1 MiB of UTF-8, with no NUL character. With `encoding: base64`: the file’s bytes as canonical base64, at most 2 MiB decoded — an image (PNG, JPEG, GIF, WebP, ICO), a PDF or a font (WOFF, WOFF2, TTF, OTF), recognised by its bytes, at a path ending in one of those kinds’ extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.ico`, `.pdf`, `.woff`, `.woff2`, `.ttf`, `.otf` — any of them for any kind). A new file is mode `100644`; an existing file keeps its mode.',
       ),
     encoding: z
       .enum(['utf8', 'base64'])

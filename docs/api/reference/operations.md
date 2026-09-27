@@ -3044,7 +3044,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/commits` · a session or a delegated token
 
-Writes and deletes files on the project’s `main`, as one commit computed from `baseCommit` — text, or, with `encoding: base64`, an image, a PDF or a font, recognised by its bytes. Every change is checked before anything is written — the paths, the text or the bytes, secret-shaped values in the files (in a binary file, its printable text) and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
+Writes and deletes files on the project’s `main`, as one commit computed from `baseCommit` — text, or, with `encoding: base64`, an image, a PDF or a font, recognised by its bytes. Every change is checked before anything is written — the paths, the text or the bytes, secret-shaped values in the files (in a binary file, its printable text — never text a PDF compresses, or UTF-16) and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3216,7 +3216,7 @@ Answer, `200`:
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `SOURCE_COMMIT_NOT_FOUND` | 409 | Name the full 40-character id of a commit the repository has; `listCommits` lists them. |
 | `SOURCE_FILE_NOT_TEXT` | 409 | Read it as bytes: `getFile` with `encoding=base64` answers any file up to 2 MiB. `getTree` marks a binary file `binary: true`. |
-| `SOURCE_FILE_TOO_LARGE` | 409 | A text file between 1 and 2 MiB can be read with `encoding=base64`; past that, read or change it with git directly, by a push. `getTree` gives every file’s `size`. |
+| `SOURCE_FILE_TOO_LARGE` | 409 | A text file between 1 and 2 MiB can be READ with `encoding=base64`, and changed only with git directly, by a push — as can any file past 2 MiB. `getTree` gives every file’s `size`. |
 | `SOURCE_GIT_FAILED` | 409 | Retry once; if it recurs, report the time and the operation the message names to the platform’s operator. |
 | `SOURCE_PATH_NOT_A_FILE` | 409 | Name a file; `getTree` says what each path is, and lists a directory’s contents. |
 | `SOURCE_PATH_NOT_FOUND` | 409 | Check the path against `getTree` at the same commit; paths are case-sensitive. |

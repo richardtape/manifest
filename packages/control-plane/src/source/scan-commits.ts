@@ -295,7 +295,9 @@ export function assertWritablePaths(paths: readonly string[]): void {
  * BINARY write's printable runs (the front-end enablement plan's Decision 10), one per line — so
  * `createCommit`'s scan and each driver's `assertNoSecrets` read a key pasted into a PDF with the
  * rules they already have. **These are the only scans a binary write meets**: both push-time
- * scans skip a file with no hunk. A finding's `line` then counts runs, not lines.
+ * scans skip a file with no hunk (measured, Task 4's control (b)). A finding's `line` then counts
+ * runs, not lines. Text a PDF compresses, and UTF-16 text, has no printable run to read —
+ * `printableRuns` names what it cannot see.
  */
 export const writesOf = (
   changes: readonly Change[],

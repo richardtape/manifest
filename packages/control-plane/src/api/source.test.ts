@@ -142,8 +142,8 @@ describe('reading source over the API (Task 5)', () => {
         content: Buffer.from(text.content, 'utf8').toString('base64'),
         blobSha: text.blobSha,
       })
-      // An encoding the API does not speak is the request's fault, and a directory is still not
-      // a file, however it is read.
+      // An encoding the API does not speak is the request's fault; a missing path is still not
+      // found, and a directory still not a file, however it is read.
       expect(refusal(await get(ctx, '/file?path=server.js&encoding=hex'))).toEqual({
         status: 400,
         code: 'REQUEST_INVALID',
@@ -151,6 +151,12 @@ describe('reading source over the API (Task 5)', () => {
       expect(refusal(await get(ctx, '/file?path=nope.js&encoding=base64'))).toEqual({
         status: 409,
         code: 'SOURCE_PATH_NOT_FOUND',
+      })
+      const repo = ctx.deps.source.repositoryFor(await slugOf(ctx))
+      await writeFiles(ctx.deps.source, repo, { 'src/app.js': 'app\n' }, 'a dir')
+      expect(refusal(await get(ctx, '/file?path=src&encoding=base64'))).toEqual({
+        status: 409,
+        code: 'SOURCE_PATH_NOT_A_FILE',
       })
     })
   })

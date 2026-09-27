@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { SAMPLE_SECRETS } from '../build/testing.js'
 import { scanText } from '../build/index.js'
 import {
+  BINARY_EXTENSIONS,
   BINARY_FILE_BYTES,
   BINARY_KINDS,
+  hasBinaryExtension,
   isText,
   mediaTypeOf,
   printableRuns,
@@ -114,5 +116,47 @@ describe('binary files — ten media types by their bytes, text refused, printab
 
   it('bounds a binary file at 2 MiB', () => {
     expect(BINARY_FILE_BYTES).toBe(2 * 1024 * 1024)
+  })
+
+  it('names a binary file by one of the ten kinds’ extensions, in any case, and nothing else', () => {
+    expect(BINARY_EXTENSIONS).toEqual([
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.webp',
+      '.ico',
+      '.pdf',
+      '.woff',
+      '.woff2',
+      '.ttf',
+      '.otf',
+    ])
+    for (const path of [
+      'logo.png',
+      'public/a.JPG',
+      'img/b.jpeg',
+      'c.gif',
+      'd.WebP',
+      'favicon.ico',
+      'docs/syllabus.pdf',
+      'f.woff',
+      'f.woff2',
+      'g.ttf',
+      'h.otf',
+    ])
+      expect(hasBinaryExtension(path), path).toBe(true)
+    for (const path of [
+      'manifest.yaml',
+      'public/index.html',
+      'server.js',
+      'logo.png.sh',
+      'logo',
+      'png',
+      'a.svg',
+      'b.zip',
+      'c.wasm',
+    ])
+      expect(hasBinaryExtension(path), path).toBe(false)
   })
 })

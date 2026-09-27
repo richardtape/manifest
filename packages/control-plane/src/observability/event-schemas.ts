@@ -65,7 +65,13 @@ const Ref = z
 /** Where and which rule — NEVER THE VALUE (§14): a finding carries no text of its line. */
 const Finding = z.strictObject({
   path: z.string().min(1).describe('The file, from the repository root.'),
-  line: z.number().int().min(1).describe('The line, counting from 1.'),
+  line: z
+    .number()
+    .int()
+    .min(1)
+    .describe(
+      'The line, counting from 1 — in a file written through the API with `encoding: base64`, the run of printable text, counting from 1.',
+    ),
   rule: z
     .string()
     .min(1)

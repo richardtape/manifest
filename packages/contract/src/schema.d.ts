@@ -491,7 +491,7 @@ export interface paths {
         put?: never;
         /**
          * Commit changes to main
-         * @description Writes and deletes files on the project’s `main`, as one commit computed from `baseCommit` — text, or, with `encoding: base64`, an image, a PDF or a font, recognised by its bytes. Every change is checked before anything is written — the paths, the text or the bytes, secret-shaped values in the files (in a binary file, its printable text) and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
+         * @description Writes and deletes files on the project’s `main`, as one commit computed from `baseCommit` — text, or, with `encoding: base64`, an image, a PDF or a font, recognised by its bytes. Every change is checked before anything is written — the paths, the text or the bytes, secret-shaped values in the files (in a binary file, its printable text — never text a PDF compresses, or UTF-16) and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
          */
         post: operations["createCommit"];
         delete?: never;
@@ -1493,7 +1493,7 @@ export interface components {
                 op: "write";
                 /** @description A relative path, `/`-separated: at most 1024 bytes, 255 per component and 32 components; no empty, `.` or `..` component, no leading or trailing `/`, no backslash, no control character, and no `.git` component. */
                 path: string;
-                /** @description The whole new content of the file. As text (the default): at most 1 MiB of UTF-8, with no NUL character. With `encoding: base64`: the file’s bytes as canonical base64, at most 2 MiB decoded — an image (PNG, JPEG, GIF, WebP, ICO), a PDF or a font (WOFF, WOFF2, TTF, OTF), recognised by its bytes, never its name. A new file is mode `100644`; an existing file keeps its mode. */
+                /** @description The whole new content of the file. As text (the default): at most 1 MiB of UTF-8, with no NUL character. With `encoding: base64`: the file’s bytes as canonical base64, at most 2 MiB decoded — an image (PNG, JPEG, GIF, WebP, ICO), a PDF or a font (WOFF, WOFF2, TTF, OTF), recognised by its bytes, at a path ending in one of those kinds’ extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.ico`, `.pdf`, `.woff`, `.woff2`, `.ttf`, `.otf` — any of them for any kind). A new file is mode `100644`; an existing file keeps its mode. */
                 content: string;
                 /**
                  * @description How `content` carries the file: `utf8` (the default) for text, `base64` for bytes. Text sent as base64 is refused — send it as text.
@@ -3064,7 +3064,7 @@ export interface components {
                 findings: {
                     /** @description The file, from the repository root. */
                     path: string;
-                    /** @description The line, counting from 1. */
+                    /** @description The line, counting from 1 — in a file written through the API with `encoding: base64`, the run of printable text, counting from 1. */
                     line: number;
                     /** @description Which kind of secret it looks like — `an AWS access key id`. Never the value. */
                     rule: string;
@@ -3235,7 +3235,7 @@ export interface components {
                 findings: {
                     /** @description The file, from the repository root. */
                     path: string;
-                    /** @description The line, counting from 1. */
+                    /** @description The line, counting from 1 — in a file written through the API with `encoding: base64`, the run of printable text, counting from 1. */
                     line: number;
                     /** @description Which kind of secret it looks like — `an AWS access key id`. Never the value. */
                     rule: string;
@@ -4583,7 +4583,7 @@ export interface components {
                 mode: string;
                 /** @description Bytes, for a file or a symlink; null otherwise. */
                 size: number | null;
-                /** @description Whether git calls this file binary — read it with `getFile`’s `encoding=base64`, and write it with `encoding: base64`. Null for anything that is not a file. */
+                /** @description Whether git calls this file binary — read it with `getFile`’s `encoding=base64`. An image, PDF or font (the ten kinds `createCommit` writes as bytes) can be written back with `encoding: base64`; any other binary file only by a push. Null for anything that is not a file. */
                 binary: boolean | null;
             }[];
             /** @description True when the tree has more than 10,000 entries and only the first 10,000, by path, are listed. */

@@ -512,7 +512,7 @@ export const ERROR_CODES = {
   ),
   SOURCE_FILE_TOO_LARGE: source(
     'The file is larger than the API carries in one read — 1 MiB as text, 2 MiB with `encoding=base64`.',
-    'A text file between 1 and 2 MiB can be read with `encoding=base64`; past that, read or change it with git directly, by a push. `getTree` gives every file’s `size`.',
+    'A text file between 1 and 2 MiB can be READ with `encoding=base64`, and changed only with git directly, by a push — as can any file past 2 MiB. `getTree` gives every file’s `size`.',
   ),
   SOURCE_GIT_FAILED: source(
     'git failed; the message names the operation.',
@@ -543,7 +543,7 @@ export const ERROR_CODES = {
     'Name a path relative to the repository root, `/`-separated, with no empty, `.`, `..` or `.git` component.',
   ),
   SOURCE_PATH_NOT_A_FILE: source(
-    'The path names a directory, a symlink or a submodule; the API reads and writes regular text files.',
+    'The path names a directory, a symlink or a submodule; the API reads and writes regular files.',
     'Name a file; `getTree` says what each path is, and lists a directory’s contents.',
   ),
   SOURCE_PATH_NOT_FOUND: source(
