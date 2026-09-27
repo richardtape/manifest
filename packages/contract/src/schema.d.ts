@@ -1379,7 +1379,7 @@ export interface components {
             }[];
             /** @description The new commit's manifest.yaml — always valid, because an invalid one is refused `SPEC_INVALID` before anything is written. */
             spec: {
-                /** @description The recorded validation of the new commit; null for a dry run. */
+                /** @description The recorded validation of the new commit; null for a dry run — and for a commit that landed when its validation could not be recorded, which a build of it then makes first. */
                 appSpecId: string | null;
                 sensitiveDiff: components["schemas"]["SensitiveDiff"];
                 /** @description What validating the new manifest.yaml said without refusing — a field validated but not enforced yet (`SPEC_FIELD_NOT_ENFORCED`). The commit is made regardless. */

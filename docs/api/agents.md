@@ -30,7 +30,7 @@ Your first calls:
 - **Switch on `code`, never on the message.** Every refusal is one envelope, `{ "error": { "code", "message", "hint", … } }`. `hint` says what to do; *Error codes* has every code’s remedy.
 - **Never guess a path.** List the tree. A file you did not read is a file you do not know the contents of.
 - **Always send `baseCommit`** — the commit you read. If `main` has moved since, the commit is refused `409 SOURCE_CONFLICT` and nothing is written: read the tree again, redo your change on what is there now, and commit again. The platform never merges for you.
-- **One `Idempotency-Key` per action, reused on a retry.** If a request timed out, send it again with the same key and the same body: you are answered the first result, and nothing happens twice. A different body with the same key is `409 IDEMPOTENCY_KEY_REUSED`.
+- **One `Idempotency-Key` per action, reused on a retry.** If a request timed out, send it again with the same key and the same body: you are answered the first result, and nothing happens twice. The same key with a different body, or on another resource's path, is `409 IDEMPOTENCY_KEY_REUSED`.
 - **manifest.yaml is checked before anything is written.** An invalid one is `422 SPEC_INVALID`, with every problem in `details` — its path, its code and a hint. Fix those paths; do not guess at others.
 - **Name the commit you build.** `startBuild` with no `commitSha` builds the newest *recorded* validation’s commit, which is not necessarily `main`’s head.
 - **A `Dockerfile` or `.npmrc` you commit is replaced by the blueprint’s at build.** The blueprint owns how an app is built; you declare what it needs in manifest.yaml.

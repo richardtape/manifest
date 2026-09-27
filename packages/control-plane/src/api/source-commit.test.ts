@@ -525,6 +525,73 @@ describe('createCommit — changes checked before anything is written (Task 6)',
     })
   })
 
+  it('a commit that LANDED is answered 201 and recorded even when its validation after the push fails — and the same key replays it (the final review’s Important 1)', async () => {
+    await withProjectServer(async (ctx) => {
+      // The failure lands in the one window that matters: the commit is on main, and the next
+      // read — the validation's, of the new commit's manifest.yaml — fails, as a catalogue that
+      // stopped answering between the check and the record would.
+      const source = ctx.deps.source
+      const realCommit = source.commit.bind(source)
+      const realRead = source.readFile.bind(source)
+      let landed = false
+      vi.spyOn(source, 'commit').mockImplementation(async (repo, request) => {
+        const done = await realCommit(repo, request)
+        if (request.dryRun !== true) landed = true
+        return done
+      })
+      vi.spyOn(source, 'readFile').mockImplementation(async (...args) => {
+        if (landed) {
+          landed = false
+          throw new Error('the validation after the push could not read the manifest')
+        }
+        return realRead(...args)
+      })
+      const operator = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const headers = mutationHeaders(ctx.deps)
+      const once = () =>
+        ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/commits`,
+          cookies: ctx.ownerCookies,
+          headers,
+          payload: commitBody(ctx.commitSha, [
+            { op: 'write', path: 'a.txt', content: 'a\n' },
+          ]),
+        })
+      try {
+        const first = await once()
+        expect(first.statusCode, first.body).toBe(201)
+        const outcome = first.json() as {
+          commitSha: string
+          spec: { appSpecId: string | null; warnings: unknown[] }
+        }
+        // Landed, and said so — with no recorded validation, which a build makes first.
+        expect(await headOf(ctx)).toBe(outcome.commitSha)
+        expect(outcome.spec.appSpecId).toBeNull()
+        expect(outcome.spec.warnings).toEqual([])
+        // The platform's own record of who made it exists regardless.
+        const committed = await eventsOf(ctx, ['repository.committed'])
+        expect(committed).toHaveLength(1)
+        expect(committed[0]!.machineDetail.commitSha).toBe(outcome.commitSha)
+        // And an operator line names the commit whose validation was not recorded.
+        expect(operator.mock.calls.flat().map(String).join(' ')).toContain(
+          outcome.commitSha,
+        )
+        // The documented retry: the same key is answered the first commit, never SOURCE_CONFLICT.
+        const second = await once()
+        expect(second.statusCode, second.body).toBe(201)
+        expect(second.json()).toEqual(first.json())
+        const history = (await get(ctx, '/commits')).json() as {
+          commits: { commitSha: string; madeThrough: unknown }[]
+        }
+        expect(history.commits).toHaveLength(2)
+        expect(history.commits[0]!.madeThrough).toMatchObject({ kind: 'person' })
+      } finally {
+        operator.mockRestore()
+      }
+    })
+  })
+
   it('refuses a path into .git, a path that escapes, and text that is not text — before anything is read', async () => {
     await withProjectServer(async (ctx) => {
       const commit = vi.spyOn(ctx.deps.source, 'commit')

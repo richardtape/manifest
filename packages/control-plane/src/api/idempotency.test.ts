@@ -27,6 +27,7 @@ describe('idempotency (D23.6)', () => {
         key: 'abc',
         userId: user.id,
         route: 'POST /projects',
+        params: {},
         hashKey: HASH_KEY,
         body: { slug: 'x' },
       }
@@ -52,6 +53,7 @@ describe('idempotency (D23.6)', () => {
           key: 'abc',
           userId: user.id,
           route: 'POST /projects',
+          params: {},
           hashKey: HASH_KEY,
           body: { slug: 'x' },
         },
@@ -64,6 +66,7 @@ describe('idempotency (D23.6)', () => {
             key: 'abc',
             userId: user.id,
             route: 'POST /projects',
+            params: {},
             hashKey: HASH_KEY,
             body: { slug: 'DIFFERENT' },
           },
@@ -97,6 +100,7 @@ describe('idempotency (D23.6)', () => {
           key: 'same',
           userId: one.id,
           route: 'POST /projects',
+          params: {},
           hashKey: HASH_KEY,
           body: {},
         },
@@ -108,6 +112,7 @@ describe('idempotency (D23.6)', () => {
           key: 'same',
           userId: two!.id,
           route: 'POST /projects',
+          params: {},
           hashKey: HASH_KEY,
           body: {},
         },
@@ -133,6 +138,7 @@ describe('idempotency (D23.6)', () => {
         key: 'secret-set',
         userId: user.id,
         route: 'PUT /v1/environments/:environmentId/secrets/:name',
+        params: { environmentId: 'staging-env', name: 'BOARD_ADMIN_CODE' },
         hashKey: HASH_KEY,
         body,
       }
@@ -155,6 +161,16 @@ describe('idempotency (D23.6)', () => {
       await expect(
         replayOrStore(db, { ...params, hashKey: 'g'.repeat(32) }, handler),
       ).rejects.toThrow(IdempotencyConflictError)
+      // …nor for ANOTHER RESOURCE on the same route, the body identical (the final review's
+      // Important 2): the path parameters are the request too.
+      await expect(
+        replayOrStore(
+          db,
+          { ...params, params: { environmentId: 'staging-env', name: 'SIS_API_KEY' } },
+          handler,
+        ),
+      ).rejects.toThrow(IdempotencyConflictError)
+      expect(handler).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -174,6 +190,7 @@ describe('idempotency (D23.6)', () => {
         key: 'k-mint',
         userId: user.id,
         route: 'POST /mint',
+        params: {},
         hashKey: HASH_KEY,
         body: { name: 'x' },
       }
@@ -205,6 +222,7 @@ describe('idempotency (D23.6)', () => {
         key: 'abc',
         userId: user.id,
         route: 'POST /projects',
+        params: {},
         hashKey: HASH_KEY,
         body: {},
       }

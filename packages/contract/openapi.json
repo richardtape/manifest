@@ -7025,7 +7025,7 @@
             "type": "object",
             "properties": {
               "appSpecId": {
-                "description": "The recorded validation of the new commit; null for a dry run.",
+                "description": "The recorded validation of the new commit; null for a dry run — and for a commit that landed when its validation could not be recorded, which a build of it then makes first.",
                 "anyOf": [
                   {
                     "type": "string",
@@ -7709,7 +7709,7 @@
           "EVENTS_UPGRADE_REQUIRED": "The event stream is a WebSocket; a plain GET cannot read it.",
           "FORBIDDEN": "A member of the project whose role does not hold this capability.",
           "IDEMPOTENCY_KEY_REQUIRED": "A mutation arrived without an Idempotency-Key of at least 8 characters (D23.6).",
-          "IDEMPOTENCY_KEY_REUSED": "This Idempotency-Key was used on this route with a different body.",
+          "IDEMPOTENCY_KEY_REUSED": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
@@ -14771,8 +14771,8 @@
     },
     "IDEMPOTENCY_KEY_REUSED": {
       "status": 409,
-      "summary": "This Idempotency-Key was used on this route with a different body.",
-      "remedy": "Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`)."
+      "summary": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
+      "remedy": "Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`)."
     },
     "INTERNAL": {
       "status": 500,

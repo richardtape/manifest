@@ -28,6 +28,7 @@ import {
   sensitiveAgainstNewestValid,
   validateAndRecord,
   validateManifestText,
+  type SpecValidationResult,
 } from '../spec-validation.js'
 import {
   CommitDetail,
@@ -524,36 +525,63 @@ export const sourceRoutes = [
         await manifestAfter(deps, repo, body.baseCommit, changes),
       )
       if (!verdict.valid) throw new SpecInvalidError(verdict.errors)
+      // What the commit would change for a reviewer — before anything is written, so a commit
+      // that lands can answer it with no further read (step 5).
+      const checked = {
+        appSpecId: null,
+        sensitiveDiff: await sensitiveAgainstNewestValid(
+          deps.db,
+          project.id,
+          verdict.spec,
+        ),
+        warnings: verdict.warnings,
+      }
       if (dryRun) {
         return {
           dryRun: true,
           commitSha: null,
           parent: planned.parent,
           changes: byPath(planned.changes),
-          spec: {
-            appSpecId: null,
-            sensitiveDiff: await sensitiveAgainstNewestValid(
-              deps.db,
-              project.id,
-              verdict.spec,
-            ),
-            warnings: verdict.warnings,
-          },
+          spec: checked,
         }
       }
       // 4. The commit — the driver checks the base again, and git refuses a race at the push.
       const done = await deps.source.commit(repo, request)
-      const recorded = await validateAndRecord(deps, project, done.commitSha!)
-      await publishCommitted(deps, project, actor, done, body.message)
+      const commitSha = done.commitSha!
+      // 5. THE COMMIT HAS LANDED, AND NOTHING FROM HERE MAY TURN IT INTO A REFUSAL (the final
+      // review's Important 1). A throw now would answer 5xx for a commit that is on main; the
+      // idempotency record stores nothing for a throw, so the documented same-key retry would
+      // be refused SOURCE_CONFLICT against the client's own commit. So the platform's record of
+      // who made it goes FIRST — `madeThrough` is read from it and nothing else — and a
+      // validation that cannot be recorded answers the check made before the push, with
+      // `appSpecId: null` (a build of the commit validates it first, Task 7). Each failure is
+      // an operator line naming the commit, never swallowed.
+      try {
+        await publishCommitted(deps, project, actor, done, body.message)
+      } catch (error) {
+        console.error(
+          `[source] ${project.slug}: commit ${commitSha} is on main, and repository.committed could not be recorded — its madeThrough reads null:`,
+          error,
+        )
+      }
+      let spec: typeof checked | SpecValidationResult = checked
+      try {
+        spec = await validateAndRecord(deps, project, commitSha)
+      } catch (error) {
+        console.error(
+          `[source] ${project.slug}: commit ${commitSha} is on main, and its validation could not be recorded — a build of it validates it first:`,
+          error,
+        )
+      }
       return {
         dryRun: false,
-        commitSha: done.commitSha,
+        commitSha,
         parent: done.parent,
         changes: byPath(done.changes),
         spec: {
-          appSpecId: recorded.appSpecId,
-          sensitiveDiff: recorded.sensitiveDiff,
-          warnings: recorded.warnings,
+          appSpecId: spec.appSpecId,
+          sensitiveDiff: spec.sensitiveDiff,
+          warnings: spec.warnings,
         },
       }
     },

@@ -402,6 +402,8 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
           key: request.headers['idempotency-key'] as string,
           userId: actor.userId,
           route: `${request.method} ${request.routeOptions.url}`,
+          // The template above names the operation; these name the resource it acts on.
+          params: request.params,
           // A key the database never holds: a body can BE a secret (the authoring API plan's
           // Task 8 — `setAppSecret`'s is the value).
           hashKey: deps.config.sessionSecret,

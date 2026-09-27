@@ -299,7 +299,7 @@ export const CommitOutcome = representation(
       spec: z
         .object({
           appSpecId: Uuid.nullable().describe(
-            'The recorded validation of the new commit; null for a dry run.',
+            'The recorded validation of the new commit; null for a dry run — and for a commit that landed when its validation could not be recorded, which a build of it then makes first.',
           ),
           sensitiveDiff: SensitiveDiff,
           warnings: z

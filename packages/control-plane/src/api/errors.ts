@@ -508,7 +508,7 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
         error: {
           code: 'IDEMPOTENCY_KEY_REUSED',
           message: error.message,
-          hint: 'Use a fresh Idempotency-Key for a request with a different body.',
+          hint: 'Use a fresh Idempotency-Key for a different request — another resource, or a different body.',
         },
       },
     }

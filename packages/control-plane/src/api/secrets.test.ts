@@ -184,6 +184,55 @@ describe('an app’s declared secrets — write-only, per environment (Task 8)',
     })
   })
 
+  it('one Idempotency-Key on ANOTHER secret is IDEMPOTENCY_KEY_REUSED — never the first secret’s answer replayed (the final review’s Important 2)', async () => {
+    await withProjectServer(async (ctx) => {
+      // The resource is all in the path here — the body is only `{ value }`, and a clear has no
+      // body at all — so a fingerprint of the body alone cannot tell two secrets apart.
+      const headers = mutationHeaders(ctx.deps)
+      const putWith = (name: string) =>
+        ctx.app.inject({
+          method: 'PUT',
+          url: secretsUrl(ctx.stagingEnvironmentId, name),
+          cookies: ctx.ownerCookies,
+          headers,
+          payload: { value: VALUE },
+        })
+      const first = await putWith(NAME)
+      expect(first.statusCode, first.body).toBe(200)
+      // The positive control: the same key, path and body is the retry, answered the first time.
+      const retry = await putWith(NAME)
+      expect(retry.statusCode, retry.body).toBe(200)
+      expect(retry.json()).toEqual(first.json())
+      // Another secret, the same key and body: a different request.
+      expect(refusal(await putWith('SIS_API_KEY'))).toEqual({
+        status: 409,
+        code: 'IDEMPOTENCY_KEY_REUSED',
+      })
+      const listed = (await list(ctx, ctx.stagingEnvironmentId)).json() as {
+        secrets: { name: string; set: boolean }[]
+      }
+      expect(listed.secrets.find((s) => s.name === 'SIS_API_KEY')).toBeUndefined()
+      // Two clears, no body at all, one key: the second is refused, not answered as the first.
+      const clearHeaders = mutationHeaders(ctx.deps)
+      const clearWith = (name: string) =>
+        ctx.app.inject({
+          method: 'DELETE',
+          url: secretsUrl(ctx.stagingEnvironmentId, name),
+          cookies: ctx.ownerCookies,
+          headers: clearHeaders,
+        })
+      expect((await clearWith('SIS_API_KEY')).statusCode).toBe(200)
+      expect(refusal(await clearWith(NAME))).toEqual({
+        status: 409,
+        code: 'IDEMPOTENCY_KEY_REUSED',
+      })
+      const after = (await list(ctx, ctx.stagingEnvironmentId)).json() as {
+        secrets: { name: string; set: boolean }[]
+      }
+      expect(after.secrets.find((s) => s.name === NAME)?.set).toBe(true)
+    })
+  })
+
   it('keeps nothing in the idempotency record a reader of the database could check the value against', async () => {
     await withProjectServer(async (ctx) => {
       expect((await put(ctx, ctx.stagingEnvironmentId, NAME, VALUE)).statusCode).toBe(200)

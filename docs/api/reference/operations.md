@@ -374,7 +374,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -561,7 +561,7 @@ Answer, `202`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -921,7 +921,7 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -1187,7 +1187,7 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -1346,7 +1346,7 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -1441,7 +1441,7 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -1766,7 +1766,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `LAUNCH_RECORD_INVALID` | 400 | Correct the fields the message names — a registration lists at least one attribute — and record it again. |
 | `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
@@ -1817,7 +1817,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
@@ -1872,7 +1872,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -1974,7 +1974,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PENDING_ACTION_RESOLVED` | 409 | Read it again (`getPendingAction`): somebody has already answered, and its `state` says how. |
@@ -2031,7 +2031,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PENDING_ACTION_RESOLVED` | 409 | Read it again (`getPendingAction`): somebody has already answered, and its `state` says how. |
@@ -2304,7 +2304,7 @@ Answer, `201`:
 | `BLUEPRINT_NOT_FOUND` | 400 | Choose one from `listBlueprints` and name it `name@major`. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
@@ -2508,7 +2508,7 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `MEMBER_USER_NOT_FOUND` | 400 | Ask the person to sign in to Manifest once with CWL, then add them again. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
@@ -2551,7 +2551,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PROJECT_LAST_OWNER` | 409 | Make another member an owner first (`addMember` with role `owner`), then remove this one. |
@@ -2683,7 +2683,7 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -2810,7 +2810,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -2849,7 +2849,7 @@ Answer, `200`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -2999,7 +2999,7 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -3292,7 +3292,7 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -3337,7 +3337,7 @@ Answer, `200`:
 |---|---|---|
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
-| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |

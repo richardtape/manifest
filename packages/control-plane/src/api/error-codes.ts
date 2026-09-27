@@ -169,8 +169,8 @@ export const ERROR_CODES = {
   ),
   IDEMPOTENCY_KEY_REUSED: api(
     409,
-    'This Idempotency-Key was used on this route with a different body.',
-    'Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`).',
+    'This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.',
+    'Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`).',
   ),
   TOKEN_ALREADY_MINTED: api(
     409,
