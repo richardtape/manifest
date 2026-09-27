@@ -166,6 +166,13 @@ export interface MirrorAdvance {
    * which commit; never the value. Driver 1's is always empty: its hook refuses the push.
    */
   findings: CommitFinding[]
+  /**
+   * COMMITS THE SCAN COULD NOT READ (the authoring API plan's Task 12): each one's own patch is
+   * past what one read may hold, so no line of it was scanned — REPORTED, so a person learns
+   * it, and never counted read. The build's gate still scans every tree it builds. Driver 1's
+   * is always empty: its hook reads every push before it lands.
+   */
+  unscannable: string[]
 }
 
 /** A secret-shaped value in a commit's added lines (`source/scan-commits.ts`). */

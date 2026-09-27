@@ -528,6 +528,20 @@ export const EVENT_DETAIL_SCHEMAS = {
       'A commit pushed to GitHub adds a value shaped like a secret (§20). Never the value; the commit is never deployed with it.',
     ),
   /**
+   * The authoring API plan's Task 12. COMMIT IDS ONLY: the scan read none of these commits'
+   * lines, so there is nothing else to say about them — and nothing of their content is here.
+   */
+  'repository.scan_incomplete': z
+    .strictObject({
+      commits: z
+        .array(Sha)
+        .min(1)
+        .describe('The commits whose own changes were too large to scan, oldest first.'),
+    })
+    .describe(
+      'Commits pushed to GitHub were too large for Manifest to scan for secrets (§20). Nothing in them was read; a build of any commit still scans the whole tree it builds.',
+    ),
+  /**
    * Task 12. `detail` is MANIFEST's sentence; GitHub's own words are on the project's
    * repository link, not in an event (a GitHub body never goes into one verbatim).
    */

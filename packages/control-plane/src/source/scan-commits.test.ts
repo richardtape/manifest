@@ -54,7 +54,7 @@ describe('scanNewCommits — the added lines of new commits, through THE list', 
     expect(scan).toEqual({
       findings: [{ commit: fresh, path: 'b.txt', line: 2, rule: 'a Slack token' }],
       commits: 1,
-      truncated: false,
+      unscannable: [],
     })
     // The positive control for the exclusion: with nothing excluded, the old one is found too.
     const all = await scanNewCommits(join(work, '.git'), [fresh], [])
@@ -112,9 +112,10 @@ describe('scanNewCommits — the added lines of new commits, through THE list', 
     ).toEqual(['merge evil.txt:2', 'side side.txt:2'])
   })
 
-  it(`reads at most ${SCAN_COMMIT_LIMIT} new commits, newest first, and says it was truncated`, async () => {
-    // 1001 commits in one fast-import stream, the OLDEST carrying the secret: a scan that read
-    // every commit would find it, and one capped at the newest 1000 must not.
+  it(`reads past ${SCAN_COMMIT_LIMIT} new commits to the OLDEST — the cap it replaced read only the newest`, async () => {
+    // 1001 commits in one fast-import stream, the OLDEST carrying the secret: the scan that
+    // read the newest 1000 and let its caller mark the branch scanned never read it at all
+    // (the D5 plan's final review, Important 3). Two batches now, and it is found.
     const lines: string[] = []
     for (let i = 0; i <= SCAN_COMMIT_LIMIT; i++) {
       const content = i === 0 ? `${AWS}\n` : `n ${i}\n`
@@ -130,13 +131,63 @@ describe('scanNewCommits — the added lines of new commits, through THE list', 
     }
     await git(['fast-import', '--quiet'], lines.join('\n') + '\n')
     const head = await git(['rev-parse', 'main'])
-    const scan = await scanNewCommits(join(work, '.git'), [head], [])
-    expect(scan).toEqual({ findings: [], commits: SCAN_COMMIT_LIMIT, truncated: true })
-    // The positive control: the oldest one, asked for alone, IS found.
     const oldest = await git(['rev-list', '--max-parents=0', 'main'])
+    const scan = await scanNewCommits(join(work, '.git'), [head], [])
+    expect(scan).toEqual({
+      findings: [
+        { commit: oldest, path: 'f0.txt', line: 1, rule: 'an AWS access key id' },
+      ],
+      commits: SCAN_COMMIT_LIMIT + 1,
+      unscannable: [],
+    })
+  })
+
+  it('reads EVERY new commit, in batches — a finding in the first, a middle and the last batch is found', async () => {
+    // Ten commits, read three at a time: four batches. A secret in the oldest, the fifth and the
+    // newest — a scan capped at one batch, newest first (what this replaced), finds one of three.
+    const shas: string[] = []
+    for (let i = 1; i <= 10; i++) {
+      const secret = i === 1 || i === 5 || i === 10
+      shas.push(await commit({ [`f${i}.txt`]: secret ? `KEY=${AWS}\n` : `n ${i}\n` }))
+    }
+    const scan = await scanNewCommits(join(work, '.git'), [shas[9]!], [], {
+      commits: 3,
+      bytes: 4096,
+    })
+    expect(scan.commits).toBe(10)
+    expect(scan.unscannable).toEqual([])
     expect(
-      (await scanNewCommits(join(work, '.git'), [oldest], [])).findings,
-    ).toHaveLength(1)
+      scan.findings.map((f) => `${shas.indexOf(f.commit) + 1} ${f.path}`).sort(),
+    ).toEqual(['1 f1.txt', '10 f10.txt', '5 f5.txt'])
+  })
+
+  it('names a commit whose OWN patch is past the limit as unscannable — never read as scanned — and scans the commits around it', async () => {
+    const before = await commit({ 'a.txt': `KEY=${AWS}\n` })
+    // ~11 KiB of patch against a 4 KiB limit, with a secret inside it that is NOT found: the
+    // scan could not read this commit, and says so rather than counting it read.
+    const long = Array.from(
+      { length: 300 },
+      (_, i) => `line ${i} of a file too large to scan`,
+    )
+    const big = await commit({ 'big.txt': [...long, `SLACK=${SLACK}`].join('\n') + '\n' })
+    const after = await commit({ 'c.txt': `SLACK=${SLACK}\n` })
+    const scan = await scanNewCommits(join(work, '.git'), [after], [], {
+      commits: 3,
+      bytes: 4096,
+    })
+    expect(scan).toEqual({
+      findings: [
+        { commit: before, path: 'a.txt', line: 1, rule: 'an AWS access key id' },
+        { commit: after, path: 'c.txt', line: 1, rule: 'a Slack token' },
+      ],
+      commits: 3,
+      unscannable: [big],
+    })
+    // The positive control: the same commit under a limit it fits is read, and its secret found.
+    const whole = await scanNewCommits(join(work, '.git'), [big], [before])
+    expect(whole.findings).toEqual([
+      { commit: big, path: 'big.txt', line: 301, rule: 'a Slack token' },
+    ])
   })
 
   it('answers nothing for nothing new — heads all excluded, or no heads', async () => {
@@ -144,12 +195,12 @@ describe('scanNewCommits — the added lines of new commits, through THE list', 
     expect(await scanNewCommits(join(work, '.git'), [sha], [sha])).toEqual({
       findings: [],
       commits: 0,
-      truncated: false,
+      unscannable: [],
     })
     expect(await scanNewCommits(join(work, '.git'), [], [])).toEqual({
       findings: [],
       commits: 0,
-      truncated: false,
+      unscannable: [],
     })
   })
 })

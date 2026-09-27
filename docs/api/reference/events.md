@@ -413,6 +413,18 @@ A commit pushed to GitHub adds a value shaped like a secret (§20). Never the va
 }
 ```
 
+## `repository.scan_incomplete`
+
+Commits pushed to GitHub were too large for Manifest to scan for secrets (§20). Nothing in them was read; a build of any commit still scans the whole tree it builds.
+
+```json
+{
+  "commits": [
+    "89abcdef0123456789abcdef0123456789abcdef"
+  ]
+}
+```
+
 ## `repository.protection_unavailable`
 
 GitHub would not protect the new repository’s `main`, so a person can rewrite or delete it there; `getProject`’s repository says so too.

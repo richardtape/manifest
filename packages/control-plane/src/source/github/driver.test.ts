@@ -12,6 +12,7 @@ import { assembleContext, runMandatoryGates } from '../../build/index.js'
 import { SAMPLE_SECRETS } from '../../build/testing.js'
 import { describeSourceDriver } from '../driver-contract.js'
 import { SourceError, type MirrorAdvance } from '../git-driver.js'
+import type { ScanLimits } from '../scan-commits.js'
 import {
   pushAsPerson,
   pushSymlinkAsPerson,
@@ -48,7 +49,10 @@ interface Harness {
   cleanup(): Promise<void>
 }
 
-async function harness(options: Parameters<typeof startFake>[0] = {}): Promise<Harness> {
+async function harness(
+  options: Parameters<typeof startFake>[0] = {},
+  driverOptions: { scanLimits?: ScanLimits } = {},
+): Promise<Harness> {
   const dataDir = await mkdtemp(join(tmpdir(), 'github-fake-data-'))
   const mirrorRoot = await mkdtemp(join(tmpdir(), 'manifest-mirror-'))
   const minted: string[] = []
@@ -80,6 +84,7 @@ async function harness(options: Parameters<typeof startFake>[0] = {}): Promise<H
     appKey: createPrivateKey(fake.appKeyPem),
     fetch: spyFetch,
     observer,
+    ...driverOptions,
   })
   const h: Harness = {
     get fake() {
@@ -500,6 +505,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         rewritten: [],
         visibility: READ_PRIVATE,
         findings: [],
+        unscannable: [],
       }
       expect(advance).toEqual(expected)
       expect(h.advances).toEqual([expected])
@@ -510,6 +516,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         rewritten: [],
         visibility: READ_PRIVATE,
         findings: [],
+        unscannable: [],
       })
       expect(await h.driver.headCommit(repo)).toBe(pushed)
       expect(h.advances).toHaveLength(1)
@@ -530,6 +537,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         rewritten: [{ ref: MAIN, mirror: first, upstream: rewritten }],
         visibility: READ_PRIVATE,
         findings: [],
+        unscannable: [],
       })
       const pushed = await pushAsPerson(h.fake, 'chem-labs', { 'c.txt': 'c\n' }, 'normal')
       expect(await h.driver.sync(repo)).toEqual({
@@ -538,6 +546,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         rewritten: [],
         visibility: READ_PRIVATE,
         findings: [],
+        unscannable: [],
       })
       expect(h.advances.map((a) => [a.updated.length, a.rewritten.length])).toEqual([
         [0, 1],
@@ -637,6 +646,7 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
           rewritten: [],
           visibility: { observed: 'public', enforced: true, result: 'private' },
           findings: [],
+          unscannable: [],
         },
       ])
       const head = await h.driver.headCommit(repo)
@@ -744,6 +754,37 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
       const again = await h.driver.sync(repo)
       expect(again.updated).toEqual([])
       expect(again.findings.map((f) => f.commit)).toEqual([pushed])
+      expect(h.advances).toHaveLength(1)
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('names a commit TOO LARGE TO SCAN — reported on its own, at least once, and never marked scanned before the report (the authoring API plan’s Task 12)', async () => {
+    // A 4 KiB batch, so an ~11 KiB commit is past it without pushing 20 MiB to the fake.
+    const h = await harness({}, { scanLimits: { commits: 1000, bytes: 4096 } })
+    try {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const long = Array.from(
+        { length: 300 },
+        (_, i) => `line ${i} of a file too large to scan`,
+      )
+      const big = await pushAsPerson(
+        h.fake,
+        'chem-labs',
+        { 'big.txt': long.join('\n') + '\n' },
+        'a large file',
+      )
+      h.failObserver(new Error('the database is down'))
+      await expect(h.driver.sync(repo)).rejects.toThrow('the database is down')
+      h.failObserver(undefined)
+      // Nothing moved on this sync and nothing was FOUND — reported because of the commit the
+      // scan could not read, which the failed report left unmarked.
+      const again = await h.driver.sync(repo)
+      expect(again).toMatchObject({ updated: [], findings: [], unscannable: [big] })
+      expect(h.advances).toEqual([again])
+      // Reported once: marked after the report, so the next sync names nothing.
+      expect((await h.driver.sync(repo)).unscannable).toEqual([])
       expect(h.advances).toHaveLength(1)
     } finally {
       await h.cleanup()

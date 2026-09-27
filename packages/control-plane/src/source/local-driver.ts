@@ -373,6 +373,7 @@ export function createLocalSourceDriver(root: string): SourceDriver {
         rewritten: [],
         visibility: null,
         findings: [],
+        unscannable: [],
       }
     },
 

@@ -59,6 +59,10 @@ const PUBLISHED_ELSEWHERE = {
   'repository.visibility_enforced':
     'api/webhooks.test.ts — a repository made public (Task 10)',
   'repository.secret_detected': 'api/webhooks.test.ts — a key pushed to GitHub (Task 11)',
+  // The authoring API plan's Task 12: published by driver 2's observer for a commit too large to
+  // scan, which needs a GitHub mirror and a patch past the scan's limit.
+  'repository.scan_incomplete':
+    'projects/source-events.test.ts — the observer, through publishEvent',
   // Task 12: published by POST /v1/projects on a free organisation — this lifecycle runs on
   // driver 1, whose main git itself protects.
   'repository.protection_unavailable':

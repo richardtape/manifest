@@ -13,7 +13,8 @@ import type { MirrorAdvance, SourceObserver } from '../source/index.js'
  * `repository.history_rewritten` for one GitHub rewrote and the mirror refused. **Commit ids
  * and a ref, nothing else** — an author and a message are an app author's free text (§14).
  * And one `repository.secret_detected` per commit that added a secret-shaped value (Task 11):
- * the path, the line and the rule, never the value.
+ * the path, the line and the rule, never the value. And one `repository.scan_incomplete` naming
+ * every commit the scan could NOT read (the authoring API plan's Task 12) — commit ids only.
  *
  * **A mirror with no project is a platform defect**, thrown rather than dropped: the driver
  * awaits this inside its sync, so the read that synced fails loudly instead of the report
@@ -120,6 +121,27 @@ export function createSourceObserver(deps: { db: Db; bus: EventBus }): SourceObs
               `A secret-shaped value was pushed to GitHub in ${commit.slice(0, 12)} ` +
               `(${first.path}:${first.line}, ${first.rule}${more > 0 ? `, and ${more} more` : ''}). ` +
               'It is on GitHub now: treat it as exposed and rotate it. Manifest will not build a commit that carries it.',
+          },
+          redact,
+        )
+      }
+      // THE SCAN'S OWN LIMIT, SAID (the authoring API plan's Task 12): commits whose own changes
+      // were too large to read. Never marked scanned before this is published (the driver's
+      // sync), so an owner learns it at least once.
+      if (advance.unscannable.length > 0) {
+        const n = advance.unscannable.length
+        await publishEvent(
+          deps.db,
+          deps.bus,
+          {
+            projectId: project.id,
+            subject,
+            type: 'repository.scan_incomplete',
+            machineDetail: { commits: advance.unscannable },
+            humanMessage:
+              `${n === 1 ? `A commit pushed to GitHub (${advance.unscannable[0]!.slice(0, 12)}) was` : `${n} commits pushed to GitHub were`} ` +
+              `too large for Manifest to scan for secrets, so nothing in ${n === 1 ? 'it' : 'them'} was checked. ` +
+              'A build of any commit still scans the whole tree it builds.',
           },
           redact,
         )

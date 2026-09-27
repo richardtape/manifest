@@ -107,6 +107,13 @@ export const EVENT_TYPES = [
    */
   'repository.secret_detected',
   /**
+   * §20, push-time secret scanning, and what it could NOT do (the authoring API plan's Task 12):
+   * commits GitHub has whose own patch is too large for one read of the mirror's scan, so no
+   * line of them was scanned. Named, so an owner learns it; the build's gate still scans every
+   * tree it builds. Reported at least once, before the commits are marked scanned.
+   */
+  'repository.scan_incomplete',
+  /**
    * §20, `main` protected (the D5 plan's Task 12, Decision 13): GitHub would NOT protect the
    * new repository's `main` — a private repository on a free organisation — so a person can
    * rewrite or delete it on GitHub. Published by `POST /v1/projects`, LAST, never silently.

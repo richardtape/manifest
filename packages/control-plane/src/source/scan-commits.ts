@@ -4,11 +4,22 @@ import { type Change, type CommitFinding, SourceError } from './git-driver.js'
 
 export type { CommitFinding } from './git-driver.js'
 
-/** How many new commits one scan reads; past it the scan says `truncated` rather than stall. */
+/** How many commits one BATCH of a scan names; a scan reads as many batches as there are. */
 export const SCAN_COMMIT_LIMIT = 1000
 
-/** How much of `git log -p` one scan reads; past it, `truncated`, and what arrived is scanned. */
+/**
+ * How much of `git log -p` one batch may produce. Past it the batch is split and read again;
+ * ONE commit whose own patch is past it is `unscannable`, named and reported, never read.
+ */
 export const SCAN_OUTPUT_LIMIT = 20 * 1024 * 1024
+
+/** The bounds one `git log -p` of a scan reads within — a batch of commits, and its patch. */
+export interface ScanLimits {
+  /** How many commits one batch names. */
+  commits: number
+  /** How much patch one batch may produce; past it the batch is split, down to one commit. */
+  bytes: number
+}
 
 /**
  * The patch options BOTH copies of the walk use — this one and driver 1's rendered hook
@@ -175,33 +186,58 @@ function gitRead(
 
 /**
  * THE MIRROR'S SCAN (Decision 14 (c)): every secret-shaped line ADDED by a commit reachable
- * from `heads` and from none of `exclude` — what is new since the last scan. At most
- * `SCAN_COMMIT_LIMIT` commits, newest first, and at most `SCAN_OUTPUT_LIMIT` of patch; past
- * either, `truncated`, and what was read is scanned. The revisions go on STDIN, so a repository
- * with many branches never meets an argument-length limit.
+ * from `heads` and from none of `exclude` — what is new since the last scan — and **EVERY such
+ * commit, to the end** (the authoring API plan's Task 12, the D5 plan's final review's
+ * Important 3). Until then one scan read the newest 1000 commits and 20 MiB of patch and the
+ * caller marked the branch scanned, so whatever lay past the cap was never read by anything.
+ *
+ * `rev-list --reverse --topo-order` lists the new commits oldest first; they are read in
+ * batches of `limits.commits` with `log -p --no-walk` over each batch's ids. A batch whose patch
+ * passes `limits.bytes` is split in half and read again; **a single commit whose own patch
+ * passes it is `unscannable`** — named, so the caller reports it, and never counted as read.
+ * The revisions and the ids go on STDIN, so no list meets an argument-length limit.
  */
 export async function scanNewCommits(
   gitDir: string,
   heads: readonly string[],
   exclude: readonly string[],
-): Promise<{ findings: CommitFinding[]; commits: number; truncated: boolean }> {
-  if (heads.length === 0) return { findings: [], commits: 0, truncated: false }
+  limits: ScanLimits = { commits: SCAN_COMMIT_LIMIT, bytes: SCAN_OUTPUT_LIMIT },
+): Promise<{ findings: CommitFinding[]; commits: number; unscannable: string[] }> {
+  if (heads.length === 0) return { findings: [], commits: 0, unscannable: [] }
   const revs = [...heads, '--not', ...exclude].join('\n') + '\n'
-  const count = Number(
-    (await gitRead(gitDir, ['rev-list', '--count', '--stdin'], revs, 1024)).stdout.trim(),
-  )
-  if (count === 0) return { findings: [], commits: 0, truncated: false }
-  const patch = await gitRead(
+  // Every id, whatever the count: the list is 41 bytes a commit, and paging needs all of it.
+  const listed = await gitRead(
     gitDir,
-    [...PATCH_ARGS, `--max-count=${SCAN_COMMIT_LIMIT}`, '--stdin'],
+    ['rev-list', '--reverse', '--topo-order', '--stdin'],
     revs,
-    SCAN_OUTPUT_LIMIT,
+    Number.POSITIVE_INFINITY,
   )
-  return {
-    findings: findingsInPatch(patch.stdout),
-    commits: Math.min(count, SCAN_COMMIT_LIMIT),
-    truncated: patch.truncated || count > SCAN_COMMIT_LIMIT,
+  const ids = listed.stdout.split('\n').filter((line) => line.length > 0)
+  const findings: CommitFinding[] = []
+  const unscannable: string[] = []
+  const read = async (batch: readonly string[]): Promise<void> => {
+    const patch = await gitRead(
+      gitDir,
+      [...PATCH_ARGS, '--no-walk=unsorted', '--stdin'],
+      batch.join('\n') + '\n',
+      limits.bytes,
+    )
+    if (!patch.truncated) {
+      findings.push(...findingsInPatch(patch.stdout))
+      return
+    }
+    if (batch.length === 1) {
+      unscannable.push(batch[0]!)
+      return
+    }
+    const half = Math.ceil(batch.length / 2)
+    await read(batch.slice(0, half))
+    await read(batch.slice(half))
   }
+  for (let i = 0; i < ids.length; i += limits.commits) {
+    await read(ids.slice(i, i + limits.commits))
+  }
+  return { findings, commits: ids.length, unscannable }
 }
 
 /**

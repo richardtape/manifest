@@ -177,6 +177,7 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     findings: [{ path: 'config/aws.js', line: 2, rule: 'an AWS access key id' }],
     truncated: false,
   },
+  'repository.scan_incomplete': { commits: [NEXT_SHA] },
   'repository.protection_unavailable': {
     ref: 'refs/heads/main',
     detail: 'GitHub would not protect main on this repository',

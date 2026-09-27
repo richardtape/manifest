@@ -34,6 +34,7 @@ import {
   assertWritablePaths,
   scanNewCommits,
   writesOf,
+  type ScanLimits,
 } from '../scan-commits.js'
 import { createGithubClient } from './client.js'
 import { gitWithToken, isAuthRefusal } from './git.js'
@@ -57,6 +58,11 @@ export interface GithubDriverOptions {
   /** A test's spy; production uses the global. */
   fetch?: typeof fetch
   now?: () => Date
+  /**
+   * The bounds of one batch of the mirror's scan — `SCAN_COMMIT_LIMIT` and `SCAN_OUTPUT_LIMIT`
+   * unless a test makes a commit too large to scan without pushing 20 MiB (Task 12).
+   */
+  scanLimits?: ScanLimits
 }
 
 /** §7's slug rule, re-stated as driver 1 does: the traversal defence depends on no other module. */
@@ -255,6 +261,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       rewritten: [],
       visibility: null,
       findings: [],
+      unscannable: [],
     }
     const refused: string[] = []
     for (const line of out.split('\n')) {
@@ -339,16 +346,19 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       if (!how.report) return advance
       const scan = await scanUnreported(slug, mirror)
       advance.findings = scan.findings
+      advance.unscannable = scan.unscannable
       const moved = advance.updated.length > 0 || advance.rewritten.length > 0
       if (
         moved ||
         advance.visibility?.observed === 'public' ||
-        advance.findings.length > 0
+        advance.findings.length > 0 ||
+        advance.unscannable.length > 0
       ) {
         await o.observer.advanced(advance)
       }
       // ONLY NOW, with the report made: an observer that throws leaves these where they
-      // were, and the next sync scans and reports the same commits again.
+      // were, and the next sync scans and reports the same commits again — the ones it could
+      // not read included (Task 12), which is what makes `unscannable` a report and not a skip.
       for (const [branch, sha] of scan.heads) {
         await local(mirror, ['update-ref', `${SCANNED}/${branch}`, sha])
       }
@@ -382,22 +392,29 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
   async function scanUnreported(
     slug: string,
     mirror: string,
-  ): Promise<{ findings: MirrorAdvance['findings']; heads: Map<string, string> }> {
+  ): Promise<{
+    findings: MirrorAdvance['findings']
+    unscannable: string[]
+    heads: Map<string, string>
+  }> {
     const heads = await refsUnder(mirror, UPSTREAM)
     const scanned = await refsUnder(mirror, SCANNED)
     const fresh = [...heads].filter(([branch, sha]) => scanned.get(branch) !== sha)
-    if (fresh.length === 0) return { findings: [], heads }
+    if (fresh.length === 0) return { findings: [], unscannable: [], heads }
+    // EVERY new commit, to the end (Task 12): paged, never capped — so a branch marked scanned
+    // below has had every commit read, or named in `unscannable`.
     const scan = await scanNewCommits(
       mirror,
       fresh.map(([, sha]) => sha),
       [...scanned.values()],
+      o.scanLimits,
     )
-    if (scan.truncated) {
+    if (scan.unscannable.length > 0) {
       console.error(
-        `github driver: ${o.org}/${slug}: only the newest ${scan.commits} new commits were scanned for secrets; older ones were NOT — the build's gate still scans every tree it builds`,
+        `github driver: ${o.org}/${slug}: ${scan.unscannable.length} of ${scan.commits} new commits were too large to scan for secrets (${scan.unscannable.map((c) => c.slice(0, 12)).join(', ')}) — reported, and the build's gate still scans every tree it builds`,
       )
     }
-    return { findings: scan.findings, heads }
+    return { findings: scan.findings, unscannable: scan.unscannable, heads }
   }
 
   /** What GitHub says of the repository's visibility NOW: `true` private, `false` public. */

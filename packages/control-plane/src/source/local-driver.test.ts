@@ -212,6 +212,7 @@ describe('driver 1 refuses a secret in a PERSON’s push, by the repository’s 
       rewritten: [],
       visibility: null,
       findings: [],
+      unscannable: [],
     })
   })
 })

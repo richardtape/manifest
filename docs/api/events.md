@@ -137,6 +137,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `repository.history_rewritten` | A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next (§13). |
 | `repository.visibility_enforced` | The repository was found public on GitHub, and was made private again or could not be (§20). |
 | `repository.secret_detected` | A commit pushed to GitHub adds a value shaped like a secret (§20). Never the value; the commit is never deployed with it. |
+| `repository.scan_incomplete` | Commits pushed to GitHub were too large for Manifest to scan for secrets (§20). Nothing in them was read; a build of any commit still scans the whole tree it builds. |
 | `repository.protection_unavailable` | GitHub would not protect the new repository’s `main`, so a person can rewrite or delete it there; `getProject`’s repository says so too. |
 | `repository.committed` | A commit was made through Manifest’s API (`createCommit`) — the platform’s own record of who made it, which `listCommits` reads as `madeThrough`. |
 | `repository.secret_refused` | A commit Manifest was asked to make carried a value shaped like a secret, and was refused (§20). Never the value. |
