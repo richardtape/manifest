@@ -131,6 +131,18 @@ const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
 
 const PERSON_ONLY_REASON = 'A person does this — no token and no confirmation can.'
 
+/**
+ * WHAT A MINTABLE CAPABILITY DOES NOT COVER, said beside its box — the authoring API plan's
+ * Task 10, for its Task 8's `secret:write`: a token's covers sandbox and staging, and a
+ * production value is a stepped-up person's alone (§20, D24; Spec action 2). An explanation
+ * like the two sets above: the platform refuses a token's production write `403
+ * TOKEN_CREDENTIAL_REFUSED` whatever this says.
+ */
+const SCOPED: Partial<Record<Capability, string>> = {
+  'secret:write':
+    'Sandbox and staging only: a production value is set by a person who has confirmed it is them, never by a token.',
+}
+
 /** What a token was minted with by default here — the four an agent needs to build and ship. */
 const SUGGESTED: readonly Capability[] = [
   'project:read',
@@ -297,6 +309,9 @@ function Mint({
                   </label>
                   {privileged && <div className="hint">{PRIVILEGED_REASON}</div>}
                   {personOnly && <div className="hint">{PERSON_ONLY_REASON}</div>}
+                  {SCOPED[capability] !== undefined && (
+                    <div className="hint">{SCOPED[capability]}</div>
+                  )}
                 </li>
               )
             })}

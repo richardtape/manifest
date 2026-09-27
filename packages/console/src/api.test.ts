@@ -2,6 +2,7 @@ import { createMockServer, fixtures } from '@manifest/mock'
 import { subscribe, type StreamFrame } from '@manifest/contract'
 import { describe, expect, it } from 'vitest'
 import { createApi } from './api.js'
+import { changesFrom, editable, madeThroughSentence } from './code-state.js'
 
 /**
  * DECISION 7 SAYS THE CONSOLE HAS NO DOM TEST TIER, AND THIS IS WHY THAT IS TENABLE: its
@@ -309,6 +310,97 @@ describe('the console’s data layer against manifest-mock', () => {
         k(),
       )
       expect(rejected.reason).not.toBeNull()
+    })
+  })
+
+  /**
+   * THE CODE AND SECRETS SCREENS' CALLS (the authoring API plan's Task 10), each consuming a
+   * field its screen renders. The mock answers all eight from the document's own examples
+   * (Decision 15) — keyed for a file, a commit, a page and a dry run — so these prove the
+   * CALLS: their paths, queries, bodies and keys. A refusal below is the mock's keyed one, and
+   * it is asserted because it is what proves the parameter reached the mock at all.
+   */
+  it('reads and changes a project’s source, and sets its app secrets', async () => {
+    await withMock(async (origin) => {
+      const a = api(origin)
+      const k = () => a.newKey()
+
+      // THE TREE'S COMMIT IS THE BASE OF EVERY EDIT, and every file is read at it.
+      const tree = await a.getTree(PROJECT_ID)
+      expect(tree.commitSha).toMatch(/^[0-9a-f]{40}$/)
+      const app = tree.entries.find((e) => e.path === 'src/app.js')!
+      expect(editable(app)).toEqual({ ok: true })
+      expect(editable(tree.entries.find((e) => e.path === 'src')!).ok).toBe(false)
+      const file = await a.getFile(PROJECT_ID, 'src/app.js', tree.commitSha)
+      expect(file.content).toContain('greeting')
+      expect(file.blobSha).toMatch(/^[0-9a-f]{40}$/)
+      // The `path` query reached the mock — which holds one file's text and says so.
+      await expect(
+        a.getFile(PROJECT_ID, 'manifest.yaml', tree.commitSha),
+      ).rejects.toMatchObject({ status: 409, code: 'SOURCE_PATH_NOT_FOUND' })
+
+      // WHO MADE EACH COMMIT, IN THE PLATFORM'S RECORD — the sentence the history shows.
+      const history = await a.listCommits(PROJECT_ID)
+      expect(history.commits.map((c) => madeThroughSentence(c.madeThrough))).toEqual([
+        "Ada Lovelace’s agent — token 'claude-code'",
+        'Ada Lovelace',
+      ])
+      expect(history.next).toMatch(/^[0-9a-f]{40}$/)
+      // …and the cursor reached it: the mock has one page, and refuses the next by code.
+      await expect(a.listCommits(PROJECT_ID, history.next!)).rejects.toMatchObject({
+        status: 409,
+        code: 'SOURCE_COMMIT_NOT_FOUND',
+      })
+      const detail = await a.getCommit(PROJECT_ID, history.commits[0]!.commitSha)
+      expect(detail.changes[0]?.patch).toContain('@@')
+      expect(detail.patchesTruncated).toBe(false)
+
+      // CHECK IS THE COMMIT WITH `dryRun: true` — nothing written, `commitSha: null`.
+      const body = {
+        baseCommit: tree.commitSha,
+        message: 'Greet the world',
+        changes: changesFrom([
+          {
+            op: 'write',
+            path: 'src/app.js',
+            content: file.content + '// hi\n',
+            isNew: false,
+          },
+        ]),
+      }
+      const checked = await a.createCommit(PROJECT_ID, { ...body, dryRun: true }, k())
+      expect(checked.dryRun).toBe(true)
+      expect(checked.commitSha).toBeNull()
+      expect(checked.spec.sensitiveDiff.sensitive).toBe(false)
+      const made = await a.createCommit(PROJECT_ID, body, k())
+      expect(made.commitSha).toMatch(/^[0-9a-f]{40}$/)
+      expect(made.changes).toEqual([{ path: 'src/app.js', status: 'modified' }])
+
+      // AN ENVIRONMENT'S SECRETS: names, declared, set — never a value, in any answer.
+      const staging = (await a.listEnvironments(PROJECT_ID)).find(
+        (e) => e.kind === 'staging',
+      )!
+      const secrets = await a.listAppSecrets(staging.id)
+      expect(secrets.secrets.map((s) => [s.name, s.declared, s.set])).toEqual([
+        ['BOARD_ADMIN_CODE', true, false],
+        ['SIS_API_KEY', true, false],
+      ])
+      // The mock answers set and clear with the document's example whatever name is sent
+      // (it keeps no state and echoes nothing of a mutation — P5c Decision 9), so these prove
+      // the PUT and the bodyless DELETE, their paths and their keys.
+      const set = await a.setAppSecret(
+        staging.id,
+        'BOARD_ADMIN_CODE',
+        { value: 'a-value-long-enough' },
+        k(),
+      )
+      expect(set.set).toBe(true)
+      expect(JSON.stringify(set)).not.toContain('a-value-long-enough')
+      expect((await a.clearAppSecret(staging.id, 'BOARD_ADMIN_CODE', k())).set).toBe(
+        false,
+      )
+      for (const answer of [secrets, set])
+        expect(JSON.stringify(answer)).not.toMatch(/"value"/)
     })
   })
 

@@ -21,7 +21,7 @@ export type Route =
   | {
       name: 'project'
       projectId: string
-      tab: 'overview' | 'records' | 'queue' | 'tokens'
+      tab: 'overview' | 'code' | 'secrets' | 'records' | 'queue' | 'tokens'
     }
   | { name: 'approval'; releaseId: string }
   | { name: 'unknown'; path: string }
@@ -33,7 +33,17 @@ export function parse(path: string): Route {
   if (parts[0] === 'fleet' && parts.length === 1) return { name: 'fleet' }
   if (parts[0] === 'projects' && parts[1] !== undefined) {
     const tab = parts[2]
-    if (tab === undefined || tab === 'records' || tab === 'queue' || tab === 'tokens')
+    // The authoring API plan's Task 10 added `code` and `secrets`: a project's source and
+    // its app secrets, each a bookmarkable path — which is what lets §20's step-up land a
+    // person back on the Secrets tab they were refused on.
+    if (
+      tab === undefined ||
+      tab === 'code' ||
+      tab === 'secrets' ||
+      tab === 'records' ||
+      tab === 'queue' ||
+      tab === 'tokens'
+    )
       return { name: 'project', projectId: parts[1], tab: tab ?? 'overview' }
   }
   // §13's approval (P6a Task 18). Under the RELEASE, not the project: an approval is about

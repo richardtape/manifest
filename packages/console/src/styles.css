@@ -380,3 +380,93 @@ button:disabled {
 .record-form input:not([type='date']) {
   width: min(34rem, 70vw);
 }
+
+/* THE CODE SCREEN (the authoring API plan's Task 10). A file list whose names are buttons
+   styled as the links they read as — `aria-current` marks the open one, as on the tabs — and
+   one editor, as wide as the column, in the monospace every file is written in. */
+.link {
+  padding: 0;
+  border: none;
+  text-decoration: underline;
+}
+
+.link[aria-current='true'] {
+  font-weight: 600;
+}
+
+.files,
+.history,
+.secrets {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0;
+}
+
+.files li {
+  padding: 0.1rem 0;
+}
+
+.history li,
+.secrets li {
+  border-top: 1px solid var(--line);
+  padding: 0.5rem 0;
+}
+
+.open-file,
+.commit-form {
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+}
+
+.open-file h3,
+.commit-form h3 {
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}
+
+textarea.source {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 20rem;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font:
+    0.85em ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  tab-size: 2;
+}
+
+.field input.message {
+  width: min(34rem, 70vw);
+}
+
+.commit-detail {
+  margin: 0.4rem 0 0 1rem;
+}
+
+.secrets form {
+  margin-top: 0.3rem;
+}
+
+/* A name the list does not have yet — separated like a record form, without its wide URL
+   inputs, so the name and the value sit on one line. */
+.new-secret {
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+  padding-top: 0.25rem;
+}
+
+.secrets input,
+.new-secret input {
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}

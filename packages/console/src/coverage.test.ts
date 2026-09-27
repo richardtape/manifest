@@ -17,30 +17,14 @@ import { describe, expect, it } from 'vitest'
  * and the list is where that claim is recorded.
  */
 const DELIBERATELY_UNCALLED: Record<string, string> = {
-  // **PARKED BY THE AUTHORING API PLAN'S TASK 5 (sitting 3, 2026-09-25), NAMING THEIR REMOVER:
-  // that plan's Task 10 — the Code screen, sitting 7 — calls all four and empties this list
-  // again.** Task 5 publishes reading a project's source; the screen that reads it is
-  // Task 10's, four sittings later, and the plan put them in that order on purpose (the API
-  // first, then its clients). Nothing the console did before is broken meanwhile: these are
-  // new operations, not missing callers of old ones. `manifest-mock` answers all four from
-  // the document's own examples already, so the screen can be built against it.
-  getTree: 'the authoring API plan, Task 10 (the Code screen) — parked by its Task 5',
-  getFile: 'the authoring API plan, Task 10 (the Code screen) — parked by its Task 5',
-  listCommits: 'the authoring API plan, Task 10 (the Code screen) — parked by its Task 5',
-  getCommit: 'the authoring API plan, Task 10 (the Code screen) — parked by its Task 5',
-  // …and the WRITE the same screen makes, parked by that plan's Task 6 (sitting 4) beside them.
-  createCommit:
-    'the authoring API plan, Task 10 (the Code screen) — parked by its Task 6',
-  // …and an app's declared secrets, parked by that plan's Task 8 (sitting 5) for the Secrets
-  // screen the same Task 10 builds.
-  listAppSecrets:
-    'the authoring API plan, Task 10 (the Secrets screen) — parked by its Task 8',
-  setAppSecret:
-    'the authoring API plan, Task 10 (the Secrets screen) — parked by its Task 8',
-  clearAppSecret:
-    'the authoring API plan, Task 10 (the Secrets screen) — parked by its Task 8',
+  // **EMPTY AGAIN SINCE THE AUTHORING API PLAN'S TASK 10 (sitting 7, 2026-09-26)**, and that
+  // is a measurement: all 51 operations have a caller. That plan's Tasks 5, 6 and 8 parked
+  // eight here naming Task 10 as their remover — `getTree`, `getFile`, `listCommits`,
+  // `getCommit` and `createCommit` for the Code screen, `listAppSecrets`, `setAppSecret` and
+  // `clearAppSecret` for the Secrets screen — and Task 10 added their callers and removed the
+  // parks in one commit, which the stale-park check below is what made necessary.
   //
-  // **WAS EMPTY, AND THAT WAS A MEASUREMENT** — all 43 operations had a caller (P6b Task 10).
+  // **IT WAS EMPTY BEFORE, TOO** — all 43 operations had a caller (P6b Task 10).
   // It was empty through the whole of P5c (34 operations) and again from P6a Task 18 (41).
   // P6b Task 9 parked its two preview operations here naming their remover, and Task 10
   // removed both in the same sitting (P6b Decision 19) — so the console's Approve button was

@@ -151,6 +151,102 @@ export function createApi(options: ApiOptions) {
       )
     },
 
+    /**
+     * A PROJECT'S SOURCE, READ (the authoring API plan's Task 5) — the tree at `ref`, which
+     * defaults to `main`. **The answer's `commitSha` is what every edit is computed from**:
+     * the Code screen reads each file AT that commit and sends it back as `baseCommit`, so a
+     * person's push in between is refused `409 SOURCE_CONFLICT` rather than overwritten.
+     */
+    async getTree(projectId: string, ref?: string): Promise<Schemas['SourceTree']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/tree', {
+          params: {
+            path: { projectId },
+            ...(ref === undefined ? {} : { query: { ref } }),
+          },
+        }),
+        'getTree',
+      )
+    },
+
+    /**
+     * One text file, whole. `ref` is the tree's `commitSha`, never `main` — a file read at a
+     * newer commit than the tree would be edited against a base it did not come from. A
+     * binary or non-UTF-8 file is `409 SOURCE_FILE_NOT_TEXT`, and one past 1 MiB `409
+     * SOURCE_FILE_TOO_LARGE`; `<Refusal>` renders both.
+     */
+    async getFile(
+      projectId: string,
+      path: string,
+      ref?: string,
+    ): Promise<Schemas['SourceFile']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/file', {
+          params: {
+            path: { projectId },
+            query: { path, ...(ref === undefined ? {} : { ref }) },
+          },
+        }),
+        'getFile',
+      )
+    },
+
+    /**
+     * A page of `main`'s FIRST-PARENT history, newest first; `next` is the next page's
+     * `cursor`, null on the last. `madeThrough` is the PLATFORM's record of who made a commit
+     * through Manifest, and `authorName` only what git was told (Decision 5).
+     */
+    async listCommits(
+      projectId: string,
+      cursor?: string,
+    ): Promise<Schemas['CommitList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/commits', {
+          params: {
+            path: { projectId },
+            ...(cursor === undefined ? {} : { query: { cursor } }),
+          },
+        }),
+        'listCommits',
+      )
+    },
+
+    /** One commit and every file it changed, with a patch each until 256 KiB is spent. */
+    async getCommit(
+      projectId: string,
+      commitSha: string,
+    ): Promise<Schemas['CommitDetail']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/commits/{commitSha}', {
+          params: { path: { projectId, commitSha } },
+        }),
+        'getCommit',
+      )
+    },
+
+    /**
+     * WRITES AND DELETIONS ON `main`, AS ONE COMMIT, computed from `body.baseCommit` (Task
+     * 6). Every check runs before anything is written — the paths, the text, secret-shaped
+     * values, the base, the tree and the `manifest.yaml` the commit would leave — so a
+     * refusal means NOTHING was committed: `409 SOURCE_CONFLICT` (main moved), `422
+     * SPEC_INVALID` (with `details`), `409 SOURCE_SECRET_DETECTED` (naming `path:line` and the
+     * rule, never the value). **`dryRun: true` is the Check button**: the same checks, the
+     * same answer's shape, `commitSha: null`, and nothing written.
+     */
+    async createCommit(
+      projectId: string,
+      body: Schemas['CreateCommitRequest'],
+      idempotency: string,
+    ): Promise<Schemas['CommitOutcome']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/commits', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'createCommit',
+      )
+    },
+
     async listMembers(projectId: string): Promise<Schemas['MemberList']> {
       return unwrap(
         await client.GET('/v1/projects/{projectId}/members', {
@@ -320,6 +416,61 @@ export function createApi(options: ApiOptions) {
           params: { path: { environmentId } },
         }),
         'listIncidents',
+      )
+    },
+
+    /**
+     * AN ENVIRONMENT'S APP SECRETS, BY NAME — declared, set, and when — NEVER A VALUE (Task 8,
+     * Decision 13). A declared name with `set: false` stops the next deploy of that
+     * environment (`409 RELEASE_SECRET_NOT_SET`); a name `set` and not `declared` is stored
+     * and never given to the app.
+     */
+    async listAppSecrets(environmentId: string): Promise<Schemas['AppSecretList']> {
+      return unwrap(
+        await client.GET('/v1/environments/{environmentId}/secrets', {
+          params: { path: { environmentId } },
+        }),
+        'listAppSecrets',
+      )
+    },
+
+    /**
+     * THE API'S FIRST `PUT`. Takes effect at the NEXT deploy of the environment and redeploys
+     * nothing. **Production is a stepped-up person's alone** — a plain session is `403
+     * STEP_UP_REQUIRED`, whose `<Refusal>` is the link that does it (§20, Spec action 2) — and
+     * a value under six characters is `400 REQUEST_INVALID`, because the redactor could not
+     * hide one that short. The answer is the name's status; the value is never answered back.
+     */
+    async setAppSecret(
+      environmentId: string,
+      name: string,
+      body: Schemas['SetAppSecretRequest'],
+      idempotency: string,
+    ): Promise<Schemas['AppSecretStatus']> {
+      return unwrap(
+        await client.PUT('/v1/environments/{environmentId}/secrets/{name}', {
+          params: { path: { environmentId, name }, ...key(idempotency) },
+          body,
+        }),
+        'setAppSecret',
+      )
+    },
+
+    /**
+     * Clears a value — the same answer however often it is sent. BODYLESS, like `revokeToken`,
+     * and sent with no `Content-Type` (a bodyless request carrying one is `400 REQUEST_INVALID`
+     * — the authoring API plan's sitting 5, F15; `openapi-fetch` sends none).
+     */
+    async clearAppSecret(
+      environmentId: string,
+      name: string,
+      idempotency: string,
+    ): Promise<Schemas['AppSecretStatus']> {
+      return unwrap(
+        await client.DELETE('/v1/environments/{environmentId}/secrets/{name}', {
+          params: { path: { environmentId, name }, ...key(idempotency) },
+        }),
+        'clearAppSecret',
       )
     },
 

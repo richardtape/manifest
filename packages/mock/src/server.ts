@@ -53,6 +53,8 @@ interface Context {
   options: Required<MockOptions>
   /** True while the scripted build's §12 scan window has not yet elapsed (see `getBuild`). */
   buildIsRunning: boolean
+  /** The operation's success example in the document, if it prints one (Decision 15). */
+  example: Answer | undefined
 }
 
 interface Answer {
@@ -95,6 +97,21 @@ function decisionNamingAPreview(ctx: Context): typeof f.APPROVAL {
       'POST /v1/releases/{releaseId}/approval-preview, read it, then decide naming its id.',
     )
   return f.APPROVAL
+}
+
+/**
+ * The operation's own example, copied — for a scripted answer that KEYS the document's answer
+ * rather than restating it. `FROM_EXAMPLE` names every caller, and `server.test.ts` holds each
+ * one to having an example.
+ */
+function documentExample(ctx: Context): Answer {
+  if (ctx.example === undefined)
+    throw new MockRefusal(
+      501,
+      'INTERNAL',
+      'manifest-mock answers this operation from the document’s example, and the document prints none',
+    )
+  return structuredClone(ctx.example)
 }
 
 /**
@@ -229,7 +246,79 @@ const ANSWERS: Record<string, Answerer> = {
         : { slug: ctx.params.slug ?? '', available: true },
     ),
   revokeToken: () => ok('Token', f.REVOKED_TOKEN),
+  // THE DOCUMENT'S OWN EXAMPLES, KEYED ON WHAT NAMES THEM (the authoring API plan's Task 10).
+  // Each answers `ctx.example` — the one statement of the answer (Decision 15) — and nothing
+  // hand-written; what these four add is refusing to answer it for something ELSE. A mock
+  // that gave `src/app.js`'s text to a request for `manifest.yaml`, or one commit's changes
+  // under another's id, would show a person clicking the Code screen one file under another's
+  // name — the shape `listIncidents` and `getPendingAction` were keyed for (P5c). The mock
+  // NAMES ITSELF in each refusal, so it cannot be read as the platform's.
+  getFile: (ctx) => {
+    const example = documentExample(ctx)
+    const held = (example.body as { path: string }).path
+    if (ctx.query.get('path') !== held)
+      throw new MockRefusal(
+        409,
+        'SOURCE_PATH_NOT_FOUND',
+        `manifest-mock holds the text of one file, the document's example '${held}'`,
+        'Open that file here, or drive the platform to read any other.',
+      )
+    return example
+  },
+  getCommit: (ctx) => {
+    const example = documentExample(ctx)
+    const held = (example.body as { commitSha: string }).commitSha
+    if (ctx.params.commitSha !== held)
+      throw new MockRefusal(
+        409,
+        'SOURCE_COMMIT_NOT_FOUND',
+        `manifest-mock describes one commit, the document's example ${held}`,
+        'Open that commit here, or drive the platform to read any other.',
+      )
+    return example
+  },
+  // ONE PAGE OF HISTORY. Its `next` is a real cursor, so a screen's *Older* button is
+  // reachable — and answering the same page to it would show every commit twice.
+  listCommits: (ctx) => {
+    const example = documentExample(ctx)
+    const cursor = ctx.query.get('cursor')
+    const first = (example.body as { commits: { commitSha: string }[] }).commits[0]
+    if (cursor !== null && cursor !== first?.commitSha)
+      throw new MockRefusal(
+        409,
+        'SOURCE_COMMIT_NOT_FOUND',
+        'manifest-mock has one page of history, the document’s example',
+        'Drive the platform to page further back.',
+      )
+    return example
+  },
+  // A DRY RUN IS ANSWERED AS ONE — `commitSha: null`, no recorded validation — and it echoes
+  // nothing else of the request. The one fact the Check button exists for is that nothing was
+  // written; answering it the example's commit would tell a person it had been (the reason
+  // `decisionNamingAPreview` plays a rule the document states only in words).
+  createCommit: (ctx) => {
+    const example = documentExample(ctx)
+    if ((ctx.body as { dryRun?: unknown } | undefined)?.dryRun !== true) return example
+    const outcome = example.body as { spec: Record<string, unknown> }
+    return {
+      ...example,
+      body: {
+        ...outcome,
+        dryRun: true,
+        commitSha: null,
+        spec: { ...outcome.spec, appSpecId: null },
+      },
+    }
+  },
 }
+
+/** The scripted answers above that answer the document's example, keyed (`documentExample`). */
+export const FROM_EXAMPLE: readonly string[] = [
+  'getFile',
+  'getCommit',
+  'listCommits',
+  'createCommit',
+]
 
 interface Operation {
   operationId: string
@@ -531,6 +620,7 @@ export function createMockServer(options: MockOptions = {}): Server {
         body,
         options: resolved,
         buildIsRunning: buildSucceedsAt !== undefined && Date.now() < buildSucceedsAt,
+        example,
       })
 
       // EVERY BODY IS VALIDATED ON ITS WAY OUT, in-process. A mock that lies is worse than

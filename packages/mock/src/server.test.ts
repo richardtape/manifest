@@ -1,7 +1,14 @@
 import type { Server } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as fixtures from './fixtures.js'
-import { ANSWERED, createMockServer, operationsOf, readDocument } from './server.js'
+import {
+  ANSWERED,
+  createMockServer,
+  FROM_EXAMPLE,
+  operationsOf,
+  readDocument,
+} from './server.js'
+import { createValidator } from './validate.js'
 
 /**
  * THE MOCK'S OWN HALF OF D22. `server.ts` derives its paths from the document, so it cannot
@@ -27,6 +34,46 @@ describe('manifest-mock answers the whole document', () => {
       operations.length,
       'no operations were read from the document',
     ).toBeGreaterThan(30)
+  })
+
+  /**
+   * EVERY EXAMPLE THE DOCUMENT PRINTS IS A BODY THIS MOCK CAN SEND (the authoring API plan's
+   * Task 10, `[S6]`). The reference's gate parses each example through its ZOD schema; the mock
+   * sends each answer through AJV, which reads `format`, `pattern` and `additionalProperties`
+   * as the document states them — so an example zod accepts and Ajv refuses would be this
+   * mock's `500` the first time a screen asked, not a red gate. Every example is checked,
+   * including those of operations answered by a fixture, because the published reference
+   * shows them all.
+   */
+  it('answers every document example through the validator every answer passes', async () => {
+    const check = await createValidator()
+    const examples = operationsOf(await readDocument()).filter(
+      (o) => o.example !== undefined,
+    )
+    const refused = examples
+      .map((o) => ({ id: o.operationId, ...check(o.example!.schema!, o.example!.body) }))
+      .filter((r) => !r.ok)
+      .map((r) => `${r.id}: ${r.errors}`)
+    expect(refused).toEqual([])
+    // Fifty JSON operations carry one since the reference was completed; fewer read means the
+    // examples were not found, which would make the list above empty for the wrong reason.
+    expect(examples.length, 'the examples were not read').toBeGreaterThanOrEqual(50)
+  })
+
+  /**
+   * A SCRIPTED ANSWER BUILT ON THE DOCUMENT'S EXAMPLE NEEDS ONE — the four keyed answers
+   * below answer `ctx.example`, so a document that lost it would make them `501` at the first
+   * request while the gate above still counted them as answered.
+   */
+  it('has a document example for every scripted answer that is built on one', async () => {
+    const operations = operationsOf(await readDocument())
+    expect(
+      FROM_EXAMPLE.filter(
+        (id) => operations.find((o) => o.operationId === id)?.example === undefined,
+      ),
+    ).toEqual([])
+    expect(FROM_EXAMPLE.every((id) => ANSWERED.includes(id))).toBe(true)
+    expect(FROM_EXAMPLE.length).toBeGreaterThan(0)
   })
 
   it('compiles a path template into a pattern that captures its parameters', async () => {
@@ -123,6 +170,111 @@ describe('manifest-mock refuses what the platform refuses', () => {
     )
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual(example)
+  })
+
+  /**
+   * THE DOCUMENT'S EXAMPLES, KEYED ON WHAT NAMES THEM (Task 10). A file's text is answered for
+   * ITS path, a commit's changes for ITS id, the one page of history for no cursor (or its own
+   * first commit), and a dry run as a dry run. Anything else is refused with the platform's
+   * code in the mock's own words — each asserted by CODE, with the example's own request as
+   * the positive half in the same test.
+   */
+  describe('answers the document’s source examples only for what they are examples of', () => {
+    const PROJECT = '22222222-2222-4222-8222-222222222222'
+    const example = async (path: string, method = 'get') => {
+      const document = (await readDocument()) as unknown as {
+        paths: Record<
+          string,
+          Record<
+            string,
+            {
+              responses: Record<
+                string,
+                { content?: Record<string, { example?: unknown }> }
+              >
+            }
+          >
+        >
+      }
+      const responses = document.paths[path]![method]!.responses
+      const status = Object.keys(responses).find((s) => /^2/.test(s))!
+      return responses[status]!.content!['application/json']!.example as Record<
+        string,
+        unknown
+      >
+    }
+    const codeOf = async (response: Response) =>
+      ((await response.json()) as { error: { code: string } }).error.code
+
+    it('getFile — the example’s path is answered, any other is SOURCE_PATH_NOT_FOUND', async () => {
+      const file = await example('/v1/projects/{projectId}/file')
+      const read = (p: string) =>
+        fetch(
+          `${origin}/v1/projects/${PROJECT}/file?path=${encodeURIComponent(p)}&ref=main`,
+          { headers: session },
+        )
+      const held = await read(file.path as string)
+      expect(held.status).toBe(200)
+      expect(await held.json()).toEqual(file)
+      const other = await read('manifest.yaml')
+      expect(other.status).toBe(409)
+      expect(await codeOf(other)).toBe('SOURCE_PATH_NOT_FOUND')
+    })
+
+    it('getCommit — the example’s commit is answered, its parent is SOURCE_COMMIT_NOT_FOUND', async () => {
+      const commit = await example('/v1/projects/{projectId}/commits/{commitSha}')
+      const read = (sha: string) =>
+        fetch(`${origin}/v1/projects/${PROJECT}/commits/${sha}`, { headers: session })
+      const held = await read(commit.commitSha as string)
+      expect(held.status).toBe(200)
+      expect(await held.json()).toEqual(commit)
+      const parent = await read((commit.parents as string[])[0]!)
+      expect(parent.status).toBe(409)
+      expect(await codeOf(parent)).toBe('SOURCE_COMMIT_NOT_FOUND')
+    })
+
+    it('listCommits — one page, and its `next` is refused rather than answered again', async () => {
+      const page = await example('/v1/projects/{projectId}/commits')
+      const list = (query: string) =>
+        fetch(`${origin}/v1/projects/${PROJECT}/commits${query}`, { headers: session })
+      const first = await list('')
+      expect(first.status).toBe(200)
+      expect(await first.json()).toEqual(page)
+      expect(page.next).not.toBeNull()
+      const next = await list(`?cursor=${page.next as string}`)
+      expect(next.status).toBe(409)
+      expect(await codeOf(next)).toBe('SOURCE_COMMIT_NOT_FOUND')
+    })
+
+    it('createCommit — a dry run is answered as one, and a commit as the example', async () => {
+      const outcome = await example('/v1/projects/{projectId}/commits', 'post')
+      const commit = (body: Record<string, unknown>) =>
+        fetch(`${origin}/v1/projects/${PROJECT}/commits`, {
+          method: 'POST',
+          headers: {
+            ...session,
+            'content-type': 'application/json',
+            'idempotency-key': crypto.randomUUID(),
+          },
+          body: JSON.stringify(body),
+        })
+      const request = {
+        baseCommit: outcome.parent,
+        message: 'Greet the world',
+        changes: [{ op: 'write', path: 'src/app.js', content: 'x\n' }],
+      }
+      const made = await commit(request)
+      expect(made.status).toBe(201)
+      expect(await made.json()).toEqual(outcome)
+      const dry = await commit({ ...request, dryRun: true })
+      expect(dry.status).toBe(201)
+      expect(await dry.json()).toEqual({
+        ...outcome,
+        dryRun: true,
+        commitSha: null,
+        spec: { ...(outcome.spec as object), appSpecId: null },
+      })
+    })
   })
 
   it('answers the stream’s plain GET 426 EVENTS_UPGRADE_REQUIRED', async () => {

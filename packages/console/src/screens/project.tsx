@@ -5,10 +5,12 @@ import { href, type Route } from '../router'
 import { useProjectStream } from '../stream'
 import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 import { Builds } from './builds'
+import { Code } from './code'
 import { Deploy } from './deploy'
 import { Launch } from './launch'
 import { Queue } from './queue'
 import { Records } from './records'
+import { Secrets } from './secrets'
 import { Tokens } from './tokens'
 
 /**
@@ -46,7 +48,11 @@ export function Project({
   return (
     <>
       <Tabs projectId={projectId} tab={tab} />
-      {tab === 'tokens' ? (
+      {tab === 'code' ? (
+        <Code api={api} projectId={projectId} frames={stream.frames} />
+      ) : tab === 'secrets' ? (
+        <Secrets api={api} projectId={projectId} />
+      ) : tab === 'tokens' ? (
         <Tokens api={api} projectId={projectId} frames={stream.frames} />
       ) : tab === 'records' ? (
         <Records api={api} projectId={projectId} isAdmin={isAdmin} />
@@ -104,6 +110,16 @@ function Tabs({
     <nav className="tabs">
       <a {...href(`/projects/${projectId}`)} aria-current={tab === 'overview'}>
         Overview
+      </a>{' '}
+      {/*
+        THE PROJECT'S SOURCE AND ITS APP SECRETS (the authoring API plan's Task 10) — what an
+        app is MADE of, beside what it is launched with, so they come first.
+      */}
+      <a {...href(`/projects/${projectId}/code`)} aria-current={tab === 'code'}>
+        Code
+      </a>{' '}
+      <a {...href(`/projects/${projectId}/secrets`)} aria-current={tab === 'secrets'}>
+        Secrets
       </a>{' '}
       {/*
         §9's two external records, READABLE BY EVERYONE WHO MAY READ THE PROJECT — an owner
