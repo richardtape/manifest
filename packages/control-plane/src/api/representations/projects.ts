@@ -74,6 +74,12 @@ export const RepositoryLink = representation(
         .describe(
           'The host’s own words when it would not protect `main`; null when it did.',
         ),
+      visibility: z
+        .enum(['private', 'public'])
+        .nullable()
+        .describe(
+          'What Manifest last read of the repository’s visibility on GitHub: `private`, or `public` — and nothing is built from a repository last read public until a read says it is private again. Null on this machine, where a repository has no visibility, and before GitHub has been read.',
+        ),
     })
     .describe(
       'Where the project’s code lives (D5), and whether `main` is protected there.',

@@ -31,6 +31,9 @@ export interface RepositoryLink {
   protectionDetail: string | null
 }
 
+/** A repository's visibility where it is hosted, as Manifest last READ it (the D5 plan's Task 10). */
+export type RepositoryVisibility = 'private' | 'public'
+
 /** What `createRepository` answers: the reference, and the link the project records. */
 export interface CreatedRepository {
   ref: RepoRef
@@ -293,6 +296,14 @@ export interface SourceDriver {
    * Driver 1's repository IS the source, so its answer is always empty.
    */
   sync(repo: RepoRef): Promise<MirrorAdvance>
+  /**
+   * WHAT THIS MACHINE LAST READ of the repository's visibility where it is hosted — no network
+   * (the authoring API plan's Task 12; the D5 plan's final review, minor 3, found the console
+   * saying *private* whatever GitHub last said). Driver 1: `null`, a repository here has none.
+   * Driver 2: the mirror's last read — `public` until a sync reads it private again — and
+   * `null` before any read.
+   */
+  lastVisibility(repo: RepoRef): Promise<RepositoryVisibility | null>
   destroyRepository(repo: RepoRef): Promise<void>
   /**
    * BOOT (the D5 plan's Task 11): make every repository THIS driver owns under its root what it

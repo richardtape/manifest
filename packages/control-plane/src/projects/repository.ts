@@ -9,7 +9,11 @@ import {
   sourceRepositories,
   users,
 } from '../db/index.js'
-import type { RepositoryLink } from '../source/index.js'
+import type {
+  RepositoryLink,
+  RepositoryVisibility,
+  SourceDriver,
+} from '../source/index.js'
 import { type Config, hostnameFor } from '../config.js'
 import type { Actor, ProjectRole } from './authz.js'
 import type { ReservedLabels } from './reserved-labels.js'
@@ -132,8 +136,11 @@ export async function getProject(
 export interface ProjectView {
   project: Project
   owner: { id: string; displayName: string }
-  /** Where its code lives, and whether `main` is protected there (the D5 plan's Task 12). */
-  repository: RepositoryLink
+  /**
+   * Where its code lives, and whether `main` is protected there (the D5 plan's Task 12) — and
+   * what Manifest last read of its visibility there (the authoring API plan's Task 12).
+   */
+  repository: RepositoryLink & { visibility: RepositoryVisibility | null }
 }
 
 /**
@@ -145,10 +152,14 @@ export interface ProjectView {
  * about where the code lives would be told something false by omission.
  */
 export async function projectViews(
-  db: Db,
+  deps: {
+    db: Db
+    source: Pick<SourceDriver, 'name' | 'repositoryFor' | 'lastVisibility'>
+  },
   projectIds: readonly string[],
 ): Promise<ProjectView[]> {
   if (projectIds.length === 0) return []
+  const { db, source } = deps
   const rows = await db
     .select({
       project: projects,
@@ -161,21 +172,32 @@ export async function projectViews(
     .leftJoin(sourceRepositories, eq(sourceRepositories.projectId, projects.id))
     .where(inArray(projects.id, [...projectIds]))
   const byId = new Map(
-    rows.map((r) => {
-      if (r.repository === null) {
-        throw new Error(
-          `project '${r.project.slug}' (${r.project.id}) has no source_repositories row; every project has one since migration 0024`,
-        )
-      }
-      return [
-        r.project.id,
-        {
-          project: r.project,
-          owner: { id: r.ownerId, displayName: r.ownerName },
-          repository: linkOf(r.repository),
-        },
-      ]
-    }),
+    await Promise.all(
+      rows.map(async (r): Promise<[string, ProjectView]> => {
+        if (r.repository === null) {
+          throw new Error(
+            `project '${r.project.slug}' (${r.project.id}) has no source_repositories row; every project has one since migration 0024`,
+          )
+        }
+        const link = linkOf(r.repository)
+        return [
+          r.project.id,
+          {
+            project: r.project,
+            owner: { id: r.ownerId, displayName: r.ownerName },
+            // The running driver's last read, from this machine — never the network. A project
+            // ANOTHER driver made is not this driver's to read (Decision 3): `null`.
+            repository: {
+              ...link,
+              visibility:
+                link.provider === source.name
+                  ? await source.lastVisibility(source.repositoryFor(r.project.slug))
+                  : null,
+            },
+          },
+        ]
+      }),
+    ),
   )
   return projectIds.flatMap((id) => byId.get(id) ?? [])
 }

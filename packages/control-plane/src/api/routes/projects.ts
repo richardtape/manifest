@@ -156,6 +156,7 @@ export const createProjectRoutes = [
           webUrl: null,
           mainProtected: true,
           protectionDetail: null,
+          visibility: null,
         },
         environments: [
           {
@@ -377,7 +378,7 @@ export const createProjectRoutes = [
         )
       }
 
-      const [view] = await projectViews(deps.db, [project.id])
+      const [view] = await projectViews(deps, [project.id])
       return {
         ...toProject(view!),
         environments: created.map((row) => toEnvironment(row, undefined)),

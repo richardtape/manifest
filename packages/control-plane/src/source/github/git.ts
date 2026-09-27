@@ -65,8 +65,13 @@ export async function gitWithToken(
     acceptExit?: readonly number[]
   },
 ): Promise<string> {
+  // BUILT FROM NOTHING BUT `PATH` AND ITS OWN KEYS (the authoring API plan's Task 12; the D5
+  // plan's final review, minor 5), as `plumbing.ts`'s `runGit` is: an inherited
+  // `GIT_CONFIG_PARAMETERS` is configuration git reads as if it were `-c` — a proxy, a
+  // credential helper, `core.sshCommand` — and so is every other `GIT_*` a parent set.
   const env: NodeJS.ProcessEnv = {
-    ...process.env,
+    PATH: process.env.PATH ?? '/usr/bin:/bin',
+    LC_ALL: 'C',
     GIT_TERMINAL_PROMPT: '0',
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_CONFIG_GLOBAL: '/dev/null',

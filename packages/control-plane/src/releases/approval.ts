@@ -547,8 +547,6 @@ export async function annotate(
       // Written by `securityNotesFor`, which only produces §7's names; the column is
       // `string` because `db/` imports nothing above it.
       security: (facts.security ?? []) as { field: SensitiveField; note: string }[],
-      review,
-      coverage: facts.coverage ?? COVERAGE_LIMIT,
     })),
     // R4 (D33): the reviewer's verdict AT PREVIEW TIME, from the reviewer `ServerDeps`
     // carries — the seam's one real caller (P6a Task 12). What it says is the reviewer's

@@ -3,6 +3,7 @@ import {
   beforeEach,
   describe,
   expect,
+  expectTypeOf,
   it,
   vi,
   type MockInstance,
@@ -15,6 +16,7 @@ import {
   NOT_MODELLED,
   summariseChanges,
   SUMMARY_MODEL,
+  type SummaryContext,
 } from './summary.js'
 
 /**
@@ -67,12 +69,6 @@ const CONTEXT = {
     { field: 'egress.allow' as const, note: 'THE EGRESS NOTE.' },
     { field: 'ai.models' as const, note: 'THE MODELS NOTE.' },
   ],
-  review: {
-    state: 'not_performed' as const,
-    reviewer: 'none',
-    detail: 'THE REVIEWER’S OWN SENTENCE.',
-  },
-  coverage: 'THE COVERAGE SENTENCE.',
 }
 
 /**
@@ -267,8 +263,8 @@ describe('F9 — the summary is STRUCTURED OUTPUT with no place for a verdict (t
       { path: 'egress.allow', note: 'THE EGRESS NOTE.' },
       { path: 'ai.models', note: 'THE MODELS NOTE.' },
     ])
-    expect(JSON.stringify(user)).not.toContain(CONTEXT.review.detail)
-    expect(JSON.stringify(user)).not.toContain(CONTEXT.coverage)
+    // The reviewer's sentence and the coverage line are not in the context at all since the
+    // authoring API plan's Task 12 (minor 6): the keys above are the whole of what is sent.
     expect(body.messages[0]!.content).not.toMatch(/verdict/i)
   })
 
@@ -461,5 +457,17 @@ describe('§13’s change summary — absent rather than blocking (P6a Task 11, 
       { field: 'auth.attributes', note: SECURITY_NOTES['auth.attributes'] },
       { field: 'egress.allow', note: SECURITY_NOTES['egress.allow'] },
     ])
+  })
+})
+
+/**
+ * THE CONTEXT CARRIES ONLY WHAT THE SUMMARY READS (the D5 plan's final review, minor 6; the
+ * authoring API plan's Task 12): since the D5 plan's Task 13 the model is handed the changes and
+ * the security notes alone, and `review` and `coverage` stay in the SNAPSHOT, not here. A type
+ * test — `pnpm typecheck` is what reads it.
+ */
+describe('SummaryContext (Task 12, minor 6)', () => {
+  it('names the security notes and nothing else', () => {
+    expectTypeOf<keyof SummaryContext>().toEqualTypeOf<'security'>()
   })
 })

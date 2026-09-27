@@ -391,7 +391,8 @@ function repositoryIsExact(r: Schemas['RepositoryLink']): boolean {
     r.fullName === FULL_NAME &&
     r.webUrl === `${fake}/${FULL_NAME}` &&
     r.mainProtected &&
-    r.protectionDetail === null
+    r.protectionDetail === null &&
+    r.visibility === 'private'
   )
 }
 

@@ -100,7 +100,11 @@ export const webhookRoutes =
             hint: 'Restart it with MANIFEST_SOURCE_DRIVER=github to receive GitHub’s deliveries.',
           })
         }
-        const body = request.body as Buffer
+        // A BODYLESS POST reaches here with no body at all — no content type, so no parser ran —
+        // and the HMAC of `undefined` was a 500 (the D5 plan's final review, minor 1). Zero
+        // bytes is what was sent: signed correctly over them, it is refused as a payload below;
+        // otherwise as a signature, in the one order every delivery meets.
+        const body = Buffer.isBuffer(request.body) ? request.body : Buffer.alloc(0)
         const verdict = verifySignature(
           secret,
           body,

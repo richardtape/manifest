@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFile, execFileSync, spawnSync } from 'node:child_process'
 import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -117,6 +117,29 @@ describe('git with a token (Decision 4, [M5])', () => {
     }
   })
 
+  it('inherits NO git configuration from its environment — GIT_CONFIG_PARAMETERS included (the authoring API plan’s Task 12)', async () => {
+    const saved = process.env.GIT_CONFIG_PARAMETERS
+    // A proxy nobody listens on: a git that READ this could reach nothing.
+    process.env.GIT_CONFIG_PARAMETERS = "'http.proxy'='http://127.0.0.1:9'"
+    try {
+      // The positive control: git itself, in this environment, does read it.
+      const direct = spawnSync('git', ['config', '--get', 'http.proxy'], {
+        env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' },
+        encoding: 'utf8',
+      })
+      expect(direct.stdout.trim()).toBe('http://127.0.0.1:9')
+      // …and gitWithToken does not: it reaches the fake and is answered.
+      const out = await gitWithToken(['ls-remote', remote], {
+        cwd: tmpdir(),
+        token: fake.developerToken,
+      })
+      expect(out).toBe('')
+    } finally {
+      if (saved === undefined) delete process.env.GIT_CONFIG_PARAMETERS
+      else process.env.GIT_CONFIG_PARAMETERS = saved
+    }
+  })
+
   it('writes no form of the token to an inherited trace FILE, even with GIT_TRACE_REDACT=0 inherited ([M5], F3)', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'git-trace-'))
     const trace = join(dir, 'curl.trace')
@@ -128,10 +151,30 @@ describe('git with a token (Decision 4, [M5])', () => {
     process.env.GIT_TRACE_REDACT = '0'
     try {
       await failure(gitWithToken(['ls-remote', remote], { cwd: tmpdir(), token: CANARY }))
-      const written = await readFile(trace, 'utf8')
-      expect(written).toContain('Authorization: Basic') // the positive control: git traced the header
+      // Since the authoring API plan's Task 12 NOTHING inherited reaches git, so the trace is
+      // not written at all — which holds the property more strongly than redaction did.
+      const written = await readFile(trace, 'utf8').catch(() => '')
       expect(written).not.toContain(CANARY)
       expect(written).not.toContain(CANARY_B64)
+      // The positive control: git given the same environment itself DOES trace to the file.
+      // ASYNCHRONOUSLY: the fake answers on this process's own event loop, which a spawnSync
+      // would block until git gave up.
+      await new Promise<void>((resolve) => {
+        execFile(
+          'git',
+          ['ls-remote', remote],
+          {
+            env: {
+              ...process.env,
+              GIT_TERMINAL_PROMPT: '0',
+              GIT_CONFIG_NOSYSTEM: '1',
+              GIT_CONFIG_GLOBAL: '/dev/null',
+            },
+          },
+          () => resolve(),
+        )
+      })
+      expect(await readFile(trace, 'utf8')).toContain('=> Send header')
     } finally {
       if (saved.curl === undefined) delete process.env.GIT_TRACE_CURL
       else process.env.GIT_TRACE_CURL = saved.curl

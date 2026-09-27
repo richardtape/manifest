@@ -38,9 +38,13 @@ afterEach(async () => {
   open = undefined
 })
 
-async function serverOn(driver: 'local' | 'github', plan: 'free' | 'team' = 'team') {
+async function serverOn(
+  driver: 'local' | 'github',
+  plan: 'free' | 'team' = 'team',
+  quirks: { refusePrivatize?: boolean } = {},
+) {
   await resetDatabase()
-  const fake = driver === 'github' ? await startFake({ plan }) : undefined
+  const fake = driver === 'github' ? await startFake({ plan, quirks }) : undefined
   const deps = fake === undefined ? await testDeps() : await githubTestDeps(fake)
   const app = await buildServer(deps)
   open = { deps, app, ...(fake === undefined ? {} : { fake }) }
@@ -88,6 +92,8 @@ describe('Project.repository — where the code lives, and whether main is prote
       webUrl: null,
       mainProtected: true,
       protectionDetail: null,
+      // Task 12, minor 3: a repository on this machine has no visibility.
+      visibility: null,
     }
     expect(read.repository).toEqual(link)
     expect(created.repository).toEqual(link)
@@ -102,6 +108,7 @@ describe('Project.repository — where the code lives, and whether main is prote
       webUrl: expect.stringMatching(/\/link-app$/),
       mainProtected: true,
       protectionDetail: null,
+      visibility: 'private',
     })
     expect((await typesOf(read.id)).map((e) => e.type)).not.toContain(
       'repository.protection_unavailable',
@@ -117,6 +124,7 @@ describe('Project.repository — where the code lives, and whether main is prote
       webUrl: expect.stringMatching(/\/link-app$/),
       mainProtected: false,
       protectionDetail: FREE_PLAN_WORDS,
+      visibility: 'private',
     })
     const written = await typesOf(read.id)
     const unavailable = written.filter(
@@ -143,5 +151,46 @@ describe('Project.repository — where the code lives, and whether main is prote
       detail: expect.stringContaining('main'),
     })
     expect(JSON.stringify(event!.machineDetail)).not.toContain(FREE_PLAN_WORDS)
+  })
+})
+
+/**
+ * WHAT A CLIENT IS TOLD OF THE REPOSITORY'S VISIBILITY (the authoring API plan's Task 12, the D5
+ * plan's final review's minor 3): the mirror's LAST READ — the console's Code line said
+ * *private* whatever GitHub last said.
+ */
+describe('Project.repository.visibility — what Manifest last read on GitHub (Task 12)', () => {
+  it('says PUBLIC once a sync has read it public and GitHub refused the revert — and private again after', async () => {
+    const quirks = { refusePrivatize: true }
+    const ctx = await serverOn('github', 'team', quirks)
+    const { read } = await create(ctx, 'link-app')
+    expect(read.repository.visibility).toBe('private') // the positive control
+    const res = await fetch(`${ctx.fake!.apiUrl}/repos/${ctx.fake!.org}/link-app`, {
+      method: 'PATCH',
+      headers: {
+        authorization: `token ${ctx.fake!.developerToken}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ private: false }),
+    })
+    expect(res.status).toBe(200)
+    const repo = ctx.deps.source.repositoryFor('link-app')
+    expect((await ctx.deps.source.sync(repo)).visibility?.result).toBe('still-public')
+    const cookies = await loginAs(ctx.deps, 'bio_prof')
+    const again = await ctx.app.inject({
+      method: 'GET',
+      url: `/v1/projects/${read.id}`,
+      cookies,
+    })
+    expect(again.json().repository.visibility).toBe('public')
+    // The organisation's policy lifted: the next sync makes it private, and the project says so.
+    quirks.refusePrivatize = false
+    await ctx.deps.source.sync(repo)
+    const last = await ctx.app.inject({
+      method: 'GET',
+      url: `/v1/projects/${read.id}`,
+      cookies,
+    })
+    expect(last.json().repository.visibility).toBe('private')
   })
 })

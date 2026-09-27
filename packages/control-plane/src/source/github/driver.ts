@@ -9,6 +9,7 @@ import {
   type LocalGitDir,
   type MirrorAdvance,
   type RepositoryLink,
+  type RepositoryVisibility,
   type RepoRef,
   SourceError,
   type SourceDriver,
@@ -415,6 +416,18 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       )
     }
     return { findings: scan.findings, unscannable: scan.unscannable, heads }
+  }
+
+  /**
+   * The mirror's LAST READ of GitHub's visibility (`manifest.visibility`) — no network. `null`
+   * for no mirror, a key never written, or anything but the two words `enforcePrivate` writes.
+   */
+  async function readVisibility(mirror: string): Promise<RepositoryVisibility | null> {
+    const read = await local(mirror, ['config', 'manifest.visibility']).then(
+      (v) => v.trim(),
+      () => '',
+    )
+    return read === 'private' || read === 'public' ? read : null
   }
 
   /** What GitHub says of the repository's visibility NOW: `true` private, `false` public. */
@@ -855,11 +868,20 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       const mirror = mirrorOf(repo)
       await present(repo, mirror, commitSha)
       // NEVER BUILT PUBLIC (Task 10, Decision 12): the LAST read of GitHub's visibility,
-      // kept on the mirror, so the refusal holds with the network off.
-      const visibility = await local(mirror, ['config', 'manifest.visibility']).then(
-        (v) => v.trim(),
-        () => '',
-      )
+      // kept on the mirror, so the refusal holds with the network off. FAIL CLOSED (the
+      // authoring API plan's Task 12; the D5 plan's final review, minor 2): a mirror whose
+      // visibility was never read is SYNCED first, and if GitHub cannot say, nothing is built.
+      let visibility = await readVisibility(mirror)
+      if (visibility === null) {
+        await sync(repo.projectSlug, mirror)
+        visibility = await readVisibility(mirror)
+      }
+      if (visibility === null) {
+        throw new SourceError(
+          'SOURCE_UNREACHABLE',
+          `${o.org}/${repo.projectSlug}'s visibility on GitHub has never been read, and GitHub did not answer; nothing is built from it until a read says it is private`,
+        )
+      }
       if (visibility === 'public') {
         throw new SourceError(
           'SOURCE_REPOSITORY_PUBLIC',
@@ -876,6 +898,10 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
 
     async sync(repo) {
       return sync(repo.projectSlug, mirrorOf(repo))
+    },
+
+    async lastVisibility(repo) {
+      return readVisibility(mirrorOf(repo))
     },
 
     async destroyRepository(repo) {

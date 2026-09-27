@@ -657,6 +657,28 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
     }
   })
 
+  it('a mirror whose visibility was NEVER READ is read before it is built — and refused SOURCE_UNREACHABLE when GitHub cannot say (the authoring API plan’s Task 12)', async () => {
+    const h = await harness()
+    try {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      const mirror = join(h.mirrorRoot, 'chem-labs.git')
+      const unset = () =>
+        run('git', ['--git-dir', mirror, 'config', '--unset', 'manifest.visibility'])
+      await unset()
+      expect(await h.driver.lastVisibility(repo)).toBeNull()
+      // GitHub answers: the build path reads it first — private — and builds (the positive control).
+      expect((await h.driver.localGitDir(repo, head)).commitSha).toBe(head)
+      expect(await h.driver.lastVisibility(repo)).toBe('private')
+      // GitHub gone and nothing read: FAIL CLOSED, rather than build what may be public.
+      await unset()
+      await h.fake.stop()
+      expect(await codeOf(h.driver.localGitDir(repo, head))).toBe('SOURCE_UNREACHABLE')
+    } finally {
+      await h.cleanup()
+    }
+  })
+
   it('a revert GitHub REFUSES stays still-public, and the mirror refuses a build — offline too — until a sync reads private', async () => {
     const quirks = { refusePrivatize: true }
     const h = await harness({ quirks })
@@ -673,6 +695,8 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
       expect(await codeOf(h.driver.localGitDir(repo, head))).toBe(
         'SOURCE_REPOSITORY_PUBLIC',
       )
+      // What a client is told (Task 12, minor 3): the mirror's last read, not "private".
+      expect(await h.driver.lastVisibility(repo)).toBe('public')
       // GitHub gone: the LAST KNOWN state holds — a build needs no network to be refused.
       await h.fake.stop()
       expect(await codeOf(h.driver.localGitDir(repo, head))).toBe(
@@ -687,6 +711,7 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
         result: 'private',
       })
       expect((await h.driver.localGitDir(repo, head)).commitSha).toBe(head)
+      expect(await h.driver.lastVisibility(repo)).toBe('private')
     } finally {
       await h.cleanup()
     }

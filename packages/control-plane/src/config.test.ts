@@ -411,6 +411,43 @@ describe('the source driver and its GitHub settings (D5, the D5 plan’s Task 3)
     ).toBe('accepted')
   })
 
+  it('refuses the FAKE’s GitHub — loopback — outside development on driver 2 (the authoring API plan’s Task 12)', () => {
+    const staging = {
+      ...base,
+      MANIFEST_ENV: 'staging',
+      MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
+      MANIFEST_MASTER_SECRET: 'm'.repeat(32),
+      MANIFEST_LITELLM_MASTER_KEY: 'sk-litellm',
+      MANIFEST_SOURCE_DRIVER: 'github',
+    }
+    const REAL = {
+      MANIFEST_GITHUB_API_URL: 'https://api.github.com',
+      MANIFEST_GITHUB_GIT_URL: 'https://github.com',
+    }
+    // Every default is the fake's: refused, naming it.
+    expect(codeOf(() => loadConfig(staging))).toBe(
+      'CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT',
+    )
+    // Either URL on loopback, on any port and either spelling, is the fake.
+    for (const [name, value] of [
+      ['MANIFEST_GITHUB_API_URL', 'http://127.0.0.1:7110/api/v3'],
+      ['MANIFEST_GITHUB_GIT_URL', 'http://localhost:7999'],
+    ] as const) {
+      expect(codeOf(() => loadConfig({ ...staging, ...REAL, [name]: value }))).toBe(
+        'CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT',
+      )
+    }
+    // The positive controls: GitHub itself outside development; the fake IN development; and
+    // driver 1 outside development, which never reads either URL.
+    expect(codeOf(() => loadConfig({ ...staging, ...REAL }))).toBe('accepted')
+    expect(codeOf(() => loadConfig({ ...base, MANIFEST_SOURCE_DRIVER: 'github' }))).toBe(
+      'accepted',
+    )
+    expect(
+      codeOf(() => loadConfig({ ...staging, MANIFEST_SOURCE_DRIVER: 'local' })),
+    ).toBe('accepted')
+  })
+
   it('refuses a driver it does not have, and a GitHub URL that is not a URL', () => {
     expect(codeOf(() => loadConfig({ ...base, MANIFEST_SOURCE_DRIVER: 'gitlab' }))).toBe(
       'CONFIG_INVALID',

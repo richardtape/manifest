@@ -140,6 +140,7 @@ export const PROJECT: Schemas['Project'] = {
     mainProtected: false,
     protectionDetail:
       'Upgrade to GitHub Pro or make this repository public to enable this feature.',
+    visibility: 'private',
   },
 }
 

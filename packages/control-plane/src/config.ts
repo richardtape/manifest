@@ -531,6 +531,27 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     }
   }
 
+  // THE FAKE'S GITHUB IS A LAPTOP'S, NEVER A DEPLOYMENT'S (the authoring API plan's Task 12; the
+  // D5 plan's final review, minor 4): every `MANIFEST_GITHUB_*` default names the fake on
+  // loopback, so a staging or production control plane on driver 2 that forgot to set them
+  // would talk to whatever listens there. Refused outside development, on driver 2 only —
+  // driver 1 never reads either URL. GitHub on loopback is the fake, whatever the port.
+  if (raw.MANIFEST_ENV !== 'development' && raw.MANIFEST_SOURCE_DRIVER === 'github') {
+    for (const [name, value] of [
+      ['MANIFEST_GITHUB_API_URL', raw.MANIFEST_GITHUB_API_URL],
+      ['MANIFEST_GITHUB_GIT_URL', raw.MANIFEST_GITHUB_GIT_URL],
+    ] as const) {
+      const host = new URL(value).hostname
+      if (host === '127.0.0.1' || host === 'localhost' || host === '[::1]') {
+        throw new ConfigError(
+          'CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT',
+          `${name} is '${value}' — GitHub on loopback is the fake (packages/github-fake), and ` +
+            `MANIFEST_ENV is '${raw.MANIFEST_ENV}'. Set it to the real GitHub's address.`,
+        )
+      }
+    }
+  }
+
   return {
     env: raw.MANIFEST_ENV,
     databaseUrl: raw.MANIFEST_DATABASE_URL,

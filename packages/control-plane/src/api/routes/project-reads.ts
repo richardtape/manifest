@@ -86,6 +86,7 @@ export const projectReadRoutes = [
             webUrl: null,
             mainProtected: true,
             protectionDetail: null,
+            visibility: null,
           },
         },
         {
@@ -109,6 +110,7 @@ export const projectReadRoutes = [
             webUrl: null,
             mainProtected: true,
             protectionDetail: null,
+            visibility: null,
           },
         },
       ],
@@ -133,7 +135,7 @@ export const projectReadRoutes = [
         actor.credential === 'token'
           ? [actor.projectId]
           : (await listProjectsFor(deps.db, actor)).map((p) => p.id)
-      return (await projectViews(deps.db, ids)).map((view) => toProject(view))
+      return (await projectViews(deps, ids)).map((view) => toProject(view))
     },
   }),
   defineRoute({
@@ -178,6 +180,7 @@ export const projectReadRoutes = [
           webUrl: null,
           mainProtected: true,
           protectionDetail: null,
+          visibility: null,
         },
         environments: [
           {
@@ -201,7 +204,7 @@ export const projectReadRoutes = [
     },
     handler: async ({ deps, actor, params, query }) => {
       await assertCapability(deps.db, actor, params.projectId, 'project:read')
-      const [view] = await projectViews(deps.db, [params.projectId])
+      const [view] = await projectViews(deps, [params.projectId])
       if (view === undefined)
         throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
       return toProject(

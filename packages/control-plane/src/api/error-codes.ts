@@ -582,6 +582,9 @@ export const ERROR_CODES = {
   CONFIG_GITHUB_INSECURE_URL: config(
     'A GitHub URL is plain http beyond loopback, so an installation token would cross the network in plaintext.',
   ),
+  CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT: config(
+    'A GitHub URL names loopback — the fake GitHub a laptop runs — on the GitHub driver outside development.',
+  ),
   CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED: config(
     'MANIFEST_BUILD_CREDENTIAL_SECRET is required outside development.',
   ),

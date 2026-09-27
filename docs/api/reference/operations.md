@@ -2176,7 +2176,8 @@ Answer, `200`:
       "fullName": "p-6e200d3a",
       "webUrl": null,
       "mainProtected": true,
-      "protectionDetail": null
+      "protectionDetail": null,
+      "visibility": null
     }
   },
   {
@@ -2202,7 +2203,8 @@ Answer, `200`:
       "fullName": "authz-other-f891223a",
       "webUrl": null,
       "mainProtected": true,
-      "protectionDetail": null
+      "protectionDetail": null,
+      "visibility": null
     }
   }
 ]
@@ -2260,7 +2262,8 @@ Answer, `201`:
     "fullName": "fixture-40adbffa",
     "webUrl": null,
     "mainProtected": true,
-    "protectionDetail": null
+    "protectionDetail": null,
+    "visibility": null
   },
   "environments": [
     {
@@ -2356,7 +2359,8 @@ Answer, `200`:
     "fullName": "chem-labs",
     "webUrl": null,
     "mainProtected": true,
-    "protectionDetail": null
+    "protectionDetail": null,
+    "visibility": null
   },
   "environments": [
     {

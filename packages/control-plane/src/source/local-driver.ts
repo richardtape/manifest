@@ -377,6 +377,12 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       }
     },
 
+    /** A repository on this machine has no visibility: it is nobody's to publish (Task 12). */
+    async lastVisibility(repo) {
+      assertOwned(repo)
+      return null
+    },
+
     async destroyRepository(repo) {
       const path = assertOwned(repo)
       await rm(path, { recursive: true, force: true })

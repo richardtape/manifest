@@ -203,6 +203,12 @@ describe('driver 1 refuses a secret in a PERSON’s push, by the repository’s 
     await expect(stat(join(root, 'never-made'))).rejects.toThrow()
   })
 
+  it('has no visibility: a repository on this machine is nobody’s to publish (the authoring API plan’s Task 12)', async () => {
+    const driver = createLocalSourceDriver(root)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
+    expect(await driver.lastVisibility(repo)).toBeNull()
+  })
+
   it('syncs to an advance with no findings: this repository IS the source, and its hook is the scan', async () => {
     const driver = createLocalSourceDriver(root)
     const { ref: repo } = await driver.createRepository('chem-labs', seed)

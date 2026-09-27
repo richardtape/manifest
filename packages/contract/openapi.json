@@ -1604,7 +1604,8 @@
                       "fullName": "p-6e200d3a",
                       "webUrl": null,
                       "mainProtected": true,
-                      "protectionDetail": null
+                      "protectionDetail": null,
+                      "visibility": null
                     }
                   },
                   {
@@ -1630,7 +1631,8 @@
                       "fullName": "authz-other-f891223a",
                       "webUrl": null,
                       "mainProtected": true,
-                      "protectionDetail": null
+                      "protectionDetail": null,
+                      "visibility": null
                     }
                   }
                 ]
@@ -1728,7 +1730,8 @@
                     "fullName": "fixture-40adbffa",
                     "webUrl": null,
                     "mainProtected": true,
-                    "protectionDetail": null
+                    "protectionDetail": null,
+                    "visibility": null
                   },
                   "environments": [
                     {
@@ -1864,7 +1867,8 @@
                     "fullName": "chem-labs",
                     "webUrl": null,
                     "mainProtected": true,
-                    "protectionDetail": null
+                    "protectionDetail": null,
+                    "visibility": null
                   },
                   "environments": [
                     {
@@ -7555,6 +7559,7 @@
           "BLUEPRINT_NOT_FOUND",
           "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED",
           "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH",
+          "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT",
           "CONFIG_GITHUB_INSECURE_URL",
           "CONFIG_INVALID",
           "CONFIG_LITELLM_MASTER_KEY_REQUIRED",
@@ -7666,6 +7671,7 @@
           "BLUEPRINT_NOT_FOUND": "No blueprint with this reference is in the registry.",
           "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED": "MANIFEST_BUILD_CREDENTIAL_SECRET is required outside development.",
           "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH": "A loopback origin names a port the control plane does not listen on.",
+          "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT": "A GitHub URL names loopback — the fake GitHub a laptop runs — on the GitHub driver outside development.",
           "CONFIG_GITHUB_INSECURE_URL": "A GitHub URL is plain http beyond loopback, so an installation token would cross the network in plaintext.",
           "CONFIG_INVALID": "A setting failed validation.",
           "CONFIG_LITELLM_MASTER_KEY_REQUIRED": "MANIFEST_LITELLM_MASTER_KEY is required outside development.",
@@ -13916,6 +13922,21 @@
                 "type": "null"
               }
             ]
+          },
+          "visibility": {
+            "description": "What Manifest last read of the repository’s visibility on GitHub: `private`, or `public` — and nothing is built from a repository last read public until a read says it is private again. Null on this machine, where a repository has no visibility, and before GitHub has been read.",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "private",
+                  "public"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -13923,7 +13944,8 @@
           "fullName",
           "webUrl",
           "mainProtected",
-          "protectionDetail"
+          "protectionDetail",
+          "visibility"
         ],
         "additionalProperties": false
       },
@@ -14652,6 +14674,11 @@
     "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH": {
       "status": 409,
       "summary": "A loopback origin names a port the control plane does not listen on.",
+      "remedy": "The control plane refuses to start until its operator corrects the setting the message names; nothing a client sends changes it."
+    },
+    "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT": {
+      "status": 409,
+      "summary": "A GitHub URL names loopback — the fake GitHub a laptop runs — on the GitHub driver outside development.",
       "remedy": "The control plane refuses to start until its operator corrects the setting the message names; nothing a client sends changes it."
     },
     "CONFIG_GITHUB_INSECURE_URL": {

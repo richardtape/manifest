@@ -20,18 +20,16 @@ export type SummarySource =
   | 'not-modelled'
 
 /**
- * What the SNAPSHOT records beside the changes (P6b Task 8, Decision 13): the deterministic
- * security notes, the reviewer's verdict at decision time, and D33's coverage limit.
- *
- * **ONLY THE NOTES REACH THE MODEL** (the D5 plan's Decision 19). `review` and `coverage` stay
- * here because the snapshot still stores them, in their own fields, and the console shows them
- * beside the summary — P6b's Decision 13 had the model state the verdict, and every invented
- * verdict it measured came after that instruction.
+ * What the model is handed beside the changes: §7's deterministic security notes, and nothing
+ * else (the D5 plan's Decision 19). The reviewer's verdict and D33's coverage limit are the
+ * SNAPSHOT's, in their own fields, and the console shows them beside the summary — P6b's
+ * Decision 13 had the model state the verdict, and every invented verdict it measured came
+ * after that instruction. They left this interface in the authoring API plan's Task 12 (the D5
+ * plan's final review, minor 6): a field the summary never reads is one a later edit could
+ * start sending.
  */
 export interface SummaryContext {
   security: readonly { field: SensitiveField; note: string }[]
-  review: { state: string; reviewer: string; detail: string }
-  coverage: string
 }
 
 /** One change, and the model's sentence about what it could expose. */

@@ -174,7 +174,19 @@ function Overview({
                     <code>{project.repository.fullName}</code>
                   </a>
                 )}{' '}
-                on GitHub — private,{' '}
+                on GitHub —{' '}
+                {/*
+                  WHAT MANIFEST LAST READ there (the authoring API plan's Task 12) — never an
+                  assumed "private": a repository last read public is not built until it is not.
+                */}
+                {project.repository.visibility === 'private' ? (
+                  'private'
+                ) : project.repository.visibility === 'public' ? (
+                  <Pill tone="bad">PUBLIC — not built until it is private</Pill>
+                ) : (
+                  'visibility not yet read'
+                )}
+                ,{' '}
                 {project.repository.mainProtected ? (
                   <>
                     <code>main</code> protected

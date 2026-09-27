@@ -330,6 +330,30 @@ describe('POST /webhooks/github — verified, recorded once, and synced off the 
     expect(await deliveryRows()).toBe(0)
   })
 
+  it('a BODYLESS POST is a refusal by its code — signed over no bytes, a payload refusal; signed wrongly, a signature refusal — never a 500 (the authoring API plan’s Task 12)', async () => {
+    const ctx = await setup()
+    const empty = Buffer.alloc(0)
+    // Correctly signed over ZERO bytes — what GitHub's HMAC of an empty body is.
+    expect(
+      refusal(await deliver(ctx, { event: 'ping', body: empty, contentType: null })),
+    ).toEqual({ status: 400, code: 'WEBHOOK_PAYLOAD_INVALID' })
+    // Well-formed, and wrong: the signature is checked first, as for any body.
+    expect(
+      refusal(
+        await deliver(ctx, {
+          event: 'ping',
+          body: empty,
+          contentType: null,
+          signature: `sha256=${'0'.repeat(64)}`,
+        }),
+      ),
+    ).toEqual({ status: 401, code: 'WEBHOOK_SIGNATURE_INVALID' })
+    expect(await deliveryRows()).toBe(0)
+    // The positive control, beside them: a signed ping with a body is accepted.
+    const accepted = await deliver(ctx, { event: 'ping', body: { zen: 'x' } })
+    expect(accepted.statusCode, accepted.body).toBe(200)
+  })
+
   it('takes a body over the API’s 1 MiB limit, up to its own 5 MiB (Decision 8)', async () => {
     const ctx = await setup()
     const big = { zen: 'x', padding: 'p'.repeat(2 * 1024 * 1024) }
