@@ -4,20 +4,22 @@ This page is for an AI agent driving Manifest on a person’s behalf with a dele
 
 ## What you hold
 
-A delegated token, `mft_<id>_<secret>`, sent as `Authorization: Bearer …` on every request and with no cookie. It was minted by a person for **one project**, holds a list of capabilities, and expires. It acts as that person. You cannot create a project with it — a person does that and gives you its id.
+A delegated token, `mft_<id>_<secret>`, sent as `Authorization: Bearer …` on every request and with no cookie. It was minted by a person for **one project**, holds a list of capabilities, and expires. It acts as that person. You cannot create a project with it — a person does that and gives you its id. **If you were given the project's name instead, `listProjects` finds it**: a token sees exactly one project, so the list it answers is that one.
 
 Your first calls:
 
 1. `getDoc` with the slug `agents` — this page. `listDocs` lists the others; `getOpenApiDocument` is the whole API.
-2. `getProject` for the project you were given, and `getBlueprint` for its `blueprint`.
-3. `getKnowledgePack` for that blueprint — how an app on it is written.
+2. `getProject` for the project you were given (or `listProjects`, to find its id), and `getBlueprint` for its `blueprint`.
+3. `getKnowledgePack` for that blueprint — how an app on it is written. The pack is prose; the blueprint's CODE — its skeleton, which the pack describes file by file — is already in your project, because a project starts as that skeleton: `getTree` lists it.
+
+`getMe` is not one of them: it answers who a SESSION belongs to, and a token asking is refused `403 TOKEN_CREDENTIAL_REFUSED`. A token acts as the person who minted it.
 
 ## The loop
 
 **Read → change → check → commit → build → deploy → read the result.**
 
 1. **Read.** `getTree` lists the project’s files at `main` and answers the commit it read (`commitSha`). Keep it: every change you make is computed from it. Read a file with `getFile` at that commit (`ref`).
-2. **Change and check.** Send the change as `createCommit` with `dryRun: true`. Nothing is written; you are told what the commit would change, whether manifest.yaml is valid, and whether it changes a field an administrator reviews at production.
+2. **Change and check.** Send the change as `createCommit` with `dryRun: true`. Nothing is written; you are told what the commit would change, whether manifest.yaml is valid, and whether it changes a field an administrator reviews at production (`spec.sensitiveDiff` — it changes nothing about committing, building, or deploying to sandbox and staging).
 3. **Commit.** Send the same body without `dryRun`. The answer is the new commit.
 4. **Build.** `startBuild` naming the commit you wrote. It answers `202` and the build `running`; watch the project’s event stream for `build.succeeded` or `build.failed`, then read the build.
 5. **Deploy.** `createRelease` from a build that succeeded, then `deploy` it to staging (or sandbox). A deploy that never becomes ready is a `200` whose instance is `failed`; `listIncidents` says why.
@@ -45,7 +47,7 @@ Your first calls:
 - `rejected` is final; `pendingAction.reason` is their reason. Do not ask again for the same thing.
 - `expired` means nobody answered in time.
 
-Some things are a person’s alone, and a token that asks is refused outright with `403 TOKEN_CREDENTIAL_REFUSED` — no question is created, and none would change the answer: approving a release for production, recording UBC’s IAM registration or privacy assessment, minting a token, creating a project, and setting a production secret’s value, which also asks the person to sign in again first (`STEP_UP_REQUIRED`). An operation’s description says when a token is refused.
+Some things are a person’s alone, and a token that asks is refused outright with `403 TOKEN_CREDENTIAL_REFUSED` — no question is created, and none would change the answer: approving a release for production, recording UBC’s IAM registration or privacy assessment, minting a token, creating a project, and setting a production secret’s value, which also asks the person to sign in again first (`STEP_UP_REQUIRED`). Reading who is signed in (`getMe`) and a project’s tokens (`listTokens`) are a session’s too. An operation’s description says when a token is refused.
 
 <!-- example: example-pending -->
 

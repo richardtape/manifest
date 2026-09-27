@@ -5,7 +5,7 @@ How to read and change an app’s code through the API — the tree, a file, the
 ## Reading
 
 - **`getTree`** lists every entry at a ref — `main` unless you name another branch or a full commit id — and answers the commit it read (`commitSha`). Each entry says whether it is a `file`, a `directory`, a `symlink` or a `submodule`, and a file whether it is `binary`.
-- **`getFile`** answers one text file’s content. Read it at the commit the tree was read at (`ref`), so the two agree. A binary file, or one that is not UTF-8, is `409 SOURCE_FILE_NOT_TEXT`; one over 1 MiB is `409 SOURCE_FILE_TOO_LARGE`; a path that is not a file is `409 SOURCE_PATH_NOT_A_FILE`.
+- **`getFile`** answers one text file’s content. `path` and `ref` are QUERY parameters (`?path=server.js&ref=<commit>`). Read it at the commit the tree was read at (`ref`), so the two agree. A binary file, or one that is not UTF-8, is `409 SOURCE_FILE_NOT_TEXT`; one over 1 MiB is `409 SOURCE_FILE_TOO_LARGE`; a path that is not a file is `409 SOURCE_PATH_NOT_A_FILE`.
 - **`listCommits`** is `main`’s history, newest first, paged; **`getCommit`** is one commit and what it changed — each file with its line counts and a unified diff.
 
 <!-- example: example-read -->
@@ -113,7 +113,7 @@ export async function commitAChange(
 
 ## The dry run
 
-The same body with **`dryRun: true`** runs every check and writes nothing. It answers what the commit would change, its `commitSha` `null`, and whether the manifest it would leave changes a field an administrator reviews before production. The `warnings` in its `spec` — on a real commit's answer too, and in `validateSpec`'s — are what the validation says without refusing: `SPEC_FIELD_NOT_ENFORCED` for a field Manifest records but does not enforce yet, such as `ai.budget.per_user_monthly_usd`. A warning never stops a commit; tell the person, and carry on. Check before you commit; a check is a new `Idempotency-Key` every time. *Conventions* has the envelope a refusal comes in.
+The same body with **`dryRun: true`** runs every check and writes nothing. It answers what the commit would change, its `commitSha` `null`, and whether the manifest it would leave changes a field an administrator reviews before production — `spec.sensitiveDiff`, which changes nothing about committing, building, or deploying to sandbox and staging: a production release that changes one of those fields waits for an administrator (*Launching*). The `warnings` in its `spec` — on a real commit's answer too, and in `validateSpec`'s — are what the validation says without refusing: `SPEC_FIELD_NOT_ENFORCED` for a field Manifest records but does not enforce yet, such as `ai.budget.per_user_monthly_usd`. A warning never stops a commit; tell the person, and carry on. Check before you commit; a check is a new `Idempotency-Key` every time. *Conventions* has the envelope a refusal comes in.
 
 ## When `main` has moved
 
