@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.."
 
 # WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
 # the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
-# to 12 are DRIVER 1's and step 13 is DRIVER 2's; run a driver-1 demo on driver 2 and it CREATES
+# to 12 are DRIVER 1's, step 13 is DRIVER 2's and step 14 runs on either; run a driver-1 demo on driver 2 and it CREATES
 # its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
 source_driver() {
   local answer
@@ -244,6 +244,26 @@ else
       make github-down
 RESTART
 fi
+
+echo
+echo "=== 14. The authoring API's acceptance: an agent builds a bulletin board through the API, offline ==="
+# APPENDED, like steps 7 to 13. WHAT THIS PROVES OFFLINE THAT THE OTHER THIRTEEN DO NOT: an app
+# CREATED through the API — an agent on a delegated token reads the documentation the API serves,
+# commits the board to the bare skeleton (refused six ways, and a person's symlink met), builds
+# exactly the commit it wrote, is refused a deploy until it sets the app's secret, and is refused
+# production's — then a student posts and an instructor replies and pins the question.
+#
+# IT RUNS ON EITHER DRIVER, and says which slug: `board-local` on driver 1, `board-github` on
+# driver 2 (step 0 asks the control plane, as this script's `source_driver` does). So it runs on
+# whichever driver the control plane is on now — after step 13 on driver 2, or after step 12 on
+# driver 1. Run it on BOTH for the whole acceptance: once here, and once after restarting.
+case "$(source_driver)" in
+  local | github)
+    echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — board-local' || echo '2 — board-github')"
+    make demo-authoring; echo "demo-authoring exit=$?"
+    ;;
+  *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
+esac
 
 echo
 echo "=== done. Turn the network back on. ==="

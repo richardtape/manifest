@@ -256,6 +256,27 @@ protected* in red with GitHub's own words beneath, and the stream carries `repos
 **A push is validated, never built**: nothing on the stream announces the validation itself (only project
 creation publishes `spec.validated`), so the Spec panel — `GET …/spec` — is where a person sees it.
 
+### An app an agent built through the API, clicked — either driver
+
+*Added by the authoring API plan's sitting 10, 2026-09-26 (Task 13).* After `make demo-authoring` (which leaves
+`board-local` — `board-github` on driver 2 — running in staging with the agent's commits, a person's symlink push
+and a pinned question); then `make demo-console`. **Four passwords are yours**: `student` and `instructor` on the
+board, then the console signs the instructor in with no password (the IdP's session), and step-up asks again.
+
+| # | Click | What must be true |
+|---|---|---|
+| 1 | open `https://board-local.staging.manifest.internal`, sign in as `student`, post a question, **Sign out** | *Signed in as Test Student.*; the question at the top, under *Test Student*; signing out ends the IdP's session too — the next sign-in asks for a password |
+| 2 | sign in as `instructor`, reply | *Signed in as Test Instructor, an instructor.*; the reply under the question, *Test Instructor (instructor)*, with the instructor's border |
+| 3 | the console, `board-local`, **Overview** | Activity names *"Test Instructor's agent (token 'board agent …')"* — its commits, the refused secret (*config/storage.js:1 (an AWS access key id)*, never the value), the secret it set; the build is of step 4's commit while the manifest panel shows the newest |
+| 4 | **Code** | the board's files; `link` — *a symlink — Manifest reads and writes regular text files only*; the history: the agent's commits *through Manifest — Test Instructor's agent — token '…'*, the person's push *pushed with git — git says the author is faculty-dev, which Manifest does not verify*; a commit opens to its patches |
+| 5 | edit a file → **Check** → **Commit** | *would commit… manifest.yaml valid — none of §7's sensitive fields change*; then *Committed …*, and the history's newest is *through Manifest — Test Instructor* — the person, not the agent |
+| 6 | push a commit with git into the repository while the Code tab is open, then commit from it | *main has moved since you opened it… Reload main — this discards the edits above*, and `SOURCE_CONFLICT` naming both commits; **Reload main** shows the push at the top of the history and no banner (sitting 10's F3 — before its fix the banner stayed, naming the OLDER commit) |
+| 7 | **Secrets** | `BOARD_ADMIN_CODE` *set* in staging; *not set* in sandbox and production with *"The next deploy of … will be refused until this has a value."*; production's **Set** is refused with *Confirm it is you* — follow it, CWL asks again, back on the tab with the box emptied, Set again → *set, changed 0s ago*; a value of `abc` → `REQUEST_INVALID — … >=6 characters` |
+| 8 | **Docs**, then *the API reference, rendered* | fourteen pages under API 1.3.0; `/reference.html` renders the whole API with **every request to `console.manifest.internal`** (and two inline `data:` images) — signed out it says *The API reference needs you signed in* and fetches no document |
+
+**The seed commit reads *pushed with git*** (sitting 10's F4, a minor): `madeThrough` is `null` for anything not made
+through the commit API, and the platform's own seed is one of those.
+
 ### Manifest itself — the control plane
 
 **https://console.manifest.internal/auth/login?returnTo=/v1/me** → sign in as `instructor` /

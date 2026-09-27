@@ -1026,6 +1026,46 @@ the build gate refuses only a TREE that holds one), and the fake's delivery log 
 control plane's OWN commit carrying a secret, which nothing in the contract makes before the authoring API
 (the source-driver contract suite holds it on both drivers).
 
+## `make demo-authoring` — the authoring API's acceptance: an agent builds an app through the API
+
+*Added by the authoring API plan's sitting 10, 2026-09-26 (Task 13).*
+
+An **agent**, holding a delegated token, builds a course **bulletin board** from the bare `node-ts-mongo@1`
+skeleton through nothing but the API (`packages/journey/src/authoring.ts`, over `@manifest/contract`), and
+then people use it. **It runs on EITHER driver** — step 0 asks which answers and picks the project:
+`board-local` on driver 1, `board-github` on driver 2, because a project's repository never moves between
+drivers. Run it on driver 1, then restart on driver 2 and run it again:
+
+```bash
+make demo-authoring                       # driver 1: board-local — ~35 s, fresh or re-used
+make github-up                            # then driver 2 — RUNBOOK's 'The control plane on driver 2'
+export MANIFEST_SOURCE_DRIVER=github
+pnpm --filter @manifest/control-plane dev # "source":"github"
+make demo-authoring                       # driver 2: board-github — ~40 s
+DEMO_AUTHORING_STOP_AFTER=5 make demo-authoring   # stop after a step — a negative control's short run
+```
+
+| Step | What happens | What must be true |
+|---|---|---|
+| 0 | which driver: an unsigned `POST /webhooks/github` (`source_driver`, `scripts/lib/api.sh`) | `404` → driver 1, `board-local`; `401` → driver 2, `board-github`; anything else stops it, creating nothing |
+| 1 | the instructor signs in (bash); the project is created with **no starter** or re-used; a token minted with `project:read`, `source:write`, `secret:write`, `build:create`, `release:create`, `release:deploy` | `repository.provider` is the driver's; `visibility` `null` on driver 1, `private` on driver 2; exactly six capabilities |
+| 2 | the agent reads `GET /v1/docs/agents`, the knowledge pack and the tree at `main` | the guide names `createCommit` and `baseCommit`; the pack points at the guide; the tree is the skeleton. **On the re-use path** the agent first starts the board again from the project's first commit — one commit — so every run makes the same change |
+| 3 | a dry run of the board with `classification: secret` | `422 SPEC_INVALID`, its first problem at `data.classification`; `main` unmoved |
+| 4 | the board committed: `manifest.yaml`, `server.js`, `public/index.html`, `public/app.js` and a `NOTES.md` | `201`, exactly those five changes; the sensitive diff names `auth.attributes` and `services`; no warning; `repository.committed` whose sentence names *"Test Instructor's agent (token '…')"*; `spec.validated` for it |
+| 5 | six refusals beside step 4's commit: a stale base, an AWS-key-shaped value made at run time, `.git/config`, a file named `public`, a delete of `nope.txt`, the same content again | `SOURCE_CONFLICT`, `SOURCE_SECRET_DETECTED` (and a `repository.secret_refused` holding no value), `400 REQUEST_INVALID`, `SOURCE_PATH_CONFLICT`, `SOURCE_PATH_NOT_FOUND`, `SOURCE_NOTHING_TO_COMMIT` — **`main` still step 4's after all six** |
+| 6 | a PERSON pushes `link → .git` (driver 1 into the bare repository, driver 2 to the fake); the agent commits `link/config` holding a `core.fsmonitor` that would create a canary file; then deletes `NOTES.md` | `409 SOURCE_PATH_CONFLICT`; **the canary never exists**; the deletion `201` |
+| 7 | the history | step 4's and step 6's commits `madeThrough` the instructor's agent and the token; the person's push `null`; `getCommit` of step 4 has `server.js`'s patch |
+| 8 | build **step 4's commit, not the newest**; release; deploy to staging before the secret is set | the build of step 4's commit `succeeded`; the release froze **step 4's** validation; `409 RELEASE_SECRET_NOT_SET` naming `BOARD_ADMIN_CODE`, and the environment's instance unchanged |
+| 9 | the agent sets staging's `BOARD_ADMIN_CODE`; deploys again | `200`, `set: true`, no value in the answer; `healthy`; the app answers **as the new instance** with *Bulletin board*; `/api/status` `{"adminCodeConfigured":true}`; the value in no frame, build log or answer |
+| 10 | the agent tries production's secret | `403 TOKEN_CREDENTIAL_REFUSED` (§20, Spec action 2) |
+| 11 | a student signs in to the BOARD and posts a question; the instructor signs in and replies; the instructor pins it with the code the agent set | the pin with a wrong code `403` and with the code `200`; `GET /api/posts` shows the question by *Test Student*, pinned, with *Test Instructor*'s reply |
+
+**It stops at the first red phase** (each phase prints every check first): a later step needs the earlier
+one's state. **It leaves the board running in staging** with the question, one token minted per run (a day's
+expiry), and the repository a few commits longer. **What it does not cover:** the console's Code and Secrets
+screens, the Docs screen and `/reference.html` — the clicked half (WALKTHROUGH) — and production, which a
+token cannot reach by design.
+
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 
 *Added by P5c sitting 8, 2026-09-19 (Task 13).*

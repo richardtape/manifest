@@ -12,10 +12,10 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# fourteen `=== n.` headings are numbered 0 to 13, where 0 is the precondition and 1-13 are
+# fifteen `=== n.` headings are numbered 0 to 14, where 0 is the precondition and 1-14 are
 # the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it; P6b
 # Task 11 added step 12, `make demo-releases`; the D5 plan's Task 15 step 13, `make
-# demo-github`).
+# demo-github`; the authoring API plan's Task 13 step 14, `make demo-authoring`).
 # This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
@@ -275,6 +275,16 @@ case "$DRIVER" in
   *) record "make demo-github" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
 esac
 
+# ---------------------------------------------------------------- 7. the authoring API's acceptance
+#   demo-authoring  — an AGENT builds a bulletin board from the bare skeleton through the API
+#                     alone, and people use it (the authoring API plan's Task 13). It runs on
+#                     EITHER driver — step 0 asks which, and picks board-local or board-github —
+#                     so it runs on whichever answered above. It adds no test.
+case "$DRIVER" in
+  local | github) run "make demo-authoring" make demo-authoring ;;
+  *) record "make demo-authoring" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
+esac
+
 # ---------------------------------------------------------------- the summary
 bold "=== summary ==="
 printf '%s' "$STEPS" | while IFS='|' read -r name status note; do
@@ -300,7 +310,7 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-13 include `make demo-identity` and `make demo-ai`;
+     network off, whose steps 0-14 include `make demo-identity` and `make demo-ai`;
    - BOTH source drivers in one run — one driver per control-plane process, so a run on
      driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 the other four.
 TAIL
