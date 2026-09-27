@@ -151,6 +151,8 @@ docs/superpowers/RUNBOOK.md's 'Running the control plane' has the exact commands
 says {\"driver\":\"docker\"} and \"origin\":\"$ORIGIN\", because every claim this demo
 makes is meaningless against the fake driver or another origin." ;;
 esac
+# Driver 1's demo: refused on a driver-2 control plane BEFORE anything is created (Task 12).
+require_driver local
 MASTER="$(sed -n 's/^LITELLM_MASTER_KEY=//p' .env)"
 [ -n "$MASTER" ] || fail "no LITELLM_MASTER_KEY in .env to read LiteLLM's keys with"
 

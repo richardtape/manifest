@@ -129,6 +129,8 @@ docs/superpowers/RUNBOOK.md's 'Running the control plane' has the exact commands
 says {\"driver\":\"docker\"} and \"origin\":\"$ORIGIN\", because every claim this demo
 makes is meaningless against the fake driver or another origin." ;;
 esac
+# Driver 1's demo: refused on a driver-2 control plane BEFORE anything is created (Task 12).
+require_driver local
 
 say "1. Log in to Manifest itself with CWL (§9: Manifest is its own SP)"
 idp_login "$CP_JAR" "$IDP_CP_JAR" "$ORIGIN/auth/login" instructor instructor \

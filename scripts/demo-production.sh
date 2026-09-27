@@ -98,6 +98,8 @@ case "$UP" in
 docs/superpowers/RUNBOOK.md's 'Running the control plane' has the exact commands — and check the boot line
 says {\"driver\":\"docker\"} and \"origin\":\"$ORIGIN\"." ;;
 esac
+# Driver 1's demo: refused on a driver-2 control plane BEFORE anything is created (Task 12).
+require_driver local
 
 say "0. Is §12's public listener there? (127.0.0.3, P6a Task 2)"
 ifconfig lo0 | grep -q "inet $PUBLIC_EDGE_IP " || fail "$PUBLIC_EDGE_IP is not on lo0 —

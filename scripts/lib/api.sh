@@ -39,6 +39,47 @@ api() {
   curl "${args[@]}" "$API$path"
 }
 
+# WHICH SOURCE DRIVER THE CONTROL PLANE RUNS, asked before a demo creates anything (the authoring
+# API plan's Task 12; the D5 plan's *Added at the close*: a driver-1 demo run on a driver-2
+# control plane created its project there, where no route deletes it). An unsigned POST to the
+# webhook receiver answers without recording anything — `404 WEBHOOKS_NOT_CONFIGURED` is driver
+# 1, `401 WEBHOOK_SIGNATURE_MISSING` driver 2 — straight to the control plane, because the edge
+# forwards only /v1 and /auth. `$1` is `local` or `github`. On the wrong one it says how to
+# restart and EXITS 1, having created nothing; `make demo-github` asks the same question from
+# TypeScript (its step 0).
+require_driver() {
+  local want="$1" code have
+  code="$(curl -s -m 5 -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
+    --data '{}' "http://127.0.0.1:${PORT_CONTROL_PLANE:-7100}/webhooks/github" || true)"
+  case "$code" in
+    404) have=local ;;
+    401) have=github ;;
+    *)
+      printf '\n\033[31m%s\033[0m\n' "Which source driver does the control plane run? POST /webhooks/github on 127.0.0.1:${PORT_CONTROL_PLANE:-7100} answered '$code', not 404 (driver 1) or 401 (driver 2). Nothing was created." >&2
+      exit 1
+      ;;
+  esac
+  if [ "$have" = "$want" ]; then
+    echo "  the control plane runs the $have source driver, which this demo needs"
+    return 0
+  fi
+  if [ "$want" = local ]; then
+    printf '\n\033[31m%s\033[0m\n' "The control plane runs driver 2 (the GitHub source driver), and this demo is driver 1's.
+Nothing was created. Stop the control plane and start it again WITHOUT MANIFEST_SOURCE_DRIVER
+(unset MANIFEST_SOURCE_DRIVER) — RUNBOOK's 'Running the control plane' — then run this demo
+again. \`make demo-github\` is the driver-2 demo." >&2
+  else
+    printf '\n\033[31m%s\033[0m\n' "The control plane runs driver 1 (the local source driver), and this demo is driver 2's.
+Nothing was created. Stop the control plane, then start it on driver 2 — RUNBOOK's 'The
+control plane on driver 2':
+
+  make github-up
+  export MANIFEST_SOURCE_DRIVER=github     # every MANIFEST_GITHUB_* default is the fake's
+  pnpm --filter @manifest/control-plane dev" >&2
+  fi
+  exit 1
+}
+
 field() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const v=process.argv[1].split(".").reduce((a,k)=>a?.[k],j);if(v===undefined){console.error(s);process.exit(1)}console.log(typeof v==="object"?JSON.stringify(v):v)})' "$1"; }
 
 json() { node -e 'console.log(JSON.stringify(process.argv[1]))' "$1"; }

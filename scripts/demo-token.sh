@@ -75,6 +75,8 @@ case "$UP" in
 docs/superpowers/RUNBOOK.md's 'Running the control plane' has the exact commands — and check the boot line
 says {\"driver\":\"docker\"} and \"origin\":\"$ORIGIN\"." ;;
 esac
+# Driver 1's demo: refused on a driver-2 control plane BEFORE anything is created (Task 12).
+require_driver local
 
 say "1. Sign in to Manifest with CWL, as the instructor, through the edge"
 idp_login "$CP_JAR" "$IDP_JAR" "$ORIGIN/auth/login" instructor instructor \
