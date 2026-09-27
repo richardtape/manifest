@@ -1,0 +1,246 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Build.dc.html": {
+      "h": 940,
+      "is_interactive": true,
+      "title": "5 · LIVE — build logs, line by line",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "Conversations.dc.html": {
+      "h": 960,
+      "is_interactive": true,
+      "title": "SPECULATIVE · Every thread of work on one app",
+      "w": 1440,
+      "x": 3040,
+      "y": 3000
+    },
+    "Deploy.dc.html": {
+      "h": 920,
+      "is_interactive": true,
+      "title": "6 · LIVE — instance states (tweak: it fails)",
+      "w": 1440,
+      "x": 7600,
+      "y": 0
+    },
+    "Describe.dc.html": {
+      "h": 940,
+      "is_interactive": true,
+      "title": "SPECULATIVE · Describe it",
+      "w": 1440,
+      "x": 0,
+      "y": 3000
+    },
+    "Draft.dc.html": {
+      "h": 1060,
+      "is_interactive": true,
+      "title": "SPECULATIVE · The plan",
+      "w": 1440,
+      "x": 1520,
+      "y": 3000
+    },
+    "Incident.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "10 · A deploy that failed",
+      "w": 1440,
+      "x": 13680,
+      "y": 0
+    },
+    "Iterate.dc.html": {
+      "h": 940,
+      "is_interactive": true,
+      "title": "SPECULATIVE in half · One conversation",
+      "w": 1440,
+      "x": 4560,
+      "y": 3000
+    },
+    "Launch.dc.html": {
+      "h": 1240,
+      "is_interactive": true,
+      "title": "9 · Going live — clocks, then checks",
+      "w": 1440,
+      "x": 12160,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 920,
+      "is_interactive": true,
+      "title": "2 · Your apps",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Members.dc.html": {
+      "h": 880,
+      "is_interactive": true,
+      "title": "Signing in again, mid-task",
+      "w": 1440,
+      "x": 1520,
+      "y": 1600
+    },
+    "New.dc.html": {
+      "h": 1000,
+      "is_interactive": true,
+      "title": "3 · Create a project — live name check",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "Preview.dc.html": {
+      "h": 960,
+      "is_interactive": true,
+      "title": "7 · Preview — see the app you made",
+      "w": 1440,
+      "x": 9120,
+      "y": 0
+    },
+    "Project.dc.html": {
+      "h": 1040,
+      "is_interactive": true,
+      "title": "8 · The project — two facts, never one",
+      "w": 1440,
+      "x": 10640,
+      "y": 0
+    },
+    "Provision.dc.html": {
+      "h": 880,
+      "is_interactive": true,
+      "title": "4 · LIVE — provisioning",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "Queue.dc.html": {
+      "h": 1040,
+      "is_interactive": true,
+      "title": "An agent is refused; you answer",
+      "w": 1440,
+      "x": 3040,
+      "y": 1600
+    },
+    "Signin.dc.html": {
+      "h": 800,
+      "is_interactive": true,
+      "title": "1 · Sign in with CWL",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Token.dc.html": {
+      "h": 940,
+      "is_interactive": true,
+      "title": "A secret shown exactly once",
+      "w": 1440,
+      "x": 0,
+      "y": 1600
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-19T00:00:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/code/artifact/004ccdad-637d-4a42-b116-6976a386207d",
+      "copiedAt": "2026-09-19T23:55:00Z",
+      "namespace": "manifest",
+      "title": "Manifest",
+      "version": null
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "s1": {
+      "color": "blue",
+      "maxH": 660,
+      "text": "THE SYSTEM\n\nInstrument Sans throughout, IBM Plex Mono for the three things that are genuinely machine text: hostnames, the key, the build log. UBC Blue #003468 owns the brand mark and every primary action.\n\nFIVE STATES AND NOTHING ELSE\n\nWorking — moving on its own, you may leave. Teal, a drifting bar, never a spinner.\nWaiting on someone — a person or an office has it. Amber, and it says how long.\nNeeds you — stuck until you act. Red.\nSteady — it works. Green.\nNot yet — real, but no clock has started. Grey, hatched.\n\nThe rule: motion means a machine is moving; stillness plus a number means a person has it. So nothing measured in weeks is ever animated.",
+      "w": 430,
+      "x": 15200,
+      "y": 0
+    },
+    "s2": {
+      "color": "gray",
+      "maxH": 640,
+      "text": "WHERE THE COPY COMES FROM\n\nReal fixture values, verbatim: the slug, all three hostnames, the twenty build log lines, 135 packages, the scan counts (0 fixable, 2 unfixable High, 18 on the base image), the token secret, the 42-second wait, the incident's repair prompt.\n\nWritten for this prototype: the faculty-legible sentence for each event and each launch item. The API's own strings there — \"The PIA workflow is the external track\", \"Custom domains are not built in Phase 1\" — are internal vocabulary and would fail C3 on a faculty screen. That is finding F2.",
+      "w": 430,
+      "x": 15200,
+      "y": 720
+    },
+    "s3": {
+      "color": "purple",
+      "maxH": 560,
+      "text": "All three explain their own rule on screen rather than in a help page.\n\nA faculty member meets this platform about six times a year. They will not carry a mental model between visits, so every unusual rule — the key that cannot be shown twice, the second sign-in, the agent that must ask — re-explains itself at the moment it bites.",
+      "w": 430,
+      "x": 4560,
+      "y": 1600
+    },
+    "s4": {
+      "color": "orange",
+      "maxH": 620,
+      "text": "The full authoring flow, at Rich's direction, plus the conversation list.\n\nIt hands back to the real journey: \"Yes, build that\" goes to Provision, the same screen the hand-made route reaches.\n\nA CONVERSATION IS THE ONE OBJECT WITH NO COUNTERPART IN THE API. Builds, releases, deploys and pending actions all exist — nothing records which piece of work they belonged to. Finding F13.\n\nIn the last artboard only the asking is invented. The refusal, the question it raises and the single retry a yes buys are built and clicked today.",
+      "w": 430,
+      "x": 6080,
+      "y": 3000
+    },
+    "s5": {
+      "color": "teal",
+      "maxH": 620,
+      "text": "THE PREVIEW\n\nThe app drawn inside the frame is markup, not a live embed — this format cannot carry an iframe. In the real product it would be one, and that is not free: the app is behind CWL, so an embedded preview needs a session the platform has no way to hand it, and a cross-origin frame of a SAML-protected app is blocked by default. Finding F12.\n\nThe environment switcher is honest about the fixtures: sandbox and production both have no instance, so both show an empty state rather than a mock.",
+      "w": 430,
+      "x": 15200,
+      "y": 1420
+    },
+    "t1": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "The journey that is real — every value on these ten screens comes from the published contract",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Three moments that need particular care",
+      "w": 240,
+      "x": 0,
+      "y": 1300
+    },
+    "t3": {
+      "color": "orange",
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "Speculative — describing an app, and the conversations that change it",
+      "w": 240,
+      "x": 0,
+      "y": 2700
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Signin.dc.html",
+    "New.dc.html",
+    "Provision.dc.html",
+    "Build.dc.html",
+    "Deploy.dc.html",
+    "Preview.dc.html",
+    "Project.dc.html",
+    "Launch.dc.html",
+    "Incident.dc.html",
+    "Token.dc.html",
+    "Members.dc.html",
+    "Queue.dc.html",
+    "Describe.dc.html",
+    "Draft.dc.html",
+    "Conversations.dc.html",
+    "Iterate.dc.html"
+  ],
+  "pages": [],
+  "title": "Manifest — Faculty Product"
+}

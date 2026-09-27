@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Setting up mock-app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body { margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; background: #F4F6FA; color: #0E1626; -webkit-font-smoothing: antialiased; }
+a { color: #003468; } a:hover { color: #00254A; }
+*:focus-visible { outline: 2px solid #0E6D84; outline-offset: 3px; }
+@keyframes mfBreathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes mfArrive { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes mfDrift { 0% { background-position: 0 0; } 100% { background-position: 44px 0; } }
+</style>
+</helmet>
+<div style="width: 1440px; height: 880px; box-sizing: border-box; background: #F4F6FA; display: flex;">
+      <nav style="width: 240px; flex-shrink: 0; box-sizing: border-box; background: #003468; display: flex; flex-direction: column; padding: 22px 0 18px;" aria-label="Manifest">
+        <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; margin: 0 24px 22px; text-decoration: none;">
+          <span style="width: 26px; height: 26px; border-radius: 7px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#003468" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9.5L12 4l8 5.5V19"></path><path d="M9.5 19v-6h5v6"></path></svg>
+          </span>
+          <span style="font-weight: 600; font-size: 17px; color: #FFFFFF; letter-spacing: -0.02em;">Manifest</span>
+          <span style="width: 1px; height: 14px; background: rgba(255, 255, 255, 0.16);"></span>
+          <span style="font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #9DB8D6;">UBC</span>
+        </a>
+
+        <a href="Main.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4 4.5h6.5V11H4z"></path><path d="M13.5 4.5H20V11h-6.5z"></path><path d="M4 13.5h6.5V20H4z"></path><path d="M13.5 13.5H20V20h-6.5z"></path></svg>Your apps</a>
+
+        <a href="New.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 2px 12px 0; border-radius: 8px; font-size: 14px; font-weight: 500; color: #B8CDE4; text-decoration: none; box-sizing: border-box;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>
+          Start something new
+        </a>
+
+        <div style="height: 1px; background: rgba(255, 255, 255, 0.16); margin: 20px 24px 18px;"></div>
+
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #9DB8D6; margin: 0 24px 10px;">mock-app</span>
+        <a href="Project.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; background: #14508A; color: #FFFFFF; font-weight: 600;" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M12 4l8 4.5-8 4.5-8-4.5z"></path><path d="M4 14l8 4.5 8-4.5"></path></svg>Overview</a>
+        <a href="Preview.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M3.5 5.5h17v10.5h-17z"></path><path d="M9 20h6"></path><path d="M12 16v4"></path></svg>Preview</a>
+        <a href="Conversations.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4.5 5.5h15v9.5h-9l-6 4.5z"></path></svg>Conversations</a>
+        <a href="Launch.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M6.5 20.5V4"></path><path d="M6.5 4.5h11l-2 3.5 2 3.5h-11"></path></svg>Going live</a>
+        <a href="Members.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4 20a5 5 0 0 1 9.5 0"></path><path d="M8.75 11.2a3.1 3.1 0 1 0 0-6.2 3.1 3.1 0 0 0 0 6.2"></path><path d="M16.5 20a5 5 0 0 0-2.6-4.4"></path></svg>People</a>
+        <a href="Token.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M13.5 3.5L6 14h5.5l-1 6.5L18 10h-5.5z"></path></svg>Agents</a>
+
+        <div style="flex-grow: 1;"></div>
+
+        <div style="margin: 18px 24px 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.16); display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 13.5px; color: #FFFFFF;">Instructor One</span>
+          <a href="Signin.dc.html" style="font-size: 12.5px; color: #9DB8D6; text-decoration: none;">Sign out</a>
+        </div>
+      </nav>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;">
+
+
+  <div style="flex-grow: 1; box-sizing: border-box; padding: 40px 40px; display: flex; gap: 44px; overflow: hidden;">
+
+    <div style="width: 700px; flex-shrink: 0; display: flex; flex-direction: column; gap: 26px;">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <span style="{{pillStyle}}">
+          <span style="{{pillDotStyle}}"></span>{{pillText}}
+        </span>
+        <h1 style="margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; font-weight: 700; font-size: 29px; letter-spacing: -0.03em;">{{heading}}</h1>
+        <p style="margin: 0; font-size: 15.5px; line-height: 1.6; color: #33415C; max-width: 54ch;">{{subheading}}</p>
+      </div>
+
+      <div style="height: 4px; border-radius: 2px; overflow: hidden; background: #E3E8F0;">
+        <div style="{{barStyle}}"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column;">
+        <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+          <div style="{{s.rowStyle}}">
+            <div style="display: flex; flex-direction: column; align-items: center; width: 26px; flex-shrink: 0;">
+              <span style="{{s.dotStyle}}"></span>
+              <span style="{{s.lineStyle}}"></span>
+            </div>
+            <div style="padding-bottom: 22px; display: flex; flex-direction: column; gap: 4px;">
+              <p style="margin: 0; font-size: 16px; line-height: 1.45; font-weight: 500; color: #0E1626;">{{s.said}}</p>
+              <p style="margin: 0; font-size: 13.5px; line-height: 1.5; color: #4B5A75;">{{s.why}}</p>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px;">
+
+      <sc-if value="{{done}}" hint-placeholder-val="{{ true }}">
+        <div style="animation: mfArrive 0.5s ease both; padding: 22px 24px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E3E8F0; display: flex; flex-direction: column; gap: 16px;">
+          <h2 style="margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; font-weight: 600; font-size: 18px;">Your three addresses</h2>
+          <p style="margin: 0; font-size: 13.5px; line-height: 1.55; color: #4B5A75;">Yours for good. The names can&#39;t be taken or changed.</p>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 8px; background: #F4F6FA; border: 1px solid #DCE3EF;">
+              <span style="font-size: 13px; font-weight: 600; color: #33415C;">Your draft</span>
+              <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; color: #4B5A75;">mock-app.sandbox.manifest.internal</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 8px; background: #F4F6FA; border: 1px solid #003468;">
+              <span style="font-size: 13px; font-weight: 600; color: #33415C;">For trying out</span>
+              <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; color: #4B5A75;">mock-app.staging.manifest.internal</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 8px; background: #F4F6FA; border: 1px solid #DCE3EF;">
+              <span style="font-size: 13px; font-weight: 600; color: #33415C;">For your students</span>
+              <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; color: #4B5A75;">mock-app.manifest.internal</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{running}}" hint-placeholder-val="{{ true }}">
+        <div style="padding: 22px 24px; border-radius: 10px; background: #E3F1F5; border: 1px solid #B3DAE4; display: flex; gap: 13px;">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0E6D84" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5V12l3 2"></path></svg>
+          <div>
+            <p style="margin: 0; font-size: 14.5px; font-weight: 600; color: #0A4E60;">You can close this page.</p>
+            <p style="margin: 4px 0 0; font-size: 13.5px; line-height: 1.55; color: #0E6D84;">It keeps going without you. Everything will still be here.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="padding: 20px 22px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E3E8F0; display: flex; flex-direction: column; gap: 10px;">
+        <h2 style="margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; font-weight: 600; font-size: 17px;">Next: build it</h2>
+        <p style="margin: 0; font-size: 13.5px; line-height: 1.55; color: #4B5A75;">A few minutes. Watch it, or walk away.</p>
+      </div>
+
+      <div style="flex-grow: 1;"></div>
+
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a href="{{nextHref}}" style="{{nextStyle}}">Build it</a>
+        <button type="button" onClick="{{replay}}" style="height: 48px; padding: 0 18px; border-radius: 8px; border: 1px solid #C4CDDD; background: transparent; font-family: inherit; font-size: 14px; color: #4B5A75; cursor: pointer;">Watch again</button>
+      </div>
+    </div>
+  </div>
+      </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":880}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { at: 0 };
+    this.timer = null;
+  }
+
+  componentDidMount() {
+    this.run();
+  }
+
+  componentWillUnmount() {
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  run() {
+    if (this.timer) clearInterval(this.timer);
+    this.setState({ at: 0 });
+    this.timer = setInterval(() => {
+      if (this.state.at >= 4) {
+        clearInterval(this.timer);
+        this.timer = null;
+        return;
+      }
+      this.setState({ at: this.state.at + 1 });
+    }, 1150);
+  }
+
+  renderVals() {
+    const at = this.state.at;
+    const done = at >= 4;
+
+    const script = [
+      { said: 'mock-app exists.', why: 'Its name is reserved and nobody else can take it.' },
+      { said: 'A working starting point was copied in.', why: 'A note-taking app, with sign-in already wired up. You change it from here.' },
+      { said: 'We read its settings, and they make sense.', why: 'What it needs to run, how much room it gets, what it is allowed to reach.' },
+      { said: 'Sign-in is connected.', why: 'Anyone who opens it will be asked for their CWL first. You did not have to set that up.' },
+    ];
+
+    const steps = script.map((s, i) => {
+      const arrived = i < at;
+      const current = i === at && !done;
+      const last = i === script.length - 1;
+      return {
+        said: s.said,
+        why: s.why,
+        rowStyle: 'display: flex; gap: 14px; ' + (arrived ? 'animation: mfArrive 0.45s ease both; opacity: 1;' : 'opacity: 0.32;'),
+        dotStyle: 'width: 13px; height: 13px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; ' +
+          (arrived ? 'background: #146B3D;' : current ? 'background: #0E6D84; animation: mfBreathe 1.3s ease-in-out infinite;' : 'background: transparent; border: 2px solid #CED7E5; box-sizing: border-box;'),
+        lineStyle: last ? 'display: none;' : 'flex-grow: 1; width: 2px; background: ' + (arrived ? '#BBE2CD' : '#E3E8F0') + '; margin: 5px 0;',
+      };
+    });
+
+    const pct = Math.round((at / 4) * 100);
+
+    return {
+      steps,
+      done,
+      running: !done,
+      heading: done ? 'mock-app is ready to build.' : 'Setting up mock-app',
+      subheading: done
+        ? 'Everything it needs exists. Nothing is running yet.'
+        : 'About a minute. Each line below has actually finished.',
+      pillStyle: 'display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; padding: 5px 13px 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; ' +
+        (done ? 'background: #E6F4EC; border: 1px solid #BBE2CD; color: #146B3D;' : 'background: #E3F1F5; border: 1px solid #B3DAE4; color: #0E6D84;'),
+      pillDotStyle: 'width: 7px; height: 7px; border-radius: 50%; background: currentColor;' + (done ? '' : ' animation: mfBreathe 1.3s ease-in-out infinite;'),
+      pillText: done ? 'Ready' : 'Working, about a minute left',
+      barStyle: 'height: 100%; width: ' + pct + '%; transition: width 0.7s cubic-bezier(.4,0,.2,1); background: ' +
+        (done ? '#146B3D' : 'repeating-linear-gradient(115deg, #0E6D84 0 14px, #1E8BA6 14px 22px); animation: mfDrift 1.1s linear infinite;'),
+      nextHref: done ? 'Build.dc.html' : '#not-yet',
+      nextStyle: 'display: inline-flex; align-items: center; height: 48px; padding: 0 24px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; ' +
+        (done ? 'background: #003468; color: #FFFFFF;' : 'background: #E3E8F0; color: #9AA5B8; pointer-events: none;'),
+      replay: () => this.run(),
+    };
+  }
+}
+</script>
+</body>
+</html>

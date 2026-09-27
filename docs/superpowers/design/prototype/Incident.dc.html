@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What went wrong with mock-app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body { margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; background: #F4F6FA; color: #0E1626; -webkit-font-smoothing: antialiased; }
+a { color: #003468; } a:hover { color: #00254A; }
+*:focus-visible { outline: 2px solid #0E6D84; outline-offset: 3px; }
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #F4F6FA; display: flex;">
+      <nav style="width: 240px; flex-shrink: 0; box-sizing: border-box; background: #003468; display: flex; flex-direction: column; padding: 22px 0 18px;" aria-label="Manifest">
+        <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; margin: 0 24px 22px; text-decoration: none;">
+          <span style="width: 26px; height: 26px; border-radius: 7px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#003468" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9.5L12 4l8 5.5V19"></path><path d="M9.5 19v-6h5v6"></path></svg>
+          </span>
+          <span style="font-weight: 600; font-size: 17px; color: #FFFFFF; letter-spacing: -0.02em;">Manifest</span>
+          <span style="width: 1px; height: 14px; background: rgba(255, 255, 255, 0.16);"></span>
+          <span style="font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #9DB8D6;">UBC</span>
+        </a>
+
+        <a href="Main.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4 4.5h6.5V11H4z"></path><path d="M13.5 4.5H20V11h-6.5z"></path><path d="M4 13.5h6.5V20H4z"></path><path d="M13.5 13.5H20V20h-6.5z"></path></svg>Your apps</a>
+
+        <a href="New.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 2px 12px 0; border-radius: 8px; font-size: 14px; font-weight: 500; color: #B8CDE4; text-decoration: none; box-sizing: border-box;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>
+          Start something new
+        </a>
+
+        <div style="height: 1px; background: rgba(255, 255, 255, 0.16); margin: 20px 24px 18px;"></div>
+
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #9DB8D6; margin: 0 24px 10px;">mock-app</span>
+        <a href="Project.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; background: #14508A; color: #FFFFFF; font-weight: 600;" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M12 4l8 4.5-8 4.5-8-4.5z"></path><path d="M4 14l8 4.5 8-4.5"></path></svg>Overview</a>
+        <a href="Preview.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M3.5 5.5h17v10.5h-17z"></path><path d="M9 20h6"></path><path d="M12 16v4"></path></svg>Preview</a>
+        <a href="Conversations.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4.5 5.5h15v9.5h-9l-6 4.5z"></path></svg>Conversations</a>
+        <a href="Launch.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M6.5 20.5V4"></path><path d="M6.5 4.5h11l-2 3.5 2 3.5h-11"></path></svg>Going live</a>
+        <a href="Members.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4 20a5 5 0 0 1 9.5 0"></path><path d="M8.75 11.2a3.1 3.1 0 1 0 0-6.2 3.1 3.1 0 0 0 0 6.2"></path><path d="M16.5 20a5 5 0 0 0-2.6-4.4"></path></svg>People</a>
+        <a href="Token.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M13.5 3.5L6 14h5.5l-1 6.5L18 10h-5.5z"></path></svg>Agents</a>
+
+        <div style="flex-grow: 1;"></div>
+
+        <div style="margin: 18px 24px 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.16); display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 13.5px; color: #FFFFFF;">Instructor One</span>
+          <a href="Signin.dc.html" style="font-size: 12.5px; color: #9DB8D6; text-decoration: none;">Sign out</a>
+        </div>
+      </nav>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;">
+
+
+  <div style="flex-grow: 1; box-sizing: border-box; padding: 34px 40px; display: flex; flex-direction: column; gap: 24px; overflow: hidden;">
+
+    <div style="display: flex; align-items: center; gap: 14px; padding: 16px 22px; border-radius: 10px; background: #E6F4EC; border: 1px solid #BBE2CD;">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#146B3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M12 3l7 3.5v5c0 4-3 7.5-7 9.5-4-2-7-5.5-7-9.5v-5z"></path><path d="M9 12l2 2 4-4"></path></svg>
+      <p style="margin: 0; font-size: 14.5px; line-height: 1.5; color: #0E1626;"><strong style="font-weight: 600;">Nobody has lost anything.</strong> <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px;">mock-app.staging.manifest.internal</span> is still answering with the version from before.</p>
+    </div>
+
+    <div style="display: flex; gap: 32px; flex-grow: 1; min-height: 0;">
+
+      <div style="width: 720px; flex-shrink: 0; display: flex; flex-direction: column; gap: 22px;">
+        <div>
+          <span style="display: inline-flex; align-items: center; gap: 8px; padding: 5px 13px 5px 10px; border-radius: 999px; background: #FCEAE7; border: 1px solid #F4C7C2; font-size: 12px; font-weight: 600; color: #B3261E;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #B3261E;"></span>Needs you
+          </span>
+          <h1 style="margin: 14px 0 0; font-family: 'Instrument Sans', system-ui, sans-serif; font-weight: 700; font-size: 29px; letter-spacing: -0.03em;">It started, then went quiet.</h1>
+          <p style="margin: 10px 0 0; font-size: 15.5px; line-height: 1.6; color: #33415C; max-width: 60ch;">Every app has to answer one question when it starts: <em>are you ready?</em> Yours never did, so we stopped rather than send people to something half-awake.</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; gap: 16px; padding: 18px 20px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E3E8F0;">
+            <span style="flex-shrink: 0; width: 120px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: #5C6A85; padding-top: 2px;">What changed</span>
+            <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #0E1626;">The place we ask &ldquo;are you ready?&rdquo; was moved, to a page that doesn&#39;t exist. Almost certainly the whole story.</p>
+          </div>
+          <div style="display: flex; gap: 16px; padding: 18px 20px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E3E8F0;">
+            <span style="flex-shrink: 0; width: 120px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: #5C6A85; padding-top: 2px;">What it said</span>
+            <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #0E1626;">It couldn&#39;t reach where it keeps things — probably a symptom, not the cause.</p>
+          </div>
+          <div style="display: flex; gap: 16px; padding: 18px 20px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E3E8F0;">
+            <span style="flex-shrink: 0; width: 120px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: #5C6A85; padding-top: 2px;">When</span>
+            <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #0E1626;">4 minutes ago, on the trying-out address. Not on anything your students can reach.</p>
+          </div>
+        </div>
+
+        <div style="border-radius: 10px; border: 1px solid #E3E8F0; background: #FFFFFF; overflow: hidden;">
+          <button type="button" onClick="{{toggle}}" style="width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border: none; background: transparent; font-family: inherit; font-size: 14px; color: #33415C; cursor: pointer; text-align: left;">
+            <span>The exact words, for whoever you ask for help</span>
+            <span style="font-size: 13px; color: #5C6A85;">{{toggleText}}</span>
+          </button>
+          <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 0 20px 18px; display: flex; flex-direction: column; gap: 10px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; line-height: 1.7; color: #33415C;">
+              <div style="padding: 12px 14px; border-radius: 8px; background: #0D1522; color: #DDE3EC; white-space: pre-wrap; word-break: break-word;">the readiness probe never answered 200
+GET /healthz from inside the edge
+runtime.health: /healthz &rarr; /never-ready
+Error: connect ECONNREFUSED 127.0.0.1:27017</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+        <div style="padding: 24px 26px; border-radius: 12px; background: #0A4E60; color: #F0F8FA; display: flex; flex-direction: column; gap: 15px;">
+          <h2 style="margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; font-weight: 600; font-size: 17px; color: #FFFFFF;">Give this to your agent</h2>
+          <p style="margin: 0; font-size: 13.5px; line-height: 1.6; color: #D7EDF3;">Written as a repair request, not an error. Everything it needs to fix this in one go.</p>
+          <div style="padding: 15px 16px; border-radius: 8px; background: #0A4E60; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.65; color: #E8F5F8;">The app did not answer its health path. Check runtime.health in manifest.yaml.</div>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" onClick="{{copy}}" style="flex-grow: 1; height: 44px; border-radius: 8px; border: 1px solid #3E92A8; background: transparent; font-family: inherit; font-size: 14px; font-weight: 600; color: #FFFFFF; cursor: pointer;">{{copyText}}</button>
+            <a href="Iterate.dc.html" style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 44px; border-radius: 8px; background: #FFFFFF; color: #0A4E60; text-decoration: none; font-size: 14px; font-weight: 600;">Send it</a>
+          </div>
+        </div>
+
+        <div style="padding: 20px 22px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E3E8F0; display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; font-weight: 600; font-size: 17px;">Or leave it</h2>
+          <p style="margin: 0; font-size: 13.5px; line-height: 1.55; color: #4B5A75;">Nothing is degrading. The working version carries on, and this page will be here tomorrow.</p>
+          <a href="Project.dc.html" style="font-size: 13.5px; font-weight: 600;">Back to mock-app &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+      </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: false, copied: false };
+  }
+
+  renderVals() {
+    return {
+      open: this.state.open,
+      toggle: () => this.setState({ open: !this.state.open }),
+      toggleText: this.state.open ? 'Hide' : 'Show',
+      copyText: this.state.copied ? 'Copied' : 'Copy it',
+      copy: () => {
+        const text = 'The app did not answer its health path. Check runtime.health in manifest.yaml.';
+        try {
+          if (navigator.clipboard) navigator.clipboard.writeText(text);
+        } catch (e) {
+          // the prototype does not depend on this working
+        }
+        this.setState({ copied: true });
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

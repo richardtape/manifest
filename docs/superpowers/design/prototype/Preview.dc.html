@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Preview mock-app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body { margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; background: #F4F6FA; color: #0E1626; -webkit-font-smoothing: antialiased; }
+a { color: #003468; } a:hover { color: #00254A; }
+*:focus-visible { outline: 2px solid #003468; outline-offset: 3px; }
+@keyframes mfFade { from { opacity: 0; } to { opacity: 1; } }
+</style>
+</helmet>
+<div style="width: 1440px; height: 960px; box-sizing: border-box; background: #F4F6FA; display: flex;">
+      <nav style="width: 240px; flex-shrink: 0; box-sizing: border-box; background: #003468; display: flex; flex-direction: column; padding: 22px 0 18px;" aria-label="Manifest">
+        <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; margin: 0 24px 22px; text-decoration: none;">
+          <span style="width: 26px; height: 26px; border-radius: 7px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#003468" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9.5L12 4l8 5.5V19"></path><path d="M9.5 19v-6h5v6"></path></svg>
+          </span>
+          <span style="font-weight: 600; font-size: 17px; color: #FFFFFF; letter-spacing: -0.02em;">Manifest</span>
+          <span style="width: 1px; height: 14px; background: rgba(255, 255, 255, 0.16);"></span>
+          <span style="font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #9DB8D6;">UBC</span>
+        </a>
+
+        <a href="Main.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4 4.5h6.5V11H4z"></path><path d="M13.5 4.5H20V11h-6.5z"></path><path d="M4 13.5h6.5V20H4z"></path><path d="M13.5 13.5H20V20h-6.5z"></path></svg>Your apps</a>
+
+        <a href="New.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 2px 12px 0; border-radius: 8px; font-size: 14px; font-weight: 500; color: #B8CDE4; text-decoration: none; box-sizing: border-box;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>
+          Start something new
+        </a>
+
+        <div style="height: 1px; background: rgba(255, 255, 255, 0.16); margin: 20px 24px 18px;"></div>
+
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #9DB8D6; margin: 0 24px 10px;">mock-app</span>
+        <a href="Project.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M12 4l8 4.5-8 4.5-8-4.5z"></path><path d="M4 14l8 4.5 8-4.5"></path></svg>Overview</a>
+        <a href="Preview.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; background: #14508A; color: #FFFFFF; font-weight: 600;" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M3.5 5.5h17v10.5h-17z"></path><path d="M9 20h6"></path><path d="M12 16v4"></path></svg>Preview</a>
+        <a href="Conversations.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4.5 5.5h15v9.5h-9l-6 4.5z"></path></svg>Conversations</a>
+        <a href="Launch.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M6.5 20.5V4"></path><path d="M6.5 4.5h11l-2 3.5 2 3.5h-11"></path></svg>Going live</a>
+        <a href="Members.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M4 20a5 5 0 0 1 9.5 0"></path><path d="M8.75 11.2a3.1 3.1 0 1 0 0-6.2 3.1 3.1 0 0 0 0 6.2"></path><path d="M16.5 20a5 5 0 0 0-2.6-4.4"></path></svg>People</a>
+        <a href="Token.dc.html" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; margin: 0 12px; border-radius: 8px; font-size: 14px; text-decoration: none; box-sizing: border-box; color: #B8CDE4; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8CDE4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true"><path d="M13.5 3.5L6 14h5.5l-1 6.5L18 10h-5.5z"></path></svg>Agents</a>
+
+        <div style="flex-grow: 1;"></div>
+
+        <div style="margin: 18px 24px 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.16); display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 13.5px; color: #FFFFFF;">Instructor One</span>
+          <a href="Signin.dc.html" style="font-size: 12.5px; color: #9DB8D6; text-decoration: none;">Sign out</a>
+        </div>
+      </nav>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;">
+
+
+  <div style="flex-shrink: 0; box-sizing: border-box; padding: 18px 40px; background: #FFFFFF; border-bottom: 1px solid #E3E8F0; display: flex; align-items: center; gap: 20px;">
+    <h1 style="margin: 0; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; flex-shrink: 0;">Preview</h1>
+    <div style="display: flex; gap: 4px; padding: 3px; border-radius: 8px; background: #EEF2F8; border: 1px solid #DCE3EF;">
+      <sc-for list="{{envs}}" as="e" hint-placeholder-count="3">
+        <button type="button" onClick="{{e.pick}}" style="{{e.tabStyle}}">{{e.label}}</button>
+      </sc-for>
+    </div>
+    <div style="flex-grow: 1;"></div>
+    <div style="display: flex; gap: 4px; padding: 3px; border-radius: 8px; background: #EEF2F8; border: 1px solid #DCE3EF;">
+      <button type="button" onClick="{{deskPick}}" style="{{deskStyle}}">Desktop</button>
+      <button type="button" onClick="{{phonePick}}" style="{{phoneStyle}}">Phone</button>
+    </div>
+    <button type="button" onClick="{{reload}}" aria-label="Reload the preview" style="width: 38px; height: 38px; border-radius: 8px; border: 1px solid #C4CDDD; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#33415C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"></path><path d="M20 4v5h-5"></path></svg>
+    </button>
+  </div>
+
+  <div style="flex-grow: 1; box-sizing: border-box; padding: 26px 40px; display: flex; gap: 26px; overflow: hidden;">
+
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+      <div style="{{frameStyle}}">
+        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #EEF2F8; border-bottom: 1px solid #DCE3EF;">
+          <span style="display: flex; gap: 5px; flex-shrink: 0;">
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: #CED7E5;"></span>
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: #CED7E5;"></span>
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: #CED7E5;"></span>
+          </span>
+          <span style="flex-grow: 1; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 11px; border-radius: 6px; background: #FFFFFF; border: 1px solid #DCE3EF; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; color: #33415C; overflow: hidden;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#146B3D" stroke-width="2.4" stroke-linecap="round" style="flex-shrink: 0;" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+            {{host}}
+          </span>
+        </div>
+
+        <sc-if value="{{live}}" hint-placeholder-val="{{ true }}">
+          <div style="flex-grow: 1; min-height: 0; overflow: hidden; background: #FDFDFB; animation: mfFade 0.35s ease both;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; border-bottom: 1px solid #E8E6DF;">
+              <span style="font-weight: 600; font-size: 16px; color: #23211C;">Reading responses</span>
+              <span style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #6A665C;">
+                <span style="width: 22px; height: 22px; border-radius: 50%; background: #E6E3DA; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #4A473F;">I1</span>
+                Instructor One
+              </span>
+            </div>
+            <div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; align-items: baseline; justify-content: space-between;">
+                <span style="font-size: 14.5px; font-weight: 600; color: #23211C;">Week 3 — Enclosure and the commons</span>
+                <span style="font-size: 12px; color: #8A857A;">due Thursday</span>
+              </div>
+              <div style="padding: 14px 16px; border-radius: 8px; border: 1px solid #E0DDD4; background: #FFFFFF; display: flex; flex-direction: column; gap: 9px;">
+                <span style="font-size: 12.5px; color: #6A665C;">Your response</span>
+                <span style="font-size: 13.5px; line-height: 1.6; color: #3A362F;">The reading treats enclosure as an economic event, but the parish records suggest it was read at the time as a change in who could speak…</span>
+                <div style="display: flex; gap: 8px; padding-top: 4px;">
+                  <span style="padding: 7px 14px; border-radius: 6px; background: #23211C; color: #FDFDFB; font-size: 12.5px; font-weight: 600;">Post it</span>
+                  <span style="padding: 7px 14px; border-radius: 6px; border: 1px solid #D8D4C9; font-size: 12.5px; color: #4A473F;">Ask for a nudge</span>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid #E8E6DF;">
+                <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: #8A857A;">Hidden until you post</span>
+                <div style="height: 11px; width: 88%; border-radius: 3px; background: #EDEBE4;"></div>
+                <div style="height: 11px; width: 74%; border-radius: 3px; background: #EDEBE4;"></div>
+                <div style="height: 11px; width: 81%; border-radius: 3px; background: #EDEBE4;"></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{empty}}" hint-placeholder-val="{{ true }}">
+          <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 40px; background: #F9FBFD;">
+            <span style="width: 44px; height: 44px; border-radius: 12px; background: #EEF2F8; border: 1px solid #DCE3EF; display: flex; align-items: center; justify-content: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5C6A85" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 9h18"></path></svg>
+            </span>
+            <span style="font-size: 15.5px; font-weight: 600;">{{emptyTitle}}</span>
+            <p style="margin: 0; font-size: 13.5px; line-height: 1.55; color: #4B5A75; text-align: center; max-width: 34ch;">{{emptyNote}}</p>
+            <a href="{{emptyHref}}" style="margin-top: 4px; font-size: 13.5px; font-weight: 600;">{{emptyAction}}</a>
+          </div>
+        </sc-if>
+      </div>
+
+      <p style="margin: 0; font-size: 12.5px; color: #5C6A85; text-align: center;">{{caption}}</p>
+    </div>
+
+    <div style="width: 350px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px;">
+
+      <div style="padding: 18px 20px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E3E8F0; display: flex; flex-direction: column; gap: 14px;">
+        <h2 style="margin: 0; font-weight: 600; font-size: 16px;">What you are looking at</h2>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 13px 15px; border-radius: 8px; background: #E6F4EC; border: 1px solid #BBE2CD;">
+          <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: #146B3D;">Serving right now</span>
+          <span style="font-size: 14px; line-height: 1.5;">{{serving}}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 13px 15px; border-radius: 8px; background: #FCEAE7; border: 1px solid #F4C7C2;">
+          <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: #B3261E;">Last attempt</span>
+          <span style="font-size: 14px; line-height: 1.5;">Failed 4 minutes ago. <a href="Incident.dc.html">What went wrong</a></span>
+        </div>
+      </div>
+
+      <div style="padding: 18px 20px; border-radius: 12px; background: #E3F1F5; border: 1px solid #B3DAE4; display: flex; gap: 12px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0A4E60" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5"></path><path d="M12 16v.01"></path></svg>
+        <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #0A4E60;">You are signed in as yourself. A student sees the same pages with their own name and only their own work.</p>
+      </div>
+
+      <div style="padding: 18px 20px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E3E8F0; display: flex; flex-direction: column; gap: 10px;">
+        <h2 style="margin: 0; font-weight: 600; font-size: 16px;">Not right?</h2>
+        <p style="margin: 0; font-size: 13.5px; line-height: 1.55; color: #4B5A75;">Say what you want changed and an agent does it. You come back here to check.</p>
+        <a href="Conversations.dc.html" style="display: inline-flex; align-items: center; justify-content: center; height: 44px; border-radius: 8px; background: #003468; color: #FFFFFF; text-decoration: none; font-size: 14.5px; font-weight: 600;">Ask for a change</a>
+        <a href="Conversations.dc.html" style="font-size: 13.5px; text-align: center;">4 conversations about this app</a>
+      </div>
+
+      <div style="flex-grow: 1;"></div>
+
+      <a href="Launch.dc.html" style="padding: 16px 20px; border-radius: 12px; background: #FDF3DF; border: 1px solid #EBD5A6; text-decoration: none; display: flex; flex-direction: column; gap: 5px;">
+        <span style="font-size: 14px; font-weight: 600; color: #7A5008;">Students can&#39;t see this yet</span>
+        <span style="font-size: 13px; line-height: 1.5; color: #33415C;">Going live needs six more things. Two take weeks.</span>
+      </a>
+    </div>
+  </div>
+      </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+const MF_ENVS = [
+  { id: 'sandbox', label: 'Your draft', host: 'mock-app.sandbox.manifest.internal' },
+  { id: 'staging', label: 'Trying out', host: 'mock-app.staging.manifest.internal' },
+  { id: 'production', label: 'Students', host: 'mock-app.manifest.internal' },
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { env: 'staging', view: 'desktop', nonce: 0 };
+  }
+
+  tab(on) {
+    return 'height: 32px; padding: 0 14px; border-radius: 6px; border: none; font-family: inherit; font-size: 13px; cursor: pointer; ' +
+      (on ? 'background: #FFFFFF; color: #0E1626; font-weight: 600; box-shadow: 0 1px 2px rgba(14,22,38,0.10);' : 'background: transparent; color: #4B5A75; font-weight: 500;');
+  }
+
+  renderVals() {
+    const env = MF_ENVS.filter((e) => e.id === this.state.env)[0];
+    const phone = this.state.view === 'phone';
+    const live = this.state.env === 'staging';
+
+    return {
+      envs: MF_ENVS.map((e) => ({
+        label: e.label,
+        tabStyle: this.tab(e.id === this.state.env),
+        pick: () => this.setState({ env: e.id, nonce: this.state.nonce + 1 }),
+      })),
+      deskStyle: this.tab(!phone),
+      phoneStyle: this.tab(phone),
+      deskPick: () => this.setState({ view: 'desktop' }),
+      phonePick: () => this.setState({ view: 'phone' }),
+      reload: () => this.setState({ nonce: this.state.nonce + 1 }),
+      host: env.host,
+      live,
+      empty: !live,
+      frameStyle: 'width: ' + (phone ? '390px' : '100%') + '; max-width: 100%; flex-grow: 1; min-height: 0; display: flex; flex-direction: column; ' +
+        'border-radius: 12px; overflow: hidden; border: 1px solid #DCE3EF; background: #FFFFFF; ' +
+        'box-shadow: 0 10px 30px rgba(14,22,38,0.08); transition: width 0.35s cubic-bezier(.4,0,.2,1);',
+      caption: phone
+        ? 'At 390 points wide — a phone in a lecture theatre, which is where most students will open it.'
+        : 'What a person reaching this address sees, after they have signed in with CWL.',
+      serving: live ? 'The version from 18 September, 9:00am.' : 'Nothing. No version has been put here.',
+      emptyTitle: this.state.env === 'sandbox' ? 'Your draft is empty' : 'Not live yet',
+      emptyNote: this.state.env === 'sandbox'
+        ? 'This address is yours to break things on. Nothing has been put here.'
+        : 'This is the address your students will use. It stays empty until you go live.',
+      emptyAction: this.state.env === 'sandbox' ? 'Put something here' : 'See what going live needs',
+      emptyHref: this.state.env === 'sandbox' ? 'Deploy.dc.html' : 'Launch.dc.html',
+    };
+  }
+}
+</script>
+</body>
+</html>
