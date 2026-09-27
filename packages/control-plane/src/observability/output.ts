@@ -1,4 +1,4 @@
-import { REDACTED, type Redactor } from './redact.js'
+import type { LineRedactor } from './redact.js'
 
 /**
  * Why an instance's output was not read (the front-end enablement plan's Task 3) — a wire
@@ -59,10 +59,10 @@ export const OUTPUT_DEFAULTS = {
 /** The most lines a client may ask for (Decision 2). */
 export const OUTPUT_MAX_LINES = 1000
 /**
- * How many bytes past `lineBytes` the source is asked to keep, so a secret that STRADDLES the
- * cut is redacted whole before the line is cut (sitting 2's finding: cut first, and an
- * exact-match redactor never matches the prefix left showing). A secret longer than this that
- * begins before the cut can still show its first bytes; none a platform or an app sets is.
+ * The LEAST room past `lineBytes` the source is asked to keep, so a secret that STRADDLES the
+ * cut is redacted whole before the line is cut — or the set's longest secret, when that is
+ * longer (an app secret may be 16 KiB). Room decides only how much of a long line is shown:
+ * a secret the RUNTIME's cut splits is dropped by `trimCut` however long it is.
  */
 export const OUTPUT_REDACTION_MARGIN = 4096
 
@@ -107,30 +107,22 @@ function cutUtf8(text: string, max: number): { text: string; cutBytes: number } 
   return { text: bytes.subarray(0, end).toString('utf8'), cutBytes: bytes.length - end }
 }
 
-function shown(line: OutputSourceLine, lineBytes: number, redact: Redactor): OutputLine {
-  const redacted = redact(line.text)
-  // A redactor answers a string for a string; anything else is not shown at all.
-  const cut = cutUtf8(typeof redacted === 'string' ? redacted : REDACTED, lineBytes)
-  const cutBytes = (line.cutBytes ?? 0) + cut.cutBytes
-  return {
-    at: line.at ?? new Date(),
-    stamped: line.stamped ?? false,
-    stream: line.stream ?? 'stdout',
-    text: cutBytes > 0 ? `${cut.text}…[cut: ${cutBytes} bytes]` : cut.text,
-  }
-}
-
 /**
  * THE reader of a running instance's recent output (§14; the front-end enablement plan's
  * Decisions 1–3) — the route's, and the Incident's `log_tail`'s, so *"redacted at read with the
  * rules that redact `Incident.log_tail`"* is one code path.
  *
  * - **The redactor is a parameter**, as it is for `recordEvent` and the build log, so no caller
- *   can have an unredacted line; and each line is redacted BEFORE it is cut.
+ *   can have an unredacted line. **The lines are redacted JOINED** (`LineRedactor.lines`), as an
+ *   Incident's tail always was, so a key printed line by line is matched whole; **before** any
+ *   line is cut to `lineBytes`, so a secret across the cut is redacted whole; and a line the
+ *   RUNTIME cut is first trimmed of any ending that begins a secret (`trimCut`) — the whole-branch
+ *   review's C1 and I2.
  * - **The last `lines` lines, oldest first.** It asks for one record more than it answers: a
  *   runtime's `tail` counts its own records and a long line is several (M1), so when as many
  *   records came back as were asked for, the log may be longer and the oldest line may be a
  *   fragment of one — it is dropped, and `truncated.lines` says so. `lines` is therefore at most.
+ *   **The ONLY line is never dropped** (the review's I4): it is kept, marked with a leading `…`.
  * - **The newest lines that fit in `maxBytes`**, dropping from the OLDEST end.
  * - **A source that fails part-way** answers the lines before it, and the error's name.
  */
@@ -138,23 +130,26 @@ export async function readRecentOutput(
   source: OutputSource,
   handle: string,
   bounds: OutputBounds,
-  redact: Redactor,
+  redact: LineRedactor,
 ): Promise<RecentOutput> {
   const tail = bounds.lines + 1
-  const window: OutputLine[] = []
+  // Room past `lineBytes` for the longest secret to be redacted WHOLE before the line is cut.
+  const room = Math.max(OUTPUT_REDACTION_MARGIN, redact.longestSecretBytes)
+  // The lines as the source answered them — at most `lines` of them, each at most
+  // `lineBytes + room`: a WINDOW, as the Incident's always was, so a source that ignores `tail`
+  // cannot make this hold a whole log.
+  const window: OutputSourceLine[] = []
   let records = 0
   let sawMore = false
   let failure: string | null = null
   try {
     for await (const line of source.logs(handle, {
       tail,
-      lineBytes: bounds.lineBytes + OUTPUT_REDACTION_MARGIN,
+      lineBytes: bounds.lineBytes + room,
       timestamps: true,
     })) {
       records += line.entries ?? 1
-      window.push(shown(line, bounds.lineBytes, redact))
-      // A WINDOW, as the Incident's always was: a source that ignores `tail` must not make
-      // this hold a whole log.
+      window.push(line)
       if (window.length > bounds.lines) {
         window.shift()
         sawMore = true
@@ -163,15 +158,42 @@ export async function readRecentOutput(
   } catch (error) {
     failure = failureName(error)
   }
+  // M1: every record asked for came back, so the log may be longer and the oldest line may be a
+  // fragment of one — dropped, UNLESS it is the only line (the review's I4): one long line can
+  // fill every record, and answering nothing would say the app printed nothing.
+  let fragment = false
   if (!sawMore && records >= tail && window.length > 0) {
-    window.shift()
     sawMore = true
+    if (window.length > 1) window.shift()
+    else fragment = true
   }
-  let bytes = window.reduce((n, l) => n + Buffer.byteLength(l.text, 'utf8'), 0)
+  // A line the RUNTIME cut may end in the first characters of a secret: trimmed first. Then the
+  // lines are redacted JOINED, so a secret spanning lines is matched whole; then each is cut.
+  const trimmed = window.map((line) => {
+    if ((line.cutBytes ?? 0) === 0) return { text: line.text, dropped: 0 }
+    const text = redact.trimCut(line.text)
+    return {
+      text,
+      dropped: Buffer.byteLength(line.text, 'utf8') - Buffer.byteLength(text, 'utf8'),
+    }
+  })
+  const redacted = redact.lines(trimmed.map((line) => line.text))
+  const lines: OutputLine[] = window.map((line, index) => {
+    const cut = cutUtf8(redacted[index]!, bounds.lineBytes)
+    const cutBytes = (line.cutBytes ?? 0) + trimmed[index]!.dropped + cut.cutBytes
+    const text = cutBytes > 0 ? `${cut.text}…[cut: ${cutBytes} bytes]` : cut.text
+    return {
+      at: line.at ?? new Date(),
+      stamped: line.stamped ?? false,
+      stream: line.stream ?? 'stdout',
+      text: fragment && index === 0 ? `…${text}` : text,
+    }
+  })
+  let bytes = lines.reduce((n, l) => n + Buffer.byteLength(l.text, 'utf8'), 0)
   let droppedForBytes = false
-  while (bytes > bounds.maxBytes && window.length > 0) {
-    bytes -= Buffer.byteLength(window.shift()!.text, 'utf8')
+  while (bytes > bounds.maxBytes && lines.length > 0) {
+    bytes -= Buffer.byteLength(lines.shift()!.text, 'utf8')
     droppedForBytes = true
   }
-  return { lines: window, truncated: { lines: sawMore, bytes: droppedForBytes }, failure }
+  return { lines, truncated: { lines: sawMore, bytes: droppedForBytes }, failure }
 }

@@ -15,7 +15,7 @@ import {
   readRecentOutput,
   type OutputSource,
 } from './output.js'
-import type { Redactor } from './redact.js'
+import type { LineRedactor } from './redact.js'
 
 /** §6's Incident, as stored — which is to say, redacted. */
 export type Incident = typeof incidents.$inferSelect
@@ -60,7 +60,7 @@ export async function captureIncident(
   db: Db,
   source: IncidentSource,
   input: CaptureIncidentInput,
-  redact: Redactor,
+  redact: LineRedactor,
 ): Promise<Incident> {
   const [instance] = await db
     .select()
@@ -178,7 +178,7 @@ async function describeExit(source: IncidentSource, handle: string): Promise<str
 async function readLogTail(
   source: IncidentSource,
   handle: string,
-  redact: Redactor,
+  redact: LineRedactor,
 ): Promise<string> {
   const out = await readRecentOutput(
     source,

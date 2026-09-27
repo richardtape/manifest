@@ -9,9 +9,10 @@ import {
   type OutputSourceLine,
 } from './output.js'
 import { makeRedactor } from './redact.js'
+import { REDACT_NOTHING } from './testing.js'
 
 /** For the cases whose subject is not redaction: a redactor that changes nothing. */
-const keep = (value: unknown): unknown => value
+const keep = REDACT_NOTHING
 
 const numbered = (n: number): { text: string }[] =>
   Array.from({ length: n }, (_, i) => ({ text: `line ${i + 1}` }))
@@ -223,6 +224,69 @@ describe('readRecentOutput — the ONE reader of an app’s recent output (§14)
     // Redacted: 4090 + 10 + 100 = 4200 bytes, of which 4096 are kept.
     expect(out.lines[0]!.text).toBe(`${'a'.repeat(4090)}[REDAC…[cut: 104 bytes]`)
     expect(out.lines[0]!.text).not.toContain('swordf')
+  })
+
+  // The review's C1: a multi-line secret, printed line by line — and its Incident has always
+  // redacted the JOINED tail, so the route must too.
+  it('redacts a multi-line secret across the lines it spans, as an Incident does', async () => {
+    const pem = [
+      '-----BEGIN PRIVATE KEY-----',
+      // '/'-split pieces under 24 characters: the entropy rule, line by line, redacts none.
+      'MIIEvQ/IBADANBgk/qhkiG9w0BAQEF/AASCBKcw',
+      'ggSjAgEA/AoIBAQC7VJT/Ut9Us8cKjMzEfYyj',
+      '-----END PRIVATE KEY-----',
+    ].join('\n')
+    const out = await readRecentOutput(
+      scripted(['boot', ...pem.split('\n'), 'done'].map((text) => line(text))),
+      'h',
+      OUTPUT_DEFAULTS,
+      makeRedactor([pem]),
+    )
+    expect(out.lines.map((l) => l.text)).toEqual([
+      'boot',
+      '[REDACTED]',
+      '[REDACTED]',
+      '[REDACTED]',
+      '[REDACTED]',
+      'done',
+    ])
+  })
+
+  // The review's I2: the runtime cut this line, so it may end in the first characters of a
+  // secret — and redacting the long secret before it pulls them into view.
+  it('drops the end of a line the runtime cut, so a secret across the cut never shows', async () => {
+    const long = 'Q'.repeat(6000)
+    const out = await readRecentOutput(
+      scripted([line(`${long} ${'b'.repeat(50)} sword`, { cutBytes: 1000 })]),
+      'h',
+      OUTPUT_DEFAULTS,
+      makeRedactor([long, 'swordfish-7c2e']),
+    )
+    // 1000 the runtime cut, and the five of `sword`.
+    expect(out.lines[0]!.text).toBe(`[REDACTED] ${'b'.repeat(50)} …[cut: 1005 bytes]`)
+    expect(out.lines[0]!.text).not.toContain('sword')
+  })
+
+  it('asks for room to redact the longest secret whole before the cut', async () => {
+    const source = scripted([])
+    await readRecentOutput(source, 'h', OUTPUT_DEFAULTS, makeRedactor(['Q'.repeat(6000)]))
+    expect(source.asked).toEqual([
+      { tail: 201, lineBytes: OUTPUT_DEFAULTS.lineBytes + 6000, timestamps: true },
+    ])
+  })
+
+  // The review's I4: every record asked for was one long line — dropping the fragment would
+  // answer nothing, and the Incident would say the app printed nothing.
+  it('never drops the only line — a fragment is kept, and marked', async () => {
+    const out = await readRecentOutput(
+      scripted([line('x'.repeat(100), { entries: 201, cutBytes: 3_000_000 })]),
+      'h',
+      OUTPUT_DEFAULTS,
+      keep,
+    )
+    expect(out.lines).toHaveLength(1)
+    expect(out.lines[0]!.text.startsWith('…')).toBe(true)
+    expect(out.truncated.lines).toBe(true)
   })
 
   it('says how much of a long line it cut, counting what the runtime cut too', async () => {

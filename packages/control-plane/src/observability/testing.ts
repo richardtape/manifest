@@ -1,4 +1,5 @@
 import { expect } from 'vitest'
+import type { LineRedactor } from './redact.js'
 
 /**
  * Asserts a query failed with a specific Postgres SQLSTATE.
@@ -42,3 +43,17 @@ export async function expectSqlState(
  * `vitest`. Re-exported here so that every test that borrows one is unchanged.
  */
 export { EXAMPLE_DETAILS } from './examples.js'
+
+/**
+ * A redactor that changes NOTHING, in every mode `makeRedactor`'s has — for a test whose subject
+ * is not redaction (the front-end enablement plan's Task 2). Never a production path: every
+ * caller there builds one from the app's secret set.
+ */
+export const REDACT_NOTHING: LineRedactor = Object.assign(
+  (value: unknown): unknown => value,
+  {
+    lines: (lines: readonly string[]): string[] => [...lines],
+    trimCut: (text: string): string => text,
+    longestSecretBytes: 0,
+  },
+)

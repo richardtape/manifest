@@ -204,3 +204,100 @@ describe('redaction heuristics (§14)', () => {
     }
   })
 })
+
+/**
+ * LINES THAT MUST STAY LINES — an app's recent output (the front-end enablement plan's Task 2,
+ * its whole-branch review's C1 and I2). A reader answers one entry per line, so a secret that
+ * spans lines must be matched with the lines JOINED, as the Incident's joined pass always did,
+ * and every line it covered answered `[REDACTED]`; and a line the runtime CUT may end in the
+ * first characters of a secret, which no exact match can ever find.
+ */
+describe('redacting lines that must stay lines (§14)', () => {
+  const PEM = [
+    '-----BEGIN PRIVATE KEY-----',
+    // '/'-split pieces under 24 characters: the entropy rule, line by line, redacts none.
+    'MIIEvQ/IBADANBgk/qhkiG9w0BAQEF/AASCBKcw',
+    'ggSjAgEA/AoIBAQC7VJT/Ut9Us8cKjMzEfYyj',
+    '-----END PRIVATE KEY-----',
+  ].join('\n')
+
+  it('redacts a PEM block across the lines it spans, each line it covered reading [REDACTED]', () => {
+    const out = makeRedactor([]).lines(['sp key:', ...PEM.split('\n'), 'done'])
+    expect(out).toEqual(['sp key:', REDACTED, REDACTED, REDACTED, REDACTED, 'done'])
+  })
+
+  it('keeps the text around a match on the lines it began and ended on', () => {
+    const out = makeRedactor([]).lines([
+      `key: ${PEM.split('\n')[0]}`,
+      ...PEM.split('\n').slice(1, -1),
+      `${PEM.split('\n').at(-1)} ok`,
+    ])
+    expect(out).toEqual([`key: ${REDACTED}`, REDACTED, REDACTED, `${REDACTED} ok`])
+  })
+
+  // The Incident's regression the review found: a per-line pass BEFORE the joined one changed a
+  // line inside a multi-line secret, so its exact match failed and the rest of it stayed.
+  it('matches a multi-line secret from the set whole, before any heuristic touches a line of it', () => {
+    const account = [
+      '{',
+      '  "type": "service_account",',
+      '  "private_key_id": "4f1c2a9e7b6d5c3a1f0e9d8c7b6a5f4e3d2c1b0a",',
+      `  "private_key": "${PEM.split('\n')[0]}`,
+      ...PEM.split('\n').slice(1),
+      '"}',
+    ].join('\n')
+    const printed = ['boot', ...account.split('\n'), 'listening']
+    const out = makeRedactor([account]).lines(printed)
+    expect(out).toEqual(['boot', ...account.split('\n').map(() => REDACTED), 'listening'])
+    expect(out.join('\n')).not.toContain('4f1c2a9e')
+  })
+
+  it('answers exactly one entry per line it was given', () => {
+    const redact = makeRedactor(['swordfish-7c2e'])
+    expect(redact.lines([])).toEqual([])
+    expect(redact.lines(['a', '', 'swordfish-7c2e', 'b'])).toEqual([
+      'a',
+      '',
+      REDACTED,
+      'b',
+    ])
+  })
+
+  it('knows its longest secret, in UTF-8 bytes', () => {
+    expect(makeRedactor([]).longestSecretBytes).toBe(0)
+    expect(makeRedactor(['swordfish-7c2e', 'é'.repeat(10)]).longestSecretBytes).toBe(20)
+  })
+
+  describe('trimCut — the end of a line the runtime cut', () => {
+    const redact = makeRedactor(['swordfish-7c2e', 'pass.word!123'])
+
+    it('drops the first characters of a secret the cut left behind', () => {
+      expect(redact.trimCut('connecting with sword')).toBe('connecting with ')
+      // Punctuation the token rule would not drop: only the secret set knows this is one.
+      expect(redact.trimCut('the password is pass.word!')).toBe('the password is ')
+    })
+
+    it('drops a piece of a token too short for the heuristic to judge', () => {
+      // Under 24 characters the entropy rule never looks at a run, so a random value cut to
+      // ten would be shown whole.
+      expect(redact.trimCut('{"key":"Zq8Lr2Vx9T')).toBe('{"key":"')
+    })
+
+    it('keeps a run long enough to judge — a minified line is not a token cut in pieces', () => {
+      expect(redact.trimCut('x'.repeat(8192))).toBe('x'.repeat(8192))
+      expect(redact.trimCut(`var a=${'b'.repeat(30)}`)).toBe(`var a=${'b'.repeat(30)}`)
+    })
+
+    it('keeps a WHOLE secret before the cut, for the redactor to find', () => {
+      expect(redact.trimCut('code swordfish-7c2e and then some words')).toBe(
+        'code swordfish-7c2e and then some ',
+      )
+    })
+
+    it('drops nothing from a line that ends in neither', () => {
+      expect(redact.trimCut('a line that ends in punctuation.')).toBe(
+        'a line that ends in punctuation.',
+      )
+    })
+  })
+})

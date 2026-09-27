@@ -214,9 +214,11 @@ interface Fixture {
   mainHead: () => Promise<string>
   /**
    * One instance in SANDBOX and one in production, written directly (the front-end enablement
-   * plan's Task 3) — what the output rows are aimed at. Both `failed`, so neither serves, and no
-   * other row moves. A failed instance with a handle is still readable; the fake driver answers
-   * it no lines. **Not staging**: the staging deploy rows run first, and a deploy retires every
+   * plan's Task 3) — what the output rows are aimed at. Both rows read `failed`, so neither
+   * serves, and no other row moves; sandbox's handle is an instance the fake driver is RUNNING,
+   * because the route asks the driver first and answers an instance it no longer holds `409
+   * INSTANCE_OUTPUT_UNAVAILABLE` (the review's I3). **Not staging**: the staging deploy rows run
+   * first, and a deploy retires every
    * instance of its environment that is not serving (P4c) — so a staging row read `gone` and
    * answered `409 INSTANCE_OUTPUT_UNAVAILABLE` to every `pass` (measured, sitting 2). Nothing in
    * this table deploys to sandbox.
@@ -1968,6 +1970,24 @@ export function describeAuthorizationContract(
         ) as Record<Actor, string>
 
       // The output rows' targets (Task 3): written directly, both failed — see `Fixture`.
+      // Sandbox's is RUNNING on the fake driver: the route asks the driver first, and an
+      // instance it no longer holds is `409 INSTANCE_OUTPUT_UNAVAILABLE` (the review's I3).
+      const running = await deps.driver.ensureInstance({
+        instanceId: randomUUID(),
+        name: `authz-fixture-sandbox-${randomUUID().slice(0, 8)}`,
+        hostname: 'authz-fixture.sandbox.manifest.internal',
+        image: { repository: 'local/authz-fixture', digest: `sha256:${'0'.repeat(64)}` },
+        env: {},
+        port: 3000,
+        healthPath: '/healthz',
+        resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 512 },
+        projectSlug: 'authz-fixture',
+        environmentKind: 'sandbox',
+        releaseId: release.json().id,
+        services: [],
+        egressAllow: [],
+        needsAiGateway: false,
+      })
       const instanceIn = async (environmentId: string, handle: string) => {
         const [row] = await deps.db
           .insert(instances)
@@ -2006,7 +2026,7 @@ export function describeAuthorizationContract(
         // Set below, once the preview is taken — after the collaborator is made a member.
         previewId: '',
         instanceId: {
-          sandbox: await instanceIn(environmentOf('sandbox'), 'authz-sandbox-instance'),
+          sandbox: await instanceIn(environmentOf('sandbox'), running.id),
           production: await instanceIn(
             environmentOf('production'),
             'authz-production-instance',

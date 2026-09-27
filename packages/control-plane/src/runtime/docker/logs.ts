@@ -1,5 +1,5 @@
 import type { LogOpts, RuntimeLogLine } from '../driver.js'
-import type { EngineClient } from './engine.js'
+import { EngineError, type EngineClient } from './engine.js'
 
 const HEADER = 8
 const NEWLINE = 0x0a
@@ -181,6 +181,19 @@ export async function* containerLogs(
     timestamps: String(opts.timestamps ?? false),
   })
   const res = await engine.stream(`/containers/${id}/logs?${query.toString()}`)
+  // `stream` answers whatever the daemon sent, and a refusal is a JSON body — which, read as
+  // frames, claims a size near 1.9 GB in its bytes 4–7, so nothing was ever yielded and a
+  // removed container read exactly like an app that printed nothing (the front-end enablement
+  // plan's whole-branch review, I3). The body is not read: it names the container.
+  const status = res.statusCode ?? 0
+  if (status < 200 || status >= 300) {
+    res.destroy()
+    throw new EngineError(
+      status === 404 ? 'LOGS_TARGET_NOT_FOUND' : 'LOGS_FAILED',
+      `cannot read the logs of '${id}': the daemon answered ${status}`,
+      'The instance may have been removed; `status()` reports `gone` for an id the daemon does not know.',
+    )
+  }
   try {
     yield* demux(res as unknown as AsyncIterable<Buffer>, {
       ...(opts.lineBytes === undefined ? {} : { lineBytes: opts.lineBytes }),

@@ -88,6 +88,21 @@ describeDocker('logs and exec against a real container', () => {
     expect(await stream.exitCode).toBe(3)
   })
 
+  // The review's I3: Docker answers a missing container `404` with a JSON body, and read as
+  // frames that body's bytes 4–7 are a size of ~1.9 GB — so nothing was ever yielded, and a
+  // removed container read exactly like an app that printed nothing.
+  it('refuses to read a container that does not exist, rather than answering nothing', async () => {
+    const read = async (): Promise<number> => {
+      let n = 0
+      for await (const _line of containerLogs(engine, 'mf-logtest-no-such-container', {
+        tail: 5,
+      }))
+        n += 1
+      return n
+    }
+    await expect(read()).rejects.toMatchObject({ code: 'LOGS_TARGET_NOT_FOUND' })
+  })
+
   describe('a burst with a megabyte line, read after the process exits (Task 2)', () => {
     beforeAll(async () => {
       await engine.del(`/containers/${BURST}?force=true&v=true`)

@@ -205,15 +205,22 @@ export const instanceRoutes = [
           'a production instance’s output is not readable (§14); its Incident’s log tail is the only window onto it',
         )
       const { instance } = found
+      const unavailable = (): OutputError =>
+        new OutputError(
+          'INSTANCE_OUTPUT_UNAVAILABLE',
+          `instance '${instance.id}' is not running — it never started, or it no longer runs — so there is no output to read; if it failed, its Incident has its last lines`,
+        )
       if (
         instance.handle === null ||
         instance.state === 'destroying' ||
         instance.state === 'gone'
       )
-        throw new OutputError(
-          'INSTANCE_OUTPUT_UNAVAILABLE',
-          `instance '${instance.id}' no longer runs, so it has no output to read; if it failed, its Incident has its last lines`,
-        )
+        throw unavailable()
+      // THE DRIVER, not the row (the whole-branch review's I3): a failed deploy removes its
+      // container once its Incident is captured, and the row keeps its handle and `failed` — so
+      // only the driver knows there is nothing left to read. Both drivers answer `gone`.
+      if ((await deps.driver.status(instance.handle)).state === 'gone')
+        throw unavailable()
       const redact = makeRedactor(
         await deps.appSecrets.secretValues(deps.db, {
           projectId: found.environment.projectId,

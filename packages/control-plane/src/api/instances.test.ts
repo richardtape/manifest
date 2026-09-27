@@ -271,6 +271,26 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
     })
   })
 
+  // The review's I3: a failed deploy removes its container once its Incident is captured, but
+  // the row keeps its handle and `failed` — and Docker's 404, read as frames, yields no line.
+  it('answers a failed instance whose container is gone 409, never an empty 200', async () => {
+    await withProjectServer(async (ctx) => {
+      const status = vi.spyOn(ctx.deps.driver, 'status').mockResolvedValue({
+        id: 'unused',
+        state: 'failed',
+        healthy: false,
+      })
+      const failed = await deployToStaging(ctx)
+      expect(failed.state).toBe('failed')
+      status.mockRestore()
+      expect(failed.handle).not.toBeNull()
+      expect(refusal(await outputOf(ctx, failed.id))).toEqual({
+        status: 409,
+        code: 'INSTANCE_OUTPUT_UNAVAILABLE',
+      })
+    })
+  })
+
   it('a token holding output:read reads it; one holding only project:read is refused', async () => {
     await withProjectServer(async (ctx) => {
       const instance = await deployToStaging(ctx)

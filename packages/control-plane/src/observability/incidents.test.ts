@@ -21,9 +21,9 @@ import {
   makeRedactor,
   type IncidentSource,
 } from './index.js'
-import { expectSqlState } from './testing.js'
+import { expectSqlState, REDACT_NOTHING } from './testing.js'
 
-const IDENTITY = (value: unknown): unknown => value
+const IDENTITY = REDACT_NOTHING
 const DEFAULTS = { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' }
 const CHECK =
   'readiness: GET /healthz at https://x through the edge — HTTP 502 (12 attempts)'

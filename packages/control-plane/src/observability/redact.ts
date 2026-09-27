@@ -14,6 +14,32 @@ export const MIN_SECRET_LENGTH = 6
 
 export type Redactor = (value: unknown) => unknown
 
+/**
+ * §14's redactor for LINES THAT MUST STAY LINES — an app's recent output and an Incident's log
+ * tail (the front-end enablement plan's Task 2, its whole-branch review's C1 and I2). What
+ * `makeRedactor` answers; a reader of output takes nothing less.
+ */
+export interface LineRedactor {
+  (value: unknown): unknown
+  /**
+   * The lines redacted JOINED — so a secret from the set, or a PEM block, that spans lines is
+   * matched whole, exactly as a joined text is — and answered one entry per line: every line a
+   * match covered reads `[REDACTED]`, and a line it covered only in part keeps the rest.
+   * Redacting line by line instead leaves a key's body behind, and a per-line pass run BEFORE
+   * a joined one changes a line inside a multi-line secret so its exact match fails.
+   */
+  lines(lines: readonly string[]): string[]
+  /**
+   * The end of a line the runtime CUT, made safe to redact: a cut can leave the first
+   * characters of a secret, which no exact match ever finds. It drops the longest ending that
+   * begins a secret in the set, then an ending run of token characters too short for the
+   * entropy rule to judge (under 24). A whole secret before the cut is kept, for the redactor.
+   */
+  trimCut(text: string): string
+  /** The UTF-8 length of the longest secret in the set, or 0 — the room a cut must leave. */
+  readonly longestSecretBytes: number
+}
+
 function escapeForRegExp(literal: string): string {
   return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -96,11 +122,31 @@ function secretShaped(token: string): boolean {
   return shannonEntropy(run) > 3.0
 }
 
-function redactHeuristically(text: string): string {
+/** What a match that spans lines becomes when lines must stay lines: one `[REDACTED]` each. */
+const perLine = (match: string): string =>
+  match
+    .split('\n')
+    .map((piece) => (piece === '' ? '' : REDACTED))
+    .join('\n')
+
+/**
+ * The PEM rule is the one heuristic that spans lines; with `keepLines` it answers one
+ * `[REDACTED]` per line it covered. The others match within a line (`Bearer\s+` may cross one,
+ * and keeps it: its replacement keeps the whitespace).
+ */
+function redactHeuristically(text: string, keepLines = false): string {
   let out = text
-  for (const [pattern, replacement] of PATTERNS) out = out.replace(pattern, replacement)
+  PATTERNS.forEach(([pattern, replacement], index) => {
+    out =
+      keepLines && index === 0
+        ? out.replace(pattern, perLine)
+        : out.replace(pattern, replacement)
+  })
   return out.replace(TOKEN, (token) => (secretShaped(token) ? REDACTED : token))
 }
+
+/** The characters of an entropy-rule token (`TOKEN`, less the digest case). */
+const TOKEN_TAIL = /[A-Za-z0-9+_-]+={0,2}$/
 
 /**
  * §14's redactor, in full: *"every value in the app's own secret set (an exact,
@@ -124,7 +170,7 @@ function redactHeuristically(text: string): string {
  * ISO string rather than flattened to `{}` by a naive object walk. §14's rule is
  * about the persisted form, so the persisted form is what this traverses.
  */
-export function makeRedactor(secretValues: Iterable<string>): Redactor {
+export function makeRedactor(secretValues: Iterable<string>): LineRedactor {
   const needles = [...new Set(secretValues)]
     .filter((value) => value.length >= MIN_SECRET_LENGTH)
     .sort((a, b) => b.length - a.length)
@@ -147,5 +193,45 @@ export function makeRedactor(secretValues: Iterable<string>): Redactor {
     return out
   }
 
-  return walk
+  const lines = (texts: readonly string[]): string[] => {
+    if (texts.length === 0) return []
+    const joined = texts.join('\n')
+    const exact = patterns.reduce(
+      (text, pattern) => text.replace(pattern, perLine),
+      joined,
+    )
+    const out = redactHeuristically(exact, true).split('\n')
+    // One entry per line is the contract. Were it ever broken, text would be answered as a line
+    // it is not — so fail closed rather than misattribute.
+    return out.length === texts.length ? out : texts.map(() => REDACTED)
+  }
+
+  const trimCut = (text: string): string => {
+    let end = text.length
+    // The longest ending that is a PROPER prefix of a secret: a whole one is kept, for the
+    // redactor to find; a part of one is what the cut left.
+    for (const needle of needles) {
+      const from = Math.max(0, text.length - (needle.length - 1))
+      for (let at = from; at < text.length; at += 1) {
+        if (at >= end) break
+        // The first character first: a slice per position is quadratic in a 16 KiB secret.
+        if (text[at] === needle[0] && needle.startsWith(text.slice(at))) {
+          end = at
+          break
+        }
+      }
+    }
+    const kept = text.slice(0, end)
+    const tail = TOKEN_TAIL.exec(kept)
+    return tail !== null && tail[0].length < 24 ? kept.slice(0, tail.index) : kept
+  }
+
+  return Object.assign(walk, {
+    lines,
+    trimCut,
+    longestSecretBytes: needles.reduce(
+      (most, needle) => Math.max(most, Buffer.byteLength(needle, 'utf8')),
+      0,
+    ),
+  })
 }

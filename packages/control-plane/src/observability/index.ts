@@ -8,7 +8,13 @@ export {
 } from './events.js'
 export { EVENT_DETAIL_SCHEMAS } from './event-schemas.js'
 export { EXAMPLE_DETAILS } from './examples.js'
-export { makeRedactor, MIN_SECRET_LENGTH, REDACTED, type Redactor } from './redact.js'
+export {
+  makeRedactor,
+  MIN_SECRET_LENGTH,
+  REDACTED,
+  type LineRedactor,
+  type Redactor,
+} from './redact.js'
 export {
   MAX_BUFFERED_BYTES,
   REPLAY_LIMIT,

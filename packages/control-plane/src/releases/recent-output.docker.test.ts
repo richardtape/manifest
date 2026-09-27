@@ -13,7 +13,7 @@ import {
   createEventBus,
   makeRedactor,
   readRecentOutput,
-  type Redactor,
+  type LineRedactor,
 } from '../observability/index.js'
 import { createProject } from '../projects/index.js'
 import { createCaddyClient, removeRoute } from '../routing/index.js'
@@ -53,11 +53,30 @@ const SLUG = 'recent-output-probe'
 const NAME = 'BOARD_ADMIN_CODE'
 /** Fourteen characters, which no heuristic redacts: only the app's own set can. */
 const VALUE = 'swordfish-7c2e'
+/**
+ * A MULTI-LINE secret (the review's C1): a key the app prints line by line. Its body lines split
+ * at `/` into pieces under 24 characters, so the entropy rule — run one line at a time — redacts
+ * none of them: only a match over the lines JOINED can.
+ */
+const KEY_NAME = 'SIGNING_KEY'
+const KEY_BODY = [
+  'MIIEvQ/IBADANBgk/qhkiG9w0BAQEF/AASCBKcw',
+  'ggSjAgEA/AoIBAQC7VJT/Ut9Us8cKjMzEfYyj',
+]
+const KEY = [
+  '-----BEGIN PRIVATE KEY-----',
+  ...KEY_BODY,
+  '-----END PRIVATE KEY-----',
+].join('\n')
 
-/** Prints its secret twice, one line of exactly 1 MiB between, and `listening` once it is. */
+/**
+ * Prints its secret, its key line by line, one line of exactly 1 MiB, its secret again, and
+ * `listening` once it is.
+ */
 const SERVER = [
   "import { createServer } from 'node:http'",
   `console.log('config dump: ${NAME}=' + process.env.${NAME})`,
+  `console.log('signing key:\\n' + process.env.${KEY_NAME})`,
   "console.log('x'.repeat(1048576))",
   `console.log('also: ' + JSON.stringify({ code: process.env.${NAME} }))`,
   'createServer((req, res) => {',
@@ -75,7 +94,7 @@ const engine = createEngineClient({ socketPath: resolveSocketPath() })
 
 describeDocker('an app’s recent output, read from a real container (Task 2)', () => {
   let driver: Driver
-  let redact: Redactor
+  let redact: LineRedactor
   let instance: { id: string; handle: string }
 
   const config = loadConfig({
@@ -92,7 +111,10 @@ describeDocker('an app’s recent output, read from a real container (Task 2)', 
     port: 3000,
     health: '/healthz',
     resources: { cpu: 0.5, memory: '256Mi', pids: 128, disk: '1Gi' },
-    env: [{ name: NAME, secret: true }],
+    env: [
+      { name: NAME, secret: true },
+      { name: KEY_NAME, secret: true },
+    ],
     services: [],
     egressAllow: [],
     classification: 'internal' as const,
@@ -181,6 +203,7 @@ describeDocker('an app’s recent output, read from a real container (Task 2)', 
     const appSecrets = createAppSecrets(keys)
     const scope = { projectId: project.id, environmentKind: 'staging' as const }
     await appSecrets.setEnvSecret(db, scope, NAME, VALUE)
+    await appSecrets.setEnvSecret(db, scope, KEY_NAME, KEY)
     const deployed = await deployRelease(
       db,
       driver,
@@ -232,6 +255,11 @@ describeDocker('an app’s recent output, read from a real container (Task 2)', 
     expect(texts).toContain(`${'x'.repeat(4096)}…[cut: 1044480 bytes]`)
     expect(texts.at(-1)).toBe('listening')
     expect(JSON.stringify(out)).not.toContain(VALUE)
+    // The key: every line of it redacted, and none of its body anywhere.
+    const signing = texts.indexOf('signing key:')
+    expect(texts.slice(signing + 1, signing + 5)).toEqual(Array(4).fill('[REDACTED]'))
+    for (const piece of KEY_BODY.flatMap((l) => l.split('/')))
+      expect(JSON.stringify(out)).not.toContain(piece)
     expect(out.lines.every((line) => line.stamped)).toBe(true)
     expect(out.truncated).toEqual({ lines: false, bytes: false })
     expect(out.failure).toBeNull()
@@ -245,6 +273,8 @@ describeDocker('an app’s recent output, read from a real container (Task 2)', 
     )
     expect(incident.logTail.split('\n')).toEqual(texts)
     expect(JSON.stringify(incident)).not.toContain(VALUE)
+    for (const piece of KEY_BODY.flatMap((l) => l.split('/')))
+      expect(JSON.stringify(incident)).not.toContain(piece)
   })
 
   // Task 1's M1: Docker's `tail` counts its own records, and the megabyte line is dozens — so
