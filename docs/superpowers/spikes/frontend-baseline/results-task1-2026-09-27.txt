@@ -1,0 +1,652 @@
+# results-task1-2026-09-27.txt — the front-end enablement plan's Task 1, raw output of every probe, in the order run.
+# Machine: macOS 26.6.2 (25G83), Docker Desktop 4.87.0 (engine 29.7.2, json-file logging, 12 CPUs, 7.7 GiB VM), Node v24.12.0.
+
+## M6 — probes/m6-redactor.mts (2026-09-27 01:57 PDT)
+=== plan's wording — [MONGODB_URI, LLM_API_KEY, sample]
+{"what":"the MONGODB_URI printed whole","predicted":"redacted","actual":"redacted","match":true,"out":"connecting to [REDACTED]"}
+{"what":"the URI's password alone","predicted":"redacted","actual":"kept","match":false,"out":"pw=<64hex>"}
+{"what":"the LLM_API_KEY (in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"LLM_API_KEY=[REDACTED]"}
+{"what":"a SAMPLE_SECRETS value (in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"token [REDACTED]"}
+{"what":"Authorization: Bearer sk-… (NOT in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"Authorization: Bearer [REDACTED]"}
+{"what":"Authorization: Bearer <opaque> (NOT in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"Authorization: Bearer [REDACTED]"}
+{"what":"a JWT (NOT in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"session=[REDACTED]"}
+{"what":"a 40-character hex string (a commit id)","predicted":"kept","actual":"kept","match":true,"out":"deployed <long>"}
+{"what":"a UUID","predicted":"kept","actual":"kept","match":true,"out":"request <long>"}
+{"what":"an 8-lowercase-letter password NOT in the set","predicted":"kept","actual":"kept","match":true,"out":"login ok for student with password hunter-z → abcdefgh"}
+{"what":"a different Mongo URI (NOT in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"mongodb://admin:[REDACTED]@other:27017/x"}
+{"what":"a 64-hex value NOT in the set (a platform-shaped secret of ANOTHER app)","predicted":"kept","actual":"kept","match":true,"out":"other=<64hex>"}
+{"what":"the SESSION_SECRET printed (in the real set only)","predicted":"redacted","actual":"kept","match":false,"out":"SESSION_SECRET=<64hex>"}
+{"what":"a 24-char base64 random value NOT in the set","predicted":"redacted","actual":"kept","match":false,"out":"api_key=UhT6VdtxQmthHGCfJ1oKt/hn"}
+predictions matched: 11/14
+=== the real set — [service password, session secret, AI key, sample]
+{"what":"the MONGODB_URI printed whole","predicted":"redacted","actual":"redacted","match":true,"out":"connecting to mongodb://app:[REDACTED]@mf-probe-staging-db:27017/app?authSource=admin"}
+{"what":"the URI's password alone","predicted":"redacted","actual":"redacted","match":true,"out":"pw=[REDACTED]"}
+{"what":"the LLM_API_KEY (in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"LLM_API_KEY=[REDACTED]"}
+{"what":"a SAMPLE_SECRETS value (in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"token [REDACTED]"}
+{"what":"Authorization: Bearer sk-… (NOT in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"Authorization: Bearer [REDACTED]"}
+{"what":"Authorization: Bearer <opaque> (NOT in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"Authorization: Bearer [REDACTED]"}
+{"what":"a JWT (NOT in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"session=[REDACTED]"}
+{"what":"a 40-character hex string (a commit id)","predicted":"kept","actual":"kept","match":true,"out":"deployed <long>"}
+{"what":"a UUID","predicted":"kept","actual":"kept","match":true,"out":"request <long>"}
+{"what":"an 8-lowercase-letter password NOT in the set","predicted":"kept","actual":"kept","match":true,"out":"login ok for student with password hunter-z → abcdefgh"}
+{"what":"a different Mongo URI (NOT in the set)","predicted":"redacted","actual":"redacted","match":true,"out":"mongodb://admin:[REDACTED]@other:27017/x"}
+{"what":"a 64-hex value NOT in the set (a platform-shaped secret of ANOTHER app)","predicted":"kept","actual":"kept","match":true,"out":"other=<64hex>"}
+{"what":"the SESSION_SECRET printed (in the real set only)","predicted":"redacted","actual":"redacted","match":true,"out":"SESSION_SECRET=[REDACTED]"}
+{"what":"a 24-char base64 random value NOT in the set","predicted":"redacted","actual":"kept","match":false,"out":"api_key=UhT6VdtxQmthHGCfJ1oKt/hn"}
+predictions matched: 13/14
+
+## M14 — the gate numbers at open (2026-09-27 01:54–02:02 PDT)
+make doctor:   20 checks, 0 failed, 0 warnings
+make verify:   57 checks, 0 failed, 0 warnings
+pnpm test:  Test Files  162 passed (162)
+pnpm test:       Tests  2330 passed (2330)
+pnpm test:    Duration  474.50s (transform 1.15s, setup 168ms, collect 25.84s, tests 432.83s, environment 11ms, prepare 3.66s)
+pnpm test:docker: NOT RUN (the sittings table: not owed; ORIENTATION §8's LEAN rule) — 210 in 35 carried from 2026-09-26
+migrations: 33
+
+## M1 — probes/m1-output.sh (02:02, load 4.96 3.77 3.04)
+json-file log on disk: /var/lib/docker/containers/d165710a37d3bea0abbf56652ab14d52dc866241d11fb417386ce40544fb8cd6/d165710a37d3bea0abbf56652ab14d52dc866241d11fb417386ce40544fb8cd6-json.log
+docker logs line count (CLI, all): 5001
+{"tail":"200","lines":136,"bytes":1050872,"longestLine":1048576,"megabyteLineWhole":true,"xLines":1,"lastLineArrived":false,"first":"line 4846 stderr","last":"xxxxxxxxxxxxxxxxxxxxxxxx","wallMs":25,"rssBase":"90.1 MiB","rssPeak":"105.2 MiB","rssGrowth":"15.0 MiB"}
+{"tail":"1000","lines":936,"bytes":1064472,"longestLine":1048576,"megabyteLineWhole":true,"xLines":1,"lastLineArrived":false,"first":"line 4117 stdout","last":"xxxxxxxxxxxxxxxxxxxxxxxx","wallMs":26,"rssBase":"87.5 MiB","rssPeak":"102.4 MiB","rssGrowth":"14.9 MiB"}
+{"tail":"all","lines":5001,"bytes":1132470,"longestLine":1048576,"megabyteLineWhole":true,"xLines":1,"lastLineArrived":false,"first":"line 1 stdout","last":"xxxxxxxxxxxxxxxxxxxxxxxx","wallMs":33,"rssBase":"87.8 MiB","rssPeak":"108.3 MiB","rssGrowth":"20.5 MiB"}
+
+## M2 — probes/m2-timestamps.sh (02:03)
+--- tail=5&timestamps=1, every frame
+{"stream":1,"size":16415,"stamp":"2026-09-27T09:02:57.196447669Z","endsWithNewline":false,"head":"2026-09-27T09:02:57.196447669Z xxxxxxxxxxxxxxxxxxxxxxxxxxxxx","tail":"xxxxxxxxxxxxxxxxxxxx"}
+  hex48: 323032362d30392d32375430393a30323a35372e3139363434373636395a207878787878787878787878787878787878
+{"stream":1,"size":16415,"stamp":"2026-09-27T09:02:57.196447669Z","endsWithNewline":false,"head":"2026-09-27T09:02:57.196447669Z xxxxxxxxxxxxxxxxxxxxxxxxxxxxx","tail":"xxxxxxxxxxxxxxxxxxxx"}
+  hex48: 323032362d30392d32375430393a30323a35372e3139363434373636395a207878787878787878787878787878787878
+{"stream":1,"size":16415,"stamp":"2026-09-27T09:02:57.196447669Z","endsWithNewline":false,"head":"2026-09-27T09:02:57.196447669Z xxxxxxxxxxxxxxxxxxxxxxxxxxxxx","tail":"xxxxxxxxxxxxxxxxxxxx"}
+  hex48: 323032362d30392d32375430393a30323a35372e3139363434373636395a207878787878787878787878787878787878
+{"stream":1,"size":16415,"stamp":"2026-09-27T09:02:57.196447669Z","endsWithNewline":false,"head":"2026-09-27T09:02:57.196447669Z xxxxxxxxxxxxxxxxxxxxxxxxxxxxx","tail":"xxxxxxxxxxxxxxxxxxxx"}
+  hex48: 323032362d30392d32375430393a30323a35372e3139363434373636395a207878787878787878787878787878787878
+{"stream":1,"size":32,"stamp":"2026-09-27T09:02:57.196447669Z","endsWithNewline":true,"head":"2026-09-27T09:02:57.196447669Z \n","tail":"9:02:57.196447669Z \n"}
+  hex48: 323032362d30392d32375430393a30323a35372e3139363434373636395a200a
+--- tail=80&timestamps=1, summarised
+{"frames":80,"stamped":80,"xChunksWithoutNewline":64,"kinds":{"numbered":15,"x-chunk(16384B,nl=false)":64,"\"\\n\"":1}}
+--- the same tail=80 WITHOUT timestamps: frame count and how many numbered lines it reaches back to
+{"frames":80,"newlineTerminatedLines":16,"numbered":15,"hasLastLine":false}
+--- Date.parse {"nine":1790499541123,"three":1790499541123,"nineTruncated":1790499541123}
+--- after docker stop (the process exits): the last 2 entries, with timestamps
+2026-09-27T09:02:57.196447669Z 
+2026-09-27T09:03:24.235607043Z last line--- and through containerLogs, tail 2
+{"tail":"2","lines":2,"bytes":11,"longestLine":9,"megabyteLineWhole":false,"xLines":0,"lastLineArrived":true,"first":"","last":"last line","wallMs":8,"rssBase":"88.9 MiB","rssPeak":"89.8 MiB","rssGrowth":"0.9 MiB"}
+manifest-probe-output removed
+
+## M3 + M5 — probes/m3-m5-two-origins.sh (02:03)
+/Users/rich/Developer/manifest/packages/control-plane/src/db/client.ts:7
+  throw new Error(
+        ^
+
+Error: MANIFEST_DATABASE_URL is not set. It is derived from the repo `.env`, which `make seed` writes; run `make seed && make up`, or set it by hand:
+  set -a; . ./.env; set +a
+  export MANIFEST_DATABASE_URL="postgres://manifest_app:${MANIFEST_APP_PASSWORD}@127.0.0.1:7103/manifest_control"
+The role is `manifest_app`, NEVER `manifest`: `manifest` is POSTGRES_USER and therefore a SUPERUSER, and a superuser bypasses every grant — which makes §20's append-only `audit` schema unimplementable. `make up` creates the role (infra/lib/ensure-app-role.sh).
+    at <anonymous> (/Users/rich/Developer/manifest/packages/control-plane/src/db/client.ts:7:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:413:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:660:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.12.0
+
+## M3 + M5 — probes/m3-m5-two-origins.sh (02:04, second attempt: the first stopped at import, MANIFEST_DATABASE_URL unset)
+probe row upserted: https://manifest.internal/sp/probe-origins/platform — ACS https://console.manifest.internal/auth/saml/callback , https://app.manifest.internal/auth/saml/callback
+--- M3 client 1 (console ACS, index 0): AuthnRequest's AssertionConsumerServiceURL = https://console.manifest.internal/auth/saml/callback
+{
+ "refused": false,
+ "formAction": "https://console.manifest.internal/auth/saml/callback",
+ "responseDestination": "https://console.manifest.internal/auth/saml/callback",
+ "recipient": "https://console.manifest.internal/auth/saml/callback",
+ "hops": [
+  "303 https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=nZJBb9swDIX%2FiqG7bVlNnESIU2",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_972bb6114f3cee68ab1d73d95e3a7c98ab0a17d",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_972bb6114f3cee68ab1d73d95e3a7c98ab0a17d"
+ ]
+}
+--- M3 client 2 (app ACS, index 1): AuthnRequest's AssertionConsumerServiceURL = https://app.manifest.internal/auth/saml/callback
+{
+ "refused": false,
+ "formAction": "https://app.manifest.internal/auth/saml/callback",
+ "responseDestination": "https://app.manifest.internal/auth/saml/callback",
+ "recipient": "https://app.manifest.internal/auth/saml/callback",
+ "hops": [
+  "303 https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=nZLBbtswEER%2FheBdEqPIiU1YDt",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_78bea4bad71b1f5e2cbe3e9850d97c8bba8bbe7",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_78bea4bad71b1f5e2cbe3e9850d97c8bba8bbe7"
+ ]
+}
+--- M3 client 3 (a URL the row does NOT list): https://evil.manifest.internal/auth/saml/callback
+{
+ "refused": false,
+ "formAction": "https://console.manifest.internal/auth/saml/callback",
+ "responseDestination": "https://console.manifest.internal/auth/saml/callback",
+ "recipient": "https://console.manifest.internal/auth/saml/callback",
+ "hops": [
+  "303 https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=nZJBb9pAEIX%2FirV37LVNoawwEQ",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_0b7b853c4881437c4c87f9adfe9908d9ef5e773",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_0b7b853c4881437c4c87f9adfe9908d9ef5e773"
+ ]
+}
+--- M5: sign in through client 2, then LogoutRequest with RelayState = https://app.manifest.internal
+{
+ "validatedAs": "stu000001",
+ "sessionIndexPresent": true,
+ "hops": [
+  "303 https://idp.manifest.internal/module.php/saml/idp/singleLogout?SAMLRequest=…",
+  "303 https://idp.manifest.internal/module.php/core/logout-resume?id=_ab2cf8ba76a9a707f4d74df04f5688818c1fc6b564",
+  "(stopped before) https://console.manifest.internal/auth/logout?SAMLResponse=fVHJasMwEP0Vo3siWbZlWTiG0lwC6aUJOfRStLk22JLxyNDPr%2BoQmkLIRaCZecu8qUGOwySO%2Fssv4d3C5B3Y5HscHIi1tUPL7"
+ ],
+ "logoutResponseTo": "https://console.manifest.internal/auth/logout",
+ "hasSAMLResponse": true,
+ "relayStateReceived": null,
+ "relayStateUnchanged": false,
+ "signed": false
+}
+probe row deleted; rows left for the probe entity: 0
+--- the IdP's log since 2026-09-27T09:04:05Z, lines naming the probe entity, an ACS, a logout or an error
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "GET /module.php/core/loginuserpass?AuthState=_972bb6114f3cee68ab1d73d95e3a7c98ab0a17df6f%3Ahttps%3A%2F%2Fidp.manifest.internal%2Fmodule.php%2Fsaml%2Fidp%2FsingleSignOnService%3Fspentityid%3Dhttps%253A%252F%252Fmanifest.internal%252Fsp%252Fprobe-origins%25
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "POST /module.php/core/loginuserpass?AuthState=_972bb6114f3cee68ab1d73d95e3a7c98ab0a17df6f%3Ahttps%3A%2F%2Fidp.manifest.internal%2Fmodule.php%2Fsaml%2Fidp%2FsingleSignOnService%3Fspentityid%3Dhttps%253A%252F%252Fmanifest.internal%252Fsp%252Fprobe-origins%2
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "GET /module.php/core/loginuserpass?AuthState=_78bea4bad71b1f5e2cbe3e9850d97c8bba8bbe77ba%3Ahttps%3A%2F%2Fidp.manifest.internal%2Fmodule.php%2Fsaml%2Fidp%2FsingleSignOnService%3Fspentityid%3Dhttps%253A%252F%252Fmanifest.internal%252Fsp%252Fprobe-origins%25
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "POST /module.php/core/loginuserpass?AuthState=_78bea4bad71b1f5e2cbe3e9850d97c8bba8bbe77ba%3Ahttps%3A%2F%2Fidp.manifest.internal%2Fmodule.php%2Fsaml%2Fidp%2FsingleSignOnService%3Fspentityid%3Dhttps%253A%252F%252Fmanifest.internal%252Fsp%252Fprobe-origins%2
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "GET /module.php/core/loginuserpass?AuthState=_0b7b853c4881437c4c87f9adfe9908d9ef5e773e16%3Ahttps%3A%2F%2Fidp.manifest.internal%2Fmodule.php%2Fsaml%2Fidp%2FsingleSignOnService%3Fspentityid%3Dhttps%253A%252F%252Fmanifest.internal%252Fsp%252Fprobe-origins%25
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "POST /module.php/core/loginuserpass?AuthState=_0b7b853c4881437c4c87f9adfe9908d9ef5e773e16%3Ahttps%3A%2F%2Fidp.manifest.internal%2Fmodule.php%2Fsaml%2Fidp%2FsingleSignOnService%3Fspentityid%3Dhttps%253A%252F%252Fmanifest.internal%252Fsp%252Fprobe-origins%2
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "GET /module.php/core/loginuserpass?AuthState=_98302bb5738dc83160e3d8473c1d3b3992401009e6%3Ahttps%3A%2F%2Fidp.manifest.internal%2Fmodule.php%2Fsaml%2Fidp%2FsingleSignOnService%3Fspentityid%3Dhttps%253A%252F%252Fmanifest.internal%252Fsp%252Fprobe-origins%25
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "POST /module.php/core/loginuserpass?AuthState=_98302bb5738dc83160e3d8473c1d3b3992401009e6%3Ahttps%3A%2F%2Fidp.manifest.internal%2Fmodule.php%2Fsaml%2Fidp%2FsingleSignOnService%3Fspentityid%3Dhttps%253A%252F%252Fmanifest.internal%252Fsp%252Fprobe-origins%2
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "GET /module.php/saml/idp/singleLogout?SAMLRequest=…&RelayState=https%3A%2F%2Fapp.manifest.internal&SigAlg=http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256&Signature=… HTTP/1.1" 303 1591 "-" "node"
+10.89.0.10 - - [27/Sep/2026:09:04:06 +0000] "GET /module.php/core/logout-resume?id=_ab2cf8ba76a9a707f4d74df04f5688818c1fc6b564 HTTP/1.1" 303 6636 "-" "node"
+
+## M3 + M5 — third run (02:04): the second run's M5 parsed the display-cut hop string, so its relayStateReceived/signed were a PROBE DEFECT; fixed to parse the full URL
+probe row upserted: https://manifest.internal/sp/probe-origins/platform — ACS https://console.manifest.internal/auth/saml/callback , https://app.manifest.internal/auth/saml/callback
+--- M3 client 1 (console ACS, index 0): AuthnRequest's AssertionConsumerServiceURL = https://console.manifest.internal/auth/saml/callback
+{
+ "refused": false,
+ "formAction": "https://console.manifest.internal/auth/saml/callback",
+ "responseDestination": "https://console.manifest.internal/auth/saml/callback",
+ "recipient": "https://console.manifest.internal/auth/saml/callback",
+ "hops": [
+  "303 https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=nZJbb9swDIX%2FiqF3X6IGsy3EKb",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_9cad62b5603fcf9fab8243b2a8c4cb9e28b6b09",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_9cad62b5603fcf9fab8243b2a8c4cb9e28b6b09"
+ ]
+}
+--- M3 client 2 (app ACS, index 1): AuthnRequest's AssertionConsumerServiceURL = https://app.manifest.internal/auth/saml/callback
+{
+ "refused": false,
+ "formAction": "https://app.manifest.internal/auth/saml/callback",
+ "responseDestination": "https://app.manifest.internal/auth/saml/callback",
+ "recipient": "https://app.manifest.internal/auth/saml/callback",
+ "hops": [
+  "303 https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=nZLNbtswEIRfReBdEiX%2FyCEsB2",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_23e0da73543ba4075047ba9e68d8bbe9186b77d",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_23e0da73543ba4075047ba9e68d8bbe9186b77d"
+ ]
+}
+--- M3 client 3 (a URL the row does NOT list): https://evil.manifest.internal/auth/saml/callback
+{
+ "refused": false,
+ "formAction": "https://console.manifest.internal/auth/saml/callback",
+ "responseDestination": "https://console.manifest.internal/auth/saml/callback",
+ "recipient": "https://console.manifest.internal/auth/saml/callback",
+ "hops": [
+  "303 https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=nZJBb9pAEIX%2FirV322sXQ7zCRD",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_bdbcf173fb9df95b1076e235ae371217b3793f5",
+  "200 https://idp.manifest.internal/module.php/core/loginuserpass?AuthState=_bdbcf173fb9df95b1076e235ae371217b3793f5"
+ ]
+}
+--- M5: sign in through client 2, then LogoutRequest with RelayState = https://app.manifest.internal
+{
+ "validatedAs": "stu000001",
+ "sessionIndexPresent": true,
+ "hops": [
+  "303 https://idp.manifest.internal/module.php/saml/idp/singleLogout?SAMLRequest=…",
+  "303 https://idp.manifest.internal/module.php/core/logout-resume?id=_3ebc2e834ef512687951768c602e4d6419f70fb7db",
+  "(stopped before) https://console.manifest.internal/auth/logout?SAMLResponse=fZHNasMwEIRfxeieSJb8KxxDaS6B9NKEHHopsrSuDbZkvDL08as6hKYQctRqv9nZ2QrVOEzy6L7c4t8BJ2cRou9xsCjXrx1ZZiudw"
+ ],
+ "logoutResponseTo": "https://console.manifest.internal/auth/logout",
+ "hasSAMLResponse": true,
+ "relayStateReceived": "https://app.manifest.internal",
+ "relayStateUnchanged": true,
+ "signed": true
+}
+probe row deleted; rows left for the probe entity: 0
+--- the IdP's log since 2026-09-27T09:04:49Z, lines naming the probe entity, an ACS, a logout or an error
+
+## M7 + M8 — probes/m7-m8-litellm.sh (02:04)
+chat model warm
+LiteLLM {"status":200,"db":"connected"}
+--- user probe-agent-person: max_budget 0.05, budget_duration 1mo, auto_create_key false
+{"status":200,"keyCreatedAlongside":false}
+M8 before (a): {"status":200,"userInfoSpend":0,"userInfoMaxBudget":0.05,"budgetResetAt":"2026-10-01T00:00:00Z","keys":[]}
+--- (a) key probe-agent-1: max_budget 0.00001, duration 300s (plan: 60s — longer so a budget refusal cannot read as expiry), models [default-chat]
+{"status":200,"key":"<probe-agent-1>","expires":"2026-09-27T09:09:59.845834Z","alias":"probe-agent-1","maxBudget":0.00001}
+call 1 at 0.3s: 200 {"usage":{"completion_tokens":2,"prompt_tokens":15,"total_tokens":17}}
+call 2 at 0.3s: REFUSED 429 {"type":"budget_exceeded","code":"429","param":null,"message":"Budget has been exceeded! Key=probe-agent-1 (sk-...T2cw) Current cost: 2.1e-05, Max budget: 1e-05"}
+--- M8: /user/info and /key/info until the user spend is non-zero (lag after call 1)
+M8 after (a): {"status":200,"userInfoSpend":0.000021,"userInfoMaxBudget":0.05,"budgetResetAt":"2026-10-01T00:00:00Z","keys":[{"alias":"probe-agent-1","spend":0.000021}]} lag: 3.1s after the loop above ended
+/key/info for probe-agent-1: {"status":200,"spend":0.000021,"max_budget":0.00001,"expires":"2026-09-27T09:09:59.845000+00:00","key_alias":"probe-agent-1"}
+--- (b) key probe-agent-2: duration 5s
+{"status":200,"expires":"2026-09-27T09:05:08.236491Z"}
+immediately (3.6s): 200 
+after 6.5 s (10.2s): 401 {"body":{"type":"expired_key","code":"401","param":"sk-...PdxA","message":"Authentication Error - Expired Key. Key Expiry time 2026-09-27 09:05:08.236000+00:00 and current time 2026-09-27 09:05:09.918678+00:00"}}
+--- (c) /key/delete { key_aliases: ['probe-agent-1'] }
+{"status":200,"body":{"deleted_keys":["probe-agent-1"]}}
+after: /key/info 404 | chat with the deleted key 401 {"type":"token_not_found_in_db","code":"401","param":"key","message":"Authentication Error, Invalid proxy server token passed. Received API Key = sk-...T2cw, Key Hash (Token) =<sha256, masked in this record>. Unable t"}
+--- (d) user probe-agent-person-d: max_budget 0.00001; key with max_budget 1 (higher than its user)
+call 1 (10.4s): 200
+call 2 (10.4s): REFUSED 429 {"type":"budget_exceeded","code":"429","param":null,"message":"ExceededBudget: User=probe-agent-person-d over budget. Spend=2.1e-05, Budget=1e-05"}
+--- (e) key models ['default-chat-onprem'] calling default-chat, then default-chat-onprem
+default-chat: 403 {"type":"key_model_access_denied","code":"403","param":"model","message":"key not allowed to access model. This key can only access models=['default-chat-onprem']. Tried to access default-chat"} | default-chat-onprem: 200
+--- (f) an EMPTY models list: does it mean every model? (Read this first 5)
+empty list calling default-chat-onprem-reasoning: 200
+cleanup: {"keysDeleted":5,"keyDeleteStatus":200,"userDeleteStatus":200,"userInfoAfter":{"probe-agent-person":404,"probe-agent-person-d":404}}
+--- LiteLLM users named probe-agent-* left in its database (want 0):
+0
+0
+
+## M9 — probes/m9-service-data.mts (02:05)
+/Users/rich/Developer/manifest/packages/control-plane/src/db/client.ts:7
+  throw new Error(
+        ^
+
+Error: MANIFEST_DATABASE_URL is not set. It is derived from the repo `.env`, which `make seed` writes; run `make seed && make up`, or set it by hand:
+  set -a; . ./.env; set +a
+  export MANIFEST_DATABASE_URL="postgres://manifest_app:${MANIFEST_APP_PASSWORD}@127.0.0.1:7103/manifest_control"
+The role is `manifest_app`, NEVER `manifest`: `manifest` is POSTGRES_USER and therefore a SUPERUSER, and a superuser bypasses every grant — which makes §20's append-only `audit` schema unimplementable. `make up` creates the role (infra/lib/ensure-app-role.sh).
+    at <anonymous> (/Users/rich/Developer/manifest/packages/control-plane/src/db/client.ts:7:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:413:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:660:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.12.0
+
+## M9 — probes/m9-service-data.mts (02:05; the first attempt stopped at import, MANIFEST_DATABASE_URL unset — run.sh now exports RUNBOOK's environment)
+docker: unknown command: docker sh
+
+Run 'docker --help' for more information
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: docker sh -c docker volume ls -q --filter dangling=true | wc -l
+docker: unknown command: docker sh
+
+Run 'docker --help' for more information
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:925:11)
+    at execFileSync (node:child_process:961:15)
+    at docker (/Users/rich/Developer/manifest/docs/superpowers/spikes/frontend-baseline/probes/m9-service-data.mts:16:39)
+    at anonymous (/Users/rich/Developer/manifest/docs/superpowers/spikes/frontend-baseline/probes/m9-service-data.mts:19:32)
+    at <anonymous> (/Users/rich/Developer/manifest/docs/superpowers/spikes/frontend-baseline/probes/m9-service-data.mts:38:24)
+    at ModuleJob.run (node:internal/modules/esm/module_job:413:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:660:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  status: 1,
+  signal: null,
+  output: [
+    null,
+    '',
+    'docker: unknown command: docker sh\n' +
+      '\n' +
+      "Run 'docker --help' for more information\n"
+  ],
+  pid: 90268,
+  stdout: '',
+  stderr: 'docker: unknown command: docker sh\n' +
+    '\n' +
+    "Run 'docker --help' for more information\n"
+}
+
+Node.js v24.12.0
+
+## M9 — third attempt (02:05; the second failed before creating anything on a probe bug — 'docker sh' for a shell pipe)
+MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27017
+MongoServerError: Authentication failed.
+MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27017
+create 1: ready in 2474 ms
+insert: true
+after destroyServiceContainer({ deleteData: false }): container gone | volume manifest-probe-archive-db-data
+MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27017
+create 2 on the same volume: ready in 991 ms
+find: [{"marker":"survives-archive"}]
+after destroyServiceContainer({ deleteData: true }): container gone | volume (none)
+left behind: container none | volume none | dangling volumes before 9 after 9
+
+## M4 — probes/m4-app-origin.sh (02:06)
+host: dig +short app.manifest.internal  -> 
+host: dig +short console.manifest.internal -> 
+host: GET https://app.manifest.internal/v1/me
+HTTP/2 200 
+content-type: text/plain; charset=utf-8
+server: Caddy
+content-length: 84
+  body: manifest OK host=app.manifest.internal scheme=https remote=10.89.0.1 listener=public
+container (manifest-platform, Dns 10.89.0.53): GET https://app.manifest.internal/v1/me
+  resolves to: 10.89.0.10        app.manifest.internal  app.manifest.internal
+  status: 200 bytes=0
+  body: []
+host: anything listening on 7105? 0 listener(s)
+
+host: dscacheutil (honours /etc/resolver; dig does NOT, and answers nothing): app -> 127.0.0.3 | console -> 127.0.0.2 
+## M15 — probes/m15-switched-off.sh (02:07)
+before: {"routesWithId":0,"wire":{"status":200,"instance":null,"body":"manifest OK host=probe-switched-off.staging.manifest.internal scheme=https remote=10.89.0."}}
+1 putRoute(static 410): {"routesWithId":1,"handlers":"static_response","wire":{"status":410,"instance":null,"body":"This app has been switched off by its owner."}}
+2 servingRoute(host) on the static route: undefined
+3 applyRoute(reverse_proxy) over it: {"routesWithId":1,"handlers":"request_body,rate_limit,headers,reverse_proxy","wire":{"status":200,"instance":"probe-instance-1","body":"probe upstream answered"}}
+  servingRoute now: {"upstream":"manifest-probe-upstream:8080","instanceId":"probe-instance-1"}
+4 patchRoute(static 410) in place — archive's direction: {"routesWithId":1,"handlers":"static_response","wire":{"status":410,"instance":null,"body":"This app has been switched off by its owner."}}
+5 removeRoute: {"routesWithId":0,"wire":{"status":200,"instance":null,"body":"manifest OK host=probe-switched-off.staging.manifest.internal scheme=https remote=10.89.0."}}
+left behind: routes with the probe id = 0
+manifest-probe-upstream removed
+
+## M11 — probes/m11-binaries.mts over twenty files in the session scratchpad (02:08); sources: iTerm.app, /System/Library Desktop Pictures thumbnails, idleassetsd snapshots, Perl Extras + httpd manual GIFs, ENERGY STAR.pdf, Compressor Creator Studio icon PDF, Geneva.ttf, SFNSMono.ttf, LastResort.otf, STIXGeneralItalic.otf, LM Studio icon.ico, Claude.app favicon.ico, two LM Studio .woff, two Cursor KaTeX .woff2; two .webp made from the PNGs by cwebp 1.6.0
+{"name":"a.gif","bytes":52975,"first16":"5193b1df00113d0005f50003a1000123","table":"NONE","tableOk":false,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"a.ico","bytes":280805,"first16":"00000100070000000000010020000c54","table":"ico","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"a.jpg","bytes":17480,"first16":"ffd8ffe000104a464946000101000048","table":"jpeg","tableOk":true,"classedText":false,"runs16":2,"runFindings":[],"gateFindings":[]}
+{"name":"a.otf","bytes":2532,"first16":"4f54544f000900800003008843464620","table":"otf","tableOk":true,"classedText":false,"runs16":6,"runFindings":[],"gateFindings":[]}
+{"name":"a.pdf","bytes":29663,"first16":"255044462d312e330a25c4e5f2e5eba7","table":"pdf","tableOk":true,"classedText":false,"runs16":185,"runFindings":[],"gateFindings":[]}
+{"name":"a.png","bytes":18403,"first16":"89504e470d0a1a0a0000000d49484452","table":"png","tableOk":true,"classedText":false,"runs16":1,"runFindings":[],"gateFindings":[]}
+{"name":"a.ttf","bytes":736764,"first16":"0001000000190100000401804f532f32","table":"ttf","tableOk":true,"classedText":false,"runs16":868,"runFindings":[],"gateFindings":[]}
+{"name":"a.webp","bytes":1864,"first16":"52494646400700005745425056503858","table":"webp","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"a.woff","bytes":6496,"first16":"774f46460001000000001960000e0000","table":"woff","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"a.woff2","bytes":26272,"first16":"774f463200010000000066a0000e0000","table":"woff2","tableOk":true,"classedText":false,"runs16":1,"runFindings":[],"gateFindings":[]}
+{"name":"b.gif","bytes":4084,"first16":"47494638396158023e00d50000000000","table":"gif","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"b.ico","bytes":2445,"first16":"0000010003003030000001002000b604","table":"ico","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"b.jpg","bytes":43536,"first16":"89504e470d0a1a0a0000000d49484452","table":"png","tableOk":false,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"b.otf","bytes":141844,"first16":"4f54544f000d00800003005043464620","table":"otf","tableOk":true,"classedText":false,"runs16":19,"runFindings":[],"gateFindings":[]}
+{"name":"b.pdf","bytes":172380,"first16":"255044462d312e350d25e2e3cfd30d0a","table":"pdf","tableOk":true,"classedText":false,"runs16":1045,"runFindings":[],"gateFindings":[]}
+{"name":"b.png","bytes":187310,"first16":"89504e470d0a1a0a0000000d49484452","table":"png","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"b.ttf","bytes":223892,"first16":"00010000001101000004001047535542","table":"ttf","tableOk":true,"classedText":false,"runs16":451,"runFindings":[],"gateFindings":[]}
+{"name":"b.webp","bytes":82898,"first16":"52494646ca430100574542505650384c","table":"webp","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"b.woff","bytes":7656,"first16":"774f46460001000000001de8000e0000","table":"woff","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"b.woff2","bytes":28076,"first16":"774f46320001000000006dac000e0000","table":"woff2","tableOk":true,"classedText":false,"runs16":1,"runFindings":[],"gateFindings":[]}
+{"files":20,"tableMatchedAll":false,"anyClassedText":[],"printableRunFindings":0,"buildGateFindings":0,"over2MiB":[]}
+{"png":"a.png","size":18403,"gitHashObjectFile":"d4f639d0899ede0651f29b75b3fd6a8e63e2abab","hashObjectStdinPaths":"d4f639d0899ede0651f29b75b3fd6a8e63e2abab","bytePathEqual":true,"todaysBuildCommitBlob":"4c45682005607bfde5374cc088ffd9a08b98afbc","todaysBuildCommitBlobSize":33360,"todaysBuildCommitEqual":false}
+
+## M11 — second run (02:08): 22 files — c.gif (httpd manual mod_rewrite_fig1.gif) and c.jpg (a second idleassetsd preview) added, because a.gif is not a GIF by its bytes (file(1): data) and b.jpg is a PNG (file(1): PNG image data, 214 x 130, 8-bit/color R)
+{"name":"c.gif","bytes":3525,"first16":"474946383761ac018101a10000000000","table":"gif","tableOk":true,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"name":"c.jpg","bytes":49606,"first16":"89504e470d0a1a0a0000000d49484452","table":"png","tableOk":false,"classedText":false,"runs16":0,"runFindings":[],"gateFindings":[]}
+{"files":22,"tableMatchedAll":false,"anyClassedText":[],"printableRunFindings":0,"buildGateFindings":0,"over2MiB":[]}
+{"png":"a.png","size":18403,"gitHashObjectFile":"d4f639d0899ede0651f29b75b3fd6a8e63e2abab","hashObjectStdinPaths":"d4f639d0899ede0651f29b75b3fd6a8e63e2abab","bytePathEqual":true,"todaysBuildCommitBlob":"4c45682005607bfde5374cc088ffd9a08b98afbc","todaysBuildCommitBlobSize":33360,"todaysBuildCommitEqual":false}
+
+## M11 — third run (02:08): 23 files — d.jpg (/System/Library/Photos/Resources/FlexAudio/18f501e0-….jpg, file(1): JPEG image data, JFIF standard 1.01, asp) added, because every idleassetsd 'jpg' is a PNG; the ten types are now each covered by at least two genuine files
+{"name":"d.jpg","bytes":63004,"first16":"ffd8ffe000104a464946000101000048","table":"jpeg","tableOk":true,"classedText":false,"runs16":5,"runFindings":[],"gateFindings":[]}
+{"files":23,"tableMatchedAll":false,"anyClassedText":[],"printableRunFindings":0,"buildGateFindings":0,"over2MiB":[]}
+
+## M12 — probes/m12-big-tree.sh (02:09, load 3.75 3.81 3.31)
+git 2.50.1 (Apple Git-155); built 200000 files in 2.0 s; commit a9a67a34f91e7f2ae4e44651b95e2cdfa032bd5c; empty tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+
+## M12 — second run (02:09, load 3.79 3.81 3.32): the first stopped after the build — head closed the pipe and pipefail read the SIGPIPE as a failure; awk now reads it all
+git 2.50.1 (Apple Git-155); built 200000 files in 2.0 s; commit a9a67a34f91e7f2ae4e44651b95e2cdfa032bd5c; empty tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+pathspec file: 10000 lines, first d0000/f000.txt, last d0099/f099.txt
+binaryPaths today (whole tree numstat): 0.459s 0.47s 0.46s  (records: 200000)
+usage: git diff [<options>] [<commit>] [--] [<path>...]
+   or: git diff [<options>] --cached [--merge-base] [<commit>] [--] [<path>...]
+   or: git diff [<options>] [--merge-base] <commit> [<commit>...] <commit> [--] [<path>...]
+   or: git diff [<options>] <commit>...<commit> [--] [<path>...]
+   or: git diff [<options>] <blob> <blob>
+   or: git diff [<options>] --no-index [--] <path> <path>
+
+common diff options:
+  -z            output diff-raw with lines terminated with NUL.
+  -p            output patch format.
+  -u            synonym for -p.
+  --patch-with-raw
+                output both a patch and the diff-raw format.
+  --stat        show diffstat instead of patch.
+  --numstat     show numeric diffstat instead of patch.
+  --patch-with-stat
+                output a patch and prepend its diffstat.
+  --name-only   show only names of changed files.
+  --name-status show names and status of changed files.
+  --full-index  show full object name on index lines.
+  --abbrev=<n>  abbreviate object names in diff-tree header and diff-raw.
+  -R            swap input file pairs.
+  -B            detect complete rewrites.
+  -M            detect renames.
+  -C            detect copies.
+  --find-copies-harder
+                try unchanged files as candidate for copy detection.
+  -l<n>         limit rename attempts up to <n> paths.
+  -O<file>      reorder diffs according to the <file>.
+  -S<string>    find filepair whose only one side contains the string.
+  --pickaxe-all
+                show all files diff when -S is used and hit is found.
+  -a  --text    treat all files as text.
+
+usage: git diff [<options>] [<commit>] [--] [<path>...]
+   or: git diff [<options>] --cached [--merge-base] [<commit>] [--] [<path>...]
+   or: git diff [<options>] [--merge-base] <commit> [<commit>...] <commit> [--] [<path>...]
+   or: git diff [<options>] <commit>...<commit> [--] [<path>...]
+   or: git diff [<options>] <blob> <blob>
+   or: git diff [<options>] --no-index [--] <path> <path>
+
+common diff options:
+  -z            output diff-raw with lines terminated with NUL.
+  -p            output patch format.
+  -u            synonym for -p.
+  --patch-with-raw
+                output both a patch and the diff-raw format.
+  --stat        show diffstat instead of patch.
+  --numstat     show numeric diffstat instead of patch.
+  --patch-with-stat
+                output a patch and prepend its diffstat.
+  --name-only   show only names of changed files.
+  --name-status show names and status of changed files.
+  --full-index  show full object name on index lines.
+  --abbrev=<n>  abbreviate object names in diff-tree header and diff-raw.
+  -R            swap input file pairs.
+  -B            detect complete rewrites.
+  -M            detect renames.
+  -C            detect copies.
+  --find-copies-harder
+                try unchanged files as candidate for copy detection.
+  -l<n>         limit rename attempts up to <n> paths.
+  -O<file>      reorder diffs according to the <file>.
+  -S<string>    find filepair whose only one side contains the string.
+  --pickaxe-all
+                show all files diff when -S is used and hit is found.
+  -a  --text    treat all files as text.
+
+usage: git diff [<options>] [<commit>] [--] [<path>...]
+   or: git diff [<options>] --cached [--merge-base] [<commit>] [--] [<path>...]
+   or: git diff [<options>] [--merge-base] <commit> [<commit>...] <commit> [--] [<path>...]
+   or: git diff [<options>] <commit>...<commit> [--] [<path>...]
+   or: git diff [<options>] <blob> <blob>
+   or: git diff [<options>] --no-index [--] <path> <path>
+
+common diff options:
+  -z            output diff-raw with lines terminated with NUL.
+  -p            output patch format.
+  -u            synonym for -p.
+  --patch-with-raw
+                output both a patch and the diff-raw format.
+  --stat        show diffstat instead of patch.
+  --numstat     show numeric diffstat instead of patch.
+  --patch-with-stat
+                output a patch and prepend its diffstat.
+  --name-only   show only names of changed files.
+  --name-status show names and status of changed files.
+  --full-index  show full object name on index lines.
+  --abbrev=<n>  abbreviate object names in diff-tree header and diff-raw.
+  -R            swap input file pairs.
+  -B            detect complete rewrites.
+  -M            detect renames.
+  -C            detect copies.
+  --find-copies-harder
+                try unchanged files as candidate for copy detection.
+  -l<n>         limit rename attempts up to <n> paths.
+  -O<file>      reorder diffs according to the <file>.
+  -S<string>    find filepair whose only one side contains the string.
+  --pickaxe-all
+                show all files diff when -S is used and hit is found.
+  -a  --text    treat all files as text.
+
+numstat --pathspec-from-file (10,000): 0.036s 0.033s 0.036s  (records: 0)
+usage: git diff [<options>] [<commit>] [--] [<path>...]
+   or: git diff [<options>] --cached [--merge-base] [<commit>] [--] [<path>...]
+   or: git diff [<options>] [--merge-base] <commit> [<commit>...] <commit> [--] [<path>...]
+   or: git diff [<options>] <commit>...<commit> [--] [<path>...]
+   or: git diff [<options>] <blob> <blob>
+   or: git diff [<options>] --no-index [--] <path> <path>
+
+common diff options:
+  -z            output diff-raw with lines terminated with NUL.
+  -p            output patch format.
+  -u            synonym for -p.
+  --patch-with-raw
+                output both a patch and the diff-raw format.
+  --stat        show diffstat instead of patch.
+  --numstat     show numeric diffstat instead of patch.
+  --patch-with-stat
+                output a patch and prepend its diffstat.
+  --name-only   show only names of changed files.
+  --name-status show names and status of changed files.
+  --full-index  show full object name on index lines.
+  --abbrev=<n>  abbreviate object names in diff-tree header and diff-raw.
+  -R            swap input file pairs.
+  -B            detect complete rewrites.
+  -M            detect renames.
+  -C            detect copies.
+  --find-copies-harder
+                try unchanged files as candidate for copy detection.
+  -l<n>         limit rename attempts up to <n> paths.
+  -O<file>      reorder diffs according to the <file>.
+  -S<string>    find filepair whose only one side contains the string.
+  --pickaxe-all
+                show all files diff when -S is used and hit is found.
+  -a  --text    treat all files as text.
+
+usage: git diff [<options>] [<commit>] [--] [<path>...]
+   or: git diff [<options>] --cached [--merge-base] [<commit>] [--] [<path>...]
+   or: git diff [<options>] [--merge-base] <commit> [<commit>...] <commit> [--] [<path>...]
+   or: git diff [<options>] <commit>...<commit> [--] [<path>...]
+   or: git diff [<options>] <blob> <blob>
+   or: git diff [<options>] --no-index [--] <path> <path>
+
+common diff options:
+  -z            output diff-raw with lines terminated with NUL.
+  -p            output patch format.
+  -u            synonym for -p.
+  --patch-with-raw
+                output both a patch and the diff-raw format.
+  --stat        show diffstat instead of patch.
+  --numstat     show numeric diffstat instead of patch.
+  --patch-with-stat
+                output a patch and prepend its diffstat.
+  --name-only   show only names of changed files.
+  --name-status show names and status of changed files.
+  --full-index  show full object name on index lines.
+  --abbrev=<n>  abbreviate object names in diff-tree header and diff-raw.
+  -R            swap input file pairs.
+  -B            detect complete rewrites.
+  -M            detect renames.
+  -C            detect copies.
+  --find-copies-harder
+                try unchanged files as candidate for copy detection.
+  -l<n>         limit rename attempts up to <n> paths.
+  -O<file>      reorder diffs according to the <file>.
+  -S<string>    find filepair whose only one side contains the string.
+  --pickaxe-all
+                show all files diff when -S is used and hit is found.
+  -a  --text    treat all files as text.
+
+usage: git diff [<options>] [<commit>] [--] [<path>...]
+   or: git diff [<options>] --cached [--merge-base] [<commit>] [--] [<path>...]
+   or: git diff [<options>] [--merge-base] <commit> [<commit>...] <commit> [--] [<path>...]
+   or: git diff [<options>] <commit>...<commit> [--] [<path>...]
+   or: git diff [<options>] <blob> <blob>
+   or: git diff [<options>] --no-index [--] <path> <path>
+
+common diff options:
+  -z            output diff-raw with lines terminated with NUL.
+  -p            output patch format.
+  -u            synonym for -p.
+  --patch-with-raw
+                output both a patch and the diff-raw format.
+  --stat        show diffstat instead of patch.
+  --numstat     show numeric diffstat instead of patch.
+  --patch-with-stat
+                output a patch and prepend its diffstat.
+  --name-only   show only names of changed files.
+  --name-status show names and status of changed files.
+  --full-index  show full object name on index lines.
+  --abbrev=<n>  abbreviate object names in diff-tree header and diff-raw.
+  -R            swap input file pairs.
+  -B            detect complete rewrites.
+  -M            detect renames.
+  -C            detect copies.
+  --find-copies-harder
+                try unchanged files as candidate for copy detection.
+  -l<n>         limit rename attempts up to <n> paths.
+  -O<file>      reorder diffs according to the <file>.
+  -S<string>    find filepair whose only one side contains the string.
+  --pickaxe-all
+                show all files diff when -S is used and hit is found.
+  -a  --text    treat all files as text.
+
+the same with GIT_LITERAL_PATHSPECS=1: 0.039s 0.035s 0.035s  (records: 0)
+getCommit's name-status (all 200,000 added): 0.222s 0.203s 0.205s  (records: 400000)
+scratch repository removed
+
+## M12 — third run (02:10, load 3.77 3.81 3.34): the second showed git diff REFUSES --pathspec-from-file (usage text, 0 records — the 0.03 s timings above are of the refusal, not of a limited diff); now the paths are passed as arguments
+git 2.50.1 (Apple Git-155); built 200000 files in 2.0 s; commit a9a67a34f91e7f2ae4e44651b95e2cdfa032bd5c; empty tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+pathspec file: 10000 lines, first d0000/f000.txt, last d0099/f099.txt
+binaryPaths today (whole tree numstat): 0.463s 0.462s 0.458s  (records: 200000)
+numstat --pathspec-from-file: usage: git diff [<options>] [<commit>] [--] [<path>...] (exit 0) — git diff does not take the option
+ARG_MAX 1048576; the 10,000 paths as arguments: 150000 bytes
+numstat, the 10,000 as literal pathspec ARGUMENTS via xargs -0: 0.178s 0.171s 0.176s  (records: 10000)
+xargs invocations for 10,000 paths: 2
+getCommit's name-status (all 200,000 added): 0.216s 0.218s 0.202s  (records: 400000)
+scratch repository removed
+
+M12 addendum (02:10): git --git-dir <bare> diff --numstat --pathspec-from-file=<file> <tree> <tree> → exit 129 (git's usage error), re-checked in isolation.
+
+## M10 — the local IdP and uid (read, not changed; 02:11)
+infra/idp/config/authsources.php: 'manifest-test-users' => exampleauth:UserPass, three users keyed 'user:pass' — student (stu000001), instructor (ins000001), operator (opr000001) — FRIENDLY attribute names (ubcEduCwlPuid, mail, givenName, sn, eduPersonAffiliation); none carries uid.
+Release: config.php authproc 50 => core:AttributeLimit (compares the SP row's 'attributes' list — friendly names — against the keys), 60 => core:AttributeMap name2oid. So a test user gains uid by adding 'uid' => ['<login>'] to its array AND the platform's row must list 'uid' in 'attributes' (sso/platform.ts CONTROL_PLANE_ATTRIBUTES), or AttributeLimit drops it.
+name2oid in the container: 184: 'uid' => 'urn:oid:0.9.2342.19200300.100.1.1',  == sso/attributes.ts ATTRIBUTE_OIDS.uid 'urn:oid:0.9.2342.19200300.100.1.1'
+Mounts:  /Users/rich/Developer/manifest/infra/idp/config/authsources.php -> /var/simplesamlphp/config/authsources.php
+host sha256 a81214db9122ecbb… == container sha256 a81214db9122ecbb… — the mount is live today.
+Re-read: TRAPS.md:766 — SimpleSAMLphp reads its config PER REQUEST; an in-place edit (same inode) reaches it at once, a replacing save (new inode: git checkout, an atomic editor save) STRANDS the single-file mount and the IdP runs with no config. The command is 'docker restart manifest-idp'; verify by comparing the two hashes above, and make verify's IdP checks.
+
+## M13 — predictions for the plan's seams (static reading; 02:11)
+contract: version 1.3.0 | operations 54 | schemas 78
+LogLine on the wire: api/representations/builds.ts maps StoredBuildLogLine's stream/text/at EXPLICITLY (:163-165) — a new LogLine field does not reach openapi.json; the first task to move it is Task 3 (listInstances/getInstanceOutput), as predicted.
+hand-built lines (the plan's grep, stdout) outside docker/logs.ts: 12 sites; with stderr: 18 sites in 13 files:
+  releases/releases.test.ts
+  releases/build.ts
+  runtime/fake-driver.ts
+  runtime/driver.ts
+  runtime/docker/builder.ts
+  runtime/docker/builder.test.ts
+  observability/bus.ts
+  observability/build-logs.ts
+  observability/build-logs.test.ts
+  api/events.test.ts
+  api/delivery.test.ts
+  api/secrets.test.ts
+  api/routes/builds.ts
+  (only those typed LogLine break if stamped is REQUIRED; the observability/ and api/ ones are BuildLogLine, restated structurally — observability/build-logs.ts:7-14)
+token-incapable -> ['quota:set']: quota:set is in PRIVILEGED (projects/authz.ts:93-98) and asserted by NO route (grep: only authz.ts names it); D24's central refusal fires when a token is ASKED for a privileged capability (authz.ts:373), not when it holds one — so static reading predicts no row of api/authz-contract.ts changes. Only Task 11 running the matrix verifies it.
+## M3 + M5 and M7 + M8 — re-run of the probes as committed (02:18), after a lint-only rewrite (typed JSON access, no destructured unused names); the answers must match the runs above
+ "formAction": "https://console.manifest.internal/auth/saml/callback",
+ "formAction": "https://app.manifest.internal/auth/saml/callback",
+ "formAction": "https://console.manifest.internal/auth/saml/callback",
+ "logoutResponseTo": "https://console.manifest.internal/auth/logout",
+ "relayStateUnchanged": true,
+ "signed": true
+probe row deleted; rows left for the probe entity: 0
+call 2 at 0.4s: REFUSED 429 {"type":"budget_exceeded","code":"429","param":null,"message":"Budget has been exceeded! Key=probe-agent-1 (sk-...RGqA) Current cost: 2.4e-05, Max budget: 1e-05"}
+M8 after (a): {"status":200,"userInfoSpend":0.000024,"userInfoMaxBudget":0.05,"budgetResetAt":"2026-10-01T00:00:00Z","keys":[{"alias":"probe-agent-1","spend":0.000024}]} lag: 6.2s after the loop above ended
+after 6.5 s (13.3s): 401 {"body":{"type":"expired_key","code":"401","param":"sk-...kaMw","message":"Authentication Error - Expired Key. Key Expiry time 2026-09-27 09:18:32.146000+00:00 and current time 2026-09-27 09:18:33.867078+00:00"}}
+{"status":200,"body":{"deleted_keys":["probe-agent-1"]}}
+call 2 (13.6s): REFUSED 429 {"type":"budget_exceeded","code":"429","param":null,"message":"ExceededBudget: User=probe-agent-person-d over budget. Spend=2.1e-05, Budget=1e-05"}
+default-chat: 403 {"type":"key_model_access_denied","code":"403","param":"model","message":"key not allowed to access model. This key can only access models=['default-chat-onprem']. Tried to access default-chat"} | default-chat-onprem: 200
+empty list calling default-chat-onprem-reasoning: 200
+cleanup: {"keysDeleted":5,"keyDeleteStatus":200,"userDeleteStatus":200,"userInfoAfter":{"probe-agent-person":404,"probe-agent-person-d":404}}
+0
+0
+

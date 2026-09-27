@@ -1,11 +1,11 @@
 # The Front-End Enablement Implementation Plan
 
-> **WRITTEN 2026-09-27, OVERNIGHT, AT RICH'S INSTRUCTION — NOT YET REVIEWED, AND NOTHING IN IT IS EXECUTED.** Rich asked for
+> **WRITTEN 2026-09-27, OVERNIGHT, AT RICH'S INSTRUCTION — NOT YET REVIEWED. ITS SITTING 1 (TASK 1, THE MEASUREMENTS, WHICH BUILD NOTHING) RAN THE SAME NIGHT, ALSO AT HIS INSTRUCTION, BEFORE HIS REVIEW; NOTHING ELSE IS EXECUTED.** Rich asked for
 > *"one plan which encompasses all of these"* and, going to bed, for it to be written *"with your recommendations for any
 > items that come up"*, to be reviewed and adjusted in the morning. **Every decision below Rich's own line is therefore a
 > RECOMMENDATION he has not yet read**, and the four spec actions are drafted, not applied — the approved spec was not
-> touched (CLAUDE.md). Every fact in *Read this first* was read from the code at `e1712d8` on 2026-09-27; Task 1 re-measures
-> each one into `spikes/frontend-baseline/`. *What executing this plan found* is where every sitting's record goes.
+> touched (CLAUDE.md). Every fact in *Read this first* was read from the code at `e1712d8` on 2026-09-27; Task 1 re-measured
+> each one into `spikes/frontend-baseline/`, and the `[M<n>]` block at the head of a task is what it corrected. *What executing this plan found* is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -44,8 +44,8 @@
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on**: a container's output at a large tail and its bytes; Docker's timestamps; the redactor over an app's own output; a SimpleSAMLphp SP row with TWO assertion-consumer URLs, and an AuthnRequest naming the second; a logout's `RelayState` round trip; `app.manifest.internal` today; LiteLLM 1.98.0's key `duration`, key `max_budget`, `key_alias` deletion and a user's spend; a stopped service's data volume surviving a re-create; a binary blob through the write path and the build gate; the local IdP releasing `uid`; the gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | — | ← next (after Rich approves the split) |
-| 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) | |
+| 1 | 1 | **The measurements this plan rests on**: a container's output at a large tail and its bytes; Docker's timestamps; the redactor over an app's own output; a SimpleSAMLphp SP row with TWO assertion-consumer URLs, and an AuthnRequest naming the second; a logout's `RelayState` round trip; `app.manifest.internal` today; LiteLLM 1.98.0's key `duration`, key `max_budget`, `key_alias` deletion and a user's spend; a stopped service's data volume surviving a re-create; a binary blob through the write path and the build gate; the local IdP releasing `uid`; the gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-27**, at Rich's instruction before his review — the measurements in `spikes/frontend-baseline/`; `[M<n>]` blocks at Tasks 2, 4, 5, 7, 8, 9, 10, 11; **the split stands** (`[M3]` held) |
+| 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) || ← next (after Rich reviews the plan and approves the split) |
 | 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | |
 | 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) | **Yes** — `blueprints/`, `source/` | none | |
 | 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** | |
@@ -540,21 +540,21 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 **Interfaces:** Produces the facts Tasks 2–15 rely on. Consumes nothing.
 
-- [ ] **Step 0: The machine, before anything.** `./scripts/snapshot-machine.sh > "$SCRATCH/before.txt"`; `uptime` (a load over ~10 makes every timing in this task suspect — ORIENTATION §4); `open -a Docker` if it is not running; `make up`; the four gate numbers (`make doctor`, `make verify`, `pnpm test` once, `pnpm test:docker` in the background) against *Read this first* 15. **A different number is signal**: find out what moved before measuring anything else. *(M14.)*
+- [x] **Step 0: The machine, before anything.** `./scripts/snapshot-machine.sh > "$SCRATCH/before.txt"`; `uptime` (a load over ~10 makes every timing in this task suspect — ORIENTATION §4); `open -a Docker` if it is not running; `make up`; the four gate numbers (`make doctor`, `make verify`, `pnpm test` once, `pnpm test:docker` in the background) against *Read this first* 15. **A different number is signal**: find out what moved before measuring anything else. *(M14.)*
 
-- [ ] **Step 1: A container's output, at size — `[M1]`.** Start `docker run -d --name manifest-probe-output <the blueprint's node base image, from infra/images.lock> node -e '<print 5000 numbered lines to stdout and stderr alternately, then one line of 1,048,576 "x", then "last line" with NO trailing newline, then sleep 600>'`. Drive `containerLogs` from a scratch script under Node 24's type stripping (the `packages/github-fake` resolve hook, `--import`ed, resolves the repository's `./x.js` specifiers) with `tail` 200, 1000 and `'all'`: record **wall time, bytes received, and the process's peak RSS** (`process.memoryUsage().rss` sampled every 10 ms). **Predict**: `tail: 200` answers the last 200 lines including the megabyte line whole (≈1 MB held), `'last line'` arrives (the partial-line flush), and `'all'` holds ≈1.1 MB. **Record the RSS with the megabyte line in the window** — it is the number Decision 2's per-line cut exists to cap. `docker rm -f manifest-probe-output`.
+- [x] **Step 1: A container's output, at size — `[M1]`.** Start `docker run -d --name manifest-probe-output <the blueprint's node base image, from infra/images.lock> node -e '<print 5000 numbered lines to stdout and stderr alternately, then one line of 1,048,576 "x", then "last line" with NO trailing newline, then sleep 600>'`. Drive `containerLogs` from a scratch script under Node 24's type stripping (the `packages/github-fake` resolve hook, `--import`ed, resolves the repository's `./x.js` specifiers) with `tail` 200, 1000 and `'all'`: record **wall time, bytes received, and the process's peak RSS** (`process.memoryUsage().rss` sampled every 10 ms). **Predict**: `tail: 200` answers the last 200 lines including the megabyte line whole (≈1 MB held), `'last line'` arrives (the partial-line flush), and `'all'` holds ≈1.1 MB. **Record the RSS with the megabyte line in the window** — it is the number Decision 2's per-line cut exists to cap. `docker rm -f manifest-probe-output`.
 
-- [ ] **Step 2: Docker's timestamps — `[M2]`.** The same container, `GET /containers/<id>/logs?stdout=1&stderr=1&tail=5&timestamps=1` through `EngineClient.stream`, the raw frames hex-dumped. **Predict**: each LOG ENTRY's payload begins `2026-…T…Z ` (RFC 3339 with nanoseconds, then one space), stdout and stderr each stamped, and **a line split across two writes carries two stamps** (record exactly what a partial line looks like, because `demux` joins partials). Record the prefix's exact regex, and whether `Date.parse` reads nine fractional digits (predict: no — it reads three; Task 2 truncates before parsing).
+- [x] **Step 2: Docker's timestamps — `[M2]`.** The same container, `GET /containers/<id>/logs?stdout=1&stderr=1&tail=5&timestamps=1` through `EngineClient.stream`, the raw frames hex-dumped. **Predict**: each LOG ENTRY's payload begins `2026-…T…Z ` (RFC 3339 with nanoseconds, then one space), stdout and stderr each stamped, and **a line split across two writes carries two stamps** (record exactly what a partial line looks like, because `demux` joins partials). Record the prefix's exact regex, and whether `Date.parse` reads nine fractional digits (predict: no — it reads three; Task 2 truncates before parsing).
 
-- [ ] **Step 3: Two assertion-consumer URLs on one SP, and an AuthnRequest naming the second — `[M3]`.** In a scratch script, register a PROBE SP (`entityId …/sp/probe-origins/platform`) with **`sso/testing.ts`'s `withRegisteredSp(row, fn)`** — which removes the row when `fn` ends, whatever happens — its row from `renderSpMetadata` with `AssertionConsumerService` hand-extended to two entries: index 0 `https://console.manifest.internal/auth/saml/callback`, index 1 `https://app.manifest.internal/auth/saml/callback`. Build two `@node-saml/node-saml` clients (5.1.0, the control plane's) with the two `callbackUrl`s (**read `startSamlSp` in the same file** — it may already take one), and drive each one's sign-in with **`idpLogin`** (`sso/testing.ts:415`) as `student`, recording where the IdP posted. **Predict**: the IdP posts to the ACS the request named — index 1 for the second client — and an AuthnRequest naming a THIRD URL (`https://evil.manifest.internal/…`) is refused at the IdP with no login form (§9's D15, in the IdP's own words — record them). `withRegisteredSp` removes the probe. **If SimpleSAMLphp ignores `AssertionConsumerServiceURL` and posts to index 0, Decision 17 falls, and sitting 6 is re-cut with Rich before it starts** — the fallback is two SP entities (Spec action 2's option (b)).
+- [x] **Step 3: Two assertion-consumer URLs on one SP, and an AuthnRequest naming the second — `[M3]`.** In a scratch script, register a PROBE SP (`entityId …/sp/probe-origins/platform`) with **`sso/testing.ts`'s `withRegisteredSp(row, fn)`** — which removes the row when `fn` ends, whatever happens — its row from `renderSpMetadata` with `AssertionConsumerService` hand-extended to two entries: index 0 `https://console.manifest.internal/auth/saml/callback`, index 1 `https://app.manifest.internal/auth/saml/callback`. Build two `@node-saml/node-saml` clients (5.1.0, the control plane's) with the two `callbackUrl`s (**read `startSamlSp` in the same file** — it may already take one), and drive each one's sign-in with **`idpLogin`** (`sso/testing.ts:415`) as `student`, recording where the IdP posted. **Predict**: the IdP posts to the ACS the request named — index 1 for the second client — and an AuthnRequest naming a THIRD URL (`https://evil.manifest.internal/…`) is refused at the IdP with no login form (§9's D15, in the IdP's own words — record them). `withRegisteredSp` removes the probe. **If SimpleSAMLphp ignores `AssertionConsumerServiceURL` and posts to index 0, Decision 17 falls, and sitting 6 is re-cut with Rich before it starts** — the fallback is two SP entities (Spec action 2's option (b)).
 
-- [ ] **Step 4: `app.manifest.internal` today — `[M4]`.** From the host: `dig +short app.manifest.internal` (predict `127.0.0.3`), `curl -sS --cacert infra/ca/manifest-root.crt https://app.manifest.internal/v1/me -D -` (predict **`manifest OK host=app.manifest.internal … listener=public`**, a `200` — the wildcard). From inside a container on `manifest-platform` (`docker run --rm --network manifest-platform <a curl-capable image from images.lock> …`): predict an empty `200` from srv0. **Record both bodies**; Task 8's `make verify` check asserts the body, never the status.
+- [x] **Step 4: `app.manifest.internal` today — `[M4]`.** From the host: `dig +short app.manifest.internal` (predict `127.0.0.3`), `curl -sS --cacert infra/ca/manifest-root.crt https://app.manifest.internal/v1/me -D -` (predict **`manifest OK host=app.manifest.internal … listener=public`**, a `200` — the wildcard). From inside a container on `manifest-platform` (`docker run --rm --network manifest-platform <a curl-capable image from images.lock> …`): predict an empty `200` from srv0. **Record both bodies**; Task 8's `make verify` check asserts the body, never the status.
 
-- [ ] **Step 5: A logout's `RelayState`, and which SLO URL the IdP answers — `[M5]`.** With the probe SP of Step 3 given TWO `SingleLogoutService` entries (console's, then app's), sign `student` in through the SECOND client, then send that client's `getLogoutUrl` with `RelayState=https://app.manifest.internal`. **Predict**: the IdP's `LogoutResponse` goes to the FIRST entry of the binding, carrying the `RelayState` back unchanged. Record the destination and the `RelayState` as received. Decision 18 rests on both halves.
+- [x] **Step 5: A logout's `RelayState`, and which SLO URL the IdP answers — `[M5]`.** With the probe SP of Step 3 given TWO `SingleLogoutService` entries (console's, then app's), sign `student` in through the SECOND client, then send that client's `getLogoutUrl` with `RelayState=https://app.manifest.internal`. **Predict**: the IdP's `LogoutResponse` goes to the FIRST entry of the binding, carrying the `RelayState` back unchanged. Record the destination and the `RelayState` as received. Decision 18 rests on both halves.
 
-- [ ] **Step 6: The redactor over an app's own output — `[M6]`.** Feed `makeRedactor([<a MONGODB_URI as injection renders it>, <an LLM_API_KEY shape>, <a SAMPLE_SECRETS value>])` these lines, and record which survive: the URI printed whole; the URI's password alone; `Authorization: Bearer sk-…`; a JWT; a 40-character hex string (a commit id — predict **kept**, the entropy rule excludes hex); a UUID (predict **kept**); a password of 8 lowercase letters that is NOT in the secret set (predict **kept** — the residual §14 names). Record the list; Task 2's Docker case asserts the first three, and the misses go into the guide's *What redaction does not catch* (Task 14).
+- [x] **Step 6: The redactor over an app's own output — `[M6]`.** Feed `makeRedactor([<a MONGODB_URI as injection renders it>, <an LLM_API_KEY shape>, <a SAMPLE_SECRETS value>])` these lines, and record which survive: the URI printed whole; the URI's password alone; `Authorization: Bearer sk-…`; a JWT; a 40-character hex string (a commit id — predict **kept**, the entropy rule excludes hex); a UUID (predict **kept**); a password of 8 lowercase letters that is NOT in the secret set (predict **kept** — the residual §14 names). Record the list; Task 2's Docker case asserts the first three, and the misses go into the guide's *What redaction does not catch* (Task 14).
 
-- [ ] **Step 7: LiteLLM 1.98.0's agent-key mechanics — `[M7]`.** Against the running proxy with the master key (`ai/testing.ts`), as user `probe-agent-person` created with `/user/new` (`max_budget: 0.05`, `budget_duration: '1mo'`, `auto_create_key: false`):
+- [x] **Step 7: LiteLLM 1.98.0's agent-key mechanics — `[M7]`.** Against the running proxy with the master key (`ai/testing.ts`), as user `probe-agent-person` created with `/user/new` (`max_budget: 0.05`, `budget_duration: '1mo'`, `auto_create_key: false`):
   (a) `/key/generate` with `key_alias: 'probe-agent-1'`, `duration: '60s'`, `max_budget: 0.00001`, `models: ['default-chat']`, the frozen `allowed_routes` — call `/v1/chat/completions` with it once (the synthetic cost is `0.000001`/token in, `0.000003` out); **predict the SECOND call is refused `budget_exceeded`** once spend is recorded (record how long that takes — `verify.sh:482-499` waits for spend);
   (b) a second key with `duration: '5s'` — **predict refused after 5 s**, and record the status and the body's shape (§14: LiteLLM's bodies are never surfaced; the platform maps them);
   (c) `/key/delete` with `{ key_aliases: ['probe-agent-1'] }` — **predict it deletes by alias** (1.98.0's field name is the thing to confirm — `{ keys }` is what `ai/keys.ts:240` sends);
@@ -562,21 +562,21 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
   (e) a key with `models: ['default-chat-onprem']` calling `default-chat` — predict `401`/`403` (record which).
   Delete the probe user and its keys. **If (c) does not delete by alias, Decision 20 stores the key's hashed token instead** (LiteLLM's `token` from `/key/info`), and Task 9 says so.
 
-- [ ] **Step 8: A person's spend, as LiteLLM reports it — `[M8]`.** For the probe user of Step 7, `/user/info?user_id=probe-agent-person` before and after (a): record the field that holds the month's spend (predict `user_info.spend`), how long it lags the call, and what `/key/info` says for one key's spend. **Record the lag** — Task 10's `getAgentBudget` caches for 10 s, and the demo waits for spend the way `verify.sh` does.
+- [x] **Step 8: A person's spend, as LiteLLM reports it — `[M8]`.** For the probe user of Step 7, `/user/info?user_id=probe-agent-person` before and after (a): record the field that holds the month's spend (predict `user_info.spend`), how long it lags the call, and what `/key/info` says for one key's spend. **Record the lag** — Task 10's `getAgentBudget` caches for 10 s, and the demo waits for spend the way `verify.sh` does.
 
-- [ ] **Step 9: A service's data surviving an archive — `[M9]`.** With the Docker engine client in a scratch script: `createServiceContainer` a Mongo service named for a probe slug (`manifest-probe-archive-db`, NOT `mf-…`), insert a document, `destroyServiceContainer(engine, name, { deleteData: false })`, then create it again with the same name and the same `-data` volume — **predict the document is still there**. Then `{ deleteData: true }` and predict the volume gone (`docker volume ls`). Remove everything. Task 11's restore and Task 12's delete rest on the two halves.
+- [x] **Step 9: A service's data surviving an archive — `[M9]`.** With the Docker engine client in a scratch script: `createServiceContainer` a Mongo service named for a probe slug (`manifest-probe-archive-db`, NOT `mf-…`), insert a document, `destroyServiceContainer(engine, name, { deleteData: false })`, then create it again with the same name and the same `-data` volume — **predict the document is still there**. Then `{ deleteData: true }` and predict the volume gone (`docker volume ls`). Remove everything. Task 11's restore and Task 12's delete rest on the two halves.
 
-- [ ] **Step 10: The local IdP and `uid` — `[M10]`.** Read `infra/idp/config/authsources.php`'s three users and SimpleSAMLphp's per-SP attribute release (the `attributes` list `renderSpMetadata` writes). **Record, do not change**, how a test user's attribute is added and what `make up` must do to re-read the file (ORIENTATION §3: *"`make up` does not re-bind the IdP's single-file config mounts"*) — Task 7 changes it, and needs the restart command in hand.
+- [x] **Step 10: The local IdP and `uid` — `[M10]`.** Read `infra/idp/config/authsources.php`'s three users and SimpleSAMLphp's per-SP attribute release (the `attributes` list `renderSpMetadata` writes). **Record, do not change**, how a test user's attribute is added and what `make up` must do to re-read the file (ORIENTATION §3: *"`make up` does not re-bind the IdP's single-file config mounts"*) — Task 7 changes it, and needs the restart command in hand.
 
-- [ ] **Step 11: Bytes through the write path, and the scans that would meet them — `[M11]`.** Collect twenty real files of the ten media types of Decision 9 from this Mac (`/System/Library/…` and `/Library/…` — PNG, JPEG, GIF, PDF, TTF/OTF; a WebP, an ICO and a WOFF/WOFF2 generated with `sips`/`python3` if none is on disk) into `$SCRATCH/binaries`, **none of them committed**. For each: its first 16 bytes (predict each matches Decision 9's table); `printableRuns(bytes, 16)` through `scanText` — **predict ZERO findings across all twenty** (a false positive here refuses a legitimate logo; record every finding with its rule, and if any fires, Task 4 raises the minimum run or excludes that rule for binary content, and says why); and the build gate's own read (`build/gates.ts`'s UTF-8 decode + `scanText`) — record its findings, which already happen today on a person's push. Then `buildCommit` one PNG through a scratch bare repository and compare the blob id with `git hash-object` of the file (predict **equal**).
+- [x] **Step 11: Bytes through the write path, and the scans that would meet them — `[M11]`.** Collect twenty real files of the ten media types of Decision 9 from this Mac (`/System/Library/…` and `/Library/…` — PNG, JPEG, GIF, PDF, TTF/OTF; a WebP, an ICO and a WOFF/WOFF2 generated with `sips`/`python3` if none is on disk) into `$SCRATCH/binaries`, **none of them committed**. For each: its first 16 bytes (predict each matches Decision 9's table); `printableRuns(bytes, 16)` through `scanText` — **predict ZERO findings across all twenty** (a false positive here refuses a legitimate logo; record every finding with its rule, and if any fires, Task 4 raises the minimum run or excludes that rule for binary content, and says why); and the build gate's own read (`build/gates.ts`'s UTF-8 decode + `scanText`) — record its findings, which already happen today on a person's push. Then `buildCommit` one PNG through a scratch bare repository and compare the blob id with `git hash-object` of the file (predict **equal**).
 
-- [ ] **Step 12: A 200,000-file tree — `[M12]`.** In a scratch bare repository, commit 200,000 small files across 2,000 directories. Time, three runs each: `git diff --numstat <empty tree> HEAD` (today's `binaryPaths`); the same with `--pathspec-from-file` naming the first 10,000 paths by sort order (Decision 12); and `git diff-tree -r --no-renames --name-status` of a commit that added all 200,000 (what `getCommit` reads). **Predict** the whole-tree numstat takes seconds and the pathspec form under 0.5 s; record whether `--pathspec-from-file` takes 10,000 lines on git 2.50.1.
+- [x] **Step 12: A 200,000-file tree — `[M12]`.** In a scratch bare repository, commit 200,000 small files across 2,000 directories. Time, three runs each: `git diff --numstat <empty tree> HEAD` (today's `binaryPaths`); the same with `--pathspec-from-file` naming the first 10,000 paths by sort order (Decision 12); and `git diff-tree -r --no-renames --name-status` of a commit that added all 200,000 (what `getCommit` reads). **Predict** the whole-tree numstat takes seconds and the pathspec form under 0.5 s; record whether `--pathspec-from-file` takes 10,000 lines on git 2.50.1.
 
-- [ ] **Step 13: A switched-off route — `[M15]`.** Through the Caddy admin API on a scratch hostname `probe-switched-off.staging.manifest.internal`: `putRoute` a route with `@id` = `routeIdFor(hostname)` whose handler is `{ handler: 'static_response', status_code: 410, body: '…' }`; `curl` it (predict **410** and the body); then `applyRoute` a `reverse_proxy` route for the same hostname to a probe container — **predict it REPLACES the static one under the same `@id`** (one route, not two, for the hostname — `GET /id/<routeId>`); `removeRoute`. Decision 29 rests on it.
+- [x] **Step 13: A switched-off route — `[M15]`.** Through the Caddy admin API on a scratch hostname `probe-switched-off.staging.manifest.internal`: `putRoute` a route with `@id` = `routeIdFor(hostname)` whose handler is `{ handler: 'static_response', status_code: 410, body: '…' }`; `curl` it (predict **410** and the body); then `applyRoute` a `reverse_proxy` route for the same hostname to a probe container — **predict it REPLACES the static one under the same `@id`** (one route, not two, for the hostname — `GET /id/<routeId>`); `removeRoute`. Decision 29 rests on it.
 
-- [ ] **Step 14: Predictions for the plan's own seams — `[M13]`.** Write down, before sitting 2 starts: **which task first moves `openapi.json`** (predicted: **Task 3** — Task 2 changes nothing published); **the contract's version after this plan** (predicted **`1.4.0`**, taken once); **which existing tests Task 2's `LogLine.stamped` breaks** (predicted: every hand-built `LogLine` — `grep -rn "stream: 'stdout'" src/ | grep -v docker/logs.ts` counted now); **which rows of `api/authz-contract.ts` Task 11's move of `token-incapable` to `quota:set` changes** (predicted: **none** — no route asserts `quota:set`, so every row still answers that actor `403`). A wrong prediction is a finding.
+- [x] **Step 14: Predictions for the plan's own seams — `[M13]`.** Write down, before sitting 2 starts: **which task first moves `openapi.json`** (predicted: **Task 3** — Task 2 changes nothing published); **the contract's version after this plan** (predicted **`1.4.0`**, taken once); **which existing tests Task 2's `LogLine.stamped` breaks** (predicted: every hand-built `LogLine` — `grep -rn "stream: 'stdout'" src/ | grep -v docker/logs.ts` counted now); **which rows of `api/authz-contract.ts` Task 11's move of `token-incapable` to `quota:set` changes** (predicted: **none** — no route asserts `quota:set`, so every row still answers that actor `403`). A wrong prediction is a finding.
 
-- [ ] **Step 15: The record, and the machine.** Write `README.md`; correct every task a measurement contradicts with a dated `[M<n>]` block at its head; `diff` a fresh snapshot against `before.txt` (no probe container, SP row, LiteLLM user, route or scratch repository left). Commit:
+- [x] **Step 15: The record, and the machine.** Write `README.md`; correct every task a measurement contradicts with a dated `[M<n>]` block at its head; `diff` a fresh snapshot against `before.txt` (no probe container, SP row, LiteLLM user, route or scratch repository left). Commit:
   ```bash
   git add docs/superpowers/spikes/frontend-baseline/README.md docs/superpowers/spikes/frontend-baseline/results-task1-<date>.txt docs/superpowers/spikes/frontend-baseline/probes/<each probe, by name> docs/superpowers/plans/2026-09-27-front-end-enablement.md
   git commit -m "docs(frontend): Task 1 — the measurements the front-end enablement plan rests on"
@@ -585,6 +585,42 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 ---
 
 ## Task 2: One reader for an app's recent output — bounded per line and in all, stamped by Docker, shared with the Incident, redacted by the same rules
+
+> **[M1] [M2] [M6] [M13] — MEASURED 2026-09-27 BY TASK 1 ([`spikes/frontend-baseline/`](../spikes/frontend-baseline/README.md)). Five corrections; the task's deliverable and sitting are unchanged.**
+>
+> 1. **Docker's `tail` counts `json-file` LOG ENTRIES of at most 16 KiB, not lines.** A 1 MiB line is 64 entries plus a 65th
+>    holding its `\n`; `tail: 200` over a window holding one answered **136** lines and `tail: 1000` answered **936**. So Step
+>    4's `tail: bounds.lines + 1` does NOT make `truncated.lines` known. Count the ENTRIES (frames) `demux` received; when they
+>    equal the `tail` asked for, set `truncated.lines` and **drop the OLDEST line, which may be a fragment of a longer one** — a
+>    tail can begin inside a long line (`tail: 2` began with `""`, the megabyte line's lone `\n`). `lines` is then *at most*,
+>    and Task 14's guide says why. Whether to ask Docker for a larger tail and window it is this task's call; a read measured
+>    25–33 ms and +15 MiB RSS with a megabyte line in the window.
+> 2. **The stamp is per ENTRY, not per line.** Each 16 KiB chunk of a long line is its own frame carrying its own (identical)
+>    `2026-09-27T09:02:57.196447669Z ` prefix, and the line's `\n` arrives as a 32-byte frame of stamp, space, `\n`. So
+>    `stampOf` runs on EACH FRAME's payload before it joins `partial` — Step 2's parse *"on `\n`"* would leave 63 stamps
+>    inside the megabyte line (past a 4 KiB cut, but counted in `cutBytes`, and in the text wherever `lineBytes` is absent).
+>    Measured prefix: RFC 3339, UTC, nine fractional digits, one space — accept one to nine. **`Date.parse` reads nine digits**
+>    to the millisecond, so Step 2's truncation before parsing is harmless rather than needed.
+> 3. **An unterminated last line is not in Docker's log while the process runs.** It is written when the process EXITS, stamped
+>    with the exit time (M1: `last line` never arrived in three reads; M2: it appeared after `docker stop`, stamped 27 s after it
+>    was printed). **So Step 6's Docker case cannot hold as written for a running container** — *"exactly 50 lines, the megabyte
+>    line cut with `cutBytes: 1_044_480`, … `last` present"*: `tail: 50` lands INSIDE the megabyte line's 65 entries, a stamped
+>    long line's `cutBytes` counts its embedded stamps unless (2) is done, and `last` appears only after exit. Rewrite it from
+>    these facts: a fixture whose long line is followed by more than `tail` short lines (the window starts clean); a second case
+>    with the long line inside the window (its fragment dropped, `truncated.lines` true); `last` read after the container
+>    exits. `demux`'s own partial flush stays right for what Docker delivers.
+> 4. **The redaction case's set is the platform's own** — `deps.appSecrets.secretValues`, as Step 6 already says, and that
+>    matters: the set holds `service:<name>:password`, never the URI (`services/credentials.ts:72`), so an app printing its
+>    `MONGODB_URI` reads `mongodb://<user>:[REDACTED]@<host>:27017/<db>?authSource=admin` — the password redacted by its exact
+>    match, the user and host kept. A set built from the URI alone leaves the password printed ALONE unredacted (measured). With
+>    the real set, all fourteen of M6's lines matched their predictions; the residual is another app's 64-hex secret and an
+>    8-letter password, both kept — Task 14's *What redaction does not catch*.
+> 5. *(M13)* **18 hand-built lines in 13 files** (`grep -rn "stream: 'std\(out\|err\)'"` under `src/`, `docker/logs.ts` excluded);
+>    only the `LogLine`-typed ones break under a required `stamped` — `observability/`'s `BuildLogLine` is structural, and the
+>    build log's representation maps `stream`/`text`/`at` explicitly, so this task still publishes nothing. **App containers'
+>    `json-file` logs have no `max-size`** (`HostConfig.LogConfig` is `{json-file map[]}`): an app's log grows without bound on
+>    disk. A read stays cheap (Docker tails from the end); the growth is out of this plan's scope and is recorded here so it is
+>    not lost.
 
 **No spec action is needed**: §14's bounded read was applied on 2026-09-26 (`1d42c80`). This task builds the reader and nothing a client can call; Task 3 is its caller.
 
@@ -825,6 +861,16 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Task 4: Binary files — a write's `encoding`, ten media types, text refused as bytes, printable runs scanned; `getFile`'s `encoding`
 
+> **[M11] — MEASURED 2026-09-27 BY TASK 1.** Decision 9's table, Decision 8's rule and Decision 10's minimum of 16 STAND,
+> measured over 23 real files: every genuine file of the ten types was recognised by its first bytes; one named `.gif` is none
+> of them (`file(1)`: *data*) and two named `.jpg` are PNGs — **the bytes decide and the extension is not consulted**, so a PNG
+> named `.jpg` is accepted as a PNG (say so in Task 14's guide rather than refusing it). None would be refused as text;
+> printable runs through `scanText`, and the build gate's own read, found **nothing** in any of the 23. **The write path's byte
+> step is byte-safe** — `hash-object -w --no-filters --stdin-paths` over a numbered file gives `git hash-object`'s blob
+> (`d4f639d…` for an 18,403-byte PNG) — **and `planChanges` is not**: today's `buildCommit`, given the PNG as a string, wrote a
+> **33,360-byte** blob (`plumbing.ts:132`, `Buffer.from(content, 'utf8')` over U+FFFD). `Change` must carry the decoded BYTES to
+> `planChanges`; a `content` string cannot.
+
 **No spec action**: no spec text says *text only* — that was a plan decision (the authoring API's Decision 4), and Rich's list of 2026-09-27 reverses it (*Decided by Rich*). **If Rich strikes binary files in his morning review, this task is dropped whole**; Task 15's logo becomes an SVG (text), and nothing else moves.
 
 **Files:**
@@ -926,6 +972,16 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Task 5: What the authoring API hands over — `express.urlencoded` in the knowledge pack, the seed commit's wording, and the review's six minors
 
+> **[M12] — MEASURED 2026-09-27 BY TASK 1. `git diff` DOES NOT TAKE `--pathspec-from-file`** on git 2.50.1: it prints its usage
+> and exits **129** (the option belongs to `add`, `checkout`, `commit`, `reset`, `restore`, `rm` and `stash`). Decision 12's
+> LIMIT stands and its MECHANISM changes: pass the listed paths as **literal pathspec arguments** after `--`, with
+> `GIT_LITERAL_PATHSPECS=1` (a path holding `*` is otherwise a glob), in chunks under `ARG_MAX` (1,048,576 here; the probe's
+> 10,000 paths of 15 bytes went in two `xargs -0` invocations). Measured on 200,000 files in 2,000 directories: whole-tree
+> numstat **0.46 s**; the first 10,000 as arguments **0.17 s**; `getCommit`'s read of a commit adding all 200,000 **0.21 s** —
+> and that read is `git diff … -z --name-status` (`reading.ts:294`), not `diff-tree`. The saving is modest at this file size;
+> numstat also reads every text blob to count its lines, so the whole-tree cost grows with blob size, which the probe's tiny
+> files did not exercise.
+
 **No spec action.** Each item is its source's own remedy; the record is the authoring API plan's sitting 10 (`2026-09-25-authoring-api.md`, *Sitting 10*), which reads first.
 
 **Files:**
@@ -1016,6 +1072,16 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Task 7: People by CWL login name or email — `uid` asked for and kept, `AddMemberRequest`'s three keys, `member.added` and `member.removed`
 
+> **[M10] — READ 2026-09-27 BY TASK 1 (nothing changed).** The three test users are `'user:pass' => [friendly names]` in
+> `manifest-test-users` (`exampleauth:UserPass`): add `'uid' => ['student']` (and `instructor`, `operator`) beside
+> `ubcEduCwlPuid`. **The platform's row must list `uid` in its `attributes`** — `core:AttributeLimit` at priority 50 drops what
+> the row does not name — and `core:AttributeMap name2oid` at 60 already maps `uid` to `urn:oid:0.9.2342.19200300.100.1.1`,
+> which is `ATTRIBUTE_OIDS.uid`. **`authsources.php` is a SINGLE-FILE bind mount**: an in-place edit reaches the IdP at once (it
+> reads config per request); a replacing save — `git checkout`, an editor's atomic save — strands it and the IdP runs with no
+> config (TRAPS.md:766). After the edit: `docker restart manifest-idp`, then compare `shasum -a 256
+> infra/idp/config/authsources.php` with `docker exec manifest-idp sha256sum /var/simplesamlphp/config/authsources.php` (they
+> agreed, `a81214db…`, on 2026-09-27), then `make verify`.
+
 **SPEC ACTION 4 MUST BE DECIDED BEFORE THIS TASK STARTS.** The steps build option (a) — **CWL login name or email**. **If Rich chooses (b), email only**, Steps 1–2 and the `cwlLogin` key are dropped; **if (c), CWL login only**, the `email` key is dropped. The events and the `puid` key are built either way.
 
 **Files:**
@@ -1069,6 +1135,22 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 ---
 
 ## Task 8: The `app` origin — a list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP, one ACS per origin; the edge's site
+
+> **[M3] [M4] [M5] — MEASURED 2026-09-27 BY TASK 1. `[M3]` HELD**: with one row listing two assertion-consumer URLs, an
+> AuthnRequest from the platform's own `createSamlSp` naming index 1 was answered at index 1 — the form's `action`, the
+> response's `Destination` and its `Recipient` all `https://app.manifest.internal/auth/saml/callback`. **Decision 17 stands, and
+> Spec action 2's option (b) is not needed as a fallback. But an AuthnRequest naming a URL the row does NOT list is NOT
+> refused**: the IdP shows its login form, authenticates, and posts to the DEFAULT endpoint — index 0, the console's — and logs
+> nothing about it. That is fail-safe (the assertion never goes to the unlisted URL), and it changes what a control asserts:
+> *"answered at the console's ACS, never at the one named"*, not *"refused at the IdP"*. It also means a row that lacks `app.`'s
+> ACS still completes a sign-in begun on `app` — on the console's ACS, where `manifest_login` is absent, so
+> `SAML_LOGIN_NOT_BOUND` (*Read this first* 1) is what a missed re-registration looks like. **`[M5]` HELD**: a logout begun by
+> the second client with `RelayState=https://app.manifest.internal` was answered at the FIRST `SingleLogoutService` (the
+> console's `/auth/logout`), `RelayState` unchanged, the response signed — Decision 18 as written. **`[M4]`**: exactly as *Read
+> this first* 2 says (`127.0.0.3`; `manifest OK host=app.manifest.internal scheme=https remote=10.89.0.1 listener=public`; an
+> empty `200` from a container, which resolves the name to the edge at `10.89.0.10`; nothing on 7105) — but **`dig +short`
+> answers NOTHING on macOS**, because it bypasses `/etc/resolver`: a host-side check uses `dscacheutil -q host -a name …` or
+> curl, never `dig`.
 
 **SPEC ACTION 2 MUST BE DECIDED BEFORE THIS TASK STARTS.** The steps build its recommended option (a). **`[M3]` must have held**: if SimpleSAMLphp posted to index 0 whatever the request named, this task is re-cut with Rich before sitting 6 (the fallback is option (b), two SP entities).
 
@@ -1149,6 +1231,18 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Task 9: Agent keys, the LiteLLM half — a person's monthly budget, a session's key with a cap, a life and D17's models, ended by its alias; spend read; the orphan script taught
 
+> **[M7] [M8] — MEASURED 2026-09-27 BY TASK 1 against the running LiteLLM.** Every mechanism Decision 21 rests on works, and
+> these are the answers Task 10 maps (§14: LiteLLM's bodies are never surfaced — **they echo a key's last four characters and
+> its hash**). A key's `max_budget` refuses the SECOND call **immediately** — 0.3 s after the first, in memory, no batch lag —
+> `429`, `error.type: 'budget_exceeded'`, *"Budget has been exceeded! Key=<alias> …"*. The USER's `max_budget` binds under a key
+> whose own cap is higher: `429 budget_exceeded`, *"ExceededBudget: User=<id> over budget …"* — the same type, told apart only by
+> the message. A key past its `duration`: `401 expired_key`. `/key/delete { key_aliases: [alias] }` answers
+> `200 { deleted_keys: [alias] }`, and the key then answers `401 token_not_found_in_db` — **Decision 20's alias holds; no stored
+> token hash is needed**. A model outside the key's list: `403 key_model_access_denied`. **An empty `models` list reached
+> `default-chat-onprem-reasoning`** — *Read this first* 5, measured, so Decision 23's refusal before minting is load-bearing.
+> `/user/new` with `auto_create_key: false` made no key. Spend: `/user/info`'s `user_info.spend` (and its `keys[].spend`;
+> `/key/info`'s `info.spend`), **3–6 s after the call** (3.1 s and 6.2 s on two runs); `budget_reset_at` is the first of next month, 00:00 UTC.
+
 **SPEC ACTION 1 MUST BE DECIDED BEFORE THIS TASK STARTS.** The steps build its recommended option (a) for the models. **If Rich chooses (b), an administrator's agent catalogue**, `agentModelsFor` reads that catalogue instead of D17's ranks, and a setting holds it (`MANIFEST_AGENT_MODELS`, comma-separated logical names); **if (c), on-premise only**, it answers the entries whose `max_classification` is `confidential` whatever the project says. Nothing else in this task moves. **`[M7]` and `[M8]` must have held** — a key's `duration` and `max_budget` refused on 1.98.0, deletion by alias, and the spend field's name; each correction is a `[M<n>]` block here.
 
 **Files:**
@@ -1223,6 +1317,11 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 ---
 
 ## Task 10: Agent sessions over the API — `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`, `agent:session`; a revoked token ends its sessions
+
+> **[M7] [M8] — MEASURED 2026-09-27 BY TASK 1; the codes and the lag are in Task 9's block.** `getAgentBudget`'s 10 s cache is longer
+> than the 3–6 s spend lag measured on two runs — so a read straight after a call may still show the spend before it. A key refused for the SESSION's cap and one refused for the PERSON's month both arrive as
+> `429 budget_exceeded`, told apart only by LiteLLM's message — so a mapping that must say which reads the numbers it set (the
+> session's cap, the month's spend), never the body.
 
 **SPEC ACTION 1 MUST BE DECIDED BEFORE THIS TASK STARTS** (as Task 9). If Rich declines it outright, Tasks 9 and 10 are dropped, and Task 15's agent phase with them.
 
@@ -1363,6 +1462,19 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 ---
 
 ## Task 11: Archive and restore — `projects.state`, a teardown that is idempotent and finished at boot, a switched-off page on every name, person-only with step-up
+
+> **[M9] [M15] — MEASURED 2026-09-27 BY TASK 1; both halves as Decisions 28 and 29 assume.** `destroyServiceContainer({ deleteData:
+> false })` kept `-data`, and a container re-created on it found the document; `{ deleteData: true }` removed the volume; no
+> anonymous volume leaked. **The re-created Mongo reached its data only because it was given the SAME root credentials** —
+> `MONGODB_INITDB_ROOT_*` are ignored on an existing data directory — so a restore depends on the `service:*:password` rows archive
+> keeps (Task 12's delete removes both together, which is consistent). A `static_response` 410 under `routeIdFor(hostname)`
+> answered the page; `applyRoute` then replaced it IN PLACE (one route under the `@id` before and after); `patchRoute` put the
+> 410 back in place (archive's direction — `applySwitchedOffRoute` over a live route); `removeRoute` returned the name to the
+> wildcard's `manifest OK`. **A 410 route has no upstream** — `servingRoute` answers `undefined` for it, and `upstreamsInUse`,
+> which the Docker driver's `INSTANCE_SERVING` refusal reads (`runtime/docker/driver.ts:608-619`), no longer holds the
+> instance's address — so once a name is switched off its instances can be retired, which is the order Step 3 relies on; and
+> `retireEnvironment`'s *"nothing serves, do nothing"* is exactly why the archive must not go through it (Step 3 already says
+> so).
 
 **SPEC ACTION 3 MUST BE DECIDED BEFORE THIS TASK STARTS.** The steps build its recommended option (a). **If Rich chooses (b), archive only**, this task is unchanged and Task 12 is dropped. **If (c), delete for launched projects too**, this task is unchanged and Task 12 loses its launched refusal (and gains a retention step Rich must specify). **If he wants a token to be able to ASK to archive** (D24's pending action rather than person-only), `project:delete` moves from `PERSON_ONLY` to `PRIVILEGED`, the routes drop `credential: 'session'`, and the matrix's token rows read `403 TOKEN_ACTION_PENDING`.
 
@@ -1808,4 +1920,108 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 awk '/^### Sitting N —/,/^### Sitting N\+1 —/' docs/superpowers/plans/2026-09-27-front-end-enablement.md | grep -cE '^[[:space:]]*([0-9]+\. )?\*\*F[0-9]+ '
 ```
 
-*Nothing yet: no sitting has run.*
+### Sitting 1 — 2026-09-27: Task 1, the measurements
+
+**RUN AT RICH'S DIRECT INSTRUCTION, BEFORE HIS REVIEW OF THIS PLAN.** Going to bed, he asked a second session to watch the
+plan-writer and, once the plan was committed, to execute its sitting 1. So this sitting ran with the plan's review and its
+sittings split still open (ORIENTATION §7e and §8) — which Task 1 permits, because it builds nothing and its measurements are
+what the review can use. **Nothing under `packages/` changed.** The record is
+[`spikes/frontend-baseline/README.md`](../spikes/frontend-baseline/README.md) (a table of all fifteen measurements, with what each
+confirmed or corrected), its raw output `results-task1-2026-09-27.txt`, and the probes in `probes/`; the corrections are the
+dated `[M<n>]` blocks at the heads of Tasks 2, 4, 5, 7, 8, 9, 10 and 11.
+
+**The split stands.** The one measurement that could have re-cut it — `[M3]`, whether SimpleSAMLphp honours an AuthnRequest's
+`AssertionConsumerServiceURL` for index 1 — HELD, so Decision 17 stands and Spec action 2's option (b) is not needed as a
+fallback. `[M12]` removes Decision 12's mechanism, not its task; `[M1]`/`[M2]` change how Task 2 reads Docker's stream, not what
+it delivers or when. **Approving the split is still Rich's.**
+
+**Rulings.**
+- **`pnpm test:docker` not run.** Step 0 names it; the sittings table says it is not owed, and Rich's LEAN rule (ORIENTATION §8)
+  runs it only when an owing path changes. It would also have restarted the edge and re-registered the platform's SP row under
+  the `[M3]`/`[M5]`/`[M15]` probes. *Cost if wrong:* the 210/35 number is carried from 2026-09-26, unre-measured.
+- **`pnpm test` once, at open** (Step 0's *"the four gate numbers"*, and §7e's *"runs the four gate numbers once"*). The code tree
+  at close is the tree it ran on — this sitting changed only files under `docs/`.
+- **Step 7 ran with two deliberate departures, both so one mechanism could not read as another**: key (a) lived 300 s rather
+  than 60 s, so a budget refusal could not be an expiry; and (d) used a second probe user with a $0.00001 budget, because crossing
+  $0.05 on the local model is thousands of tokens.
+- **Step 9 reproduced `createServiceContainer`'s request under a probe name** rather than calling it, because it names the
+  container `mf-…` and Task 1 forbids that; the platform's own `destroyServiceContainer` did both halves.
+- **Step 12 timed what `getCommit` runs** (`git diff … --name-status`, `reading.ts:294`), not the `diff-tree` the step names.
+
+**Findings** (each with the measurement that found it; the README has the numbers):
+
+1. **F1 Docker's `tail` counts `json-file` entries of at most 16 KiB, not lines** (M1). With a 1 MiB line in the window, `tail:
+   200` answered 136 lines and `tail: 1000` answered 936 — the line is 64 entries plus one for its `\n`. Task 2 Step 4's `tail:
+   lines + 1` therefore does not make `truncated.lines` known; `[M1]` says what does.
+2. **F2 The timestamp is per ENTRY** (M2): every 16 KiB chunk of a long line is a frame with its own identical stamp, and the
+   line's `\n` is a frame of stamp, space and `\n`. Task 2 Step 2's `stampOf` *"on `\n`"* would leave 63 stamps inside the line.
+3. **F3 An unterminated last line is withheld while the process runs** (M1, M2). The plan predicted it arrives (*"the partial-line
+   flush"*); it never did in three reads, and appeared after `docker stop`, stamped with the exit time, 27 s after it was printed.
+4. **F4 Task 2 Step 6's Docker case cannot hold as written** — *"exactly 50 lines, the megabyte line cut with `cutBytes:
+   1_044_480`, … `last` present"*: `tail: 50` lands inside the long line's 65 entries, a stamped long line's `cutBytes` counts
+   its embedded stamps unless F2 is fixed, and `last` exists only after exit (F1–F3). `[M1]` item 3 says how to rewrite it.
+5. **F5 `Date.parse` reads nine fractional digits** (M2) — predicted three. Harmless: Step 2's truncation is unneeded, not wrong.
+6. **F6 An AuthnRequest naming an assertion-consumer URL the row does not list is NOT refused** (M3) — predicted *"refused at the
+   IdP with no login form"*. SimpleSAMLphp shows the form, authenticates, and posts to the DEFAULT endpoint (index 0, the
+   console's), and logs nothing about it in either log. Fail-safe, but Task 8's control asserts the fallback, not a refusal.
+7. **F7 `dig +short` answers nothing for `*.manifest.internal` on macOS** (M4) — Step 4's own command. `dig` bypasses
+   `/etc/resolver`; `dscacheutil -q host -a name app.manifest.internal` answers `127.0.0.3`.
+8. **F8 The set the plan named for M6 is not the set the platform builds** (M6). With the URI whole in the set, the password
+   printed ALONE survives; the platform's set holds `service:<name>:password` (`services/credentials.ts:72`), under which all
+   fourteen lines matched and the URI reads `mongodb://<user>:[REDACTED]@…`.
+9. **F9 Today's `buildCommit` is not byte-safe end to end** (M11): given an 18,403-byte PNG as its `content` string it wrote a
+   33,360-byte blob. Step 11 predicted equal blob ids; only the byte STEP (`hash-object --stdin-paths` over a numbered file) is
+   equal. *Read this first* 11 named `plumbing.ts:132` as the one text step, and this is it measured — `Change` must carry bytes.
+10. **F10 Real files lie about their type** (M11): of the files named for the ten types on this Mac, one `.gif` is no image at all
+    (`file(1)`: *data*) and every `idleassetsd` "`.jpg`" is a PNG. Decision 9 recognises by bytes and never consults the
+    extension — right, and the guide must say that a PNG named `.jpg` is accepted as a PNG.
+11. **F11 `git diff` has no `--pathspec-from-file`** (M12): exit 129, its usage. Decision 12's mechanism does not exist; literal
+    pathspec ARGUMENTS in chunks under `ARG_MAX` do the same job (0.17 s for 10,000 of 200,000).
+12. **F12 The whole-tree numstat is 0.46 s at 200,000 files, not "seconds"** (M12). Decision 12 saves 0.29 s at this file size;
+    its case rests on blob size (numstat reads every text blob), which the probe did not exercise.
+13. **F13 `getCommit` reads with `git diff --name-status`, not `diff-tree`** (M12; `reading.ts:294`) — Step 12's wording.
+14. **F14 LiteLLM's refusal bodies echo a key's last four characters and its hash** (M7), and a session-cap refusal and a
+    month's-budget refusal are the SAME `429 budget_exceeded`, told apart only by the message. Task 10's mapping surfaces neither
+    body and reads the numbers it set, not the text (`[M7]`).
+15. **F15 A restore depends on the SAME root credentials** (M9): Mongo ignores `MONGODB_INITDB_ROOT_*` on an existing data
+    directory, so the re-created service reached its data only because the probe gave it the same ones. Archive keeps the
+    `service:*:password` rows; the plan assumed this without saying it.
+16. **F16 App containers' `json-file` logs have no `max-size`** (M1's context: `HostConfig.LogConfig` is `{json-file map[]}`), so an
+    app's log grows without bound on disk. Out of this plan's scope; recorded in Task 2's `[M1]` block so it is not lost.
+17. **F17 Step 0 names `pnpm test:docker` while the sittings table says it is not owed** — a contradiction inside the plan,
+    ruled above.
+18. **F18 A probe defect that would have broken Decision 18.** M5's second run parsed the IdP's final redirect from a hop string
+    cut at 160 characters for display, and read `RelayState` and the signature as ABSENT — a result that, believed, fails
+    Decision 18 and sends Task 8 back to Rich. The IdP's own access log showed `RelayState` on the request, and the parse was of a
+    cut string; the third run parses the full URL and reads `RelayState` unchanged and the response signed.
+19. **F19 A probe defect that would have CONFIRMED Decision 12.** M12's first pathspec timing read 0.033–0.039 s — under the
+    plan's 0.5 s prediction — and was the time `git diff` takes to print its usage. It was caught only because the probe printed
+    its record count (0 where 10,000 belonged). *Assert the shape of the answer, not that one arrived* — CLAUDE.md's rule, paid for
+    again.
+
+**The negative controls** — a measurement sitting's are its probes' own negatives, and each answered with its own code:
+`[M3]`'s unlisted URL (the IdP does not echo whatever it is asked — it fell back to index 0); `[M7]`'s expired key (`401
+expired_key`), deleted key (`401 token_not_found_in_db`), wrong model (`403 key_model_access_denied`) and the user's budget (`429`,
+*"User=… over budget"*) — with (f), the empty list reaching every model, as the positive control that makes (e)'s refusal the
+list's doing; `[M9]`'s `deleteData: true` as the negative of `false`; `[M15]`'s `removeRoute` returning the wildcard's `manifest OK`,
+which is what shows the 410 was the route's doing; `[M11]`'s `a.gif`, the table's negative; `[M4]`'s `console.` resolving to
+`127.0.0.2` as the resolver's positive control; `[M6]`'s two sets, each the other's control. **Two measurements would have read
+wrongly and did not ship** — F18 and F19 — both caught by checking the answer's shape.
+
+**Gates at close** (the code tree is the one `pnpm test` ran on): `make doctor` **20/0/0**, `make verify` **57/0/0** (both at open);
+`pnpm test` **2330 passed in 162 files**, 474.5 s, once; `pnpm typecheck` and `pnpm format:check` clean; **`pnpm lint` RED on two
+files that are not this sitting's** — `docs/superpowers/design/admin/components.js:52` (`'e' is defined but never used`) and
+`console.js:735` (`'plain' is defined but never used`), the design session's console mockup (`312ce2d`, `e1712d8`), committed after
+the authoring API's last green close; no session that owns them is running, so they are Rich's to hand on, and this sitting's own
+paths lint clean (`pnpm exec eslint docs/superpowers/spikes/frontend-baseline/`). `pnpm test:docker` not run (the ruling above).
+
+**The machine at close, queried** (`psql`, `docker`, `lsof`, `curl`): the control database EMPTY — 0 projects, 0 events, 0 secrets,
+**33 migrations**; `launch-app`'s six `mf-launch-app-*` containers running with no rows behind them, untouched; nothing listening on
+7100, 7102, 7104, 7105, 7110 or 8765; the GitHub fake absent; **the chat model unloaded** (the `[M7]` probe warmed it; it was
+unloaded at close with `keep_alive: 0`); no probe row in the IdP's `saml20_sp_remote`; no `probe-agent-*` user or key in LiteLLM;
+no probe container, volume or route. The three cleanup scripts, bare: `none dead`, 0 orphaned, 0 dead app images — nothing to
+`--apply`. The snapshot diff shows only uptime and this sitting's two dirty paths. `docker-simple-saml-saml-idp-1` is exited, as it
+was at open (three weeks).
+
+**Next: Rich's review of the plan and his approval of the split — then sitting 2 (Tasks 2 and 3)**, whose `[M1] [M2] [M6] [M13]`
+block rewrites Task 2's tail rule, its per-frame stamp and its Step 6 Docker case before any code is written.
