@@ -60,6 +60,16 @@ export function Code({
     head !== base &&
     !tree.loading &&
     !history.loading
+  // RELOADING MAIN RE-READS BOTH (sitting 10's F3, found by clicking): the tree alone moved the
+  // base past the history's newest commit — a person's `git push` on the local driver sends no
+  // frame, so nothing re-read the history — and the banner above then said `main` had moved to
+  // the OLDER commit, and said it again after every Reload. The note of this screen's own last
+  // commit goes with it: after a reload it is history, which the list below shows.
+  const reloadMain = () => {
+    setCommitted(undefined)
+    tree.reload()
+    history.reload()
+  }
 
   return (
     <>
@@ -84,7 +94,7 @@ export function Code({
               <code>{head.slice(0, 12)}</code>) — reload to see the latest, and make your
               change again.
             </p>
-            <button type="button" onClick={() => tree.reload()}>
+            <button type="button" onClick={reloadMain}>
               Reload main — this discards the edits below
             </button>
           </div>
@@ -95,7 +105,7 @@ export function Code({
             api={api}
             projectId={projectId}
             tree={tree.value}
-            onReload={() => tree.reload()}
+            onReload={reloadMain}
             onCommitted={(outcome) => {
               setCommitted(outcome)
               setGeneration((g) => g + 1)
