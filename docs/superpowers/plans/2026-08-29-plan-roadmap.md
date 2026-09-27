@@ -92,6 +92,21 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
+### Spec action raised by the interface design brief — ✅ APPROVED BY RICH AND APPLIED 2026-09-27
+
+**§26's *Scope*, one paragraph** ([the brief's §13](./2026-09-19-interface-design-brief.md), which carries the
+wording). Raised 2026-09-19, when Rich decided that both the faculty product and the admin console get real design
+effort; applied 2026-09-27 at the opening of the admin console's design session (*"Apply the spec action, and go live
+with admin-ui"*). *"Rudimentary and deliberately so… not a product surface, and it inherits `console/`'s quality bar"*
+became a paragraph saying the console shares the faculty product's vocabulary, shows its reader the infrastructure C3
+hides, and does **not** inherit `console/`'s plain bar — which stays with §22, unchanged, because it is what keeps the
+reference console a reliable proof that the API is complete. D31, §26's queue table and its non-repudiation rule are
+untouched. **Shared pages checked:** `manifest-schematic.html` §10 restated the old sentence and moved with it;
+`manifest-phases.html` (*"The admin dashboard arrives, built around its queue"*), `manifest-decisions.html` (D31) and
+`manifest-stories.html` say nothing about the console's quality and did not move. **P11 is where the console is
+built** (the Phase 2 table below); its design session's first finding — that §26's non-repudiation rule is not built
+at all — is ORIENTATION §8's newest open question.
+
 ### Spec actions raised by the authoring API plan — THREE DRAFTED 2026-09-25 AND A FOURTH 2026-09-26; **2 AND 4 DECIDED (a) AND APPLIED 2026-09-26**; ⏳ 1 AND 3 RICH'S
 
 Written in [the authoring API plan's *Spec actions*](./2026-09-25-authoring-api.md), each with the current text, the proposed text and its options. **None is applied until Rich has read the words.**

@@ -78,6 +78,22 @@ const verbs = ops.reduce(
   {},
 )
 
+// COMPUTED, not written: this note said "the absence of PATCH and PUT" as a literal
+// sentence, and it went on saying so after `setAppSecret` arrived as a PUT (1.2.0).
+const edits = ops.filter((o) => o.method === 'PUT' || o.method === 'PATCH')
+const editsNote =
+  edits.length === 0
+    ? `**Note the absence of \`PATCH\` and \`PUT\`.** Nothing in this API is editable — not a
+project's name, not its audience, not a quota. That is a real constraint on what an
+"edit settings" screen could do today, and it is discussed in the brief's §7.`
+    : `**Only ${edits.length === 1 ? 'one of them edits' : `${edits.length} of them edit`} a stored thing in place** — ${edits
+        .map((o) => `\`${o.method} ${o.path}\` (\`${o.id}\`)`)
+        .join(
+          ', ',
+        )}. A project's name, its audience and a quota are still not editable, which
+is a real constraint on what an "edit settings" screen could do today. The brief's §7 was
+written when there were none.`
+
 /* ---------- the schemas ---------- */
 
 const refName = (r) => (typeof r === 'string' ? r.split('/').pop() : undefined)
@@ -153,6 +169,10 @@ const out = `# Manifest — design handover
 >
 > **Part 1 is the brief and is the part to read first.** Parts 2–6 are reference: skim them,
 > then come back when you need a specific shape or a real value.
+>
+> **Part 1 is dated; Parts 2–6 are not.** The brief was written against an earlier contract, and
+> where its prose states a count — operations, schemas, refusal codes, event types — **the
+> numbers generated below are the current ones**: ${ops.length} operations, ${Object.keys(schemas).length} schemas.
 
 ---
 
@@ -170,9 +190,7 @@ ${brief}
   .map(([m, n]) => `${n} ${m}`)
   .join(', ')}.
 
-**Note the absence of \`PATCH\` and \`PUT\`.** Nothing in this API is editable — not a
-project's name, not its audience, not a quota. That is a real constraint on what an
-"edit settings" screen could do today, and it is discussed in the brief's §7.
+${editsNote}
 
 | Area | Method | Path | Operation | What it does |
 |---|---|---|---|---|

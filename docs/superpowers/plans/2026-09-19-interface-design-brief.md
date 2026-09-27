@@ -6,10 +6,10 @@ products**; §12 says whether to give them to one agent or two. Read §11 before
 visual — it names a constraint that may decide your whole direction.*
 
 > **ONE THING TO KNOW UP FRONT.** Rich decided on 2026-09-19 that **both** surfaces get real
-> design effort. The spec currently says the admin console is *"rudimentary and deliberately
-> so… not a product surface"* (§26, *Scope*). **That one paragraph needs a spec action, proposed
-> in §13 and not yet applied.** Nothing else in the spec contradicts this brief, and §22's
-> reference console is deliberately unaffected — see §2.
+> design effort. The spec used to say the admin console is *"rudimentary and deliberately
+> so… not a product surface"* (§26, *Scope*). **§13's spec action changed that one paragraph —
+> approved by Rich and applied 2026-09-27.** Nothing else in the spec contradicts this brief, and
+> §22's reference console is deliberately unaffected — see §2.
 
 ---
 
@@ -296,9 +296,23 @@ it rather than inventing a second dialect.
 
 ---
 
-## 13. Spec action — PROPOSED, NOT APPLIED
+## 13. Spec action — ✅ APPROVED BY RICH AND APPLIED 2026-09-27
 
-**One paragraph.** §26's *Scope* currently reads:
+**Applied in this wording**, drafted by the admin console's design session from the intent below
+(this section had stated the intent and no replacement text):
+
+> *"An operations tool for the team running the platform: a queue, tables, filters, and the
+> actions the API exposes, on the same public API as every other client (D31). It is designed with
+> the same care as the faculty product and shares its vocabulary — the same states, and the same
+> way of naming who a wait belongs to — while showing its reader exactly the infrastructure detail
+> C3 keeps from a faculty member. It does **not** inherit `console/`'s deliberately plain quality
+> bar: that bar is what keeps the reference console a reliable proof that the API is complete
+> (§22), and it stays there."*
+
+`manifest-schematic.html` §10 restated the old sentence (*"deliberately plain: tables, filters, and
+a queue"*) and moved with it; the other three shared pages do not describe the console's quality.
+
+**One paragraph.** §26's *Scope* read, until then:
 
 > *"Rudimentary and deliberately so: tables, filters, a queue, and the actions the API already
 > exposes. It is an operations tool for the team running the platform, not a product surface, and
@@ -313,4 +327,5 @@ reference console's deliberately-plain quality bar.
 API is complete, and the moment it becomes a product surface it stops being a reliable instrument.
 **§26's D31 framing, its queue table and its non-repudiation rule are unchanged too.**
 
-**Do not apply this without Rich's explicit approval.** It is in ORIENTATION §8.
+Rich approved it on 2026-09-27 (*"Apply the spec action"*); ORIENTATION §8 records it under
+*Decided*.

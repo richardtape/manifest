@@ -12,7 +12,7 @@ and the scratchpad had already been lost once. That is the gap this directory cl
 | **The design system** — the normative thing | [`system/`](./system), and live at <https://claude.ai/code/artifact/004ccdad-637d-4a42-b116-6976a386207d> |
 | **The prototype** — seventeen screens | [`prototype/`](./prototype), and live at <https://claude.ai/code/artifact/1df61167-fdf0-41bc-acbe-e60c12f51060> |
 | **Why any of it is the way it is** | [`../2026-09-19-faculty-interface-design-rationale.md`](../2026-09-19-faculty-interface-design-rationale.md) |
-| **What the API can actually do** | [`../design-handover.md`](../design-handover.md) — 34 operations, 52 schemas, the fixtures |
+| **What the API can actually do** | [`../design-handover.md`](../design-handover.md) — every operation, schema, refusal code and event type, and the fixtures. **Generated** from the contract (`node scripts/design-handover.mjs`); this design was drawn against its 2026-09-19 edition — 34 operations, 52 schemas — and its header states today's counts |
 
 ---
 

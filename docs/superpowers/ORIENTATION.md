@@ -144,7 +144,9 @@ each sitting left them, dated, and they deliberately do not move.
 - **§8's open questions.**
 
 **The spec is current, with no open follow-up.** Every spec change has been applied only after Rich approved it —
-**most recently §7's two edits for the per-user AI budget, applied 2026-09-26** (the authoring API plan's Spec action 4,
+**most recently §26's *Scope*, applied 2026-09-27** (the interface design brief's §13: the admin console gets real
+design effort and no longer inherits `console/`'s plain bar; §8, *Decided*), before it the authoring API plan's Spec
+actions 1 and 3 (2026-09-26, `1d42c80`), and before those §7's two edits for the per-user AI budget, applied 2026-09-26 (the authoring API plan's Spec action 4,
 option (a), as worded: the schema line says it is validated and not enforced before Phase 4, and §7's *Validation* list
 refuses it above the project's AI quota and warns that it binds no one; §8, *Decided*), before them §20's and D24's three
 edits for who may set an app secret's value (the same day; Spec action 2, option (a)), before those §19's row for the production GitHub organisation (2026-09-25,
@@ -1648,17 +1650,20 @@ reasoning is recorded.**
   Manifest's own commits, which is exactly what makes the plan's control (e) a `SOURCE_GIT_FAILED` rather than a secret
   committed. *The alternative:* driver 1 FETCHES its own commits into the bare repository (a fetch runs no hook), so
   only a person's push meets the hook — faster, and one layer thinner. One function changes either way.
-- **Does the ADMIN CONSOLE get real design effort? — the spec says no, Rich says yes. RAISED
-  2026-09-19.** §26's *Scope* reads *"Rudimentary and deliberately so… an operations tool for the
-  team running the platform, **not a product surface**, and it inherits `console/`'s quality bar
-  (§22) for the same reason."* Rich decided on 2026-09-19 that **both** the faculty product and
-  the admin console get designed properly, which that sentence forbids. **One paragraph changes**,
-  and the proposal keeps everything true about its purpose — an operations tool, on the same
-  public API (D31), built around the queue — removing only the inherited plain-quality bar.
-  **§22 is deliberately NOT changed**: the reference console stays plain, because it is the proof
-  that the API is complete and it stops being a reliable instrument the moment it becomes a
-  product surface. §26's queue table and its non-repudiation rule are unchanged. The full
-  proposal is [the interface design brief's §13](plans/2026-09-19-interface-design-brief.md).
+- **§26'S NON-REPUDIATION RULE IS NOT BUILT — how urgent is it? RAISED 2026-09-27 by the admin
+  console's design session.** §26: *"An admin action taken on another person's project additionally
+  requires a reason string, which is stored with the audit entry and shown to the project owner in
+  their event stream."* Read from the code that day: `PLATFORM_ADMIN` holds every owner capability
+  on every project (`projects/authz.ts`), so an administrator can deploy, add a member, commit, set a
+  secret or confirm another person's agent's question on any project; **no operation requires an
+  administrator's reason** (`approveRelease`'s is optional, the two launch records and
+  `confirmPendingAction` take none); and **`EventFrame` has no actor**, because `audit.events` has
+  no actor column (`db/schema.ts` deferred it to "P4b or P5", and neither added it). So nothing tells
+  an owner that an administrator acted, or why. It is live today through the API and the reference
+  console, not only a gap the admin console will meet. *Recommended:* the console designs the reason
+  exactly as §26 says and reports the shape it needs; the rule itself becomes a hardening item that
+  lands **before** `admin-ui` is anything but a prototype against the mock. The console's design
+  document carries the proposed shape (its finding A1).
 - **Should app containers run with an init (`Init: true`)? — RAISED 2026-09-16 (P5a sitting 2).** An app's PID 1 is
   its own `node`, which never reaps the orphans it adopts, so a process an app starts that leaves children behind
   turns them into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the container's life —
@@ -1695,6 +1700,13 @@ reasoning is recorded.**
 
 ### Decided
 
+- **THE ADMIN CONSOLE GETS REAL DESIGN EFFORT — §26's *Scope* CHANGED** (Rich, 2026-09-27: *"Apply the spec
+  action, and go live with admin-ui"*). The paragraph that called it *"rudimentary… not a product surface"* now
+  says it shares the faculty product's vocabulary, shows its reader the infrastructure C3 hides, and does not
+  inherit `console/`'s plain bar — which stays with §22, unchanged. Wording and sweep:
+  [the interface design brief's §13](plans/2026-09-19-interface-design-brief.md). **And the console's prototype is
+  LIVE** — `packages/admin-ui`, driven against `manifest-mock` through `@manifest/contract` — rather than static
+  pages like the faculty prototype.
 - **HOW SCALAR ARRIVES — OPTION (a): THE NETWORK, FOR THAT ONE ADD, IN THE AUTHORING API PLAN'S SITTING 8** (Rich,
   2026-09-26, after its sitting 7, taking the recommendation). Sitting 7 measured `pnpm --filter @manifest/console add
   --offline @scalar/api-reference@1.72.0` refused by pnpm 11's supply-chain check in a scratch copy of the workspace, so

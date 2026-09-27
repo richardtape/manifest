@@ -2691,9 +2691,14 @@ where that is discharged.
 
 ### Scope
 
-Rudimentary and deliberately so: tables, filters, a queue, and the actions the API
-already exposes. It is an operations tool for the team running the platform, not a
-product surface, and it inherits `console/`'s quality bar (§22) for the same reason.
+An operations tool for the team running the platform: a queue, tables, filters, and
+the actions the API exposes, on the same public API as every other client (D31). It is
+designed with the same care as the faculty product and shares its vocabulary — the
+same states, and the same way of naming who a wait belongs to — while showing its
+reader exactly the infrastructure detail C3 keeps from a faculty member. It does
+**not** inherit `console/`'s deliberately plain quality bar: that bar is what keeps
+the reference console a reliable proof that the API is complete (§22), and it stays
+there.
 
 ---
 
