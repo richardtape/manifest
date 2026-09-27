@@ -204,6 +204,20 @@ function inflateLogoutMessage(value: string, kind: string): string {
 }
 
 /**
+ * THE MESSAGE node-saml's `validateRedirectAsync` WILL READ, bounded before it does. It reads
+ * `SAMLRequest` whenever one is present, else `SAMLResponse` (5.1.0, `lib/saml.js:647`) — so
+ * bounding only the message this code meant to read left the other to node-saml, unbounded: a
+ * small LogoutResponse beside an 8 MiB LogoutRequest held the control plane 1.7 s (sitting 4's
+ * whole-branch review, C1). Both logout paths call this, immediately before node-saml.
+ */
+function requireBoundedMessage(query: Record<string, unknown>): void {
+  const key = query.SAMLRequest ? 'SAMLRequest' : 'SAMLResponse'
+  const value = query[key]
+  if (typeof value !== 'string') throw new Error(`the ${key} is not one value`)
+  inflateLogoutMessage(value, key === 'SAMLRequest' ? 'LogoutRequest' : 'LogoutResponse')
+}
+
+/**
  * Whether a LogoutResponse's XML answers a request: some `<…LogoutResponse` opening carries a
  * non-empty `InResponseTo` before its tag ends. **Read once** (`[S3]`'s class): as one expression,
  * `<LogoutResponse\b[^>]*\bInResponseTo="[^"]+"`, it read to a tag's end again from every opening
@@ -359,10 +373,7 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
       let profile
       try {
         requireRedirectSignature(query)
-        // Bounded BEFORE node-saml, which inflates with no bound (`LOGOUT_MESSAGE_BYTES`).
-        if (typeof query.SAMLRequest === 'string') {
-          inflateLogoutMessage(query.SAMLRequest, 'LogoutRequest')
-        }
+        requireBoundedMessage(query)
         ;({ profile } = await saml.validateRedirectAsync(
           query as Parameters<typeof saml.validateRedirectAsync>[0],
           originalQuery,
@@ -418,7 +429,14 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
         if (typeof query.SAMLResponse !== 'string') {
           throw new Error('no SAMLResponse to check')
         }
+        // One message or the other: node-saml would read a SAMLRequest in its place (C1).
+        if (query.SAMLRequest !== undefined) {
+          throw new Error(
+            'the message carries a SAMLRequest beside its SAMLResponse — a logout message is one or the other',
+          )
+        }
         requireInResponseTo(query.SAMLResponse)
+        requireBoundedMessage(query)
         const { loggedOut } = await saml.validateRedirectAsync(
           query as Parameters<typeof saml.validateRedirectAsync>[0],
           originalQuery,

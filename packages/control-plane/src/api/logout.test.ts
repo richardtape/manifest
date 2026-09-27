@@ -1,5 +1,5 @@
 import { deflateRawSync } from 'node:zlib'
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetDatabase } from '../db/testing.js'
 import { verifySession } from '../identity/index.js'
 import {
@@ -395,6 +395,35 @@ describe('a logout message is inflated only so far, before anything reads it ([S
     encodeURIComponent(deflateRawSync(Buffer.from(xml)).toString('base64'))
   const filler = '<x/>'.repeat(2 * 1024 * 1024) // 8 MiB
 
+  const small = `<samlp:LogoutResponse InResponseTo="_x"></samlp:LogoutResponse>`
+
+  /**
+   * The request, answered and TIMED, with the operator line that says why — the refusal's CODE
+   * is the same whatever refused it, so the line is what tells the bound from node-saml giving
+   * up after parsing 8 MiB (the sitting's review, I1).
+   */
+  async function refused(query: string) {
+    expect(query.length).toBeLessThan(16 * 1024) // Node's own limit lets it through
+    const said: string[] = []
+    const spy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      said.push(args.map(String).join(' '))
+    })
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    try {
+      const started = performance.now()
+      const res = await app.inject({ method: 'GET', url: `/auth/logout?${query}` })
+      const ms = performance.now() - started
+      expect(res.statusCode, res.body).toBe(400)
+      expect(code(res)).toBe('SAML_LOGOUT_REJECTED')
+      expect(ms, `${Math.round(ms)} ms`).toBeLessThan(1000)
+      return said.filter((line) => line.includes('single logout refused'))
+    } finally {
+      spy.mockRestore()
+      await app.close()
+    }
+  }
+
   it.each([
     [
       'a LogoutRequest',
@@ -407,19 +436,18 @@ describe('a logout message is inflated only so far, before anything reads it ([S
       `<samlp:LogoutResponse InResponseTo="_x">${filler}</samlp:LogoutResponse>`,
     ],
   ])(
-    'refuses %s that inflates to 8 MiB, unauthenticated, in well under a second',
+    'refuses %s that inflates to 8 MiB, unauthenticated, in well under a second — by its bound',
     async (_name, key, xml) => {
-      const query = `${key}=${deflated(xml)}&${SIGNED}`
-      expect(query.length).toBeLessThan(16 * 1024) // Node's own limit lets it through
-      const deps = await testDeps()
-      const app = await buildServer(deps)
-      const started = performance.now()
-      const res = await app.inject({ method: 'GET', url: `/auth/logout?${query}` })
-      const ms = performance.now() - started
-      expect(res.statusCode, res.body).toBe(400)
-      expect(code(res)).toBe('SAML_LOGOUT_REJECTED')
-      expect(ms, `${Math.round(ms)} ms`).toBeLessThan(1000)
-      await app.close()
+      const lines = await refused(`${key}=${deflated(xml)}&${SIGNED}`)
+      expect(lines.join('\n')).toMatch(/inflates past 64 KiB/)
     },
   )
+
+  it('refuses a SAMLResponse carrying a SAMLRequest beside it — node-saml reads the REQUEST, and would inflate it unbounded (the review, C1)', async () => {
+    const bomb = `<samlp:LogoutRequest ID="_x">${filler}</samlp:LogoutRequest>`
+    const lines = await refused(
+      `SAMLResponse=${deflated(small)}&SAMLRequest=${deflated(bomb)}&${SIGNED}`,
+    )
+    expect(lines.join('\n')).toMatch(/SAMLRequest beside/)
+  })
 })
