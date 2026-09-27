@@ -205,7 +205,7 @@ export function Warnings({
 }) {
   if (warnings.length === 0) return null
   return (
-    <ul className="reasons">
+    <ul className="reasons warnings">
       {warnings.map((w, i) => (
         <li key={i}>
           <Pill tone="plain">warning</Pill> <code>{w.path}</code> {w.message}

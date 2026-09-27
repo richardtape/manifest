@@ -192,6 +192,12 @@ button:disabled {
   margin: 0.3rem 0;
 }
 
+/* A validation's WARNINGS (Spec action 4) are not refusals: the manifest is valid, so they must
+   not wear the refusal's colour — found clicking the Manifest panel against the mock. */
+.reasons.warnings li {
+  border-left-color: var(--quiet);
+}
+
 /* D25's knowledge pack: file bodies, so they wrap rather than stretching the one column. */
 .pack pre {
   white-space: pre-wrap;
