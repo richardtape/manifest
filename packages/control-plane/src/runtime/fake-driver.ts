@@ -12,6 +12,7 @@ import type {
   LogLine,
   LogOpts,
   RetireOpts,
+  RuntimeLogLine,
   ServiceBinding,
   ServiceHandle,
   SnapshotRef,
@@ -51,6 +52,29 @@ export type FakeDriver = Driver & {
   holdRequest(hostname: string, ms: number): Promise<{ ok: boolean }>
   /** Forgets every route, as restarting the edge does. */
   dropRoutes(): void
+  /**
+   * Test affordance: the instance prints these lines, after whatever it printed before —
+   * a string is a stdout line printed now. On the fake alone, never on `Driver`.
+   */
+  seedLogs(
+    id: string,
+    lines: ReadonlyArray<
+      string | { text: string; stream?: 'stdout' | 'stderr'; at?: Date }
+    >,
+  ): void
+}
+
+/** A line cut to `max` UTF-8 bytes on a character boundary, as a real driver cuts it. */
+function cutTo(
+  text: string,
+  max: number | undefined,
+): { text: string; cutBytes: number } {
+  if (max === undefined) return { text, cutBytes: 0 }
+  const bytes = Buffer.from(text, 'utf8')
+  if (bytes.length <= max) return { text, cutBytes: 0 }
+  let end = max
+  while (end > 0 && (bytes[end]! & 0xc0) === 0x80) end -= 1
+  return { text: bytes.subarray(0, end).toString('utf8'), cutBytes: bytes.length - end }
 }
 
 export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
@@ -264,11 +288,28 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
       return { id, state: instance.state, healthy: instance.state === 'healthy' }
     },
 
-    async *logs(id: string, opts: LogOpts): AsyncIterable<LogLine> {
+    async *logs(id: string, opts: LogOpts): AsyncIterable<RuntimeLogLine> {
       const instance = instances.get(id)
       if (!instance) return
       const lines = opts.tail ? instance.logs.slice(-opts.tail) : instance.logs
-      for (const line of lines) yield line
+      // Every line is its own record, stamped when it was printed.
+      for (const line of lines)
+        yield { ...line, ...cutTo(line.text, opts.lineBytes), stamped: true, entries: 1 }
+    },
+
+    seedLogs(id, lines) {
+      const instance = instances.get(id)
+      if (!instance) throw new Error(`fake driver: no instance '${id}' to print`)
+      for (const line of lines)
+        instance.logs.push(
+          typeof line === 'string'
+            ? { at: new Date(), stream: 'stdout', text: line }
+            : {
+                at: line.at ?? new Date(),
+                stream: line.stream ?? 'stdout',
+                text: line.text,
+              },
+        )
     },
 
     exec(id: string, cmd: string[], _opts: ExecOpts): ExecStream {

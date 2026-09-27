@@ -1958,6 +1958,9 @@ describe('waiting for health', () => {
             at: new Date(),
             stream: 'stderr' as const,
             text: `boot failed; env SESSION_SECRET=${sessionSecret}`,
+            stamped: false,
+            cutBytes: 0,
+            entries: 1,
           }
         },
       }

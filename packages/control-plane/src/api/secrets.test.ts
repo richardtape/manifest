@@ -559,6 +559,9 @@ describe('a deploy renders what is set, and refuses what is declared and not set
           at: new Date(),
           stream: 'stderr' as const,
           text: `boot failed; ${NAME}=${VALUE}`,
+          stamped: false,
+          cutBytes: 0,
+          entries: 1,
         }
       })
       const deployed = await deployCommit(ctx, commitSha, ctx.stagingEnvironmentId)

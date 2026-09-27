@@ -31,6 +31,17 @@ export {
   type StoredBuildLogLine,
 } from './build-logs.js'
 export {
+  OUTPUT_DEFAULTS,
+  OUTPUT_MAX_LINES,
+  OUTPUT_REDACTION_MARGIN,
+  readRecentOutput,
+  type OutputBounds,
+  type OutputLine,
+  type OutputSource,
+  type OutputSourceLine,
+  type RecentOutput,
+} from './output.js'
+export {
   INCIDENT_LOG_LINES,
   captureIncident,
   incidentPrompt,

@@ -66,6 +66,14 @@ export interface DriverContractFixtures {
    * block is skipped WITH THE REASON IN ITS NAME rather than silently passing.
    */
   continuity?: ContinuityFixtures
+  /**
+   * Makes a running instance print one line to its own stdout, as the app would, and
+   * resolves once `logs` can read it (the front-end enablement plan's Task 2). An app prints
+   * what it likes, so the suite cannot make one print twice without the driver's help: the
+   * fake seeds its log, a real driver runs a command inside the instance. Supplying it
+   * ENABLES *honours tail*; without it that case is SKIPPED with the reason in its name.
+   */
+  printLine?: (driver: Driver, handleId: string, text: string) => Promise<void>
 }
 
 export interface ContinuityFixtures {
@@ -279,6 +287,27 @@ export function describeDriverContract(
       expect(lines[0]).toHaveProperty('stream')
       expect(lines[0]).toHaveProperty('text')
     })
+
+    const printLine = fixtures.printLine
+    ;(printLine === undefined ? it.skip : it)(
+      printLine === undefined
+        ? 'honours tail — SKIPPED: this driver supplies no printLine fixture'
+        : 'honours tail: the last N lines, in order',
+      async () => {
+        const driver = await factory()
+        const handle = await driver.ensureInstance(spec())
+        await printLine!(driver, handle.id, 'contract-tail-first')
+        await printLine!(driver, handle.id, 'contract-tail-last')
+        const read = async (tail: number): Promise<string[]> => {
+          const texts: string[] = []
+          for await (const line of driver.logs(handle.id, { tail })) texts.push(line.text)
+          return texts
+        }
+        // The last line, and exactly one — whatever the app printed at boot before it.
+        expect(await read(1)).toEqual(['contract-tail-last'])
+        expect(await read(2)).toEqual(['contract-tail-first', 'contract-tail-last'])
+      },
+    )
 
     it('declares its capabilities honestly and completely', async () => {
       const driver = await factory()

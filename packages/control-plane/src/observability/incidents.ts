@@ -9,6 +9,12 @@ import {
 } from '../db/index.js'
 import { describeDiff, type ResolvedConfig } from '../spec/index.js'
 import { EventError } from './events.js'
+import {
+  OUTPUT_DEFAULTS,
+  failureName,
+  readRecentOutput,
+  type OutputSource,
+} from './output.js'
 import type { Redactor } from './redact.js'
 
 /** §6's Incident, as stored — which is to say, redacted. */
@@ -22,9 +28,8 @@ export const INCIDENT_LOG_LINES = 200
  * `observability/` does not depend on `runtime/` — the reason `BuildLogLine` is
  * restated too — and a `Driver` is assignable to it.
  */
-export interface IncidentSource {
+export interface IncidentSource extends OutputSource {
   status(id: string): Promise<{ state: string; message?: string; exitCode?: number }>
-  logs(id: string, opts: { tail?: number }): AsyncIterable<{ text: string }>
 }
 
 export interface CaptureIncidentInput {
@@ -77,7 +82,7 @@ export async function captureIncident(
   }
 
   const exitReason = await describeExit(source, instance.handle)
-  const logTail = await readLogTail(source, instance.handle)
+  const logTail = await readLogTail(source, instance.handle, redact)
   const diffSinceHealthy = await diffSinceLastHealthy(db, instance)
 
   const [row] = await db
@@ -142,13 +147,7 @@ export function incidentPrompt(
 }
 
 /** A code or a class name — never a message, which can carry text the app printed. */
-function errorName(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const code = (error as { code: unknown }).code
-    if (typeof code === 'string') return code
-  }
-  return error instanceof Error ? error.name : 'unknown error'
-}
+const errorName = failureName
 
 const STILL_RUNNING = new Set(['starting', 'healthy', 'waking'])
 
@@ -170,29 +169,38 @@ async function describeExit(source: IncidentSource, handle: string): Promise<str
   return `the platform reports the instance as ${status.state}${detail}`
 }
 
-async function readLogTail(source: IncidentSource, handle: string): Promise<string> {
-  // A WINDOW, not a list: a driver that ignores `tail` must not make this hold a whole
-  // log in memory to keep its last 200 lines.
-  const window: string[] = []
-  let failure: string | undefined
-  try {
-    for await (const line of source.logs(handle, { tail: INCIDENT_LOG_LINES })) {
-      window.push(line.text)
-      if (window.length > INCIDENT_LOG_LINES) window.shift()
-    }
-  } catch (error) {
-    failure = errorName(error)
-  }
-  if (failure !== undefined) {
+/**
+ * The Incident's log tail, through THE reader of an app's output (the front-end enablement
+ * plan's Task 2) — so §14's *"redacted at read with the rules that redact `Incident.log_tail`"*
+ * is one code path, and so is the bound: a line is cut at 4 KiB and the tail holds at most
+ * 256 KiB, where both were unbounded before.
+ */
+async function readLogTail(
+  source: IncidentSource,
+  handle: string,
+  redact: Redactor,
+): Promise<string> {
+  const out = await readRecentOutput(
+    source,
+    handle,
+    {
+      lines: INCIDENT_LOG_LINES,
+      maxBytes: OUTPUT_DEFAULTS.maxBytes,
+      lineBytes: OUTPUT_DEFAULTS.lineBytes,
+    },
+    redact,
+  )
+  const texts = out.lines.map((line) => line.text)
+  if (out.failure !== null) {
     const note =
-      window.length === 0
-        ? `(the platform could not read the application's log: ${failure})`
-        : `(the platform could not read the application's log past this point: ${failure})`
-    return [...window.slice(-(INCIDENT_LOG_LINES - 1)), note].join('\n')
+      texts.length === 0
+        ? `(the platform could not read the application's log: ${out.failure})`
+        : `(the platform could not read the application's log past this point: ${out.failure})`
+    return [...texts.slice(-(INCIDENT_LOG_LINES - 1)), note].join('\n')
   }
   // The LAST lines, whatever the driver sent back. A head is what a naive limit gives
   // you, and it is the half that never contains the error.
-  return window.length === 0 ? '(the application printed nothing)' : window.join('\n')
+  return texts.length === 0 ? '(the application printed nothing)' : texts.join('\n')
 }
 
 type InstanceRow = typeof instances.$inferSelect

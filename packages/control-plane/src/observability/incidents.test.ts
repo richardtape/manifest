@@ -13,6 +13,8 @@ import { withProject } from '../db/testing.js'
 import { manifestSchema, resolveConfig } from '../spec/index.js'
 import {
   INCIDENT_LOG_LINES,
+  OUTPUT_DEFAULTS,
+  OUTPUT_REDACTION_MARGIN,
   captureIncident,
   incidentPrompt,
   listIncidents,
@@ -179,8 +181,18 @@ describe('incidents (§14)', () => {
 
       // Asked for the tail, by the handle the ROW records — and kept only the last 200
       // of the 300 the source sent anyway. A head is what a naive limit gives you, and
-      // it is the half that never contains the error.
-      expect(asked).toEqual([{ id: 'inst-1', tail: INCIDENT_LOG_LINES }])
+      // it is the half that never contains the error. Asked through THE reader of an app's
+      // output since the front-end enablement plan's Task 2: one record more than it keeps
+      // (a runtime's tail counts records, not lines), each line bounded with room to redact
+      // before the cut, and the runtime's own times.
+      expect(asked).toEqual([
+        {
+          id: 'inst-1',
+          tail: INCIDENT_LOG_LINES + 1,
+          lineBytes: OUTPUT_DEFAULTS.lineBytes + OUTPUT_REDACTION_MARGIN,
+          timestamps: true,
+        },
+      ])
       const lines = incident.logTail.split('\n')
       expect(lines).toHaveLength(200)
       expect(lines[0]).toBe('line 101')

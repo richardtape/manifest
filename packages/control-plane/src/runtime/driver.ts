@@ -234,12 +234,37 @@ export interface RetireOpts {
 
 export interface LogOpts {
   follow?: boolean
+  /** The last N lines — counted in the runtime's own log records, so a long line may be several. */
   tail?: number
+  /**
+   * Each line is cut to at most this many UTF-8 bytes AS IT IS READ, on a character boundary,
+   * so a megabyte line is never held whole (the front-end enablement plan's Decision 2).
+   * Absent: unbounded, as every caller before §14's bounded read.
+   */
+  lineBytes?: number
+  /** Ask the runtime for its own time for each line, rather than the time it was read. */
+  timestamps?: boolean
 }
 export interface LogLine {
   at: Date
   stream: 'stdout' | 'stderr'
   text: string
+}
+/**
+ * A line of a running instance's own output, as `logs` reads it. A `LogLine` — which a build's
+ * `onLog` still is — plus what a bounded read needs to say what it did.
+ */
+export interface RuntimeLogLine extends LogLine {
+  /** Whether `at` is the runtime's own time for the line, rather than when it was read. */
+  stamped: boolean
+  /** How many bytes of the line were dropped by `lineBytes`; 0 when it was whole. */
+  cutBytes: number
+  /**
+   * How many of the runtime's log records began inside this line — 1 for an ordinary line, more
+   * for one the runtime stored in pieces (Docker: 16 KiB each). Summed over a read, it is the
+   * records received, which is what `tail` counts (Task 1's M1).
+   */
+  entries: number
 }
 
 export interface ExecOpts {
@@ -342,7 +367,7 @@ export interface Driver {
   destroyInstance(id: string): Promise<void>
   destroyService(id: string, opts: { deleteData: boolean }): Promise<void>
   status(id: string): Promise<InstanceStatus>
-  logs(id: string, opts: LogOpts): AsyncIterable<LogLine>
+  logs(id: string, opts: LogOpts): AsyncIterable<RuntimeLogLine>
   exec(id: string, cmd: string[], opts: ExecOpts): ExecStream
   snapshotService(id: string): Promise<SnapshotRef>
   capabilities(): DriverCapabilities

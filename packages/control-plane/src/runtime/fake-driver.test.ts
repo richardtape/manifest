@@ -11,6 +11,9 @@ import {
 const shared = createFakeDriver()
 
 describeDriverContract('fake', () => shared, {
+  printLine: async (driver, handleId, text) => {
+    ;(driver as FakeDriver).seedLogs(handleId, [text])
+  },
   continuity: {
     neverReady: (spec) => ({ ...spec, healthPath: FAKE_NEVER_READY_PATH }),
     holdRequest: async (driver, hostname) => ({

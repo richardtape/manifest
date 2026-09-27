@@ -12,6 +12,7 @@ export type {
   InstanceStatus,
   LogLine,
   LogOpts,
+  RuntimeLogLine,
   ExecOpts,
   ExecStream,
   RetireOpts,

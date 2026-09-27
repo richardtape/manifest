@@ -32,9 +32,9 @@ import type {
   ImageRef,
   InstanceHandle,
   InstanceSpec,
-  LogLine,
   LogOpts,
   RetireOpts,
+  RuntimeLogLine,
   ServiceBinding,
   ServiceHandle,
   SnapshotRef,
@@ -760,7 +760,8 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
 
     destroyService: (id, opts) => destroyServiceContainer(engine, id, opts),
     status: (id) => instanceStatus(engine, id),
-    logs: (id, opts: LogOpts): AsyncIterable<LogLine> => containerLogs(engine, id, opts),
+    logs: (id, opts: LogOpts): AsyncIterable<RuntimeLogLine> =>
+      containerLogs(engine, id, opts),
     exec: (id, cmd, opts: ExecOpts): ExecStream => containerExec(engine, id, cmd, opts),
 
     async snapshotService(_id: string): Promise<SnapshotRef> {

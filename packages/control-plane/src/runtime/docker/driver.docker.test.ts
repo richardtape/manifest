@@ -136,6 +136,27 @@ describeDocker('Docker driver', () => {
       // §11's Redeploys, on the real driver. Until Task 5 supplied these the block was
       // SKIPPED, with the reason in its name — never silently (Decision 23).
       continuity: dockerContinuityFixtures(),
+      // The front-end enablement plan's Task 2: the fixture app prints ONE line at boot, so
+      // *honours tail* makes it print two more — written to its own stdout, PID 1's, which
+      // is the file Docker's log reads. Docker keeps a record a moment after it is written,
+      // so this waits until the line is the last one `logs` answers.
+      printLine: async (driver, handleId, text) => {
+        const run = driver.exec(
+          handleId,
+          ['sh', '-c', 'echo "$1" > /proc/1/fd/1', 'sh', text],
+          {},
+        )
+        expect(await run.exitCode).toBe(0)
+        const deadline = Date.now() + 10_000
+        for (;;) {
+          let last: string | undefined
+          for await (const line of driver.logs(handleId, { tail: 1 })) last = line.text
+          if (last === text) return
+          if (Date.now() > deadline)
+            throw new Error(`printLine: '${text}' never reached the instance's log`)
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
+      },
     },
   )
 })
