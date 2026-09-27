@@ -1466,6 +1466,13 @@ tolerable in production at all.
   among them. A connection that arrives late is replayed the project's recent events.
   **Live tailing of a running application's own output is not v1**: it would carry
   whatever the application prints, which is the hardest text to redact (below).
+  **A bounded read of an instance's recent output is — in sandbox and staging only.**
+  A project member, or a delegated token holding the capability for it, may read the
+  last lines of an instance's output — bounded in lines and in bytes, read on request
+  and never streamed — redacted at read with the rules that redact `Incident.log_tail`.
+  Sandbox and staging serve the Manifest IdP's test users and never a real person
+  (D6), which is what makes their output readable; production's is not, and its
+  Incident's `log_tail` stays the only window onto it.
 - Per-app metrics: request count, error rate, p95 latency, memory, AI spend.
   Sufficient for a faculty dashboard; not a general-purpose metrics system.
 
@@ -1601,8 +1608,8 @@ the contract and the console describe redeploys as they will be.
 | **1b — Identity, secrets & AI** | SP auto-provisioning against the metadata mechanism S2 selects, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the **`node-ts-mongo` blueprint *content*** against 1a's machinery — auth component, attribute bridge, AI wiring, knowledge pack — LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
 | **1b+ — Redeploys that do not interrupt** | §11's redeploy guarantee in the `Driver` contract and both drivers; in-place route moves verified by identity; background drain and retire of every instance that is not serving; Route records, re-applied at boot; a shared session store in `node-ts-mongo@1`. **Demo:** the proof app redeployed twice and failed once, under a request loop and a signed-in student asking questions, with no failed request. | Can an app change while people are using it? |
 | **1c — Contract & clients** | OpenAPI generation under `/v1`, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), **blueprint starters (§25)**, **reserved labels and the slug check (§23)**, `console/` with its import boundary **on one origin with the API, behind the edge (§21)**, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete? *Whether a second developer can reproduce all of it on another machine is tracked separately and is not part of 1c's acceptance (2026-09-16).* |
-| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
-| **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
+| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation, **and the authoring slice of the API — a project's files listed, read and committed, its history, and its app secrets' values, with the API's own documentation served beside it (§22)** | Is it safe, and can we get an app legitimately launched? |
+| **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project, which began against Phase 2's authoring slice, gains sandboxes, `exec` and the chat pane.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
 | **5 — UBC infra driver** | k8s or VM driver passing the contract suite; real deployment | Does it leave the laptop? |
 
@@ -2170,7 +2177,9 @@ Flexibility for the future front-end is preserved by constraints, not intentions
    CLI and CI (D24). Nothing a client needs is available only through a side
    channel — including the **agent knowledge pack**, which is served over the API
    and versioned with its blueprint (D25) so a third-party agent can learn the
-   platform's conventions without ever running inside it.
+   platform's conventions without ever running inside it — **and the API's own
+   documentation, served the same way, so that an agent learns how to drive the
+   platform from the platform**.
 
 5. **No server-held UI state.** The server owns domain state; clients own
    presentation state. Otherwise the API accretes fields like `sidebarCollapsed`
