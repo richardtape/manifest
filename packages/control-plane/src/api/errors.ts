@@ -464,7 +464,7 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
         error: {
           code: error.code,
           message: error.message,
-          hint: 'Fix the listed paths in manifest.yaml and push again.',
+          hint: 'Fix each path `details` lists in manifest.yaml, then commit or push again.',
           details: error.details,
         },
       },

@@ -848,6 +848,28 @@ export const REHEARSAL: Schemas['Rehearsal'] = {
   ranAt: '2026-09-20T00:00:00.000Z',
 }
 
+/**
+ * THE PLATFORM'S ANSWER TO A COMMIT THAT DELETES OR EMPTIES manifest.yaml, word for word (the
+ * authoring API plan's Task 11) — measured from the control plane's validator, and pinned on its
+ * side by `api/source-commit.test.ts`'s *"the envelope the mock plays"*. A change to either
+ * wording must change both. The one invalid manifest this mock can know without a validator.
+ */
+export const EMPTIED_MANIFEST: Schemas['ErrorEnvelope'] = {
+  error: {
+    code: 'SPEC_INVALID',
+    message: 'the manifest.yaml in this commit is not valid',
+    hint: 'Fix each path `details` lists in manifest.yaml, then commit or push again.',
+    details: [
+      {
+        code: 'SPEC_INVALID_VALUE',
+        path: '',
+        message: 'Expected object, received null',
+        hint: 'Check the type and permitted values of this field in §7 of the platform design.',
+      },
+    ],
+  },
+}
+
 export const FIXTURES: [string, unknown][] = [
   ['Me', ME],
   ['Me', ADMIN_ME],
@@ -899,4 +921,5 @@ export const FIXTURES: [string, unknown][] = [
   ['ApprovalPreview', APPROVAL_PREVIEW],
   ['ApprovalPreview', WITHHELD_APPROVAL_PREVIEW],
   ['ApprovalPreview', UNAVAILABLE_APPROVAL_PREVIEW],
+  ['ErrorEnvelope', EMPTIED_MANIFEST],
 ]

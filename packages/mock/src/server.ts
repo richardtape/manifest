@@ -77,6 +77,8 @@ export class MockRefusal extends Error {
     readonly code: string,
     message: string,
     readonly hint?: string,
+    /** On `SPEC_INVALID`: each problem, as the platform's envelope carries them. */
+    readonly details?: unknown[],
   ) {
     super(message)
     this.name = 'MockRefusal'
@@ -314,9 +316,44 @@ const ANSWERS: Record<string, Answerer> = {
   // nothing else of the request. The one fact the Check button exists for is that nothing was
   // written; answering it the example's commit would tell a person it had been (the reason
   // `decisionNamingAPreview` plays a rule the document states only in words).
+  //
+  // AND TWO OF THE PLATFORM'S REFUSALS, each over the one state the mock has (the plan's Task 11),
+  // so the guides' examples of handling them can run here: `main` is the tree example's commit,
+  // so a commit based on any other is `409 SOURCE_CONFLICT` — the document's own request, based
+  // on the parent, included; and a commit that deletes or empties manifest.yaml is the
+  // platform's `SPEC_INVALID`, word for word. Both checks come before the answer, dry run or not,
+  // in the platform's order: the base, then the manifest.
   createCommit: (ctx) => {
     const example = documentExample(ctx)
-    if ((ctx.body as { dryRun?: unknown } | undefined)?.dryRun !== true) return example
+    const body = ctx.body as
+      | {
+          baseCommit?: unknown
+          dryRun?: unknown
+          changes?: { op?: unknown; path?: unknown; content?: unknown }[]
+        }
+      | undefined
+    const main = treeHeadOf(ctx.document)
+    if (body?.baseCommit !== main)
+      throw new MockRefusal(
+        409,
+        'SOURCE_CONFLICT',
+        `manifest-mock's main is ${main}, the document's tree example — this commit is based on ${String(body?.baseCommit)}`,
+        'Read the tree again (getTree) and commit against the commitSha it answers.',
+      )
+    const manifest = (body.changes ?? []).find((c) => c.path === 'manifest.yaml')
+    if (
+      manifest !== undefined &&
+      (manifest.op === 'delete' ||
+        (typeof manifest.content === 'string' && manifest.content.trim() === ''))
+    )
+      throw new MockRefusal(
+        422,
+        f.EMPTIED_MANIFEST.error.code,
+        f.EMPTIED_MANIFEST.error.message,
+        f.EMPTIED_MANIFEST.error.hint,
+        f.EMPTIED_MANIFEST.error.details,
+      )
+    if (body.dryRun !== true) return example
     const outcome = example.body as { spec: Record<string, unknown> }
     return {
       ...example,
@@ -328,6 +365,20 @@ const ANSWERS: Record<string, Answerer> = {
       },
     }
   },
+}
+
+/** Where `main` is, for this mock: the commit the document's `getTree` example answers. */
+function treeHeadOf(document: Document): string {
+  const tree = document.paths['/v1/projects/{projectId}/tree']?.get?.responses?.['200']
+  const example = tree?.content?.['application/json']?.example as
+    { commitSha?: unknown } | undefined
+  if (typeof example?.commitSha !== 'string')
+    throw new MockRefusal(
+      501,
+      'INTERNAL',
+      'manifest-mock reads main from the document’s getTree example, and the document prints none',
+    )
+  return example.commitSha
 }
 
 /** The scripted answers above that answer the document's example, keyed (`documentExample`). */
@@ -441,9 +492,19 @@ export async function readDocument(): Promise<Document> {
 /** The operations the routing table above answers. `server.test.ts` compares the two. */
 export const ANSWERED = Object.keys(ANSWERS)
 
-function envelope(code: string, message: string, hint?: string): string {
+function envelope(
+  code: string,
+  message: string,
+  hint?: string,
+  details?: unknown[],
+): string {
   return JSON.stringify({
-    error: { code, message, ...(hint === undefined ? {} : { hint }) },
+    error: {
+      code,
+      message,
+      ...(hint === undefined ? {} : { hint }),
+      ...(details === undefined ? {} : { details }),
+    },
   })
 }
 
@@ -679,7 +740,11 @@ export function createMockServer(options: MockOptions = {}): Server {
       send(response, status, text)
     } catch (error) {
       if (error instanceof MockRefusal) {
-        send(response, error.status, envelope(error.code, error.message, error.hint))
+        send(
+          response,
+          error.status,
+          envelope(error.code, error.message, error.hint, error.details),
+        )
         return
       }
       throw error

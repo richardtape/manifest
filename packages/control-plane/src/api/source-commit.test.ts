@@ -281,6 +281,49 @@ describe('createCommit — changes checked before anything is written (Task 6)',
     })
   })
 
+  /**
+   * THE ANSWER `manifest-mock` PLAYS, WORD FOR WORD (the authoring API plan's Task 11): a commit
+   * that deletes manifest.yaml or empties it is refused with exactly this envelope — one problem,
+   * at the root. `packages/mock/src/fixtures.ts`'s `EMPTIED_MANIFEST` copies it so the guides'
+   * *check a manifest* example can run against the mock; this is the platform's half, and a
+   * change to either wording must change both.
+   */
+  it('refuses a deleted or emptied manifest.yaml with one problem at the root — the envelope the mock plays', async () => {
+    await withProjectServer(async (ctx) => {
+      for (const change of [
+        { op: 'delete', path: 'manifest.yaml' },
+        { op: 'write', path: 'manifest.yaml', content: '' },
+        { op: 'write', path: 'manifest.yaml', content: '  \n' },
+      ]) {
+        const res = await post(ctx, commitBody(ctx.commitSha, [change], { dryRun: true }))
+        expect(res.statusCode, JSON.stringify(change)).toBe(422)
+        expect(JSON.parse(res.body)).toEqual({
+          error: {
+            code: 'SPEC_INVALID',
+            message: 'the manifest.yaml in this commit is not valid',
+            hint: 'Fix each path `details` lists in manifest.yaml, then commit or push again.',
+            details: [
+              {
+                code: 'SPEC_INVALID_VALUE',
+                path: '',
+                message: 'Expected object, received null',
+                hint: 'Check the type and permitted values of this field in §7 of the platform design.',
+              },
+            ],
+          },
+        })
+      }
+      // The positive half: the base's own manifest, unchanged, is valid in the same dry run.
+      const kept = await post(
+        ctx,
+        commitBody(ctx.commitSha, [{ op: 'write', path: 'README.md', content: 'hi\n' }], {
+          dryRun: true,
+        }),
+      )
+      expect(kept.statusCode, kept.body).toBe(201)
+    })
+  })
+
   it('a dry run answers what would change, writes nothing, records nothing and announces nothing', async () => {
     await withProjectServer(async (ctx) => {
       const before = await specRows(ctx)

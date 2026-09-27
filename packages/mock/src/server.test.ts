@@ -258,8 +258,10 @@ describe('manifest-mock refuses what the platform refuses', () => {
           },
           body: JSON.stringify(body),
         })
+      // `main` is where the document's tree example says it is — the commit the example made.
+      const main = (await example('/v1/projects/{projectId}/tree')).commitSha as string
       const request = {
-        baseCommit: outcome.parent,
+        baseCommit: main,
         message: 'Greet the world',
         changes: [{ op: 'write', path: 'src/app.js', content: 'x\n' }],
       }
@@ -274,6 +276,68 @@ describe('manifest-mock refuses what the platform refuses', () => {
         commitSha: null,
         spec: { ...(outcome.spec as object), appSpecId: null },
       })
+    })
+
+    /**
+     * THE PLATFORM'S RULE FOR A MOVED BRANCH, over the mock's one state (Task 11): `main` is the
+     * tree example's commit, so a commit — or a dry run — based on anything else is `409
+     * SOURCE_CONFLICT`, as the platform answers a commit computed from a commit `main` has moved
+     * past. The document's own request example is based on the PARENT, so it is refused here:
+     * `main` has moved since that request was made.
+     */
+    it('createCommit — a base that is not main is SOURCE_CONFLICT, commit and dry run alike', async () => {
+      const outcome = await example('/v1/projects/{projectId}/commits', 'post')
+      for (const dryRun of [false, true]) {
+        const stale = await fetch(`${origin}/v1/projects/${PROJECT}/commits`, {
+          method: 'POST',
+          headers: {
+            ...session,
+            'content-type': 'application/json',
+            'idempotency-key': crypto.randomUUID(),
+          },
+          body: JSON.stringify({
+            baseCommit: outcome.parent,
+            message: 'Greet the world',
+            changes: [{ op: 'write', path: 'src/app.js', content: 'x\n' }],
+            dryRun,
+          }),
+        })
+        expect(stale.status, `dryRun ${dryRun}`).toBe(409)
+        expect(await codeOf(stale)).toBe('SOURCE_CONFLICT')
+      }
+    })
+
+    /**
+     * THE ONE INVALID MANIFEST THE MOCK CAN KNOW WITHOUT A VALIDATOR (Task 11): a commit that
+     * deletes manifest.yaml or empties it leaves no manifest at all, and the platform answers
+     * exactly `fixtures.EMPTIED_MANIFEST` — pinned on the platform's side by
+     * `api/source-commit.test.ts`. Any other manifest.yaml is answered as the example does,
+     * valid: the mock validates none.
+     */
+    it('createCommit — a deleted or emptied manifest.yaml is the platform’s SPEC_INVALID', async () => {
+      const main = (await example('/v1/projects/{projectId}/tree')).commitSha as string
+      const commit = (changes: unknown[]) =>
+        fetch(`${origin}/v1/projects/${PROJECT}/commits`, {
+          method: 'POST',
+          headers: {
+            ...session,
+            'content-type': 'application/json',
+            'idempotency-key': crypto.randomUUID(),
+          },
+          body: JSON.stringify({ baseCommit: main, message: 'm', changes, dryRun: true }),
+        })
+      for (const change of [
+        { op: 'delete', path: 'manifest.yaml' },
+        { op: 'write', path: 'manifest.yaml', content: ' \n' },
+      ]) {
+        const refused = await commit([change])
+        expect(refused.status, JSON.stringify(change)).toBe(422)
+        expect(await refused.json()).toEqual(fixtures.EMPTIED_MANIFEST)
+      }
+      const written = await commit([
+        { op: 'write', path: 'manifest.yaml', content: 'manifest: 1\n' },
+      ])
+      expect(written.status).toBe(201)
     })
   })
 
