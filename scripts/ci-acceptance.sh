@@ -101,8 +101,9 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # two refusals (4), the journey gate `coverage.test.ts` (3), the guides' examples run against the
 # mock `examples.test.ts` (12), the docs drift gate `packages/journey/src/docs.test.ts` (5), the
 # console's docs calls (1) and the HTML reference's boundary (2). Then, after its close at Rich's
-# request, `pnpm docs:html`'s `packages/journey/src/docs-html.test.ts` (4) — +4 and one file.
-EXPECT_TESTS=2302
+# request, `pnpm docs:html`'s `packages/journey/src/docs-html.test.ts` (4) — +4 and one file — and
+# the page opening itself (1).
+EXPECT_TESTS=2303
 EXPECT_FILES=160
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57

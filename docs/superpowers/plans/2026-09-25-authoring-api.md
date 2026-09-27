@@ -4082,3 +4082,9 @@ with the same function, so a slug that disagrees with Scalar is invisible to it,
 **(b)** the published paragraph first again (F11 reverted) — exactly the page case, at its `startsWith('# Manifest’s API')`;
 **(c)** no `<` escaping — exactly the page case, at its *"not to contain '<'"*; **(d)** a link left unrewritten — exactly the
 links case. None could not fail.
+
+**And it opens the page itself** (Rich, the same evening: *"make it open the page itself"*): after writing, `pnpm docs:html`
+prints the page's `file://` address and opens it with the platform's own opener — `openerFor`: `open` on macOS, `xdg-open`
+on Linux, `start` through `cmd` on Windows — unless given `--no-open`; a failure to open is a line naming the address,
+never a failed build. Its case was red first (*"openerFor is not a function"*); run once for real, it opened the page and
+exited `0`. `pnpm test` 2303 in 160, identical on both runs (495 s, 499 s) — +1, as predicted.

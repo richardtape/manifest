@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process'
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, posix, relative } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -171,6 +172,17 @@ export function renderDocsHtml(
 `
 }
 
+/**
+ * The command that opens a file in the platform's default browser (Rich asked for the page to open
+ * itself): `open` on macOS, `xdg-open` on Linux, `start` through `cmd` on Windows — whose empty
+ * argument is `start`'s window title, which it would otherwise take from the path.
+ */
+export function openerFor(platform: NodeJS.Platform, file: string): [string, string[]] {
+  if (platform === 'darwin') return ['open', [file]]
+  if (platform === 'win32') return ['cmd', ['/c', 'start', '', file]]
+  return ['xdg-open', [file]]
+}
+
 async function main(): Promise<void> {
   const published = JSON.parse(await readFile(DOCUMENT, 'utf8')) as {
     info: { description: string }
@@ -187,9 +199,17 @@ async function main(): Promise<void> {
   }
   const page = join(OUT, 'index.html')
   await writeFile(page, html)
-  console.log(
-    `wrote ${relative(REPO, page)} — open it in a browser; nothing needs to be running`,
-  )
+  const url = pathToFileURL(page).href
+  console.log(`wrote ${relative(REPO, page)} — nothing needs to be running: ${url}`)
+  if (process.argv.includes('--no-open')) return
+  const [command, args] = openerFor(process.platform, page)
+  execFile(command, args, (error) => {
+    // Never a failure of the build: the page is written, and this line says where it is.
+    if (error !== null)
+      console.error(
+        `could not open it (${command}: ${error.message}) — open ${url} in a browser`,
+      )
+  })
 }
 
 if (

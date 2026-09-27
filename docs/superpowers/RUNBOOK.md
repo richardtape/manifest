@@ -246,11 +246,13 @@ paragraph refuses the boot, naming it — restart the control plane to serve an 
 contract:generate`, and commit what it writes, or `pnpm test` is red naming the page.
 
 **To read all of it with NOTHING running — no Docker, no control plane, no mock, no server — run `pnpm docs:html`**
-(added after sitting 8, at Rich's request) and open `dist/api-docs/index.html` in a browser, straight from disk:
+(added after sitting 8, at Rich's request). It writes `dist/api-docs/` — git-ignored, rebuilt whenever you run it — and
+**opens `dist/api-docs/index.html` in your default browser itself**, straight from disk (`open` on macOS, `xdg-open` on
+Linux), printing its `file://` address too:
 
 ```bash
-pnpm docs:html                     # writes dist/api-docs/ — git-ignored, rebuilt whenever you run it
-open dist/api-docs/index.html      # macOS; any browser, from file://
+pnpm docs:html                     # writes the page and opens it
+pnpm docs:html --no-open           # writes it and only prints where it is
 ```
 
 It is one page: the nine guides in reading order and the three reference pages, each a top-level entry in the
@@ -712,7 +714,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-26 at the close of the authoring API plan's sitting 8 (Task 11 — the guides, served, and the HTML reference) and its addendum (`pnpm docs:html`, at Rich's request), and one moved: `pnpm test` **2302 passed** in 160 files on every run of the final tree, ~8.1 minutes a run — the docs loader and the served docs, the matrix's three new rows, the journey gate, the guides' examples run against the mock, the docs drift gate, the mock's keyed docs and two refusals, the HTML reference's boundary, and the static page's `docs-html.test.ts`; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 at the open and the close, and `pnpm test:docker` **210 in 35** (owed by the boot and the knowledge pack; green first time, 932 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-26 at the close of the authoring API plan's sitting 8 (Task 11 — the guides, served, and the HTML reference) and its addendum (`pnpm docs:html`, at Rich's request), and one moved: `pnpm test` **2303 passed** in 160 files on every run of the final tree, ~8.1 minutes a run — the docs loader and the served docs, the matrix's three new rows, the journey gate, the guides' examples run against the mock, the docs drift gate, the mock's keyed docs and two refusals, the HTML reference's boundary, and the static page's `docs-html.test.ts`; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 at the open and the close, and `pnpm test:docker` **210 in 35** (owed by the boot and the knowledge pack; green first time, 932 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has THIRTEEN steps, 1 to 13, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,

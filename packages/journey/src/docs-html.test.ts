@@ -4,6 +4,7 @@ import { generateDocs } from './docs-write.js'
 import {
   descriptionFrom,
   guidesOf,
+  openerFor,
   READING_ORDER,
   renderDocsHtml,
   slugOf,
@@ -113,5 +114,16 @@ describe('the documentation as one static page', () => {
       document.info.description.indexOf('# The API reference'),
     )
     expect(reference).toContain(published.info.description)
+  })
+
+  /**
+   * `pnpm docs:html` OPENS THE PAGE ITSELF (Rich, 2026-09-26: *"make it open the page itself"*), with
+   * the command each platform opens a file with in its default browser — and `--no-open` skips it.
+   */
+  it('opens the page with the platform’s own opener', () => {
+    const page = '/repo/dist/api-docs/index.html'
+    expect(openerFor('darwin', page)).toEqual(['open', [page]])
+    expect(openerFor('linux', page)).toEqual(['xdg-open', [page]])
+    expect(openerFor('win32', page)).toEqual(['cmd', ['/c', 'start', '', page]])
   })
 })
