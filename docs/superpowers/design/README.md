@@ -42,6 +42,7 @@ system/components/<Comp>/README.md    the guidelines for that component
 system/components/<Comp>/preview.html a worked example that mounts the real export
 system/gallery.html                  GENERATED — all previews on one page, openable in a browser
 system/build-gallery.mjs             the generator for it
+prototype/support.js                 a local viewer, so the screens render from file://
 ```
 
 **Load order in a consuming page:** `tokens.css`, `bundle.css`, React 18 + ReactDOM 18, `bundle.js`.
@@ -63,15 +64,18 @@ generator is fifteen lines and is described in the commit that added this direct
 
 `prototype/` holds seventeen screens as `.dc.html`.
 
-> **These are not standalone HTML. Opening one in a browser shows `{{st.label}}` and similar.**
-> Each file's `<head>` loads `./support.js` — the Design-canvas runtime, which is not in this
-> repository and is not something you can build. It resolves `{{holes}}`, `<sc-for>`, `<sc-if>` and
-> the `class Component extends DCLogic` block. **To see the screens rendered and clickable, open the
-> prototype Artifact** (linked at the top). There is no local viewer for them.
+**Open `prototype/Signin.dc.html` in a browser and click through.** No server, no build. The
+screens are authored in the Design-canvas component format, whose real runtime is not part of this
+repository — so [`prototype/support.js`](./prototype/support.js) is a small local viewer that
+implements the part of that format these screens use: `{{holes}}`, `<sc-for>`, `<sc-if>`, the
+`class Component extends DCLogic` block, and the event and `ref` bindings. The live steps animate,
+the name check validates, the segmented controls switch, and the links between screens work.
 
-What the files *are* good for offline is reading: the layout, the component composition, the exact
-copy and the state logic are all plain and legible in the source. `canvas.json` gives each screen its
-title, size and position.
+`support.js` is **a viewer, not a reimplementation**. If it and the canvas ever disagree, the canvas
+is right. Nothing in the product should depend on it. The prototype Artifact (linked at the top)
+remains the reference rendering.
+
+`canvas.json` gives each screen its title, size and position.
 
 **Ten screens are the real journey.** Every value on them comes from the published contract's
 fixtures — the slug, all three hostnames, the twenty build-log lines, the 135 packages, the scan
