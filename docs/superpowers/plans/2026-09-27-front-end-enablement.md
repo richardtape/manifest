@@ -1,10 +1,9 @@
 # The Front-End Enablement Implementation Plan
 
-> **WRITTEN 2026-09-27, OVERNIGHT, AT RICH'S INSTRUCTION — NOT YET REVIEWED. ITS SITTING 1 (TASK 1, THE MEASUREMENTS, WHICH BUILD NOTHING) RAN THE SAME NIGHT, ALSO AT HIS INSTRUCTION, BEFORE HIS REVIEW; NOTHING ELSE IS EXECUTED.** Rich asked for
+> **WRITTEN 2026-09-27, OVERNIGHT, AT RICH'S INSTRUCTION; ITS SITTING 1 (TASK 1, THE MEASUREMENTS, WHICH BUILD NOTHING) RAN THE SAME NIGHT, BEFORE HIS REVIEW. REVIEWED AND APPROVED BY RICH LATER ON 2026-09-27: the plan as written (*"all seems good"*), all thirty-one decisions as recommended, the twelve-sitting split, binary files, and all four spec actions as recommended — APPLIED to the spec the same day (`1d1afd7`).** Rich asked for
 > *"one plan which encompasses all of these"* and, going to bed, for it to be written *"with your recommendations for any
-> items that come up"*, to be reviewed and adjusted in the morning. **Every decision below Rich's own line is therefore a
-> RECOMMENDATION he has not yet read**, and the four spec actions are drafted, not applied — the approved spec was not
-> touched (CLAUDE.md). Every fact in *Read this first* was read from the code at `e1712d8` on 2026-09-27; Task 1 re-measured
+> items that come up"*, to be reviewed and adjusted in the morning. **He reviewed it and changed nothing** (*Decided by
+> Rich*, its last bullet), so every decision below his line is now decided, and no task waits on a spec action. Every fact in *Read this first* was read from the code at `e1712d8` on 2026-09-27; Task 1 re-measured
 > each one into `spikes/frontend-baseline/`, and the `[M<n>]` block at the head of a task is what it corrected. *What executing this plan found* is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
@@ -29,12 +28,13 @@
 
 **One sitting per session, with a check-in at each boundary.** This pattern has carried every plan since P4a. It means a session limit never lands in the middle of a task. This plan commits after every task: a stop *between* tasks is recoverable, a stop *inside* one is not.
 
-> **TWELVE SITTINGS — PROPOSED, NOT YET APPROVED BY RICH.** 1 the measurements; 2 recent output, end to end; 3 binary
+> **TWELVE SITTINGS — APPROVED BY RICH ON 2026-09-27** (*"12 sittings is fine"*). 1 the measurements; 2 recent output, end to end; 3 binary
 > files; 4 what the authoring API hands over; 5 a project's name and people by CWL login; 6 the `app` origin; 7 agent
 > sessions; 8 archive and restore; 9 delete; 10 the console and the mock; 11 the guides; 12 the acceptance. **The order
 > is chosen so the spec actions are needed as LATE as possible**: sittings 2–4 build nothing a spec action changes (§14's
 > read is already applied; binary files and the inheritance change no spec text), so Rich can decide Spec actions 4, 2, 1
-> and 3 before sittings 5, 6, 7 and 8 respectively. **The heavy ones are 7 (a new credential, two tasks) and 8 (a teardown
+> and 3 before sittings 5, 6, 7 and 8 respectively. *(He decided all four at once, on 2026-09-27, before sitting 2 — so
+> the order no longer waits on him; it stands because nothing else argues for changing it.)* **The heavy ones are 7 (a new credential, two tasks) and 8 (a teardown
 > across every module)**: if 7 runs long, stop after Task 9 and sweep, and Task 10 opens sitting 8 ahead of Task 11.
 > *Offered, and not chosen:* **eleven** — Tasks 11 and 12 in one sitting, which puts the plan's two destructive operations
 > and their controls in one session's context; **thirteen** — Task 13 split into the console and the mock, which buys
@@ -45,14 +45,14 @@
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**: a container's output at a large tail and its bytes; Docker's timestamps; the redactor over an app's own output; a SimpleSAMLphp SP row with TWO assertion-consumer URLs, and an AuthnRequest naming the second; a logout's `RelayState` round trip; `app.manifest.internal` today; LiteLLM 1.98.0's key `duration`, key `max_budget`, `key_alias` deletion and a user's spend; a stopped service's data volume surviving a re-create; a binary blob through the write path and the build gate; the local IdP releasing `uid`; the gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-27**, at Rich's instruction before his review — the measurements in `spikes/frontend-baseline/`; `[M<n>]` blocks at Tasks 2, 4, 5, 7, 8, 9, 10, 11; **the split stands** (`[M3]` held) |
-| 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) || ← next (after Rich reviews the plan and approves the split) |
+| 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) || ← next (Rich approved the plan and the split on 2026-09-27) |
 | 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | |
 | 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) | **Yes** — `blueprints/`, `source/` | none | |
-| 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** | |
-| 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** | |
-| 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **If it runs long, stop after Task 9 and sweep** | **Yes** — `ai/`, `projects/` | **Spec action 1** | |
-| 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** | |
-| 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** | |
+| 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | |
+| 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | |
+| 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **If it runs long, stop after Task 9 and sweep** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27 | |
+| 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | |
+| 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not | **No** | — | |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example | **No** — unless a step reaches `blueprints/` | — | |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
@@ -88,11 +88,19 @@
   database in the console. *The cost, accepted:* one plan of twelve sittings rather than a small one and a large one.
 - **BINARY FILES, IN THIS PLAN.** Rich listed them among *"all of these"* on 2026-09-27. **That reverses his *"text files
   only in v1"* of 2026-09-22** (the authoring API plan's Decision 4, which left an optional `encoding` as the additive way
-  back). No spec text says *text only*, so there is no spec action. **If Rich meant the list as options rather than a
-  decision, Task 4 is the one to drop** — nothing later depends on it except the acceptance's logo.
+  back). No spec text says *text only*, so there is no spec action. **CONFIRMED by Rich on 2026-09-27, asked directly: *"I
+  do mean binary files, not just text files only."*** Task 4 is built.
 - **"WRITE THE PLAN WITH YOUR RECOMMENDATIONS FOR ANY ITEMS THAT COME UP"** (2026-09-27, going to bed). So every question
   that came up while writing this was answered with a recommendation, and each is in *Decisions this plan makes* or a spec
-  action's *Options*, marked as such, for his morning review. **None of it is decided until he has read it.**
+  action's *Options*, marked as such, for his morning review.
+- **THE REVIEW: THE PLAN, ITS DECISIONS, ITS SPLIT AND ITS FOUR SPEC ACTIONS — ALL APPROVED AS RECOMMENDED** (2026-09-27,
+  after sitting 1: *"I've read the plan, all seems good. 12 sittings is fine."*; then, the four spec actions explained to
+  him one by one, *"I am happy to go with all of your recommendations. Please make all those changes."*). So all
+  thirty-one *Decisions* stand as written; the twelve sittings are the schedule; **Spec actions 1–4 are APPLIED, each as
+  option (a)** — Spec action 3 with its sixth edit as drafted (archive and delete synchronous, a second exception to
+  D23.9), not option (e)'s `202` — in `1d1afd7`, the four shared HTML pages swept in the close-out that followed; and **the
+  agent budget defaults are Decision 22's: $10 a month per person, $2 a session**. No task's *If Rich chooses otherwise*
+  paragraph applies.
 - **Carried from earlier plans, still binding:** D24's privileged four and the person-only class; step-up for a production
   deploy, an approval, member management and a production secret; the stored preview an approval binds; `SENSITIVE_FIELDS`
   as §7's list; every platform model call whose answer is read or shown is STRUCTURED OUTPUT (the D5 plan's Decision 22 —
@@ -105,12 +113,13 @@
 
 **Seven things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
 
-1. **Review this plan, and approve or re-cut the sittings split** — before sitting 1. It was written overnight at his
-   instruction, with recommendations where he would normally have been asked.
+1. ~~**Review this plan, and approve or re-cut the sittings split**~~ — **DONE 2026-09-27**, after sitting 1: approved
+   as written, twelve sittings (*Decided by Rich*).
 2. **Read and decide the four spec actions** (*Spec actions*, below), each **before the sitting that builds it**: **Spec
    action 4 before sitting 5, Spec action 2 before sitting 6, Spec action 1 before sitting 7, Spec action 3 before sitting
    8.** Each carries its exact wording, its options, and a recommendation. **Each is applied to the spec only after he has
-   read the words**, and a sitting that finds one undecided stops and asks.
+   read the words**, and a sitting that finds one undecided stops and asks. **DONE 2026-09-27 — all four decided at once,
+   before sitting 2, as recommended, and applied (`1d1afd7`).**
 3. **Nothing in this plan needs the network.** The local model answers agent sessions offline (Ollama on the host), and no
    package is added. If a task comes to believe otherwise, it records a finding and asks.
 4. **`make refresh-vulndb`, with the network on, weekly** — **next due after 2026-10-01**, which this plan's execution will
@@ -125,7 +134,9 @@
    **`docs/external-track.md`'s entry for Manifest's own registration gains both** in Task 8's sweep, and submitting it is
    the external track's, which is his.
 7. **The per-person agent budget's default** — `MANIFEST_AGENT_MONTHLY_USD`, recommended **$10** a month on the laptop
-   (Decision 22). At UBC it is real money, and the number is his.
+   (Decision 22). At UBC it is real money, and the number is his. **Decided 2026-09-27: the recommendation — $10 a month,
+   and $2 a session (`MANIFEST_AGENT_SESSION_CAP_USD`) — for the laptop; the number at UBC is still his when it gets
+   there.**
 
 ---
 
@@ -243,7 +254,7 @@
 
 ## Decisions this plan makes, and why
 
-**Thirty-one questions below Rich's line, made while the plan was written — ALL OF THEM RECOMMENDATIONS FOR HIS MORNING REVIEW** (*Decided by Rich*, the fifth bullet). Each records what it rejected and what changing course would cost.
+**Thirty-one questions below Rich's line, made while the plan was written as recommendations for his morning review — AND ALL THIRTY-ONE APPROVED BY HIM AS WRITTEN ON 2026-09-27** (*Decided by Rich*, its last bullet). Each records what it rejected and what changing course would cost.
 
 ### Recent output (Tasks 2–3)
 
@@ -1795,7 +1806,7 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Spec actions
 
-**FOUR, NONE APPLIED — DRAFTED OVERNIGHT ON 2026-09-27, EACH WAITING FOR RICH TO READ ITS WORDS.** Every spec change this project has made was approved first; **each of these is applied only after he has read the exact wording**, at the latest before the sitting that builds it (*What Rich does* 2). **A spec action is not finished when the spec changes**: the four shared HTML pages restate §6, §9, §10, §11, §20, §21, D2, D8 and D24 in plain language, and each action below names the pages it moves.
+**FOUR, ALL APPLIED ON 2026-09-27 (`1d1afd7`), EACH AS OPTION (a).** Drafted overnight; Rich approved all four later the same day, before sitting 2, each explained to him in plain language with its options, as recommended — Spec action 3 with its sixth edit as drafted, not option (e). **Applied as the words below, with two consequential words beyond them**, both forced by the drafted text and named in the commit: D24's *"holding either"* became *"holding any of them"* (two person-only actions became three), and §12's *"Clients reach the API on the reference console's origin (§21)"* names both of Manifest's origins. **Shared pages swept:** `manifest-decisions.html` D2, D8 and D24 (the build loop gains the model session; the person-only sentence two → three); `manifest-phases.html` stage 2; `manifest-schematic.html` *The other way in* (*"the four actions that always need a person"* → *"the few"*, and a sentence that switching an app off or deleting one is a person's alone too); `manifest-stories.html` checked by `grep` and unchanged. **`docs/external-track.md` is still Task 8's sweep**, as Spec actions 2 and 4 say. The text below is kept as it was drafted, so the reasoning and the options rejected stay readable. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §6, §9, §10, §11, §20, §21, D2, D8 and D24 in plain language, and each action below names the pages it moves.
 
 ### 1. D2, D8, §6, §10, §15, §17, §20 and D24 — an agent outside a sandbox is issued a model key, charged to the person it works for (before sitting 7)
 
@@ -2029,3 +2040,31 @@ was at open (three weeks).
 
 **Next: Rich's review of the plan and his approval of the split — then sitting 2 (Tasks 2 and 3)**, whose `[M1] [M2] [M6] [M13]`
 block rewrites Task 2's tail rule, its per-frame stamp and its Step 6 Docker case before any code is written.
+
+### Between sittings 1 and 2 — 2026-09-27: Rich's review, the four spec actions applied, and lint green again
+
+*Not a sitting — no task ran and nothing under `packages/` changed — recorded here so sitting 2 reads what moved under it.*
+
+**Rich's answers to §7e's five questions** (*Decided by Rich*, its last bullet, has his words): the plan approved as
+written, all thirty-one decisions as recommended; twelve sittings; binary files meant (*"not just text files only"*); **all
+four spec actions as recommended, APPLIED** in `1d1afd7` — the words are *Spec actions*' own, with the two consequential
+words its header names; and the mockups out of the gates.
+
+**The mockups: `docs/superpowers/design/**` is in `eslint.config.js`'s `ignores`** (`aad1a7e`), at Rich's word (*"remove
+the mockups from our tests and lints"*). Lint was the only gate that reached them — Vitest's projects include only
+`packages/`, `pnpm typecheck` runs per workspace package, and `.prettierignore` already lists `docs/`. Before: `pnpm exec
+eslint docs/` named the two unused names (`components.js:52`, `console.js:735`); after: `pnpm lint` exits 0, and `eslint`
+on `console.js` answers only *"File ignored because of a matching ignore pattern"*. The spikes' probes are still linted, and
+clean. The design session was not messaged: Rich decided it.
+
+**One thing the drafted wording missed**, found by reading the spec for sentences the actions contradict after applying
+them: §12's *"Clients reach the API on the reference console's origin (§21)"* — Spec action 2 edited §21, §20 and §9 but
+not this sentence. It now names both origins (one of the two consequential edits). **The same read found nothing else**:
+`person-only` appears only where the edits put it or in words that still hold, and every `delet`/`archiv` is the new
+subsection's or unrelated (LiteLLM's `/key/delete`, `destroyService`'s `deleteData`, the audit grant).
+
+**Not run:** `pnpm test` and `pnpm test:docker` — the code tree is sitting 1's (the LEAN budget: no run on an unchanged
+tree); `eslint.config.js` changes what lint reads, and `pnpm lint` is the gate that was run. `pnpm format:check` clean. The
+machine was not touched.
+
+**Next: sitting 2 (Tasks 2 and 3)** — nothing waits on Rich now; the `[M1] [M2] [M6] [M13]` block first.

@@ -58,7 +58,7 @@
 <span class="dtag">Running apps</span></div></article>
 
 <article class="d" data-tag="AI"><div class="did">D2</div><div>
-<p class="dwhat">The AI that writes the app runs inside the sandbox, and gets its access to language models handed to it in a form that expires.</p>
+<p class="dwhat">The AI that writes the app gets its access to language models handed to it in a form that expires and is charged to the person it works for &mdash; whether it runs in Manifest&rsquo;s sandbox or in the faculty front-end&rsquo;s own server.</p>
 <p class="dwhy">The real account keys for the model providers are never anywhere the AI can read them. If the AI is tricked into leaking what it holds, what leaks is a short-lived, spend-capped key for one project.</p>
 <span class="dtag">AI</span></div></article>
 
@@ -88,7 +88,7 @@
 <span class="dtag">AI</span></div></article>
 
 <article class="d" data-tag="AI"><div class="did">D8</div><div>
-<p class="dwhat">AI spending is tracked per app, per build session, and per person using the app.</p>
+<p class="dwhat">AI spending is tracked per app, per build session, charged to the person the AI works for, and per person using the app.</p>
 <p class="dwhy">An AI stuck in a loop spends only its own allowance and then stops. And when a course tool&rsquo;s AI budget runs out in week three, you can answer &ldquo;which of the 300 students spent it&rdquo; rather than guessing.</p>
 <span class="dtag">AI</span></div></article>
 
@@ -169,7 +169,7 @@
 
 <article class="d" data-tag="Safety"><div class="did">D24</div><div>
 <p class="dwhat">There are two kinds of access. A person signed in through a browser can do anything they are entitled to. A token held by an AI or a script can do a great deal but never the four consequential things &mdash; those queue up for a person to confirm.</p>
-<p class="dwhy">This is what makes &ldquo;bring your own AI&rdquo; safe rather than a loophole. Worth noting how much a token still covers: reading everything about its project, building, testing, deploying to practice environments, setting the secret values those practice environments use, watching logs &mdash; and, agreed on 2026-09-26 and next to be built, reading the last lines a practice app printed, on request and cleaned of anything shaped like a secret (never a live app&rsquo;s, which serves real people) &mdash; the entire day-to-day loop. Only four actions need a human. Setting a secret for the live app is a person&rsquo;s job too: it is what the app shows a real university service, so only someone signed in, who has just proved it is them again, can set one &mdash; a token that asks is simply refused. A token belongs to one project, so the person starts the project themselves and then hands their AI a token for it. Two things are stricter still, because each is a record that a named person decided: approving a release for production, and recording what the university&rsquo;s sign-in and privacy offices said. A token can never hold either, and asking does not even queue a question &mdash; only a person, signed in, can do them.</p>
+<p class="dwhy">This is what makes &ldquo;bring your own AI&rdquo; safe rather than a loophole. Worth noting how much a token still covers: reading everything about its project, building, testing, deploying to practice environments, setting the secret values those practice environments use, getting its AI model access charged to the person it works for, watching logs &mdash; and, agreed on 2026-09-26 and next to be built, reading the last lines a practice app printed, on request and cleaned of anything shaped like a secret (never a live app&rsquo;s, which serves real people) &mdash; the entire day-to-day loop. Only four actions need a human. Setting a secret for the live app is a person&rsquo;s job too: it is what the app shows a real university service, so only someone signed in, who has just proved it is them again, can set one &mdash; a token that asks is simply refused. A token belongs to one project, so the person starts the project themselves and then hands their AI a token for it. Three things are stricter still, because each is a record that a named person decided: approving a release for production, recording what the university&rsquo;s sign-in and privacy offices said, and switching a project off or deleting it. A token can never hold any of them, and asking does not even queue a question &mdash; only a person, signed in, can do them.</p>
 <span class="dtag">Safety</span></div></article>
 
 <article class="d" data-tag="Ways in"><div class="did">D25</div><div>
