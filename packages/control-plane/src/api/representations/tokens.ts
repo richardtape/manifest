@@ -81,7 +81,7 @@ export const MintedToken = representation(
       secret: z
         .string()
         .describe(
-          'The token, in full: `mft_<id>_<secret>` — what an agent sends as `Authorization: Bearer`. Store it now: `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key, which replays this answer.',
+          'The token, in full: `mft_<id>_<secret>` — what an agent sends as `Authorization: Bearer`. Store it now: it is in this answer and nowhere else. `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token, never the secret again.',
         ),
     })
     .describe(

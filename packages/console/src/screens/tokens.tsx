@@ -11,7 +11,10 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
  *
  * **(a) The secret is shown exactly ONCE.** `MintedToken.secret` is the only place in this
  * API a credential is returned, and no read schema has the field at all — so once the panel
- * is dismissed the platform cannot show it again and neither can this screen. It is held in
+ * is dismissed the platform cannot show it again and neither can this screen — not even to a
+ * retry with the same Idempotency-Key, which since the authoring API plan's Task 12 is `409
+ * TOKEN_ALREADY_MINTED` (this screen mints with a new key per submit, so it never sends one).
+ * It is held in
  * component state and nowhere else: never `localStorage`, never a URL, never a
  * `console.log` (§14 — an operator line with a credential in it is a defect this project
  * names four times).

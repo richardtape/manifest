@@ -1,10 +1,16 @@
 import { and, eq } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
-import { events } from '../db/index.js'
+import { events, idempotencyKeys } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { revokeToken } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
-import { mutationHeaders, sessionFor, withProjectServer } from './testing.js'
+import {
+  mutationHeaders,
+  projectBody,
+  refusal,
+  sessionFor,
+  withProjectServer,
+} from './testing.js'
 
 afterAll(resetDatabase)
 
@@ -216,6 +222,106 @@ describe('minting a delegated token (D24, Task 4)', () => {
       expect(res.statusCode).toBe(400)
       expect(res.json().error.code).toBe('REQUEST_INVALID')
       expect(res.json().error.message).toContain('expiresInDays')
+    })
+  })
+})
+
+/**
+ * A DELEGATED TOKEN'S SECRET IS KEPT IN NO IDEMPOTENCY RECORD (the authoring API plan's Task 12,
+ * its sitting 5's F4, Rich's option (a)). The record keeps the token WITHOUT its secret, and a
+ * retry with the same key answers 409 TOKEN_ALREADY_MINTED naming the token — so D24's "shown
+ * exactly once" is true, and a client that lost the answer revokes and mints again rather than
+ * getting a second token. Every other route still replays (D23.6).
+ */
+describe('a replayed mint (Task 12, Step 5)', () => {
+  const MINT = { name: 'claude-code', capabilities: ['project:read'], expiresInDays: 1 }
+  const TOKENS_ROUTE = 'POST /v1/projects/:projectId/tokens'
+
+  it('is 409 TOKEN_ALREADY_MINTED naming the token — ONE token exists, and NO record holds its secret', async () => {
+    await withProjectServer(async (ctx) => {
+      const owner = await sessionFor(ctx, 'bio_prof', 'owner')
+      const headers = mutationHeaders(ctx.deps)
+      const mint = () =>
+        ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/tokens`,
+          cookies: owner,
+          headers,
+          payload: MINT,
+        })
+      const first = await mint()
+      expect(first.statusCode, first.body).toBe(201)
+      const { token, secret } = first.json() as { token: { id: string }; secret: string }
+      // The positive control: the FIRST answer carries the secret.
+      expect(secret).toMatch(/^mft_[0-9a-f]{32}_/)
+
+      const again = await mint()
+      expect(refusal(again)).toEqual({ status: 409, code: 'TOKEN_ALREADY_MINTED' })
+      expect(again.json().error.message).toContain(token.id)
+      expect(again.json().error.message).toContain("'claude-code'")
+      expect(again.body).not.toContain(secret)
+
+      const listed = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/tokens`,
+        cookies: owner,
+      })
+      expect(listed.json().map((t: { id: string }) => t.id)).toEqual([token.id])
+
+      const records = await ctx.deps.db
+        .select()
+        .from(idempotencyKeys)
+        .where(eq(idempotencyKeys.route, TOKENS_ROUTE))
+      expect(records).toHaveLength(1)
+      expect((records[0]!.responseBody as { token: { id: string } }).token.id).toBe(
+        token.id,
+      )
+      expect(JSON.stringify(records)).not.toContain(secret)
+      expect('secret' in (records[0]!.responseBody as object)).toBe(false)
+    })
+  })
+
+  it('checks the fingerprint FIRST: the same key with a different body is still IDEMPOTENCY_KEY_REUSED', async () => {
+    await withProjectServer(async (ctx) => {
+      const owner = await sessionFor(ctx, 'bio_prof', 'owner')
+      const headers = mutationHeaders(ctx.deps)
+      const url = `/v1/projects/${ctx.projectId}/tokens`
+      const first = await ctx.app.inject({
+        method: 'POST',
+        url,
+        cookies: owner,
+        headers,
+        payload: MINT,
+      })
+      expect(first.statusCode, first.body).toBe(201)
+      const other = await ctx.app.inject({
+        method: 'POST',
+        url,
+        cookies: owner,
+        headers,
+        payload: { ...MINT, name: 'another' },
+      })
+      expect(refusal(other)).toEqual({ status: 409, code: 'IDEMPOTENCY_KEY_REUSED' })
+    })
+  })
+
+  it('leaves every OTHER route replaying: createProject twice with one key is 201 and the same project', async () => {
+    await withProjectServer(async (ctx) => {
+      const owner = await sessionFor(ctx, 'bio_prof', 'owner')
+      const headers = mutationHeaders(ctx.deps)
+      const create = () =>
+        ctx.app.inject({
+          method: 'POST',
+          url: '/v1/projects',
+          cookies: owner,
+          headers,
+          payload: projectBody('replay-app'),
+        })
+      const first = await create()
+      expect(first.statusCode, first.body).toBe(201)
+      const again = await create()
+      expect(again.statusCode, again.body).toBe(201)
+      expect(again.json().id).toBe(first.json().id)
     })
   })
 })

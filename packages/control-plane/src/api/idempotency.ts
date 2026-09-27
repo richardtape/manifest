@@ -23,6 +23,18 @@ export interface IdempotencyParams {
   body: unknown
 }
 
+/**
+ * A ROUTE WHOSE ANSWER CARRIES A CREDENTIAL IS NEVER REPLAYED (the authoring API plan's Task 12,
+ * its sitting 5's F4, Rich's option (a)). The record keeps `stored(answer)` — the answer WITHOUT
+ * the credential — and a repeated key with the same body throws `refuse(stored)` rather than
+ * answer again. `mintToken` is the one route that declares it: its answer is a delegated token's
+ * plaintext secret, which D24 says is shown once, and a table nothing prunes is not "once".
+ */
+export interface WithholdOnReplay {
+  stored: (answer: unknown) => unknown
+  refuse: (stored: unknown) => Error
+}
+
 export class IdempotencyConflictError extends Error {
   readonly code = 'IDEMPOTENCY_KEY_REUSED'
   constructor(key: string) {
@@ -53,6 +65,7 @@ export async function replayOrStore(
   db: Db,
   params: IdempotencyParams,
   handler: () => Promise<StoredResponse>,
+  withhold?: WithholdOnReplay,
 ): Promise<StoredResponse> {
   const requestHash = hashOf(params.hashKey, params.body)
 
@@ -68,8 +81,11 @@ export async function replayOrStore(
     )
 
   if (existing) {
+    // THE FINGERPRINT FIRST, for every route: a key reused with a different body is that
+    // refusal whatever the route withholds.
     if (existing.requestHash !== requestHash)
       throw new IdempotencyConflictError(params.key)
+    if (withhold !== undefined) throw withhold.refuse(existing.responseBody)
     return { status: existing.responseStatus, body: existing.responseBody }
   }
 
@@ -83,7 +99,9 @@ export async function replayOrStore(
       route: params.route,
       requestHash,
       responseStatus: response.status,
-      responseBody: response.body as object,
+      responseBody: (withhold === undefined
+        ? response.body
+        : withhold.stored(response.body)) as object,
     })
     .onConflictDoNothing()
 

@@ -15,6 +15,7 @@ import {
 } from '../../tokens/index.js'
 import { requireActor, requireSession, type Actor } from '../actor.js'
 import type { ErrorCode } from '../error-codes.js'
+import type { WithholdOnReplay } from '../idempotency.js'
 import type { ServerDeps } from '../server.js'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -90,6 +91,17 @@ export interface RouteDefinition<
    * half, and this is the wire's.
    */
   credential?: 'session'
+  /**
+   * AN ANSWER THAT CARRIES A CREDENTIAL IS NEVER REPLAYED (the authoring API plan's Task 12, its
+   * sitting 5's F4, Rich's option (a)). The idempotency record keeps `stored(answer)` — never the
+   * credential — and a retry with the same key and body throws `refuse(stored)`; a different
+   * body is still `IDEMPOTENCY_KEY_REUSED`, checked first. Absent, a retry replays the first
+   * answer (D23.6). `mintToken` alone declares it.
+   */
+  withholdOnReplay?: {
+    stored: (answer: z.output<R>) => unknown
+    refuse: (stored: unknown) => Error
+  }
   handler: (
     ctx: RouteContext<z.output<P>, z.output<Q>, z.output<B>>,
   ) => Promise<z.input<R>>
@@ -294,7 +306,13 @@ export function registerRoutes(
         let result: { status: number; body: unknown }
         try {
           result =
-            route.method === 'GET' ? await run() : await app.idempotent(request, run)
+            route.method === 'GET'
+              ? await run()
+              : await app.idempotent(
+                  request,
+                  run,
+                  route.withholdOnReplay as WithholdOnReplay | undefined,
+                )
         } catch (error) {
           if (error instanceof TokenCapabilityRefusedError) {
             /**

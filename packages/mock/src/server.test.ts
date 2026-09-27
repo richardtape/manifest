@@ -423,6 +423,37 @@ describe('manifest-mock refuses what the platform refuses', () => {
     }
   })
 
+  it('answers a mint retried with its key 409 TOKEN_ALREADY_MINTED naming the token — never the secret again — as the platform does (the authoring API plan’s Task 12)', async () => {
+    const key = crypto.randomUUID()
+    const mint = (name: string) =>
+      fetch(`${origin}/v1/projects/${fixtures.PROJECT_ID}/tokens`, {
+        method: 'POST',
+        headers: {
+          ...session,
+          'content-type': 'application/json',
+          'idempotency-key': key,
+        },
+        body: JSON.stringify({ name, capabilities: ['project:read'], expiresInDays: 1 }),
+      })
+    // The positive control: the first answer carries the secret.
+    const first = await mint('claude-code')
+    expect(first.status).toBe(201)
+    const minted = (await first.json()) as { token: { id: string }; secret: string }
+    expect(minted.secret).toBe(fixtures.MINTED_TOKEN.secret)
+    const again = await mint('claude-code')
+    expect(again.status).toBe(409)
+    const text = await again.text()
+    const { error } = JSON.parse(text) as { error: { code: string; message: string } }
+    expect(error.code).toBe('TOKEN_ALREADY_MINTED')
+    expect(error.message).toContain(minted.token.id)
+    expect(text).not.toContain(minted.secret)
+    // The fingerprint first: the same key with a different body is still the reuse refusal.
+    const other = await mint('another')
+    expect(((await other.json()) as { error: { code: string } }).error.code).toBe(
+      'IDEMPOTENCY_KEY_REUSED',
+    )
+  })
+
   it('answers §26’s fleet 403 FORBIDDEN unless the role is admin', async () => {
     const member = await fetch(`${origin}/v1/fleet`, { headers: session })
     expect(member.status).toBe(403)

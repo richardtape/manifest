@@ -37,7 +37,7 @@ A few actions need the person to prove it is them again, within the last ten min
 
 ## A delegated token — an agent, a script or CI
 
-A person mints a token in their own session, for **one project**, with a list of capabilities, a name, and an expiry of at most 365 days (`mintToken`). The answer carries the token’s `secret` — `mft_<id>_<secret>` — which is the credential: hand it to the agent, and keep it nowhere else. Send it as `Authorization: Bearer mft_…`, with no cookie and no `Origin`.
+A person mints a token in their own session, for **one project**, with a list of capabilities, a name, and an expiry of at most 365 days (`mintToken`). The answer carries the token’s `secret` — `mft_<id>_<secret>` — which is the credential: hand it to the agent, and keep it nowhere else. **It is in that answer and nowhere else** — Manifest keeps only a hash of it — so a mint retried with its `Idempotency-Key` is `409 TOKEN_ALREADY_MINTED`, naming the token and never its secret: if the first answer was lost, revoke that token (`revokeToken`) and mint again with a new key. Send it as `Authorization: Bearer mft_…`, with no cookie and no `Origin`.
 
 A token acts as the person who minted it, on that project alone, with only the capabilities it holds. It can do the whole build loop: read everything about its project, commit code, set sandbox and staging secrets, build, release, deploy to sandbox and staging, and watch the event stream. It cannot create a project, and it sees no other.
 

@@ -21,7 +21,7 @@ import {
 import { requireSession } from '../actor.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
-import { BadRequestError } from '../errors.js'
+import { BadRequestError, TokenAlreadyMintedError } from '../errors.js'
 import {
   MintedToken,
   MintTokenRequest,
@@ -57,7 +57,7 @@ export const tokenRoutes = [
     tag: 'tokens',
     summary: 'Mint a delegated token',
     description:
-      'D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response: store it, because `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.',
+      'D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.',
     params: ProjectParams,
     query: NO_QUERY,
     body: MintTokenRequest,
@@ -71,7 +71,24 @@ export const tokenRoutes = [
       'FORBIDDEN',
       'TOKEN_CAPABILITY_FORBIDDEN',
       'TOKEN_CREDENTIAL_REFUSED',
+      'TOKEN_ALREADY_MINTED',
     ],
+    // SHOWN ONCE (D24; the authoring API plan's Task 12, Rich's option (a)): the idempotency
+    // record keeps the token WITHOUT its secret, and a retry is told which token it minted.
+    // A record written before migration 0032 held the secret too; 0032 scrubbed it, and this
+    // reads `token` alone from either.
+    withholdOnReplay: {
+      stored: ({ token }) => ({ token }),
+      refuse: (stored) => {
+        const token = (stored as { token?: { id?: unknown; name?: unknown } } | null)
+          ?.token
+        if (typeof token?.id !== 'string' || typeof token.name !== 'string') {
+          // A record with no token is the platform's defect — an honest 500, never a replay.
+          return new Error('a mint’s idempotency record holds no token to name')
+        }
+        return new TokenAlreadyMintedError({ id: token.id, name: token.name })
+      },
+    },
     examples: {
       request: {
         name: 'claude-code',

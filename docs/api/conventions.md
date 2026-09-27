@@ -10,7 +10,7 @@ Every resource route is under `/v1`. Within `/v1` the API only grows: an answer 
 
 **Every mutation carries an `Idempotency-Key` header** — a new random value of at least eight characters, a UUID, for each action a person or an agent takes. Without one it is `400 IDEMPOTENCY_KEY_REQUIRED`.
 
-- **Reuse the key when you retry the same action.** A request that timed out may have succeeded; send it again with the same key and exactly the same body, and you are answered the first result — the commit made once, the project created once.
+- **Reuse the key when you retry the same action.** A request that timed out may have succeeded; send it again with the same key and exactly the same body, and you are answered the first result — the commit made once, the project created once. **The one exception is minting a token**: its secret is answered to the first request alone, so a retry is `409 TOKEN_ALREADY_MINTED`, naming the token it minted ([Authentication](authentication.md)).
 - **A new action is a new key.** The same key with a different body is `409 IDEMPOTENCY_KEY_REUSED`.
 - **A dry run is a new key every time**: it writes nothing, so a replay protects nothing, and would answer a check made before the code moved.
 - A retry that spans the platform rotating its session secret is `409 IDEMPOTENCY_KEY_REUSED`: send it again with a new key.

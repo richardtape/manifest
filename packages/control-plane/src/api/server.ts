@@ -28,7 +28,7 @@ import {
 } from './rate-limit.js'
 import { assertSameOrigin } from './csrf.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
-import { replayOrStore } from './idempotency.js'
+import { replayOrStore, type WithholdOnReplay } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import type { CwlSignInProbe, SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
@@ -170,10 +170,14 @@ declare module 'fastify' {
     csrf?: 'exempt'
   }
   interface FastifyInstance {
-    /** Wraps a mutating handler in its idempotency record. Decorated below. */
+    /**
+     * Wraps a mutating handler in its idempotency record. Decorated below. `withhold` is a
+     * route's `withholdOnReplay` — an answer carrying a credential is never replayed.
+     */
     idempotent(
       request: FastifyRequest,
       handler: () => Promise<{ status: number; body: unknown }>,
+      withhold?: WithholdOnReplay,
     ): Promise<{ status: number; body: unknown }>
     /** Every route registered, for Task 20's completeness check. */
     registeredRoutes: { method: string; url: string }[]
@@ -389,6 +393,7 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
     async (
       request: FastifyRequest,
       handler: () => Promise<{ status: number; body: unknown }>,
+      withhold?: WithholdOnReplay,
     ) => {
       const actor = requireActor(request)
       return replayOrStore(
@@ -403,6 +408,7 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
           body: request.body,
         },
         handler,
+        withhold,
       )
     },
   )

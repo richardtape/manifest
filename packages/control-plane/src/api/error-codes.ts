@@ -170,7 +170,12 @@ export const ERROR_CODES = {
   IDEMPOTENCY_KEY_REUSED: api(
     409,
     'This Idempotency-Key was used on this route with a different body.',
-    'Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed.',
+    'Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`).',
+  ),
+  TOKEN_ALREADY_MINTED: api(
+    409,
+    'A mint was retried with its Idempotency-Key: the first request minted the token named, and its secret was shown to that request alone and is not kept.',
+    'If you have the first answer’s secret, use it. If that answer was lost, revoke the token named (`revokeToken`) and mint again with a new Idempotency-Key.',
   ),
   CSRF_ORIGIN_REFUSED: api(
     403,

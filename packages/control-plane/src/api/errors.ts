@@ -104,6 +104,23 @@ export class LastOwnerError extends Error {
 }
 
 /**
+ * A MINT RETRIED WITH ITS IDEMPOTENCY KEY (the authoring API plan's Task 12, its sitting 5's F4,
+ * Rich's option (a)): the first request minted this token, and its secret was shown once and is
+ * kept nowhere — not in the idempotency record either. 409, a state conflict like its sibling
+ * `IDEMPOTENCY_KEY_REUSED`. The message names the token — its id and name, never its secret —
+ * so a client that lost the first answer knows exactly what to revoke.
+ */
+export class TokenAlreadyMintedError extends Error {
+  readonly code = 'TOKEN_ALREADY_MINTED'
+  constructor(readonly token: { id: string; name: string }) {
+    super(
+      `this Idempotency-Key already minted token ${token.id} ('${token.name}'); its secret was shown once, to the first request, and is not kept`,
+    )
+    this.name = 'TokenAlreadyMintedError'
+  }
+}
+
+/**
  * A slug that names no page of the API's documentation (the authoring API plan's Task 11). 404,
  * like every read of something that is not there; its own code, because the remedy — read the
  * index — is not `NOT_FOUND`'s, which is about projects a caller may not see.
@@ -383,6 +400,19 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           message: error.message,
           hint: 'Do not retry this request. A person refused it; `pendingAction.reason` says why. Ask them, or ask for something else.',
           ...question(error.pendingAction),
+        },
+      },
+    }
+  }
+
+  if (error instanceof TokenAlreadyMintedError) {
+    return {
+      status: 409,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'If the first answer was lost, revoke this token (revokeToken) and mint again with a new Idempotency-Key.',
         },
       },
     }

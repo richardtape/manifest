@@ -4650,7 +4650,7 @@
           "tokens"
         ],
         "summary": "Mint a delegated token",
-        "description": "D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response: store it, because `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.",
+        "description": "D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.",
         "security": [
           {
             "session": []
@@ -4728,7 +4728,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ALREADY_MINTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4749,6 +4749,7 @@
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_ALREADY_MINTED",
           "TOKEN_CAPABILITY_FORBIDDEN",
           "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
@@ -7643,6 +7644,7 @@
           "STEP_UP_REQUIRED",
           "TOKEN_ACTION_PENDING",
           "TOKEN_ACTION_REJECTED",
+          "TOKEN_ALREADY_MINTED",
           "TOKEN_CAPABILITY_FORBIDDEN",
           "TOKEN_CREDENTIAL_REFUSED",
           "TOKEN_PERSON_ONLY",
@@ -7755,6 +7757,7 @@
           "STEP_UP_REQUIRED": "This action needs a second authentication round trip (§20). Send the person to /auth/step-up and retry.",
           "TOKEN_ACTION_PENDING": "A delegated token asked for one of D24’s privileged four; `pendingAction` is the question a person must answer.",
           "TOKEN_ACTION_REJECTED": "A person refused this exact request. `pendingAction.reason` is why, in their words; retrying it will not change the answer.",
+          "TOKEN_ALREADY_MINTED": "A mint was retried with its Idempotency-Key: the first request minted the token named, and its secret was shown to that request alone and is not kept.",
           "TOKEN_CAPABILITY_FORBIDDEN": "A mint asked for one of D24’s four privileged capabilities, or for one of its two person-only ones; the message names which.",
           "TOKEN_CREDENTIAL_REFUSED": "A valid delegated token asked for something D24 reserves to an interactive session.",
           "TOKEN_PERSON_ONLY": "A delegated token asked for a person-only action (D24) — approving a release, or recording UBC’s IAM or privacy decision. Refused outright; no pending action is created.",
@@ -12741,7 +12744,7 @@
             "$ref": "#/components/schemas/Token"
           },
           "secret": {
-            "description": "The token, in full: `mft_<id>_<secret>` — what an agent sends as `Authorization: Bearer`. Store it now: `listTokens` never shows it, and it is answered again only to a retry of this same mint with the same Idempotency-Key, which replays this answer.",
+            "description": "The token, in full: `mft_<id>_<secret>` — what an agent sends as `Authorization: Bearer`. Store it now: it is in this answer and nowhere else. `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token, never the secret again.",
             "type": "string"
           }
         },
@@ -14734,7 +14737,7 @@
     "IDEMPOTENCY_KEY_REUSED": {
       "status": 409,
       "summary": "This Idempotency-Key was used on this route with a different body.",
-      "remedy": "Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed."
+      "remedy": "Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`)."
     },
     "INTERNAL": {
       "status": 500,
@@ -15095,6 +15098,11 @@
       "status": 403,
       "summary": "A person refused this exact request. `pendingAction.reason` is why, in their words; retrying it will not change the answer.",
       "remedy": "Do not retry it. Read `pendingAction.reason`, then ask the person, or ask for something different."
+    },
+    "TOKEN_ALREADY_MINTED": {
+      "status": 409,
+      "summary": "A mint was retried with its Idempotency-Key: the first request minted the token named, and its secret was shown to that request alone and is not kept.",
+      "remedy": "If you have the first answer’s secret, use it. If that answer was lost, revoke the token named (`revokeToken`) and mint again with a new Idempotency-Key."
     },
     "TOKEN_CAPABILITY_FORBIDDEN": {
       "status": 400,

@@ -158,6 +158,45 @@ describe('idempotency (D23.6)', () => {
     })
   })
 
+  it('WITHHOLDS on replay: stores stored(answer), refuses a repeat with refuse(stored), and checks the fingerprint FIRST (the authoring API plan’s Task 12)', async () => {
+    await withRollback(async (db) => {
+      const user = await aUser(db)
+      const handler = vi.fn().mockResolvedValue({
+        status: 201,
+        body: { token: { id: 't-1' }, secret: 'THE-SECRET' },
+      })
+      class Withheld extends Error {}
+      const withhold = {
+        stored: (answer: unknown) => ({ token: (answer as { token: unknown }).token }),
+        refuse: (stored: unknown) => new Withheld(JSON.stringify(stored)),
+      }
+      const params = {
+        key: 'k-mint',
+        userId: user.id,
+        route: 'POST /mint',
+        hashKey: HASH_KEY,
+        body: { name: 'x' },
+      }
+      // The caller that made it gets the whole answer, once.
+      const first = await replayOrStore(db, params, handler, withhold)
+      expect(first.body).toEqual({ token: { id: 't-1' }, secret: 'THE-SECRET' })
+      const [row] = await db
+        .select()
+        .from(idempotencyKeys)
+        .where(eq(idempotencyKeys.key, 'k-mint'))
+      expect(row!.responseBody).toEqual({ token: { id: 't-1' } })
+      // A repeat is refused, from what was kept — and the handler never runs again.
+      await expect(replayOrStore(db, params, handler, withhold)).rejects.toThrow(
+        new Withheld('{"token":{"id":"t-1"}}'),
+      )
+      expect(handler).toHaveBeenCalledTimes(1)
+      // The same key with a different body is the fingerprint's refusal, before any other.
+      await expect(
+        replayOrStore(db, { ...params, body: { name: 'y' } }, handler, withhold),
+      ).rejects.toThrow(IdempotencyConflictError)
+    })
+  })
+
   it('does not store a response when the handler throws', async () => {
     await withRollback(async (db) => {
       const user = await aUser(db)

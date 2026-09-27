@@ -693,6 +693,20 @@ export function createMockServer(options: MockOptions = {}): Server {
               'IDEMPOTENCY_KEY_REUSED',
               `Idempotency-Key '${key}' was already used on this route with a different body`,
             )
+          // A MINT IS NEVER REPLAYED (the platform's `withholdOnReplay`, the authoring API plan's
+          // Task 12): the first answer was the only one with the secret, and what is kept is the
+          // token — so the retry is told which token it minted, in the platform's words.
+          if (operation.operationId === 'mintToken') {
+            const { token } = JSON.parse(stored.body) as {
+              token: { id: string; name: string }
+            }
+            throw new MockRefusal(
+              409,
+              'TOKEN_ALREADY_MINTED',
+              `this Idempotency-Key already minted token ${token.id} ('${token.name}'); its secret was shown once, to the first request, and is not kept`,
+              'If the first answer was lost, revoke this token (revokeToken) and mint again with a new Idempotency-Key.',
+            )
+          }
           send(response, stored.status, stored.body)
           return
         }
@@ -735,7 +749,11 @@ export function createMockServer(options: MockOptions = {}): Server {
         seen.set(`${key}|${operation.method} ${operation.path}`, {
           hash: JSON.stringify(body ?? null),
           status,
-          body: text,
+          // The platform keeps a mint's token WITHOUT its secret; so does the mock.
+          body:
+            operation.operationId === 'mintToken'
+              ? JSON.stringify({ token: (answered as { token: unknown }).token })
+              : text,
         })
       send(response, status, text)
     } catch (error) {
