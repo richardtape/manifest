@@ -18,9 +18,8 @@ other document on status.*
 and Phase 2's first four plans, P6a (the first production launch), P6b (subsequent releases), D5's
 GitHub source driver and the authoring API. Every one has an acceptance that passes. **The front-end
 enablement plan is being executed** — it replaced Spec action 1's plan and folds in its recent-output read. It was
-WRITTEN on 2026-09-27, overnight and with recommendations; **its sitting 1 (the measurements, which build
-nothing) is done, and Rich has approved the plan, its twelve sittings and all four of its spec actions — APPLIED to the
-spec the same day** — ORIENTATION §7e says what is next. Each plan's
+WRITTEN on 2026-09-27, overnight and with recommendations, and **Rich has approved the plan, its twelve sittings and all
+four of its spec actions — APPLIED to the spec the same day** — ORIENTATION §7e says what is next. Each plan's
 *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |

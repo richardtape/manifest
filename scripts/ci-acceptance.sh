@@ -114,8 +114,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the authoring API plan's sitting 10 (2026-09-26, the acceptance): +2 and no file — the whole-branch
 # review's two Important findings, each red first: a commit that LANDED answered and recorded when its
 # validation after the push fails (1), and one Idempotency-Key on another secret refused (1).
-EXPECT_TESTS=2330
-EXPECT_FILES=162
+# Then the front-end enablement plan's sitting 2 (2026-09-27, recent output): +74 and two files —
+# the demuxer (9), the ONE reader `observability/output.test.ts` (15, new), the line redactor (10),
+# the fake driver's run of *honours tail* (1), `listInstances` and `getInstanceOutput` in
+# `api/instances.test.ts` (12, new), and the authorization matrix's three rows (27); minus
+# nothing — `events.test.ts`'s three reads were scoped, not removed.
+EXPECT_TESTS=2404
+EXPECT_FILES=164
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 

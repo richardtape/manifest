@@ -1862,7 +1862,8 @@ it belongs among the traps the next sitting is most likely to hit.
 - **`getEnvironment` NAMES THE SERVING INSTANCE, AND NO OPERATION LISTS INSTANCES** (2026-09-26, sitting 10, F13). A deploy
   that fails after creating its row (with `RELEASE_SECRET_NOT_SET` disabled: `INJECTION_SECRET_MISSING`, `500 INTERNAL`)
   leaves a row in `starting` that no client can see — *"no new instance"* through the contract cannot fail. Read the
-  database (`instances` by environment) to check it.
+  database (`instances` by environment) to check it. **`listInstances` lists them since the front-end enablement plan's Task 3 (2026-09-27)** — at most 50, a failed one
+  included.
 - **`git commit -F <msg> -- <paths>` REFUSES A PATH GIT DOES NOT TRACK YET** — `pathspec … did not match any file(s) known to
   git` — so a commit of new files is `git add -- <paths>` first, then the explicit-path commit (sitting 10). Stage by name,
   never `-A`.
@@ -1885,6 +1886,26 @@ it belongs among the traps the next sitting is most likely to hit.
   `/etc/resolver/`, which `dig` bypasses, so `dig +short app.manifest.internal` answers NOTHING while curl reaches it. Use
   `dscacheutil -q host -a name <name>` (it answered `127.0.0.3` for `app.`, `127.0.0.2` for `console.`) or curl. Inside a
   container `dig` against dnsmasq is fine — that is the trap at the top of this file, which is the opposite symptom.
+
+- **THE AUTHORIZATION MATRIX'S DEPLOY ROWS RETIRE ANY STAGING INSTANCE A LATER ROW IS AIMED AT** (2026-09-27, the front-end
+  enablement plan's sitting 2, F7). `api/authz-contract.ts` runs its rows in order, and the staging deploy rows come early; a
+  deploy retires every instance of its environment that is not serving (P4c), so an instance row the fixture wrote into
+  staging read `gone` by the time the output row reached it — `409 INSTANCE_OUTPUT_UNAVAILABLE` to all five `pass` actors,
+  and the same row run ALONE (`-t`) passed. Aim a fixture instance at SANDBOX, which nothing in the table deploys to — and
+  since the review's I3, at one the fake driver is actually running (`deps.driver.ensureInstance`), because the route asks
+  the driver.
+- **`EngineClient.stream` ANSWERS WHATEVER THE DAEMON SENT — A `404` INCLUDED** (2026-09-27, sitting 2's whole-branch review,
+  I3). `get` maps a 404 to `undefined`; `stream` checks nothing. Docker refuses a missing container's logs with a JSON body,
+  and `demux` read `{"message":…` as a frame header whose bytes 4–7 claim ~1.9 GB — so nothing was yielded, no error was
+  raised, and a removed container read exactly like an app that printed nothing. `containerLogs` now refuses a non-2xx answer
+  (`LOGS_TARGET_NOT_FOUND`). **Any other `stream` caller that does not check `res.statusCode` has the same hole.**
+- **A REDACTOR RUN ONE LINE AT A TIME CANNOT SEE A SECRET THAT SPANS LINES — AND RUN BEFORE A JOINED PASS, IT BREAKS ONE**
+  (2026-09-27, sitting 2's whole-branch review, C1). An app's SP private key is in its secret set as one multi-line value, and
+  the PEM rule needs `BEGIN…END` in one string; per line, the body is left to the entropy rule, which judges base64 split at
+  `/` in pieces under 24 characters and redacts none of them. Worse, a per-line pass that changes one line INSIDE a multi-line
+  secret makes the later joined exact match fail. Output that must stay lines goes through `LineRedactor.lines` (joined, one
+  entry per line). A test of it needs body lines with `/` — a 32-character body line is redacted by entropy alone, and the
+  test cannot fail.
 
 ## Images already pulled
 

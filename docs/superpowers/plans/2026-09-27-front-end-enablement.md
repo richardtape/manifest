@@ -45,8 +45,8 @@
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**: a container's output at a large tail and its bytes; Docker's timestamps; the redactor over an app's own output; a SimpleSAMLphp SP row with TWO assertion-consumer URLs, and an AuthnRequest naming the second; a logout's `RelayState` round trip; `app.manifest.internal` today; LiteLLM 1.98.0's key `duration`, key `max_budget`, `key_alias` deletion and a user's spend; a stopped service's data volume surviving a re-create; a binary blob through the write path and the build gate; the local IdP releasing `uid`; the gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-27**, at Rich's instruction before his review — the measurements in `spikes/frontend-baseline/`; `[M<n>]` blocks at Tasks 2, 4, 5, 7, 8, 9, 10, 11; **the split stands** (`[M3]` held) |
-| 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) || ← next (Rich approved the plan and the split on 2026-09-27) |
-| 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | |
+| 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) | **DONE 2026-09-27** — `readRecentOutput`, THE reader, redacting lines JOINED (a key printed line by line) and before any cut; `listInstances` and `getInstanceOutput` under `output:read`, production `403`, a removed instance `409`; contract **1.4.0**; one fresh whole-branch review, its Critical and three Importants fixed |
+| 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | ← next |
 | 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) | **Yes** — `blueprints/`, `source/` | none | |
 | 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | |
 | 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | |
@@ -1699,6 +1699,16 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Task 14: The guides — *Building a front-end*, and every guide the API's new surface touches; every code block a run example
 
+> **[S2] — WHAT SITTING 2 BUILT THAT THE GUIDES MUST SAY (2026-09-27).** `getInstanceOutput`'s answer, as built and reviewed:
+> `lines` is AT MOST what was asked (a runtime's `tail` counts records, and a long line is several — [M1]); when every record
+> asked for was one long line, the only line is kept and **begins with `…`** (a fragment); a line longer than 4 KiB ends
+> `…[cut: N bytes]`, **N approximate** (runtime bytes plus redacted bytes); output is **redacted with its lines joined**, so a
+> key printed line by line reads `[REDACTED]` on every line it covered; a failed instance whose container is gone is **`409
+> INSTANCE_OUTPUT_UNAVAILABLE`** — read its Incident (`listIncidents`) — and `listInstances` marks it `serving: false`;
+> `failure` is an error's code or name (e.g. `LOGS_TARGET_NOT_FOUND`), never its message. **The *What redaction does not
+> catch* section also names**: a multi-line secret whose first line begins more than 8 KiB into a line; a secret split by
+> the app itself; and the heuristics' known gaps (hex, pieces under 24 characters).
+
 **Files:**
 - Create: `docs/api/frontend.md` — **Building a front-end**
 - Modify: `docs/api/agents.md`, `docs/api/authoring.md`, `docs/api/authentication.md`, `docs/api/conventions.md`, `docs/api/index.md` (the page list), `docs/api/journey.md` (generated)
@@ -2068,3 +2078,114 @@ tree); `eslint.config.js` changes what lint reads, and `pnpm lint` is the gate t
 machine was not touched.
 
 **Next: sitting 2 (Tasks 2 and 3)** — nothing waits on Rich now; the `[M1] [M2] [M6] [M13]` block first.
+
+### Sitting 2 — 2026-09-27: Tasks 2 and 3, recent output end to end
+
+**Run by the session that applied the four spec actions, straight after them** (Rich: *"I think you have enough context to be
+able to do sitting 2. Please proceed with that."*). Inline execution (`superpowers:executing-plans`), committing on `main`; one
+fresh whole-branch reviewer (Opus, read-only) at the end, and one fix pass. Commits: `f07cdd8` (Task 2), `e33f3bb` (Task 3),
+`2e6737c` (a test Task 3's controls showed was missing), `d18dbfa` (the review's fix pass), `64d88b9` (F15). The ledger's `Ruling:` lines are
+reproduced here as the rulings; **the plan's text was departed from five times, each ruled**.
+
+**Rulings.**
+- **The redactor is a PARAMETER of `readRecentOutput`, and a line is redacted BEFORE it is cut** — the plan's
+  `redactOutput(readRecentOutput(…))` cut a line at 4 KiB and then redacted it, which shows the first characters of any secret
+  across the cut (an exact-match redactor never matches a prefix) — a regression for Incidents, which kept whole lines. There is
+  no `redactOutput`. After the review this became a `LineRedactor` (below).
+- **The new fields are on a SUBTYPE**: `Driver.logs` yields `RuntimeLogLine` (`LogLine` + `stamped`, `cutBytes`, **`entries`**);
+  `LogLine` itself is also the build log's `onLog` line, and eight of the ten hand-built ones were `onLog`s. `entries` — the
+  runtime records a line took — is how the reader knows `truncated.lines` ([M1]: `tail` counts records, not lines).
+- **`demux(source, opts = {})`**: its four other callers (exec, sign-in, readiness, scan) are unchanged, unbounded and unstamped.
+- **The redaction Docker case reads a HEALTHY instance** and captures an Incident of that same instance with `captureIncident`:
+  a failed deploy removes its container once its Incident is captured (`release.ts`), so no reader can read a failed instance.
+- **The contract's *honours tail* has a `printLine` fixture** (fake: `seedLogs`; Docker: `exec` of `echo "$1" > /proc/1/fd/1`):
+  the fixture app prints ONE line at boot, not "more than one" as Step 1 predicted.
+- **`serving` is `servingInstanceOf`'s answer AND a serving state** (`healthy`, `hibernated`, `waking`) — its no-Route fallback
+  is the newest instance of any state (P6b Task 6's rule, as `candidateFor` holds it).
+- **The matrix's readable output row is aimed at SANDBOX**, at an instance the fake driver is running (F7, F12).
+- **Examples captured** from a scratch run of the fake-driver path (deleted); **`pnpm docs:write`** run as well as
+  `contract:write`/`generate` — the served reference, `journey.md` and both `llms.txt` move with a new operation.
+- **The review's I2 remedy was not taken as written** — dropping a cut line's last (longest secret − 1) bytes BEFORE
+  redacting can cut a WHOLE secret in the kept text into an unmatched part; `trimCut` drops only an ending that begins a
+  secret, and an ending token run too short for the entropy rule.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 `demux` decoded each Docker frame alone**, so a character split across two frames read `caf��` — a defect
+   since S1, in exec, sign-in, readiness and scan too. A line is now assembled from bytes and decoded once.
+2. **F2 The plan's "`incidents.test.ts` stays green unchanged" was wrong for one line**: its `asked` assertion pins the request
+   the plan's own design changes (`tail: 201, lineBytes: 8192, timestamps: true`). Updated; every other case unchanged.
+3. **F3 The plan's `failure = error.name` changed an Incident's words** — `ECONNRESET` became `Error`; the existing case caught
+   it. `failureName` (a code, else a class name) is now the one rule for both readers.
+4. **F4 Cut-then-redact half-shows a secret across the cut** (the first ruling).
+5. **F5 The fixture app prints one line at boot** (the *honours tail* ruling).
+6. **F6 Step 6's "read the failed instance's output" is unreadable** — the container is gone (the Docker-case ruling).
+7. **F7 The matrix's staging fixture instance was retired by the deploy rows before the output row read it** — `409
+   INSTANCE_OUTPUT_UNAVAILABLE` to all five `pass` actors; alone (`-t`) the row passed. TRAPS.md has it.
+8. **F8 None of the plan's cases could see `serving`'s state check** — control (e) was green without an added case (*marks no
+   instance serving when the only deploy failed*, `2e6737c`).
+9. **F9 The matrix's `pass` assertion printed no body**, so a failing `pass` said *"expected 409 to be less than 400"* and not
+   which refusal; the body is now its message.
+10. **F10 (review C1, Critical) A multi-line secret was redacted line by line.** An app's SP private key — in its set as one
+    multi-line value — printed line by line left its body to the entropy rule, which redacts none of the `/`-split pieces under
+    24 characters: readable through `getInstanceOutput` while its Incident's joined pass redacted it. And the Incident's new
+    per-line pass ran BEFORE its joined one, changing a line inside a multi-line secret so the exact match failed. **`makeRedactor`
+    now answers a `LineRedactor`**: `lines()` redacts the lines JOINED and answers one entry per line. Red first on both tiers.
+11. **F11 (review I2) A secret across the RUNTIME's cut could be pulled into view** by redaction earlier in the line shrinking
+    it. `LineRedactor.trimCut`; the source's room is the longest secret or 4 KiB, whichever is more.
+12. **F12 (review I3) A removed instance's output answered `200` with no lines.** `engine.stream` checks no status, and
+    `demux` read Docker's `404` JSON as a frame claiming ~1.9 GB — measured in the control: *"promise resolved +0 instead of
+    rejecting"*. `containerLogs` refuses a non-2xx answer (`LOGS_TARGET_NOT_FOUND`); the route asks `driver.status` and
+    answers `gone` `409`. TRAPS.md has it: **every other `stream` caller that does not check the status has the same hole.**
+13. **F13 (review I4) The fragment rule could drop the ONLY line**, and the Incident then said *"(the application printed
+    nothing)"*. The only line is kept, marked `…`.
+14. **F14 The reviewer's own I2 remedy would have cut a whole secret** (the last ruling).
+15. **F15 `observability/events.test.ts` read the WHOLE `events` table, assuming it empty** — true only while the file Vitest
+    ran before it left no committed rows. The new `api/instances.test.ts` came to run just before it, and BOTH full runs of the
+    final tree failed the same three cases on a fixture's `project.created`. Reproduced with the two files alone (red with
+    `instances.test.ts` first; green scoped — `--sequence.shuffle --sequence.seed=1` puts it first); the three reads are now
+    scoped to the test's project (`64d88b9`). **Vitest runs a previously failed file FIRST**, so a plain re-run could not show
+    the pairing either way.
+16. **F16 The Docker tier's wall-clock case, *a retire waits for a request that is in flight*, went red in the second full run**
+    (`expected false to be true`, `driver-contract.ts:437`) and **green re-run alone** at load 4.4–7.3 — TRAPS.md's load gauge,
+    a fourth time. Its drain reads Caddy's admin API, which this sitting did not touch; the first full run of the same contract
+    was green.
+
+**Deferred minors** (the review's; each in the ledger): the `…[cut: N bytes]` count is approximate and `[REDACTED]` across
+`lineBytes` shows as `[REDAC`; a read failing part-way says `truncated.lines: false`; `OUTPUT_MAX_LINES` has no caller
+(`OutputQuery` restates 1000); the fake answers `stamped: true` unasked; `interface Partial` in `logs.ts` shadows the global;
+an empty frame opens a line unstamped; a kept piece is a `subarray` view (memory bounded by the socket chunk, not
+`lineBytes`); Review Focus 1's `MONGODB_URI` and token shapes are read through the redactor's own tests, not the route's.
+**Known residual, named**: a multi-line secret whose FIRST line begins past the runtime's cut (8 KiB into a line) leaves its
+later lines to the heuristics.
+
+**The negative controls — every one predicted, then run, then restored:**
+- Task 2: (a) cut after assembling the whole line — **GREEN, as the plan predicted**: the text is identical, only memory differs;
+  a control that cannot fail in the unit tier. (b) no oldest-end byte loop — RED, 200 lines for 32. (c) `tail` without `+ 1` —
+  RED on the last-lines list and *asks for one record more*, and, unpredicted, on *keeps the oldest line*. (d) `readLogTail`'s
+  old loop — RED in the Docker case's line-for-line comparison. (e) cut then redact — RED. (f) a stamp read only where a line
+  begins — RED. (g) no fragment drop — RED on both tiers.
+- Task 3: (a) production refused after the read — RED on the spy's count (*"expected logs to be called +0 times, but got 1"*),
+  the status still 403. (b) `project:read` for `output:read` — RED. (c) an identity redactor — RED. (d) the project from a
+  query parameter — RED (200 for `400 REQUEST_INVALID`). (e) `serving` without its state check — RED only on the added case.
+- The fix pass: C1 line by line again — RED on both tiers (the Docker case showed the key's header); I2 without `trimCut` — RED;
+  I3 without the route's check — RED (200); I3 without `containerLogs`' check — RED (*"promise resolved +0"*); I4 always
+  dropping — RED (0 lines).
+
+**Gates at close**: **`pnpm test` 2404 passed in 164 files**, twice on the final tree (`64d88b9`: 487 s and 482 s) — up from 2330 in 162 by
+this sitting's 74 tests and two files; on `d18dbfa` both runs had read 3 red, identically (F15). **`pnpm test:docker` 217 in 36
+files** — owed twice, both run: on the pre-fix tree (`2e6737c`) all 216 green in 949 s; on the fixed tree (`d18dbfa`) 216
+green and the wall-clock case red (F16), green alone. `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean. **`make
+doctor` 20/0/0; `make verify` 57/0/0**, its per-app line `mf- containers=6 networks=2 volumes=4`, as at open. The contract is
+**1.4.0** (56 operations).
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 secrets, 0 instances, **33 migrations** (this sitting added none);
+`launch-app`'s six `mf-launch-app-*` containers running, untouched; nothing listening on 7100, 7102, 7104, 7105, 7110 or 8765
+— **the control plane is not running**, as at open; the edge (`manifest-caddy`) restarted by the Docker tier, as it always is;
+the GitHub fake absent; **both models unloaded** (Ollama's `/api/ps` lists none — this sitting warmed the chat model for the
+tier and unloaded it and the embedding model at close). The three cleanup scripts, after `--apply` (allowed — 7 networks, 1
+volume, `p4b-probe-user`, 24 app images) and run bare again: `none dead`, 0 orphaned, 0 dead app images. The snapshot diff shows
+only uptime, the edge's restart and **4 GB less free disk** (83 → 79 Gi) — Docker's build cache from two full tiers (25.1 GB,
+20.9 GB reclaimable), which no cleanup script touches. `docker-simple-saml-saml-idp-1` exited, as at open.
+
+**Next: sitting 3 (Task 4, binary files)** — `[M11]` first; `pnpm test:docker` owed (`source/`, `build/`).
