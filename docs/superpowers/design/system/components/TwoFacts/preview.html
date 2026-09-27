@@ -1,0 +1,13 @@
+<!-- @dsCard group="States" height=230 subtitle="What is serving, and what the last attempt did" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { background: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)', padding: 24 } },
+    h(M.TwoFacts, {
+      serving: { overline: 'What people get', title: 'The version from 18 September, 9:00am', note: 'Running without complaint for 9 hours.' },
+      attempt: { overline: 'What you tried last', title: 'A change that didn\u2019t take, 4 minutes ago', note: 'What went wrong \u2192', tone: 'attention' } }));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

@@ -1,0 +1,18 @@
+<!-- @dsCard group="Foundations" height=250 subtitle="The default surface, and the tinted variants" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var p = { margin: 0, fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink-muted)' };
+  var demo = h('div', { style: { display: 'flex', gap: 16, alignItems: 'flex-start' } },
+    h(M.Card, { title: 'Next: build it', style: { flex: '1 1 0' } },
+      h('p', { style: p }, 'A few minutes. Watch it, or walk away.'),
+      h('a', { href: '#', style: { fontSize: 13.5, fontWeight: 600, color: 'var(--brand)', textDecoration: 'none' } }, 'Build it \u2192')),
+    h(M.Card, { tone: 'working', title: 'You can close this page', style: { flex: '1 1 0' } },
+      h('p', { style: p }, 'It keeps going without you. Everything will still be here.')),
+    h(M.Card, { tone: 'waiting', title: 'Worth knowing now', style: { flex: '1 1 0' } },
+      h('p', { style: p }, 'Once it\u2019s live, the name can never change.')));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

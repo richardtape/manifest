@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"Manifest","components":[{"name":"StateChip"},{"name":"LiveSteps"},{"name":"Timeline"},{"name":"ProgressBar"},{"name":"TwoFacts"},{"name":"ClockItem"},{"name":"Button"},{"name":"Card"},{"name":"FormField"},{"name":"SideNav"},{"name":"AppBar"},{"name":"ProjectBar"},{"name":"InverseSurface"},{"name":"LogPane"},{"name":"SpeculativeBanner"},{"name":"BrowserFrame"},{"name":"SegmentedControl"},{"name":"Choice"},{"name":"LockedRow"}]} */
+/* @ds-bundle: {"format":4,"namespace":"Manifest","components":[{"name":"StateChip"},{"name":"LiveSteps"},{"name":"Timeline"},{"name":"ProgressBar"},{"name":"TwoFacts"},{"name":"ClockItem"},{"name":"Button"},{"name":"Card"},{"name":"FormField"},{"name":"SideNav"},{"name":"AppBar"},{"name":"ProjectBar"},{"name":"InverseSurface"},{"name":"LogPane"},{"name":"BrowserFrame"},{"name":"SegmentedControl"},{"name":"Choice"},{"name":"LockedRow"}]} */
 (function (global) {
   'use strict';
 
@@ -321,14 +321,6 @@
       }));
   }
 
-  /* ---- SpeculativeBanner ----------------------------------------------- */
-
-  function SpeculativeBanner(props) {
-    return h('div', { className: cx('mf-spec', props.className), role: 'note' },
-      h('span', { className: 'mf-spec__tag' }, props.tag || 'Speculative'),
-      h('span', { className: 'mf-spec__text' }, props.children));
-  }
-
   /* ---- BrowserFrame ---------------------------------------------------- */
 
   function BrowserFrame(props) {
@@ -395,7 +387,7 @@
     StateChip: StateChip, LiveSteps: LiveSteps, Timeline: Timeline, ProgressBar: ProgressBar,
     TwoFacts: TwoFacts, ClockItem: ClockItem, Button: Button, Card: Card, FormField: FormField,
     SideNav: SideNav, AppBar: AppBar, ProjectBar: ProjectBar, InverseSurface: InverseSurface, LogPane: LogPane,
-    SpeculativeBanner: SpeculativeBanner, BrowserFrame: BrowserFrame,
+    BrowserFrame: BrowserFrame,
     SegmentedControl: SegmentedControl, Choice: Choice, LockedRow: LockedRow
   };
 })(window);

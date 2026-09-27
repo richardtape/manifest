@@ -1,0 +1,31 @@
+<!-- @dsCard group="Foundations" height=200 subtitle="Switching what you are looking at, never what you are doing" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  function Demo() {
+    var a = React.useState('staging'), b = React.useState('desktop'), c = React.useState('all');
+    var row = { display: 'flex', alignItems: 'center', gap: 16 };
+    var lab = { fontSize: 12, color: 'var(--ink-subtle)' };
+    return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 20 } },
+      h('div', { style: row },
+        h(M.SegmentedControl, { value: a[0], onChange: a[1], options: [
+          { label: 'Your draft', value: 'sandbox' },
+          { label: 'Trying out', value: 'staging' },
+          { label: 'Students', value: 'production' }] }),
+        h('span', { style: lab }, 'Which address you are looking at \u2014 three exist from the day a project is made.')),
+      h('div', { style: row },
+        h(M.SegmentedControl, { role: 'radiogroup', value: b[0], onChange: b[1], options: ['desktop', 'phone'].map(function (v) {
+          return { value: v, label: v === 'desktop' ? 'Desktop' : 'Phone' }; }) }),
+        h('span', { style: lab }, 'How it is being shown to you. Two options, so a pair rather than a menu.')),
+      h('div', { style: row },
+        h(M.SegmentedControl, { value: c[0], onChange: c[1], options: [
+          { label: 'All 4', value: 'all' }, { label: 'Needs you 1', value: 'needs' },
+          { label: 'Working 1', value: 'working' }, { label: 'Over 2', value: 'ended' }] }),
+        h('span', { style: lab }, 'A filter carries its count in the label, so the numbers are readable unfiltered.')));
+  }
+  var demo = h(Demo);
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

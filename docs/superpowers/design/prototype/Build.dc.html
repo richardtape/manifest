@@ -237,7 +237,7 @@ class Component extends DCLogic {
     const lines = MF_LOG.slice(0, seq).map((text, i) => ({
       text,
       seq: String(i + 1).padStart(3, ' ') + '  ',
-      style: 'font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; color: ' +
+      style: 'font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; color: ' +
         (i < 2 ? '#8794AB' : '#DDE3EC') + (i === seq - 1 ? '; animation: mfArrive 0.3s ease both;' : ';'),
     }));
 

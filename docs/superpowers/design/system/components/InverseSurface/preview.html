@@ -1,0 +1,24 @@
+<!-- @dsCard group="Surfaces" height=340 subtitle="The three places machine text is shown on purpose" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { display: 'flex', gap: 16, alignItems: 'stretch' } },
+    h(M.InverseSurface, { style: { flex: '1 1 0', minWidth: 0 } },
+      h(M.LogPane, { writtenBefore: 2, lines: [
+        '#1 [internal] load build definition',
+        '#1 transferring dockerfile: 892B done',
+        '#1 DONE 0.1s',
+        '#7 [4/8] RUN npm ci --omit=dev',
+        '#7 added 135 packages in 6s'] })),
+    h(M.InverseSurface, {
+      style: { flex: '1 1 0', minWidth: 0 },
+      warn: true,
+      title: 'The only time you will see this',
+      body: 'We keep a fingerprint, not the key. Once you close this we cannot show it again.',
+      inset: 'mft_77777777-7777-4777-8777-777777777777_ZmFrZS1zZWNyZXQ' },
+      h(M.Button, { kind: 'secondary', style: { borderColor: 'var(--border-inverse)', color: 'var(--ink-inverse-strong)' } }, 'Copy it')));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

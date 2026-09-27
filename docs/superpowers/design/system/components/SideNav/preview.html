@@ -1,0 +1,25 @@
+<!-- @dsCard group="Foundations" height=460 subtitle="The whole navigation, in UBC blue, on every signed-in screen" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); display: flex; height: 440px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+  function Demo() {
+    var s = React.useState('Going live'), active = s[0], set = s[1];
+    var items = [
+      { label: 'Overview', icon: 'overview' }, { label: 'Preview', icon: 'preview' },
+      { label: 'Conversations', icon: 'talk' }, { label: 'Going live', icon: 'live' },
+      { label: 'People', icon: 'people' }, { label: 'Agents', icon: 'agent' }
+    ].map(function (it) { return Object.assign({}, it, { href: '#' }); });
+    return h('div', { style: { display: 'flex', width: '100%' }, onClick: function (e) {
+      var t = e.target.closest ? e.target.closest('.mf-rail__item') : null;
+      if (t) { e.preventDefault(); set(t.textContent.trim()); }
+    } },
+      h(M.SideNav, { active: active, projectName: 'mock-app', items: items, user: 'Instructor One' }),
+      h('div', { style: { flexGrow: 1, padding: 40, minWidth: 0 } },
+        h('h1', { style: { margin: 0, fontSize: 31, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--ink)' } }, active),
+        h('p', { style: { margin: '10px 0 0', fontSize: 15, lineHeight: 1.6, color: 'var(--ink-muted)', maxWidth: '46ch' } },
+          'Click the rail. The active item is a fill, a weight change and aria-current — three signals, so it survives without colour.')));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script>

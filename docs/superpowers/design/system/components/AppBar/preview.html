@@ -1,0 +1,17 @@
+<!-- @dsCard group="Foundations" height=180 subtitle="The mark, and a project\u2019s own navigation" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { margin: -20 } },
+    h(M.AppBar, { user: 'Instructor One' },
+      h('a', { href: '#', style: { color: 'var(--ink-muted)', textDecoration: 'none', borderBottom: '1px solid var(--border-muted)' } }, 'Sign out')),
+    h(M.ProjectBar, {
+      title: 'mock-app',
+      meta: 'Yours \u00b7 made 18 September \u00b7 for one class, all arriving at once',
+      tabs: ['Overview', 'Preview', 'Conversations', 'Going live', 'People'],
+      active: 'Overview' }));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

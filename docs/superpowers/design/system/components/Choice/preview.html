@@ -1,0 +1,39 @@
+<!-- @dsCard group="Foundations" height=360 subtitle="Radio cards, capability checkboxes, and the four that can never be ticked" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  function Demo() {
+    var s = React.useState('class'), scale = s[0], setScale = s[1];
+    var c = React.useState({ 'project:read': true, 'build:create': true }), caps = c[0], setCaps = c[1];
+    var t = React.useState(false), saved = t[0], setSaved = t[1];
+    var head = { fontSize: 15, fontWeight: 600, color: 'var(--ink)' };
+    var col = { flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 };
+    function toggle(v) { var next = Object.assign({}, caps); next[v] = !next[v]; setCaps(next); }
+    return h('div', { style: { display: 'flex', gap: 20, alignItems: 'flex-start' } },
+      h('div', { style: col },
+        h('span', { style: head }, 'Who is going to use it?'),
+        h(M.Choice, { name: 'mf-scale', label: 'Who is going to use it?', value: scale, onChange: setScale, options: [
+          { title: 'Just me', note: 'The only person who will open it', value: 'solo' },
+          { title: 'One class', note: 'A section or a seminar group', value: 'class' },
+          { title: 'A large course', note: 'Hundreds of students at once', value: 'large_course' },
+          { title: 'Anyone at all', note: 'Open beyond UBC', value: 'public' }] })),
+      h('div', { style: col },
+        h('span', { style: head }, 'What may it do?'),
+        h(M.Choice, { type: 'checkbox', onChange: toggle, options: [
+          { title: 'Look at this project', value: 'project:read', checked: !!caps['project:read'] },
+          { title: 'Build it', value: 'build:create', checked: !!caps['build:create'] },
+          { title: 'Prepare a version', value: 'release:create', checked: !!caps['release:create'] },
+          { title: 'Delete the project', value: 'project:delete', checked: !!caps['project:delete'] }] }),
+        h(M.LockedRow, { label: 'Change who can get in \u2014 never available' }),
+        h(M.InverseSurface, { style: { padding: '14px 16px' } },
+          h('label', { style: { display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer' } },
+            h('input', { type: 'checkbox', checked: saved, onChange: function () { setSaved(!saved); },
+              style: { accentColor: 'var(--brand)', width: 17, height: 17, margin: 0 } }),
+            h('span', { style: { fontSize: 13.5, lineHeight: 1.5, color: 'var(--ink-inverse)' } }, 'I have put it somewhere safe')))));
+  }
+  var demo = h(Demo);
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

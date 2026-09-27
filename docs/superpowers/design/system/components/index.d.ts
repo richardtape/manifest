@@ -149,10 +149,6 @@ export interface LogPaneProps {
 }
 export declare function LogPane(props: LogPaneProps): JSX.Element;
 
-export interface SpeculativeBannerProps { tag?: string; children?: React.ReactNode; className?: string }
-/** Means one thing: no API exists for this screen. Never "unfinished". */
-export declare function SpeculativeBanner(props: SpeculativeBannerProps): JSX.Element;
-
 export interface BrowserFrameProps {
   url: string;
   phone?: boolean;

@@ -1,0 +1,20 @@
+<!-- @dsCard group="States" height=270 subtitle="A run of stations an app passes through, live" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var card = { background: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)', padding: '24px 30px' };
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+    h('div', { style: card }, h(M.Timeline, { stations: [
+      { label: 'Waiting its turn', note: 'In the queue behind anything else going out', state: 'done' },
+      { label: 'Making room', note: 'Somewhere to run, and a place to keep things', state: 'done' },
+      { label: 'Starting up', note: 'Your app is running its first few seconds', state: 'now' },
+      { label: 'Answering', note: 'It replied to us, so it will reply to people', state: 'next' }] })),
+    h('div', { style: card }, h(M.Timeline, { stations: [
+      { label: 'Making room', state: 'done' },
+      { label: 'Starting up', state: 'done' },
+      { label: 'It never answered', note: 'It started, then stopped replying to us', state: 'halted' }] })));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

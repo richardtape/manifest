@@ -1,0 +1,27 @@
+<!-- @dsCard group="Surfaces" height=330 subtitle="The app you made, behind glass" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var app = h('div', { style: { background: '#FDFDFB', height: '100%' } },
+    h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid #E8E6DF' } },
+      h('span', { style: { fontWeight: 600, fontSize: 15, color: '#23211C' } }, 'Reading responses'),
+      h('span', { style: { fontSize: 12, color: '#6A665C' } }, 'Instructor One')),
+    h('div', { style: { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 11 } },
+      h('span', { style: { fontSize: 13.5, fontWeight: 600, color: '#23211C' } }, 'Week 3 \u2014 Enclosure and the commons'),
+      h('div', { style: { padding: '12px 14px', borderRadius: 8, border: '1px solid #E0DDD4', background: '#FFFFFF', fontSize: 12.5, lineHeight: 1.55, color: '#3A362F' } },
+        'The reading treats enclosure as an economic event, but the parish records suggest it was read at the time as a change in who could speak\u2026'),
+      h('div', { style: { height: 10, borderRadius: 3, background: '#EDEBE4', width: '88%' } }),
+      h('div', { style: { height: 10, borderRadius: 3, background: '#EDEBE4', width: '74%' } })));
+
+  var empty = h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 30, height: '100%', background: 'var(--surface-raised)', boxSizing: 'border-box' } },
+    h('span', { style: { fontSize: 14, fontWeight: 600, color: 'var(--ink)' } }, 'Not live yet'),
+    h('p', { style: { margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--ink-muted)', textAlign: 'center' } }, 'It stays empty until you go live.'));
+
+  var demo = h('div', { style: { display: 'flex', gap: 20, alignItems: 'stretch', height: 270 } },
+    h(M.BrowserFrame, { url: 'mock-app.staging.manifest.internal', caption: 'What a person reaching this address sees, after they have signed in with CWL.' }, app),
+    h(M.BrowserFrame, { url: 'mock-app.manifest.internal', phone: true, caption: '390pt \u2014 a phone in a lecture theatre.', style: { width: 214 } }, empty));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

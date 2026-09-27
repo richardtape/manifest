@@ -1,0 +1,29 @@
+<!-- @dsCard group="Foundations" height=300 subtitle="Hover, focus, active, disabled \u2014 the four that are usually invented" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var row = { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' };
+  var lab = { width: 108, flexShrink: 0, fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-subtle)' };
+  var note = { fontSize: 12.5, color: 'var(--ink-subtle)' };
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+    h('p', { style: { margin: 0, fontSize: 13, lineHeight: 1.55, color: 'var(--ink-muted)' } },
+      'Hover these. Nothing here moves more than 1px, and nothing changes size \u2014 a control that grows under the cursor pushes the thing beside it.'),
+    h('div', { style: row },
+      h('span', { style: lab }, 'Buttons'),
+      h(M.Button, { kind: 'primary' }, 'Primary'),
+      h(M.Button, { kind: 'secondary' }, 'Secondary'),
+      h(M.Button, { kind: 'primary', style: { outline: '2px solid var(--focus-ring)', outlineOffset: 3 } }, 'Focus, always visible'),
+      h(M.Button, { kind: 'primary', disabled: true }, 'Building\u2026')),
+    h('div', { style: row },
+      h('span', { style: lab }, 'Input'),
+      h('div', { style: { width: 260 } }, h(M.FormField, { id: 'mf-ix', label: '', value: 'reading-responses', mono: true })),
+      h('span', { style: note }, 'hover for the border, focus for the ring')),
+    h('div', { style: row },
+      h('span', { style: lab }, 'Link'),
+      h('a', { href: '#', style: { fontSize: 14.5, color: 'var(--brand)', textDecoration: 'none', borderBottom: '1px solid var(--border-muted)' } }, 'See what going live needs'),
+      h(M.Card, { style: { padding: '13px 16px', display: 'inline-block' } }, 'A whole row that is a link')));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

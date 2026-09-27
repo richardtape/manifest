@@ -1,0 +1,27 @@
+<!-- @dsCard group="States" height=300 subtitle="Progress without showing the machine" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var col = { flex: '1 1 0', minWidth: 0 };
+  var cap = { fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-subtle)', marginBottom: 12, display: 'block' };
+  var demo = h('div', { style: { display: 'flex', gap: 32 } },
+    h('div', { style: col },
+      h('span', { style: cap }, 'Running'),
+      h(M.LiveSteps, { steps: [
+        { text: 'Reading how your app is put together', state: 'done' },
+        { text: 'Fetching the JavaScript toolkit it runs on', state: 'done' },
+        { text: 'Installing the 135 pieces it depends on', state: 'now' },
+        { text: 'Packaging it up', state: 'next' },
+        { text: 'Storing it, ready to run', state: 'next' }] })),
+    h('div', { style: col },
+      h('span', { style: cap }, 'Stopped at a wall'),
+      h(M.LiveSteps, { steps: [
+        { text: 'Made the change', state: 'done' },
+        { text: 'Put it where you can try it', state: 'done' },
+        { text: 'Tried to go live for your class', state: 'halted',
+          note: 'And was stopped at the door. Nothing about your running app has changed.' }] })));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

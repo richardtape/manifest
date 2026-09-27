@@ -38,7 +38,8 @@ system/tokens.css               GENERATED from tokens.json; custom properties + 
 system/components/bundle.js     19 React components, one classic script, assigns window.Manifest
 system/components/bundle.css    their styles, every value from a token
 system/components/index.d.ts    every prop, with the rules that matter written into the comments
-system/components/<Comp>/README.md   the guidelines for that component
+system/components/<Comp>/README.md    the guidelines for that component
+system/components/<Comp>/preview.html a worked example that mounts the real export
 ```
 
 **Load order in a consuming page:** `tokens.css`, `bundle.css`, React 18 + ReactDOM 18, `bundle.js`.
@@ -68,7 +69,11 @@ Signin → Main → New → Provision → Build → Deploy → Preview → Proje
 `Token` (a secret shown exactly once), `Members` (re-authenticating mid-task), `Queue` (an agent is
 refused; a human answers in their own words).
 
-**FOUR ARE SPECULATIVE AND MUST NOT BE BUILT FROM AS IF THEY WERE A SPEC:**
+**FOUR ARE SPECULATIVE AND MUST NOT BE BUILT FROM AS IF THEY WERE A SPEC.** They carry no marking
+on screen — Rich removed the hatched bands and the "what this screen would need" blocks on
+2026-09-26, deliberately, so the prototype reads as a real product. **That makes this table the only
+statement of which screens have no API behind them. Do not build these four against an API that
+does not exist.**
 
 | Screen | Status |
 |---|---|
@@ -77,8 +82,10 @@ refused; a human answers in their own words).
 | `Conversations.dc.html` | **Speculative.** A conversation is the one object with no counterpart anywhere in the API. |
 | `Iterate.dc.html` | **Speculative in half.** Asking for a change is invented; the build, the deploy, the refusal, the question and the single retry a *yes* buys are all built and clicked today. |
 
-**Three of those four have lost their on-screen marking** — see §5. **This table is now the
-authoritative statement of which screens are speculative.**
+`SpeculativeBanner` — the component that drew those bands — has been removed from the design
+system for the same reason: nothing in the product may use it, and a system that ships a component
+the product must never use is a trap. It is recoverable from this repository's history and from the
+Artifact's version history if that is ever reversed.
 
 ## 4. The thirteen API findings
 
@@ -94,35 +101,38 @@ The rationale's §8 lists them in full. The four that most change what a build a
 
 ## 5. What had drifted by 2026-09-26 — read before trusting a screen
 
-These are defects in the **published prototype** found while pulling these files down. The copies in
-`prototype/` are faithful to what was published, defects included, rather than quietly corrected —
-so this record and the files agree. **None of them is fixed.**
+Two defects were found while pulling these files down. **Both are now fixed**, in these files and in
+the published prototype. A third item turned out to be a deliberate change, not a defect.
 
-**a. `Build.dc.html`'s logic block does not parse, so the build screen is dead.** One line has
-single quotes nested inside a single-quoted JavaScript string:
+**a. FIXED — `Build.dc.html`'s logic block did not parse, so the build screen was dead.** One line
+had single quotes nested inside a single-quoted JavaScript string:
 
 ```
 style: 'font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; …'
 ```
 
-The fix is to use double quotes for the inner family name. Introduced by a global find-and-replace
-that landed inside a JS string literal. Sixteen of the seventeen screens parse; this one does not,
-and it is the most important live screen in the product.
+The inner family name now uses double quotes. Introduced by a global find-and-replace that landed
+inside a JS string literal, and caught by executing all seventeen logic blocks rather than reading
+them. All seventeen parse now.
 
-**b. `Incident.dc.html`'s repair-prompt inset is invisible.** The card is `#0A4E60` and the mono
-inset inside it is also `#0A4E60`, with no border — two different tokens that collapsed onto one
-value during the palette change. The inset should be a step darker.
+**b. FIXED — `Incident.dc.html`'s repair-prompt inset was invisible.** The card and the mono inset
+inside it were both `#0A4E60` with no border: two tokens that collapsed onto one value during the
+palette change. The inset is now `#04252F` with a `#2C7A8E` border, following `InverseSurface`'s own
+rule of a darker fill plus a border. Worth knowing: no fill reaches 3:1 against that card without
+going nearly black, so the border is doing most of the separating.
 
-**c. `Describe`, `Draft` and `Conversations` have lost their speculative band and their "what this
-screen would need" block.** They were published with both; the live versions have neither, while
-`Iterate` still has both. Something removed them in the canvas editor. This is exactly the failure
-`SpeculativeBanner`'s own guidelines warn about — *"an unmarked speculative screen is
-indistinguishable from a specification, and somebody will build it"* — which is why §3's table
-exists here in the repository, where an editor cannot quietly drop it.
+**c. NOT A DEFECT — the speculative bands were removed on purpose.** Three of the four had lost
+theirs when these files were pulled; Rich confirmed on 2026-09-26 that this was deliberate and asked
+for the rest to go, so `Iterate`'s band and its "Real and not real" block were removed too. The
+intent is that the prototype reads as a real product. **The cost is that nothing on screen now says
+which four screens have no API behind them, so §3's table is the only record of it** — which is why
+it lives here, in the repository, where a canvas editor cannot drop it.
 
-**Also not present:** the eighteen `components/<Comp>/preview.html` files. They are demonstrations
-of the bundle rather than sources — props come from `index.d.ts`, behaviour from `bundle.js`, rules
-from each README — and they render live in the system Artifact. Ask if you want them here too.
+**The previews are here.** All eighteen `components/<Comp>/preview.html` files were added on
+2026-09-26. Each mounts a real export from `bundle.js` rather than look-alike markup, so a preview
+that renders is a component that works — and between them they are the only worked examples of
+idiomatic composition with real copy. Four are genuinely interactive through `useState`: the live
+name check, both segmented controls, and the choice cards.
 
 ## 6. What this design does not cover
 

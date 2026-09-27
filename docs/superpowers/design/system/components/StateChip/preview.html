@@ -1,0 +1,23 @@
+<!-- @dsCard group="States" height=150 subtitle="The five states, and nothing else" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var row = { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' };
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+    h('div', { style: row },
+      h(M.StateChip, { state: 'working', label: 'Working, a few minutes' }),
+      h(M.StateChip, { state: 'waiting', label: 'Waiting on someone' }),
+      h(M.StateChip, { state: 'attention', label: 'Needs you' }),
+      h(M.StateChip, { state: 'steady', label: 'Steady' }),
+      h(M.StateChip, { state: 'notyet', label: 'Not yet' })),
+    h('div', { style: row },
+      h(M.StateChip, { state: 'waiting', label: 'Waiting on someone' }),
+      h('span', { style: { fontSize: 12, color: 'var(--ink-subtle)' } },
+        'waiting 42 seconds \u00b7 about a day left to answer')),
+    h('p', { style: { margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--ink-subtle)' } },
+      'Only Working and Needs you ever pulse. A wait measured in weeks is completely still.'));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

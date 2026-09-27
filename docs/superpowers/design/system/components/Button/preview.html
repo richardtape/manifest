@@ -1,0 +1,24 @@
+<!-- @dsCard group="Foundations" height=190 subtitle="Four kinds, and a disabled state that explains itself" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var row = { display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' };
+  var note = { fontSize: 12, color: 'var(--ink-subtle)' };
+  var demo = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+    h('div', { style: row },
+      h(M.Button, { kind: 'primary' }, 'Make it'),
+      h(M.Button, { kind: 'secondary' }, 'Watch again'),
+      h(M.Button, { kind: 'tertiary' }, 'Open the app'),
+      h(M.Button, { kind: 'danger' }, 'Yes, revoke it'),
+      h(M.Button, { kind: 'ghostDanger', size: 'sm' }, 'Revoke it')),
+    h('div', { style: row },
+      h(M.Button, { kind: 'primary', disabled: true }, 'Building\u2026'),
+      h('span', { style: note }, 'Disabled buttons say what they are waiting for, never just grey out.')),
+    h('div', { style: row },
+      h(M.Button, { kind: 'primary', style: { outline: '2px solid var(--focus-ring)', outlineOffset: 3 } }, 'Focus ring'),
+      h('span', { style: note }, '2px brand at 3px offset, on every focusable thing.')));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>

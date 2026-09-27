@@ -1,0 +1,15 @@
+<!-- @dsCard group="States" height=330 subtitle="A long-lead item, shown before anyone needs it" -->
+<div id="root" style="font-family: var(--font-sans); background: var(--surface-page); padding: 20px; box-sizing: border-box;"></div>
+<script>
+(function () {
+  var h = React.createElement, M = window.Manifest;
+
+  var demo = h('div', { style: { maxWidth: 560 } }, h(M.ClockItem, {
+    title: 'A privacy assessment',
+    body: 'Your app keeps what students write, so the Privacy Office has to look at it. The most common reason a launch slips.',
+    admissionTitle: 'Manifest can\u2019t do this one for you yet',
+    admissionBody: 'We know what it stores and who signs in, so most of the form answers itself. Three questions are yours.',
+    action: 'Fill in what we know' }));
+  ReactDOM.createRoot(document.getElementById('root')).render(demo);
+})();
+</script>
