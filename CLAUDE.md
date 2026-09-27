@@ -17,8 +17,9 @@ other document on status.*
 **The design is approved and complete, five spikes are done, and thirteen plans are executed** — Phase 1c,
 and Phase 2's first four plans, P6a (the first production launch), P6b (subsequent releases), D5's
 GitHub source driver and the authoring API. Every one has an acceptance that passes. **No plan is being
-executed: the next job is WRITING Spec action 1's plan** (a running app's recent output, sandbox and staging — Rich
-placed it next on 2026-09-26) — ORIENTATION §7e says how. Each plan's
+executed. The next — the front-end enablement plan, which replaced Spec action 1's plan and folds in its
+recent-output read — was WRITTEN on 2026-09-27, overnight and with recommendations, and waits for Rich's review;
+its four spec actions are drafted and not applied** — ORIENTATION §7e says what to ask him first. Each plan's
 *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |

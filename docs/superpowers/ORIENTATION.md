@@ -165,8 +165,8 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
-| **executing a plan** | **None is being executed** — the authoring API's was EXECUTED on 2026-09-27. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
-| **writing a plan** | **Spec action 1's — a running app's recent output, sandbox and staging — IS DUE** (§7e; Rich placed it next on 2026-09-26, §8 *Decided*); the vulnerability database in the console after it. House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md). |
+| **executing a plan** | **None is being executed** — the authoring API's was EXECUTED on 2026-09-27. **The next is WRITTEN and awaits Rich's review: [the front-end enablement plan](plans/2026-09-27-front-end-enablement.md)** (§7e says what to ask him first). **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **writing a plan** | **None is due.** The front-end enablement plan (2026-09-27) replaced *Spec action 1's plan* and is written; the vulnerability database in the console comes after it (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
 | **writing code** | *The code* and *What the platform keeps true* below. **Then run `make demo` once**: it is the only thing that exercises boot, build, release, deploy and the edge through the real HTTP surface, and it is where this project's worst defects were found. |
@@ -204,6 +204,7 @@ docs/superpowers/
 │   ├── 2026-09-22-p6b-subsequent-releases.md      P6b — executed 2026-09-23; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
+│   ├── 2026-09-27-front-end-enablement.md         WRITTEN 2026-09-27 overnight, with recommendations — AWAITING RICH'S REVIEW; 15 tasks, 12 proposed sittings, 4 spec actions drafted and not applied
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1528,64 +1529,69 @@ named in the row below.*
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
 | **D5 driver 2** | [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — **EXECUTED 2026-09-25**, all eight sittings | `make demo-github` (driver 2) — green fresh, re-use and from a `make reset` machine; step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1; **clicked by a person on both drivers**; the real conformance leg 17 of 17 | **Sitting 8's F11 and F12 are the ones to read**, found by the plan's one fresh whole-branch review: a path into a worktree's own `.git` could be written on both drivers (`core.fsmonitor` is code execution — latent until the authoring API supplies paths), and a push a read synced first was never validated. **Sitting 8's F15/F16**: `make demo` and `make demo-token` were red for five days after P6a's step-up because nothing ran them. **Sitting 1's F6**: one rewrite of GitHub's `main` froze a non-forced mirror's `main` for ever — the two-refspec mirror is its fix. **Sitting 4's F6**: without `repositoryOf`, a GitHub-mode control plane BUILT a driver-1 project. |
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
-### 7e. Write the plan for Spec action 1 — a running app's recent output, in sandbox and staging ← **START HERE**
+### 7e. Rich reviews the front-end enablement plan — then execute its sitting 1 ← **START HERE**
 
-**No plan is being executed.** The authoring API's was EXECUTED on 2026-09-27 ([its record](plans/2026-09-25-authoring-api.md),
-§2's table): an agent builds an app through the API alone, on both drivers. **The next job is WRITING the next plan**, which
-Rich placed on 2026-09-26 (§8 *Decided*): **Spec action 1 — a bounded, redacted read of an instance's recent output, in
-sandbox and staging only.** It is small (the roadmap sizes nothing yet; expect three to five tasks). The vulnerability
-database in the console comes after it.
+**No plan is being executed.** The authoring API's was EXECUTED on 2026-09-27 ([its record](plans/2026-09-25-authoring-api.md)).
+**The next plan is WRITTEN and waits for Rich's review**: [the front-end enablement plan](plans/2026-09-27-front-end-enablement.md)
+(`3357cfe`), fifteen tasks in twelve PROPOSED sittings. It is what the faculty front-end at `app.manifest.internal` needs from
+Manifest:
+- Spec action 1's bounded, redacted read of a running app's recent output, and the list of an environment's instances — the plan
+  **replaces the one the roadmap placed as *Spec action 1's plan***, in the same position;
+- the `app` origin;
+- agent model keys charged to the person;
+- a project's name;
+- people added by CWL login name or email;
+- binary files;
+- archive, restore and delete;
+- what the authoring API handed over.
 
-**What it builds is §14, as amended on 2026-09-26** (`1d42c80`), word for word: *"A bounded read of an instance's recent
-output is — in sandbox and staging only. A project member, or a delegated token holding the capability for it, may read the
-last lines of an instance's output — bounded in lines and in bytes, read on request and never streamed — redacted at read
-with the rules that redact `Incident.log_tail`. … production's is not, and its Incident's `log_tail` stays the only window
-onto it."*
+Its acceptance is `make demo-frontend`. **Rich asked for it on 2026-09-27 and, going to bed, for it to be written *"with your
+recommendations for any items that come up"***. So every decision in it below his own line is a recommendation he has not yet
+read, and **its four spec actions are drafted and NOT applied** — the approved spec is untouched.
 
-**ASK RICH IN THE FIRST MESSAGE — the one thing the writing needs from him:** nothing is his until the plan is written;
-then **its sittings split**, proposed with the reasoning visible, as every plan since P4a. If the plan finds a spec
-question (the capability's name and whether a token may be MINTED holding it are the likely ones — §14 says *"a delegated
-token holding the capability for it"*, so mintable; D24's privileged four do not include it), it goes to him as a spec
-action with options. **The test budget is LEAN** (§8 *Decided*): writing a plan runs no suite at all.
+**ASK RICH IN THE FIRST MESSAGE — four things, and only the first two block sitting 1:**
+1. **His review of the plan** — does it capture what he wants? Any of its thirty-one *Decisions* he would change (the plan
+   records what each rejected and what changing course costs).
+2. **The sittings split** — twelve proposed, the spec-action-dependent ones deliberately last (5–9). The plan's *How this plan
+   is to be executed* has the reasoning and the two splits offered and not chosen.
+3. **The four spec actions** — each needed only before the sitting that builds it (**4 before sitting 5, 2 before 6, 1 before
+   7, 3 before 8**). Each carries its exact wording, its options and a recommendation. **Apply none until he has read the
+   words**; each names the shared HTML pages it moves.
+4. **Whether *binary files* was meant** — it reverses his *"text files only in v1"* of 2026-09-22. The plan builds it (Task 4)
+   and says it is the one task to drop if not.
 
-**Read, in this order:** `superpowers:writing-plans`; the house style's newest example, [the authoring API plan](plans/2026-09-25-authoring-api.md)
-(header to *The fixtures and helpers*, then its *What this plan does not build* — **the input list**, which carries sitting
-10's leftovers: the knowledge pack's missing `express.urlencoded` sentence (F1), the seed read as *pushed with git* (F4), **no
-operation that lists an environment's instances** (F13 — this plan reads ONE instance's output, so it must say how a client
-names it), the review's six minors and its addendum's five, and a driver-1 push publishing nothing); the roadmap's *A running
-app's recent output* section; §14 of the spec; and the code the plan will build on — **the `Driver`'s `logs(id, opts)`**
-(`runtime/driver.ts`; `runtime/docker/logs.ts`'s `containerLogs`, which the builder already tails), **`observability/
-incidents.ts`'s `readLogTail` and the redactor it applies**, `api/representations/incidents.ts` (*"The last 200 lines,
-redacted at capture"*), and the authoring API's patterns this must follow: `defineRoute` with `examples`, the reference's
-completeness gate (`api/contract/docs.test.ts`), a guide in `docs/api/` whose code is an `example-*.ts` run against the mock,
-`coverage.ts`'s `JOURNEY` (its step for a running app's output names this plan in `later` — built, it names operations), the
-authorization matrix (`api/authz-contract.ts`), the console (a screen per operation, `DELIBERATELY_UNCALLED` empty) and
-`manifest-mock`. **Measure before writing** (a measurement sitting first, as every plan since P4c): what `containerLogs`
-answers for a running app container, its cost at a large tail, what the redactor catches in an app's own output, and how
-an instance is named today (`getEnvironment`'s one `instance`).
+**Read, in this order:** the plan's header down to *Decisions this plan makes* (inclusive), *Global Constraints*, and Task 1.
+Then **§4's traps** — sitting 1 measures the Docker engine, the IdP, LiteLLM and the edge, and every one of them has a trap
+there.
 
-**WHERE THE SESSION STOPS, AND HOW IT ENDS.** The plan written, self-reviewed (`superpowers:writing-plans`' checklist and the
-project's *What the self-review caught*), committed on `main` with an explicit path list, its sittings split put to Rich —
-**and nothing executed.** Then the close-out (§6) for a plan WRITTEN: the roadmap's section and ledger line, §3's *writing a
-plan* row, and this §7e rewritten to *execute sitting 1*.
+**WHERE SITTING 1 STOPS, AND HOW IT ENDS.** Task 1 alone:
+- the measurements into `spikes/frontend-baseline/`;
+- a `[M<n>]` block at the head of every task a measurement corrects;
+- **a word to Rich before sitting 2 if a measurement breaks the split** — above all `[M3]`: if SimpleSAMLphp posts to the
+  first assertion-consumer URL whatever the request names, Task 8's design falls and Spec action 2's option (b) is the fallback.
 
-**THE MACHINE, AS THE AUTHORING API PLAN'S SITTING 10 LEFT IT (queried at its close, 2026-09-27, AFTER its last Vitest
-run):** the control database is **EMPTY** — 0 projects, 0 events, 0 secrets, 0 idempotency records, **33 migrations**.
-`.manifest/repos/` holds the same nine orphan bare repositories as before the sitting. **`launch-app`'s six `mf-launch-app-*`
-containers run with NO rows behind them** (re-launched fresh by `make ci-acceptance`); nothing else of any app runs. Nothing
-listens on 7100, 7102, 7104 or 7110; the GitHub fake's container and data volume are ABSENT (removed, as they were absent
-at the sitting's open). The chat model is unloaded. The three cleanup scripts read clean after their `--apply`; `make
-verify` 57/0/0 with `containers=6 networks=2 volumes=4`, and `make doctor` 20/0/0. **The control plane is not running** — start
-it (RUNBOOK's *Running the control plane*) before anything that needs it. Writing a plan needs none of it. Rich may test by
-hand afterwards, so query again at open — `docker exec manifest-postgres psql -U manifest -d manifest_control` (there is no
-`psql` on the host), `docker ps`, `lsof -nP -iTCP:7100 -sTCP:LISTEN`.
+Then the close-out (§6) for a sitting. **The test budget is LEAN** (§8 *Decided*): Task 1 changes nothing under `packages/`,
+so it runs the four gate numbers once and no suite beyond them.
+
+**THE MACHINE.** The plan-writing session (2026-09-27) changed nothing on it: it read code and rendered the design prototype
+from a temporary static server on `127.0.0.1:8765`, which it stopped. So the machine is as the authoring API plan's sitting 10
+left it — **queried at this session's close, 2026-09-27, not remembered**:
+- the control database **EMPTY** — 0 projects, 0 events, 33 migrations (`psql`);
+- `launch-app`'s six `mf-launch-app-*` containers running with no rows behind them;
+- nothing listening on 7100, 7102, 7104, 7105, 7110 or 8765 (`lsof`);
+- the GitHub fake absent;
+- the chat model unloaded (Ollama's `/api/ps` lists none);
+- the vulnerability database fresh until **2026-10-01** (§2's box — not re-read by this session).
+
+**Query it again at open** — `docker exec manifest-postgres psql -U manifest -d manifest_control`, `docker ps`,
+`lsof -nP -iTCP:7100 -sTCP:LISTEN` — because Rich may have tested by hand.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
 
 - **COMMIT ON `main`, AND STAGE YOUR OWN PATHS BY NAME — §6 RULE 9 IS THE FULL RULE AND THIS
   LINE DELIBERATELY DOES NOT RESTATE IT.** Read it: **other agents are working in this
-  repository at the same time as you** (a design session committed `577ad91` in the middle of sitting 10), and
+  repository at the same time as you** (a design session committed `e1712d8` the evening this plan was written), and
   `superpowers:executing-plans` and `using-git-worktrees` will both push you toward a branch you must not make.
 - **Ask before `sudo`, and before touching anything outside the repository.** §6 rule 2, and
   CLAUDE.md's *Non-negotiables* has the rest.
@@ -1597,6 +1603,14 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 reasoning is recorded.**
 
 ### Open
+
+- **THE FRONT-END ENABLEMENT PLAN'S REVIEW, ITS SITTINGS SPLIT AND ITS FOUR SPEC ACTIONS — RAISED 2026-09-27, OVERNIGHT.**
+  Written at Rich's instruction *"with your recommendations for any items that come up"*, so its thirty-one decisions are
+  recommendations he has not read; its twelve sittings are proposed; its four spec actions (agent keys outside a sandbox;
+  the `app` origin; archive, restore and delete; a project's name and a person's CWL login) are drafted with exact wording
+  and options, and NOT applied. [The plan](plans/2026-09-27-front-end-enablement.md); §7e says which he must answer before
+  sitting 1 (the review and the split) and which can wait (each spec action, until the sitting that builds it). **It also
+  makes the §26 item below more pressing**: an administrator can archive a course app, and nothing records why.
 
 - **Manifest's licence — RAISED BY THE AUTHORING API PLAN (sitting 1's `[M8]`; sitting 6 accepted the linter's
   `info-license` warning pending it).** The published document states none; stating one is the project owner's decision.
@@ -1663,6 +1677,19 @@ reasoning is recorded.**
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **THE FACULTY FRONT-END: AGENT MODEL KEYS BROUGHT FORWARD AND CHARGED TO THE PERSON (OPTION (b)), ITS ORIGIN IS `app`, AND
+  ONE PLAN FOR ALL OF IT** (Rich, 2026-09-27, after the review of whether a real faculty front-end can be built). The
+  review offered three answers to *where the building agent runs and whose model it uses* — (a) the front-end brings its
+  own provider key, outside §10's budgets and D17's gate; **(b) agent keys brought forward from Phase 3, charged to the
+  person — a spec change**; (c) wait for Phase 3 — and two for the front-end's address; he chose (b) and `app`
+  (`app.manifest.internal`). He then asked for **one plan** covering Spec action 1's recent-output read, the second origin,
+  the agent's model access, a project's name, binary files (**reversing *text files only in v1*** of 2026-09-22), adding
+  members by CWL login, and delete/archive. It **replaces *Spec action 1's plan*** in the same position — after the
+  authoring API, ahead of the vulnerability database in the console. [The plan](plans/2026-09-27-front-end-enablement.md),
+  its *Decided by Rich*. He also said the design system (`docs/superpowers/design/system/`) is solid and liked, the
+  prototype's layout and some of its interaction are decent, and the front-end is to be thought through screen by screen,
+  step by step, when it is built. — do not re-raise
 
 - **THE AUTHORING API PLAN'S SPEC ACTIONS 1 AND 3: (a) AND (a), AS PROPOSED — AND SPEC ACTION 1'S PLAN IS NEXT** (Rich,
   2026-09-26, at the opening of that plan's sitting 10, taking every recommendation; applied the same hour, `1d42c80`).
