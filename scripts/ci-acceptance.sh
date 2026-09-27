@@ -111,7 +111,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # no inherited git configuration, SummaryContext's type); a replayed mint (3), the primitive's
 # withholding (1) and the mock's (1); and Spec action 4 — the per-user quota and the warnings (4)
 # and the route's warnings, held to the published examples (1).
-EXPECT_TESTS=2328
+# Then the authoring API plan's sitting 10 (2026-09-26, the acceptance): +2 and no file — the whole-branch
+# review's two Important findings, each red first: a commit that LANDED answered and recorded when its
+# validation after the push fails (1), and one Idempotency-Key on another secret refused (1).
+EXPECT_TESTS=2330
 EXPECT_FILES=162
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57

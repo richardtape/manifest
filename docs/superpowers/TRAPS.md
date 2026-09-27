@@ -1846,6 +1846,26 @@ it belongs among the traps the next sitting is most likely to hit.
   *a mirror's visibility still unread after a sync* — was held by an OFFLINE case, where the sync's own git fetch is
   `SOURCE_UNREACHABLE` before the check is reached; removing the check left the case green. The check needs git answering
   and GitHub's REST API not: `failRepositoryReads` in `source/github/driver.test.ts`'s harness. Ask which layer answered.
+- **A CWL APP WITHOUT `express.urlencoded` SIGNS NOBODY IN, AND SAYS NOTHING** (2026-09-26, the authoring API plan's
+  sitting 10, F1). SAML's HTTP-POST binding delivers the assertion as a FORM; with only `express.json` mounted the callback
+  has no `SAMLResponse`, passport sends every sign-in to `/login/failed`, and nothing is logged. **`idp_login` completes
+  anyway** — it proves the SP row and the AuthnRequest, not a session (ORIENTATION §3) — so the app's own `/api/me` is the
+  assertion. The skeleton's `server.js` mounts it without a comment; an agent that REPLACES `server.js` drops it.
+- **THE EVENT STREAM REPLAYS RECENT EVENTS, SO "THE FIRST FRAME OF THAT TYPE" MAY BE THE LAST RUN'S** (2026-09-26, sitting
+  10, F2). A demo's re-use path found the previous run's `app_secret.set`, naming the previous run's token. Key a check on
+  something this run made (a commit sha), or accept only frames that arrived after the action: `const before = new
+  Set(frames)` then `!before.has(f)` in the `waitFor` predicate — a `frames.slice()` is a copy and never grows.
+- **A PERSON'S PUSH ON DRIVER 1 SENDS NO FRAME** (2026-09-26, sitting 10, F3). A `git push` straight into a bare repository
+  under `.manifest/repos/` publishes nothing, so an open Code screen learns `main` moved only when it commits
+  (`409 SOURCE_CONFLICT`); driver 2's webhook publishes `repository.pushed`. Before F3's fix, *Reload main* then left a
+  banner naming the OLDER commit for ever.
+- **`getEnvironment` NAMES THE SERVING INSTANCE, AND NO OPERATION LISTS INSTANCES** (2026-09-26, sitting 10, F13). A deploy
+  that fails after creating its row (with `RELEASE_SECRET_NOT_SET` disabled: `INJECTION_SECRET_MISSING`, `500 INTERNAL`)
+  leaves a row in `starting` that no client can see — *"no new instance"* through the contract cannot fail. Read the
+  database (`instances` by environment) to check it.
+- **`git commit -F <msg> -- <paths>` REFUSES A PATH GIT DOES NOT TRACK YET** — `pathspec … did not match any file(s) known to
+  git` — so a commit of new files is `git add -- <paths>` first, then the explicit-path commit (sitting 10). Stage by name,
+  never `-A`.
 
 ## Images already pulled
 

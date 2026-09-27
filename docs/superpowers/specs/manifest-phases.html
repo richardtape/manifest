@@ -35,7 +35,7 @@
   open in a browser and show to somebody</strong> &mdash; not a status report, an actual working
   thing.</p>
   <div class="meta">
-    <span><b>Now</b> stages 1a, 1b and 1b+ are complete &mdash; an app goes from repository to a working web address, practice CWL sign-in works end to end for apps <em>and</em> for the platform's own staff, every database password is encrypted in its own store, the proof application answers a person's question from their own notes through a language model, and a new version of an app can be put live while people are using it without interrupting anyone; and the interface people will use has been started &mdash; a person now signs in at a real console, creates an application there and watches it happen live, builds and deploys it, asks to go live and reads what a first launch still needs, hands an assistant a credential of its own, and <b>answers the questions that assistant is stopped on</b> &mdash; every screen of it is now there, and another team can now build a front end of their own against the published interface without running the platform at all, because a single small program now stands in for it; stage 1c is <strong>complete</strong> &mdash; the whole journey has now been run through twice, once by a person clicking every step in the browser and once automatically by a script, both against the same published interface, which was the proof it had to pass; and <b>stage 2 has begun</b> &mdash; an application has been taken to its real production address, only after every item on the first-launch checklist was genuinely satisfied, and a person has now done the whole of that in the console, while a script does the same launch automatically from start to finish &mdash; the first of stage 2&rsquo;s two plans is finished, and the second, for every release after the first, comes next (September 2026)</span>
+    <span><b>Now</b> stages 1a, 1b and 1b+ are complete &mdash; an app goes from repository to a working web address, practice CWL sign-in works end to end for apps <em>and</em> for the platform's own staff, every database password is encrypted in its own store, the proof application answers a person's question from their own notes through a language model, and a new version of an app can be put live while people are using it without interrupting anyone; and the interface people will use has been started &mdash; a person now signs in at a real console, creates an application there and watches it happen live, builds and deploys it, asks to go live and reads what a first launch still needs, hands an assistant a credential of its own, and <b>answers the questions that assistant is stopped on</b> &mdash; every screen of it is now there, and another team can now build a front end of their own; and <b>an assistant now builds an app by writing its code through the interface alone</b>, learning how from the documentation the interface serves &mdash; tested with a course bulletin board, on this laptop&rsquo;s own code store and on (practice) GitHub against the published interface without running the platform at all, because a single small program now stands in for it; stage 1c is <strong>complete</strong> &mdash; the whole journey has now been run through twice, once by a person clicking every step in the browser and once automatically by a script, both against the same published interface, which was the proof it had to pass; and <b>stage 2 has begun</b> &mdash; an application has been taken to its real production address, only after every item on the first-launch checklist was genuinely satisfied, and a person has now done the whole of that in the console, while a script does the same launch automatically from start to finish &mdash; the first of stage 2&rsquo;s two plans is finished, and the second, for every release after the first, comes next (September 2026)</span>
     <span><b>Full detail</b> &sect;17 of the design document</span>
   </div>
 </header>
@@ -257,7 +257,12 @@
         The launch checklist becomes a gate that actually blocks. Custom web addresses,
         proven by DNS and given certificates. The size question starts having an effect
         on capacity. The showcase and forking arrive, so the second person to want a queue
-        starts from the first one. The admin dashboard arrives, built around its queue.</p>
+        starts from the first one. The admin dashboard arrives, built around its queue.
+        <b>And an assistant can write an app's code through the interface</b> &mdash; list and
+        read its files, change them against exactly what it read, see who changed what, and
+        set the app's passwords and keys without anyone ever reading them back &mdash; with the
+        interface's own documentation served by the interface, so a person or an AI learns to
+        drive it from it.</p>
         <p><b>You can show:</b> an app legitimately launched, with its paperwork approved
         and its department&rsquo;s own address on it.</p>
         <p class="q">Is it safe, and can we get an app genuinely launched?</p>
@@ -273,8 +278,8 @@
         available as a set of tools any AI can use directly, which is what makes
         &ldquo;bring your own AI&rdquo; real rather than theoretical.</p>
         <p><b>You can show:</b> describing an app in a sentence and watching it appear.
-        <strong>The separate faculty-facing front-end project can begin here</strong>,
-        against an interface that has already been exercised.</p>
+        <strong>The separate faculty-facing front-end project, which began against stage 2&rsquo;s
+        code-writing interface, gains sandboxes, running commands and the chat panel here.</strong></p>
         <p class="q">Can an AI actually build in this environment?</p>
       </div>
     </div>
@@ -339,6 +344,10 @@
   <p class="claim">Each of these has a place to slot into later. None of them requires
   going back and undoing something.</p>
   <ul>
+    <li><b>Reading a running app&rsquo;s recent output</b> &mdash; the last lines an app printed,
+      read on request while it is being tested, never in production, and cleaned of anything
+      that looks like a secret. Agreed on 2026-09-26, and the next thing to be built: today an
+      assistant sees an app&rsquo;s output only when it crashes.</li>
     <li><b>More than one blueprint.</b> One ships first. The catalogue, the version pinning
       and the self-description all exist from stage 1, so a second is a new folder.</li>
     <li><b>Canvas and other UBC system connections</b> &mdash; opening inside Canvas, pulling a

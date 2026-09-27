@@ -16,7 +16,7 @@ Every step from an idea to a launched app, who takes it, and the operations that
 | Set the values of the app’s secrets | either | `listAppSecrets`, `setAppSecret`, `clearAppSecret` |
 | Build it and read the log | either | `startBuild`, `getBuild`, `getBuildLog`, `listBuilds`, `streamProjectEvents` |
 | Release it and deploy it to staging | either | `createRelease`, `getRelease`, `listReleases`, `deploy`, `listEnvironments`, `getEnvironment`, `listIncidents` |
-| Read a running app’s recent output to debug it | either | *Not yet — a later release:* the design keeps live tailing of a running app’s own output out of the first version (§14); a bounded, redacted read for sandbox and staging is proposed |
+| Read a running app’s recent output to debug it | either | *Not yet — the next release:* live tailing of a running app’s own output stays out of the first version (§14); a bounded, redacted read of its recent output, in sandbox and staging only, is agreed and is the next to be built |
 | Ask for a privileged action and wait for a person | agent | `listPendingActions`, `getPendingAction` |
 | Answer an agent’s question | person | `confirmPendingAction`, `rejectPendingAction` |
 | See what a first launch needs, rehearse, and record UBC’s answers | either | `getLaunchReadiness`, `getLaunchRecords`, `runRehearsal`, `recordIamRegistration`, `recordPrivacyAssessment` |

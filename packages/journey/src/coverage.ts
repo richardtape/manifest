@@ -85,8 +85,8 @@ export const JOURNEY: readonly JourneyStep[] = [
     who: 'either',
     operations: [],
     later: {
-      plan: 'a later release',
-      why: 'the design keeps live tailing of a running app’s own output out of the first version (§14); a bounded, redacted read for sandbox and staging is proposed',
+      plan: 'the next release',
+      why: 'live tailing of a running app’s own output stays out of the first version (§14); a bounded, redacted read of its recent output, in sandbox and staging only, is agreed and is the next to be built',
     },
   },
   {
