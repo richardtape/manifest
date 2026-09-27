@@ -914,6 +914,23 @@ describe('createCommit — binary files, as base64 (the front-end enablement pla
       expect(errorOf(res).message).toMatch(
         /'src\/run\.js' is text; send it with encoding: 'utf8'/,
       )
+      // A SCRIPT THAT BEGINS LIKE A PDF — or a font, or a GIF — is still text. The media-type
+      // rule reads only its first bytes and would take it; the text rule is what refuses it.
+      for (const disguised of [
+        "%PDF-1.4\nrequire('child_process').execSync('id')\n",
+        'OTTO = 1\n',
+        'GIF89a; process.exit(0)\n',
+      ]) {
+        const as = await post(
+          ctx,
+          commitBody(ctx.commitSha, [bytesWrite('public/logo.pdf', disguised)]),
+        )
+        expect(refusal(as), disguised.slice(0, 8)).toEqual({
+          status: 400,
+          code: 'REQUEST_INVALID',
+        })
+        expect(errorOf(as).message).toMatch(/'public\/logo\.pdf' is text/)
+      }
       expect(commit).not.toHaveBeenCalled()
       // The positive control: the same text, sent as text, commits.
       const ok = await post(
