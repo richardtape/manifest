@@ -92,13 +92,14 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
-### Spec actions raised by the authoring API plan — THREE DRAFTED 2026-09-25; **2 DECIDED (a) AND APPLIED 2026-09-26**; ⏳ 1 AND 3 RICH'S
+### Spec actions raised by the authoring API plan — THREE DRAFTED 2026-09-25 AND A FOURTH 2026-09-26; **2 DECIDED (a) AND APPLIED 2026-09-26**; ⏳ 1, 3 AND 4 RICH'S
 
 Written in [the authoring API plan's *Spec actions*](./2026-09-25-authoring-api.md), each with the current text, the proposed text and its options. **None is applied until Rich has read the words.**
 
 1. **§14 — a bounded read of a running app's recent output, for sandbox and staging only** (Rich asked for it on 2026-09-25: *"spec action now, later plan"*). §14's *"Live tailing … is not v1"* stays for production; sandbox and staging serve test users only (D6), so a member or a token with the capability may read the last lines of an instance's output — bounded, on request, never streamed, redacted as `Incident.log_tail` is. **Its own plan**, placement Rich's (the plan recommends directly after the authoring API).
 2. **§20 and D24 — a production secret's value is set only in an interactive session with step-up**; a token may set sandbox and staging values. Three edits (the credential table, the step-up bullet, D24's rationale). ✅ **DECIDED BY RICH AT THE CLOSE OF THE PLAN'S SITTING 4 — OPTION (a), AS PROPOSED — AND APPLIED 2026-09-26, IN THE PLAN'S WORDING**: the delegated token's *Carries* cell gains *"set the values of its app's declared secrets for sandbox and staging,"*; the step-up bullet gains *"plus setting the value of a production secret, which only an interactive session may do at all, because it is what a live app presents to a real service,"* and *"Setting a production secret is step-up-guarded and session-only without being one of D24's four: a token is refused it outright, as it is refused project creation."*; D24's rationale gains *"set its app's sandbox and staging secrets,"*. **Shared HTML pages swept:** `manifest-decisions.html`'s D24 restates both halves; the other three state nothing about what a token may set. Rejected: (b) a token sets any environment's; (c) production joins D24's privileged set.
 3. **§17 and §22 — the authoring slice in Phase 2, and the API's own documentation served by the API** (D23 principle 4). Two rows of §17 and one clause of §22.
+4. **§7 — the per-user AI budget says what §10 already decided** (drafted 2026-09-26, after sitting 6; Rich chose the option the same evening). §10 says `ai.budget.per_user_monthly_usd` is validated and not enforced before Phase 4; §7's schema line gains that as a comment, and §7's *Validation* list a bullet — the value refused above the project's AI quota, as §10 claims and nothing yet checks, and a validation warning that it binds no one. Built in the plan's Task 12. No shared HTML page mentions it.
 
 ### Spec actions raised by the chat-model switch — ✅ BOTH APPROVED BY RICH AND APPLIED 2026-09-24, IN THE WORDING BELOW
 

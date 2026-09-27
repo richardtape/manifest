@@ -2161,6 +2161,12 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > `observability/examples.ts` (`testing.ts` re-exports it). A new route needs `examples` (REQUIRED, typed by its schemas), a
 > description on everything, and — if it refuses a token outright — `credential: 'session'`: the matrix's check refuses a
 > route whose token rows are all `TOKEN_CREDENTIAL_REFUSED` without it.
+>
+> **AND SPEC ACTION 4 LANDS HERE ONCE RICH HAS READ ITS WORDS** (drafted after sitting 6's close; *Spec actions*, 4, has the
+> words, the options and the four steps): the per-user AI budget refused above the project's AI quota, as §10 already says it
+> is; under option (a) a `warnings` list on a validation and `SPEC_FIELD_NOT_ENFORCED`; and the field's `ManifestYaml`
+> description and the knowledge pack saying *"validated, not enforced before Phase 4 (§10)"*. If the words are not yet
+> approved when sitting 9 opens, ask — the quota check and the two sentences quote §10 as it stands and need no approval.
 
 **Files:**
 - Modify: `packages/control-plane/src/source/scan-commits.ts` — `scanNewCommits` pages; `packages/control-plane/src/source/github/driver.ts` — reads the pages, and `repository.scan_incomplete` for a commit too large to scan
@@ -2322,7 +2328,7 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Spec actions
 
-**THREE — NONE APPLIED. Each goes to Rich with its exact wording, and is applied only after he has read the words** (every spec change this project has made was approved first). **A spec action is not finished when the spec changes**: the four shared HTML pages restate §14, §17, §20 and §22 in plain language — `manifest-phases.html` above all for Spec action 3 — and are swept with it.
+**FOUR. Spec action 2 is DECIDED (a) and APPLIED (2026-09-26); 1 and 3 wait for sitting 10; 4 is DRAFTED (2026-09-26, after sitting 6's close — Rich chose its option (b)) and its words await his read. Each goes to Rich with its exact wording, and is applied only after he has read the words** (every spec change this project has made was approved first). *(This line read "THREE — NONE APPLIED" for a day after Spec action 2 was applied — sitting 5's F16, in the one copy that sweep did not reach.)* **A spec action is not finished when the spec changes**: the four shared HTML pages restate §14, §17, §20 and §22 in plain language — `manifest-phases.html` above all for Spec action 3 — and are swept with it.
 
 ### 1. §14 — a bounded read of a running app's recent output, for sandbox and staging only (Rich, 2026-09-25: *"spec action now, later plan"*)
 
@@ -2357,6 +2363,33 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 - §22, D23 principle 4, after *"…without ever running inside it"*: *"— **and the API's own documentation, served the same way, so that an agent learns how to drive the platform from the platform**"*.
 
 *Options:* **(a) as proposed** (recommended); (b) §17 only; (c) neither — the roadmap records the placement, and the spec lags it.
+
+### 4. §7 — the per-user AI budget says what §10 already decided (after sitting 6; Rich chose option (b) of ORIENTATION §8's item the same evening) — **DRAFTED 2026-09-26; THE WORDS AWAIT RICH**
+
+**Why.** §10 decided — Rich, 2026-09-15 — that `ai.budget.per_user_monthly_usd` is **validated in Phase 1 and not enforced**, and says why: LiteLLM 1.98.0 keeps an end user's budget on a *customer* row created at first use with none, has no per-key or proxy-level default, and setting one needs the namespaced identifier that exists only inside the app — so enforcement is a spend-log reconciler, Phase 4 (D10). **But §7, the file's own contract, does not say so**: its schema shows `per_user_monthly_usd: 2` beside `project_monthly_usd: 50` with nothing to tell a reader that one binds and the other does not, and neither did the `ManifestYaml` description sitting 6 published, nor the knowledge pack's *The budget* paragraph. (Only the proof-app starter's own comment and README say it.) **And §10's *"validated against the project's quota"* is not implemented**: the only check the value meets is §7's schema, `nonnegative()` — sitting 6's F8, as corrected in its record.
+
+**Current** (§7, *Schema (v1)*, the `ai:` block):
+> ```yaml
+>   budget:
+>     project_monthly_usd: 50       # omitted, with models declared: the project's AI quota
+>     per_user_monthly_usd: 2
+> ```
+
+**Proposed** — two edits, both §7, and none to §10, which already says it:
+- The schema's line gains its comment:
+  > ```yaml
+  >     per_user_monthly_usd: 2       # validated, NOT enforced, before Phase 4 (§10)
+  > ```
+- §7's *Validation* list, after the bullet on `ai.budget.project_monthly_usd` set to `0`, gains:
+  > - `ai.budget.per_user_monthly_usd` above the project's AI quota. The value is validated and frozen with the release and **not enforced before Phase 4** (§10) — no single person is limited by it yet — so a manifest that sets it is valid, and its validation carries a warning saying so.
+
+*Options:* **(a) as proposed** (recommended) — the words and the warning; **(b) the schema comment and the quota bullet, with no warning** — the published `ManifestYaml` description and the knowledge pack carry the sentence, and the validation stays silent; **(c) the schema comment alone.** *(a)'s last clause commits the platform to a warning channel, which does not exist yet — a validation answers only `valid` and `errors` — so it costs a contract change; (b) is the cheaper way to say the same thing, to a reader who reads the schema rather than the answer.*
+
+**What building it is, once the words are approved — Task 12, sitting 9** (the home for inherited items; it already owes the Docker tier):
+1. `spec/policy.ts`'s `checkPolicy` refuses `ai.budget.per_user_monthly_usd` above `ctx.quota.aiMonthlyUsd` — `SPEC_QUOTA_EXCEEDED` at that path, the code every other quota breach answers. Measured before this was written: the one manifest in the repository that sets it is the proof-app starter's (`1`, against a default quota of `50`), so nothing that exists turns invalid.
+2. **For (a) only:** `SpecValidation` gains `warnings: ManifestError[]` — additive, inside `1.3.0`, and on `createCommit`'s outcome and dry run as well — never affecting `valid`; one `ManifestErrorCode`, `SPEC_FIELD_NOT_ENFORCED`, at `ai.budget.per_user_monthly_usd` when it is set above `0`, with its meaning and remedy in `MANIFEST_ERRORS` (the reference's gate requires both). The console shows warnings wherever it shows a validation's errors.
+3. `spec/schema.ts`'s description of the field, published as `ManifestYaml`'s, says *"validated, not enforced before Phase 4 (§10)"*; and `blueprints/node-ts-mongo/agents/AGENTS.md`'s *The budget* paragraph gains the same sentence. (These two quote §10 as it stands, and could land before the words are approved.)
+4. **The shared HTML pages** were checked on 2026-09-26: none mentions the per-user budget, so none moves.
 
 ---
 
@@ -3469,7 +3502,13 @@ a replay answers it again. Both it and `MintedToken.secret` now say what happens
 **F8 — `ai.budget.per_user_monthly_usd` IS APPLIED TO NOTHING.** §7 declares it (*"per_user_monthly_usd: 2"*); `spec/`
 resolves and diffs it, and no code reads it after that — `ai/keys.ts` puts the PROJECT budget on the app's LiteLLM user, and
 nothing sets a per-person ceiling from the manifest. An author who writes it expects a limit that does not exist. Named, not
-fixed; ORIENTATION §8 has it. Its `ManifestYaml` description says only what §7 says.
+fixed; ORIENTATION §8 has it. Its `ManifestYaml` description says only what §7 says. **→ CORRECTED AFTER THE CLOSE
+(2026-09-26): the spec already decided this.** §10 says the per-user budget is *"validated in Phase 1, and not enforced"*
+(Rich, 2026-09-15), with the measured reason, and the proof-app starter's own comment says so too — so *"an author expects a
+limit that does not exist"* is true only of one who reads §7 and not §10, and the gap is in the TELLING: §7, the published
+`ManifestYaml` description and the knowledge pack do not point there. **What is a real implementation gap is §10's own
+claim that the value is *"validated against the project's quota"*: nothing checks it.** Rich chose option (b) the same
+evening; *Spec actions*, 4, drafts the words and what building them is.
 
 **F9 — FOUR DESCRIPTIONS DRAFTED FROM A REPRESENTATION ALONE WERE WRONG**, each caught by reading the code before it was
 published: a collaborator cannot delete a project or promote to production either (not only *"manage members"*); `web` is the

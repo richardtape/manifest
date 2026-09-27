@@ -1470,8 +1470,9 @@ operation, parameter, schema, property, error code and event described, every op
 delegated token declared, and a gate (`api/contract/docs.test.ts`) that keeps it so** (§3 states it as an invariant). Their
 records are the plan's *What executing this plan found*, *Sitting 1* to *Sitting 6*.
 
-**NOTHING NEEDS ASKING BEFORE SITTING 7.** Sitting 6 raised two things for Rich in §8 *Open* — the manifest's per-user AI
-budget applied to nothing (F8) and Manifest's licence — and neither blocks Task 10. Spec actions 1 and 3 wait for sitting 10.
+**NOTHING NEEDS ASKING BEFORE SITTING 7.** Sitting 6 raised two things for Rich in §8 *Open* — the per-user AI budget (he
+chose option (b) the same evening; **Spec action 4's words await his read**, and it is built in Task 12) and Manifest's licence
+— and neither blocks Task 10. Spec actions 1 and 3 wait for sitting 10.
 
 **EXECUTE SITTING 7 — TASK 10 (THE CONSOLE AND THE MOCK).** `superpowers:executing-plans`, inline, no subagent per task
 (Rich, 2026-09-25); **commit on `main`**. **Read, in this order:** the plan's header to the end of *The fixtures and helpers*;
@@ -1554,15 +1555,14 @@ reasoning is recorded.**
 
 ### Open
 
-- **`ai.budget.per_user_monthly_usd` IS APPLIED TO NOTHING — RAISED 2026-09-26 (the authoring API plan's sitting 6, F8).**
-  §7 declares it (*"per_user_monthly_usd: 2"*) and `spec/` resolves and diffs it, but nothing reads it after that:
-  `ai/keys.ts` puts the PROJECT budget on the app's LiteLLM user, and no per-person ceiling is set from the manifest. An
-  author who writes it expects a limit that does not exist. The spec is right and the implementation is not (the shape of
-  the SimpleSAMLphp item below). *Options:* **(a)** build it — a per-person budget in LiteLLM for an app's end users, which
-  needs a way to name the person on an app's AI request, a design of its own; **(b)** say in §7 that the field is recorded
-  and not yet enforced, and have validation warn when it is set; **(c)** leave it and let the published `ManifestYaml`
-  description keep saying only what §7 says. *Recommended:* **(b)** now — one sentence in §7 (a spec action) and a
-  validation hint — and (a) when an app's AI requests carry a person, which §10 does not describe yet.
+- **THE PER-USER AI BUDGET: OPTION (b) CHOSEN BY RICH (2026-09-26, after the authoring API plan's sitting 6); SPEC ACTION 4
+  DRAFTED — ITS WORDS AWAIT HIS READ.** Sitting 6's F8 said `ai.budget.per_user_monthly_usd` is applied to nothing, which is
+  true and **was already decided**: §10 says it is *"validated in Phase 1, and not enforced"* (Rich, 2026-09-15) — enforcement
+  needs a spend-log reconciler, Phase 4. The gap is that §7, the published `ManifestYaml` description and the knowledge pack
+  do not say so, and that §10's *"validated against the project's quota"* is not implemented. [The plan's *Spec actions*,
+  4](plans/2026-09-25-authoring-api.md) has the words — a comment on §7's schema line and a bullet in §7's *Validation* list —
+  with options (a) the words and a validation warning (recommended), (b) the words without a warning, (c) the comment alone;
+  building it is the plan's Task 12.
 - **Manifest's licence — RAISED BY THE AUTHORING API PLAN (sitting 1's `[M8]`; sitting 6 accepted the linter's
   `info-license` warning pending it).** The published document states none; stating one is the project owner's decision.
   The day it is stated, `info` gains `license` and `lint.test.ts`'s `ACCEPTED` loses its line — whose second check refuses
