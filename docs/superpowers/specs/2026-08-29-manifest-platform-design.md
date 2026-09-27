@@ -195,13 +195,13 @@ boundary intact even when the code inside is actively hostile.
 | # | Decision | Rationale |
 |---|---|---|
 | D1 | Manifest owns an execution primitive, **"an instance of a build"**, with three lifetime policies: `build`, `sandbox`, `environment`. | The agent's dev sandbox and the staging runtime are the same object. Owning it once gives dev/prod parity for free and prevents a second, divergent orchestration layer growing inside the front-end project. |
-| D2 | The AI coding agent runs **inside** the sandbox and obtains model access from a scoped, short-lived LiteLLM key. | Keeps provider credentials out of agent-reachable memory entirely, and gives the agent a fast local filesystem for its inner loop. |
+| D2 | The AI coding agent obtains model access from a scoped, short-lived LiteLLM key, **issued for one agent session and charged to the person the agent works for**. An agent running outside Manifest — the faculty front-end's own, or a person's own — is issued one through the API from Phase 2 (§10); the agent that runs **inside** a sandbox gets one from Phase 3. | Keeps provider credentials out of agent-reachable memory entirely, and gives the agent a fast local filesystem for its inner loop. An agent outside Manifest is held to the same bound: what it holds, if it leaks, is a short-lived, spend-capped key to the model routes for one person's work on one project — never a provider credential, and never a Manifest credential (§20). |
 | D3 | Backing services are **dedicated containers per app per environment**. | Simpler isolation, and it composes with hibernation: a sleeping app's database sleeps too, so an idle course tool costs nothing. Accepted costs: backup fan-out and version sprawl, both owned centrally by Manifest. |
 | D4 | The app→platform contract is a schema-validated **`manifest.yaml` in the repo**. | Versioned with the code, diffable at the approval gate, and expressive enough to state "this app needs Qdrant and CWL with these attributes". |
 | D5 | Git access is behind a **provider interface**; driver 1 is local bare repos, driver 2 is a UBC GitHub org. | Satisfies C1: the laptop build needs no GitHub org, no tokens, no webhook tunnel. |
 | D6 | **Two identity paths.** The Manifest IdP (a SimpleSAMLphp instance Manifest controls) serves **sandbox and staging** with test users. **Production apps are registered directly with real UBC Shibboleth**, one registration per app. The Manifest IdP does not proxy to real CWL and never authenticates a real user. | Per C4, which is non-negotiable. A useful side effect: the Manifest IdP's signing key never touches real identities, which removes it from the top of the asset list in §3.5. *(A SAML-proxy variant was considered and rejected.)* |
 | D7 | Manifest is a **client of LiteLLM's admin API**, not a gateway of its own. | LiteLLM already provides virtual keys, budgets, multi-provider routing and an admin API. Building a second one would be waste. |
-| D8 | Virtual keys are minted **per app+environment**, **per agent session**, and spend is attributed **per end user** via hashed `ubcEduCwlPuid`. | A looping agent burns its own cap. Per-user attribution answers "which of 300 students spent the budget" and enables fair-share quotas inside a manifested app. |
+| D8 | Virtual keys are minted **per app+environment** and **per agent session** — an agent session's charged to the person it works for — and spend is attributed **per end user** via hashed `ubcEduCwlPuid`. | A looping agent burns its own cap. Per-user attribution answers "which of 300 students spent the budget" and enables fair-share quotas inside a manifested app. |
 | D9 | Production approval is **first-launch only**, plus **automatic re-escalation when a sensitive field changes**. | Preserves faculty velocity while closing the "the AI silently rewrote the app" hole. The escalation is free because the diff is computed for the first review anyway. |
 | D10 | Control plane is a **desired-state reconciler with pluggable drivers**, but the first implementation is a **straight-line imperative path**. | Learn the domain against real Docker before committing to a loop. The reconciler later *wraps* the straight-line function rather than replacing it. |
 | D11 | Stack: **TypeScript/Node + Fastify, Postgres, Drizzle, React+Vite** admin UI. | Team fit, and LiteLLM already requires Postgres — the control plane database adds no new infrastructure dependency. |
@@ -217,7 +217,7 @@ boundary intact even when the code inside is actively hostile.
 | D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | Staging on the Manifest IdP keeps iteration frictionless, but an app whose first contact with real Shibboleth is production launch day will fail on launch day. The rehearsal validates the registration, the attribute release and the certificate before anything is public. |
 | D22 | **This repo ships a `console/` — a reference console — as a Phase 1 deliverable.** It is the executable proof that the public API is complete and sufficient, not the product. It imports *only* the generated client from `contract/`, enforced by a lint boundary and a test. | Without it, the faculty journey is undemonstrable until Phase 3, and API gaps surface when the front-end team hits them rather than while they are cheap to fix. The import rule converts "is the API complete?" from an opinion into a build failure. |
 | D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
-| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. **Two actions are stricter still — *person-only*: approving a release (§13) and recording UBC's IAM registration or Privacy Office assessment (§9).** A delegated token can never be minted holding either, and a token that asks is refused outright rather than given a pending action, because each is a record that a named person decided — and a confirmed retry would let the token make that record. *(Added 2026-09-22.)* | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: read everything about its project, trigger builds, deploy to sandbox and staging, set its app's sandbox and staging secrets, stream logs and events — the entire build loop. Only four things need a human. **A token is scoped to one project and so does not create projects**: a human creates the project in an interactive session and mints the token for it, which is the natural order anyway. *(Reconciled 2026-09-17: this sentence previously listed project creation, which contradicts the scope rule in the decision beside it — a project-scoped token cannot use what it creates. The scope rule wins; an unscoped "creator" token is left to the phase that needs one.)* |
+| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. **Three actions are stricter still — *person-only*: approving a release (§13), recording UBC's IAM registration or Privacy Office assessment (§9), and archiving or deleting a project (§11).** A delegated token can never be minted holding any of them, and a token that asks is refused outright rather than given a pending action, because each is a record that a named person decided — and a confirmed retry would let the token make that record. *(Added 2026-09-22.)* | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: read everything about its project, trigger builds, deploy to sandbox and staging, set its app's sandbox and staging secrets, start a model session for its agent, stream logs and events — the entire build loop. Only four things need a human. **A token is scoped to one project and so does not create projects**: a human creates the project in an interactive session and mints the token for it, which is the natural order anyway. *(Reconciled 2026-09-17: this sentence previously listed project creation, which contradicts the scope rule in the decision beside it — a project-scoped token cannot use what it creates. The scope rule wins; an unscoped "creator" token is left to the phase that needs one.)* |
 | D25 | **The agent knowledge pack is served over the API**, versioned with its blueprint — not only baked into sandbox images. | A third-party agent on someone's laptop cannot read a file inside a container it never runs. Without this, a BYO agent has no way to learn how to write a valid `manifest.yaml` or wire CWL auth, which is exactly the knowledge that makes an app work on this platform. |
 | D26 | **Every app has a permanent canonical hostname. A custom production domain is an addition to it, never a replacement.** | The canonical name is what Manifest controls, what its wildcard certificate covers, and what internal tooling, health checks and the SP `entityID` are pinned to. Letting a vanity domain *replace* it would make the identity registration (§9) a function of a field a faculty member can edit, which is precisely the assertion-phishing shape D15 exists to prevent. Keeping both means a broken or lapsed custom domain degrades to a working app on an ugly URL, rather than to an outage. |
 | D27 | **A custom domain on a CWL app must be chosen before its UBC IAM registration is submitted.** Adding or changing one afterwards is an IAM change request, not a platform setting. | The ACS URL is part of what UBC IAM registers (§9, D15), and it must contain the hostname the browser is actually on or the assertion will not be accepted. This is the ordering constraint faculty are most likely to get wrong: choosing a domain is a five-second decision in week one that costs a multi-week change request in week twelve. Manifest therefore asks for the domain *at* registration time rather than offering it as a later convenience. Apps with `auth.provider: none` have no such constraint and may change domain freely. |
@@ -312,8 +312,11 @@ admin-ui/       React admin front-end
 
 | Entity | Key fields |
 |---|---|
-| **User** | `id`, `ubc_cwl_puid` (from `ubcEduCwlPuid`), `email`, `display_name`, `role` (`admin` \| `member`) |
-| **Project** | `id`, `slug`, `owner_id`, `blueprint_ref`, `starter`, `quota`, `audience`, `visibility`, `published`, `forked_from` |
+| **User** | `id`, `ubc_cwl_puid` (from `ubcEduCwlPuid`), `cwl_login` (from `uid`), `email`, `display_name`, `role` (`admin` \| `member`), `agent_monthly_usd` |
+| | `agent_monthly_usd` = the person's monthly budget for agent sessions; null is the platform default (§10) |
+| **Project** | `id`, `slug`, `name`, `owner_id`, `blueprint_ref`, `starter`, `quota`, `audience`, `visibility`, `published`, `forked_from`, `state` (`active` \| `archived` \| `deleted`), `archived_at`, `deleted_at` |
+| | `name` = what people call it — free text, changed by anyone who may change the project; never part of a hostname, an identity registration or anything else §23 derives from the slug |
+| | `state` = §11's *Ending an app*: `archived` is switched off and restorable; `deleted` is a tombstone the audit trail keeps, whose slug is free |
 | | `starter` = the §25 starter the first commit was seeded from, or null for the skeleton alone; provenance only — a later change to the starter changes no project |
 | | `quota` = `{max_cpu, max_memory, max_services, ai_monthly_usd}`; enforced at spec validation (§7) |
 | | `audience` = `{scale, burst, justification, set_by, set_at}`; human-set, shapes production capacity only (§24, D29) |
@@ -336,7 +339,7 @@ admin-ui/       React admin front-end
 | **LaunchReadiness** | `project_id`, checklist state across IAM registration, PIA, rehearsal, security scan, admin approval |
 | **DelegatedToken** | `id`, `user_id`, `project_id`, `name`, `token_hash`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `revoked_at`, `last_used_at`, `rate_limit` — the plaintext exists only at minting and is never stored, so `token_hash` is what authenticates a presented token, `name` is what makes one reviewable in a list, and `revoked_at` is how one is ended **before** its expiry. Revocation is not optional for a credential an agent holds, which is why a delegated token has a server-side record where a Phase 1 session does not (§20) |
 | **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `expires_at`, `resolved_by`, `resolved_at`, `consumed_at` — `expires_at` is what makes the `expired` state reachable rather than decorative, and `consumed_at` records that a confirmation has been **spent**, so confirming grants exactly one retry rather than a standing permission. `consumed_at` is a column and not a fifth state: "confirmed but not yet retried" and "confirmed and used" are one decision at two moments |
-| **AgentSession** | `id`, `project_id`, `instance_id`, `litellm_key_id`, `expires_at` |
+| **AgentSession** | `id`, `project_id`, `user_id` (the person it works for, and is charged to), `instance_id` (the sandbox it runs in — null for an agent outside Manifest), `requested_by_token` (null when a person started it in a session), `litellm_key_id`, `cap_usd`, `expires_at`, `ended_at` — a session outlives neither its `expires_at` nor the credential that started it, and its key is answered once, when it starts, and never stored |
 | **Event** | `id`, `project_id`, `subject`, `type`, `machine_detail`, `human_message`, `created_at` |
 | **RoleChange** | `id`, `user_id`, `from_role`, `to_role`, `actor`, `reason`, `created_at` — append-only by grant, like `Event`; `actor` is text, because the first administrator's grant has no administrator to attribute it to (§20) |
 | **Incident** | `id`, `instance_id`, `exit_reason`, `log_tail`, `failed_check`, `diff_since_healthy` |
@@ -610,7 +613,14 @@ There are **three** identity paths, and conflating them is the easiest mistake t
 make in this design. The first is easy to forget: **Manifest itself is an SP.** Its
 own users log in with CWL (`identity/`, §22 step 1), so on UBC infrastructure the
 control plane needs **its own IAM registration and its own platform-level PIA**,
-independent of any app's. Locally it uses the Manifest IdP like everything else.
+independent of any app's. **That registration names both of Manifest's own origins** —
+the reference console's and the faculty front-end's (§21) — with an assertion-consumer
+URL for each, under one entity: a person signs in on the origin they are using, and no
+session is carried from one origin to the other. **It asks UBC to release
+`ubcEduCwlPuid`, `mail`, the person's name (`givenName`, `sn`) and `uid`, the CWL login
+name** — the last so that a person can add a colleague to a project by the name the
+colleague signs in with. The PUID stays the only key a person is identified by. Locally
+it uses the Manifest IdP like everything else.
 
 The other two are the app-facing paths (D6):
 
@@ -888,8 +898,24 @@ single port.
 | Key | Scope | Lifetime | Budget source |
 |---|---|---|---|
 | **App key** | app + environment | one key per instance: minted before the instance starts; revoked when that instance is retired, after its drain (§11), or discarded if it never became ready; revoked on archive | `ai.budget.project_monthly_usd`, held on the LiteLLM *user* rather than the key, so it survives key rotation |
-| **Agent key** | one `AgentSession` | dies with the sandbox — and carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete`. **Binds from Phase 3:** an `AgentSession` has nothing to attach to before sandboxes exist (§15), so no agent key is minted in Phase 1 | hard session cap, independent of the app budget |
+| **Agent key** | one `AgentSession`: one person's agent, on one project | carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete`; revoked when its session is ended, when the delegated token that started it is revoked, and when the project is archived; never outlives that token. Inside a sandbox (Phase 3) it also dies with the sandbox | the session's own hard cap, inside **the person's** monthly agent budget — held on a LiteLLM user for that person, independent of every app budget |
 | **End user** | app passes `hash(ubcEduCwlPuid ‖ project ‖ environment)` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` — **validated, not enforced, in Phase 1** (below) |
+
+**An agent outside a sandbox is issued its key through the API (Phase 2).** A person
+in an interactive session, or a delegated token holding the capability for it (D24),
+starts an `AgentSession` for one project and is answered the key, the address it is
+used at and the logical models it may call — once; Manifest keeps no copy. The key is
+confined by `allowed_routes` like every other and carries no capability on the control
+plane (§20). **Its models are those D17 allows for the project's `data.classification`**
+— its newest valid manifest's, and never less restrictive than the classification of
+the release serving production, because the agent writes `manifest.yaml` and must not
+lower its own routing by doing so. **Its spend is the person's, not the app's**: a
+LiteLLM user per person holds a monthly agent budget — a platform default, which an
+administrator may change for one person (§26) — each session carries a hard cap inside
+it, and the person, or a token acting for them, can read what their agents have spent
+this month. Starting and ending a session are events in the project's stream, naming
+the person. This is the agent key of the table without a sandbox around it; the
+platform-initiated session of §15 still waits for Phase 3.
 
 **The end-user identifier must be namespaced per app and environment, not a bare
 hash of the CWL PUID.** LiteLLM keys its end-user budget on that string globally
@@ -1058,6 +1084,37 @@ difference matters to both user experience and timeouts, so the spike decides it
 services are dedicated per app (D3), the database hibernates with the app, so an
 idle app consumes nothing. This is what makes C5's ~500-app case affordable.
 
+### Ending an app: archive and delete
+
+Courses end, and an app a faculty member has finished with must stop running and stop
+costing without the platform forgetting that it existed. **Both operations are the
+project owner's (§13), in an interactive session with step-up (§20); they are
+*person-only* (D24), so a delegated token is refused them outright.**
+
+**Archive switches an app off, and can be undone.** The project is marked archived
+first, so nothing new starts; then every environment's instances are retired — the
+serving one included — and each of its hostnames answers a platform page saying the app
+has been switched off, never another app and never nothing. Its agent sessions end and
+their keys are revoked (§10); its delegated tokens are revoked and its pending actions
+expire; its backing services stop; its sandbox and staging SP registrations are removed
+(§9). **Its code, its data, its secrets and its records are kept.** Every step is
+idempotent, and an interrupted archive is finished on retry or at the control plane's
+next boot. Restoring makes it an ordinary project again, and its next deploy brings it
+back on its kept data; an archived project can be read and restored, and nothing else.
+A launched app can be archived — that is its owner switching production off for its
+students, which is why it asks for step-up — and its IAM registration and privacy
+assessment are untouched, because they are UBC's records and not the platform's.
+
+**Delete archives, then destroys what archive kept — the repository, every data volume
+and every secret — for a project that has never launched.** Its row and its audit trail
+remain, append-only (§20), so the audit log still says what happened to it, and its
+slug is released for another project. **A launched project is never deleted by its
+owner**: its data is disposed of under `data.retention_days` and UBC's sunset procedure
+(§9, §19), which are the Privacy Office's, and its canonical hostname stays held (D26).
+
+Auto-sunset of dormant apps (§15) is still not designed here; it would archive, never
+delete.
+
 ---
 
 ## 12. Networking, routing, secrets
@@ -1089,8 +1146,9 @@ Use `PUT` on `…/routes/0` to insert — `POST` appends, which lands the route 
 the wildcard whose `terminal: true` then swallows it.
 
 **The control plane is served through the edge, and the edge refuses it to app and
-sandbox networks.** Clients reach the API on the reference console's origin (§21), so
-the edge forwards the control plane's paths there. But the edge is attached to every
+sandbox networks.** Clients reach the API on Manifest's own origins — the reference
+console's and the faculty front-end's (§21) — so the edge forwards the control plane's
+paths there. But the edge is attached to every
 app network — that is how traffic reaches an app — and it answers any hostname asked of
 it **by address**, whether or not the name resolves inside the app: measured 2026-09-16
 from inside a deployed app, `getent hosts console.manifest.internal` failed and a request
@@ -1450,7 +1508,7 @@ tolerable in production at all.
   model catalogue, sees the whole fleet.
 - **project owner** — the faculty member. Full control of their own project.
 - **collaborator** — invited TA or co-instructor. Same as owner except member
-  management and deletion.
+  management, archiving and deletion.
 
 ---
 
@@ -1528,7 +1586,7 @@ Everything else on the ambition list can wait.
 | `IamRegistration` / `PrivacyAssessment` submission state | a human submits and pastes a ticket reference | **direct submission to UBC IAM and the Privacy Office** when a machine interface exists on their side (§9). Modelled now as a state transition with a swappable driver, so nothing is unpicked later |
 | `auth.audience` — *who* may sign in, not just *whether* | reserved; today an app admits any valid CWL holder | **roster-scoped access**: only students registered in a named course section. Needs the roster integration below, but the *question* is asked from day one because the answer changes the attribute request and the PIA even while the answer is "everyone with a CWL" |
 | `checks: []` in the spec | reserved, must be empty | *app-declared* checks. Platform-mandatory scanning (dependency, secret) does **not** use this field — it runs on every build regardless (§12). Unlocks the automated WCAG accessibility gate before public launch (a legal requirement for UBC; `tlef-starter` already carries Playwright a11y configs). |
-| Platform-initiated `AgentSession` | **Phase 3**, with sandboxes — an AgentSession has nothing to attach to before then. Callable by any client holding a delegated token (D24). | self-healing apps: crash at 2am, repair sandbox opens, owner accepts a release in the morning |
+| Platform-initiated `AgentSession` | **Phase 3**, with sandboxes — an AgentSession has nothing to attach to before then. Callable by any client holding a delegated token (D24). **A session a client starts for an agent outside a sandbox is Phase 2** (§10) — it needs no sandbox, because it has no `exec`. | self-healing apps: crash at 2am, repair sandbox opens, owner accepts a release in the morning |
 | A code `Reviewer` for what the agent wrote | **Phase 2**: an interface with a null implementation, whose verdict is an honest `not_performed`, a real caller on the build/approval path, and a **non-blocking** `LaunchReadiness` item. It reviews nothing and says so (D33). | static analysis of the source — offline (C1), **advisory before blocking** for the reason §12 gives for the scan gate — and then LLM review of the release diff, whose own control is a corpus of **planted defects** the reviewer must catch on every run, because a model that stops noticing fails silently |
 
 **Named but explicitly not designed here:** auto-sunset of dormant apps (falls out
@@ -1608,8 +1666,8 @@ the contract and the console describe redeploys as they will be.
 | **1b — Identity, secrets & AI** | SP auto-provisioning against the metadata mechanism S2 selects, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the **`node-ts-mongo` blueprint *content*** against 1a's machinery — auth component, attribute bridge, AI wiring, knowledge pack — LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
 | **1b+ — Redeploys that do not interrupt** | §11's redeploy guarantee in the `Driver` contract and both drivers; in-place route moves verified by identity; background drain and retire of every instance that is not serving; Route records, re-applied at boot; a shared session store in `node-ts-mongo@1`. **Demo:** the proof app redeployed twice and failed once, under a request loop and a signed-in student asking questions, with no failed request. | Can an app change while people are using it? |
 | **1c — Contract & clients** | OpenAPI generation under `/v1`, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), **blueprint starters (§25)**, **reserved labels and the slug check (§23)**, `console/` with its import boundary **on one origin with the API, behind the edge (§21)**, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete? *Whether a second developer can reproduce all of it on another machine is tracked separately and is not part of 1c's acceptance (2026-09-16).* |
-| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation, **and the authoring slice of the API — a project's files listed, read and committed, its history, and its app secrets' values, with the API's own documentation served beside it (§22)** | Is it safe, and can we get an app legitimately launched? |
-| **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project, which began against Phase 2's authoring slice, gains sandboxes, `exec` and the chat pane.** | Can an AI build here? |
+| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation, **and the authoring slice of the API — a project's files listed, read and committed, its history, and its app secrets' values, with the API's own documentation served beside it (§22)**, **and agent sessions outside a sandbox — a model key charged to the person (§10)** | Is it safe, and can we get an app legitimately launched? |
+| **3 — Sandboxes** | agent `exec`, per-session keys **inside the sandbox**, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project, which began against Phase 2's authoring slice, gains sandboxes, `exec` and the chat pane.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
 | **5 — UBC infra driver** | k8s or VM driver passing the contract suite; real deployment | Does it leave the laptop? |
 
@@ -1702,10 +1760,12 @@ nowhere else, and maps everything back to §3.5.
   the two credential classes is deliberate.
 - CSRF protection on every state-changing route, **as an `Origin` check**: every
   mutation carrying a session cookie, and every event-stream upgrade carrying one,
-  must name the console's origin. The mechanism matters here because every deployed
-  app is *same-site* with the console — `<slug>.staging.<zone>` beside
-  `console.<zone>` — so `SameSite=Lax` alone would send the session on a form an
-  app's untrusted code submits. **A sign-in is bound to the browser that started it**:
+  must name **the origin it arrived on — the reference console's or the faculty
+  front-end's (§21), each a platform setting and never read from the request**. The
+  mechanism matters here because every deployed app is *same-site* with both —
+  `<slug>.staging.<zone>` beside `console.<zone>` and `app.<zone>` — so
+  `SameSite=Lax` alone would send the session on a form an app's untrusted code
+  submits. **A sign-in is bound to the browser that started it**:
   the assertion must return with the nonce a short-lived cookie set when the sign-in
   began, or it is refused, because proving an assertion answers a request the control
   plane made does not prove this browser made it.
@@ -1714,7 +1774,7 @@ nowhere else, and maps everything back to §3.5.
   changes are audited, as a `RoleChange` (§6) carrying who made the change and why.
 - **Step-up re-authentication** for the privileged set — promoting a release to
   production, approving a release, reading a secret, changing a quota, changing
-  project membership — plus setting the value of a production secret, which only an interactive session may do at all, because it is what a live app presents to a real service, plus the admin-only actions of changing the model catalogue
+  project membership — plus setting the value of a production secret, which only an interactive session may do at all, because it is what a live app presents to a real service, plus archiving or deleting a project, which take an app away from its students (§11), plus the admin-only actions of changing the model catalogue
   and publishing a blueprint. A stolen admin session must not be sufficient to put an
   app on the public internet. Promoting, reading a secret, changing a quota and
   changing membership are exactly D24's forbidden delegated-token capabilities.
@@ -1735,13 +1795,17 @@ nowhere else, and maps everything back to §3.5.
 | | Obtained by | Carries |
 |---|---|---|
 | **Interactive session** | CWL login in a browser; `Secure`/`HttpOnly`/`SameSite` cookie, CSRF-protected | everything the user is entitled to; step-up re-auth for the most privileged actions |
-| **Delegated token** | minted by the user in an interactive session, scoped to **one** project and a capability set, with an expiry and a revocation | the build loop **inside that one project**: read, build, release, deploy to sandbox and staging, set the values of its app's declared secrets for sandbox and staging, stream events, *request* production. **Not project creation**, which needs an interactive session (D24) |
+| **Delegated token** | minted by the user in an interactive session, scoped to **one** project and a capability set, with an expiry and a revocation | the build loop **inside that one project**: read, build, release, deploy to sandbox and staging, set the values of its app's declared secrets for sandbox and staging, stream events, start a model session for its agent (§10), *request* production. **Not project creation, archiving or deletion**, which need an interactive session (D24, §11) |
 
 A delegated token can **never** hold production promotion, secret read, quota change
 or member management, regardless of how it was minted. Requesting one of those
 produces a `PendingAction` that a human resolves in an interactive session. This is
 enforced centrally at the authorization layer, not per-route, so a new privileged
 route cannot accidentally omit it.
+
+**An agent key (§10) is neither class.** It authenticates to LiteLLM's model routes and
+nothing else, carries no capability on the control plane, and is issued to a credential
+of one of the two classes above — never instead of one.
 
 Delegated tokens carry **per-token rate limits and quotas**. The edge limits in this
 section protect deployed apps; the control-plane API needs its own, because a
@@ -1988,8 +2052,15 @@ endpoints — to the control plane. The console's session cookie, its CSRF origi
 control plane's own SAML return URL (§9) are then one HTTPS origin, as they will be in
 production, with no cross-origin requests and no CORS. The control plane's SP is
 registered for that origin. Those forwarded routes refuse app and sandbox networks
-(§12). The separate front-end project settles its own origin when it starts (Phase 3),
-under the same two rules: same-origin through the edge, and unreachable from app code.
+(§12). **The faculty front-end's origin is `app.<production zone>` —
+`app.manifest.internal` on the laptop** (settled 2026-09-27, ahead of Phase 3, because
+the front-end project began against Phase 2's authoring slice; `app` is a reserved
+label, §23). It keeps the same two rules: same-origin through the edge, and
+unreachable from app code. The edge forwards the control plane's paths on it exactly
+as on the console's; the control plane accepts a session on either origin, judging
+each request against the origin it arrived on; and each origin keeps its own cookie,
+so a person signs in on the origin they are using — which is why Manifest's own SP is
+registered for both (§9).
 
 Front-end developers are not required to run the platform. `manifest-mock` (§5,
 §16) serves the published contract from fixtures — including scripted WebSocket
@@ -2208,7 +2279,11 @@ Flexibility for the future front-end is preserved by constraints, not intentions
    length of a build. **A deploy is the stated exception**: it answers once the new
    instance serves or has failed with an Incident (§11), because that is seconds when
    healthy and bounded by the readiness timeout when not, and a deploy that answered
-   before it knew would hand every client the same wait to rebuild.
+   before it knew would hand every client the same wait to rebuild. **So are archiving
+   and deleting a project** (§11), for the same reason: each answers once its names are
+   switched off and its instances retired — seconds, bounded by the drain — and a client
+   that was answered before the app was down would hand every person the same wait to
+   rebuild.
 
 ---
 
