@@ -4045,3 +4045,40 @@ emptied-manifest refusals — and the keyed-mock trap's count corrected to five)
 `specs/manifest-schematic.html` (the reference console's paragraph gains the documentation and the rendered reference). **The
 other three HTML pages were checked** — none states the console's screens or the API's documentation — **and left alone.**
 **CLAUDE.md's *State* unchanged**: no plan started or finished, and nothing in its *Outstanding* line moved.
+
+#### After the close — the documentation as one page opened from disk (2026-09-26, at Rich's request)
+
+Rich, reading the close: *"we should be able to see the API docs without having the entire thing spun up"* — and, told it
+was possible, *"yes, build it now"*. **`pnpm docs:html`** (`packages/journey/src/docs-html.ts`) writes `dist/api-docs/` —
+git-ignored, rebuilt on demand, so the 4.3 MB renderer is still never committed — holding `index.html` and Scalar's
+standalone bundle copied from the console's install. **Opened straight from disk it needs no Docker, no control plane, no
+mock and no server**: the nine guides in reading order and the three reference pages, each a top-level sidebar entry with
+its sections, then *The API reference* and every operation. **No new package**: the guides are the description of a COPY of
+the published document, which Scalar renders as Markdown; the published document is unchanged. Every link between pages is
+rewritten to the page's anchor, comments are dropped, and the document is embedded with every `<` escaped.
+`docs-html.test.ts` (4) holds Scalar's measured anchors, every page placed once (`READING_ORDER`; the operations page is the
+reference itself), every rewritten link to a heading that exists, and the page's one script, offline settings and embedded
+document. Commit `acd1b1b`. **`pnpm test` 2302 in 160, identical on both runs (485 s, 490 s)** — +4 and one file, as predicted;
+`pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean. No Docker tier owed (the journey package and a root script).
+
+**Measured before it was built** (probes in the scratchpad, Scalar 1.72.0): the standalone bundle renders from `file://`
+(headless Chrome's DOM — the extension cannot open `file://`); a guide's `#` and `##` headings become sidebar entries and
+sections; Scalar's anchor for a heading is its text lowercased with inline code and punctuation dropped (*"Manifest’s API"*
+→ `manifests-api`, *"manifest.yaml"* → `manifestyaml`, *"When `main` has moved"* → `when-has-moved`); and a link to
+`#description/<anchor>` moves there when clicked (served locally so the extension could click it).
+
+**F11 — THE FIRST BUILD FOLDED EVERY GUIDE UNDER ONE CLOSED *Introduction* ENTRY** (found clicking it). Scalar treats a
+description that opens with prose as one *Introduction* section and nests every heading under it — the probe had opened
+with a heading, the build with the published document's own paragraph. The guides now open the description, and that
+paragraph, which is about the document, introduces *The API reference* at its end; the test was red first on the order.
+
+**Measured, and not a defect:** a jump to a guide's TITLE — by a rewritten link or by Scalar's own sidebar, identically —
+lands up to half a screen above the heading, which is then on screen; a jump to a section lands on it. The renderer's.
+**The network log** of the page served locally: two requests, `index.html` and `scalar-standalone.js`, both its own.
+
+**Controls** — each predicted in writing before it ran, on `acd1b1b`, every patch asserted to apply: **(a)** `slugOf` keeping
+punctuation — exactly the measured-anchor case red, and the links case GREEN, as predicted: it computes headings and targets
+with the same function, so a slug that disagrees with Scalar is invisible to it, which is why the measured case exists;
+**(b)** the published paragraph first again (F11 reverted) — exactly the page case, at its `startsWith('# Manifest’s API')`;
+**(c)** no `<` escaping — exactly the page case, at its *"not to contain '<'"*; **(d)** a link left unrewritten — exactly the
+links case. None could not fail.

@@ -10,12 +10,12 @@ on one laptop, offline — and its code can live in a GitHub organisation instea
 API's plan is being executed**; §7e says what is next. The roadmap's ledger outranks every document on status.
 
 *Last verified 2026-09-26, at the close of the authoring API plan's sitting 8 (Task 11 — the guides, served, and the HTML
-reference). `pnpm test` **2298 passed, 0 skipped, in 159 files**, identical on every run of the final tree, ~8.1 minutes a run
-(488 s, 487 s) — up 71 and five files (the docs loader and the served docs, the matrix's three rows, the journey gate, the
-guides' examples run against the mock, the docs drift gate, the mock's keyed docs and refusals, and the HTML reference's
-boundary). **`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability database goes stale again after 2026-10-01 (`make
+reference) and its addendum at Rich's request (`pnpm docs:html` — the documentation as one page opened from disk). `pnpm
+test` **2302 passed, 0 skipped, in 160 files**, identical on every run of the final tree, ~8.1 minutes a run (485 s, 490 s) — up 75 and six
+files (the docs loader and the served docs, the matrix's three rows, the journey gate, the guides' examples run against the
+mock, the docs drift gate, the mock's keyed docs and refusals, the HTML reference's boundary, and the static page). **`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability database goes stale again after 2026-10-01 (`make
 refresh-vulndb`). **`make verify` 57**, clean at the open and the close. `pnpm test:docker` **210 in 35** — owed by the boot and the knowledge pack, green first time, 932 s at load ~3–5. The Docs screen and `/reference.html` were driven in a
-browser against `manifest-mock`. `scripts/ci-acceptance.sh` reads `2298 / 159 / 20 / 57`.
+browser against `manifest-mock`. `scripts/ci-acceptance.sh` reads `2302 / 160 / 20 / 57`.
 **This line states only the latest sitting** — each sitting's
 numbers are in its plan's *What executing this plan found*, dated, where they cannot drift.*
 
@@ -64,14 +64,15 @@ roadmap's table — every plan self-reviewed first. The roadmap's defect-rate ta
 a written plan as a hypothesis (§9).
 
 **The four numbers you will check first, re-measured 2026-09-26 on this machine at the open AND the close of the
-authoring API plan's sitting 8 (Task 11; its record is in the plan). ONE moved: `pnpm test` **2298** in **159** files (the
-docs loader and the served docs, the matrix's three new rows, the journey gate, the guides' examples run against the mock,
-the docs drift gate, the mock's keyed docs and two refusals, and the HTML reference's boundary); `make doctor` **20** with
+authoring API plan's sitting 8 (Task 11; its record is in the plan) and its addendum. ONE moved: `pnpm test` **2302** in
+**160** files (the docs loader and the served docs, the matrix's three new rows, the journey gate, the guides' examples run
+against the mock, the docs drift gate, the mock's keyed docs and two refusals, the HTML reference's boundary, and the
+static page, `docs-html.test.ts`); `make doctor` **20** with
 **0 warnings**; `make verify` **57**; `pnpm test:docker` **210** in **35** — run, owed by the boot and the knowledge pack:**
 
 | Gate | What it reads now |
 |---|---|
-| `pnpm test` (from the **repo root**) | **2298 passed, 0 skipped, 159 files**, **~8.1 min (488 s, 487 s) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2298**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
+| `pnpm test` (from the **repo root**) | **2302 passed, 0 skipped, 160 files**, **~8.1 min (485 s, 490 s) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2302**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
 | `pnpm test:docker` | **210 tests, 0 SKIPPED, 35 files** (2026-09-26, the authoring API plan's sitting 8: 932 s, green first time at load ~3–5; its sitting 6's 943 s, green first time at load 4–9; its sitting 5's 927 s, green on its SECOND run — the first, 895 s, was red in `sso/login.docker.test.ts` alone because macOS had half-deleted a cached fixture repository in `$TMPDIR` (that sitting's F14; `runtime/docker/testing.ts` now rebuilds one) — its sitting 4's 881 s, its sitting 3's 895 s, its sitting 2's 896 s and 878 s, and its sitting 1's 906 s; the D5 plan's sitting 8's 1341 s at load 5–16 — the Docker VM itself — and its sitting 7's 1201 s at load ~2–5. Its one wall-clock case — *a retire waits for a request that is in flight*, a drain bound — was red at load 12–15 in sittings 5 and 6 and green re-run alone at ~6; TRAPS.md has the re-run command, which leaves one dead network behind). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the cleanup scripts, because it regenerates seven dead app networks and one volume every time — and about thirteen app images, which `scripts/app-images.sh` removes — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`; sitting 6's two tiers did not show it). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **20 checks, 0 failed, 0 warnings** — one of them the GitHub fake's image (`make seed`, profile `github`); the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **57 checks, 0 failed, 0 warnings** — two of them the GitHub fake's, static, whether or not it runs. Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
@@ -81,7 +82,7 @@ the docs drift gate, the mock's keyed docs and two refusals, and the HTML refere
 | `make demo` | P3's acceptance, ~35 s, driver 1. **In no acceptance** — which is how it stayed red from P6a's step-up until the D5 plan's sitting 8 (F15); it now asserts `STEP_UP_REQUIRED`, steps up, and then §13's checklist refusal. Last green 2026-09-25, with the GitHub fake stopped |
 | `make demo-github` | **The D5 plan's acceptance — driver 2 ONLY** (`MANIFEST_SOURCE_DRIVER=github`, `make github-up`): ~70 s re-used, ~80 s fresh, ten steps against the GitHub fake, each phase ending `every check passed`. On driver 1 it stops at step 0 and creates nothing. Step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1. Green three times 2026-09-25 (fresh, re-use, after `make reset`) |
 | `make demo-journey` | P5a's acceptance: all eight steps, ~51 s, over the contract; last green 2026-09-25 in `make ci-acceptance` (the D5 plan's sitting 8) |
-| `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `2298 / 159 / 20 / 57` — and move with it** (§6). Last run 2026-09-25 on driver 1: every step PASS, `demo-github` NOT RUN, 732 s |
+| `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `2302 / 160 / 20 / 57` — and move with it** (§6). Last run 2026-09-25 on driver 1: every step PASS, `demo-github` NOT RUN, 732 s |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
 cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are
@@ -239,7 +240,8 @@ packages/contract/                openapi.json (GENERATED) and @manifest/contrac
 packages/journey/                 §22's journey through that client — make demo-journey; and every other headless demo's
                                   TypeScript half: token.ts, production.ts, releases.ts, github.ts (make demo-github);
                                   coverage.ts (§22's path as data, a gate), example-*.ts (the guides' code, run against
-                                  the mock) and docs-write.ts (`pnpm docs:write`) — the authoring API plan's Task 11
+                                  the mock), docs-write.ts (`pnpm docs:write`) and docs-html.ts (`pnpm docs:html` — the
+                                  documentation as one page opened from disk) — the authoring API plan's Task 11
 packages/console/reference.html   the HTML reference: Scalar's standalone bundle over /v1/openapi.json; reference/ imports
                                   nothing (Task 11)
 packages/github-fake/             D5's GitHub FAKE (the D5 plan, Tasks 4–6, 9–10, 12): App JWTs, scoped tokens, repositories,
@@ -624,7 +626,10 @@ defect even when every test is green.**
   page outside `src/`, mounts Scalar 1.72.0's standalone bundle — served from the pinned package by `vite.config.ts`'s
   `scalarStandalone`, never committed and never a CDN — with the configuration measured to make no request to any
   other host; `reference/` imports nothing (`src/boundary.test.ts`). `node-ts-mongo@1`'s AGENTS.md sends an agent to
-  `GET /v1/docs/agents`, and a test holds the pointer to a page the API serves.
+  `GET /v1/docs/agents`, and a test holds the pointer to a page the API serves. **And with nothing running at all, `pnpm
+  docs:html`** writes `dist/api-docs/` (git-ignored): one page, opened from disk, with the guides and the reference pages as
+  sidebar sections before the whole API reference — Scalar renders the guides as the description of a COPY of the document
+  (`packages/journey/src/docs-html.ts`, held by `docs-html.test.ts`; after sitting 8, at Rich's request).
 - **A `Release` names its env vars and never their values, and an `Instance` never names a container** (P5a Task
   14, Decisions 22 and 23): a release carries its build's digest and scan and, per environment, the frozen numbers
   and `envNames` — the value still reaches the container through §8's injection and stops there — and a deploy
