@@ -9,7 +9,15 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { disabledAiKeyService, disabledCatalogue } from '../ai/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
 import { loadConfig } from '../config.js'
-import { appSpecs, db, environments, instances, routes, users } from '../db/index.js'
+import {
+  appSpecs,
+  db,
+  environments,
+  events,
+  instances,
+  routes,
+  users,
+} from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { computeLaunchReadiness, runRehearsal } from '../launch/index.js'
 import { createEventBus } from '../observability/index.js'
@@ -575,6 +583,15 @@ describeDocker(
 
       expect(row.passed).toBe(false)
       expect(row.evidence.reason).toContain('CWL login form')
+      // NO PUID IN THE SENTENCE (the authoring API plan's Task 12): the person, by name ('O').
+      const [said] = await db
+        .select({ message: events.humanMessage })
+        .from(events)
+        .where(eq(events.subject, `rehearsal:${s.project.slug}:production`))
+      expect(said?.message).toMatch(
+        /^O ran the pre-production rehearsal and it did not pass: /,
+      )
+      expect(said?.message).not.toContain(`puid-${s.slug}`)
       // WHAT IT WAS RUN AGAINST is read off the registration the deploy wrote, not rebuilt:
       // production values, on the public listener, for the release that is serving staging.
       expect({

@@ -5,7 +5,14 @@ import { resetDatabase, withProject } from '../db/testing.js'
 import { createEventBus } from '../observability/index.js'
 import { expectSqlState } from '../observability/testing.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
-import { db as pooled, pendingActions, projects, users, type Db } from '../db/index.js'
+import {
+  db as pooled,
+  events,
+  pendingActions,
+  projects,
+  users,
+  type Db,
+} from '../db/index.js'
 import {
   bodySha256,
   consumeAction,
@@ -246,6 +253,39 @@ describe('finding a person’s answer again (P5b Task 7)', () => {
       })
       const found = await resolutionFor(db, token.id, fingerprintOf(ASK))
       expect(found.kind).toBe('confirmed')
+    })
+  })
+
+  it('names the person who answered, never their PUID — confirmed and refused (the authoring API plan’s Task 12)', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const first = await asked(db, projectId, ownerId)
+      await resolveAction(db, first.bus, {
+        ...ANSWER,
+        pendingActionId: first.row.id,
+        resolvedBy: ownerId,
+        state: 'confirmed',
+      })
+      const second = await asked(db, projectId, ownerId)
+      await resolveAction(db, second.bus, {
+        ...ANSWER,
+        pendingActionId: second.row.id,
+        resolvedBy: ownerId,
+        state: 'rejected',
+        reason: 'not today',
+      })
+      const said = await db
+        .select({ type: events.type, message: events.humanMessage })
+        .from(events)
+        .where(eq(events.projectId, projectId))
+      const answers = said
+        .filter((e) => e.type !== 'pending_action.created' && e.type !== 'token.minted')
+        .map((e) => e.message)
+        .sort()
+      expect(answers).toEqual([
+        expect.stringMatching(/^Test Owner confirmed an agent's request to /),
+        expect.stringMatching(/^Test Owner refused an agent's request to .*: not today$/),
+      ])
+      expect(JSON.stringify(answers)).not.toContain(ANSWER.resolvedByPuid)
     })
   })
 

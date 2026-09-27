@@ -28,21 +28,32 @@ const named = (displayName: string | null | undefined): string =>
     ? NOBODY_NAMED
     : displayName
 
+/**
+ * A PERSON, BY NAME — never a PUID (P6b's F14; the authoring API plan's Task 12, which found five
+ * event sentences still naming one). THE ONE LOOKUP every sentence that names a person uses: a
+ * launch record, a rehearsal, a minted token, an answered request, an approval, and the actor
+ * phrase below. A missing user or a blank name is `NOBODY_NAMED`, never the PUID.
+ */
+export async function personName(db: Db, userId: string): Promise<string> {
+  const [who] = await db
+    .select({ name: users.displayName })
+    .from(users)
+    .where(eq(users.id, userId))
+  return named(who?.name)
+}
+
 /** The person acting, by name, and — for a delegated token — the token's name. */
 export async function actorNames(
   db: Db,
   actor: Actor,
 ): Promise<{ name: string; tokenName: string | null }> {
-  const [who] = await db
-    .select({ name: users.displayName })
-    .from(users)
-    .where(eq(users.id, actor.userId))
-  if (actor.credential === 'session') return { name: named(who?.name), tokenName: null }
+  const name = await personName(db, actor.userId)
+  if (actor.credential === 'session') return { name, tokenName: null }
   const [token] = await db
     .select({ name: delegatedTokens.name })
     .from(delegatedTokens)
     .where(eq(delegatedTokens.id, actor.tokenId))
-  return { name: named(who?.name), tokenName: token?.name ?? null }
+  return { name, tokenName: token?.name ?? null }
 }
 
 /**

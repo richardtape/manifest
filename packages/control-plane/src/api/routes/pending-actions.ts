@@ -28,9 +28,10 @@ const PendingActionParams = z.strictObject({ pendingActionId: PATH.pendingAction
  * **BOTH ROUTES ARE INTERACTIVE ONLY, and that is the entire point of D24.** If a token
  * could confirm its own pending action the mechanism would be a loop with no human in it
  * — a privileged capability with extra steps. Since Task 5 it is a TYPE ERROR rather than
- * a remembered check: `requireSession` returns a `SessionActor`, and `puid` — which the
- * event's human sentence needs — does not exist on a token actor, so reverting either
- * route to `requireActor` stops compiling.
+ * a remembered check: `requireSession` returns a `SessionActor`, and `puid` — which
+ * `resolveAction` requires, though its sentence names the person (the authoring API plan's
+ * Task 12) — does not exist on a token actor, so reverting either route to `requireActor`
+ * stops compiling.
  *
  * **Confirming does NOT replay the request.** It grants that one request a single retry,
  * which the agent then makes itself, through its normal route with its normal validation

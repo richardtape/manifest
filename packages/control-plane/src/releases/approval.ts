@@ -7,14 +7,13 @@ import {
   builds,
   projects,
   releases,
-  users,
   type Db,
 } from '../db/index.js'
 // TYPES ONLY, and that is load-bearing: `launch/readiness.ts` imports this module at
 // RUNTIME, so a value imported back from `launch/` would be an import cycle.
 import type { Reviewer, ReviewVerdict } from '../launch/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
-import { repositoryOf } from '../projects/index.js'
+import { personName, repositoryOf } from '../projects/index.js'
 import type { SourceDriver } from '../source/index.js'
 import {
   describeDiff,
@@ -81,14 +80,9 @@ export async function recordApproval(
     .returning()
 
   // F14 (P6b sitting 7): THE FEED NAMES A PERSON, NOT A PUID — the name P6b's Decision 18
-  // already gives the Approval's `decidedByName`, read the same way. The PUID only when the
-  // name is empty: the column is NOT NULL, and an empty name must not make a message that
-  // names nobody.
-  const [who] = await db
-    .select({ name: users.displayName })
-    .from(users)
-    .where(eq(users.id, input.actor.userId))
-  const name = who !== undefined && who.name.trim() !== '' ? who.name : input.actor.puid
+  // already gives the Approval's `decidedByName`. An empty name is `personName`'s own words,
+  // never the PUID it fell back to until the authoring API plan's Task 12.
+  const name = await personName(db, input.actor.userId)
 
   await publishEvent(
     db,

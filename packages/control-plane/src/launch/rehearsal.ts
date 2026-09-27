@@ -2,6 +2,7 @@ import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import type { Config } from '../config.js'
 import { environments, events, projects, rehearsals, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import { personName } from '../projects/index.js'
 import { listenerFor } from '../routing/index.js'
 import { deployRelease, type DeployDeps } from '../releases/index.js'
 import type { Driver } from '../runtime/index.js'
@@ -218,6 +219,7 @@ export async function runRehearsal(
     })
     .returning()
 
+  const ranBy = await personName(deps.db, actor.userId)
   await publishEvent(
     deps.db,
     deps.bus,
@@ -234,8 +236,8 @@ export async function runRehearsal(
         attributeCount: signIn.attributesReleased.length,
       },
       humanMessage: verdict.passed
-        ? `${actor.puid} ran the pre-production rehearsal and it passed.`
-        : `${actor.puid} ran the pre-production rehearsal and it did not pass: ${verdict.reason}`,
+        ? `${ranBy} ran the pre-production rehearsal and it passed.`
+        : `${ranBy} ran the pre-production rehearsal and it did not pass: ${verdict.reason}`,
     },
     makeRedactor([]),
   )

@@ -8,6 +8,7 @@ import {
   isPersonOnly,
   isPrivileged,
   membershipOf,
+  personName,
   type PrivilegedCapability,
 } from '../../projects/index.js'
 import {
@@ -181,7 +182,7 @@ export const tokenRoutes = [
             capabilities: row.capabilities,
             expiresAt: row.expiresAt.toISOString(),
           },
-          humanMessage: `${actor.puid} created a delegated token, '${row.name}', which can ${row.capabilities.join(', ')} until ${row.expiresAt.toISOString().slice(0, 10)}.`,
+          humanMessage: `${await personName(deps.db, actor.userId)} created a delegated token, '${row.name}', which can ${row.capabilities.join(', ')} until ${row.expiresAt.toISOString().slice(0, 10)}.`,
         },
         makeRedactor([]),
       )

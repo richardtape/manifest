@@ -1,4 +1,6 @@
+import { and, eq } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
+import { events } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { revokeToken } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
@@ -41,6 +43,29 @@ describe('minting a delegated token (D24, Task 4)', () => {
       // The read schema HAS NO `secret` FIELD (Decision 11) — not an empty one.
       expect('secret' in one).toBe(false)
       expect(JSON.stringify(listed.json())).not.toContain(body.secret)
+    })
+  })
+
+  it('names the person who minted it, never their PUID (the authoring API plan’s Task 12)', async () => {
+    await withProjectServer(async (ctx) => {
+      const owner = await sessionFor(ctx, 'bio_prof', 'owner')
+      const minted = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${ctx.projectId}/tokens`,
+        cookies: owner,
+        headers: mutationHeaders(ctx.deps),
+        payload: { name: 'ci', capabilities: ['project:read'], expiresInDays: 30 },
+      })
+      expect(minted.statusCode, minted.body).toBe(201)
+      const said = await ctx.deps.db
+        .select({ message: events.humanMessage })
+        .from(events)
+        .where(and(eq(events.projectId, ctx.projectId), eq(events.type, 'token.minted')))
+      expect(said).toHaveLength(1)
+      expect(said[0]!.message).toMatch(
+        /^Bio Prof created a delegated token, 'ci', which can /,
+      )
+      expect(said[0]!.message).not.toContain('bio_prof')
     })
   })
 

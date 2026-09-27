@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { iamRegistrations, privacyAssessments, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import { personName } from '../projects/index.js'
 import {
   iamTransition,
   piaTransition,
@@ -243,7 +244,7 @@ export async function recordIamRegistration(
         attributeCount: input.registeredAttributes.length,
       },
       humanMessage:
-        `${input.actor.puid} recorded this app's UBC IAM registration as ${state}` +
+        `${await personName(db, input.actor.id)} recorded this app's UBC IAM registration as ${state}` +
         `${row!.externalTicketRef === null ? '' : ` (ticket ${row!.externalTicketRef})`}.`,
     },
     makeRedactor([]),
@@ -311,7 +312,7 @@ export async function recordPrivacyAssessment(
         externalTicketRef: row!.externalTicketRef ?? null,
       },
       humanMessage:
-        `${input.actor.puid} recorded this app's privacy assessment as ${state}` +
+        `${await personName(db, input.actor.id)} recorded this app's privacy assessment as ${state}` +
         `${row!.externalTicketRef === null ? '' : ` (ticket ${row!.externalTicketRef})`}.`,
     },
     makeRedactor([]),

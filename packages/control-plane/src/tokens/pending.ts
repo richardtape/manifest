@@ -3,7 +3,7 @@ import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import { pendingActions, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { expirePendingActions } from './expiry.js'
-import type { TokenCapabilityRefusedError } from '../projects/index.js'
+import { personName, type TokenCapabilityRefusedError } from '../projects/index.js'
 
 /** §6's `PendingAction`, as stored. */
 export type PendingAction = typeof pendingActions.$inferSelect
@@ -325,7 +325,11 @@ export async function resolveAction(
     state: 'confirmed' | 'rejected'
     /** The person's own words. Required for a rejection, absent for a confirmation. */
     reason?: string
-    /** For the human sentence only — the row records the user id. */
+    /**
+     * NOT for the sentence, which names the person (the authoring API plan's Task 12). Required
+     * because only a session carries a PUID: it is what makes answering as a token a TYPE error
+     * at the route (`api/routes/pending-actions.ts`).
+     */
     resolvedByPuid: string
     now?: Date
   },
@@ -348,6 +352,7 @@ export async function resolveAction(
     .returning()
   if (row === undefined) return undefined
 
+  const resolver = await personName(db, input.resolvedBy)
   // §14: who answered, and what was asked — never the body, exactly as the `created`
   // event does not carry it. A rejection carries the person's sentence, because that
   // sentence is the whole of what the agent and the next reader are owed.
@@ -370,8 +375,8 @@ export async function resolveAction(
       },
       humanMessage:
         input.state === 'confirmed'
-          ? `${input.resolvedByPuid} confirmed an agent's request to ${row.payload.summary.toLowerCase()}. It may do it once.`
-          : `${input.resolvedByPuid} refused an agent's request to ${row.payload.summary.toLowerCase()}: ${input.reason ?? ''}`,
+          ? `${resolver} confirmed an agent's request to ${row.payload.summary.toLowerCase()}. It may do it once.`
+          : `${resolver} refused an agent's request to ${row.payload.summary.toLowerCase()}: ${input.reason ?? ''}`,
     },
     makeRedactor([]),
   )

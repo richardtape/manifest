@@ -215,7 +215,9 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
       // A list of requested CWL attributes on a project's stream is more than the stream
       // needs to carry; `getLaunchRecords` is where a member reads them.
       expect(JSON.stringify(event?.machineDetail)).not.toContain('displayName')
-      expect(event?.humanMessage).toContain('opr000001')
+      // The recorder BY NAME, never the PUID (the authoring API plan's Task 12).
+      expect(event?.humanMessage).toContain('Test Owner')
+      expect(event?.humanMessage).not.toContain('opr000001')
       expect(event?.humanMessage).toContain('IAM-2026-0412')
     })
   })
@@ -529,6 +531,39 @@ describe('the two records are independent', () => {
       })
       expect(await getIamRegistration(db, projectId)).toBeDefined()
       expect(await getPrivacyAssessment(db, projectId)).toBeUndefined()
+    })
+  })
+})
+
+/**
+ * NO PUID IN A SENTENCE (the authoring API plan's Task 12; P6b's F14 found the rule, the D5 plan's
+ * sitting 8 found these two breaking it). The feed names the administrator who recorded it.
+ */
+describe('the launch records name the person who recorded them, never a PUID (Task 12)', () => {
+  it('an IAM registration and a privacy assessment', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      await recordPrivacyAssessment(db, bus, {
+        projectId,
+        state: 'submitted',
+        reviewer: 'Privacy Office',
+        actor,
+      })
+      const said = await db
+        .select({ message: events.humanMessage })
+        .from(events)
+        .where(eq(events.projectId, projectId))
+      expect(said.map((e) => e.message).sort()).toEqual([
+        "Test Owner recorded this app's UBC IAM registration as submitted.",
+        "Test Owner recorded this app's privacy assessment as submitted.",
+      ])
+      expect(JSON.stringify(said)).not.toContain(ACTOR.puid)
     })
   })
 })
