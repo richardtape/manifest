@@ -108,6 +108,29 @@ describe('listInstances — an environment’s instances (Task 3)', () => {
     })
   })
 
+  // `servingInstanceOf` falls back to the newest instance of ANY state when no Route record
+  // exists — so an environment whose only deploy failed would name the failed one (P6b Task 6).
+  it('marks no instance serving when the only deploy failed', async () => {
+    await withProjectServer(async (ctx) => {
+      vi.spyOn(ctx.deps.driver, 'status').mockResolvedValue({
+        id: 'unused',
+        state: 'failed',
+        healthy: false,
+      })
+      const failed = await deployToStaging(ctx)
+      expect(failed.state).toBe('failed')
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/environments/${ctx.stagingEnvironmentId}/instances`,
+        cookies: ctx.ownerCookies,
+      })
+      const body = res.json() as { instances: { id: string; serving: boolean }[] }
+      expect(body.instances).toEqual([
+        expect.objectContaining({ id: failed.id, serving: false }),
+      ])
+    })
+  })
+
   it('lists at most 50, the one seen most recently first, and says when there were more', async () => {
     await withProjectServer(async (ctx) => {
       const { releaseId } = await deployToStaging(ctx)
