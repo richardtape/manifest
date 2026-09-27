@@ -1657,13 +1657,17 @@ reasoning is recorded.**
   on every project (`projects/authz.ts`), so an administrator can deploy, add a member, commit, set a
   secret or confirm another person's agent's question on any project; **no operation requires an
   administrator's reason** (`approveRelease`'s is optional, the two launch records and
-  `confirmPendingAction` take none); and **`EventFrame` has no actor**, because `audit.events` has
-  no actor column (`db/schema.ts` deferred it to "P4b or P5", and neither added it). So nothing tells
-  an owner that an administrator acted, or why. It is live today through the API and the reference
-  console, not only a gap the admin console will meet. *Recommended:* the console designs the reason
-  exactly as §26 says and reports the shape it needs; the rule itself becomes a hardening item that
-  lands **before** `admin-ui` is anything but a prototype against the mock. The console's design
-  document carries the proposed shape (its finding A1).
+  `confirmPendingAction` take none — only the two rejections carry one); and **who acted is
+  half-recorded**: most event sentences name the person since the authoring API plan's sitting 9,
+  but a deploy's name nobody, adding or removing a member and revoking a token write no event at all,
+  no sentence says the person acted *as an administrator*, and `EventFrame` has no actor field because
+  `audit.events` has no actor column (`db/schema.ts` deferred it to "P4b or P5", and neither added
+  it). So an owner may learn who acted, and almost never why. It is live today through the API and
+  the reference console, not only a gap the admin console will meet. *Recommended:* the console
+  designs the reason exactly as §26 says and reports the shape it needs; the rule itself becomes a
+  hardening item that lands **before** `admin-ui` is anything but a prototype against the mock.
+  [The console's design](2026-09-27-admin-console-design.md) carries the proposed shape (its finding
+  A1).
 - **Should app containers run with an init (`Init: true`)? — RAISED 2026-09-16 (P5a sitting 2).** An app's PID 1 is
   its own `node`, which never reaps the orphans it adopts, so a process an app starts that leaves children behind
   turns them into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the container's life —
@@ -1704,9 +1708,10 @@ reasoning is recorded.**
   action, and go live with admin-ui"*). The paragraph that called it *"rudimentary… not a product surface"* now
   says it shares the faculty product's vocabulary, shows its reader the infrastructure C3 hides, and does not
   inherit `console/`'s plain bar — which stays with §22, unchanged. Wording and sweep:
-  [the interface design brief's §13](plans/2026-09-19-interface-design-brief.md). **And the console's prototype is
-  LIVE** — `packages/admin-ui`, driven against `manifest-mock` through `@manifest/contract` — rather than static
-  pages like the faculty prototype.
+  [the interface design brief's §13](plans/2026-09-19-interface-design-brief.md). **And the console's prototype will
+  be LIVE** — `packages/admin-ui` on 7101, driven against `manifest-mock` through `@manifest/contract` — rather than
+  static pages like the faculty prototype. Its design is written and awaiting his review
+  ([`2026-09-27-admin-console-design.md`](2026-09-27-admin-console-design.md)); nothing is built yet.
 - **HOW SCALAR ARRIVES — OPTION (a): THE NETWORK, FOR THAT ONE ADD, IN THE AUTHORING API PLAN'S SITTING 8** (Rich,
   2026-09-26, after its sitting 7, taking the recommendation). Sitting 7 measured `pnpm --filter @manifest/console add
   --offline @scalar/api-reference@1.72.0` refused by pnpm 11's supply-chain check in a scratch copy of the workspace, so
