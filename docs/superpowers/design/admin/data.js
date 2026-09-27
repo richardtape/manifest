@@ -75,8 +75,61 @@
       digest: digest('field-notes'), queue: true },
     { slug: 'stats-sim', owner: 'Leo Park', blueprint: 'node-ts-mongo@1', audience: 'class · steady', created: ago(21 * DAY), launched: false,
       envs: { sandbox: env('healthy', 10 * DAY), staging: env('healthy', 10 * DAY), production: env(null) },
-      digest: digest('stats-sim'), staleScanDays: 9, queue: true }
+      digest: digest('stats-sim'), staleScanDays: 9, queue: true },
+    { slug: 'cpsc-110-help', owner: 'Dr. Gregor Novak', blueprint: 'node-ts-mongo@1', audience: 'large_course · synchronised', created: ago(88 * DAY), launched: true,
+      envs: { sandbox: env('healthy', 1 * DAY), staging: env('healthy', 6 * DAY), production: env('healthy', 6 * DAY) },
+      digest: digest('cpsc-110-help'), certExpires: NOW + 142 * DAY },
+    { slug: 'bio-201-scheduler', owner: 'Dr. Lucia Moreno', blueprint: 'node-ts-mongo@1', audience: 'class · steady', created: ago(47 * DAY), launched: true,
+      envs: { sandbox: env(null), staging: env('healthy', 12 * DAY), production: env('healthy', 12 * DAY) },
+      digest: digest('bio-201-scheduler'), certExpires: NOW + 118 * DAY },
+    { slug: 'hist-105-archive', owner: 'Dr. Owen Price', blueprint: 'node-ts-mongo@1', audience: 'class · steady', created: ago(30 * DAY), launched: false,
+      envs: { sandbox: env('healthy', 3 * DAY), staging: env('hibernated', 16 * DAY), production: env(null) },
+      digest: digest('hist-105-archive') },
+    { slug: 'mus-100-listening', owner: 'Dr. Aiko Tanaka', blueprint: 'node-ts-mongo@1', audience: 'large_course · steady', created: ago(64 * DAY), launched: true,
+      envs: { sandbox: env(null), staging: env('healthy', 21 * DAY), production: env('healthy', 21 * DAY) },
+      digest: digest('mus-100-listening'), certExpires: NOW + 201 * DAY },
+    { slug: 'geog-250-maps', owner: 'Dr. Ruth Adeyemi', blueprint: 'node-ts-mongo@1', audience: 'class · steady', created: ago(12 * DAY), launched: false,
+      envs: { sandbox: env('provisioning', 1 * MIN), staging: env(null), production: env(null) },
+      digest: digest('geog-250-maps') },
+    { slug: 'nurs-310-sim', owner: 'Dr. Claire Dubois', blueprint: 'node-ts-mongo@1', audience: 'class · synchronised', created: ago(39 * DAY), launched: false,
+      envs: { sandbox: env('healthy', 5 * DAY), staging: env('healthy', 5 * DAY), production: env(null) },
+      digest: digest('nurs-310-sim') },
+    { slug: 'econ-101-polls', owner: 'Dr. Samir Haddad', blueprint: 'node-ts-mongo@1', audience: 'public · synchronised', created: ago(95 * DAY), launched: true,
+      envs: { sandbox: env('hibernated', 40 * DAY), staging: env('healthy', 9 * DAY), production: env('healthy', 9 * DAY) },
+      digest: digest('econ-101-polls'), certExpires: NOW + 176 * DAY },
+    { slug: 'arch-studio-crits', owner: 'Dr. Mira Lindqvist', blueprint: 'node-ts-mongo@1', audience: 'solo · steady', created: ago(5 * DAY), launched: false,
+      envs: { sandbox: env('healthy', 20 * HOUR), staging: env(null), production: env(null) },
+      digest: digest('arch-studio-crits') }
   ];
+
+  /* ---------------- Settings ---------------- */
+
+  // Each value is the platform's own, read on 2026-09-27: the default quota from db/schema.ts,
+  // the catalogue from infra/litellm/config.yaml, the host settings' defaults from config.ts.
+  var SETTINGS = {
+    quotas: [
+      { id: 'max_cpu', label: 'CPU per app', value: '2', show: function (v) { return v + ' cores'; } },
+      { id: 'max_memory', label: 'Memory per app', value: '2Gi', show: function (v) { return v; } },
+      { id: 'max_services', label: 'Backing services per app', value: '3', show: function (v) { return v + ' services'; } },
+      { id: 'ai_monthly_usd', label: 'AI spend per app', value: '50', show: function (v) { return '$' + v + ' a month'; } }
+    ],
+    models: [
+      { name: 'default-chat-onprem', cleared: 'confidential', runs: 'on the host', backing: 'ollama_chat/qwen3.5:4b · thinking off' },
+      { name: 'default-chat-onprem-reasoning', cleared: 'confidential', runs: 'on the host', backing: 'ollama_chat/qwen3.5:4b · thinking on' },
+      { name: 'default-chat', cleared: 'internal', runs: 'on the host today; may route off-premises', backing: 'ollama_chat/qwen3.5:4b · thinking off' },
+      { name: 'default-chat-reasoning', cleared: 'internal', runs: 'on the host today; may route off-premises', backing: 'ollama_chat/qwen3.5:4b · thinking on' },
+      { name: 'default-embed', cleared: 'internal', runs: 'on the host', backing: 'ollama/nomic-embed-text' }
+    ],
+    blueprints: [
+      { ref: 'node-ts-mongo@1', state: 'current', language: 'TypeScript on Node', starters: ['proof-app'], apps: 17 },
+      { ref: 'node-ts-mongo@0', state: 'superseded', language: 'TypeScript on Node', starters: ['proof-app'], apps: 1 }
+    ],
+    vulnDbBuilt: Date.UTC(2026, 8, 24, 6, 31, 52),
+    admins: [
+      { name: 'Rich Tape', since: Date.UTC(2026, 8, 17, 16, 5), by: 'bootstrap:rich@ops-laptop', reason: 'The first administrator.' },
+      { name: 'Alex Chen', since: Date.UTC(2026, 8, 22, 18, 40), by: 'Rich Tape', reason: 'Second pair of hands for launch approvals and the external track.' }
+    ]
+  };
 
   /* ---------------- the queue ---------------- */
 
@@ -86,18 +139,18 @@
     sensitiveFields: ['egress.allow', 'ai.models'],
     changes: [
       { path: 'egress.allow', from: '[]', to: '[api.crossref.org]' },
-      { path: 'ai.models', from: '[llama3.1-8b]', to: '[llama3.1-8b, qwen3.5-4b]' },
+      { path: 'ai.models', from: '[default-chat-onprem]', to: '[default-chat-onprem, default-chat]' },
       { path: 'env.CROSSREF_MAILTO', from: '(not declared)', to: 'secret: false' }
     ],
     security: [
       { field: 'egress.allow', note: NOTES['egress.allow'] },
       { field: 'ai.models', note: NOTES['ai.models'] }
     ],
-    summary: 'The app can now look up citations on Crossref, sending each reference a student pastes to api.crossref.org, and can ask a second model on the platform’s catalogue.',
+    summary: 'The app can now look up citations on Crossref, sending each reference a student pastes to api.crossref.org, and can ask default-chat as well as default-chat-onprem.',
     summarySource: 'llm',
     summaryExposures: [
       { path: 'egress.allow', sentence: 'References students paste — titles, authors, sometimes a DOI — would leave UBC for a service outside Canada.' },
-      { path: 'ai.models', sentence: 'Student responses could now be sent to a second model; whether it runs in the same place as the first is the question the PIA answered.' },
+      { path: 'ai.models', sentence: 'Student responses could now reach default-chat, which is cleared only for internal data and may be routed off-premises.' },
       { path: 'env.CROSSREF_MAILTO', sentence: 'A contact address is sent to Crossref with every lookup; it identifies the course, not a student.' }
     ],
     services: ['mongodb@7.0'],
@@ -311,12 +364,13 @@
     ['A9', 'Incidents have no open or closed state.'],
     ['A10', 'People has no read.'],
     ['A11', 'Spend has no read.'],
-    ['A12', 'A driver’s unenforceable policies and custom-domain certificates have no read.']
+    ['A12', 'A driver’s unenforceable policies and custom-domain certificates have no read.'],
+    ['A13', 'Settings has no read or write: quota:set is held by administrators and used by no route; the catalogue is a config file; host settings are environment variables.']
   ];
 
   global.ADMIN_DATA = {
     NOW: NOW, MIN: MIN, HOUR: HOUR, DAY: DAY,
     admin: 'Rich Tape', projects: PROJECTS, queue: QUEUE, incidents: INCIDENTS, gaps: GAPS,
-    reads: 1 + 3 * PROJECTS.length
+    settings: SETTINGS, reads: 1 + 3 * PROJECTS.length
   };
 })(window);

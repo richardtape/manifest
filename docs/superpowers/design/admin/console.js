@@ -40,7 +40,7 @@
     return s[0];
   }
 
-  var SCREENS = ['queue', 'fleet', 'health'];
+  var SCREENS = ['queue', 'fleet', 'health', 'settings'];
   function readHash() { var x = (location.hash || '').slice(1); return SCREENS.indexOf(x) >= 0 ? x : 'queue'; }
   function useScreen() {
     var s = useState(readHash);
@@ -499,7 +499,7 @@
         count: rows.length + ' of ' + D.projects.length + ' apps'
       }),
       h(A.DataTable, {
-        caption: 'Every app on the platform', rowKey: 'slug', rows: rows,
+        caption: 'Every app on the platform', rowKey: 'slug', rows: rows, striped: true,
         sortKey: sort[0].key, sortDir: sort[0].dir,
         onSort: function (key) { sort[1]({ key: key, dir: sort[0].key === key && sort[0].dir === 'desc' ? 'asc' : 'desc' }); },
         onRow: function (r) { open[1](r.slug); },
@@ -522,8 +522,7 @@
             return h('span', { className: 'mfa-cellstack' }, h('span', { className: 'mfa-mono' }, r.blueprint),
               r.superseded ? h('small', { className: 'mfa-flag' }, 'newer: ' + r.superseded) : null);
           } },
-          { key: 'deploy', label: 'Last deploy', sortable: true, align: 'right', render: function (r) { return ageShort(now - lastDeploy(r)) + ' ago'; } },
-          { key: 'created', label: 'Created', sortable: true, align: 'right', render: function (r) { return day(r.created); } }
+          { key: 'deploy', label: 'Last deploy', sortable: true, align: 'right', render: function (r) { return ageShort(now - lastDeploy(r)) + ' ago'; } }
         ]
       }),
       project ? h(Drawer, { project: project, now: now, onClose: function () { open[1](null); } }) : null);
@@ -703,26 +702,291 @@
 
   /* ---------- the app ---------- */
 
+  /* ---------- Settings ---------- */
+
+  var SET_SECTIONS = [
+    { id: 'quotas', label: 'Quotas' },
+    { id: 'models', label: 'AI models' },
+    { id: 'blueprints', label: 'Blueprints' },
+    { id: 'scanning', label: 'Security scanning' },
+    { id: 'signin', label: 'Sign-in' },
+    { id: 'source', label: 'Source code' },
+    { id: 'addresses', label: 'Addresses' },
+    { id: 'limits', label: 'Time limits' },
+    { id: 'admins', label: 'Administrators' }
+  ];
+
+  var MODEL_LABELS = {
+    'default-chat-onprem': 'Chat, kept on the host',
+    'default-chat-onprem-reasoning': 'Chat with reasoning, kept on the host',
+    'default-chat': 'Chat',
+    'default-chat-reasoning': 'Chat with reasoning',
+    'default-embed': 'Embeddings'
+  };
+
+  function setHead() {
+    return h('div', { className: 'mfa-set__row mfa-set__row--head', 'aria-hidden': 'true' },
+      h('span', null, 'Setting'), h('span', null, 'Value'), h('span', null, 'Set in'), h('span', null, ''));
+  }
+  function secret(set) {
+    return h('span', { className: 'mfa-secret' + (set ? '' : ' mfa-secret--unset') }, set ? 'Set · never shown' : 'Not set');
+  }
+  function onHost(text) { return h('span', { className: 'mfa-set__host' }, text || 'On the host'); }
+  function plain(text) { return h('span', { className: 'mfa-set__value--plain' }, text); }
+
+  function Settings(props) {
+    var now = props.now, S = D.settings;
+    var vals = useState(function () {
+      var v = {};
+      S.quotas.forEach(function (q) { v[q.id] = q.value; });
+      S.models.forEach(function (m) { v[m.name] = m.cleared; });
+      return v;
+    });
+    var changed = useState({});
+    var edit = useState(null);
+    var at = useState('quotas');
+    var refresh = useState(false);
+    var e = edit[0];
+
+    function setEdit(o) { edit[1](Object.assign({}, e, o)); }
+    function apply() {
+      var v = Object.assign({}, vals[0]); v[e.id] = e.draft.trim(); vals[1](v);
+      var c = Object.assign({}, changed[0]); c[e.id] = Date.now(); changed[1](c);
+      edit[1](null);
+    }
+    function go(id) {
+      at[1](id);
+      var el = document.getElementById('set-' + id);
+      if (el) el.scrollIntoView({ block: 'start' });
+    }
+    function changedNote(id) {
+      var t = changed[0][id];
+      return t ? 'Changed ' + (now - t < MIN ? 'just now' : ageShort(now - t) + ' ago') + ' by ' + D.admin : null;
+    }
+    function changeButton(id, cur) {
+      return e && e.id === id ? null : h(M.Button, {
+        kind: 'secondary', size: 'sm', onClick: function () { edit[1]({ id: id, draft: cur, reason: '', stage: 'edit' }); }
+      }, 'Change');
+    }
+
+    function editor(opts) {
+      var cur = vals[0][e.id];
+      var input = opts.options
+        ? h('select', { id: 'edit-' + e.id, className: 'mfa-select', value: e.draft, onChange: function (ev) { setEdit({ draft: ev.target.value }); } },
+          opts.options.map(function (o) { return h('option', { key: o, value: o }, o); }))
+        : h('input', { id: 'edit-' + e.id, value: e.draft, onChange: function (ev) { setEdit({ draft: ev.target.value }); } });
+      if (e.stage === 'stepup') {
+        return h('div', { className: 'mfa-result mfa-result--stepup', role: 'status' },
+          h('p', { className: 'mfa-result__title' }, 'Sign in again to change a quota'),
+          h('p', { className: 'mfa-result__body' }, 'The platform answered ', h('code', { className: 'mfa-mono' }, 'STEP_UP_REQUIRED'),
+            '. Changing a quota is one of the four actions that need a fresh CWL sign-in (§20). Nothing has changed yet.'),
+          h('div', { className: 'mfa-obs__actions' },
+            h(M.Button, { kind: 'primary', size: 'sm', onClick: apply }, 'Sign in with CWL'),
+            h(M.Button, { kind: 'tertiary', size: 'sm', onClick: function () { setEdit({ stage: 'edit' }); } }, 'Not now')));
+      }
+      return h(React.Fragment, null,
+        h('div', { className: 'mfa-field' }, h('label', { htmlFor: 'edit-' + e.id }, 'New value'), input),
+        h(A.ObservedAction, {
+          id: 'reason-set-' + e.id, owner: 'everyone', seeLabel: 'In the audit log',
+          reason: e.reason, onReason: function (v) { setEdit({ reason: v }); },
+          placeholder: 'Why the platform should change.',
+          hint: opts.stepUp ? 'Required. Saving asks you to sign in again (§20).' : 'Required. It is kept with the change.',
+          previews: [{
+            label: 'change', type: opts.type, gap: 'A13', reasonIn: 'sentence', after: opts.after,
+            lead: D.admin + ' changed ' + opts.what + ' from ' + opts.show(cur) + ' to ' + opts.show(e.draft.trim() || '…') + ':'
+          }],
+          actions: [
+            { label: 'Save', kind: 'primary', needsReason: true, disabled: !e.draft.trim() || e.draft.trim() === cur,
+              onClick: function () { if (opts.stepUp) setEdit({ stage: 'stepup' }); else apply(); } },
+            { label: 'Cancel', kind: 'tertiary', onClick: function () { edit[1](null); } }
+          ]
+        }));
+    }
+
+    function section(id, title, note, rows, foot, gaps) {
+      return h('section', { className: 'mfa-setsec', id: 'set-' + id, 'aria-labelledby': 'set-h-' + id },
+        h('div', { className: 'mfa-setsec__head' },
+          h('h2', { className: 'mfa-setsec__title', id: 'set-h-' + id, 'data-gap': gaps && gaps.title }, title),
+          note ? h('p', { className: 'mfa-setsec__note' }, note) : null),
+        rows,
+        foot ? h('p', { className: 'mfa-setsec__foot', 'data-gap': gaps && gaps.foot }, foot) : null);
+    }
+
+    var built = S.vulnDbBuilt, staleAt = built + 7 * D.DAY;
+    var daysLeft = Math.ceil((staleAt - now) / D.DAY);
+
+    var quotas = section('quotas', 'Quotas for new apps',
+      'The ceiling a new app is created with: what its manifest may ask for, and what its AI may spend in a month.',
+      [setHead()].concat(S.quotas.map(function (q) {
+        var editing = e && e.id === q.id;
+        return h(A.SettingRow, {
+          key: q.id, label: q.label, keyName: 'quota.' + q.id, value: q.show(vals[0][q.id]), changed: changedNote(q.id),
+          source: 'Database default, projects.quota', action: changeButton(q.id, vals[0][q.id]), editing: editing,
+          editor: editing ? editor({
+            what: 'the default ' + q.label.toLowerCase(), show: q.show, stepUp: true, type: 'quota.changed',
+            after: 'It applies to apps created from now on. An existing app keeps its own quota, and a validated manifest is never re-checked against a later one (§7).'
+          }) : null
+        });
+      })),
+      'One app’s own quota belongs on its page in the fleet. quota:set is a capability every administrator holds, and no operation uses it yet.',
+      { title: 'A13', foot: 'A13' });
+
+    var models = section('models', 'AI models',
+      'The logical models an app may name in ai.models. Each is cleared for data up to its max_classification, and an app declaring more is refused when its manifest is validated (D17).',
+      [setHead()].concat(S.models.map(function (m) {
+        var editing = e && e.id === m.name;
+        return h(A.SettingRow, {
+          key: m.name, label: MODEL_LABELS[m.name], keyName: m.name,
+          value: h(React.Fragment, null,
+            h('span', null, 'max_classification: ' + vals[0][m.name]),
+            h('span', { className: 'mfa-set__src' }, m.backing),
+            h('span', { className: 'mfa-set__src' }, m.runs)),
+          changed: changedNote(m.name),
+          source: 'infra/litellm/config.yaml, read from LiteLLM', action: changeButton(m.name, vals[0][m.name]), editing: editing,
+          editor: editing ? editor({
+            what: m.name + '’s clearance', show: function (v) { return v; }, options: ['public', 'internal', 'confidential'], type: 'catalogue.changed',
+            after: 'An app that declares more than this and names ' + m.name + ' is refused at its next validation. Nothing that is running changes.'
+          }) : null
+        });
+      })),
+      'An entry with no valid max_classification is never defaulted and never resolvable. No operation changes the catalogue yet: today it is a file on the host.',
+      { title: 'A13', foot: 'A13' });
+
+    var blueprints = section('blueprints', 'Blueprints',
+      'What an app is built from: its Dockerfile, base image, skeleton and starters. A project pins one major version.',
+      [setHead()].concat(S.blueprints.map(function (b) {
+        return h(A.SettingRow, {
+          key: b.ref, label: b.language, keyName: b.ref,
+          value: h(React.Fragment, null,
+            h(A.RawChip, { state: b.state === 'current' ? 'steady' : 'notyet', label: b.state === 'current' ? 'Current' : 'Superseded', raw: b.state }),
+            h('span', { className: 'mfa-set__src' }, 'starters: ' + b.starters.join(', ') + ' · ' + plural(b.apps, 'app'))),
+          source: 'This repository, blueprints/', action: onHost('A commit changes it')
+        });
+      })),
+      'Read from listBlueprints. A blueprint is changed by a reviewed commit to this repository, never from a browser.');
+
+    var scanning = section('scanning', 'Security scanning',
+      'Every build is scanned. A clean result from a stale database is not evidence there is nothing to find (§12).',
+      [setHead(),
+        h(A.SettingRow, {
+          key: 'db', label: 'Vulnerability database', keyName: 'manifest-grype-db',
+          value: h(React.Fragment, null,
+            h('span', null, 'built ' + new Date(built).toISOString().slice(0, 16).replace('T', ' ') + ' UTC'),
+            h(A.RawChip, daysLeft > 0
+              ? { state: daysLeft <= 3 ? 'waiting' : 'steady', label: 'Fresh for ' + plural(daysLeft, 'more day'), raw: 'stale: false' }
+              : { state: 'attention', label: 'Stale since ' + day(staleAt), raw: 'stale: true', pulse: false })),
+          source: 'A Docker volume on the host',
+          action: refresh[0] ? null : h(M.Button, { kind: 'secondary', size: 'sm', onClick: function () { refresh[1](true); } }, 'Refresh'),
+          editing: refresh[0],
+          editor: refresh[0] ? h('div', { className: 'mfa-admit', 'data-gap': 'A13' },
+            h('strong', null, 'Manifest can’t refresh it from here yet. '),
+            'It needs the network, and today it is ', h('code', { className: 'mfa-mono' }, 'make refresh-vulndb'),
+            ' on the host. Refreshing it from the console is a plan already placed, after the authoring API. ',
+            h('button', { type: 'button', className: 'mfa-filters__clear', onClick: function () { refresh[1](false); } }, 'Close')) : null
+        }),
+        h(A.SettingRow, { key: 'scanner', label: 'Scanner', keyName: 'grype', value: 'v0.118.0', source: 'infra/images.lock', action: onHost() }),
+        h(A.SettingRow, {
+          key: 'fresh', label: 'Fresh for', keyName: '§12', value: '7 days', source: 'Code',
+          action: onHost('Not a setting'), changed: null
+        })],
+      'Past seven days a build still deploys to sandbox and staging with a warning, and every production launch is refused by §13’s scans item.');
+
+    var signin = section('signin', 'Sign-in',
+      'Who the platform asks when a person or an app signs in with CWL.',
+      [setHead(),
+        h(A.SettingRow, { key: 'idp', label: 'Identity provider', keyName: 'MANIFEST_IDP_BASE_URL', value: 'https://idp.manifest.internal', source: 'Environment, the default', action: onHost() }),
+        h(A.SettingRow, {
+          key: 'stg', label: 'UBC’s staging IdP', keyName: 'authentication.stg.id.ubc.ca',
+          value: h(M.StateChip, { state: 'waiting', label: 'Waiting on UBC IAM', pulse: false }),
+          source: 'The external track, item 5', action: onHost('Not requested yet')
+        }),
+        h(A.SettingRow, { key: 'ru', label: 'Rehearsal account', keyName: 'MANIFEST_REHEARSAL_USER', value: secret(true), source: 'Environment', action: onHost() }),
+        h(A.SettingRow, { key: 'rp', label: 'Rehearsal password', keyName: 'MANIFEST_REHEARSAL_PASSWORD', value: secret(true), source: 'Environment', action: onHost() }),
+        h(A.SettingRow, { key: 'sp', label: 'Service Provider entity base', keyName: 'MANIFEST_SP_ENTITY_BASE', value: 'https://manifest.internal', source: 'Environment, the default', action: onHost() })],
+      'When UBC grants staging access, two of these change, the IdP’s address and the rehearsal account, and no code does. Today every rehearsal proves the shape of a registration, never UBC’s acceptance of it.');
+
+    var source = section('source', 'Source code',
+      'Where an app’s code lives. The driver is chosen when the control plane starts.',
+      [setHead(),
+        h(A.SettingRow, {
+          key: 'drv', label: 'Driver', keyName: 'MANIFEST_SOURCE_DRIVER',
+          value: h(React.Fragment, null, h('span', null, 'local'), h('span', { className: 'mfa-set__src' }, 'bare repositories on this host; the other is github')),
+          source: 'Environment, the default', action: onHost('Restart to change')
+        }),
+        h(A.SettingRow, { key: 'org', label: 'GitHub organisation', keyName: 'MANIFEST_GITHUB_ORG', value: 'Manifest-local-dev', source: 'Environment', action: onHost() }),
+        h(A.SettingRow, { key: 'app', label: 'GitHub App', keyName: 'MANIFEST_GITHUB_APP_ID', value: '5068172 · installation 164652178', source: 'Environment', action: onHost() }),
+        h(A.SettingRow, { key: 'key', label: 'GitHub App private key', keyName: 'MANIFEST_GITHUB_APP_KEY', value: secret(true), source: 'infra/secrets/', action: onHost() }),
+        h(A.SettingRow, { key: 'wh', label: 'Webhook secret', keyName: 'MANIFEST_GITHUB_WEBHOOK_SECRET', value: secret(true), source: 'Environment', action: onHost() })],
+      'The github settings are used only when the driver is github. Switching drivers is a host decision: it changes where every new app’s code is kept.');
+
+    var addresses = section('addresses', 'Addresses',
+      'The zone each environment’s hostname is made in. A hostname is permanent once made (D26).',
+      [setHead()].concat([['sandbox', 'sandbox.manifest.internal'], ['staging', 'staging.manifest.internal'], ['production', 'manifest.internal']].map(function (z) {
+        return h(A.SettingRow, {
+          key: z[0], label: z[0][0].toUpperCase() + z[0].slice(1), keyName: 'MANIFEST_ZONE_' + z[0].toUpperCase(),
+          value: '<slug>.' + z[1], source: 'Environment, the default', action: onHost()
+        });
+      })),
+      null);
+
+    var limits = section('limits', 'Time limits',
+      'How long the platform waits for things.',
+      [setHead(),
+        h(A.SettingRow, { key: 'ready', label: 'Waiting for an app to answer', keyName: 'MANIFEST_READINESS_TIMEOUT_MS', value: '90 seconds', source: 'Environment, the default', action: onHost() }),
+        h(A.SettingRow, { key: 'drain', label: 'Draining an old version', keyName: 'MANIFEST_DRAIN_TIMEOUT_MS', value: '120 seconds', source: 'Environment, the default', action: onHost() }),
+        h(A.SettingRow, { key: 'pa', label: 'An agent’s question lapses', keyName: 'PENDING_ACTION_TTL_MS', value: '24 hours', source: 'Code, tokens/pending.ts', action: onHost('Not a setting') }),
+        h(A.SettingRow, { key: 'pv', label: 'An approval preview is valid', keyName: 'approval-preview', value: '30 minutes', source: 'Code', action: onHost('Not a setting') })],
+      'Shown so an administrator knows the clocks the queue runs on. The last two are decisions, not settings.');
+
+    var admins = section('admins', 'Administrators',
+      'Who holds the platform administrator role.',
+      h(A.DataTable, {
+        caption: 'Platform administrators', rowKey: 'name', rows: S.admins, compact: true,
+        columns: [
+          { key: 'name', label: 'Name' },
+          { key: 'since', label: 'Since', render: function (r) { return day(r.since); } },
+          { key: 'by', label: 'Granted by', render: function (r) { return h('span', { className: r.by.indexOf(':') > 0 ? 'mfa-mono' : undefined }, r.by); } },
+          { key: 'reason', label: 'Reason', render: function (r) { return h('span', { style: { whiteSpace: 'normal', color: 'var(--ink-muted)' } }, r.reason); } }
+        ]
+      }),
+      'Granted and revoked on the host by scripts/admin-grant.sh, which records who and why in audit.role_changes. The console shows the list and never grants the role: a stolen administrator’s session must not be able to make another administrator.',
+      { title: 'A10', foot: 'A10' });
+
+    return h(React.Fragment, null,
+      h('div', { style: { marginBottom: 24 } },
+        h('h1', { className: 'mfa-h1' }, 'Settings'),
+        h('p', { className: 'mfa-lede' }, 'How the platform is configured, and where each value is set. You change here what an administrator should change from a browser. Everything else is shown here and changed on the host.')),
+      h('div', { className: 'mfa-settings' },
+        h('nav', { className: 'mfa-setidx', 'aria-label': 'Settings sections' }, SET_SECTIONS.map(function (s) {
+          return h('button', { key: s.id, type: 'button', 'aria-current': at[0] === s.id ? 'true' : undefined, onClick: function () { go(s.id); } }, s.label);
+        })),
+        h('div', { className: 'mfa-setsecs' }, quotas, models, blueprints, scanning, signin, source, addresses, limits, admins)));
+  }
+
+  /* ---------- the app ---------- */
+
   function App() {
     var now = useNow(20000);
     var screen = useScreen();
     var gaps = useState(false);
     useEffect(function () { document.body.classList.toggle('mfa-gaps', gaps[0]); }, [gaps[0]]);
 
-    var us = D.queue.filter(function (i) { return i.band === 'us'; }).sort(byAsked);
-    var oldest = us[0];
-    var tabs = [
-      { label: 'Queue', href: '#queue', on: screen === 'queue',
-        meta: oldest ? (oldest.bound ? '≤ ' : '') + ageShort(now - oldest.askedAt) : null,
-        metaLabel: oldest ? 'oldest wait on us, ' + (oldest.bound ? 'up to ' : '') + ageLong(now - oldest.askedAt) : undefined },
-      { label: 'Fleet', href: '#fleet', on: screen === 'fleet' },
-      { label: 'Health', href: '#health', on: screen === 'health' }
-    ];
-
-    return h(React.Fragment, null,
-      h(A.ConsoleBar, { tabs: tabs, user: D.admin }),
-      h('main', { className: 'mfa-main' },
-        screen === 'queue' ? h(Queue, { now: now }) : screen === 'fleet' ? h(Fleet, { now: now }) : h(Health, { now: now })),
+    return h('div', { className: 'mfa-shell' },
+      h(A.ConsoleRail, {
+        user: D.admin,
+        items: [
+          { label: 'Queue', href: '#queue', icon: 'queue', on: screen === 'queue' },
+          { label: 'Fleet', href: '#fleet', icon: 'fleet', on: screen === 'fleet' },
+          { label: 'Health', href: '#health', icon: 'health', on: screen === 'health' }
+        ],
+        footItems: [{ label: 'Settings', href: '#settings', icon: 'settings', on: screen === 'settings' }]
+      }),
+      h('div', { className: 'mfa-content' },
+        h('main', { className: 'mfa-main' },
+          screen === 'queue' ? h(Queue, { now: now })
+            : screen === 'fleet' ? h(Fleet, { now: now })
+              : screen === 'health' ? h(Health, { now: now })
+                : h(Settings, { now: now }))),
       h(GapSwitch, { on: gaps[0], onToggle: function () { gaps[1](!gaps[0]); } }));
   }
 

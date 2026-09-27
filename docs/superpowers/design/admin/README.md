@@ -21,13 +21,13 @@ typefaces, as the gallery does. **Published:** <https://claude.ai/artifact/N8qj8
 components.css            the operations surface's styles, from tokens only; 5 new tokens at the top
 components.js             the PROPOSED components, window.ManifestAdmin, in bundle.js's own idiom
 data.js                   the mockup's data (window.ADMIN_DATA)
-console.js                the three screens, the decision panes, the fleet drawer
+console.js                the four screens, the decision panes, the fleet drawer, the settings editors
 ```
 
 **It mounts the real design system** — `tokens.css`, `bundle.css`, `bundle.js` — and composes
 `StateChip`, `Button`, `SegmentedControl`, `Choice`, `TwoFacts` and `InverseSurface` from it. The
-new components (`ConsoleBar`, `WaitHeadline`, `QueueRow`, `FilterBar`, `DataTable`, `EnvCell`,
-`DiffView`, `ObservedAction`, `EventLine`, `MachineValue`, `FactList`, `Tags`, `RawChip`) are in
+new components (`ConsoleRail`, `SettingRow`, `WaitHeadline`, `QueueRow`, `FilterBar`, `DataTable`,
+`EnvCell`, `DiffView`, `ObservedAction`, `EventLine`, `MachineValue`, `FactList`, `Tags`, `RawChip`) are in
 `components.js`, **not yet in `bundle.js`**: they are written in its idiom — `createElement`, no
 JSX, stateless, tokens only — so each moves across unchanged once its design is agreed, with the
 README and preview every system component has. Until then they are a proposal, and the gallery does
@@ -42,7 +42,7 @@ tickets are examples. **Times are relative to page load**, so every age is real 
 ## What has an API behind it — read before building from this
 
 The mockup carries no marking on screen by default — the faculty prototype's choice, kept. **Show API
-gaps** (bottom right) tags every element the API cannot answer yet with its finding (A1–A12, the
+gaps** (bottom right) tags every element the API cannot answer yet with its finding (A1–A13, the
 design document's §10). In short:
 
 | On screen | Backed today? |
@@ -55,7 +55,14 @@ design document's §10). In short:
 | A reason stored for every administrator's action, shown to the owner | **Only** a rejection's (A1) |
 | Fleet | **Yes**, `listFleet` — without department, domains, spend or `launchedAt` (A7) |
 | Health: certificates, scans, blueprints | By fan-out. Incidents: the latest only, never whether open (A9) |
+| Settings | **No** (A13). Blueprints alone are read, from `listBlueprints`; every other value was read from where the platform keeps it — a column default, a config file, the environment |
 | People, Spend, Audit | **No** — deliberately not drawn (§8 of the design) |
+
+## Rich's changes after the first mockup (2026-09-27)
+
+The rail instead of a top bar; no time on the Queue item; `radius-sm` on filters; subtle stripes on
+long tables; and a Settings screen. The design document's §2, §7a and §11 (decisions 1, 2 and 16–20)
+carry each one and its reasoning.
 
 ## Decisions the mockup adds to the design
 

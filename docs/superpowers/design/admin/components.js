@@ -74,30 +74,66 @@
       }, icon(COPY, 13)));
   }
 
-  /** AppBar's proposed extension: the screens as tabs, a tab's meta, and the person's role. */
-  function ConsoleBar(props) {
-    return h('header', { className: 'mfa-bar' },
-      h('div', { className: 'mfa-bar__brand' },
-        h('a', { className: 'mf-mark', href: props.homeHref || '#queue' },
-          h('span', { className: 'mf-mark__sq' },
-            h('svg', {
-              width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'var(--ink-inverse-strong)',
-              strokeWidth: 2.3, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true'
-            }, h('path', { d: 'M4 19V9.5L12 4l8 5.5V19' }), h('path', { d: 'M9.5 19v-6h5v6' }))),
-          h('span', { className: 'mf-mark__name' }, 'Manifest'),
-          h('span', { className: 'mf-mark__rule' }),
-          h('span', { className: 'mf-mark__org' }, 'UBC')),
-        h('span', { className: 'mfa-bar__product' }, props.product || 'Operations')),
-      h('nav', { className: 'mfa-bar__tabs', 'aria-label': 'Screens' },
-        (props.tabs || []).map(function (t) {
-          return h('a', {
-            key: t.label, href: t.href, className: cx('mfa-tab', t.on && 'mfa-tab--on'),
-            'aria-current': t.on ? 'page' : undefined
-          }, t.label, t.meta ? h('span', { className: 'mfa-tab__meta', 'aria-label': t.metaLabel }, t.meta) : null);
-        })),
-      h('div', { className: 'mfa-bar__who' },
-        h('span', { className: 'mfa-who-name' }, props.user),
-        h('span', { className: 'mfa-role' }, props.role || 'Platform administrator')));
+  var RAIL_ICONS = {
+    queue: ['M4 13h4.5l1.5 2.5h4l1.5-2.5H20', 'M6 5h12l2 8v6H4v-6z'],
+    fleet: ['M4 4.5h6.5V11H4z', 'M13.5 4.5H20V11h-6.5z', 'M4 13.5h6.5V20H4z', 'M13.5 13.5H20V20h-6.5z'],
+    health: ['M3 12.5h4l2.5-6 5 11 2.5-5H21'],
+    settings: ['M4 7h9', 'M17 7h3', 'M4 17h3', 'M11 17h9',
+      'M15 5.2a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 0 0 0-3.6', 'M9 15.2a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 0 0 0-3.6']
+  };
+
+  function railItem(it) {
+    return h('a', {
+      key: it.label, href: it.href, className: cx('mf-rail__item', it.on && 'mf-rail__item--on'),
+      'aria-current': it.on ? 'page' : undefined
+    }, h('svg', {
+      width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8,
+      strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', style: { flexShrink: 0 }
+    }, (RAIL_ICONS[it.icon] || []).map(function (d, i) { return h('path', { key: i, d: d }); })), it.label);
+  }
+
+  /**
+   * SideNav's proposed sibling for the operations surface: the same rail — its classes, its
+   * UBC blue, its three signals for the active item — carrying the console's screens, an
+   * "Operations" overline that says which product this is, Settings above the person, and the
+   * person's platform role, because anything done here may be done on someone else's project.
+   */
+  function ConsoleRail(props) {
+    return h('nav', { className: cx('mf-rail', 'mfa-rail', props.className), 'aria-label': 'Manifest operations' },
+      h('a', { className: 'mf-rail__mark', href: props.homeHref || '#queue' },
+        h('span', { className: 'mf-rail__sq' },
+          h('svg', {
+            width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'var(--nav-surface)',
+            strokeWidth: 2.3, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true'
+          }, h('path', { d: 'M4 19V9.5L12 4l8 5.5V19' }), h('path', { d: 'M9.5 19v-6h5v6' }))),
+        h('span', { className: 'mf-rail__name' }, 'Manifest'),
+        h('span', { className: 'mf-rail__bar' }),
+        h('span', { className: 'mf-rail__org' }, 'UBC')),
+      h('span', { className: 'mf-rail__over' }, props.product || 'Operations'),
+      (props.items || []).map(railItem),
+      h('div', { className: 'mfa-rail__spacer' }),
+      (props.footItems || []).map(railItem),
+      h('div', { className: 'mf-rail__foot' },
+        h('span', { className: 'mf-rail__who' }, props.user),
+        h('span', { className: 'mfa-rail__role' }, props.role || 'Platform administrator'),
+        h('a', { className: 'mf-rail__out', href: props.signOutHref || '#' }, 'Sign out')));
+  }
+
+  /**
+   * One setting: what it is, its key, its value, where it is set, and what you can do about it
+   * here. `editor` renders beneath the row while it is being changed.
+   */
+  function SettingRow(props) {
+    return h('div', { className: cx('mfa-set', props.editing && 'mfa-set--editing') },
+      h('div', { className: 'mfa-set__row' },
+        h('div', { className: 'mfa-set__what' },
+          h('span', { className: 'mfa-set__label' }, props.label),
+          props.keyName ? h('code', { className: 'mfa-set__key' }, props.keyName) : null),
+        h('div', { className: 'mfa-set__value' }, props.value,
+          props.changed ? h('span', { className: 'mfa-set__changed' }, props.changed) : null),
+        h('div', { className: 'mfa-set__src' }, props.source),
+        h('div', { className: 'mfa-set__act' }, props.action)),
+      props.editor ? h('div', { className: 'mfa-set__editor' }, props.editor) : null);
   }
 
   /** The queue's headline: the oldest wait on us, the people waiting, then the count. */
@@ -274,7 +310,7 @@
 
       p ? h('div', { className: 'mfa-obs__see', 'aria-live': 'polite' },
         h('div', { className: 'mfa-obs__seehead' },
-          h('span', { className: 'mfa-over' }, 'In ' + props.owner + '’s activity'),
+          h('span', { className: 'mfa-over' }, props.seeLabel || 'In ' + props.owner + '’s activity'),
           previews.length > 1 ? h(M.SegmentedControl, {
             options: previews.map(function (x) { return x.label; }), value: p.label, role: 'tablist',
             onChange: function (v) { props.onPreviewIndex(previews.map(function (x) { return x.label; }).indexOf(v)); }
@@ -298,11 +334,15 @@
         h('span', { className: 'mfa-ev__type' }, props.type)));
   }
 
-  /** A real <table>: sortable headers with aria-sort, dense rows, a row that opens. */
+  /**
+   * A real <table>: sortable headers with aria-sort, dense rows, a row that opens. `striped`
+   * for a table that runs past a screen — the eye loses its row somewhere past a dozen — and
+   * never for a short one, where stripes are only noise.
+   */
   function DataTable(props) {
     var cols = props.columns;
     return h('div', { className: 'mfa-tablewrap' },
-      h('table', { className: 'mfa-table' },
+      h('table', { className: cx('mfa-table', props.striped && 'mfa-table--striped', props.compact && 'mfa-table--compact') },
         h('caption', { className: 'mfa-sr' }, props.caption),
         h('thead', null, h('tr', null, cols.map(function (c) {
           var on = props.sortKey === c.key;
@@ -360,7 +400,7 @@
 
   global.ManifestAdmin = {
     stateOf: stateOf, shorten: shorten, icon: icon, ICONS: { TICK: TICK, CLOSE: CLOSE, COPY: COPY, SEARCH: SEARCH },
-    MachineValue: MachineValue, ConsoleBar: ConsoleBar, WaitHeadline: WaitHeadline, QueueRow: QueueRow,
+    MachineValue: MachineValue, ConsoleRail: ConsoleRail, SettingRow: SettingRow, WaitHeadline: WaitHeadline, QueueRow: QueueRow,
     FactList: FactList, Tags: Tags, RawChip: RawChip, DiffView: DiffView, ObservedAction: ObservedAction,
     EventLine: EventLine, DataTable: DataTable, FilterBar: FilterBar, EnvCell: EnvCell
   };

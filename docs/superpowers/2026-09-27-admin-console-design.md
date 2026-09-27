@@ -76,13 +76,16 @@ become three, because the console keeps the platform's word and adds the plain o
 
 ## 2. Where it lives, and how you move around it
 
-**A top bar, not the rail.** `AppBar` — marked superseded for the faculty product and *"kept for a
-surface that genuinely has no rail"* — is un-superseded for this one. It carries the mark, **the
-screens as tabs**, and the person with their role: *Rich Tape · platform administrator*. The role is
-always on screen, because anything done here may be done on someone else's project.
+**The rail, like the faculty product** (Rich, 2026-09-27, after seeing the first mockup with a top
+bar: *"I prefer the left hand side menu rather than the tabs at the top"*). `ConsoleRail` is
+`SideNav`'s sibling — its classes, its UBC blue, its three signals for the active item — carrying
+an **Operations** overline that says which product this is, **Queue · Fleet · Health**, then
+**Settings** pinned above the person, and the person with their role: *Rich Tape · platform
+administrator*. The role is always on screen, because anything done here may be done on someone
+else's project. People, Spend and Audit join the rail when their APIs exist (§8).
 
-**Three tabs now: Queue · Fleet · Health.** People, Spend and Audit join when their APIs exist
-(§8). The Queue tab carries the oldest age, not a count: **Queue · 3d 4h**.
+**The Queue item carries no time** (Rich, the same day: *"I don't like the time being part of the
+queue menu item"*). The oldest age is the queue screen's headline and nowhere else.
 
 **1440 wide, like the faculty artboards, and keyboard-first**: `j`/`k` move through the queue,
 `Enter` opens an item, `Esc` closes it, `/` focuses the filter. Every item and every project has a
@@ -289,6 +292,36 @@ Four panels, each derived by fan-out and each stating what it cannot see:
 
 ---
 
+## 7a. Settings
+
+*Added 2026-09-27 at Rich's request, after the first mockup.* **The spec's own line decides what is
+here:** a platform administrator *"approves releases, sets quotas, manages blueprints and the model
+catalogue, sees the whole fleet"* (§13's roles). **None of it has an operation** (A13), so every
+value below was read from where the platform actually keeps it on 2026-09-27.
+
+**The rule: show every setting and where it is set; change only what an administrator should change
+from a browser.** Each row is a `SettingRow` — the setting, its key in mono, its value, *where it is
+set*, and what can be done here. *Where it is set* is the column an operator most needs, because
+today the answer is five different places.
+
+| Section | What it holds, read from | Changed here? |
+|---|---|---|
+| **Quotas for new apps** | CPU 2, memory `2Gi`, 3 services, $50 of AI a month — `projects.quota`'s database default (`db/schema.ts`) | **Yes.** Changing a quota is one of the four actions that need step-up (§20); it applies to apps created afterwards, and a validated manifest is never re-checked against a later quota (§7) |
+| **AI models** | The five logical models and each one's `max_classification` — `infra/litellm/config.yaml`, all served by `qwen3.5:4b` or `nomic-embed-text` on the host | **A model's clearance, yes.** An app declaring more is refused at its next validation (D17); nothing running changes |
+| **Blueprints** | `node-ts-mongo@1` current, `@0` superseded — `listBlueprints` | No: a reviewed commit to this repository changes a blueprint |
+| **Security scanning** | The vulnerability database's build time and how many days it stays fresh (§12's seven) | *Refresh* is offered and **admits it cannot run here yet**: it needs the network, and doing it from the console is a plan already placed |
+| **Sign-in** | `MANIFEST_IDP_BASE_URL`, the rehearsal account (shown as *set*, never its value), UBC's staging IdP as **Waiting on UBC IAM** | No — and this section says which two settings change when UBC grants staging access |
+| **Source code** | `MANIFEST_SOURCE_DRIVER`, the GitHub organisation, App and installation, the key and webhook secret as *set* | No: switching drivers is a restart and a host decision |
+| **Addresses** | The three zones | No: a hostname is permanent once made (D26) |
+| **Time limits** | The readiness and drain timeouts, an agent's question's 24 hours, a preview's 30 minutes | No: the last two are decisions in code, shown because the queue runs on them |
+| **Administrators** | Who holds the role, since when, granted by whom, and why — `audit.role_changes` | **Never** (§11, decision 19) |
+
+**A change is observed too.** Changing a quota or a clearance uses `ObservedAction`, headed *In the
+audit log* rather than an owner's activity: a reason is required (§11, decision 20), the sentence
+the change would record is shown before it is saved, and a quota asks for step-up on save.
+
+---
+
 ## 8. People, Spend and Audit — not designed, and why
 
 **People** — members and tokens can be gathered project by project, but there is no user read, no
@@ -298,7 +331,7 @@ attribution exists only inside LiteLLM (A11). **Audit** — events carry no acto
 there is one, is inside the sentence), cannot be read across projects and cannot be filtered (A5);
 drawing a filter by actor would be drawing a column that does not exist.
 
-Designing these now would mean inventing their data. They join the bar when their APIs exist, and
+Designing these now would mean inventing their data. They join the rail when their APIs exist, and
 §10 says what each needs. **What that costs:** the console answers *"which of 300 students spent the
 budget"* and *"who did this"* not at all until then.
 
@@ -315,8 +348,9 @@ says so in its README.
 
 | Component | What it is |
 |---|---|
-| `AppBar` *(extended, un-superseded here)* | Gains `tabs` with an optional per-tab `meta` — the queue's age — and a role beside the person |
-| `DataTable` | A real `<table>`: `th scope`, `aria-sort`, a sticky header, 36px rows, tabular numerals, mono columns, a row that is a real link |
+| `ConsoleRail` | `SideNav`'s sibling: its classes and colour, the *Operations* overline, the screens, Settings above the person, and the person's role |
+| `DataTable` | A real `<table>`: `th scope`, `aria-sort`, a sticky header, 36px rows, tabular numerals, mono columns, a row that is a real link — and `striped` for a long table |
+| `SettingRow` | One setting: its name and key, its value, where it is set, and what can be done about it here, with an editor beneath it while it changes |
 | `FilterBar` | Facet menus, active filters as removable chips, a text filter, *Clear all*; its state lives in the URL |
 | `QueueRow` | §3.3's row. Its preview carries all eight kinds, including the three with no API |
 | `WaitHeadline` | §3.1's three numbers, and the empty state |
@@ -329,7 +363,8 @@ says so in its README.
 
 **Tokens.** Diff tints and marks that are **not** the state colours — in this console red means
 *needs you* and green means *steady*, and a removed line is neither; a `data` type style (13px,
-tabular numerals) and a `mono-data` one; a dense row height. Each is contrast-checked against the
+tabular numerals) and a `mono-data` one; a dense row height; and `row-stripe`, a long table's
+alternate row. Filters and the search field take `radius-sm`, not the pill. Each is contrast-checked against the
 ground its usage note names, as every existing token is.
 
 **Documents.** The system's `README.md` gains *The operations surface*; `10-language.md` the
@@ -432,6 +467,15 @@ be answered. There is only the latest one's time.
 **A12 — Two of Health's five panels have nothing behind them**: a driver's `capabilities()` and
 custom-domain certificates.
 
+**A13 — Settings has no read or write.** §13 says an administrator sets quotas and manages blueprints
+and the model catalogue. `quota:set` is a capability every administrator holds (`projects/authz.ts`)
+and **no route uses it**; the default quota is a database column default, changed by a migration;
+the catalogue is `infra/litellm/config.yaml`; host configuration is environment variables that
+nothing reads back. *Worth considering:* `GET /v1/admin/settings`, answering each setting with its
+value (a secret as *set* or *not set*), where it is set, and whether it can be changed here; and
+`PUT` for the two that can — the default quota, behind step-up, and a catalogue entry's clearance —
+each recording an actor and a reason.
+
 **Found on the way, not about the API:**
 
 - **T1 — The handover was three versions stale** (1.0.0, 34 operations) and its generator hard-coded
@@ -451,8 +495,8 @@ queue row needs. And the launch records' state machine refuses an impossible tra
 
 | # | Decision | Rejected | Cost of changing course |
 |---|---|---|---|
-| 1 | **A top bar, not the rail** (§2) | `SideNav`: it costs 240px of a screen that needs width for diffs and tables, and it would make the two products look identical when someone who is both an owner and an administrator must know which one they are acting as. An icon-only rail: a word survives being small and an icon does not | One component |
-| 2 | **Three tabs now** | Six, with admissions behind three — dead tabs in a daily tool are noise | Trivial |
+| 1 | **The rail** (§2) — **Rich's call, 2026-09-27**, reversing this design's first choice of a top bar | The top bar, chosen first for width and so the two products would not look alike. What the rail costs, and how it is paid: 240px, so the queue's list narrows to 480px and the decision pane stacks its two columns in a narrow container; and the likeness, answered by the *Operations* overline and the role under the person's name | One component |
+| 2 | **Four rail items now: Queue, Fleet, Health, Settings** | Seven, with admissions behind three — dead items in a daily tool are noise | Trivial |
 | 3 | **Queue rows amber; red kept for breakage** (§3.2) | A red *Needs you* on every row — true of all of them, so informative about none | A token |
 | 4 | **Two bands, by who holds the wait** | One list; grouping by kind | Layout only |
 | 5 | **An approval's age is an upper bound, labelled *up to*** (A3) | Leaving approvals out of the headline — dishonest the other way; showing the release's age as *waited* | One function |
@@ -466,6 +510,11 @@ queue row needs. And the launch records' state machine refuses an impossible tra
 | 13 | **The mock gains an admin fixture set, keyed on the project id, with `mock-app`'s answers unchanged** | A fixture layer inside `admin-ui`, which bypasses the mock's validation against the contract — the check that keeps a fixture honest | Fixtures only |
 | 14 | **A certificate is red within 14 days** | §26 names only the 90-day window | A constant |
 | 15 | **This document lives beside the faculty rationale**, not in `specs/` | `specs/`, which holds the approved platform spec: a second design there makes *"the spec"* ambiguous | A move |
+| 16 | **Filters take `radius-sm`, not a pill** (Rich, 2026-09-27) | The pill of the first mockup | A token |
+| 17 | **A long table is striped, subtly** (Rich, 2026-09-27) — `DataTable`'s `striped`, in a new `row-stripe` token between the card and the page, and quieter than hover so the row under the cursor still stands out. The stripe replaces the row rules. **A short table is not striped** — the administrators' list, the catalogue | Striping every table: on five rows it is noise | A prop |
+| 18 | **Settings shows every setting and says where it is set, and changes only what an administrator should change from a browser** (§7a) — quotas and a model's clearance | Making everything editable: the source driver, the IdP's address and the zones are host decisions a browser should not make; showing only what is editable, which hides the configuration an operator most needs to read | Per row |
+| 19 | **The administrator role is never granted from the console** | Granting it here: a stolen administrator's session could then make another. It stays with `scripts/admin-grant.sh` on the host | — |
+| 20 | **A platform-wide change asks a reason too**, kept with the change | Only §26's rule, which is about someone else's project: a change to every app's quota is everyone's project | Per setting |
 
 ---
 
@@ -485,7 +534,7 @@ queue row needs. And the launch records' state machine refuses an impossible tra
 **None is written** (Rich, 2026-09-27): the mockup is the deliverable for now. If the console is
 later built for real, the plan's shape would be: **the measurements and the mock's admin fixtures first**; then **the
 design-system additions**, each with its preview; then **`admin-ui`'s skeleton** — the package, D22's
-import boundary copied from the reference console, the system loaded, the bar, the router, the
+import boundary copied from the reference console, the system loaded, the rail, the router, the
 generated client against the mock — and the queue's assembly; then **the queue and the approval
 pane**; then **the other panes and `ObservedAction`**; then **the fleet and the project's page**;
 then **Health**; and last **the acceptance** — the queue clicked by a person against the mock,
