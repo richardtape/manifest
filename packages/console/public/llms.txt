@@ -1,0 +1,29 @@
+# Manifest
+
+> Manifest is UBC’s self-hosted platform for building, deploying and launching applications with CWL sign-in. Its API is the only way in, for a person’s tools and for an AI agent alike: create a project, read and commit its code, set its secrets, build, release, deploy and launch. Every request carries a session or a delegated token (`Authorization: Bearer mft_…`); a privileged action waits for a person.
+
+Each page below is served by the API as Markdown at `GET /v1/docs/{slug}` (any credential), and the OpenAPI document is `GET /v1/openapi.json`. An agent reads `agents` first.
+
+## Guides
+
+- [Manifest’s API](/v1/docs/index): Manifest’s API is how a person’s tools and an AI agent create, build, deploy and launch an application on Manifest — the same API the platform’s own console uses, and the only one.
+- [For an AI agent](/v1/docs/agents): This page is for an AI agent driving Manifest on a person’s behalf with a delegated token: the loop that turns a request into a running app, the rules that keep it correct, and the few things it must leave to a person.
+- [Authentication](/v1/docs/authentication): Every request to Manifest’s API carries exactly one credential — a person’s session or a delegated token — and this page is how to get each, what each may do, and what the platform asks of a client that uses one.
+- [Authoring](/v1/docs/authoring): How to read and change an app’s code through the API — the tree, a file, the history and one commit; a commit and its dry run; what is refused and why; and who a commit is attributed to.
+- [Conventions](/v1/docs/conventions): The rules every operation follows — versioning, idempotency keys, the error envelope, asynchronous work and the stream, paging, and limits — so that a client written against one operation is right about the rest.
+- [Events](/v1/docs/events): The project’s event stream: every build, log line, instance change, incident and audit event, live, over one WebSocket — how to open it, what it sends, and how to reconnect.
+- [Getting started](/v1/docs/getting-started): The shortest correct path from nothing to an app running in staging, for a developer writing a client and for an agent a person has handed a token.
+- [The journey](/v1/docs/journey): Every step from an idea to a launched app, who takes it, and the operations that serve it — including the steps nothing serves yet, and what will.
+- [Launching](/v1/docs/launching): How an app reaches production: the checklist a first launch must meet, the rehearsal of its CWL sign-in, the records of UBC’s decisions, an administrator’s approval of a stored preview — and, once launched, the releases that follow.
+- [Secrets](/v1/docs/secrets): How an app gets a credential it needs — an API key, a password — without it ever being in its code: declared by name in manifest.yaml, its value set per environment through the API, and given to the app at deploy.
+
+## Reference
+
+- [Error codes](/v1/docs/reference-errors): Every code the API answers in its error envelope, with the status it always comes with, what it means and what to do next — and every code a `SPEC_INVALID` answer lists in `details`, one per problem in manifest.yaml.
+- [Event types](/v1/docs/reference-events): Every event the project’s stream carries, in the order the platform defines them: what each says happened, and an example of its `machineDetail`.
+- [manifest.yaml](/v1/docs/reference-manifest-yaml): Every field an app’s manifest.yaml may declare, as a table: its path, its type, whether it is required, its default, and what it means.
+- [Operations](/v1/docs/reference-operations): Every operation of Manifest’s API, version 1.3.0, grouped by what it is about: its method and path, who may call it, its parameters, an example of what it sends and answers, and every error code it can answer with what to do about each.
+
+## The document
+
+- [OpenAPI 3.1](/v1/openapi.json): every operation, representation, error code and event.

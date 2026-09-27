@@ -14,7 +14,8 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck",
     "contract:generate": "pnpm --filter @manifest/contract generate",
-    "contract:write": "MANIFEST_CONTRACT_WRITE=1 vitest run --project unit src/api/contract/document.test.ts"
+    "contract:write": "MANIFEST_CONTRACT_WRITE=1 vitest run --project unit src/api/contract/document.test.ts",
+    "docs:write": "node --import ./packages/github-fake/resolve-ts.mjs packages/journey/src/docs-write.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

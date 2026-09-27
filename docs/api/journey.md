@@ -1,0 +1,31 @@
+# The journey
+
+Every step from an idea to a launched app, who takes it, and the operations that serve it — including the steps nothing serves yet, and what will. For a developer planning a client and for an agent working out which call comes next. The table is generated from the list the API is tested against: an operation the API has that no step names, or a step naming one it lacks, fails that test, so the table cannot fall behind the API.
+
+<!-- journey -->
+
+| Step | Who | Operations |
+|---|---|---|
+| Sign in with CWL | person | `getMe` |
+| Choose a blueprint and a starter, and read its knowledge pack | either | `listBlueprints`, `getBlueprint`, `getKnowledgePack` |
+| Check a name, and create the project for an audience | person | `checkSlug`, `createProject` |
+| Give an agent a delegated token | person | `mintToken`, `listTokens`, `revokeToken` |
+| Read the documentation | either | `listDocs`, `getDoc`, `getOpenApiDocument` |
+| See the code: the tree, a file, the history, one commit | either | `getTree`, `getFile`, `listCommits`, `getCommit` |
+| Change the code and manifest.yaml, checked before it is written | either | `createCommit`, `validateSpec`, `getSpec` |
+| Set the values of the app’s secrets | either | `listAppSecrets`, `setAppSecret`, `clearAppSecret` |
+| Build it and read the log | either | `startBuild`, `getBuild`, `getBuildLog`, `listBuilds`, `streamProjectEvents` |
+| Release it and deploy it to staging | either | `createRelease`, `getRelease`, `listReleases`, `deploy`, `listEnvironments`, `getEnvironment`, `listIncidents` |
+| Read a running app’s recent output to debug it | either | *Not yet — a later release:* the design keeps live tailing of a running app’s own output out of the first version (§14); a bounded, redacted read for sandbox and staging is proposed |
+| Ask for a privileged action and wait for a person | agent | `listPendingActions`, `getPendingAction` |
+| Answer an agent’s question | person | `confirmPendingAction`, `rejectPendingAction` |
+| See what a first launch needs, rehearse, and record UBC’s answers | either | `getLaunchReadiness`, `getLaunchRecords`, `runRehearsal`, `recordIamRegistration`, `recordPrivacyAssessment` |
+| Approve a release from a stored preview | administrator | `createApprovalPreview`, `getApprovalPreview`, `approveRelease`, `rejectRelease`, `getApproval` |
+| Manage who works on the project | person | `listMembers`, `addMember`, `removeMember`, `listProjects`, `getProject` |
+| Change who the app is for | person | *Not yet — the administrators’ queue (§26):* raising an audience is a request an administrator approves (§24) |
+| Delete a project, or roll back a release | person | *Not yet — not yet scheduled:* neither is built yet |
+| Work on a branch in a sandbox, with exec | agent | *Not yet — Phase 3 (§17):* an agent working inside a platform sandbox is not built before then |
+
+<!-- /journey -->
+
+*Who*: a **person** in their own session; an **agent** with a delegated token; **either**; or a platform **administrator**. One operation is in no step, deliberately: `listFleet`, an administrator’s view of every app on the platform, which is not a step in building one.

@@ -47,7 +47,13 @@ export const docRoutes = [
             slug: 'index',
             title: 'Manifest’s API',
             summary:
-              'Manifest’s API is how a person’s tools and an AI agent create, build, deploy and launch an application on Manifest — the same API the platform’s own console uses, and the only one.',
+              'Manifest’s API is how a person’s tools and an AI agent create, build, deploy and launch an application on Manifest — the same API the platform’s own console uses, and the only one. …',
+          },
+          {
+            slug: 'agents',
+            title: 'For an AI agent',
+            summary:
+              'This page is for an AI agent driving Manifest on a person’s behalf with a delegated token: the loop that turns a request into a running app, the rules that keep it correct, and the few things it must leave to a person. …',
           },
         ],
       },
