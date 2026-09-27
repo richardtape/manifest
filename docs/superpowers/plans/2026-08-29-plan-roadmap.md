@@ -1081,8 +1081,8 @@ the bound — fixed red-first (`2db40dc`). The eight handed-over items: `express
 test (F1); the seed commit's wording (F4); a file and a directory at one path in one commit (F7); a commit message's text rules
 (F8); `getCommit` at most 1000 changes with a published `truncated`, and numstat for the listed paths only (F9); no repository
 path on the wire (F10); the docs loader's two refusals (F11); a real gitlink in the contract (F12). **Named, not fixed**: a
-≥5.33 MiB run overflows V8's backtrack stack in the new lookbehind forms (a person's push only), and four more minors — one
-(the alternates path's scrub) handed to Task 12.
+≥5.33 MiB run overflows V8's backtrack stack in the new lookbehind forms (a person's push only), and the review's eight other
+minors — the alternates path's scrub handed to Task 12, the message refusal's wording to Task 13.
 
 *The record of the placement it replaces:*
 
