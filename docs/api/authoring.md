@@ -113,7 +113,7 @@ export async function commitAChange(
 
 ## The dry run
 
-The same body with **`dryRun: true`** runs every check and writes nothing. It answers what the commit would change, its `commitSha` `null`, and whether the manifest it would leave changes a field an administrator reviews before production. Check before you commit; a check is a new `Idempotency-Key` every time. *Conventions* has the envelope a refusal comes in.
+The same body with **`dryRun: true`** runs every check and writes nothing. It answers what the commit would change, its `commitSha` `null`, and whether the manifest it would leave changes a field an administrator reviews before production. The `warnings` in its `spec` — on a real commit's answer too, and in `validateSpec`'s — are what the validation says without refusing: `SPEC_FIELD_NOT_ENFORCED` for a field Manifest records but does not enforce yet, such as `ai.budget.per_user_monthly_usd`. A warning never stops a commit; tell the person, and carry on. Check before you commit; a check is a new `Idempotency-Key` every time. *Conventions* has the envelope a refusal comes in.
 
 ## When `main` has moved
 

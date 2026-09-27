@@ -32,7 +32,7 @@ Every field an app’s manifest.yaml may declare, as a table: its path, its type
 | `ai.models` | list of string | no | `[]` | The LOGICAL models the app may call — `default-chat`, `default-embed` — never a vendor’s model id. Each must be approved for `data.classification` (D17). |
 | `ai.budget` | object | no | `{}` | What the app’s AI may cost (§10). |
 | `ai.budget.project_monthly_usd` | number | no |  | The most the app may spend on AI in a month, in US dollars. Omitted, with models declared, it is the project’s AI quota; 0 is refused. |
-| `ai.budget.per_user_monthly_usd` | number | no | `0` | The most one person may spend through the app in a month, in US dollars (§7). |
+| `ai.budget.per_user_monthly_usd` | number | no | `0` | The most one person may spend through the app in a month, in US dollars (§7) — validated, not enforced before Phase 4 (§10): never above the project’s AI quota, recorded with the release, and limiting no single person yet; a validation that finds it set carries a `SPEC_FIELD_NOT_ENFORCED` warning. |
 | `env` | list of object | no | `[]` | Environment variables the app is given, beside the ones the platform sets (§8). |
 | `env[].name` | string | yes |  | The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself (§8). |
 | `env[].value` | string | no |  | Its value, written here and so in git — never a credential. |

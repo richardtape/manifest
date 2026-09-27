@@ -148,6 +148,7 @@ export async function validateAndRecord(
     commitSha: sha,
     valid: result.valid,
     errors: result.valid ? [] : result.errors,
+    warnings: result.warnings,
     sensitiveDiff,
   }
 }

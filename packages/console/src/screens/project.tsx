@@ -3,7 +3,7 @@ import type { Schemas } from '@manifest/contract'
 import type { Api } from '../api'
 import { href, type Route } from '../router'
 import { useProjectStream } from '../stream'
-import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
+import { Instant, Field, Panel, Pill, Refusal, useAsync, Warnings } from '../ui'
 import { Builds } from './builds'
 import { Code } from './code'
 import { Deploy } from './deploy'
@@ -348,6 +348,7 @@ function SpecPanel({ api, projectId }: { api: Api; projectId: string }) {
               ))}
             </ul>
           )}
+          <Warnings warnings={validation.warnings} />
         </>
       )}
       <Refusal error={error} />

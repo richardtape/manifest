@@ -338,3 +338,51 @@ describe('the blueprint a manifest names is the project’s pin', () => {
     )
   })
 })
+
+/**
+ * SPEC ACTION 4 (§7, applied 2026-09-26; the authoring API plan's Task 12): the per-user AI
+ * budget is validated against the project's AI quota and NOT ENFORCED before Phase 4 (§10) — no
+ * single person is limited by it yet — so a manifest that sets it is valid, and its validation
+ * carries a warning saying so. A warning never touches `valid`.
+ */
+describe('the per-user AI budget — validated, not enforced (§7, §10; Spec action 4)', () => {
+  it('refuses one above the project’s AI quota, at its own path — and at the quota is valid', () => {
+    const over = yaml(`ai:\n  budget:\n    per_user_monthly_usd: 101`)
+    expect(errorCodes(over)).toEqual(['SPEC_QUOTA_EXCEEDED'])
+    expect(errorPaths(over)).toEqual(['ai.budget.per_user_monthly_usd'])
+    // The positive control: exactly the quota ($100 here) is not over it.
+    expect(
+      validateSpec(yaml(`ai:\n  budget:\n    per_user_monthly_usd: 100`), ctx).valid,
+    ).toBe(true)
+  })
+
+  it('warns that a value above 0 binds no one — and the manifest stays VALID', () => {
+    const r = validateSpec(yaml(`ai:\n  budget:\n    per_user_monthly_usd: 2`), ctx)
+    expect(r.valid).toBe(true)
+    expect(r.warnings).toEqual([
+      {
+        code: 'SPEC_FIELD_NOT_ENFORCED',
+        path: 'ai.budget.per_user_monthly_usd',
+        message: expect.stringContaining('not enforced before Phase 4 (§10)'),
+        hint: expect.stringContaining('ai.budget.project_monthly_usd'),
+      },
+    ])
+  })
+
+  it('says nothing when it is absent or 0 — the positive control for the warning', () => {
+    expect(validateSpec(yaml(), ctx).warnings).toEqual([])
+    expect(
+      validateSpec(yaml(`ai:\n  budget:\n    per_user_monthly_usd: 0`), ctx).warnings,
+    ).toEqual([])
+  })
+
+  it('warns beside the errors of an invalid manifest too — and one that does not parse has none', () => {
+    const r = validateSpec(
+      yaml(`resources:\n  cpu: 8\nai:\n  budget:\n    per_user_monthly_usd: 2`),
+      ctx,
+    )
+    expect(r.valid).toBe(false)
+    expect(r.warnings.map((w) => w.code)).toEqual(['SPEC_FIELD_NOT_ENFORCED'])
+    expect(validateSpec('manifest: [', ctx).warnings).toEqual([])
+  })
+})

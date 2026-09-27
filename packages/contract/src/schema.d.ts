@@ -1382,6 +1382,8 @@ export interface components {
                 /** @description The recorded validation of the new commit; null for a dry run. */
                 appSpecId: string | null;
                 sensitiveDiff: components["schemas"]["SensitiveDiff"];
+                /** @description What validating the new manifest.yaml said without refusing — a field validated but not enforced yet (`SPEC_FIELD_NOT_ENFORCED`). The commit is made regardless. */
+                warnings: components["schemas"]["ManifestError"][];
             };
         };
         /** @description One commit on the branch — who, when and why, without its changes. */
@@ -3597,7 +3599,7 @@ export interface components {
          * @description A code inside `details` of a `422 SPEC_INVALID`: a breach of §7’s schema or policy, or of §25’s blueprint compatibility. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-spec-errors` its remedy.
          * @enum {string}
          */
-        ManifestErrorCode: "BLUEPRINT_AI_UNSUPPORTED" | "BLUEPRINT_AUTH_UNSUPPORTED" | "BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED" | "BLUEPRINT_SERVICE_UNSUPPORTED" | "SPEC_AI_BUDGET_REQUIRED" | "SPEC_AI_DISABLED" | "SPEC_ATTRIBUTE_NOT_REGISTERED" | "SPEC_ATTRIBUTE_NOT_WHITELISTED" | "SPEC_BLUEPRINT_NOT_PINNED" | "SPEC_BUILD_BLOCK_FORBIDDEN" | "SPEC_ENV_NAME_RESERVED" | "SPEC_INVALID_BLUEPRINT_REF" | "SPEC_INVALID_SLUG" | "SPEC_INVALID_VALUE" | "SPEC_MODEL_CLASSIFICATION_TOO_LOW" | "SPEC_MODEL_UNCLASSIFIED" | "SPEC_MODEL_UNKNOWN" | "SPEC_NAME_SLUG_MISMATCH" | "SPEC_PATH_EXPECTED" | "SPEC_QUOTA_EXCEEDED" | "SPEC_RESERVED_BLOCK_NOT_EMPTY" | "SPEC_SERVICE_TYPE_UNKNOWN" | "SPEC_UNKNOWN_KEY" | "SPEC_YAML_PARSE_FAILED";
+        ManifestErrorCode: "BLUEPRINT_AI_UNSUPPORTED" | "BLUEPRINT_AUTH_UNSUPPORTED" | "BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED" | "BLUEPRINT_SERVICE_UNSUPPORTED" | "SPEC_AI_BUDGET_REQUIRED" | "SPEC_AI_DISABLED" | "SPEC_ATTRIBUTE_NOT_REGISTERED" | "SPEC_ATTRIBUTE_NOT_WHITELISTED" | "SPEC_BLUEPRINT_NOT_PINNED" | "SPEC_BUILD_BLOCK_FORBIDDEN" | "SPEC_ENV_NAME_RESERVED" | "SPEC_FIELD_NOT_ENFORCED" | "SPEC_INVALID_BLUEPRINT_REF" | "SPEC_INVALID_SLUG" | "SPEC_INVALID_VALUE" | "SPEC_MODEL_CLASSIFICATION_TOO_LOW" | "SPEC_MODEL_UNCLASSIFIED" | "SPEC_MODEL_UNKNOWN" | "SPEC_NAME_SLUG_MISMATCH" | "SPEC_PATH_EXPECTED" | "SPEC_QUOTA_EXCEEDED" | "SPEC_RESERVED_BLOCK_NOT_EMPTY" | "SPEC_SERVICE_TYPE_UNKNOWN" | "SPEC_UNKNOWN_KEY" | "SPEC_YAML_PARSE_FAILED";
         /** @description manifest.yaml, schema version 1 (§7), as a JSON Schema — DOCUMENTATION FOR THE FILE, for whoever writes it. The platform validates with its own code: `validateSpec` and a commit answer each problem as a `ManifestError` with a path, and some rules are not expressible here — the name must equal the project’s slug, a model must be in the catalogue and approved for `data.classification`, and what is asked for must fit the project’s quota. */
         ManifestYaml: {
             /**
@@ -3699,7 +3701,7 @@ export interface components {
                     /** @description The most the app may spend on AI in a month, in US dollars. Omitted, with models declared, it is the project’s AI quota; 0 is refused. */
                     project_monthly_usd?: number;
                     /**
-                     * @description The most one person may spend through the app in a month, in US dollars (§7).
+                     * @description The most one person may spend through the app in a month, in US dollars (§7) — validated, not enforced before Phase 4 (§10): never above the project’s AI quota, recorded with the release, and limiting no single person yet; a validation that finds it set carries a `SPEC_FIELD_NOT_ENFORCED` warning.
                      * @default 0
                      */
                     per_user_monthly_usd: number;
@@ -4471,6 +4473,8 @@ export interface components {
             valid: boolean;
             /** @description Every problem, each with its path and code; empty when `valid`. */
             errors: components["schemas"]["ManifestError"][];
+            /** @description What the validation says WITHOUT refusing — a field validated and recorded but not enforced yet (`SPEC_FIELD_NOT_ENFORCED`). Never a reason `valid` is false; empty for a manifest that did not parse. Show them where the errors are shown. */
+            warnings: components["schemas"]["ManifestError"][];
             sensitiveDiff: components["schemas"]["SensitiveDiff"];
         };
         /** @description Which commit to build. */
@@ -5740,6 +5744,7 @@ export interface operations {
                      *         "commitSha": "a9a0a5d69c68020e2f4adf3330fd6e3c2f0bab20",
                      *         "valid": true,
                      *         "errors": [],
+                     *         "warnings": [],
                      *         "sensitiveDiff": {
                      *           "sensitive": false,
                      *           "fields": []
@@ -6126,7 +6131,15 @@ export interface operations {
                      *         "sensitiveDiff": {
                      *           "sensitive": false,
                      *           "fields": []
-                     *         }
+                     *         },
+                     *         "warnings": [
+                     *           {
+                     *             "code": "SPEC_FIELD_NOT_ENFORCED",
+                     *             "path": "ai.budget.per_user_monthly_usd",
+                     *             "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+                     *             "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
+                     *           }
+                     *         ]
                      *       }
                      *     }
                      */
@@ -7382,6 +7395,14 @@ export interface operations {
                      *       "commitSha": "0cf7e2d5dc61fb39c8c0cff09b531c4ef3e1cbdf",
                      *       "valid": true,
                      *       "errors": [],
+                     *       "warnings": [
+                     *         {
+                     *           "code": "SPEC_FIELD_NOT_ENFORCED",
+                     *           "path": "ai.budget.per_user_monthly_usd",
+                     *           "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+                     *           "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
+                     *         }
+                     *       ],
                      *       "sensitiveDiff": {
                      *         "sensitive": false,
                      *         "fields": []

@@ -193,6 +193,30 @@ export function Pill({ tone, children }: { tone: string; children: React.ReactNo
 }
 
 /**
+ * A VALIDATION'S WARNINGS (§7, as amended by the authoring API plan's Spec action 4): what it
+ * says WITHOUT refusing — a field Manifest records but does not enforce yet. Never an error:
+ * the manifest is valid. Shown wherever a validation's errors are, quietly, with the message
+ * and hint the API gave; nothing at all when there are none.
+ */
+export function Warnings({
+  warnings,
+}: {
+  warnings: readonly Schemas['ManifestError'][]
+}) {
+  if (warnings.length === 0) return null
+  return (
+    <ul className="reasons">
+      {warnings.map((w, i) => (
+        <li key={i}>
+          <Pill tone="plain">warning</Pill> <code>{w.path}</code> {w.message}
+          {w.hint !== undefined && <span className="hint"> — {w.hint}</span>}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
  * A RELATIVE INSTANT, IN EITHER DIRECTION — *"4m ago"* for a past one, *"in 30d"* for a
  * future one. §26's headline number is an age, so the console has one renderer for it rather
  * than a `Date` subtraction per screen.

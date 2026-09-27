@@ -1756,6 +1756,7 @@
                     "commitSha": "a9a0a5d69c68020e2f4adf3330fd6e3c2f0bab20",
                     "valid": true,
                     "errors": [],
+                    "warnings": [],
                     "sensitiveDiff": {
                       "sensitive": false,
                       "fields": []
@@ -2331,7 +2332,15 @@
                     "sensitiveDiff": {
                       "sensitive": false,
                       "fields": []
-                    }
+                    },
+                    "warnings": [
+                      {
+                        "code": "SPEC_FIELD_NOT_ENFORCED",
+                        "path": "ai.budget.per_user_monthly_usd",
+                        "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+                        "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
+                      }
+                    ]
                   }
                 }
               }
@@ -4516,6 +4525,14 @@
                   "commitSha": "0cf7e2d5dc61fb39c8c0cff09b531c4ef3e1cbdf",
                   "valid": true,
                   "errors": [],
+                  "warnings": [
+                    {
+                      "code": "SPEC_FIELD_NOT_ENFORCED",
+                      "path": "ai.budget.per_user_monthly_usd",
+                      "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+                      "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
+                    }
+                  ],
                   "sensitiveDiff": {
                     "sensitive": false,
                     "fields": []
@@ -7022,11 +7039,19 @@
               },
               "sensitiveDiff": {
                 "$ref": "#/components/schemas/SensitiveDiff"
+              },
+              "warnings": {
+                "description": "What validating the new manifest.yaml said without refusing — a field validated but not enforced yet (`SPEC_FIELD_NOT_ENFORCED`). The commit is made regardless.",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ManifestError"
+                }
               }
             },
             "required": [
               "appSpecId",
-              "sensitiveDiff"
+              "sensitiveDiff",
+              "warnings"
             ],
             "additionalProperties": false
           }
@@ -12040,6 +12065,7 @@
           "SPEC_BLUEPRINT_NOT_PINNED",
           "SPEC_BUILD_BLOCK_FORBIDDEN",
           "SPEC_ENV_NAME_RESERVED",
+          "SPEC_FIELD_NOT_ENFORCED",
           "SPEC_INVALID_BLUEPRINT_REF",
           "SPEC_INVALID_SLUG",
           "SPEC_INVALID_VALUE",
@@ -12066,6 +12092,7 @@
           "SPEC_BLUEPRINT_NOT_PINNED": "`blueprint` names a different blueprint from the one the project is pinned to; a commit cannot move a project.",
           "SPEC_BUILD_BLOCK_FORBIDDEN": "manifest.yaml supplies its own build definition (`runtime.build`); the Dockerfile is the blueprint’s (D13).",
           "SPEC_ENV_NAME_RESERVED": "An `env` entry declares a variable the platform sets for every app (§8).",
+          "SPEC_FIELD_NOT_ENFORCED": "A WARNING, not an error: a field Manifest validates and records with the release but does not enforce yet — today `ai.budget.per_user_monthly_usd`, not enforced before Phase 4 (§10). The manifest is valid.",
           "SPEC_INVALID_BLUEPRINT_REF": "`blueprint` is not a name pinned to a major version.",
           "SPEC_INVALID_SLUG": "`name` is not a valid project slug.",
           "SPEC_INVALID_VALUE": "A value has the wrong type, or is outside what §7 permits.",
@@ -12260,7 +12287,7 @@
                     "type": "number",
                     "minimum": 0,
                     "default": 0,
-                    "description": "The most one person may spend through the app in a month, in US dollars (§7)."
+                    "description": "The most one person may spend through the app in a month, in US dollars (§7) — validated, not enforced before Phase 4 (§10): never above the project’s AI quota, recorded with the release, and limiting no single person yet; a validation that finds it set carries a `SPEC_FIELD_NOT_ENFORCED` warning."
                   }
                 },
                 "additionalProperties": false,
@@ -14378,6 +14405,13 @@
               "$ref": "#/components/schemas/ManifestError"
             }
           },
+          "warnings": {
+            "description": "What the validation says WITHOUT refusing — a field validated and recorded but not enforced yet (`SPEC_FIELD_NOT_ENFORCED`). Never a reason `valid` is false; empty for a manifest that did not parse. Show them where the errors are shown.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManifestError"
+            }
+          },
           "sensitiveDiff": {
             "$ref": "#/components/schemas/SensitiveDiff"
           }
@@ -14387,6 +14421,7 @@
           "commitSha",
           "valid",
           "errors",
+          "warnings",
           "sensitiveDiff"
         ],
         "additionalProperties": false
@@ -15194,6 +15229,10 @@
     "SPEC_ENV_NAME_RESERVED": {
       "summary": "An `env` entry declares a variable the platform sets for every app (§8).",
       "remedy": "Remove the entry, or choose another name: the platform’s value always wins, so this line would do nothing."
+    },
+    "SPEC_FIELD_NOT_ENFORCED": {
+      "summary": "A WARNING, not an error: a field Manifest validates and records with the release but does not enforce yet — today `ai.budget.per_user_monthly_usd`, not enforced before Phase 4 (§10). The manifest is valid.",
+      "remedy": "Nothing to fix. Keep the value if you mean it — it applies once Manifest enforces it; what limits the app today is `ai.budget.project_monthly_usd`."
     },
     "SPEC_INVALID_BLUEPRINT_REF": {
       "summary": "`blueprint` is not a name pinned to a major version.",

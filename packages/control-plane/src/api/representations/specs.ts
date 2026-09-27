@@ -53,6 +53,11 @@ export const SpecValidation = representation(
       errors: z
         .array(ManifestErrorSchema)
         .describe('Every problem, each with its path and code; empty when `valid`.'),
+      warnings: z
+        .array(ManifestErrorSchema)
+        .describe(
+          'What the validation says WITHOUT refusing — a field validated and recorded but not enforced yet (`SPEC_FIELD_NOT_ENFORCED`). Never a reason `valid` is false; empty for a manifest that did not parse. Show them where the errors are shown.',
+        ),
       sensitiveDiff: SensitiveDiff,
     })
     .describe(

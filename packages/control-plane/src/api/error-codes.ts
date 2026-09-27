@@ -826,6 +826,12 @@ export const MANIFEST_ERRORS: Record<
     remedy:
       'Lower what the manifest asks for, or ask an administrator to raise the quota.',
   },
+  SPEC_FIELD_NOT_ENFORCED: {
+    summary:
+      'A WARNING, not an error: a field Manifest validates and records with the release but does not enforce yet — today `ai.budget.per_user_monthly_usd`, not enforced before Phase 4 (§10). The manifest is valid.',
+    remedy:
+      'Nothing to fix. Keep the value if you mean it — it applies once Manifest enforces it; what limits the app today is `ai.budget.project_monthly_usd`.',
+  },
   SPEC_BLUEPRINT_NOT_PINNED: {
     summary:
       '`blueprint` names a different blueprint from the one the project is pinned to; a commit cannot move a project.',

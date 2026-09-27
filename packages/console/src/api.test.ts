@@ -207,7 +207,12 @@ describe('the console’s data layer against manifest-mock', () => {
         k(),
       )
       expect(project.spec.valid).toBe(true)
-      expect((await a.validateSpec(PROJECT_ID, k())).sensitiveDiff.sensitive).toBe(false)
+      const validation = await a.validateSpec(PROJECT_ID, k())
+      expect(validation.sensitiveDiff.sensitive).toBe(false)
+      // WARNINGS, which the Manifest panel shows beside the errors (Spec action 4).
+      expect(validation.warnings.map((w) => [w.code, w.path])).toEqual([
+        ['SPEC_FIELD_NOT_ENFORCED', 'ai.budget.per_user_monthly_usd'],
+      ])
 
       // ANSWERS `202` WITH THE BUILD `running` (Rich's R6): the answer is not the outcome.
       expect((await a.startBuild(PROJECT_ID, {}, k())).status).toBe('running')
@@ -372,8 +377,13 @@ describe('the console’s data layer against manifest-mock', () => {
       expect(checked.dryRun).toBe(true)
       expect(checked.commitSha).toBeNull()
       expect(checked.spec.sensitiveDiff.sensitive).toBe(false)
+      // The Check result and the Committed line both show a validation's warnings.
+      expect(checked.spec.warnings.map((w) => w.code)).toEqual([
+        'SPEC_FIELD_NOT_ENFORCED',
+      ])
       const made = await a.createCommit(PROJECT_ID, body, k())
       expect(made.commitSha).toMatch(/^[0-9a-f]{40}$/)
+      expect(made.spec.warnings.map((w) => w.code)).toEqual(['SPEC_FIELD_NOT_ENFORCED'])
       expect(made.changes).toEqual([{ path: 'src/app.js', status: 'modified' }])
 
       // AN ENVIRONMENT'S SECRETS: names, declared, set — never a value, in any answer.

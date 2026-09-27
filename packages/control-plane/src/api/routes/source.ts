@@ -21,6 +21,7 @@ import {
 } from '../../source/index.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import type { ErrorCode } from '../error-codes.js'
+import { POLICY_CODES } from '../../spec/index.js'
 import { SpecInvalidError } from '../errors.js'
 import type { ServerDeps } from '../server.js'
 import {
@@ -221,6 +222,19 @@ const COMMIT_EXAMPLES = {
     spec: {
       appSpecId: 'f0f11f7a-f7e5-4358-bace-3619589b5114',
       sensitiveDiff: { sensitive: false, fields: [] },
+      // The example project's manifest sets `ai.budget.per_user_monthly_usd: 2` (Spec action 4)
+      // — held to the route's real answer by source-commit.test.ts.
+      warnings: [
+        {
+          // By its constant: this block is not an `examples: {…}` literal, and
+          // error-codes.test.ts's scan would read a quoted code here as one the API throws.
+          code: POLICY_CODES.FIELD_NOT_ENFORCED,
+          path: 'ai.budget.per_user_monthly_usd',
+          message:
+            '$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet',
+          hint: 'Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it.',
+        },
+      ],
     },
   },
 } satisfies {
@@ -523,6 +537,7 @@ export const sourceRoutes = [
               project.id,
               verdict.spec,
             ),
+            warnings: verdict.warnings,
           },
         }
       }
@@ -535,7 +550,11 @@ export const sourceRoutes = [
         commitSha: done.commitSha,
         parent: done.parent,
         changes: byPath(done.changes),
-        spec: { appSpecId: recorded.appSpecId, sensitiveDiff: recorded.sensitiveDiff },
+        spec: {
+          appSpecId: recorded.appSpecId,
+          sensitiveDiff: recorded.sensitiveDiff,
+          warnings: recorded.warnings,
+        },
       }
     },
   }),

@@ -226,7 +226,7 @@ export const manifestSchema = z
               .nonnegative()
               .default(0)
               .describe(
-                'The most one person may spend through the app in a month, in US dollars (§7).',
+                'The most one person may spend through the app in a month, in US dollars (§7) — validated, not enforced before Phase 4 (§10): never above the project’s AI quota, recorded with the release, and limiting no single person yet; a validation that finds it set carries a `SPEC_FIELD_NOT_ENFORCED` warning.',
               ),
           })
           .strict()

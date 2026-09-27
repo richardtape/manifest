@@ -2288,6 +2288,7 @@ Answer, `201`:
     "commitSha": "a9a0a5d69c68020e2f4adf3330fd6e3c2f0bab20",
     "valid": true,
     "errors": [],
+    "warnings": [],
     "sensitiveDiff": {
       "sensitive": false,
       "fields": []
@@ -2660,6 +2661,14 @@ Answer, `201`:
   "commitSha": "0cf7e2d5dc61fb39c8c0cff09b531c4ef3e1cbdf",
   "valid": true,
   "errors": [],
+  "warnings": [
+    {
+      "code": "SPEC_FIELD_NOT_ENFORCED",
+      "path": "ai.budget.per_user_monthly_usd",
+      "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+      "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
+    }
+  ],
   "sensitiveDiff": {
     "sensitive": false,
     "fields": []
@@ -2970,7 +2979,15 @@ Answer, `201`:
     "sensitiveDiff": {
       "sensitive": false,
       "fields": []
-    }
+    },
+    "warnings": [
+      {
+        "code": "SPEC_FIELD_NOT_ENFORCED",
+        "path": "ai.budget.per_user_monthly_usd",
+        "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+        "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
+      }
+    ]
   }
 }
 ```

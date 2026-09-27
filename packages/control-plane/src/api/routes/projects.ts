@@ -181,6 +181,7 @@ export const createProjectRoutes = [
           commitSha: 'a9a0a5d69c68020e2f4adf3330fd6e3c2f0bab20',
           valid: true,
           errors: [],
+          warnings: [],
           sensitiveDiff: { sensitive: false, fields: [] },
         },
       },
@@ -387,6 +388,7 @@ export const createProjectRoutes = [
           commitSha,
           valid: result.valid,
           errors: result.valid ? [] : result.errors,
+          warnings: result.warnings,
           sensitiveDiff: { sensitive: false, fields: [] },
         },
       }

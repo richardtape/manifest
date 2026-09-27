@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { SAMPLE_SECRETS } from '../build/testing.js'
 import { appSpecs, events } from '../db/index.js'
 import { writeFiles } from '../source/testing.js'
+import { ROUTE_DEFINITIONS } from './routes/index.js'
 import {
   mutationHeaders,
   refusal,
@@ -324,6 +325,68 @@ describe('createCommit — changes checked before anything is written (Task 6)',
     })
   })
 
+  it('carries a validation’s WARNINGS — on the dry run, on the commit, and on validateSpec — and a warning never makes a commit invalid (Spec action 4)', async () => {
+    await withProjectServer(async (ctx) => {
+      const manifest = await manifestWith(
+        ctx,
+        'ai:',
+        '  budget:',
+        '    per_user_monthly_usd: 2',
+      )
+      const change = [{ op: 'write', path: 'manifest.yaml', content: manifest }]
+      const codes = (w: { code: string }[]) => w.map((x) => x.code)
+      const dry = await post(ctx, commitBody(ctx.commitSha, change, { dryRun: true }))
+      expect(dry.statusCode, dry.body).toBe(201)
+      expect(codes(dry.json().spec.warnings)).toEqual(['SPEC_FIELD_NOT_ENFORCED'])
+      const made = await post(ctx, commitBody(ctx.commitSha, change))
+      expect(made.statusCode, made.body).toBe(201)
+      expect(codes(made.json().spec.warnings)).toEqual(['SPEC_FIELD_NOT_ENFORCED'])
+      const validated = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${ctx.projectId}/spec`,
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+        payload: { commitSha: made.json().commitSha },
+      })
+      expect(validated.statusCode, validated.body).toBe(201)
+      expect(validated.json()).toMatchObject({ valid: true, errors: [] })
+      expect(validated.json().warnings).toEqual([
+        expect.objectContaining({
+          code: 'SPEC_FIELD_NOT_ENFORCED',
+          path: 'ai.budget.per_user_monthly_usd',
+        }),
+      ])
+      // THE PUBLISHED EXAMPLES SAY EXACTLY THIS — createCommit's and validateSpec's warnings are
+      // what the route answers for $2, so the document's examples are captured, not invented.
+      const example = (operationId: string) =>
+        ROUTE_DEFINITIONS.find((r) => r.operationId === operationId)!.examples
+          .response as { spec?: { warnings: unknown }; warnings?: unknown }
+      expect(example('createCommit').spec!.warnings).toEqual(made.json().spec.warnings)
+      expect(example('validateSpec').warnings).toEqual(validated.json().warnings)
+      // Above the project's AI quota it is an ERROR, refused before anything is written.
+      const over = await post(
+        ctx,
+        commitBody(made.json().commitSha, [
+          {
+            op: 'write',
+            path: 'manifest.yaml',
+            content: manifest.replace(
+              'per_user_monthly_usd: 2',
+              'per_user_monthly_usd: 100000',
+            ),
+          },
+        ]),
+      )
+      expect(refusal(over)).toEqual({ status: 422, code: 'SPEC_INVALID' })
+      expect(errorOf(over).details).toEqual([
+        expect.objectContaining({
+          code: 'SPEC_QUOTA_EXCEEDED',
+          path: 'ai.budget.per_user_monthly_usd',
+        }),
+      ])
+    })
+  })
+
   it('a dry run answers what would change, writes nothing, records nothing and announces nothing', async () => {
     await withProjectServer(async (ctx) => {
       const before = await specRows(ctx)
@@ -345,7 +408,11 @@ describe('createCommit — changes checked before anything is written (Task 6)',
         commitSha: null,
         parent: ctx.commitSha,
         changes: [{ path: 'src/board.js', status: 'added' }],
-        spec: { appSpecId: null, sensitiveDiff: { sensitive: false, fields: [] } },
+        spec: {
+          appSpecId: null,
+          sensitiveDiff: { sensitive: false, fields: [] },
+          warnings: [],
+        },
       })
       expect(await headOf(ctx)).toBe(ctx.commitSha)
       expect(await specRows(ctx)).toBe(before)

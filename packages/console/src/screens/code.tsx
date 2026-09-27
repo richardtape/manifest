@@ -8,7 +8,7 @@ import {
   pending,
   type Edit,
 } from '../code-state'
-import { Field, Instant, Panel, Pill, Refusal, useAsync } from '../ui'
+import { Field, Instant, Panel, Pill, Refusal, useAsync, Warnings } from '../ui'
 
 /**
  * THE CODE SCREEN (the authoring API plan's Task 10) — reading a project's source, changing
@@ -73,6 +73,9 @@ export function Code({
               It builds when someone starts a build of it; committing deploys nothing.
             </span>
           </p>
+        )}
+        {committed !== undefined && committed.commitSha !== null && (
+          <Warnings warnings={committed.spec.warnings} />
         )}
         {stale && (
           <div className="refusal">
@@ -444,6 +447,7 @@ function Checked({ outcome }: { outcome: Schemas['CommitOutcome'] }) {
           <span className="hint">— none of §7’s sensitive fields change</span>
         )}
       </Field>
+      <Warnings warnings={outcome.spec.warnings} />
     </div>
   )
 }

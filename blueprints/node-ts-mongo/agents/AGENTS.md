@@ -207,7 +207,11 @@ so a missing variable fails the first boot rather than a person's first question
 
 **The budget.** Set `ai.budget.project_monthly_usd`, or leave it out and the
 project's AI quota is used. **Never write `0`**: a zero budget refuses every request,
-so it is refused at validation.
+so it is refused at validation. `ai.budget.per_user_monthly_usd` — the most one person
+may spend through the app — is **validated, not enforced before Phase 4 (§10)**: it may
+not exceed the project's AI quota, and it is recorded with the release, but no single
+person is limited by it yet. Setting it makes the validation carry a
+`SPEC_FIELD_NOT_ENFORCED` warning — a warning, never an error.
 
 **Declare only the kinds you use.** An app with only an embedding model has no chat
 model, and `ask()` refuses — naming `ai.models` — rather than sending a request that

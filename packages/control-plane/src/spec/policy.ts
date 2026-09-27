@@ -61,6 +61,11 @@ export const POLICY_CODES = {
   QUOTA_EXCEEDED: 'SPEC_QUOTA_EXCEEDED',
   /** Decision 12: `blueprint:` must be the project's pin — a commit cannot move a project. */
   BLUEPRINT_NOT_PINNED: 'SPEC_BLUEPRINT_NOT_PINNED',
+  /**
+   * A WARNING, never an error (Spec action 4, §7 as amended 2026-09-26): a field Manifest
+   * validates and freezes with the release and does not enforce yet — `policyWarnings` below.
+   */
+  FIELD_NOT_ENFORCED: 'SPEC_FIELD_NOT_ENFORCED',
 } as const
 
 /** Converts "512Mi" / "2Gi" / "512" to mebibytes. */
@@ -270,5 +275,41 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
     })
   }
 
+  // §7's Validation list, as amended 2026-09-26 (Spec action 4): §10's "validated against the
+  // project's quota", which until the authoring API plan's Task 12 nothing did.
+  const perUser = spec.ai.budget.per_user_monthly_usd
+  if (perUser > ctx.quota.aiMonthlyUsd) {
+    errors.push({
+      code: POLICY_CODES.QUOTA_EXCEEDED,
+      path: 'ai.budget.per_user_monthly_usd',
+      message: `requested $${perUser}/month per person, and the project's AI quota is $${ctx.quota.aiMonthlyUsd}`,
+      hint: 'Lower it: one person cannot be given more than the whole project may spend.',
+    })
+  }
+
   return errors
+}
+
+/**
+ * WHAT A VALIDATION SAYS WITHOUT REFUSING (Spec action 4; §7 as amended 2026-09-26): a field
+ * that is validated and frozen with the release but NOT ENFORCED yet. Never touches `valid` —
+ * a manifest that sets it is valid — and is computed for any manifest that parsed, valid or
+ * not, so a person fixing its errors sees it too.
+ *
+ * **`ai.budget.per_user_monthly_usd`**: §10 decided (Rich, 2026-09-15) that it is not enforced
+ * before Phase 4 — LiteLLM keeps an end user's budget on a row created at first use with none,
+ * and enforcement is a spend-log reconciler (D10) — so no single person is limited by it yet.
+ */
+export function policyWarnings(spec: ManifestSpec): ManifestError[] {
+  const warnings: ManifestError[] = []
+  const perUser = spec.ai.budget.per_user_monthly_usd
+  if (perUser > 0) {
+    warnings.push({
+      code: POLICY_CODES.FIELD_NOT_ENFORCED,
+      path: 'ai.budget.per_user_monthly_usd',
+      message: `$${perUser}/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet`,
+      hint: 'Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it.',
+    })
+  }
+  return warnings
 }

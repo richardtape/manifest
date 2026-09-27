@@ -152,11 +152,25 @@ export const PROJECT_EXPANDED: Schemas['Project'] = {
 
 export const PROJECTS: Schemas['ProjectList'] = [PROJECT]
 
+/**
+ * The proof-app starter's manifest sets `ai.budget.per_user_monthly_usd: 1`, so its validation
+ * is valid AND carries the platform's warning (Spec action 4) — in the platform's words, so a
+ * front end built against the mock shows warnings where the platform will send them.
+ */
 export const SPEC_VALIDATION: Schemas['SpecValidation'] = {
   appSpecId: APP_SPEC_ID,
   commitSha: COMMIT,
   valid: true,
   errors: [],
+  warnings: [
+    {
+      code: 'SPEC_FIELD_NOT_ENFORCED',
+      path: 'ai.budget.per_user_monthly_usd',
+      message:
+        '$1/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet',
+      hint: 'Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it.',
+    },
+  ],
   sensitiveDiff: { sensitive: false, fields: [] },
 }
 

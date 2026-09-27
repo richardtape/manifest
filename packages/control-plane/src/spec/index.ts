@@ -2,7 +2,7 @@ import { parse as parseYaml } from 'yaml'
 import type { ManifestError } from '../errors/index.js'
 import { manifestSchema, type ManifestSpec } from './schema.js'
 import { toManifestErrors, SPEC_CODES } from './errors.js'
-import { checkPolicy, type ValidationContext } from './policy.js'
+import { checkPolicy, policyWarnings, type ValidationContext } from './policy.js'
 
 export type { ManifestSpec, Classification } from './schema.js'
 export type { ValidationContext } from './policy.js'
@@ -50,8 +50,13 @@ export type {
 } from './resolve.js'
 export type { SensitiveField, SensitiveView, SpecChange } from './diff.js'
 
+/**
+ * A validation's answer. `warnings` (Spec action 4) are what it says without refusing — never
+ * a reason `valid` is false — and are empty for a manifest that did not parse.
+ */
 export type ValidationResult =
-  { valid: true; spec: ManifestSpec } | { valid: false; errors: ManifestError[] }
+  | { valid: true; spec: ManifestSpec; warnings: ManifestError[] }
+  | { valid: false; errors: ManifestError[]; warnings: ManifestError[] }
 
 /**
  * Whether `manifest.yaml` declares any model — `false` for anything that does not
@@ -112,16 +117,18 @@ export function validateSpec(yamlText: string, ctx: ValidationContext): Validati
           hint: 'Check indentation and quoting. Every value must be valid YAML before Manifest can read it.',
         },
       ],
+      warnings: [],
     }
   }
 
   const parsed = manifestSchema.safeParse(raw)
   if (!parsed.success)
-    return { valid: false, errors: toManifestErrors(parsed.error.issues) }
+    return { valid: false, errors: toManifestErrors(parsed.error.issues), warnings: [] }
 
   const spec = withDefaultedAiBudget(parsed.data, ctx)
+  const warnings = policyWarnings(spec)
   const policyErrors = checkPolicy(spec, ctx)
-  if (policyErrors.length > 0) return { valid: false, errors: policyErrors }
+  if (policyErrors.length > 0) return { valid: false, errors: policyErrors, warnings }
 
-  return { valid: true, spec }
+  return { valid: true, spec, warnings }
 }
