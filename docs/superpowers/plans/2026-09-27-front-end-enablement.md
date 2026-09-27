@@ -47,8 +47,8 @@
 | 1 | 1 | **The measurements this plan rests on**: a container's output at a large tail and its bytes; Docker's timestamps; the redactor over an app's own output; a SimpleSAMLphp SP row with TWO assertion-consumer URLs, and an AuthnRequest naming the second; a logout's `RelayState` round trip; `app.manifest.internal` today; LiteLLM 1.98.0's key `duration`, key `max_budget`, `key_alias` deletion and a user's spend; a stopped service's data volume surviving a re-create; a binary blob through the write path and the build gate; the local IdP releasing `uid`; the gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-27**, at Rich's instruction before his review — the measurements in `spikes/frontend-baseline/`; `[M<n>]` blocks at Tasks 2, 4, 5, 7, 8, 9, 10, 11; **the split stands** (`[M3]` held) |
 | 2 | 2, 3 | **Recent output, end to end**: the `Driver`'s `logs` bounded in bytes and carrying Docker's own timestamps; ONE reader and ONE redactor shared with `Incident.log_tail`; `listInstances` and `getInstanceOutput` (`output:read`), refused in production | **Yes** — `runtime/`, `observability/` | none (§14 applied 2026-09-26) | **DONE 2026-09-27** — `readRecentOutput`, THE reader, redacting lines JOINED (a key printed line by line) and before any cut; `listInstances` and `getInstanceOutput` under `output:read`, production `403`, a removed instance `409`; contract **1.4.0**; one fresh whole-branch review, its Critical and three Importants fixed |
 | 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | **DONE 2026-09-27** — `source/binary.ts`; bytes through `Change` to `planChanges` (the blob is git's own id for the bytes, both drivers); a base64 write canonical, ≤ 2 MiB, never text, NAMED as one of the ten kinds (the review's I1/I2) and one of them by its bytes; printable runs scanned — the only layer for a binary write, its blind spots named; `getFile?encoding=base64`; a real PNG and TTF built, deployed and served byte-exact through the edge; one fresh whole-branch review, three Importants fixed and one (a pre-existing quadratic scan) handed to Task 5 |
-| 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) — **and `scanText`'s quadratic long line** (Task 5's `[S3]`, from sitting 3) | **Yes** — `blueprints/`, `source/`, `build/` | none | ← next |
-| 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | |
+| 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) — **and `scanText`'s quadratic long line** (Task 5's `[S3]`, from sitting 3) | **Yes** — `blueprints/`, `source/`, `build/` | none | **DONE 2026-09-27** — `[S3]` fixed by one regex source read from the token's first dot, and its class found and fixed in §14's redactor (PEM, JWT, URL, `trimCut`'s tail) and in the unauthenticated logout (a bounded inflate, of the message node-saml reads); F1 (pinned by a test), F4, F7–F12; `CommitDetail.truncated` published; one fresh whole-branch review, its Critical (a request beside a response bypassed the bound) fixed red-first |
+| 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | ← next |
 | 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | |
 | 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **If it runs long, stop after Task 9 and sweep** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27 | |
 | 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | |
@@ -1630,6 +1630,13 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Task 12: Delete — only a project that never launched; what archive kept, destroyed; a tombstone the audit trail keeps; the slug released
 
+> **[S4] — FROM SITTING 4 (Task 5; its whole-branch review's M2, 2026-09-27).** Deleting a repository makes a race this task
+> is the first to reach: a commit under way when `destroyRepository` runs. `buildCommit`'s scratch repository BORROWS
+> `<repository>/objects` through `alternates` (`source/plumbing.ts`, `input.objects`), and with the repository gone git prints
+> `error: unable to normalize alternate object path: /…/repos/<slug>.git/objects` (measured by the review, git 2.50.1) — and
+> `must()` scrubs only the scratch directory and `gitDir`, so a laptop path reaches a `500`'s body. Scrub `input.objects` too
+> (the one scrub in `must()`), and let this task's race case assert no path on the wire.
+
 **SPEC ACTION 3 MUST BE DECIDED BEFORE THIS TASK STARTS**, as Task 11. Dropped if Rich chooses option (b).
 
 **Files:**
@@ -1693,6 +1700,14 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > (3) `createCommit`'s write takes `encoding: 'base64'` only at a path ending in one of the ten kinds' extensions
 > (`BINARY_EXTENSIONS`, `source/binary.ts`) — any upload control says so before it sends.
 
+> **[S4] — FROM SITTING 4 (Task 5; 2026-09-27).** (1) **`CommitDetail.truncated` is published** (`c1aff90`): `getCommit`
+> answers at most 1000 changes, the first by path — the Code screen's commit view says when it stopped. (2) **A commit
+> message keeps text's rules** (F8): no control character but `\n` and `\t`, well-formed Unicode — the console's message box
+> should say so before it sends, because the refusal (`400 REQUEST_INVALID`) names neither the character nor where (the
+> review's M8) and an ESC or a C1 character pasted into a textarea is invisible. (3) The seed commit already reads *"The
+> project's starting point, made by Manifest"* (F4, `commitOrigin` in `code-state.ts`) — the mock's history example has no
+> seed commit, so a mock-driven check never shows it.
+
 **D22's rule, unchanged: the console is the proof that the API is complete, not the product.** Its quality bar is §22's — *"plain but presentable"* — and **none of this task is the faculty front-end's design**, which is drawn screen by screen after this plan against the design system (`docs/superpowers/design/`). What a screen here must do is CALL each operation the way a real client would, and show a person the answer honestly.
 
 **Files:**
@@ -1732,6 +1747,15 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > `repository.secret_refused`'s `line` counts runs in a base64 file. **Stale sentences today** (the review's minor 9):
 > `authoring.md:8` (*"one text file’s content"*), `:193` (*"**Text only.**"*), and the *"A binary file … cannot be read as
 > text"* samples at `authoring.md:34` and `getting-started.md:86`. Two 2 MiB files fit in one commit's 8 MiB body.
+
+> **[S4] — WHAT SITTING 4 CHANGED THAT THE GUIDES MUST SAY (Task 5; 2026-09-27).** *Authoring*: **a commit message** is
+> well-formed Unicode with **no control character but a line break and a tab** — a NUL, a carriage return or an escape is
+> `400 REQUEST_INVALID`, checked before the secret scan; **`getCommit` answers at most 1000 changes**, the first by path, with
+> `truncated: true` past them (read the rest with git); **a file and a directory at one path in ONE commit** (`docs` and
+> `docs/intro.md`) is `409 SOURCE_PATH_CONFLICT`. *For an AI agent*: the knowledge pack now says an app that replaces
+> `server.js` must keep `express.urlencoded` (F1); no guide says it (`grep -n urlencoded docs/api/*.md` finds nothing) —
+> say it where the guide sends an agent to the knowledge pack: the authoring API's own acceptance app replaced `server.js`
+> and dropped the line (its sitting 10, F1).
 
 > **[S2] — WHAT SITTING 2 BUILT THAT THE GUIDES MUST SAY (2026-09-27).** `getInstanceOutput`'s answer, as built and reviewed:
 > `lines` is AT MOST what was asked (a runtime's `tail` counts records, and a long line is several — [M1]); when every record
@@ -2357,3 +2381,136 @@ Docker's build cache is 25.1 GB (20.9 GB reclaimable), as sitting 2 left it. `do
 
 **Next: sitting 4 (Task 5, what the authoring API hands over — and `[S3]`, `scanText`'s quadratic long line)**; `pnpm test:docker`
 owed (`blueprints/`, `source/`, `build/`).
+
+### Sitting 4 — 2026-09-27: Task 5, what the authoring API handed over — and every quadratic line reader
+
+**Run cold from ORIENTATION §7e**, at Rich's *"read all of ORIENTATION.md … and then proceed with the next sitting"*, on the LEAN
+budget (single files while working, the Docker tier once beside the reviewer, the whole suite twice on the final tree). Inline
+execution (`superpowers:executing-plans`), committing on `main`; one fresh whole-branch reviewer (Opus, read-only, told never to
+run a test) run beside the Docker tier, and one fix pass. Commits: `a968a97` (`[S3]` and its class), `c1aff90` (F1, F4, F7–F12),
+`2db40dc` (the review's C1 and I1). The ledger's `Ruling:` lines are reproduced here as the rulings.
+
+**Rulings.**
+- **`[S3]` is fixed by REWRITING the two rules**, neither of the plan's options: the JWT and installation-token rules begin at
+  the token's FIRST DOT and read back to the opening with a lookbehind (`\.(?<=\beyJ[…]{10,}\.)…`). Windows miss a secret longer
+  than the overlap and stay quadratic inside a window; a linear matcher is written twice. The hook splices the same regex
+  source, so one edit reaches both loops. *Cost if wrong:* none measured — an oracle holds the answer to the old rules.
+- **`[S3]`'s CLASS was widened to the redactor and to `GET /auth/logout`** — found by this sitting's own sweep for the shape;
+  reachable by `output:read` (this plan's own route), every build log line, and UNAUTHENTICATED respectively; `observability/`
+  and `identity/` are Docker-owed anyway. *Cost if wrong:* a longer Task 5; each has its RED, its oracle and its bound.
+- **`HEURISTICS` exported as named functions** (production structure, like `SECRET_PATTERNS`) and **`answersARequest` exported
+  from `identity/saml.ts`**, so each oracle compares a rule with its old expression.
+- **`trimCut`'s bound test is 128 KiB, not 1 MiB** — a cut line is `lineBytes` plus room, kilobytes; the old tail took 10.9 s
+  at 128 KiB, and a 1 MiB RED would take minutes.
+- **F1 gets a PIN TEST** although Step 10(c) predicted no test can see the sentence — ORIENTATION §3's own lesson (*a required
+  sentence with no test is a sentence that gets edited out*). Task 15's fixture is still the behavioural guard.
+- **F7's check covers WRITES only** — a deletion at or under a written path is already refused by the base checks (a deletable
+  path is a blob in the base).
+- **F8's rule is `\p{Cc}` less `\n` and `\t`** — C0, DEL AND C1 (U+009B is a one-character CSI); the plan names `\r` and ESC.
+- **F9's numstat bound applies to `getCommit` too**, not only `getTree`: the same whole-diff cost, Decision 12's reason. **Its
+  `getTree` test asserts the numstat's argv** (the file's own `runGit` recorder), not a time — 12,000 tiny files cannot show
+  `[M12]`'s 0.29 s; the argv shows *never the whole tree* directly.
+- **F11's codes are boot errors** (`DOCS_SLUG_TAKEN`, `DOCS_PAGE_UNADDRESSABLE` on `ApiDocsLoadError`), not API codes;
+  `DOC_SLUG` is stated once in `docs/load.ts` and the route reads it — the published document is unchanged.
+- **F12's contract case was GREEN FIRST** — it is the test F12 names as missing; control (k) shows it is the ONLY test holding a
+  write under a submodule (the planner's unit tests had none).
+- **The Docker tier ran ONCE, on `c1aff90`, before the fix pass; the fix pass's one Docker file was re-run ALONE on
+  `2db40dc`** — `identity/saml.docker.test.ts`, 3 of 3, whose *console sign-out ends the IdP's session too* completes a real
+  sign-out through `completeSpLogout` against the IdP's signed LogoutResponse (F15: this ruling first said no Docker case ran
+  the changed lines). *Cost if wrong:* the 217/36 is one commit behind the final tree in every other file.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 §14's redactor was quadratic in three rules** — the PEM rule's `HEADER[\s\S]*?FOOTER` read to the end of the text again
+   from every header (5.3 s RED for 1 MiB in the test, 11 s in the probe), the JWT rule ~100 s and the URL rule ~280 s for 1 MiB
+   (1.1 s for 64 KiB of `a.`, measured). It reads an app's output — up to 1000 lines of 8 KiB, JOINED, through
+   `getInstanceOutput` — an Incident's tail and every build-log line, so an app that prints the line stalls the control plane.
+2. **F2 `trimCut`'s tail, `/[A-Za-z0-9+_-]+={0,2}$/`, was quadratic** — 46 ms at 8 KiB, 2.7 s at 64 KiB, 10.9 s at 128 KiB (RED):
+   anchored at the end, the engine tries every start in a long run first.
+3. **F3 `GET /auth/logout` inflated an UNAUTHENTICATED message with no bound, before any signature check** — node-saml 5.1.0's
+   `validateRedirectAsync` inflates and parses it twice, and the code's own InResponseTo pre-check inflated it too. An 8 MiB bomb
+   in a query under Node's 16 KiB header limit held the control plane 1,511 and 1,509 ms (RED).
+4. **F4 The LogoutResponse pre-check's own expression was quadratic** — `<LogoutResponse\b[^>]*\bInResponseTo=…`: 1.65 s at 256
+   KiB of openings, 28.3 s at 1 MiB (control (g)).
+5. **F5 The first two oracle generators matched NOTHING** — a probe whose LCG multiplied past 2^53 (`seed * 1103515245` in a JS
+   number loses precision) and whose runs were too short: 300,000 lines, 0 JWT matches — an equivalence test that could not
+   fail. Caught by counting matches; every oracle now asserts a floor and a ceiling on them.
+6. **F6 The build gate skips `dist/`, `build/`, `node_modules/` and three more** (`build/gates.ts`'s `SKIP`) while every push-time
+   scan reads every path — the corpus's 1 MiB line was first placed at `dist/bundle.min.js`, and the gate "missed" it. By design
+   (a build output is not source) and named here; the entry moved to `public/`.
+7. **F7 Step 10(c) predicted no test could see F1's sentence** — left so, a required sentence is guarded by nothing (the ruling).
+8. **F8 (review C1, Critical) The logout bound was bypassed by sending BOTH messages** — node-saml reads `SAMLRequest` whenever
+   one is present (`lib/saml.js:647`), so a small valid-looking `SAMLResponse` passed the pre-check and node-saml inflated the
+   8 MiB `SAMLRequest` beside it: 1,560 ms RED (the reviewer measured 1,738). `a968a97`'s message said both were bounded.
+   `requireBoundedMessage` bounds what node-saml will read, on both paths; the SP path refuses a query carrying both.
+9. **F9 (review I1) The bomb tests told the bound from node-saml's own refusal only by TIME** — both answer `400
+   SAML_LOGOUT_REJECTED`; control (f)'s RED was 1.6 s against a 1 s bound. They now assert the operator line's reason.
+10. **F10 (review M1, deferred) The lookbehind forms overflow V8's backtrack stack** (`RangeError`) on a run of `[A-Za-z0-9_-]`
+    past ~5.33 MiB followed by two dotted parts — the old forms threw only when the run BEGAN at an opening, so the trigger
+    widened. Unreachable through the API (1 MiB text, 2 MiB bytes), the gate (≤ 2 MB) and build logs (~1 MiB lines); a PERSON's
+    push reaches it — driver 1's hook refuses (*"scan could not run"*, fail-closed), driver 2's sync throws before its observer,
+    so that project's syncs fail and the batch's findings go unreported (pre-existing for a run beginning at an opening).
+    Remedy named: `scanText` never throws — fail closed per line, reported unscannable.
+11. **F11 (review M4, deferred) F9's literal pathspecs miss a non-UTF-8 file name** — decoded lossily, sent back as UTF-8, it
+    matches nothing: `"\xff.png"` reads `binary: false` in `getTree` (it read `true`). Only a push makes one.
+12. **F12 (review M2, handed to Task 12) F10 misses the alternates path** — `buildCommit`'s scratch repository borrows
+    `<repository>/objects`, and a repository removed mid-commit makes git print it; `must()` scrubs scratch and `gitDir`, not
+    `input.objects`. Reachable once archive and delete can remove a repository under a commit — Task 12's `[S4]`.
+13. **F13 (review M3, deferred) A literal pathspec still matches a DIRECTORY** — a commit deleting the file `a` and adding `a/…`
+    puts `a` among the first 1000, and its numstat returns every `a/*` (the answer stays capped; `a`'s patch read is the same,
+    pre-existing).
+14. **F14 (review M7, deferred) F4 can name a person's own ROOT commit as Manifest's starting point** — when a merge of an
+    unrelated history puts it on the first-parent line (a fast-forward push). Rare; the words assert something false.
+15. **F15 The close-out's own ruling said the fix pass touched no line a Docker case runs — and one does.** Found by grepping
+    the Docker tier for `/auth/logout` before trusting the ruling: `identity/saml.docker.test.ts`'s console sign-out drives
+    `completeSpLogout` through the real IdP. Re-run alone on the final tree: green, 3 of 3 (the ruling above).
+
+**Deferred minors** (the review's, not numbered): the joined-lines redactor test's RED sat at its bound (1,045 ms against 1,000;
+M5 — use the real 8 KiB lines); no test fails if `inRuns`' multi-run branch, the no-call-for-no-paths rule or `LITERAL` breaks
+(M6); F8's refusal names neither the character nor where (M8 — handed to Task 13's `[S4]`); the path scrub is written twice,
+`read()` and `must()`, and `completeIdpLogout`'s hint says *"against the IdP's certificate"* for a size refusal too (M9). **The
+review's recommendation 3** — F8's rules and `truncated` in the authoring guide — is Task 14's `[S4]`.
+
+**Measured, and as the plan predicted** (not findings): `[S3]` at 1 MiB, **100.3 s** (the plan extrapolated ~106 s); F7's
+refusal was `SOURCE_GIT_FAILED` on both drivers before the fix; F8's NUL reached the secret scan (`409`) before the fix; the
+review fuzzed all seven rewrites against their old expressions over ~700,000 inputs with wider alphabets than the oracles —
+**0 disagreements** — and timed >60 crafted 1 MiB shapes, each ≤ 15 ms.
+
+**The negative controls — every one predicted in writing (`t5-predictions.md` in the workspace), run after its commit, and
+restored:**
+- (a) F7's written-set check off — RED on the unit and on both drivers' contract (`SOURCE_GIT_FAILED` for `SOURCE_PATH_CONFLICT`).
+- (b) F10's scrub off — RED (no `<repository>` in the message).
+- (c) F1's sentence removed — RED on the pin test (the plan predicted nothing would be).
+- (d) the JWT rule back to `\beyJ…` — RED on the oracle's *rewritten* check, and the hook's 1 MiB corpus push timed out (52 s).
+- (e) the PEM heuristic back to its lazy expression — RED at 5,652 ms; the oracle GREEN, as predicted (the answers are the old
+  ones by construction — the time bound is the only guard of speed).
+- (f) the logout inflate unbounded — RED at 1,613 and 1,627 ms (the status still `400`).
+- (g) `answersARequest` as the old expression — RED at 28,344 ms; the oracle GREEN, as predicted.
+- (h) the message rules off — RED (`409 SOURCE_SECRET_DETECTED` for `400`).
+- (i) a whole-tree numstat and no cap — RED on both F9 cases.
+- (j) the slug-taken check off — RED (the loader accepted).
+- (k) a submodule let through as an ancestor — RED on both drivers' F12 case, and on nothing else.
+- (l) `commitOrigin` ignoring `parents` — RED on F4's case.
+- The fix pass: both of its layers off — RED at 1,573 ms; the both-refusal alone off — RED on the reason, the bound still
+  holding the time. **Two layers, each holding something.**
+
+**Gates at close**: **`pnpm test` 2451 passed in 166 files**, twice on the final tree (`2db40dc`: 520 s and 517 s, identical) —
+up from 2425 in 165 by this sitting's 26 tests and one file (`identity/saml.test.ts`), as predicted before the runs (25, then
+the fix pass's one). **`pnpm test:docker` 217 in 36 files** — owed, run once on `c1aff90` beside the reviewer, green first time
+in 945 s at load ~3.4; unchanged in count (Task 5 adds no Docker case); the fix pass's one Docker file re-run alone on
+`2db40dc`, 3 of 3 (F15). `pnpm typecheck`, `pnpm lint` and `pnpm format:check`
+clean. **`make doctor` 20/0/0; `make verify` 57/0/0**, its per-app line `mf- containers=6 networks=2 volumes=4`, as at open. The
+contract is still **1.4.0** (56 operations; `CommitDetail.truncated` added, the message's description widened).
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 secrets, 0 instances, **33 migrations**
+(this sitting added none; the single Docker re-run truncated it again, after the full runs); `launch-app`'s six `mf-launch-app-*` containers running, untouched; nothing listening on 7100, 7102,
+7104, 7105, 7110 or 8765 — **the control plane is not running**, as at open (this sitting never started it); the edge
+(`manifest-caddy`) restarted by the Docker tier, as it always is; the GitHub fake absent; **both models unloaded** (the chat
+model was warmed for the tier; Ollama's `/api/ps` lists none). The three cleanup scripts, after `--apply` (allowed — 7 networks,
+1 volume, `p4b-probe-user`, 14 app images: the tier's) and run bare again: `none dead`, 0 orphaned, 0 dead app images. The
+snapshot diff shows only uptimes, the edge's restart and **2 GiB less free disk** (78 → 76 Gi); Docker's build cache is 25.1 GB
+(20.9 GB reclaimable), which no cleanup script touches. `docker-simple-saml-saml-idp-1` exited, as at open. **The four shared
+HTML pages were checked** — they state a plan's milestones, and this sitting's hardening moves none of them.
+
+**Next: sitting 5 (Tasks 6 and 7 — a project's name, and people by CWL login name or email)**; Spec action 4 is applied;
+`pnpm test:docker` owed (`identity/`, `sso/`, `projects/`, `infra/`).

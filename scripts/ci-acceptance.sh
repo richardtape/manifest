@@ -122,8 +122,14 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the front-end enablement plan's sitting 3 (2026-09-27, binary files): +21 and one file —
 # `source/binary.test.ts` (7, new), the source driver contract's three byte cases on each driver
 # (6), `api/source-commit.test.ts`'s binary writes (7) and `api/source.test.ts`'s byte read (1).
-EXPECT_TESTS=2425
-EXPECT_FILES=165
+# Then the front-end enablement plan's sitting 4 (2026-09-27, Task 5 and every quadratic line reader):
+# +26 and one file — the secret list's 1 MiB bound, a token inside it and its oracle (3) and the
+# hook's 1 MiB corpus push (1); the redactor's bound, joined lines, tail and oracle (4);
+# `identity/saml.test.ts` (2, new) and the logout's two bombs and a request beside a response (3);
+# F1's pin (1), F4 (1), F7 (1, and 2 on the drivers), F8 (1), F9 (2), F10 (1), F11 (2) and F12 on
+# the drivers (2).
+EXPECT_TESTS=2451
+EXPECT_FILES=166
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 

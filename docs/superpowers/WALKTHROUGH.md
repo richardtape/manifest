@@ -274,8 +274,9 @@ board, then the console signs the instructor in with no password (the IdP's sess
 | 7 | **Secrets** | `BOARD_ADMIN_CODE` *set* in staging; *not set* in sandbox and production with *"The next deploy of … will be refused until this has a value."*; production's **Set** is refused with *Confirm it is you* — follow it, CWL asks again, back on the tab with the box emptied, Set again → *set, changed 0s ago*; a value of `abc` → `REQUEST_INVALID — … >=6 characters` |
 | 8 | **Docs**, then *the API reference, rendered* | fourteen pages under API 1.3.0; `/reference.html` renders the whole API with **every request to `console.manifest.internal`** (and two inline `data:` images) — signed out it says *The API reference needs you signed in* and fetches no document |
 
-**The seed commit reads *pushed with git*** (sitting 10's F4, a minor): `madeThrough` is `null` for anything not made
-through the commit API, and the platform's own seed is one of those.
+**The seed commit reads *The project's starting point, made by Manifest*** — `madeThrough` is `null` for anything not made
+through the commit API, the platform's own seed included, and the console reads a commit with no parent and no record as the
+seed (the front-end enablement plan's Task 5; until 2026-09-27 it read *pushed with git*).
 
 ### Manifest itself — the control plane
 

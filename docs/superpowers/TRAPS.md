@@ -1917,11 +1917,26 @@ it belongs among the traps the next sitting is most likely to hit.
   *Binary files differ*, and a crafted `manifest.yaml` parsed as valid YAML. What a prefix check cannot prove, a NAME rule
   can bound: a base64 write's path must end in one of the ten kinds' extensions (`BINARY_EXTENSIONS`). A payload behind a
   prefix (a ZIP after a PDF head) is still accepted — concealment, not a new capability, since text carries base64 already.
-- **`scanText` IS QUADRATIC ON ONE LONG LINE OF `[A-Za-z0-9_-]` WITH MANY `eyJ` STARTS** (2026-09-27, sitting 3's review, I4
-  — measured, NOT YET FIXED: the plan's Task 5 `[S3]`). The JWT rule backtracks across the whole run from every start:
-  16→256 KiB of `'-eyJaaaaaaaaaa'` took 25 ms → 6.6 s, 4× per doubling (264 KiB of minified JS: 0 ms). A 1 MiB line blocks
-  the control plane's event loop for ~100 s, three times per commit (route, driver, build gate). Until Task 5 lands, a
-  red-by-timeout on a test that writes one huge line is this, not load.
+- **A REGULAR EXPRESSION THAT CAN BEGIN AGAIN INSIDE ITS OWN RUN IS QUADRATIC ON ONE LONG LINE** (2026-09-27, the front-end
+  enablement plan's sitting 4 — `[S3]`, FIXED). `\beyJ[A-Za-z0-9_-]{10,}\.…` reads the whole run again from every `eyJ` in it:
+  a crafted 1 MiB line of `-eyJaaaaaaaaaa` took **100.3 s** in `scanText`, the event loop blocked. Found in five places, not
+  one: the secret list's JWT and `ghs_` rules; the redactor's PEM (`HEADER[\s\S]*?FOOTER` — 11 s for 1 MiB of headers), JWT
+  and URL (`\b[a-z][a-z0-9+.-]*:\/\/` — ~280 s for 1 MiB of `a.`) rules; `trimCut`'s `/[…]+={0,2}$/` (10.9 s at 128 KiB); and
+  the logout's `<LogoutResponse\b[^>]*\bInResponseTo=` (1.65 s at 256 KiB, unauthenticated). **The fix that keeps ONE regex
+  source**: begin the match at a delimiter the run cannot contain (the token's first `.`, a URL's `://`) and read back with a
+  lookbehind — `\.(?<=\beyJ[…]{10,}\.)…` — so each run is read once, by the delimiter that ends it; a lookbehind's capture
+  gives the start with the `d` flag when the replacement needs it. **Put the literal FIRST**: a pattern that BEGINS with a
+  lookbehind is tried at every position. **Hold the rewrite to the old expression as an oracle** over generated inputs, and
+  check the generator actually produces matches (the first two generators here produced none). Grep for `]{n,}` or `]+`
+  followed by a required literal on any text a client can make long.
+- **`zlib.inflateRawSync` HAS NO BOUND UNLESS YOU GIVE IT ONE, AND node-saml GIVES NONE** (2026-09-27, sitting 4). Deflate
+  shrinks repetition about a thousandfold, so a redirect-binding `SAMLRequest`/`SAMLResponse` inside Node's 16 KiB header limit
+  inflated to 8 MiB, which node-saml's `validateRedirectAsync` parses twice BEFORE it checks the signature — 1.5 s of an
+  unauthenticated request. `{ maxOutputLength }` throws `RangeError` `ERR_BUFFER_TOO_LARGE`. **Bound the message node-saml
+  will READ, not the one you meant it to**: `validateRedirectAsync` reads `SAMLRequest` whenever one is present, so a small
+  `SAMLResponse` with an 8 MiB `SAMLRequest` beside it passed a bound on the response alone (the sitting's review, C1 — 1.5 s
+  again). `identity/saml.ts`'s `requireBoundedMessage` bounds what node-saml reads, to 64 KiB, on both logout paths, and the SP
+  path refuses a query carrying both. **The refusal's CODE is the same whatever refused** — assert the operator line's reason.
 
 ## Images already pulled
 
