@@ -2464,6 +2464,8 @@ run a test) run beside the Docker tier, and one fix pass. Commits: `a968a97` (`[
 15. **F15 The close-out's own ruling said the fix pass touched no line a Docker case runs — and one does.** Found by grepping
     the Docker tier for `/auth/logout` before trusting the ruling: `identity/saml.docker.test.ts`'s console sign-out drives
     `completeSpLogout` through the real IdP. Re-run alone on the final tree: green, 3 of 3 (the ruling above).
+16. **F16 The close-out's roadmap paragraph said the review left "four more minors" besides M1 — it left eight.** Found by the
+    post-sweep check, counting the ledger's `minor (deferred)` lines rather than re-reading the sentence (`2bc1330`).
 
 **Deferred minors** (the review's, not numbered): the joined-lines redactor test's RED sat at its bound (1,045 ms against 1,000;
 M5 — use the real 8 KiB lines); no test fails if `inRuns`' multi-run branch, the no-call-for-no-paths rule or `LITERAL` breaks
