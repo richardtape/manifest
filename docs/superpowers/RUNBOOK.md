@@ -234,8 +234,8 @@ acceptance under `preview`**, which holds no socket. Either way **stop it by por
 *Added by P5c sitting 8, 2026-09-19 (Task 12). §21: "front-end developers are not
 required to run the platform" — one process, not nine containers plus a language model.*
 
-`packages/mock` serves the **published contract** from hand-written fixtures, with a
-scripted WebSocket stream. It needs no Docker, no Postgres, no Ollama and no control
+`packages/mock` serves the **published contract** from hand-written fixtures and, for every
+operation without one, the document's own examples — with a scripted WebSocket stream. It needs no Docker, no Postgres, no Ollama and no control
 plane.
 
 ```bash
@@ -300,6 +300,19 @@ platform (the P5 brief's §8). Specifically:
   the fixtures carry **one**, so the console’s rendering of the other two is exercised by
   nothing. Measured in a browser, P5c sitting 9 (F9): it is the second half of the clicked
   journey’s row 3, and the mock cannot show it.
+- **An operation with no fixture is answered with the DOCUMENT's own example** (the
+  authoring API plan's Decision 15), through the same Ajv check — and `server.test.ts` holds
+  all fifty examples to crossing it. **Four are answered only for what their example is
+  of** (`FROM_EXAMPLE`, 2026-09-26): `getFile` reads `src/app.js` alone, `getCommit`
+  describes one commit, `listCommits` has one page, and `createCommit` answers a dry run as
+  a dry run. Anything else is `409 SOURCE_PATH_NOT_FOUND` or `SOURCE_COMMIT_NOT_FOUND` **in
+  the mock's own words** (*"manifest-mock holds the text of one file…"*) — the mock, not the
+  platform. **It validates no request**, so a refusal the platform gives a malformed body —
+  a secret's value under six characters, a commit's bad path — is a `200` here, and
+  `SOURCE_CONFLICT`, `SPEC_INVALID` and `SOURCE_SECRET_DETECTED` are never answered. **Its
+  secrets are the example's**: every environment lists the same two declared names, a Set
+  answers the example's name whatever was sent, and the list still reads *not set* after
+  it. **It serves no `/auth/step-up`**, so production's round trip is the platform's.
 - An operation the document declares and the mock has no answer for is **`501`** — the
   contract has grown a route the mock has not caught up with. A path the document does not
   declare is `404 ROUTE_NOT_FOUND`, exactly as the platform answers it.
@@ -661,7 +674,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-26 at the close of the authoring API plan's sitting 6 (Task 9 — the reference, completed), and one moved: `pnpm test` **2211 passed** in 153 files on every run of the sitting's final tree, ~7.7 minutes a run — the reference's completeness gate, its independent linter and `manifest.yaml`'s JSON Schema corpus; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, clean at the open, after the Docker tier and at the close, and `pnpm test:docker` **210 in 35**, green first time (943 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-26 at the close of the authoring API plan's sitting 7 (Task 10 — the console and the mock), and one moved: `pnpm test` **2227 passed** in 154 files on every run of the sitting's final tree, ~7.9 minutes a run — the mock's gates over the document's examples and its keyed answers, the Code screen's pure half (`code-state.test.ts`), and the console's calls of the eight new operations; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 at the open and the close, and `pnpm test:docker` **210 in 35**, not owed this sitting (sitting 6's, 943 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has THIRTEEN steps, 1 to 13, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,

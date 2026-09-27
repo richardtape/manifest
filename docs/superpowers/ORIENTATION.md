@@ -9,13 +9,14 @@ executed** (§2's table): an application goes from a bare repository to a produc
 on one laptop, offline — and its code can live in a GitHub organisation instead (D5's driver 2, the newest). **The authoring
 API's plan is being executed**; §7e says what is next. The roadmap's ledger outranks every document on status.
 
-*Last verified 2026-09-26, at the close of the authoring API plan's sitting 6 (Task 9 — the reference, completed). `pnpm test`
-**2211 passed, 0 skipped, in 153 files**, identical on every run of the final tree, ~7.7 minutes a run (465 s, 468 s) — up 14
-and three files (`api/contract/docs.test.ts`, the reference's completeness gate; `lint.test.ts`, an independent linter;
-`manifest-yaml.test.ts`, a JSON Schema corpus). **`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability database
-goes stale again after 2026-10-01 (`make refresh-vulndb`). **`make verify` 57**, clean at the open, after the Docker tier and at
-the close. `pnpm test:docker` **210 in 35**, owed, green first time (943 s). The wrapper's new refusal of a token on a
-session-only route was driven through the edge by `make demo-token`. `scripts/ci-acceptance.sh` reads `2211 / 153 / 20 / 57`.
+*Last verified 2026-09-26, at the close of the authoring API plan's sitting 7 (Task 10 — the console and the mock). `pnpm test`
+**2227 passed, 0 skipped, in 154 files**, identical on every run of the final tree, ~7.9 minutes a run (474 s, 473 s) — up 16
+and one file (`packages/mock/src/server.test.ts`'s gates over every document example and its four keyed answers;
+`packages/console/src/code-state.test.ts`, the Code screen's pure half; the console's calls of the eight new operations).
+**`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability database goes stale again after 2026-10-01 (`make
+refresh-vulndb`). **`make verify` 57**, clean at the open and the close. `pnpm test:docker` **210 in 35** — sitting 6's; not
+owed by a console and mock change. Both new screens were driven in a browser against `manifest-mock`.
+`scripts/ci-acceptance.sh` reads `2227 / 154 / 20 / 57`.
 **This line states only the latest sitting** — each sitting's
 numbers are in its plan's *What executing this plan found*, dated, where they cannot drift.*
 
@@ -64,14 +65,14 @@ roadmap's table — every plan self-reviewed first. The roadmap's defect-rate ta
 a written plan as a hypothesis (§9).
 
 **The four numbers you will check first, re-measured 2026-09-26 on this machine at the open AND the close of the
-authoring API plan's sitting 6 (Task 9; its record is in the plan). ONE moved: `pnpm test` **2211** in **153** files
-(the reference's gate `docs.test.ts`, the linter `lint.test.ts`, the corpus `manifest-yaml.test.ts`, the matrix's credential
-check and the wrapper's own refusal); `make doctor` **20** with **0 warnings**; `make verify` **57**; `pnpm test:docker`
-**210** in **35**, owed, and green first time:**
+authoring API plan's sitting 7 (Task 10; its record is in the plan). ONE moved: `pnpm test` **2227** in **154** files
+(the mock's gates over every document example and its keyed answers, the Code screen's pure half `code-state.test.ts`, and
+the console's calls of the eight new operations); `make doctor` **20** with **0 warnings**; `make verify` **57**;
+`pnpm test:docker` **210** in **35** — sitting 6's, not owed by a console and mock change:**
 
 | Gate | What it reads now |
 |---|---|
-| `pnpm test` (from the **repo root**) | **2211 passed, 0 skipped, 153 files**, **~7.7 min (465 s, 468 s) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2211**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
+| `pnpm test` (from the **repo root**) | **2227 passed, 0 skipped, 154 files**, **~7.9 min (474 s, 473 s) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2227**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
 | `pnpm test:docker` | **210 tests, 0 SKIPPED, 35 files** (2026-09-26, the authoring API plan's sitting 6: 943 s, green first time at load 4–9; its sitting 5's 927 s, green on its SECOND run — the first, 895 s, was red in `sso/login.docker.test.ts` alone because macOS had half-deleted a cached fixture repository in `$TMPDIR` (that sitting's F14; `runtime/docker/testing.ts` now rebuilds one) — its sitting 4's 881 s, its sitting 3's 895 s, its sitting 2's 896 s and 878 s, and its sitting 1's 906 s; the D5 plan's sitting 8's 1341 s at load 5–16 — the Docker VM itself — and its sitting 7's 1201 s at load ~2–5. Its one wall-clock case — *a retire waits for a request that is in flight*, a drain bound — was red at load 12–15 in sittings 5 and 6 and green re-run alone at ~6; TRAPS.md has the re-run command, which leaves one dead network behind). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the cleanup scripts, because it regenerates seven dead app networks and one volume every time — and about thirteen app images, which `scripts/app-images.sh` removes — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`; sitting 6's two tiers did not show it). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **20 checks, 0 failed, 0 warnings** — one of them the GitHub fake's image (`make seed`, profile `github`); the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **57 checks, 0 failed, 0 warnings** — two of them the GitHub fake's, static, whether or not it runs. Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
@@ -81,7 +82,7 @@ check and the wrapper's own refusal); `make doctor` **20** with **0 warnings**; 
 | `make demo` | P3's acceptance, ~35 s, driver 1. **In no acceptance** — which is how it stayed red from P6a's step-up until the D5 plan's sitting 8 (F15); it now asserts `STEP_UP_REQUIRED`, steps up, and then §13's checklist refusal. Last green 2026-09-25, with the GitHub fake stopped |
 | `make demo-github` | **The D5 plan's acceptance — driver 2 ONLY** (`MANIFEST_SOURCE_DRIVER=github`, `make github-up`): ~70 s re-used, ~80 s fresh, ten steps against the GitHub fake, each phase ending `every check passed`. On driver 1 it stops at step 0 and creates nothing. Step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1. Green three times 2026-09-25 (fresh, re-use, after `make reset`) |
 | `make demo-journey` | P5a's acceptance: all eight steps, ~51 s, over the contract; last green 2026-09-25 in `make ci-acceptance` (the D5 plan's sitting 8) |
-| `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `2211 / 153 / 20 / 57` — and move with it** (§6). Last run 2026-09-25 on driver 1: every step PASS, `demo-github` NOT RUN, 732 s |
+| `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `2227 / 154 / 20 / 57` — and move with it** (§6). Last run 2026-09-25 on driver 1: every step PASS, `demo-github` NOT RUN, 732 s |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
 cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are
@@ -584,6 +585,17 @@ defect even when every test is green.**
   `TOKEN_CREDENTIAL_REFUSED` without it, and `route.test.ts` refuses a token on a probe whose handler asks nothing.
   The document declares `delegatedToken` (`Authorization: Bearer mft_<id>_<secret>`) beside `session`, and the global
   `security` is either.
+- **EVERY OPERATION HAS A CALLER IN THE CONSOLE, AND EVERY EXAMPLE THE DOCUMENT PRINTS IS A BODY `manifest-mock` CAN
+  SEND** (the authoring API plan's Task 10, 2026-09-26). `packages/console/src/coverage.test.ts`'s
+  `DELIBERATELY_UNCALLED` is **empty again — 51 of 51 operations** — since the console's **Code** tab (the tree, a file,
+  edits, **Check** as a dry run, **Commit**, the history with `madeThrough`) and **Secrets** tab (per environment: names,
+  declared, set, Set and Clear; production's step-up link) call the eight the plan had parked; its pure half is
+  `code-state.ts`. The mock answers an operation with no fixture from the document's own example, **through the same Ajv
+  2020 validator as every answer** — and `packages/mock/src/server.test.ts` holds all fifty examples to crossing it — and
+  answers four (`FROM_EXAMPLE`: `getFile`, `getCommit`, `listCommits`, `createCommit`) **keyed on what names them**: the
+  example's own path, commit or first page, and a dry run as a dry run; anything else is refused with the platform's
+  code in the mock's own words. **A new route needs a console caller** (or a `DELIBERATELY_UNCALLED` line naming its
+  remover — and the gate refuses a stale one), **and its example is what the mock answers.**
 - **A `Release` names its env vars and never their values, and an `Instance` never names a container** (P5a Task
   14, Decisions 22 and 23): a release carries its build's digest and scan and, per environment, the frozen numbers
   and `envNames` — the value still reaches the container through §8's injection and stops there — and a deploy
@@ -1460,51 +1472,60 @@ named in the row below.*
 | **P6a** | [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), with [the P6 brief](plans/2026-09-19-p6-brief.md) — **EXECUTED 2026-09-22**, all eleven sittings | `make demo-production` — green on the fresh path, the re-use path and from a `make reset` machine; step 11 of the offline acceptance; **and a whole launch clicked by a person** | **Sitting 11's F6 is the one to read**: the acceptance's own control (e) stayed GREEN because `applyRoute` patched an existing route in place, so a production route kept whatever listener held it — a fail-open in the control the plan exists to build, found only by asking why a control was green. **Sitting 11's F2** is its mirror image in the instrument: a pooled keep-alive socket reported the production app on the internal listener when it was not there, and in the other order would have hidden a real leak. **Sitting 9's F5**: §8 sends a production app to real UBC Shibboleth, so R2's rehearsal could not pass on this laptop until `InjectionContext.purpose` existed. **Sitting 10's F17 and sitting 11's F10**: two console defects no gate could see, both found by clicking. |
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
 | **D5 driver 2** | [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — **EXECUTED 2026-09-25**, all eight sittings | `make demo-github` (driver 2) — green fresh, re-use and from a `make reset` machine; step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1; **clicked by a person on both drivers**; the real conformance leg 17 of 17 | **Sitting 8's F11 and F12 are the ones to read**, found by the plan's one fresh whole-branch review: a path into a worktree's own `.git` could be written on both drivers (`core.fsmonitor` is code execution — latent until the authoring API supplies paths), and a push a read synced first was never validated. **Sitting 8's F15/F16**: `make demo` and `make demo-token` were red for five days after P6a's step-up because nothing ran them. **Sitting 1's F6**: one rewrite of GitHub's `main` froze a non-forced mirror's `main` for ever — the two-refspec mirror is its fix. **Sitting 4's F6**: without `repositoryOf`, a GitHub-mode control plane BUILT a driver-1 project. |
-### 7e. Execute sitting 7 of the authoring API plan — Task 10 (the console and the mock) ← **START HERE**
+### 7e. Execute sitting 8 of the authoring API plan — Task 11 (the guides, served, and the HTML reference) ← **START HERE**
 
 **The authoring API's plan is being executed**: [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — 13
 tasks in the **ten sittings Rich approved on 2026-09-25** (the plan's *How this plan is to be executed*; §8 *Decided*). It makes
 an app CREATABLE through the API, documents all of it well enough for a human and an agent to drive the API from the docs
-alone, and is accepted by an agent building a bulletin board from the bare skeleton, on both drivers. **Sittings 1 to 6 are
+alone, and is accepted by an agent building a bulletin board from the bare skeleton, on both drivers. **Sittings 1 to 7 are
 DONE** (2026-09-25/26): the measurements; F7 and every commit built with git plumbing and no worktree; both drivers' reads
-over the API; `createCommit` and builds of the right spec; an app's declared secrets; and **the reference, completed — every
-operation, parameter, schema, property, error code and event described, every operation with a captured example, the
-delegated token declared, and a gate (`api/contract/docs.test.ts`) that keeps it so** (§3 states it as an invariant). Their
-records are the plan's *What executing this plan found*, *Sitting 1* to *Sitting 6*.
+over the API; `createCommit` and builds of the right spec; an app's declared secrets; the reference, completed and gated; and
+**the console's Code and Secrets tabs — every operation called again, and the mock holding every example the document prints
+to its validator** (§3 states both as invariants). Their records are the plan's *What executing this plan found*, *Sitting 1*
+to *Sitting 7*.
 
-**NOTHING NEEDS ASKING BEFORE SITTING 7.** Sitting 6 raised two things for Rich in §8 — the per-user AI budget, **decided the
-same evening: Spec action 4, option (a), applied to §7** and built in Task 12 — and Manifest's licence, still *Open*; neither
-blocks Task 10. Spec actions 1 and 3 wait for sitting 10.
+**ASK RICH ONE THING IN YOUR FIRST MESSAGE — HOW SCALAR ARRIVES — before Task 11's Step 6 needs it.** Sitting 7 MEASURED it
+(its record, *The gates, and the machine*): `pnpm --filter @manifest/console add --offline @scalar/api-reference@1.72.0` in a
+scratch COPY of the workspace's manifests and lockfile **exits 1** — *"✗ Lockfile failed supply-chain policy check (500
+entries)"*, `ERR_PNPM_NO_OFFLINE_META` for a different package on each run — with `vue-demi` named in `allowBuilds` or not.
+The pnpm store DOES hold the package (`index.db`: `@scalar/api-reference@1.72.0`). The options, as a decision:
+- **(a) The network, at his yes, for that one add** — `pnpm --filter @manifest/console add @scalar/api-reference@1.72.0`,
+  with `vue-demi: false` in `pnpm-workspace.yaml`'s `allowBuilds` and its reason (`[M9]` correction 2). *Recommended*: it is
+  what Rich chose on 2026-09-25 (*"one new pinned package, installed with the network on at Rich's yes"*), and the lockfile
+  then pins it. Cost: one networked command.
+- **(b) No network: copy `dist/browser/standalone.js` (4,331,361 bytes — the artefact `[M9]` measured) out of the store into
+  the repository** as the page's static asset, with its version and hash recorded, and no dependency edge. Cost: 4.3 MB
+  committed, an upgrade done by hand, and **the extraction itself is unmeasured** (pnpm 11's store is content-addressed).
+Everything else in Task 11 needs no network, so the sitting can start while he answers.
 
-**EXECUTE SITTING 7 — TASK 10 (THE CONSOLE AND THE MOCK).** `superpowers:executing-plans`, inline, no subagent per task
-(Rich, 2026-09-25); **commit on `main`**. **Read, in this order:** the plan's header to the end of *The fixtures and helpers*;
-*What executing this plan found*, *Sitting 6* (F3, F5, F10 and F11 above all) and *Sitting 3*'s F8 (the mock's `exampleOf`,
-built early); then **Task 10 in full, starting with its `[S3]`, `[S4]`, `[S5]` and `[S6]` blocks**. The ledger is
-`.superpowers/sdd/2026-09-25-authoring-api/progress.md` (git-ignored; `Task 1…9: complete` and every `Ruling:` line).
-**`pnpm test:docker` is NOT owed** (the table's *No*) unless a change reaches an owing path — a console and a mock change do not.
+**EXECUTE SITTING 8 — TASK 11 (THE GUIDES, SERVED).** `superpowers:executing-plans`, inline, no subagent per task (Rich,
+2026-09-25); **commit on `main`**. **Read, in this order:** the plan's header to the end of *The fixtures and helpers*;
+*What executing this plan found*, *Sitting 7* (F1, F6 and F8 above all) and *Sitting 6* (F5 and F10); then **Task 11 in full,
+starting with its `[S3]`, `[S4]`, `[S5]`, `[M9]`, `[S6]` and `[S7]` blocks** — `[M9]` is the renderer's measured configuration
+and its three corrections; `[S7]` is what the mock its examples run against can and cannot answer. The ledger is
+`.superpowers/sdd/2026-09-25-authoring-api/progress.md` (git-ignored; `Task 1…10: complete` and every `Ruling:` line).
+**`pnpm test:docker` IS OWED** (the table's *Yes*: `blueprints/`'s knowledge pack and the control plane's boot) — ~16
+minutes, in the background, and the control plane restarted afterwards.
 
-- **STEP 1 IS ALREADY DONE** (sitting 3's F8): `manifest-mock` answers an operation with no scripted answer from the
-  document's own example, through its Ajv check. **What sitting 6 changed under it:** every one of the fifty JSON
-  operations now HAS an example — a real answer captured from the route's own tests, lists cut to two entries and strings
-  to 280 characters (` …`) — and each parses through its zod schema, **but none has yet crossed Ajv**, which the mock runs
-  on every answer. Run the mock's suite once with the scripted `ANSWERS` set aside to see all fifty cross it; a `format`
-  zod reads differently from Ajv would be the mock's `500`, not the gate's red (Task 10's `[S6]` block).
-- **STEP 5 MUST EMPTY `DELIBERATELY_UNCALLED`** — eight parks: `getTree`, `getFile`, `listCommits`, `getCommit` (sitting 3),
-  `createCommit` (sitting 4), `listAppSecrets`, `setAppSecret`, `clearAppSecret` (sitting 5). The console's coverage gate
-  refuses a park whose operation has a caller, so adding the callers without removing the parks is red.
-- **The Secrets screen renders the platform as it answers** (Task 10's `[S5]` block): `declared: false, set: true` is stored
-  and never given to the app; a value under six characters is `400 REQUEST_INVALID`; production answers a plain session `403
-  STEP_UP_REQUIRED` (send the browser to `stepUpUrl`), and the value is never put back in the input.
-- **Drive both screens against `manifest-mock` in a browser** (RUNBOOK's *Running `manifest-mock`*) and record what each
-  showed — the mock needs no sign-in and no password.
+- **TASK 11 IS THE PLAN'S LARGEST REMAINING TASK** — guides, examples that are run, a generated reference, the journey as a
+  gate, three routes, `llms.txt`, a console Docs screen and the HTML reference page — and **its steps end in ONE commit
+  (Step 8)**, so a session limit inside it loses everything uncommitted. **Commit it in modules that each stand on their
+  own, every one with the four gates clean**, as sitting 6 did with Task 9 — four module commits, `pnpm test` once each and twice on the last (its record's decision 9); budget the close-out
+  sweep, and if the session is short, stop after a module and sweep rather than finish and leave the documents lying (§6
+  rule 8).
+- **THE MOCK ANSWERS FOUR OPERATIONS ONLY FOR WHAT THEIR EXAMPLE IS OF, AND REFUSES NOTHING A REQUEST GETS WRONG** (Task 11's
+  `[S7]`; TRAPS): *"a dry run refused `SPEC_INVALID`"* and *"handle `SOURCE_CONFLICT`"* cannot be answered by it as it stands,
+  *"read a file"* must read `src/app.js`, and the document's own examples disagree about where `main` is. Step 2 rules.
+- **`DELIBERATELY_UNCALLED` IS EMPTY**: `listDocs`, `getDoc` and `getOpenApiDocument` need a console caller in the same commit
+  as their routes, or a park naming its remover — the gate refuses a stale park.
 
-**WHERE THE SITTING STOPS, AND HOW IT ENDS.** After Task 10's commit and its two controls (Step 6). Then the plan's *every
-sitting ends the same way*: the four gates (`pnpm test` twice, alone), the dated record, the sittings table, and the close-out
-(§6) — the roadmap's defect-rate table with the count DERIVED, this §7e rewritten for sitting 8, §2's box when a gate moved.
-**Query the machine's state AFTER the last Vitest run of the close.** **Re-read the §7e you wrote as a cold agent, opening
-every file and command it names.**
+**WHERE THE SITTING STOPS, AND HOW IT ENDS.** After Task 11's last commit and its controls (Step 9). Then the plan's *every
+sitting ends the same way*: the four gates (`pnpm test` twice, alone), `pnpm test:docker`, the dated record, the sittings table,
+and the close-out (§6) — the roadmap's defect-rate table with the count DERIVED, this §7e rewritten for sitting 9, §2's box when
+a gate moved. **Query the machine's state AFTER the last Vitest run of the close.** **Re-read the §7e you wrote as a cold agent,
+opening every file and command it names.**
 
-**WHAT SITTINGS 1 TO 6 FOUND THAT THE NEXT SITTINGS MUST NOT LOSE** (each is a finding in the plan's record):
+**WHAT SITTINGS 1 TO 7 FOUND THAT THE NEXT SITTINGS MUST NOT LOSE** (each is a finding in the plan's record):
 - **A SUITE IS STARTED ONLY WITH THE TOOL'S `run_in_background`** (sitting 6's F11): one started with `&` inside a foreground
   call kept running unseen — `pgrep -f "vitest run"` cannot match `vitest.mjs run` — and two suites sharing the database read
   190 red on a green tree. Look for a running one with `ps -Ao command | grep "[v]itest"`.
@@ -1513,8 +1534,10 @@ every file and command it names.**
 - **THE REFERENCE IS GATED** (sitting 6): a new route needs `examples` (REQUIRED, typed by its schemas) and a description on
   every field; a new error code a `remedy`; a new event type a `.describe()` sentence and an entry in
   `observability/examples.ts`; a route that refuses tokens outright `credential: 'session'`. `pnpm test` refuses each.
-- **`pnpm add --offline` MAY BE REFUSED IN THE WORKSPACE** (sitting 6's F5) by pnpm 11's supply-chain check of the whole
-  lockfile — so Task 11's `@scalar/api-reference` add may need the network, which is Rich's yes. Try it first.
+- **THE CONSOLE HAS NO DOM TIER, SO CLICK WHAT YOU BUILD** (sitting 7's F2 and F3): driving the Code screen against the mock
+  found committed edits left on screen and a read's refusal shown under another file — both invisible to every gate.
+- **MEASURE A `pnpm add --offline` IN A SCRATCH COPY OF THE WORKSPACE, NOT A SCRATCH PACKAGE** (sitting 6's F5, sitting 7):
+  only the copy with the lockfile reproduces pnpm 11's supply-chain refusal.
 - **A NEGATIVE CONTROL WHOSE PATCH DID NOT APPLY IS A GREEN RUN OF THE UNBROKEN TREE** (sitting 5's F10), and one that broke
   the syntax reads *"no tests"* (sitting 6's F12): assert every patch applied, print `git diff --stat`, read files verbatim.
 - **A REFUSAL IS NO EVIDENCE NOTHING HAPPENED** (sitting 1's F3), and **EVERY FREE-TEXT FIELD A WRITE CARRIES IS A PLACE A
@@ -1530,11 +1553,11 @@ every file and command it names.**
 - **The vulnerability database goes stale after 2026-10-01** — past it `make demo-production` goes red; `make
   refresh-vulndb` is Rich's (network).
 
-**THE MACHINE, AS SITTING 6 LEFT IT (queried at its close, 2026-09-26, AFTER its last Vitest run):** the control database
+**THE MACHINE, AS SITTING 7 LEFT IT (queried at its close, 2026-09-26, AFTER its last Vitest run):** the control database
 is **EMPTY** — 0 projects, 0 events, 0 secrets, 0 idempotency records, 31 migrations. `.manifest/repos/` holds nine orphan bare
 repositories no project holds (a demo's `clear_orphan_repository` clears its own). **`launch-app`'s six `mf-launch-app-*`
-containers run with NO rows behind them** and **0 runtime routes** are applied; nothing listens on 7100 or 7104; the GitHub fake
-is stopped; no model is resident; the three cleanup scripts read clean after `--apply`, and `make verify` reads 57/0/0 with
+containers run with NO rows behind them** and **0 runtime routes** are applied; nothing listens on 7100, 7102, 7104 or 7110; the
+GitHub fake is stopped; no model is resident; the three cleanup scripts read clean, and `make verify` reads 57/0/0 with
 `containers=6 networks=2 volumes=4`. **A demo that needs `launch-app` launched (`make demo-releases`) runs fresh from here.**
 Rich may test by hand afterwards, so query everything again at open — `docker exec manifest-postgres psql -U manifest -d
 manifest_control` (there is no `psql` on the host), `docker ps`, `lsof -nP -iTCP:7100 -sTCP:LISTEN`.

@@ -1774,7 +1774,11 @@ it belongs among the traps the next sitting is most likely to hit.
   *"✗ Lockfile failed supply-chain policy check (500 entries)"*, `ERR_PNPM_NO_OFFLINE_META` for
   `@typescript-eslint/project-service`; nothing is changed. Two adds minutes earlier passed the same check, so what forces a
   full verification is not established. **A measurement of `pnpm add --offline` in a scratch package does not predict the
-  workspace**; try it there before relying on it, and a refusal means the network — which is Rich's yes.
+  workspace**; try it there before relying on it, and a refusal means the network — which is Rich's yes. **A scratch COPY
+  of the workspace's manifests and lockfile does reproduce it** (the authoring API plan's sitting 7, 2026-09-26):
+  `pnpm --filter @manifest/console add --offline @scalar/api-reference@1.72.0` there exits 1 on the same check, naming
+  `@redocly/openapi-core` on one run and `@typescript-eslint/project-service` on the next — so measure an add that way,
+  without touching the repository, before asking for the network.
 - **A PATCH WRITTEN FROM A FILE READ WITH ITS COMMENTS OR BLANK LINES STRIPPED MATCHES NOTHING** (2026-09-26, sitting 6,
   F12) — and one that removes a `.describe(…)` together with the comma after it makes the file fail to transform, which a
   test run reports as *"no tests"*, not as red. Read the target verbatim (`awk '/^export const X = /,/^\)/'`), assert the
@@ -1784,6 +1788,13 @@ it belongs among the traps the next sitting is most likely to hit.
   on the edge (`make verify`: *"runtime routes currently applied: 1"*) and an unnamed volume its image declares (`docker rm`
   without `-v`). Find the route with `curl -s http://127.0.0.1:7119/config/apps/http/servers/srv0/routes`, remove it with
   `curl -X DELETE http://127.0.0.1:7119/id/<its @id>`, and `diff` two `scripts/snapshot-machine.sh` runs for the volume.
+- **`manifest-mock` ANSWERS FOUR OPERATIONS FROM THE DOCUMENT'S EXAMPLE ONLY FOR WHAT THE EXAMPLE IS OF** (2026-09-26, the
+  authoring API plan's sitting 7, F1). `getFile` reads `src/app.js` alone, `getCommit` describes `c2ac2119…` alone,
+  `listCommits` has one page (its `next` is refused), and `createCommit` answers a dry run as a dry run — anything else is
+  `409 SOURCE_PATH_NOT_FOUND` or `SOURCE_COMMIT_NOT_FOUND` **in the mock's own words** (`manifest-mock holds the text of one
+  file…`). A screen, a guide's example or a test that reads another path against the mock meets that refusal: it is the
+  mock, not the platform. The mock also validates NO request (a five-character secret is its `200`, the platform's `400`)
+  and serves no `/auth/step-up`; `FROM_EXAMPLE` in `packages/mock/src/server.ts` lists the four.
 
 ## Images already pulled
 

@@ -56,8 +56,8 @@
 | 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | **DONE 2026-09-26** — `createCommit` published inside `1.3.0` with its dry run, `source:write` (mintable), the manifest validated before anything is written, `repository.committed` / `repository.secret_refused`, `spec.validated` on every validation and `madeThrough` on the history; a build of a named commit uses THAT commit's validation, and a manifest must name the project's pin (`SPEC_BLUEPRINT_NOT_PINNED`); driven through the edge; Docker tier green |
 | 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | **DONE 2026-09-26** — `listAppSecrets`, `setAppSecret` (the first `PUT`) and `clearAppSecret` inside `1.3.0`, names only; values `env:<NAME>` in `secrets`, at least six characters; `secret:write` mintable, production a stepped-up session's alone (Spec action 2 (a)); a deploy refuses a declared secret with no value (`RELEASE_SECRET_NOT_SET`) and injection renders the rest; the idempotency fingerprint keyed; driven through the edge; Docker tier green after a harness fix |
 | 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths (it does: Task 9's Files list modifies `observability/event-schemas.ts`) | **DONE 2026-09-26** — the gate (`docs.test.ts`) green with `ALLOWED_GAPS` empty, from 1079 gaps and 35 internal names at the open: every operation, parameter, tag, schema and property described; every JSON operation with a CAPTURED example, `examples` required and typed; every error code's meaning and remedy published, the 24 inside `details` too; every event type's sentence and example; `ManifestYaml`; the delegated token declared and fifteen operations session-only, refused by the wrapper itself; an independent linter clean but for three reasoned warnings; Docker tier green |
-| 7 | 10 | **The console and the mock**: a Code screen (tree, file, edit, delete, commit, history, one commit) and a Secrets screen; the mock answers every new operation from the document's own examples; both coverage gates | **No** | ← **next** |
-| 8 | 11 | **The guides, served**: `docs/api/` — hand-written guides whose code examples are real files, type-checked and run against the mock — a reference generated from the document, the journey as a gate, all served at `/v1/docs` and `/v1/openapi.json`, `llms.txt`, a console Docs screen, **the HTML reference page**, and the knowledge pack's pointer | **Yes** — `blueprints/` (the knowledge pack), `api/` boot | |
+| 7 | 10 | **The console and the mock**: a Code screen (tree, file, edit, delete, commit, history, one commit) and a Secrets screen; the mock answers every new operation from the document's own examples; both coverage gates | **No** | **DONE 2026-09-26** — the console's **Code** tab (the tree at `main` as the base of every edit, text files edited, created and deleted, Check as a dry run and Commit, `main` moving said and never acted on, the history with `madeThrough`, one commit's patches) and **Secrets** tab (per environment: declared, set, Set from a masked input emptied on success, Clear, production's step-up link); `DELIBERATELY_UNCALLED` empty — 51 of 51; the mock holds all fifty examples to its Ajv validator and answers four keyed on what names them; both screens driven in a browser against the mock |
+| 8 | 11 | **The guides, served**: `docs/api/` — hand-written guides whose code examples are real files, type-checked and run against the mock — a reference generated from the document, the journey as a gate, all served at `/v1/docs` and `/v1/openapi.json`, `llms.txt`, a console Docs screen, **the HTML reference page**, and the knowledge pack's pointer | **Yes** — `blueprints/` (the knowledge pack), `api/` boot | ← **next** |
 | 9 | 12 | **What the D5 plan hands over**: the mirror's scan paged to the end, no PUID in any event's sentence, the review's six deferred minors, and every driver-1 demo refusing a driver-2 control plane before it creates anything — **and sitting 5's F4, Rich's option (a): a delegated token's secret kept in no idempotency record, a replayed mint answering `409 TOKEN_ALREADY_MINTED`** — **and Spec action 4 (Rich's (a), applied to §7 on 2026-09-26): the per-user AI budget refused above the project's AI quota, and a validation's first `warnings`** | **Yes** — `source/`, `launch/`, `infra/` scripts | |
 | 10 | 13 | **The acceptance**: `make demo-authoring` — an agent builds the bulletin board from the bare skeleton through the API, on driver 1 AND on driver 2, green three times on each — every other demo, `make ci-acceptance`, **and a clicked half**: a student posts, an instructor replies, and a person reads the Code screen, the Docs screen and the HTML reference. **Alone, and last** | **Yes** if any code changes | |
 
@@ -2043,6 +2043,21 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > send a reader to `x-manifest-errors` for every code's remedy; sitting 5's F15 (a bodyless `DELETE` carries no
 > `Content-Type`) is now in `REQUEST_INVALID`'s remedy.
 
+> **`[S7]` (2026-09-26, sitting 7): THE MOCK YOUR EXAMPLES RUN AGAINST NOW KEYS FOUR ANSWERS, AND NEVER REFUSES WHAT THREE
+> OF THE GUIDES' EXAMPLES NEED.** `manifest-mock` answers `getFile`, `getCommit`, `listCommits` and `createCommit` from the
+> document's example ONLY for what the example is of (`FROM_EXAMPLE` in `packages/mock/src/server.ts`): `getFile` for
+> `src/app.js` alone (any other path `409 SOURCE_PATH_NOT_FOUND`, in the mock's words), `getCommit` for `c2ac2119…` alone,
+> `listCommits` without a cursor (its `next` is refused), and a dry run AS a dry run (`commitSha: null`). **So the examples
+> *"a dry run that is refused `SPEC_INVALID`"* and *"handle `SOURCE_CONFLICT` by reading again"* cannot be answered by this
+> mock as it stands** — it validates no request and never refuses either — and *"read the tree and a file"* must read
+> `src/app.js`. **And the document's own examples disagree about where `main` is**: `getTree` says `c2ac2119…`, while
+> `createCommit`'s request names its PARENT, `f01a0cb5…`, as `baseCommit`. Step 2 decides — a scripted refusal the mock
+> plays (keyed, like `decisionNamingAPreview`, and naming itself), or those two examples asserting against the platform in
+> the Docker tier — and records the ruling. **The console's Docs screen meets `coverage.test.ts` with `DELIBERATELY_UNCALLED`
+> EMPTY** (Task 10 emptied it): add `listDocs`, `getDoc` and `getOpenApiDocument`'s callers in the same commit as the
+> routes, or park them naming their remover. The project tabs are Overview, Code, Secrets, Launch records, Queue, Tokens —
+> the Docs screen is not a project's, so it belongs in the header's nav beside Projects and Blueprints.
+
 **Files:**
 - Create: `docs/api/index.md`, `getting-started.md`, `authentication.md`, `conventions.md`, `journey.md` (its table generated), `authoring.md`, `secrets.md`, `events.md` (its table generated), `launching.md`, `agents.md`; `docs/api/reference/operations.md`, `errors.md`, `events.md`, `manifest-yaml.md` (all GENERATED); `docs/api/llms.txt` (GENERATED)
 - Create: `packages/journey/src/example-*.ts` (one file per guide example), `packages/journey/src/examples.test.ts`, `packages/journey/src/coverage.ts`, `packages/journey/src/coverage.test.ts`, `packages/journey/src/docs-write.ts`, `packages/journey/src/docs.test.ts`
@@ -2170,6 +2185,16 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > shows errors; and the field's `ManifestYaml` description and the knowledge pack saying *"validated, not enforced before
 > Phase 4 (§10)"*. A new code needs its meaning and remedy in `MANIFEST_ERRORS`, and the reference's gate refuses one without.
 
+> **`[S7]` (2026-09-26, sitting 7): TWO SENTENCES, AND TWO SCREENS, THIS TASK MUST MOVE.** **`screens/tokens.tsx`'s lead sentence says
+> *"Manifest keeps only a hash of it and cannot show it again"*** — the claim sitting 6's F7 found false in `mintToken`'s
+> description, still on the console's screen (found clicking it against the mock, sitting 7) — **and in WALKTHROUGH's *What
+> works today***: *"the platform keeps only a hash of it: no route, no query and no support request can produce it again"*.
+> Step 5 makes both true; rewrite them with the two descriptions, and say what a replayed mint now answers. **And the `warnings` Spec action 4 adds reach a
+> person on two screens**: the Manifest panel (`screens/project.tsx`'s `SpecPanel`, beside `validation.errors`) and **the
+> Code screen's Check result** (`screens/code.tsx`'s `Checked`, which renders `createCommit`'s dry-run answer — and the
+> *Committed* line above the editor, for a real commit's). `api.test.ts` consumes each field a screen renders, so a warning
+> the mock's example does not carry is invisible there: the `createCommit` and `validateSpec` examples should show one.
+
 **Files:**
 - Modify: `packages/control-plane/src/source/scan-commits.ts` — `scanNewCommits` pages; `packages/control-plane/src/source/github/driver.ts` — reads the pages, and `repository.scan_incomplete` for a commit too large to scan
 - Modify: `packages/control-plane/src/launch/records.ts` — names, not PUIDs; and **every other sentence** the sweep finds
@@ -2253,6 +2278,16 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 > **`[S6]` (2026-09-26, sitting 6):** nothing this task drives changed shape. Every `RouteDefinition` must carry `examples`
 > (`tsc` refuses one without), and the document is gated, so the acceptance can rely on every operation `/v1/openapi.json`
 > serves (Task 11) having a description, an example and its error codes' remedies.
+
+> **`[S7]` (2026-09-26, sitting 7): WHAT THE CLICKED HALF MUST SEE ON THE PLATFORM, BECAUSE THE MOCK CANNOT SHOW IT.** The Code
+> and Secrets screens were driven against `manifest-mock` (the record, *Sitting 7*), and eight things were out of its reach:
+> the *main has moved* banner and `409 SOURCE_CONFLICT`'s *Reload main* (a person's `git push` while the Code screen is
+> open is the way to see both), `422 SPEC_INVALID`'s details under Check, `409 SOURCE_SECRET_DETECTED`, a binary or
+> symlinked entry's reason, a commit *pushed with git*, **Clear** (the mock's example has no value set), a value under six
+> characters (`400 REQUEST_INVALID`), and **production's step-up round trip** — press Set, follow the refusal's link, and
+> come back to the Secrets tab (`returnTo` is the tab's own path; the value typed is gone, by design). A screen's history
+> re-reads on `repository.committed` and `repository.pushed` frames, so an agent's commit should appear on an open Code tab
+> without a reload.
 
 **Files:**
 - Create: `fixtures/bulletin-board/manifest.yaml`, `fixtures/bulletin-board/server.js`, `fixtures/bulletin-board/public/index.html`, `fixtures/bulletin-board/public/app.js` — the app the agent writes
@@ -3609,3 +3644,184 @@ complete). **CLAUDE.md's *State* unchanged** — no plan started or finished, an
 *Outstanding* line's *"the rest of ORIENTATION §8"*. **The four HTML pages were checked and left alone**: they name the
 reference console, and nothing about the API's documentation.
 
+### Sitting 7 — Task 10 (the console and the mock) — 2026-09-26
+
+**THE CONSOLE READS, CHANGES AND ATTRIBUTES A PROJECT'S SOURCE, AND SETS ITS APP SECRETS — AND EVERY OPERATION IN THE
+DOCUMENT HAS A CALLER AGAIN.** A **Code** tab (`screens/code.tsx`): the tree at `main` with its commit shown and kept as
+the base of every edit, a file's text in an editor when it is editable and the reason when it is not, new files,
+deletions, a commit message, **Check** (the commit with `dryRun: true`) and **Commit**, `main` moving under the editor
+said and never acted on, and the history — each commit's subject, time, **who made it in the platform's record**
+(`madeThrough`) beside what git was told, paged, and one commit's changes with their patches. A **Secrets** tab
+(`screens/secrets.tsx`): per environment, every name declared or set, *not set — the next deploy will be refused*, a
+masked input and **Set**, **Clear**, a name the list does not have yet, and production's step-up sentence with its link.
+Its pure half is `code-state.ts` (`editable`, `pending`, `changesFrom`, `madeThroughSentence`), tested. `api.ts` calls all
+eight new operations, and **`DELIBERATELY_UNCALLED` is empty again: 51 of 51 operations have a caller**. `manifest-mock`
+holds itself to every example the document prints — **all fifty cross the Ajv validator it answers through**, now a test —
+and answers four operations from their examples KEYED on what names them. Both screens were driven in a browser against
+the mock. Commit `8b5b099`.
+
+#### The decisions this sitting made
+
+**1. The Ajv crossing is a permanent test, not `[S6]`'s one-off run.** `server.test.ts`'s *"answers every document example
+through the validator every answer passes"* checks all fifty — scripted operations' too, because the published reference
+shows them all — with a floor of fifty, so a document whose examples were not found cannot pass it empty.
+
+**2. Four answers keyed on what names them** (`FROM_EXAMPLE`: `getFile` by its `path`, `getCommit` by its id, `listCommits`
+by no cursor, `createCommit` by `dryRun`) — F1. Each answers `ctx.example`, a copy of the document's; nothing is
+hand-written, so Decision 15's *one statement of an answer* holds. `listAppSecrets`, `setAppSecret` and `clearAppSecret`
+are NOT keyed: the screen titles each panel from `listEnvironments` and re-reads the list after a change, so the example's
+`staging` kind and its `STREAM_CONTRACT_KEY` name reach no screen. A gate holds every `FROM_EXAMPLE` operation to having
+an example.
+
+**3. `code-state.ts` exports `pending` and `madeThroughSentence`** beside the plan's `changesFrom` and `editable`: the
+fold with each path's *new* marker, and the history's three sentences (*"Ada Lovelace"*, *"Ada Lovelace's agent — token
+'claude-code'"*, *"pushed with git"*) — decisions a test can see, in a console with no DOM tier.
+
+**4. Check takes a fresh `Idempotency-Key` every press; Commit one per identical body.** A dry run writes nothing, so a
+replay protects nothing — and would answer a check made before `main` moved. A commit's key is reused while what would be
+sent is unchanged (a retry after a timeout replays the first commit) and dropped on success. A secret's Set holds its key
+in a ref reset when the value changes, so the value lives in its input and nowhere else.
+
+**5. Production's step-up is a link, never a navigation a refusal fires** (`auth.ts`'s own rule): `<Refusal>` renders
+`STEP_UP_REQUIRED`'s link as for every privileged action, and the production panel offers the same link before a value is
+typed, returning to the Secrets tab.
+
+**6. `secret:write`'s note on the token screen** (`[S5]`): *"Sandbox and staging only: a production value is set by a
+person who has confirmed it is them, never by a token."* An explanation beside a refusal that is the control.
+
+Every call is a `Ruling:` line in the ledger.
+
+#### The findings
+
+**F1 — THE MOCK ANSWERED A DOCUMENT EXAMPLE TO ANYTHING THAT NAMED ITS OPERATION** (found reading the mock before
+building the screens against it). `getFile` answered `src/app.js`'s text for any `path`, under the example's own `path`;
+`getCommit` answered `c2ac2119…`'s changes for any id; `listCommits` answered the same page to its own `next`, so *Older*
+would have shown every commit twice; and a dry run was answered as a COMMIT — `dryRun: false` and the example's `commitSha` — so the
+Check button would have told a person their change was made. Decision 15 answers an operation with no fixture from its
+example; nothing had yet asked it for anything but the example itself. **Fixed by keying** (`FROM_EXAMPLE`, decision 2):
+the example for what it is of, anything else refused with the platform's code in the mock's own words, a dry run as one —
+the precedent is P5c's `listIncidents` and `getPendingAction`, keyed on their parameter for the same reason. The four keyed
+cases and the `FROM_EXAMPLE` gate were red first, green after.
+
+**F2 — AFTER A COMMIT THE EDITS STAYED ON SCREEN, MARKED *changed*, READY TO BE SENT AGAIN** (found clicking against the
+mock). The editor was reset only by remounting on a NEW base commit, and the mock answers the commit with the id the tree
+already had. The platform always answers a new id, so this is invisible there — but the screen's correctness rested on it.
+The editor is now keyed on its base AND a commit generation, so a commit clears the edits because it happened. **No test
+can see it**: the console has no DOM tier (P5c Decision 7); the click is the check, and it was re-clicked green.
+
+**F3 — A READ'S REFUSAL APPEARED UNDER A DIFFERENT FILE** (found clicking). `manifest.yaml`'s `409` stayed on screen under a
+new file opened next, because the error was not tied to the path it was for — and a slow read could have landed under
+whatever was open when it returned. It is now `{ path, error }`, shown only while that path is open. **`tsc` caught the
+fix's own first draft**: `readError?.path === open` is true when both are `undefined`, and the next expression read
+`.error` of `undefined` (`TS18048`).
+
+**F4 — THE CHECK RESULT CALLED THEM *§13's* SENSITIVE FIELDS.** §7 defines them — `SensitiveDiff`'s own description says so —
+and §13 is the gate that enforces them. Found reading the screen; fixed.
+
+**F5 — THE TOKEN SCREEN, AND WALKTHROUGH, STILL SAY A MINTED SECRET CANNOT BE SHOWN AGAIN** (found clicking the token
+screen for `[S5]`'s note). *"Manifest keeps only a hash of it and cannot show it again"* (`screens/tokens.tsx`) and
+*"no route, no query and no support request can produce it again"* (WALKTHROUGH, *What works today*) are sitting 6's F7
+on two more pages: a replayed mint answers the secret until Task 12. **Not changed here** — Task 12's Step 5 makes them
+true, and its `[S7]` block names both.
+
+**F6 — THE PLAN'S STEP 6 PREDICTION FOR `exampleOf` NO LONGER DESCRIBES THE TREE.** *"Make `exampleOf` return `undefined`
+— predict the mock's gate red naming every new operation"*: with four answers keyed (F1), the first gate names the other
+four, and the four keyed ones are named by the new `FROM_EXAMPLE` gate instead — predicted that way in writing, and seen
+(control (b)).
+
+**F7 — TASK 10'S FILES LIST OMITS TWO FILES IT NEEDS, AND NAMES ONE IT DID NOT**: `screens/tokens.tsx` (`[S5]` asks for
+`secret:write`'s note there) and `styles.css` (a file list, an editor and a history need rules the stylesheet did not have)
+are missing; `app.tsx` is listed and needed no change — the tabs route through `screens/project.tsx`, which already switches
+on the tab. Each file changed is named in the commit.
+
+**F8 — THREE OF THE GUIDES' EXAMPLES CANNOT BE ANSWERED BY THE MOCK THEY ARE TO RUN AGAINST** (handed to Task 11).
+Task 11's examples run against `manifest-mock`; *"a dry run that is refused `SPEC_INVALID`"* and *"handle `SOURCE_CONFLICT`
+by reading again"* need refusals it never gives (it validates no request), and *"read the tree and a file"* must read
+`src/app.js`. **And the document's own examples disagree about where `main` is**: `getTree` says `c2ac2119…`, while
+`createCommit`'s request names its parent as `baseCommit`. Task 11's `[S7]` block has the choice.
+
+**F9 — THE POST-SWEEP CHECK FOUND THREE WRONG STATEMENTS IN THIS SITTING'S OWN HAND-OFF**, each by opening what it pointed
+at. §7e told sitting 8 that Task 11 *"commits per step"* — its steps end in ONE commit (Step 8), so a session limit inside
+it loses everything uncommitted; §7e now says to commit it in modules, as sitting 6 did. This record's F7 said the Files list
+omitted `server.test.ts`, which it lists. And it said *"four of the five new mock tests"* were red first — there are six, and
+five were. The first is the kind that costs the next sitting, which is why the check exists.
+
+**Measured, and not a defect:** **all fifty response examples and all fifteen request examples cross Ajv 2020** with
+`ajv-formats`, exactly as the mock builds its validator (a scratch probe, whose control — two examples broken in a COPY of
+the document — named exactly those two); the response half is now a test. The mock's set and clear answer the example's
+`STREAM_CONTRACT_KEY` whatever name is sent, and a re-read list still says *not set* — the stateless mock (P5c Decision 9),
+which is why the screen re-reads the list rather than trusting the answer's name.
+
+#### Negative controls — each predicted in writing before it ran (scratch `t10-predictions.md`)
+
+| # | Break | Predicted | Seen |
+|---|---|---|---|
+| (a) | `createCommit` removed from `api.ts` (the plan's) | coverage red with exactly `POST /v1/projects/{projectId}/commits (createCommit)`; `api.test`'s source case *"a.createCommit is not a function"* | exactly that (2 red, 67 green) |
+| (b) | `exampleOf` answers nothing (the plan's) | NOT the plan's *"every new operation"*: the first gate names `getTree`, `listAppSecrets`, `setAppSecret`, `clearAppSecret`; the `FROM_EXAMPLE` gate the four keyed; the Ajv gate's floor; five socket cases `501`; the console's case on `getTree`'s `501` | exactly that (9 red) — F6 |
+| (c) | `pending`'s created-then-deleted drop removed | exactly *"drops a file created and deleted…"* and *"remembers a file was created…"* | exactly that |
+| (d) | `getTree`'s example `commitSha` → `zz` in `openapi.json` | the Ajv gate names exactly `getTree: /commitSha must match pattern "^[0-9a-f]{40}$"`; the `getTree` socket case and the console's case `500` naming `SourceTree` | exactly that (3 red) |
+| (e) | the mock's `getFile` key removed | the mock's `getFile` case *"expected 200 to be 409"*; the console's *"promise resolved … instead of rejecting"* | exactly that |
+
+**Which could not fail, and why:** none of these. **F2 and F3 have no automated test at all** — they are the screen's own
+state, and the console has no DOM tier (P5c Decision 7): the click is the check, and both were re-clicked green. Five of the six
+new mock tests were red before their implementation; the sixth, the Ajv gate, passed over the examples as they were, and
+(b) and (d) show it live.
+
+#### The gates, and the machine, at the close
+
+**`pnpm test` moved from 2211 in 153 files to 2227 in 154** — +16 and one file, exactly as predicted before the run: the
+mock's gate over every document example and its `FROM_EXAMPLE` gate (2) and four keyed answers (4) in `server.test.ts`,
+`code-state.test.ts` (9, new) and the console's calls of the eight new operations (1). **Identical on every run of the final
+tree**: twice before the commit (474 s, 473 s) and once as the close's last Vitest run (484 s); the open read 2211 in 153
+(468 s). `pnpm lint`, `pnpm typecheck` (every package) and `pnpm format:check` clean. **`make doctor` 20/0/0 and `make verify`
+57/0/0** at the open and the close. **`pnpm test:docker` not owed** — `packages/console` and `packages/mock` only — and not
+run; its last count is sitting 6's 210 in 35. No migration (31). Commit `8b5b099`.
+
+**Driven in a browser against `manifest-mock`** (Chrome; the mock on 7102, the console on 7104 with `MANIFEST_MOCK=1`, RUNBOOK's
+*Running `manifest-mock`*), every step read from a screenshot or the page: **Code** — *main at c2ac2119650f*, three files;
+`src/app.js` opened at the base; an edit marked it *changed* (*1 change to commit*); **Check** → *would commit — nothing was
+written*, `src/app.js modified`, manifest.yaml *valid*, no sensitive field; **Commit** → *Committed c2ac2119650f — 1 file* and
+(after F2's fix) *Nothing changed yet*; `manifest.yaml` → the mock's `409 SOURCE_PATH_NOT_FOUND` in its own words (after F3's
+fix, under that file alone); a new `src/board.js` marked *new*, typed in, deleted → gone; **History** — *Greet the world*,
+*through Manifest* *Ada Lovelace's agent — token 'claude-code'* · *git records Ada Lovelace (via token 'claude-code')*; opened:
+its parent, `src/app.js modified +1 −1` and the patch; the second commit and **Older** → the mock's one-commit and one-page
+refusals. **Secrets** — three panels, each name *declared* / *not set* with *The next deploy of <kind> will be refused until
+this has a value*; a masked value set in sandbox → the input emptied and *BOARD_ADMIN_CODE is set for sandbox — it takes effect
+at the next deploy*, the list re-read (still *not set*: the stateless mock); a second set, staging's `SIS_API_KEY`, with the network log on —
+`PUT /v1/environments/…332/secrets/SIS_API_KEY` `200`, then the list's `GET`; nothing in the console log; production's sentence and its link
+to `/auth/step-up?returnTo=/projects/…/secrets`. **Tokens** — `secret:write`'s note. **Not driven against the platform**: the
+step asks for the mock, the platform's calls are the routes' own tests, and a browser sign-in is Rich's password — the clicked
+half is sitting 10's, and Task 13's `[S7]` block lists the eight things the mock could not show.
+
+**Measured for sitting 8, in a scratch copy of the workspace's manifests and lockfile, the repository untouched:** `pnpm
+--filter @manifest/console add --offline @scalar/api-reference@1.72.0` exits 1 — *"✗ Lockfile failed supply-chain policy check
+(500 entries)"*, `ERR_PNPM_NO_OFFLINE_META` naming `@redocly/openapi-core` — and again with `vue-demi: false` in `allowBuilds`,
+naming `@typescript-eslint/project-service` (pnpm 11.24.0, Node 24.12.0). The pnpm store's `index.db` does hold
+`@scalar/api-reference@1.72.0`. ORIENTATION §7e asks Rich which way the renderer arrives.
+
+**The machine, queried at the close — AFTER the last Vitest run** (`psql`, `docker`, `lsof`, the edge's admin API, Ollama's
+`/api/ps`, `make verify`): the control database is **EMPTY** — 0 projects, 0 events, 0 secrets, 0 idempotency records — with
+**31 migrations**. `.manifest/repos/` holds the same nine orphan bare repositories as at sitting 6's close, all dated before
+this sitting opened. `launch-app`'s six `mf-launch-app-*` containers run with no rows behind them, and **0 runtime routes**
+are applied. Nothing listens on 7100, 7102, 7104 or 7110 — the mock and the console's dev server were started for the browser
+drive and stopped by this sitting, and their tab closed; the GitHub fake was not running at the open and is not now; no model
+is resident. **The three cleanup scripts, bare, read clean** — `none dead`, 0 LiteLLM orphans, 0 dead app images (one kept,
+`launch-app`'s) — so `--apply` had nothing to do; no Docker tier and no demo ran. `make verify` 57/0/0, its per-app line
+`containers=6 networks=2 volumes=4`; `make doctor` 20/0/0. `diff` of `scripts/snapshot-machine.sh` against the opening
+snapshot: uptimes, `HEAD`, and this sitting's documents — nothing else. `docker-simple-saml-saml-idp-1` is `Exited` as it was
+at the open, and was left alone.
+
+#### The sweep
+
+This plan's sittings table (row 7 DONE, the marker on row 8), this record, and `[S7]` blocks at the heads of Tasks 11, 12
+and 13 (Task 11: the mock its examples run against, and `DELIBERATELY_UNCALLED` empty; Task 12: the token screen's and
+WALKTHROUGH's false sentence, and where Spec action 4's warnings reach a person; Task 13: what the clicked half must see on
+the platform); the roadmap's ledger (the heading and a sitting-7 sentence) and its defect-rate table (the count derived with
+the command above); ORIENTATION's top box and §2's box (one gate moved, and the `ci-acceptance` row's copy), §3 (the invariant:
+every operation called, every example crossing the mock's validator), §7e (rewritten for sitting 8, with Rich's question);
+RUNBOOK's gate parenthetical and *Running `manifest-mock`* (the document's examples, the four keyed answers, and what the mock
+does not refuse); `scripts/ci-acceptance.sh` (`2227 / 154 / 20 / 57`, and its history comment); TRAPS.md (one trap — the keyed
+mock — and a sentence on measuring an offline add); WALKTHROUGH (one sentence: the console's Code and Secrets tabs);
+`specs/manifest-schematic.html` (the reference console's list gains its two new screens). **The other three HTML pages were
+checked** — none states the console's screens or the mock — **and left alone.** **CLAUDE.md's *State* unchanged**: no plan
+started or finished, and nothing in its *Outstanding* line moved.

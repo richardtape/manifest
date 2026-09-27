@@ -91,8 +91,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # completeness gate `api/contract/docs.test.ts` (5), the independent linter `lint.test.ts` (4),
 # `manifest-yaml.test.ts`'s corpus (3), the matrix's `credential: session` check (1) and the
 # wrapper's own refusal of a token (1).
-EXPECT_TESTS=2211
-EXPECT_FILES=153
+# Then the authoring API plan's sitting 7 (2026-09-26): +16 and one file — the mock's gate over
+# every document example and its FROM_EXAMPLE gate (2) and four keyed answers (4) in
+# `packages/mock/src/server.test.ts`, the Code screen's pure half `code-state.test.ts` (9), and
+# the console's calls of the eight new operations against the mock (1).
+EXPECT_TESTS=2227
+EXPECT_FILES=154
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 
