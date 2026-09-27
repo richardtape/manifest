@@ -387,7 +387,7 @@ ai:
   models: [default-chat, default-embed]   # logical names only
   budget:
     project_monthly_usd: 50       # omitted, with models declared: the project's AI quota
-    per_user_monthly_usd: 2
+    per_user_monthly_usd: 2       # validated, NOT enforced, before Phase 4 (§10)
 
 env:
   - { name: COURSE_CODE, value: CHEM_121 }
@@ -474,6 +474,10 @@ Rejected at parse time, before any build:
   platform configuration error, never as the manifest's (D17)
 - `ai.models` with `ai.budget.project_monthly_usd` set explicitly to `0`: a budget of 0 refuses
   every AI request, so the app would deploy healthy and fail its first question
+- `ai.budget.per_user_monthly_usd` above the project's AI quota. The value is validated and
+  frozen with the release and **not enforced before Phase 4** (§10) — no single person is
+  limited by it yet — so a manifest that sets it is valid, and its validation carries a
+  warning saying so.
 - resource requests above the project's quota
 - `name` differing from the project slug
 - for a production release: `auth.attributes` not a subset of the app's

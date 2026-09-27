@@ -142,8 +142,10 @@ each sitting left them, dated, and they deliberately do not move.
 - **§8's open questions.**
 
 **The spec is current, with no open follow-up.** Every spec change has been applied only after Rich approved it —
-**most recently §20's and D24's three edits for who may set an app secret's value, applied 2026-09-26** (the authoring API
-plan's Spec action 2, option (a); §8, *Decided*), before it §19's row for the production GitHub organisation (2026-09-25,
+**most recently §7's two edits for the per-user AI budget, applied 2026-09-26** (the authoring API plan's Spec action 4,
+option (a), as worded: the schema line says it is validated and not enforced before Phase 4, and §7's *Validation* list
+refuses it above the project's AI quota and warns that it binds no one; §8, *Decided*), before them §20's and D24's three
+edits for who may set an app secret's value (the same day; Spec action 2, option (a)), before those §19's row for the production GitHub organisation (2026-09-25,
 the D5 plan's Spec action 4), and before that §20's git-driver bullet 1, corrected on the evening of
 2026-09-24 (option (b), after the D5 plan's real conformance run met Spec action 3's condition), and the chat-model
 switch's two the same day. The roadmap's *Spec
@@ -1470,9 +1472,9 @@ operation, parameter, schema, property, error code and event described, every op
 delegated token declared, and a gate (`api/contract/docs.test.ts`) that keeps it so** (§3 states it as an invariant). Their
 records are the plan's *What executing this plan found*, *Sitting 1* to *Sitting 6*.
 
-**NOTHING NEEDS ASKING BEFORE SITTING 7.** Sitting 6 raised two things for Rich in §8 *Open* — the per-user AI budget (he
-chose option (b) the same evening; **Spec action 4's words await his read**, and it is built in Task 12) and Manifest's licence
-— and neither blocks Task 10. Spec actions 1 and 3 wait for sitting 10.
+**NOTHING NEEDS ASKING BEFORE SITTING 7.** Sitting 6 raised two things for Rich in §8 — the per-user AI budget, **decided the
+same evening: Spec action 4, option (a), applied to §7** and built in Task 12 — and Manifest's licence, still *Open*; neither
+blocks Task 10. Spec actions 1 and 3 wait for sitting 10.
 
 **EXECUTE SITTING 7 — TASK 10 (THE CONSOLE AND THE MOCK).** `superpowers:executing-plans`, inline, no subagent per task
 (Rich, 2026-09-25); **commit on `main`**. **Read, in this order:** the plan's header to the end of *The fixtures and helpers*;
@@ -1555,14 +1557,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **THE PER-USER AI BUDGET: OPTION (b) CHOSEN BY RICH (2026-09-26, after the authoring API plan's sitting 6); SPEC ACTION 4
-  DRAFTED — ITS WORDS AWAIT HIS READ.** Sitting 6's F8 said `ai.budget.per_user_monthly_usd` is applied to nothing, which is
-  true and **was already decided**: §10 says it is *"validated in Phase 1, and not enforced"* (Rich, 2026-09-15) — enforcement
-  needs a spend-log reconciler, Phase 4. The gap is that §7, the published `ManifestYaml` description and the knowledge pack
-  do not say so, and that §10's *"validated against the project's quota"* is not implemented. [The plan's *Spec actions*,
-  4](plans/2026-09-25-authoring-api.md) has the words — a comment on §7's schema line and a bullet in §7's *Validation* list —
-  with options (a) the words and a validation warning (recommended), (b) the words without a warning, (c) the comment alone;
-  building it is the plan's Task 12.
 - **Manifest's licence — RAISED BY THE AUTHORING API PLAN (sitting 1's `[M8]`; sitting 6 accepted the linter's
   `info-license` warning pending it).** The published document states none; stating one is the project owner's decision.
   The day it is stated, `info` gains `license` and `lint.test.ts`'s `ACCEPTED` loses its line — whose second check refuses
@@ -1625,6 +1619,13 @@ reasoning is recorded.**
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **THE PER-USER AI BUDGET — SPEC ACTION 4, OPTION (a), AS WORDED** (Rich, 2026-09-26, after the authoring API plan's sitting
+  6; applied the same evening). §7's schema line gains *"# validated, NOT enforced, before Phase 4 (§10)"*, and §7's
+  *Validation* list refuses `ai.budget.per_user_monthly_usd` above the project's AI quota and says a validation carries a
+  warning that it binds no one. **Built in Task 12**: the quota refusal, a `warnings` list on a validation with
+  `SPEC_FIELD_NOT_ENFORCED`, and the field's published description and the knowledge pack. *Rejected:* (b) the words without
+  a warning; (c) the schema comment alone. The plan's *Spec actions*, 4, has the reasoning.
 
 - **`mintToken`'S IDEMPOTENCY RECORD — OPTION (a): KEEP THE TOKEN WITHOUT ITS SECRET, AND REFUSE A REPLAY BY NAMING THE
   TOKEN — DECIDED 2026-09-26, TO BE BUILT IN THE AUTHORING API PLAN'S TASK 12 (sitting 9)** (Rich, after that plan's sitting 5
