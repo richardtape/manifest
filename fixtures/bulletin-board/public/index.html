@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bulletin board</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2.5rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; margin-bottom: .25rem; }
+  #who { padding: .5rem .75rem; border-radius: 6px; background: rgba(127,127,127,.12); }
+  form { display: grid; gap: .4rem; margin: .75rem 0; }
+  input, textarea { font: inherit; padding: .3rem .45rem; }
+  textarea { min-height: 4.5rem; }
+  article { border-top: 1px solid rgba(127,127,127,.35); padding: .75rem 0; }
+  article h2 { font-size: 1.05rem; margin: 0; }
+  .meta { color: rgba(127,127,127,1); font-size: .85rem; }
+  .pinned { font-weight: 600; }
+  .reply { margin: .4rem 0 0 1rem; padding-left: .6rem; border-left: 3px solid rgba(127,127,127,.35); }
+  .reply.instructor { border-left-color: rgba(40,120,200,.8); }
+  .reply form { margin: .4rem 0 0 1rem; grid-template-columns: 1fr auto; }
+</style>
+<script src="/app.js" defer></script>
+<h1>Bulletin board</h1>
+<p id="who" aria-live="polite">Checking whether you are signed in…</p>
+<p id="sign-in"><a href="/login">Sign in with CWL</a> to read and post.</p>
+<section id="board" hidden>
+  <form id="ask">
+    <input name="title" placeholder="Your question, in a line" maxlength="200" required />
+    <textarea name="body" placeholder="The detail" maxlength="4000" required></textarea>
+    <button>Post the question</button>
+  </form>
+  <div id="posts"></div>
+  <p><a href="/auth/logout">Sign out</a></p>
+</section>

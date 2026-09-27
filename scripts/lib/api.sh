@@ -44,21 +44,33 @@ api() {
 # control plane created its project there, where no route deletes it). An unsigned POST to the
 # webhook receiver answers without recording anything — `404 WEBHOOKS_NOT_CONFIGURED` is driver
 # 1, `401 WEBHOOK_SIGNATURE_MISSING` driver 2 — straight to the control plane, because the edge
-# forwards only /v1 and /auth. `$1` is `local` or `github`. On the wrong one it says how to
-# restart and EXITS 1, having created nothing; `make demo-github` asks the same question from
-# TypeScript (its step 0).
-require_driver() {
-  local want="$1" code have
+# forwards only /v1 and /auth. `make demo-github` asks the same question from TypeScript (its
+# step 0).
+#
+# `source_driver` ANSWERS the question — it prints `local` or `github` — for the one demo that
+# runs on either (`make demo-authoring`, the authoring API plan's Task 13). Any other answer is
+# no control plane, or not one this script understands: it says so and EXITS 1. It is called as
+# `DRIVER="$(source_driver)"`, so its exit ends only the command substitution, and the caller
+# must stop on an empty answer — `require_driver` below does.
+source_driver() {
+  local code
   code="$(curl -s -m 5 -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
     --data '{}' "http://127.0.0.1:${PORT_CONTROL_PLANE:-7100}/webhooks/github" || true)"
   case "$code" in
-    404) have=local ;;
-    401) have=github ;;
+    404) echo local ;;
+    401) echo github ;;
     *)
       printf '\n\033[31m%s\033[0m\n' "Which source driver does the control plane run? POST /webhooks/github on 127.0.0.1:${PORT_CONTROL_PLANE:-7100} answered '$code', not 404 (driver 1) or 401 (driver 2). Nothing was created." >&2
       exit 1
       ;;
   esac
+}
+
+# `$1` is `local` or `github`: the driver a demo NEEDS. On the wrong one it says how to restart
+# and EXITS 1, having created nothing.
+require_driver() {
+  local want="$1" have
+  have="$(source_driver)" || exit 1
   if [ "$have" = "$want" ]; then
     echo "  the control plane runs the $have source driver, which this demo needs"
     return 0
@@ -133,6 +145,23 @@ clear_orphan_repository() {
       *) echo "clear_orphan_repository: the GitHub fake answered DELETE $org/$slug with $status" >&2; return 1 ;;
     esac
   fi
+}
+
+# git as `faculty-dev` — a PERSON with admin in the organisation — against the fake (the D5
+# plan's `make demo-github`, and `make demo-authoring`'s person pushing a symlink). The caller
+# exports MANIFEST_FAKE_TOKEN, `make up`'s developer token (infra/secrets/). The
+# token is in git's ENVIRONMENT only: GIT_CONFIG_COUNT/KEY/VALUE, no system or global config
+# (Apple git's osxkeychain helper comes from the system file), an empty credential helper and
+# no prompt — the D5 plan's Global Constraints, as driver 2 does it.
+fake_git() {
+  local basic
+  basic="$(printf 'x-access-token:%s' "$MANIFEST_FAKE_TOKEN" | base64 | tr -d '\n')"
+  GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 \
+    GIT_CONFIG_COUNT=2 \
+    GIT_CONFIG_KEY_0=http.extraHeader GIT_CONFIG_VALUE_0="Authorization: Basic $basic" \
+    GIT_CONFIG_KEY_1=credential.helper GIT_CONFIG_VALUE_1= \
+    git -c user.name=faculty-dev -c user.email=faculty-dev@manifest.invalid \
+      -c commit.gpgsign=false "$@"
 }
 
 # A build answers 202 at once and ends on the event stream (Rich's R6, P5a Task 13). A

@@ -106,20 +106,8 @@ run_phase() {
     node packages/journey/dist/github.js "$phase" "$STATE"
 }
 
-# git as `faculty-dev` — a PERSON with admin in the organisation — against the fake. The
-# token is in git's ENVIRONMENT only: GIT_CONFIG_COUNT/KEY/VALUE, no system or global config
-# (Apple git's osxkeychain helper comes from the system file), an empty credential helper and
-# no prompt — the D5 plan's Global Constraints, as driver 2 does it.
-fake_git() {
-  local basic
-  basic="$(printf 'x-access-token:%s' "$MANIFEST_FAKE_TOKEN" | base64 | tr -d '\n')"
-  GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 \
-    GIT_CONFIG_COUNT=2 \
-    GIT_CONFIG_KEY_0=http.extraHeader GIT_CONFIG_VALUE_0="Authorization: Basic $basic" \
-    GIT_CONFIG_KEY_1=credential.helper GIT_CONFIG_VALUE_1= \
-    git -c user.name=faculty-dev -c user.email=faculty-dev@manifest.invalid \
-      -c commit.gpgsign=false "$@"
-}
+# `fake_git` — git as `faculty-dev`, a PERSON, against the fake — is scripts/lib/api.sh's, one
+# copy for this demo and `make demo-authoring`'s person (its step 6).
 
 # A commit to github-app's repository ON GITHUB, as faculty-dev would push one. $1 is the
 # message; the caller has already changed $SRC. Sets COMMIT.

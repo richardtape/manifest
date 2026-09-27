@@ -1,0 +1,41 @@
+# A course bulletin board: students post questions, instructors reply.
+#
+# `make demo-authoring`'s app (the authoring API plan's Task 13). An agent writes
+# this file, with `server.js` and `public/`, into a project created from the bare
+# `node-ts-mongo@1` skeleton, through nothing but Manifest's API. The agent puts
+# its project's slug in `name` as it writes it: §7 refuses a manifest whose name
+# is not its project's (SPEC_NAME_SLUG_MISMATCH).
+manifest: 1
+name: bulletin-board
+blueprint: node-ts-mongo@1
+description: A course bulletin board — students post questions, and instructors reply.
+
+runtime:
+  port: 3000
+  health: /healthz
+
+services:
+  - { type: mongo, version: "7", name: db }
+
+auth:
+  provider: cwl
+  # Each attribute has a reason, because §9 asks for one and enforces release at
+  # the IdP against exactly this list:
+  #   ubcEduCwlPuid         who signed in — the session is keyed on it, and it is
+  #                         never stored beside a post or shown to anybody
+  #   givenName, sn         a post and a reply are shown under their author's name
+  #   eduPersonAffiliation  an instructor's reply is marked as one
+  attributes: [ubcEduCwlPuid, givenName, sn, eduPersonAffiliation]
+  callback: /auth/ubcshib/callback
+  logout: /auth/logout
+
+env:
+  # The code an instructor pins a question with. Its VALUE is held by Manifest,
+  # set through the API for each environment, and never written in git (§7).
+  - { name: BOARD_ADMIN_CODE, secret: true }
+
+data:
+  # Course questions and answers, not personal records: `internal`. A post keeps
+  # its author's name and nothing that identifies them on its own.
+  classification: internal
+  retention_days: 120
