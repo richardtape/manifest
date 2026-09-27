@@ -85,6 +85,35 @@ describe('loadApiDocs (Decision 18)', () => {
     expect((await refusal(await tree({ 'notes.txt': 'x' }))).code).toBe('DOCS_MISSING')
   })
 
+  it('refuses two pages that make ONE slug, naming both — one would be unreachable (F11)', async () => {
+    const { code, message } = await refusal(
+      await tree({
+        'index.md': page('Fine', 'Fine.'),
+        'a-b.md': page('Flat', 'A page at the top.'),
+        'a/b.md': page('Nested', 'A page in a directory.'),
+      }),
+    )
+    expect(code).toBe('DOCS_SLUG_TAKEN')
+    expect(message).toContain('a-b.md')
+    expect(message).toContain('a/b.md')
+  })
+
+  it('refuses a page whose name getDoc cannot address, naming it — and reads one it can (F11)', async () => {
+    for (const name of ['Guide.md', 'my_page.md', 'a--b.md', '-x.md', `${'a'.repeat(129)}.md`]) {
+      const { code, message } = await refusal(
+        await tree({ 'index.md': page('Fine', 'Fine.'), [name]: page('Odd', 'An odd name.') }),
+      )
+      expect(code, name).toBe('DOCS_PAGE_UNADDRESSABLE')
+      expect(message, name).toContain(name)
+      await rm(root, { recursive: true, force: true })
+    }
+    // The positive control: the same page under a name the slug pattern takes.
+    const docs = await loadApiDocs(
+      await tree({ 'index.md': page('Fine', 'Fine.'), 'my-page-2.md': page('Odd', 'Fine.') }),
+    )
+    expect(docs.page('my-page-2')?.title).toBe('Odd')
+  })
+
   it('refuses a page with no `# ` title, naming it', async () => {
     const { code, message } = await refusal(
       await tree({

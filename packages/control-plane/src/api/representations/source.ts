@@ -198,7 +198,16 @@ export const CommitDetail = representation(
   z
     .object({
       ...summaryShape,
-      changes: z.array(FileChange).describe('Every file the commit changed, by path.'),
+      changes: z
+        .array(FileChange)
+        .describe(
+          'The files the commit changed, by path — every one, or the first 1000 when `truncated` is true.',
+        ),
+      truncated: z
+        .boolean()
+        .describe(
+          'True when the commit changed more than 1000 files and `changes` lists the first 1000 by path; read the rest with git.',
+        ),
       patchesTruncated: z
         .boolean()
         .describe('True when some `patch` is null because the 256 KiB budget was spent.'),
@@ -227,6 +236,30 @@ export const RepoPath = z
 
 /** A lone surrogate: `JSON.parse` accepts one, and it would be written as U+FFFD, silently. */
 export const LONE_SURROGATE = /\p{Surrogate}/u
+
+/** A control character that is not a line break or a tab — `\p{Cc}`: C0, DEL and C1. */
+const MESSAGE_CONTROL = /(?![\n\t])\p{Cc}/u
+
+/**
+ * WHAT A COMMIT MESSAGE BREAKS (the authoring API plan's sitting 10, F8): a message goes into
+ * git's history, a terminal's `git log` and its subject into an event's sentence, so it keeps
+ * text's rules — well-formed Unicode (a lone surrogate became U+FFFD in history, silently), and
+ * no control character but `\n` and `\t` (a NUL reached git and failed as SOURCE_GIT_FAILED after
+ * the secret scan; `\r` and ESC rewrite what a terminal shows). Checked in the request, before
+ * anything is scanned or read.
+ */
+export function messageProblems(message: string): string[] {
+  const problems: string[] = []
+  if (LONE_SURROGATE.test(message)) {
+    problems.push('the message is not well-formed Unicode (a lone surrogate)')
+  }
+  if (MESSAGE_CONTROL.test(message)) {
+    problems.push(
+      'the message contains a control character — only a line break (\\n) and a tab are allowed; no NUL, carriage return or escape',
+    )
+  }
+  return problems
+}
 
 /** Decision 9's refusal, in the words a person reads — one sentence beside `BINARY_KINDS`. */
 export const BINARY_KINDS_SENTENCE =
@@ -324,7 +357,14 @@ export const CreateCommitRequest = request(
         .string()
         .min(1)
         .max(4096)
-        .describe('The commit message. Its first line is its subject.'),
+        .superRefine((message, ctx) => {
+          for (const problem of messageProblems(message)) {
+            ctx.addIssue({ code: 'custom', message: problem })
+          }
+        })
+        .describe(
+          'The commit message. Its first line is its subject. Well-formed Unicode, with no control character but a line break (`\\n`) and a tab — no NUL, no carriage return and no escape.',
+        ),
       changes: z
         .array(z.discriminatedUnion('op', [WriteChange, DeleteChange]))
         .min(1)

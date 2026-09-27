@@ -17,6 +17,8 @@ import { type BaseEntry, listBase, runGit } from './plumbing.js'
  */
 export const READ_LIMITS = {
   treeEntries: 10_000,
+  /** A commit's `changes`, the first by path (the authoring API plan's sitting 10, F9). */
+  commitChanges: 1000,
   fileBytes: 1024 * 1024,
   messageChars: 4096,
   patchBytes: 256 * 1024,
@@ -81,18 +83,61 @@ function typeOf(e: BaseEntry): SourceEntry['type'] {
 const byPath = (a: { path: string }, b: { path: string }) =>
   a.path < b.path ? -1 : a.path > b.path ? 1 : 0
 
-/** The paths git calls binary in `<from>..<to>`: numstat's `-\t-\t<path>`. */
-async function binaryPaths(gitDir: string, from: string, to: string) {
-  const out = await read(gitDir, [...DIFF, '--numstat', '-z', from, to])
+/**
+ * The most bytes of paths one git command line carries: `ARG_MAX` is 1 MiB here (`[M12]`), and
+ * the environment and the other arguments share it.
+ */
+const PATH_ARG_BYTES = 256 * 1024
+
+/** `paths` in runs whose bytes stay under `PATH_ARG_BYTES`, each at least one path long. */
+function inRuns(paths: readonly string[]): string[][] {
+  const runs: string[][] = []
+  let run: string[] = []
+  let bytes = 0
+  for (const path of paths) {
+    const size = Buffer.byteLength(path, 'utf8') + 1
+    if (run.length > 0 && bytes + size > PATH_ARG_BYTES) {
+      runs.push(run)
+      run = []
+      bytes = 0
+    }
+    run.push(path)
+    bytes += size
+  }
+  if (run.length > 0) runs.push(run)
+  return runs
+}
+
+/**
+ * The counts of `paths` in `<from>..<to>`, and which git calls binary: numstat's `-\t-\t<path>`.
+ * **Only the paths named** (the authoring API plan's sitting 10, F9; the front-end enablement
+ * plan's Decision 12): numstat reads every text blob it is given to count its lines, so a diff of
+ * a whole 200,000-file tree for a listing that stops at 10,000 read what nobody asked for. `git
+ * diff` has no `--pathspec-from-file` (`[M12]`), so they go as LITERAL arguments in runs under
+ * `ARG_MAX`. No paths is no call — `git diff A B --` alone would be the whole diff again.
+ */
+async function countsOf(
+  gitDir: string,
+  from: string,
+  to: string,
+  paths: readonly string[],
+) {
   const counts = new Map<string, { additions: number | null; deletions: number | null }>()
-  for (const rec of out.split('\0')) {
-    if (rec === '') continue
-    const [a, d] = rec.split('\t', 2) as [string, string]
-    const path = rec.slice(a.length + d.length + 2)
-    counts.set(path, {
-      additions: a === '-' ? null : Number(a),
-      deletions: d === '-' ? null : Number(d),
-    })
+  for (const run of inRuns(paths)) {
+    const out = await read(
+      gitDir,
+      [...DIFF, '--numstat', '-z', from, to, '--', ...run],
+      LITERAL,
+    )
+    for (const rec of out.split('\0')) {
+      if (rec === '') continue
+      const [a, d] = rec.split('\t', 2) as [string, string]
+      const path = rec.slice(a.length + d.length + 2)
+      counts.set(path, {
+        additions: a === '-' ? null : Number(a),
+        deletions: d === '-' ? null : Number(d),
+      })
+    }
   }
   return counts
 }
@@ -108,21 +153,22 @@ export async function listTreeIn(
 ): Promise<{ entries: SourceEntry[]; truncated: boolean }> {
   assertCommitId(commit)
   const base = await listBase(gitDir, commit)
-  const counts = await binaryPaths(gitDir, EMPTY_TREE, commit)
-  const all: SourceEntry[] = [...base]
-    .map(([path, e]) => {
-      const type = typeOf(e)
-      return {
-        path,
-        type,
-        mode: e.mode,
-        size: type === 'file' || type === 'symlink' ? e.size : null,
-        binary: type === 'file' ? counts.get(path)?.additions === null : null,
-      }
-    })
-    .sort(byPath)
+  const all = [...base].map(([path, e]) => ({ path, e, type: typeOf(e) })).sort(byPath)
+  const listed = all.slice(0, READ_LIMITS.treeEntries)
+  const counts = await countsOf(
+    gitDir,
+    EMPTY_TREE,
+    commit,
+    listed.filter((l) => l.type === 'file').map((l) => l.path),
+  )
   return {
-    entries: all.slice(0, READ_LIMITS.treeEntries),
+    entries: listed.map(({ path, e, type }) => ({
+      path,
+      type,
+      mode: e.mode,
+      size: type === 'file' || type === 'symlink' ? e.size : null,
+      binary: type === 'file' ? counts.get(path)?.additions === null : null,
+    })),
     truncated: all.length > READ_LIMITS.treeEntries,
   }
 }
@@ -312,7 +358,8 @@ const STATUS: Record<string, FileChangeStatus> = {
 
 /**
  * ONE COMMIT AND WHAT IT CHANGED, against its FIRST parent (the empty tree for a root commit):
- * every path, by path, with git's counts; a unified diff per text file, one `git diff` each,
+ * every path — the first `READ_LIMITS.commitChanges` by path, and `truncated` past it — with
+ * git's counts; a unified diff per text file, one `git diff` each,
  * until `READ_LIMITS.patchBytes` have been given — then every later `patch` is null and
  * `patchesTruncated` says so. A binary file has no patch and no counts.
  */
@@ -328,20 +375,30 @@ export async function describeCommitIn(
   const names = (
     await read(gitDir, [...DIFF, '-z', '--name-status', parent, commit])
   ).split('\0')
-  const counts = await binaryPaths(gitDir, parent, commit)
-  const listed: Omit<FileChange, 'patch'>[] = []
+  const all: { path: string; status: FileChangeStatus }[] = []
   for (let i = 0; i + 1 < names.length; i += 2) {
-    const path = names[i + 1]!
+    all.push({ path: names[i + 1]!, status: STATUS[names[i]!] ?? 'modified' })
+  }
+  all.sort(byPath)
+  // The first `commitChanges` by path, and their counts only (F9): a person's 200,000-file
+  // commit is otherwise an unbounded answer any `project:read` token can ask for.
+  const first = all.slice(0, READ_LIMITS.commitChanges)
+  const counts = await countsOf(
+    gitDir,
+    parent,
+    commit,
+    first.map((c) => c.path),
+  )
+  const listed: Omit<FileChange, 'patch'>[] = first.map(({ path, status }) => {
     const c = counts.get(path) ?? { additions: null, deletions: null }
-    listed.push({
+    return {
       path,
-      status: STATUS[names[i]!] ?? 'modified',
+      status,
       binary: c.additions === null,
       additions: c.additions,
       deletions: c.deletions,
-    })
-  }
-  listed.sort(byPath)
+    }
+  })
   let budget: number = READ_LIMITS.patchBytes
   let patchesTruncated = false
   const changes: FileChange[] = []
@@ -364,5 +421,10 @@ export async function describeCommitIn(
     budget -= bytes
     changes.push({ ...change, patch })
   }
-  return { ...info, changes, patchesTruncated }
+  return {
+    ...info,
+    changes,
+    truncated: all.length > READ_LIMITS.commitChanges,
+    patchesTruncated,
+  }
 }

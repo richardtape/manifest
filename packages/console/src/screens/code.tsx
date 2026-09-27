@@ -4,8 +4,10 @@ import type { Api } from '../api'
 import {
   changesFrom,
   editable,
+  commitOrigin,
   madeThroughSentence,
   pending,
+  STARTING_POINT,
   type Edit,
 } from '../code-state'
 import { Field, Instant, Panel, Pill, Refusal, useAsync, Warnings } from '../ui'
@@ -535,6 +537,13 @@ function History({
 }
 
 function MadeBy({ commit }: { commit: Schemas['CommitSummary'] }) {
+  if (commitOrigin(commit) === STARTING_POINT) {
+    return (
+      <span className="hint">
+        <Pill tone="plain">first commit</Pill> {STARTING_POINT}
+      </span>
+    )
+  }
   return (
     <span className="hint">
       {commit.madeThrough === null ? (

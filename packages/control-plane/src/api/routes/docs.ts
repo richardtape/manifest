@@ -1,4 +1,5 @@
 import { z } from 'zod/v4'
+import { DOC_SLUG, DOC_SLUG_MAX } from '../../docs/index.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { DocNotFoundError } from '../errors.js'
 import {
@@ -12,8 +13,8 @@ import {
 const SlugParams = z.strictObject({
   slug: z
     .string()
-    .max(128)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(DOC_SLUG_MAX)
+    .regex(DOC_SLUG)
     .describe(
       'The page’s `slug`, as `listDocs` answers it — `agents`, `reference-errors`.',
     ),

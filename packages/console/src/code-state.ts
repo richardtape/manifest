@@ -126,3 +126,19 @@ export function madeThroughSentence(made: MadeThrough): string {
     ? `${made.name}’s agent`
     : `${made.name}’s agent — token '${made.tokenName}'`
 }
+
+/** How the history reads a project's first commit, which Manifest writes when it creates one. */
+export const STARTING_POINT = 'The project’s starting point, made by Manifest'
+
+/**
+ * WHERE A COMMIT CAME FROM, as the history says it. The platform records nobody as making a
+ * project's FIRST commit — `madeThrough` is `null` for it, as published — so a commit with no
+ * parent and no record is that one, not a person's push (the authoring API plan's sitting 10,
+ * F4; the front-end enablement plan's Decision 11: the console's words, not a new kind).
+ */
+export function commitOrigin(
+  commit: Pick<Schemas['CommitSummary'], 'madeThrough' | 'parents'>,
+): string {
+  if (commit.madeThrough === null && commit.parents.length === 0) return STARTING_POINT
+  return madeThroughSentence(commit.madeThrough)
+}

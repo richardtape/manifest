@@ -38,6 +38,8 @@ describeSourceDriver('local', async () => {
     deleteMainAsPerson: async (slug) => deleteMainByHand(join(repos, `${slug}.git`)),
     pushSymlinkAsPerson: async (slug, path, target, message) =>
       pushSymlinkByHand(join(repos, `${slug}.git`), path, target, message),
+    pushGitlinkAsPerson: async (slug, path, commit, message) =>
+      pushGitlinkByHand(join(repos, `${slug}.git`), path, commit, message),
     cleanup: () => rm(repos, { recursive: true, force: true }),
   }
 })
@@ -280,6 +282,40 @@ async function pushSymlinkByHand(
     await mkdir(dirname(join(work, path)), { recursive: true })
     await symlink(target, join(work, path))
     await git('add', '-A')
+    await git(
+      '-c',
+      'user.name=person',
+      '-c',
+      'user.email=person@example.org',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-qm',
+      message,
+    )
+    await git('push', '-q', 'origin', 'HEAD:main')
+    return await git('rev-parse', 'HEAD')
+  } finally {
+    await rm(work, { recursive: true, force: true })
+  }
+}
+
+/**
+ * A PERSON pushing a GITLINK — a submodule entry at `path` naming `commit` — into the bare
+ * repository, through its own hook (F12). git never follows a gitlink, so `commit` need not exist.
+ */
+async function pushGitlinkByHand(
+  bare: string,
+  path: string,
+  commit: string,
+  message: string,
+): Promise<string> {
+  const work = await mkdtemp(join(tmpdir(), 'manifest-person-'))
+  const git = async (...args: string[]) =>
+    (await run('git', args, { cwd: work })).stdout.trim()
+  try {
+    await git('clone', '-q', bare, '.')
+    await git('update-index', '--add', '--cacheinfo', `160000,${commit},${path}`)
     await git(
       '-c',
       'user.name=person',

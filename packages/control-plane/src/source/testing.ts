@@ -82,6 +82,33 @@ export async function pushSymlinkAsPerson(
   }
 }
 
+/**
+ * A person pushing a GITLINK straight to GitHub — a submodule entry at `path` naming `commit`,
+ * which need not exist anywhere (git never follows one). Returns the commit.
+ */
+export async function pushGitlinkAsPerson(
+  fake: Github,
+  slug: string,
+  path: string,
+  commit: string,
+  message: string,
+): Promise<string> {
+  const work = await mkdtemp(join(tmpdir(), 'person-'))
+  const as = asPerson(fake, work)
+  try {
+    await gitWithToken(['clone', '-q', `${fake.gitUrl}/${fake.org}/${slug}.git`, '.'], as)
+    await gitWithToken(
+      ['update-index', '--add', '--cacheinfo', `160000,${commit},${path}`],
+      as,
+    )
+    await gitWithToken([...PERSON, 'commit', '-qm', message], as)
+    await gitWithToken(['push', '-q', 'origin', 'HEAD:main'], as)
+    return (await gitWithToken(['rev-parse', 'HEAD'], as)).trim()
+  } finally {
+    await rm(work, { recursive: true, force: true })
+  }
+}
+
 /** Who a test's own commits are by — a person in the platform's zone, never a real mailbox. */
 export const TEST_AUTHOR = { name: 'A Test', email: 'test@users.manifest.internal' }
 

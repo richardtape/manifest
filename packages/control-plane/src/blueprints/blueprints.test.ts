@@ -434,6 +434,28 @@ describe('starters and the knowledge pack, read at load (§25, D25 — P5a Task 
     expect(agents.sha256).toBe(createHash('sha256').update(agents.content).digest('hex'))
   })
 
+  it('tells an agent that replaces server.js to keep the form parser CWL sign-in posts to — and the skeleton keeps it', async () => {
+    // The authoring API plan's sitting 10, F1: a board that replaced `server.js` without
+    // `express.urlencoded` signed nobody in, silently — SAML's HTTP-POST binding is a form, the
+    // callback had no SAMLResponse, and passport sent every sign-in to /login/failed. A
+    // required sentence with no test is a sentence that gets edited out.
+    const pack = (await loadBlueprints(BLUEPRINTS_ROOT)).knowledgePack('node-ts-mongo@1')!
+    const agents = pack.find((f) => f.path === 'AGENTS.md')!.content
+    expect(agents).toContain('app.use(express.urlencoded({ extended: false }))')
+    expect(agents).toMatch(/replaces\s+`server\.js`\s+must\s+keep/)
+    expect(agents).toMatch(/every\s+sign-in\s+fails\s+silently/)
+    const server = await readFile(
+      join(BLUEPRINTS_ROOT, 'node-ts-mongo/skeleton/server.js'),
+      'utf8',
+    )
+    const line = server.indexOf('app.use(express.urlencoded({ extended: false }))')
+    expect(line).toBeGreaterThan(-1)
+    // The comment says why, on the line above, where a person replacing the file reads it.
+    expect(server.slice(Math.max(0, line - 200), line)).toMatch(
+      /CWL sign-in posts a form/,
+    )
+  })
+
   it('refuses to load a starter whose manifest.yaml is not a valid manifest', async () => {
     const root = await blueprintsCopy()
     await edit(

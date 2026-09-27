@@ -148,7 +148,10 @@ export interface FileChange {
 }
 
 export interface CommitDetail extends CommitInfo {
+  /** The first `READ_LIMITS.commitChanges` changed files, by path. */
   changes: FileChange[]
+  /** True when the commit changed more files than `changes` lists. */
+  truncated: boolean
   patchesTruncated: boolean
 }
 

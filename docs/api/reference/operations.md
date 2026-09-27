@@ -3127,7 +3127,7 @@ Answer, `201`:
 
 `GET /v1/projects/{projectId}/commits/{commitSha}` · a session or a delegated token
 
-The commit and every file it changed against its first parent, with git’s line counts and a unified diff per text file — until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.
+The commit and every file it changed against its first parent — the first 1000 by path, with `truncated` true past them — with git’s line counts and a unified diff per text file, until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3162,6 +3162,7 @@ Answer, `200`:
       "patch": "diff --git a/src/app.js b/src/app.js\nindex c8ecfb6..ab8ad63 100644\n--- a/src/app.js\n+++ b/src/app.js\n@@ -1 +1 @@\n-export const greeting = 'hello'\n+export const greeting = 'hello, world'\n"
     }
   ],
+  "truncated": false,
   "patchesTruncated": false
 }
 ```

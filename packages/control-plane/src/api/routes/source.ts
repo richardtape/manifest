@@ -451,7 +451,7 @@ export const sourceRoutes = [
     tag: 'source',
     summary: 'One commit, and what it changed',
     description:
-      'The commit and every file it changed against its first parent, with git’s line counts and a unified diff per text file — until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.',
+      'The commit and every file it changed against its first parent — the first 1000 by path, with `truncated` true past them — with git’s line counts and a unified diff per text file, until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.',
     params: z.strictObject({
       projectId: z.uuid().describe('The project whose repository is read.'),
       commitSha: CommitSha.describe('The commit to describe.'),
@@ -478,6 +478,7 @@ export const sourceRoutes = [
               "diff --git a/src/app.js b/src/app.js\nindex c8ecfb6..ab8ad63 100644\n--- a/src/app.js\n+++ b/src/app.js\n@@ -1 +1 @@\n-export const greeting = 'hello'\n+export const greeting = 'hello, world'\n",
           },
         ],
+        truncated: false,
         patchesTruncated: false,
       },
     },

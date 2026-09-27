@@ -92,6 +92,10 @@ export function planChanges(
   changes: readonly Change[],
 ): PlannedChange[] {
   const named = new Set<string>()
+  // The paths this commit WRITES, all of them, before any is planned: a file at `docs` and one
+  // at `docs/intro.md` conflict in either order, and the base alone cannot see it (F7 — until
+  // then `update-index` kept one and the tree check answered SOURCE_GIT_FAILED).
+  const written = new Set(changes.filter((c) => c.op === 'write').map((c) => c.path))
   // The callback's return type is DECLARED: inferred, `status` widens to `string`, and `tsc`
   // refuses `string[]` where `ChangeStatus` belongs — a Vitest run would not notice.
   return changes.map((change): PlannedChange => {
@@ -117,6 +121,11 @@ export function planChanges(
       if (e !== undefined && e.type !== 'tree') {
         conflict(
           `'${change.path}' cannot be written: '${a}' is ${kind(e)} in the base commit, not a directory`,
+        )
+      }
+      if (written.has(a)) {
+        conflict(
+          `'${change.path}' cannot be written: '${a}' is written as a file in the same commit, so it cannot also be a directory`,
         )
       }
     }
@@ -190,7 +199,12 @@ async function must(
   const r = await runGit(gitDir, args, o)
   if (r.code === 0) return r.stdout
   const said = r.stderr.trim().split('\n').slice(-2).join(' | ')
-  const clean = o.scratch === undefined ? said : said.split(o.scratch).join('<scratch>')
+  // The message goes on the wire, and a laptop path is not an answer — the scratch directory
+  // first (a scratch repository sits inside it), then the repository itself, as `read` in
+  // `reading.ts` does (F10: `listBase` failing put the repository's path in a 500's body).
+  const clean = (o.scratch === undefined ? said : said.split(o.scratch).join('<scratch>'))
+    .split(gitDir)
+    .join('<repository>')
   throw new SourceError(
     'SOURCE_GIT_FAILED',
     `git ${args[0]} failed (${r.code}): ${clean}`,

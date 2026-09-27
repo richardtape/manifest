@@ -501,6 +501,44 @@ describe('createCommit — changes checked before anything is written (Task 6)',
     })
   })
 
+  it('refuses a message with a NUL, a lone surrogate or an escape, before anything is scanned (F8)', async () => {
+    await withProjectServer(async (ctx) => {
+      const commit = vi.spyOn(ctx.deps.source, 'commit')
+      const key = SAMPLE_SECRETS['an AWS access key id']
+      // Each message ALSO carries a secret: were the text rules not first, the answer would be
+      // 409 SOURCE_SECRET_DETECTED and a `repository.secret_refused` event.
+      const cases: [string, RegExp][] = [
+        [`a\u0000b ${key}`, /NUL|control character/],
+        [`a\ud800b ${key}`, /well-formed/],
+        [`colour\u001b[31m red ${key}`, /control character/],
+        [`over\rwrite ${key}`, /control character/],
+        [`c1\u009b31m ${key}`, /control character/],
+      ]
+      for (const [message, rule] of cases) {
+        const res = await post(ctx, {
+          baseCommit: ctx.commitSha,
+          message,
+          changes: [{ op: 'write', path: 'a.txt', content: 'a\n' }],
+        })
+        expect(refusal(res), JSON.stringify(message)).toEqual({
+          status: 400,
+          code: 'REQUEST_INVALID',
+        })
+        expect(errorOf(res).message).toMatch(/message/)
+        expect(errorOf(res).message).toMatch(rule)
+      }
+      expect(commit).not.toHaveBeenCalled()
+      expect(await eventsOf(ctx, ['repository.secret_refused'])).toEqual([])
+      // The positive control: a subject, a blank line and a body with a tab commit as they did.
+      const ok = await post(ctx, {
+        baseCommit: ctx.commitSha,
+        message: 'the subject\n\n\tan indented body line — é\n',
+        changes: [{ op: 'write', path: 'a.txt', content: 'a\n' }],
+      })
+      expect(ok.statusCode, ok.body).toBe(201)
+    })
+  })
+
   it('a retried commit — the same Idempotency-Key — is one commit and one event', async () => {
     await withProjectServer(async (ctx) => {
       const headers = mutationHeaders(ctx.deps)

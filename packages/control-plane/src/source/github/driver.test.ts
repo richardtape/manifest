@@ -15,6 +15,7 @@ import { SourceError, type MirrorAdvance } from '../git-driver.js'
 import type { ScanLimits } from '../scan-commits.js'
 import {
   pushAsPerson,
+  pushGitlinkAsPerson,
   pushSymlinkAsPerson,
   recordingObserver,
   rewriteAsPerson,
@@ -177,6 +178,8 @@ describeSourceDriver(
       deleteMainAsPerson: (slug) => tryDeleteMainAsPerson(h.fake, slug),
       pushSymlinkAsPerson: (slug, path, target, message) =>
         pushSymlinkAsPerson(h.fake, slug, path, target, message),
+      pushGitlinkAsPerson: (slug, path, commit, message) =>
+        pushGitlinkAsPerson(h.fake, slug, path, commit, message),
       cleanup: h.cleanup,
     }
   },

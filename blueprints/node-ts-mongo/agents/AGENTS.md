@@ -92,6 +92,12 @@ in all of them.
 Mount the middlewares `configureCwl()` returns. Do not construct a `Strategy`
 yourself.
 
+**CWL sign-in posts a form** (SAML's HTTP-POST binding), so an app that replaces
+`server.js` must keep `app.use(express.urlencoded({ extended: false }))` before its
+routes — without it every sign-in fails silently: the callback finds no
+`SAMLResponse`, and every person lands on the sign-in failure page with nothing in
+any log.
+
 ---
 
 ## The environment you are given

@@ -79,6 +79,7 @@ const db = () => client.db(required('MONGODB_DB_NAME'))
 if (AI_ENABLED) configureAi()
 
 const app = express()
+// CWL sign-in posts a form: keep this before every route, or no sign-in completes.
 app.use(express.urlencoded({ extended: false }))
 // Sessions live in the app's OWN Mongo, not in this process: the platform replaces
 // this container on every deploy (§11 Redeploys), and a session held in memory signs

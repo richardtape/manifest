@@ -509,7 +509,7 @@ export interface paths {
         };
         /**
          * One commit, and what it changed
-         * @description The commit and every file it changed against its first parent, with git’s line counts and a unified diff per text file — until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.
+         * @description The commit and every file it changed against its first parent — the first 1000 by path, with `truncated` true past them — with git’s line counts and a unified diff per text file, until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.
          */
         get: operations["getCommit"];
         put?: never;
@@ -1369,7 +1369,7 @@ export interface components {
                 /** @description The token’s name, for an agent; null for a person. */
                 tokenName: string | null;
             } | null;
-            /** @description Every file the commit changed, by path. */
+            /** @description The files the commit changed, by path — every one, or the first 1000 when `truncated` is true. */
             changes: {
                 /** @description The file’s path. */
                 path: string;
@@ -1387,6 +1387,8 @@ export interface components {
                 /** @description A unified diff with three lines of context; null for a binary file, or once 256 KiB of patch has been given. */
                 patch: string | null;
             }[];
+            /** @description True when the commit changed more than 1000 files and `changes` lists the first 1000 by path; read the rest with git. */
+            truncated: boolean;
             /** @description True when some `patch` is null because the 256 KiB budget was spent. */
             patchesTruncated: boolean;
         };
@@ -1482,7 +1484,7 @@ export interface components {
         CreateCommitRequest: {
             /** @description The commit these changes were computed from — `commitSha` from the tree or file you read. `main` must still be exactly this commit, or the request is refused `SOURCE_CONFLICT`. */
             baseCommit: string;
-            /** @description The commit message. Its first line is its subject. */
+            /** @description The commit message. Its first line is its subject. Well-formed Unicode, with no control character but a line break (`\n`) and a tab — no NUL, no carriage return and no escape. */
             message: string;
             /** @description At most 500 writes and deletions, each naming a different path. */
             changes: ({
@@ -6472,6 +6474,7 @@ export interface operations {
                      *           "patch": "diff --git a/src/app.js b/src/app.js\nindex c8ecfb6..ab8ad63 100644\n--- a/src/app.js\n+++ b/src/app.js\n@@ -1 +1 @@\n-export const greeting = 'hello'\n+export const greeting = 'hello, world'\n"
                      *         }
                      *       ],
+                     *       "truncated": false,
                      *       "patchesTruncated": false
                      *     }
                      */

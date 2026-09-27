@@ -2567,7 +2567,7 @@
           "source"
         ],
         "summary": "One commit, and what it changed",
-        "description": "The commit and every file it changed against its first parent, with git’s line counts and a unified diff per text file — until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.",
+        "description": "The commit and every file it changed against its first parent — the first 1000 by path, with `truncated` true past them — with git’s line counts and a unified diff per text file, until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.",
         "parameters": [
           {
             "name": "commitSha",
@@ -2626,6 +2626,7 @@
                       "patch": "diff --git a/src/app.js b/src/app.js\nindex c8ecfb6..ab8ad63 100644\n--- a/src/app.js\n+++ b/src/app.js\n@@ -1 +1 @@\n-export const greeting = 'hello'\n+export const greeting = 'hello, world'\n"
                     }
                   ],
+                  "truncated": false,
                   "patchesTruncated": false
                 }
               }
@@ -7031,7 +7032,7 @@
             ]
           },
           "changes": {
-            "description": "Every file the commit changed, by path.",
+            "description": "The files the commit changed, by path — every one, or the first 1000 when `truncated` is true.",
             "type": "array",
             "items": {
               "type": "object",
@@ -7103,6 +7104,10 @@
               "additionalProperties": false
             }
           },
+          "truncated": {
+            "description": "True when the commit changed more than 1000 files and `changes` lists the first 1000 by path; read the rest with git.",
+            "type": "boolean"
+          },
           "patchesTruncated": {
             "description": "True when some `patch` is null because the 256 KiB budget was spent.",
             "type": "boolean"
@@ -7118,6 +7123,7 @@
           "authoredAt",
           "madeThrough",
           "changes",
+          "truncated",
           "patchesTruncated"
         ],
         "additionalProperties": false
@@ -7395,7 +7401,7 @@
             "pattern": "^[0-9a-f]{40}$"
           },
           "message": {
-            "description": "The commit message. Its first line is its subject.",
+            "description": "The commit message. Its first line is its subject. Well-formed Unicode, with no control character but a line break (`\\n`) and a tab — no NUL, no carriage return and no escape.",
             "type": "string",
             "minLength": 1,
             "maxLength": 4096

@@ -20,7 +20,9 @@ export class ApiDocsLoadError extends Error {
       | 'DOCS_PAGE_TOO_LARGE'
       | 'DOCS_PAGE_NOT_TEXT'
       | 'DOCS_PAGE_UNTITLED'
-      | 'DOCS_PAGE_NO_SUMMARY',
+      | 'DOCS_PAGE_NO_SUMMARY'
+      | 'DOCS_SLUG_TAKEN'
+      | 'DOCS_PAGE_UNADDRESSABLE',
     message: string,
   ) {
     super(message)
@@ -52,6 +54,14 @@ export interface ApiDocs {
 
 /** FATAL, so a page that is not UTF-8 is refused rather than served with U+FFFD in it. */
 const UTF8 = new TextDecoder('utf-8', { fatal: true })
+
+/**
+ * THE SLUGS `getDoc` CAN ADDRESS — one statement of them: the route's parameter reads this, and
+ * the loader refuses a page whose slug is not one (the authoring API plan's sitting 10, F11), so
+ * no page is loaded that no request can reach.
+ */
+export const DOC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+export const DOC_SLUG_MAX = 128
 
 export function slugOf(path: string): string {
   return path.replace(/\.md$/, '').split('/').join('-')
@@ -143,7 +153,25 @@ export async function loadApiDocs(root: string): Promise<ApiDocs> {
   }
 
   const pages: ApiDocPage[] = []
+  const taken = new Map<string, string>()
   for (const path of files.sort(readingOrder)) {
+    // F11: a name the route cannot address, and two names that make one slug, each leave a page
+    // loaded that no request can reach — the second one silently, behind the first.
+    const slug = slugOf(path)
+    if (slug.length > DOC_SLUG_MAX || !DOC_SLUG.test(slug)) {
+      throw new ApiDocsLoadError(
+        'DOCS_PAGE_UNADDRESSABLE',
+        `the API's documentation: ${path} makes the slug '${slug}', which getDoc cannot address — lower-case letters and digits in words joined by single '-', at most ${DOC_SLUG_MAX} characters`,
+      )
+    }
+    const other = taken.get(slug)
+    if (other !== undefined) {
+      throw new ApiDocsLoadError(
+        'DOCS_SLUG_TAKEN',
+        `the API's documentation: ${other} and ${path} both make the slug '${slug}' — rename one`,
+      )
+    }
+    taken.set(slug, path)
     const bytes = await readFile(join(root, ...path.split('/')))
     let markdown: string
     try {
@@ -170,7 +198,7 @@ export async function loadApiDocs(root: string): Promise<ApiDocs> {
         `the API's documentation: ${path} has no paragraph after its title — the index shows it`,
       )
     }
-    pages.push({ slug: slugOf(path), path, title: titled.title, summary, markdown })
+    pages.push({ slug, path, title: titled.title, summary, markdown })
   }
   const bySlug = new Map(pages.map((p) => [p.slug, p]))
   return { pages, page: (slug) => bySlug.get(slug) }

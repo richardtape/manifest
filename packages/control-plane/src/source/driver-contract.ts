@@ -32,6 +32,16 @@ export interface SourceDriverHarness {
     target: string,
     message: string,
   ): Promise<string>
+  /**
+   * A PERSON pushing a GITLINK — a submodule entry, mode `160000`, at `path` naming `commit` —
+   * to `main`, outside the driver (the authoring API plan's sitting 10, F12). Returns the commit.
+   */
+  pushGitlinkAsPerson(
+    slug: string,
+    path: string,
+    commit: string,
+    message: string,
+  ): Promise<string>
   cleanup(): Promise<void>
 }
 
@@ -398,6 +408,10 @@ export function describeSourceDriver(
           '.git',
           'a symlink to .git',
         )
+        // THIS CANARY CANNOT FIRE IN THE PATH AS BUILT (the authoring API plan's sitting 10,
+        // F12): `buildCommit` has no worktree and runs no `git add`, so nothing reads a config
+        // the write could reach. That is WHY it stays — it is the tripwire for any change that
+        // brings a worktree, or a command that reads one, back into the write path.
         const config = `[core]\n\tfsmonitor = touch ${marker}; false\n`
         expect(
           await code(
@@ -447,6 +461,67 @@ export function describeSourceDriver(
       ).toBe('SOURCE_PATH_CONFLICT')
       expect(await h.driver.headCommit(repo)).toBe(head)
       expect(await h.driver.readFile(repo, head, 'src/index.js')).not.toBeNull()
+    })
+
+    it('refuses a write UNDER a gitlink a person pushed, and a write OVER it — each a path conflict (F12)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.pushGitlinkAsPerson(
+        'chem-labs',
+        'vendor/lib',
+        'c'.repeat(40),
+        'a submodule',
+      )
+      // A REAL gitlink, as git stores one — not a hand-built listing.
+      const listed = (await h.driver.listTree(repo, head)).entries.find(
+        (e) => e.path === 'vendor/lib',
+      )
+      expect(listed).toMatchObject({ type: 'submodule', mode: '160000' })
+      for (const path of ['vendor/lib/index.js', 'vendor/lib']) {
+        expect(
+          await code(
+            h.driver.commit(repo, {
+              base: head,
+              changes: [{ op: 'write', path, content: 'x' }],
+              message: 'm',
+              author: ADA,
+            }),
+          ),
+          path,
+        ).toBe('SOURCE_PATH_CONFLICT')
+      }
+      expect(await h.driver.headCommit(repo)).toBe(head)
+      // The positive control: a file BESIDE it commits.
+      const beside = await h.driver.commit(repo, {
+        base: head,
+        changes: [{ op: 'write', path: 'vendor/README.md', content: 'x' }],
+        message: 'm',
+        author: ADA,
+      })
+      expect(beside.commitSha).not.toBe(head)
+    })
+
+    it('refuses a file and a directory at one path within ONE commit as a path conflict, and moves nothing (F7)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      const refusal = await h.driver
+        .commit(repo, {
+          base: head,
+          changes: [
+            { op: 'write', path: 'docs', content: 'a' },
+            { op: 'write', path: 'docs/intro.md', content: 'b' },
+          ],
+          message: 'm',
+          author: ADA,
+        })
+        .then(
+          () => undefined,
+          (e: unknown) => e,
+        )
+      // Until F7: `SOURCE_GIT_FAILED`, the platform's own failure, and an operator line
+      // blaming the planner — for a request that was simply contradictory.
+      expect(refusal).toBeInstanceOf(SourceError)
+      expect((refusal as SourceError).code).toBe('SOURCE_PATH_CONFLICT')
+      expect(await h.driver.headCommit(repo)).toBe(head)
     })
 
     it('a dry run answers what would change and moves nothing', async () => {
@@ -727,6 +802,7 @@ export function describeSourceDriver(
       expect(detail).toMatchObject({
         commitSha: b,
         subject: 'change a',
+        truncated: false,
         patchesTruncated: false,
       })
       expect(detail.changes).toEqual([

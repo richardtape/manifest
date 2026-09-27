@@ -121,6 +121,41 @@ describe('planChanges — every shape --index-info would silently replace is ref
       ),
     ).toBe('SOURCE_PATH_CONFLICT')
   })
+
+  it('refuses a file and a directory at one path within one commit, as a path conflict (F7)', () => {
+    // Neither path is in the base, so only the commit itself says `docs` is both a file and a
+    // directory — and in either order. Until F7 the planner took both, `update-index` kept one,
+    // and the tree check answered SOURCE_GIT_FAILED blaming the planner.
+    for (const changes of [
+      [
+        { op: 'write', path: 'docs', content: 'a' },
+        { op: 'write', path: 'docs/intro.md', content: 'b' },
+      ],
+      [
+        { op: 'write', path: 'docs/deep/intro.md', content: 'b' },
+        { op: 'write', path: 'docs', content: 'a' },
+      ],
+    ] as const) {
+      let message = ''
+      try {
+        planChanges(BASE, changes)
+      } catch (e) {
+        message = e instanceof SourceError ? `${e.code}: ${e.message}` : String(e)
+      }
+      expect(message).toMatch(
+        /^SOURCE_PATH_CONFLICT: .*'docs' is written as a file in the same commit/,
+      )
+    }
+    // The positive control: two files side by side, and one inside a directory another file
+    // is also written into, plan as they always did.
+    expect(
+      planChanges(BASE, [
+        { op: 'write', path: 'docs/a.md', content: 'a' },
+        { op: 'write', path: 'docs/b.md', content: 'b' },
+        { op: 'write', path: 'docsx', content: 'c' },
+      ]).map((p) => p.status),
+    ).toEqual(['added', 'added', 'added'])
+  })
 })
 
 describe('pathProblem — Decision 4’s path rules, one function the request schema reads (Task 6)', () => {

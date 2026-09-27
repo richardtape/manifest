@@ -184,6 +184,55 @@ describe('listTreeIn — every entry, sorted by path, and bounded (Task 4)', () 
     expect(entries.at(-1)!.path).toBe(names[READ_LIMITS.treeEntries - 1])
   })
 
+  it('flags binaries among the LISTED paths only — never a diff of the whole tree (F9)', async () => {
+    // 12,000 files; the listing stops at 10,000. One binary file is listed, one is past the cut.
+    const text = blob('x\n')
+    const bytes = blob(Buffer.from([0x89, 0x50, 0x00, 0x01]))
+    const names = Array.from({ length: 12_000 }, (_, i) => {
+      const n = String(i).padStart(5, '0')
+      return i === 5 || i === 11_000 ? `f${n}.png` : `f${n}.txt`
+    })
+    const c = commit(
+      tree(names.map((n) => ['100644', n.endsWith('.png') ? bytes : text, n])),
+      [],
+      'x',
+    )
+    calls.length = 0
+    const { entries, truncated } = await listTreeIn(git, c)
+    expect(truncated).toBe(true)
+    expect(entries).toHaveLength(READ_LIMITS.treeEntries)
+    const byName = new Map(entries.map((e) => [e.path, e.binary]))
+    expect(byName.get('f00005.png')).toBe(true) // listed, binary: flagged
+    expect(byName.get('f00001.txt')).toBe(false)
+    expect(byName.has('f11000.png')).toBe(false) // past the cut: not listed
+    // Every numstat names its paths, and together they are exactly the listed files.
+    const numstats = calls.filter((a) => a.includes('--numstat'))
+    expect(numstats.length).toBeGreaterThan(0)
+    const asked = numstats.flatMap((a) => {
+      expect(a).toContain('--') // never the whole tree
+      return a.slice(a.indexOf('--') + 1)
+    })
+    expect(asked.sort()).toEqual(entries.map((e) => e.path).sort())
+    expect(asked).not.toContain('f11000.png')
+  })
+
+  it('names no path on this machine when listing the base fails (F10)', async () => {
+    // The race F10 names: the repository gone between the commit's check and `ls-tree`. git's
+    // own words then carry the directory — `not a git repository: '/…/r.git'`.
+    const c = commit(tree([['100644', blob('x'), 'a.txt']]), [], 'x')
+    rmSync(git, { recursive: true, force: true })
+    let error: unknown
+    try {
+      await listTreeIn(git, c)
+    } catch (e) {
+      error = e
+    }
+    expect(error).toBeInstanceOf(SourceError)
+    expect((error as SourceError).code).toBe('SOURCE_GIT_FAILED')
+    expect((error as SourceError).message).toContain('<repository>') // git's words, scrubbed
+    expect((error as SourceError).message).not.toContain(dir)
+  })
+
   it('reports a submodule as one, with no size and no binary flag', async () => {
     const c = commit(tree([['160000', 'c'.repeat(40), 'vendor']]), [], 'x')
     expect((await listTreeIn(git, c)).entries).toEqual([
@@ -301,6 +350,37 @@ describe('describeCommitIn — against the first parent, with a patch budget (Ta
       },
     ])
     expect(d.changes[0]!.patch).toContain('+a')
+  })
+
+  it('answers at most 1,000 changes, the first by path, and says it stopped (F9)', async () => {
+    // Binary files, so no patch is read — only the listing and its counts are under test.
+    const bytes = blob(Buffer.from([0x89, 0x50, 0x00, 0x01]))
+    const names = Array.from(
+      { length: 1_500 },
+      (_, i) => `f${String(i).padStart(4, '0')}.png`,
+    )
+    const c = commit(tree(names.map((n) => ['100644', bytes, n])), [], 'x')
+    calls.length = 0
+    const d = await describeCommitIn(git, c)
+    expect(d.truncated).toBe(true)
+    expect(d.changes).toHaveLength(1_000)
+    expect(d.changes.at(-1)!.path).toBe('f0999.png')
+    expect(d.changes.every((ch) => ch.binary && ch.patch === null)).toBe(true)
+    // The counts are read for the listed paths only.
+    const asked = calls
+      .filter((a) => a.includes('--numstat'))
+      .flatMap((a) => a.slice(a.indexOf('--') + 1))
+    expect(asked).toHaveLength(1_000)
+    expect(asked).not.toContain('f1000.png')
+    // The positive control: a commit of three says it did not stop.
+    const small = commit(
+      tree(names.slice(0, 3).map((n) => ['100644', bytes, n])),
+      [],
+      'y',
+    )
+    const s = await describeCommitIn(git, small)
+    expect(s.truncated).toBe(false)
+    expect(s.changes).toHaveLength(3)
   })
 
   it('reports a file that became a symlink as type_changed, and a deletion', async () => {

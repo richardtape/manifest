@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   changesFrom,
   editable,
+  commitOrigin,
   madeThroughSentence,
   MAX_FILE_BYTES,
   type SourceEntry,
@@ -148,5 +149,24 @@ describe('madeThroughSentence — who made a commit, from the platform’s recor
       }),
     ).toBe("Ada Lovelace’s agent — token 'claude-code'")
     expect(madeThroughSentence(null)).toBe('pushed with git')
+  })
+
+  it('reads the FIRST commit, which the platform records nobody as making, as the project’s starting point (F4)', () => {
+    // Manifest writes a project's first commit when it creates the project; `madeThrough` is
+    // `null` for it, as published, and read as a person's push it said "pushed with git".
+    expect(commitOrigin({ madeThrough: null, parents: [] })).toBe(
+      'The project’s starting point, made by Manifest',
+    )
+    // Every other commit with no record is still a push, and says so.
+    expect(commitOrigin({ madeThrough: null, parents: ['a'.repeat(40)] })).toBe(
+      'pushed with git',
+    )
+    // A first commit the platform DOES record names who made it, as any other does.
+    expect(
+      commitOrigin({
+        madeThrough: { kind: 'person', name: 'Ada Lovelace', tokenName: null },
+        parents: [],
+      }),
+    ).toBe('Ada Lovelace')
   })
 })
