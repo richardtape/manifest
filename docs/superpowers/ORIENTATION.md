@@ -1708,10 +1708,12 @@ reasoning is recorded.**
   action, and go live with admin-ui"*). The paragraph that called it *"rudimentary… not a product surface"* now
   says it shares the faculty product's vocabulary, shows its reader the infrastructure C3 hides, and does not
   inherit `console/`'s plain bar — which stays with §22, unchanged. Wording and sweep:
-  [the interface design brief's §13](plans/2026-09-19-interface-design-brief.md). **And the console's prototype will
-  be LIVE** — `packages/admin-ui` on 7101, driven against `manifest-mock` through `@manifest/contract` — rather than
-  static pages like the faculty prototype. Its design is written and awaiting his review
-  ([`2026-09-27-admin-console-design.md`](2026-09-27-admin-console-design.md)); nothing is built yet.
+  [the interface design brief's §13](plans/2026-09-19-interface-design-brief.md). **Then, the same day, NO PLAN —
+  A MOCKUP** (*"We're just trying to get some sense of a design"*): the design is
+  [`2026-09-27-admin-console-design.md`](2026-09-27-admin-console-design.md), drawn as a clickable mockup on the
+  shared design system (`design/admin-console.html`, published at
+  <https://claude.ai/artifact/N8qj84CVbvJ7f2L6xKfQ25>). `packages/admin-ui` is not built and no P11 plan is written;
+  the design's §13 says what one would do.
 - **HOW SCALAR ARRIVES — OPTION (a): THE NETWORK, FOR THAT ONE ADD, IN THE AUTHORING API PLAN'S SITTING 8** (Rich,
   2026-09-26, after its sitting 7, taking the recommendation). Sitting 7 measured `pnpm --filter @manifest/console add
   --offline @scalar/api-reference@1.72.0` refused by pnpm 11's supply-chain check in a scratch copy of the workspace, so

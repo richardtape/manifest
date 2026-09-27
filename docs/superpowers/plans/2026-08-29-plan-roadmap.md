@@ -107,7 +107,7 @@ untouched. **Shared pages checked:** `manifest-schematic.html` §10 restated the
 built** (the Phase 2 table below); its design session's first finding — that §26's non-repudiation rule is not built:
 no administrator's reason is required anywhere, and who acted is only half-recorded — is ORIENTATION §8's
 newest open question. **The console's design: [`2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md)
-— written 2026-09-27, awaiting Rich's review; P11's plan is written from it.**
+— written 2026-09-27 and drawn as a clickable mockup the same day; no plan, by Rich's choice.**
 
 ### Spec actions raised by the authoring API plan — THREE DRAFTED 2026-09-25 AND A FOURTH 2026-09-26; **2 AND 4 DECIDED (a) AND APPLIED 2026-09-26**; ⏳ 1 AND 3 RICH'S
 
@@ -798,7 +798,7 @@ and *subsequent releases* — so the table below has seven rows for six subsyste
 | P8 | Launch package generation | §9 and D19: the IAM registration package via `saml-metadata-generator`, and the PIA draft. **The two tracked objects themselves moved to P6a on 2026-09-19** (Rich's decision, P6 brief §5 R1) — P8 GENERATES what they carry, and §9's own *"submitted by a human, with a ticket reference pasted in"* is what P6a builds first, the manual driver of the same state transition (D5, D10) |
 | P9 | Audience & capacity | §24: the tiers' production effects, pre-warming for `burst: synchronised`, the load rehearsal, upgrade requests through the admin queue |
 | P10 | Showcase & forking | §27: publishing, the fork operation, and D32's not-copied list — which is the whole of its security argument |
-| P11 | Admin console | §26: the queue as the primary screen, fleet, people, spend, health and risk, audit; built on admin-scoped endpoints of the same public API (D31). **§26's *Scope* changed 2026-09-27 — it gets real design effort — and its DESIGN IS WRITTEN, awaiting Rich's review: [`2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md).** Its prototype will be live — `packages/admin-ui` on 7101, against `manifest-mock`, not static pages (Rich, 2026-09-27); nothing is built yet — and its plan is written from the design once he has read it; it starts after the authoring API plan's sitting 10 closes, because a new package moves `pnpm test`'s count |
+| P11 | Admin console | §26: the queue as the primary screen, fleet, people, spend, health and risk, audit; built on admin-scoped endpoints of the same public API (D31). **§26's *Scope* changed 2026-09-27 — it gets real design effort — and its DESIGN IS WRITTEN AND DRAWN: [`2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md), as a clickable mockup on the shared design system ([`design/admin-console.html`](../design/admin-console.html)).** NOT PLANNED AND NOT BUILT, by Rich's choice the same day (*"We're just trying to get some sense of a design"*): no `packages/admin-ui`, no plan. If it is built later, it starts after the authoring API plan's sitting 10 closes, because a new package moves `pnpm test`'s count |
 
 Dependencies among these are real but shallow: P6 is a prerequisite for P7, P8 and
 P9; P10 and P11 depend on P6 only. P8 should start earliest of the four that follow

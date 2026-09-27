@@ -6,11 +6,13 @@ contract **v1.3.0** (54 operations, 78 schemas) at `577ad91`, the design system 
 the contract or the code; where it is a decision rather than a reading, §11 says which options it
 rejected and what changing course would cost.*
 
-**What this is.** The written design for **P11** (the roadmap's *Admin console*) — its first part:
-the console's design, the design-system components it needs, and a **live prototype,
-`packages/admin-ui`, driven against `manifest-mock` through `@manifest/contract`**. The plan that
-builds it is written from this document once Rich has read it. **What it is not:** a change to the
-API. Every gap the console meets is reported in §10 with the shape it would need, and none is
+**What this is.** The written design for **P11** (the roadmap's *Admin console*): the console's
+design, the design-system components it needs, and what the API cannot yet answer. **It is drawn as a
+clickable mockup** — [`design/admin-console.html`](./design/admin-console.html), published at
+<https://claude.ai/artifact/N8qj84CVbvJ7f2L6xKfQ25>, its files and their provenance in
+[`design/admin/README.md`](./design/admin/README.md). **No plan is written, and `packages/admin-ui`
+is not built** (Rich, 2026-09-27: *"We're just trying to get some sense of a design"*); §13 says what
+a plan would do if one is wanted. **What it is not:** a change to the API. Every gap the console meets is reported in §10 with the shape it would need, and none is
 assumed to exist.
 
 **Settled with Rich before this was written (2026-09-27):**
@@ -18,7 +20,7 @@ assumed to exist.
 | Question | Answer |
 |---|---|
 | Does the console get real design effort, against §26's *"rudimentary… not a product surface"*? | **Yes.** §26's *Scope* changed in `577ad91`; the interface design brief's §13 carries the wording |
-| A static prototype like the faculty one, or a live one? | **Live** — `packages/admin-ui`, against the mock, through the generated client |
+| A static prototype like the faculty one, or a live one? | **Live** — `packages/admin-ui`, against the mock, through the generated client — and then, the same day, **a mockup first and no plan**: *"We're just trying to get some sense of a design"* |
 | §26's non-repudiation rule is not built (A1). How urgent is it? | **Open** — ORIENTATION §8 |
 
 **Read with:** [the handover](./design-handover.md) (regenerated in `577ad91` — the brief's §5 is
@@ -469,8 +471,8 @@ queue row needs. And the launch records' state machine refuses an impossible tra
 
 ## 12. What this does not cover
 
-- **Serving the console through the edge, signed in for real.** The prototype runs against the mock
-  on 7101 (§21 reserves it for *"Admin UI (Vite)"*). A hostname, the edge route, the session and the
+- **Serving the console through the edge, signed in for real.** A built prototype would run against
+  the mock on 7101 (§21 reserves it for *"Admin UI (Vite)"*). A hostname, the edge route, the session and the
   CSRF origin are the plan's to place — after the prototype, not before.
 - **Building any of §10.** A1 first, and when is Rich's (ORIENTATION §8).
 - **The platform's own maintenance** — `make doctor`, the vulnerability database, the machine
@@ -478,10 +480,10 @@ queue row needs. And the launch records' state machine refuses an impossible tra
   authoring API.
 - **Narrow screens.** 1440 desktop, like the faculty design.
 
-## 13. What the plan will do
+## 13. What a plan would do, if one is wanted
 
-The plan is written after Rich has read this, in the house style, with its sittings approved by him.
-The shape it will propose: **the measurements and the mock's admin fixtures first**; then **the
+**None is written** (Rich, 2026-09-27): the mockup is the deliverable for now. If the console is
+later built for real, the plan's shape would be: **the measurements and the mock's admin fixtures first**; then **the
 design-system additions**, each with its preview; then **`admin-ui`'s skeleton** — the package, D22's
 import boundary copied from the reference console, the system loaded, the bar, the router, the
 generated client against the mock — and the queue's assembly; then **the queue and the approval
@@ -489,5 +491,7 @@ pane**; then **the other panes and `ObservedAction`**; then **the fleet and the 
 then **Health**; and last **the acceptance** — the queue clicked by a person against the mock,
 negative controls that are made to fail, and a whole-branch review.
 
-**It starts after the authoring API plan's sitting 10 closes.** A new workspace package moves
-`pnpm test`'s count, and that sitting's acceptance asserts it exactly.
+**It would start after the authoring API plan's sitting 10 closes.** A new workspace package moves
+`pnpm test`'s count, and that sitting's acceptance asserts it exactly. **The mockup's components are
+the head start**: they are written in `bundle.js`'s idiom so they move into the shared system as they
+are, and the page's composition is what `admin-ui` would build against the mock.

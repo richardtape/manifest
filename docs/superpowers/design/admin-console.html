@@ -1,0 +1,26 @@
+<meta charset="utf-8">
+<title>Manifest Operations Console</title>
+<style>
+  /* The Manifest system is light-only, deliberately: this page commits to it and paints
+     every colour explicitly rather than borrowing the host's theme. */
+  :root { color-scheme: light; }
+  body { margin: 0; background: #f4f6fa; background: var(--surface-page, #f4f6fa); color: var(--ink, #0e1626); font-family: var(--font-sans, system-ui, sans-serif); -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--focus-ring, #003468); outline-offset: 3px; }
+  #app:empty::before { content: "Loading the console\2026"; display: block; padding: 48px 24px; color: #4b5a75; font: 14px/1.5 system-ui, sans-serif; }
+</style>
+<meta name="description" content="A clickable mockup of Manifest's administrator console: the queue, the fleet, and health and risk.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="system/tokens.css">
+<link rel="stylesheet" href="system/components/bundle.css">
+<link rel="stylesheet" href="admin/components.css">
+
+<div id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="system/components/bundle.js"></script>
+<script src="admin/components.js"></script>
+<script src="admin/data.js"></script>
+<script src="admin/console.js"></script>
