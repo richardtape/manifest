@@ -1657,9 +1657,11 @@ it belongs among the traps the next sitting is most likely to hit.
   PROJECT THERE FOR EVER** (2026-09-25, the D5 plan's sitting 8, F9). One source driver per control-plane process.
   `make demo-github` asks first (an unsigned delivery: `401 WEBHOOK_SIGNATURE_MISSING` is driver 2, `404
   WEBHOOKS_NOT_CONFIGURED` driver 1) and on driver 1 stops, creating nothing. `make ci-acceptance` and the offline
-  acceptance ask the same way and read the other driver's steps `NOT RUN` / `SKIPPED`. **The individual `make demo*`
-  targets do not ask**: run `make demo-journey` on driver 2 after a `pnpm test` and `journey-app` is CREATED on the fake,
-  no route deletes it, and driver 1 answers it `SOURCE_PROVIDER_MISMATCH` from then on. Read the boot line's `"source"`.
+  acceptance ask the same way and read the other driver's steps `NOT RUN` / `SKIPPED`. **Until the authoring API plan's
+  sitting 9 the individual `make demo*` targets did not ask**: `make demo-journey` on driver 2 after a `pnpm test` CREATED
+  `journey-app` on the fake, where no route deletes it. **Now every driver-1 demo calls `require_driver local`
+  (`scripts/lib/api.sh`) right after its up-check, and on driver 2 stops with the restart command, creating nothing**
+  (measured: `make demo`, exit 2, the projects table unchanged). A script of your own that creates a project should too.
 - **THE CONTROL PLANE'S `dev` SCRIPT IS `pnpm run build && node dist/index.js` — NOTHING WATCHES THE SOURCE** (2026-09-25,
   the D5 plan's sitting 8). A negative control that edits `packages/control-plane/src/` needs the process STOPPED and
   started again (it rebuilds), and so does the restore — **a control plane still running a control's build after `git
@@ -1826,6 +1828,24 @@ it belongs among the traps the next sitting is most likely to hit.
   on its own: `git status` showed some forty `A  docs/superpowers/design/…` files, staged by the design agent, and `git
   commit` commits EVERYTHING in the index. **Commit with an explicit path list — `git commit -F <msg> -- <your paths>`** —
   which records only those paths and leaves the other session's staging exactly as it was; then `git show --stat HEAD`.
+
+- **`spawnSync` AGAINST THE IN-PROCESS GITHUB FAKE DEADLOCKS THE TEST** (2026-09-26, the authoring API plan's sitting 9, F5).
+  `startFake` serves on the test process's own event loop, so a synchronous child — `spawnSync('git', ['ls-remote', …])` —
+  blocks the loop the fake would answer on until git gives up, and the run hangs with nothing red. Spawn git
+  asynchronously (`execFile` in a promise) whenever it talks to the fake; `spawnSync` is fine for git that touches no
+  server (`git config --get`).
+- **THE DOCS NAME GATE READS A RESPONSE FIELD PATH SHAPED LIKE AN EVENT TYPE AS ONE** (2026-09-26, sitting 9, F8 — sitting
+  8's F7 again, for a representation rather than `manifest.yaml`). `` `spec.warnings` `` in a guide has `spec.validated`'s
+  shape and is red as an unknown event type. Write the field in words — *"the `warnings` in its `spec`"* — and leave the
+  gate alone.
+- **THE ERROR-CODE REGISTRY'S LITERAL SCAN CUTS ONLY `examples: {…}` BLOCKS** (2026-09-26, sitting 9, F9). An example held
+  in a named constant (`const COMMIT_EXAMPLES = {…}`, used as `examples: COMMIT_EXAMPLES`) is scanned like code, so a
+  quoted `code: 'SPEC_FIELD_NOT_ENFORCED'` inside it reads as a code `api/` throws, and `error-codes.test.ts` is red. Name
+  the code by its constant (`POLICY_CODES.FIELD_NOT_ENFORCED`) in such a block.
+- **A NEGATIVE CONTROL CAN BE GREEN BECAUSE AN EARLIER LAYER REFUSES FIRST** (2026-09-26, sitting 9, F7). Minor 2's check —
+  *a mirror's visibility still unread after a sync* — was held by an OFFLINE case, where the sync's own git fetch is
+  `SOURCE_UNREACHABLE` before the check is reached; removing the check left the case green. The check needs git answering
+  and GitHub's REST API not: `failRepositoryReads` in `source/github/driver.test.ts`'s harness. Ask which layer answered.
 
 ## Images already pulled
 

@@ -103,8 +103,16 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # console's docs calls (1) and the HTML reference's boundary (2). Then, after its close at Rich's
 # request, `pnpm docs:html`'s `packages/journey/src/docs-html.test.ts` (4) — +4 and one file — and
 # the page opening itself (1).
-EXPECT_TESTS=2303
-EXPECT_FILES=160
+# Then the authoring API plan's sitting 9 (2026-09-26): +25 and two files — the scan paged to the
+# end (2) and its driver half (1), the observer's `repository.scan_incomplete` in
+# `projects/source-events.test.ts` (1); `personName` in `projects/source-attribution.test.ts` (1)
+# and three publishers' sentences (3); the six minors (7: the bodyless webhook, a never-read
+# visibility, a repository with none, the link's visibility, the fake refused outside development,
+# no inherited git configuration, SummaryContext's type); a replayed mint (3), the primitive's
+# withholding (1) and the mock's (1); and Spec action 4 — the per-user quota and the warnings (4)
+# and the route's warnings, held to the published examples (1).
+EXPECT_TESTS=2328
+EXPECT_FILES=162
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 

@@ -427,7 +427,9 @@ custody rule, so a key its group can read refuses the boot, naming the file.
   answers **`409 SOURCE_PROVIDER_MISMATCH`**, naming both. **Every demo today is a driver-1 demo**:
   on driver 2, `launch-app` is refused that way, and a demo that pushes into `.manifest/repos/` is
   refused by the mirror's hook. Restart on driver 1 (unset the variable) before any `make demo*`,
-  and never read that red as a regression. **Driver 2's own acceptance is `make demo-github`**
+  and never read that red as a regression. **Since 2026-09-26 each driver-1 demo asks first**
+  (`require_driver local`, `scripts/lib/api.sh`, right after its up-check) and on driver 2 stops with
+  the restart command, creating nothing. **Driver 2's own acceptance is `make demo-github`**
   (below, and the D5 plan's Task 15).
 - **The mirror lives where driver 1's repositories do**, `.manifest/repos/<slug>.git`. It refuses
   every push (*"this repository is a mirror of GitHub"*) — push to the fake instead, at
@@ -714,7 +716,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-26 at the close of the authoring API plan's sitting 8 (Task 11 — the guides, served, and the HTML reference) and its addendum (`pnpm docs:html`, at Rich's request), and one moved: `pnpm test` **2303 passed** in 160 files on every run of the final tree, ~8.1 minutes a run — the docs loader and the served docs, the matrix's three new rows, the journey gate, the guides' examples run against the mock, the docs drift gate, the mock's keyed docs and two refusals, the HTML reference's boundary, and the static page's `docs-html.test.ts`; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 at the open and the close, and `pnpm test:docker` **210 in 35** (owed by the boot and the knowledge pack; green first time, 932 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-26 at the close of the authoring API plan's sitting 9 (Task 12 — what the D5 plan handed over, a token's secret in no idempotency record, and Spec action 4), and one moved: `pnpm test` **2328 passed** in 162 files on both runs of the final tree, ~8.7 minutes a run — the scan paged to the end, the observer's new event, `personName` and three publishers' sentences, the six minors, a replayed mint, and the per-user budget's quota and warnings; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 at the open and the close, and `pnpm test:docker` **210 in 35** (owed by `source/`, `launch/` and the scripts; green first time, 957 s).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has THIRTEEN steps, 1 to 13, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,
@@ -1058,7 +1060,8 @@ had added `make demo-releases` to the script and not to this sentence.)*
 delivery `make demo-github` asks with. **On driver 1** — the normal case — the four driver-1 demos run, and
 `make demo-github` reads **`NOT RUN — the control plane runs driver 1`**. **On driver 2** the four read NOT
 RUN and `make demo-github` runs — because a driver-1 demo whose project does not exist yet would CREATE it
-on driver 2, where no route can delete it and driver 1 then refuses it for ever. **NOT RUN is not a pass**:
+on driver 2, where no route can delete it and driver 1 then refuses it for ever. (Since 2026-09-26 each
+driver-1 demo also refuses a driver-2 control plane itself — `require_driver` — so run alone it stops too.) **NOT RUN is not a pass**:
 the summary counts it on its own line and says so; the exit status is still the FAILED count's.
 
 **`pnpm test` runs BEFORE the demos and the order is load-bearing**: it TRUNCATES the
