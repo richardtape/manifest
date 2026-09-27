@@ -25,7 +25,12 @@ describe('control plane schema (§6)', () => {
         .returning()
       const [project] = await db
         .insert(projects)
-        .values({ slug: 'chem-labs', ownerId: user!.id, blueprintRef: 'fixture-node@1' })
+        .values({
+          slug: 'chem-labs',
+          name: 'chem-labs',
+          ownerId: user!.id,
+          blueprintRef: 'fixture-node@1',
+        })
         .returning()
       await db
         .insert(projectMembers)
@@ -50,6 +55,7 @@ describe('control plane schema (§6)', () => {
         .returning()
       const values = {
         slug: 'duplicate',
+        name: 'duplicate',
         ownerId: user!.id,
         blueprintRef: 'fixture-node@1',
       }
@@ -71,7 +77,12 @@ describe('control plane schema (§6)', () => {
         .returning()
       const [project] = await db
         .insert(projects)
-        .values({ slug: 'once-only', ownerId: user!.id, blueprintRef: 'fixture-node@1' })
+        .values({
+          slug: 'once-only',
+          name: 'once-only',
+          ownerId: user!.id,
+          blueprintRef: 'fixture-node@1',
+        })
         .returning()
       const membership = {
         projectId: project!.id,
@@ -127,6 +138,7 @@ describe('project quota (§6)', () => {
         .insert(projects)
         .values({
           slug: 'quota-default',
+          name: 'quota-default',
           ownerId: user!.id,
           blueprintRef: 'fixture-node@1',
         })

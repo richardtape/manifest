@@ -209,4 +209,11 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     userId: UUID,
     tokenId: UUID,
   },
+  'project.renamed': {
+    from: 'chem-labs',
+    to: 'CHEM 121 — Lab notebook',
+    via: 'session',
+    userId: UUID,
+    tokenId: null,
+  },
 }

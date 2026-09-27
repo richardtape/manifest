@@ -143,5 +143,6 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `repository.secret_refused` | A commit Manifest was asked to make carried a value shaped like a secret, and was refused (§20). Never the value. |
 | `app_secret.set` | A value was set for one of the app’s secrets in one environment; the next deploy there renders it. Never the value. |
 | `app_secret.cleared` | A secret’s value was removed from one environment; deploying a release that declares it there is refused until it is set again. |
+| `project.renamed` | The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not. |
 
 <!-- /event-types -->

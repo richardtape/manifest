@@ -597,4 +597,20 @@ export const EVENT_DETAIL_SCHEMAS = {
   'app_secret.cleared': AppSecretChange.describe(
     'A secret’s value was removed from one environment; deploying a release that declares it there is refused until it is set again.',
   ),
+  /**
+   * The front-end enablement plan's Task 6. Who, as `app_secret.set` records it — `userId` is the
+   * person (for a token, its minter) and `tokenId` the token or null — because `audit.events` has
+   * no actor column and a sentence is not a record.
+   */
+  'project.renamed': z
+    .strictObject({
+      from: z.string().min(1).describe('What people called the project before.'),
+      to: z.string().min(1).describe('What they call it now (`Project.name`).'),
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe(
+      'The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not.',
+    ),
 } satisfies Record<EventType, z.ZodType>

@@ -423,6 +423,7 @@ describe('one open ask per token and fingerprint, on the pool (F10)', () => {
       .insert(projects)
       .values({
         slug: `fixture-${unique}`,
+        name: `fixture-${unique}`,
         ownerId: owner!.id,
         blueprintRef: 'fixture-node@1',
       })

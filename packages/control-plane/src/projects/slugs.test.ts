@@ -51,9 +51,12 @@ describe('one function answers the slug check and creation (§23, P5a Task 9)', 
 
   it('a grandfathered holder of a newly reserved label is both', async () => {
     await withProject(async (tx, { ownerId }) => {
-      await tx
-        .insert(projects)
-        .values({ slug: 'console', ownerId, blueprintRef: 'fixture-node@1' })
+      await tx.insert(projects).values({
+        slug: 'console',
+        name: 'console',
+        ownerId,
+        blueprintRef: 'fixture-node@1',
+      })
       const verdict = await checkSlug(tx, reserved, 'console')
       expect(verdict.available === false && verdict.reasons.map((r) => r.code)).toEqual([
         'SLUG_RESERVED',

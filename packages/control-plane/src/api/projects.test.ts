@@ -1,10 +1,21 @@
-import { asc, eq } from 'drizzle-orm'
+import { randomUUID } from 'node:crypto'
+import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { appSpecs, events, projects } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { SourceError } from '../source/index.js'
 import { buildServer } from './server.js'
-import { loginAs, mutationHeaders, projectBody, refusal, testDeps } from './testing.js'
+import {
+  loginAs,
+  mutationHeaders,
+  projectBody,
+  refusal,
+  sessionFor,
+  testDeps,
+  withProjectServer,
+  type TestProject,
+} from './testing.js'
+import { mintTestToken } from '../tokens/testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { AI_CODES, AiError, disabledCatalogue, type ModelCatalogue } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
@@ -93,6 +104,7 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
         'environments',
         'id',
         'launchedAt',
+        'name',
         'owner',
         'repository',
         'slug',
@@ -413,6 +425,7 @@ describe('project reads answer representations (P5a Task 8)', () => {
     'createdAt',
     'id',
     'launchedAt',
+    'name',
     'owner',
     'repository',
     'slug',
@@ -1266,5 +1279,249 @@ describe('the model catalogue a spec is validated against', () => {
     )
     expect(accepted.json()).toMatchObject({ valid: true, errors: [] })
     await ctx.app.close()
+  })
+})
+
+/**
+ * A PROJECT'S NAME (the front-end enablement plan's Task 6; §6 as Spec action 4 amended it on
+ * 2026-09-27): what people call the project — set at creation, the slug when none is given, and
+ * changed by `PATCH /v1/projects/{projectId}`, the API's first `PATCH`. It is never part of an
+ * address: every hostname, the repository and anything else §23 derives stays the slug's.
+ */
+describe('a project’s name (Task 6)', () => {
+  const rename = (
+    ctx: TestProject,
+    name: unknown,
+    options: {
+      cookies?: Record<string, string>
+      headers?: Record<string, string>
+    } = {},
+  ) =>
+    ctx.app.inject({
+      method: 'PATCH',
+      url: `/v1/projects/${ctx.projectId}`,
+      cookies: options.cookies ?? ctx.ownerCookies,
+      headers: options.headers ?? mutationHeaders(ctx.deps),
+      payload: { name },
+    })
+
+  const renamedEvents = (ctx: TestProject) =>
+    ctx.db
+      .select({
+        machineDetail: events.machineDetail,
+        humanMessage: events.humanMessage,
+      })
+      .from(events)
+      .where(and(eq(events.projectId, ctx.projectId), eq(events.type, 'project.renamed')))
+      .orderBy(asc(events.createdAt))
+
+  it('names a project at creation, and the slug is the name when none is given', async () => {
+    const { deps, app, cookies } = await signedIn()
+    const named = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: { ...projectBody('chem-121-labs'), name: '  CHEM 121 — Lab notebook  ' },
+    })
+    expect(named.statusCode, named.body).toBe(201)
+    // Trimmed, and nothing else changed: the dash is an em dash, and stays one.
+    expect(named.json()).toMatchObject({
+      slug: 'chem-121-labs',
+      name: 'CHEM 121 — Lab notebook',
+    })
+    const unnamed = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: projectBody('bio-labs'),
+    })
+    expect(unnamed.statusCode, unnamed.body).toBe(201)
+    expect(unnamed.json()).toMatchObject({ slug: 'bio-labs', name: 'bio-labs' })
+    // Read back, not only answered.
+    const read = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${named.json().id}`,
+      cookies,
+    })
+    expect(read.json().name).toBe('CHEM 121 — Lab notebook')
+    await app.close()
+  })
+
+  it('renames a project, answers the project, and publishes project.renamed naming the person', async () => {
+    await withProjectServer(async (ctx) => {
+      const before = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}`,
+        cookies: ctx.ownerCookies,
+      })
+      const frames: { type?: string; machineDetail?: unknown }[] = []
+      const publish = ctx.deps.bus.publish.bind(ctx.deps.bus)
+      ctx.deps.bus.publish = (frame) => {
+        frames.push(frame as never)
+        publish(frame)
+      }
+      const res = await rename(ctx, 'Organic Chemistry Labs')
+      expect(res.statusCode, res.body).toBe(200)
+      expect(res.json()).toMatchObject({
+        id: ctx.projectId,
+        slug: before.json().slug,
+        name: 'Organic Chemistry Labs',
+      })
+      // Streamed …
+      expect(frames.map((f) => f.type)).toEqual(['project.renamed'])
+      expect(frames[0]!.machineDetail).toEqual({
+        from: before.json().slug,
+        to: 'Organic Chemistry Labs',
+        via: 'session',
+        userId: ctx.userId,
+        tokenId: null,
+      })
+      // … and recorded, its sentence naming the person and never a PUID.
+      const recorded = await renamedEvents(ctx)
+      expect(recorded).toHaveLength(1)
+      expect(recorded[0]!.humanMessage).toContain('Bio Prof')
+      expect(recorded[0]!.humanMessage).toContain('Organic Chemistry Labs')
+      expect(recorded[0]!.humanMessage).not.toContain('bio_prof')
+    })
+  })
+
+  it('a rename to the name it already has answers the project and publishes nothing', async () => {
+    await withProjectServer(async (ctx) => {
+      const first = await rename(ctx, 'Organic Chemistry Labs')
+      expect(first.statusCode, first.body).toBe(200)
+      // A DIFFERENT key, so this is a second request and not a replay of the first.
+      const again = await rename(ctx, '  Organic Chemistry Labs ')
+      expect(again.statusCode, again.body).toBe(200)
+      expect(again.json().name).toBe('Organic Chemistry Labs')
+      expect(await renamedEvents(ctx)).toHaveLength(1)
+    })
+  })
+
+  it('a rename changes no hostname, no repository and no slug', async () => {
+    await withProjectServer(async (ctx) => {
+      const read = () =>
+        ctx.app.inject({
+          method: 'GET',
+          url: `/v1/projects/${ctx.projectId}?expand=environments`,
+          cookies: ctx.ownerCookies,
+        })
+      const before = (await read()).json()
+      expect((await rename(ctx, 'Something else entirely')).statusCode).toBe(200)
+      const after = (await read()).json()
+      expect(after.name).toBe('Something else entirely')
+      expect(after.slug).toBe(before.slug)
+      expect(after.repository).toEqual(before.repository)
+      expect(after.environments.map((e: { hostname: string }) => e.hostname)).toEqual(
+        before.environments.map((e: { hostname: string }) => e.hostname),
+      )
+      expect(after.environments.map((e: { url: string }) => e.url)).toEqual(
+        before.environments.map((e: { url: string }) => e.url),
+      )
+    })
+  })
+
+  it('refuses a name with a control character, or of 81 characters, as a malformed request', async () => {
+    await withProjectServer(async (ctx) => {
+      // The positive control: 80 characters, the bound, is a name.
+      const eighty = 'x'.repeat(80)
+      expect((await rename(ctx, eighty)).statusCode).toBe(200)
+      for (const name of [
+        'x'.repeat(81),
+        'a tab\there',
+        'a line\nbreak',
+        'an escape \u001b[31m',
+        'a C1 \u009b control',
+        'a lone \ud800 surrogate',
+        '   ',
+        '',
+      ]) {
+        expect(refusal(await rename(ctx, name)), JSON.stringify(name)).toEqual({
+          status: 400,
+          code: 'REQUEST_INVALID',
+        })
+      }
+      // And at creation, by the same rule.
+      const created = await ctx.app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+        payload: { ...projectBody('ctl-name'), name: 'bell\u0007' },
+      })
+      expect(refusal(created)).toEqual({ status: 400, code: 'REQUEST_INVALID' })
+      // Nothing was renamed by any refusal.
+      const read = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}`,
+        cookies: ctx.ownerCookies,
+      })
+      expect(read.json().name).toBe(eighty)
+    })
+  })
+
+  it('a collaborator renames; a stranger is not told the project exists', async () => {
+    await withProjectServer(async (ctx) => {
+      const collaborator = await sessionFor(ctx, 'bio_student', 'collaborator')
+      expect(
+        (await rename(ctx, 'Named by a collaborator', { cookies: collaborator }))
+          .statusCode,
+      ).toBe(200)
+      const stranger = await sessionFor(ctx, 'unrelated_user')
+      expect(
+        refusal(await rename(ctx, 'Named by a stranger', { cookies: stranger })),
+      ).toEqual({ status: 404, code: 'NOT_FOUND' })
+    })
+  })
+
+  it('a token holding project:write renames; one holding only project:read is refused', async () => {
+    await withProjectServer(async (ctx) => {
+      const withToken = async (capabilities: string[], name: string) => {
+        const { plaintext, row } = await mintTestToken(ctx.db, {
+          userId: ctx.userId,
+          projectId: ctx.projectId,
+          capabilities,
+          name: 'naming-agent',
+        })
+        const res = await ctx.app.inject({
+          method: 'PATCH',
+          url: `/v1/projects/${ctx.projectId}`,
+          headers: {
+            authorization: `Bearer ${plaintext}`,
+            'idempotency-key': randomUUID(),
+          },
+          payload: { name },
+        })
+        return { res, tokenId: row.id }
+      }
+      const allowed = await withToken(
+        ['project:read', 'project:write'],
+        'Named by an agent',
+      )
+      expect(allowed.res.statusCode, allowed.res.body).toBe(200)
+      expect(allowed.res.json().name).toBe('Named by an agent')
+      const [event] = await renamedEvents(ctx)
+      expect(event!.machineDetail).toMatchObject({
+        via: 'token',
+        userId: ctx.userId,
+        tokenId: allowed.tokenId,
+      })
+      expect(event!.humanMessage).toContain("Bio Prof's agent (token 'naming-agent')")
+      const refused = await withToken(['project:read'], 'Not allowed')
+      expect(refusal(refused.res)).toEqual({ status: 403, code: 'FORBIDDEN' })
+    })
+  })
+
+  it('a retried rename with the same key is one rename and one event', async () => {
+    await withProjectServer(async (ctx) => {
+      const headers = mutationHeaders(ctx.deps)
+      const first = await rename(ctx, 'Once', { headers })
+      const second = await rename(ctx, 'Once', { headers })
+      expect(first.statusCode, first.body).toBe(200)
+      expect(second.statusCode).toBe(200)
+      expect(second.json()).toEqual(first.json())
+      expect(await renamedEvents(ctx)).toHaveLength(1)
+    })
   })
 })

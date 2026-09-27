@@ -106,6 +106,7 @@ describe('recentFramesFor — the replay a new connection starts with', () => {
         .insert(projects)
         .values({
           slug: `other-${projectId.slice(0, 8)}`,
+          name: 'Another project',
           ownerId,
           blueprintRef: 'fixture-node@1',
         })

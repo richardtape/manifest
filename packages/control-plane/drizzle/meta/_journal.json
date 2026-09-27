@@ -232,6 +232,13 @@
       "when": 1790484039969,
       "tag": "0032_scrub_minted_token_secrets",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790547398540,
+      "tag": "0033_amusing_blob",
+      "breakpoints": true
     }
   ]
 }

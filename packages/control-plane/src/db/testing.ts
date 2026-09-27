@@ -44,6 +44,7 @@ export async function withProject(
       .insert(projects)
       .values({
         slug: `fixture-${unique}`,
+        name: `fixture-${unique}`,
         ownerId: owner!.id,
         blueprintRef: 'fixture-node@1',
       })

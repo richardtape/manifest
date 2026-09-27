@@ -2261,6 +2261,7 @@ Answer, `200`:
   {
     "id": "71a3eefa-e530-44c1-b7f5-3dde5e38eef8",
     "slug": "p-6e200d3a",
+    "name": "p-6e200d3a",
     "blueprint": "fixture-node@1",
     "starter": null,
     "owner": {
@@ -2288,6 +2289,7 @@ Answer, `200`:
   {
     "id": "f8920a3c-e857-4580-8f04-c72b008ae71f",
     "slug": "authz-other-f891223a",
+    "name": "authz-other-f891223a",
     "blueprint": "fixture-node@1",
     "starter": null,
     "owner": {
@@ -2347,6 +2349,7 @@ Answer, `201`:
 {
   "id": "2851c199-1ddd-4635-aca4-d5f173a904eb",
   "slug": "fixture-40adbffa",
+  "name": "fixture-40adbffa",
   "blueprint": "fixture-node@1",
   "starter": null,
   "owner": {
@@ -2445,6 +2448,7 @@ Answer, `200`:
 {
   "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
   "slug": "chem-labs",
+  "name": "chem-labs",
   "blueprint": "fixture-node@1",
   "starter": null,
   "owner": {
@@ -2495,6 +2499,71 @@ Answer, `200`:
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `updateProject` — Rename a project
+
+`PATCH /v1/projects/{projectId}` · a session or a delegated token
+
+Changes what people call the project — `name`, any text of 1 to 80 characters on one line — and nothing else: the slug, and so every hostname and the repository, never changes (§23, D26). Publishes `project.renamed` naming who did it; renaming a project to the name it already has answers the project and publishes nothing.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `projectId` | path | yes | The project’s id, from `listProjects` or `createProject`. |
+
+Request:
+
+```json
+{
+  "name": "CHEM 121 — Lab notebook"
+}
+```
+
+Answer, `200`:
+
+```json
+{
+  "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+  "slug": "chem-labs",
+  "name": "CHEM 121 — Lab notebook",
+  "blueprint": "fixture-node@1",
+  "starter": null,
+  "owner": {
+    "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+    "displayName": "Bio Prof"
+  },
+  "audience": {
+    "scale": "solo",
+    "burst": "steady",
+    "justification": null,
+    "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+    "setAt": "2026-09-26T21:49:02.609Z"
+  },
+  "createdAt": "2026-09-26T21:49:02.611Z",
+  "launchedAt": null,
+  "repository": {
+    "provider": "local",
+    "fullName": "chem-labs",
+    "webUrl": null,
+    "mainProtected": true,
+    "protectionDetail": null,
+    "visibility": null
+  }
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
 ### `listEnvironments` — A project’s environments

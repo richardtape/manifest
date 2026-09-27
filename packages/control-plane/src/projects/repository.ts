@@ -43,6 +43,11 @@ export interface StoredAudience {
 
 export interface CreateProjectInput {
   slug: string
+  /**
+   * What people call it (§6; the front-end enablement plan's Task 6, Decision 13) — THE SLUG WHEN
+   * NONE IS GIVEN, and this is the one place that rule is stated: every creation path comes here.
+   */
+  name?: string
   ownerId: string
   blueprintRef: string
   /** §25: the starter the first commit is seeded from; null for the skeleton alone. */
@@ -72,6 +77,7 @@ export async function createProject(
       .insert(projects)
       .values({
         slug: input.slug,
+        name: input.name ?? input.slug,
         ownerId: input.ownerId,
         blueprintRef: input.blueprintRef,
         starter: input.starter,
@@ -123,6 +129,32 @@ export async function createProject(
  */
 export async function deleteProject(db: Db, projectId: string): Promise<void> {
   await db.delete(projects).where(eq(projects.id, projectId))
+}
+
+/**
+ * WHAT PEOPLE CALL A PROJECT, CHANGED (the front-end enablement plan's Task 6, Decision 13) — and
+ * nothing else: the slug, and every hostname, SP entity, Docker name and repository derived from
+ * it, never moves. Answers the name it HAD, so the caller publishes `project.renamed` only for a
+ * change — or `undefined` when there is no such project. The row is locked while it is read and
+ * written, so two renames racing each record the name the other left, never the same `from`.
+ */
+export async function renameProject(
+  db: Db,
+  projectId: string,
+  name: string,
+): Promise<{ from: string } | undefined> {
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ name: projects.name })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .for('update')
+    if (row === undefined) return undefined
+    if (row.name !== name) {
+      await tx.update(projects).set({ name }).where(eq(projects.id, projectId))
+    }
+    return { from: row.name }
+  })
 }
 
 export async function getProject(

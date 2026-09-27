@@ -124,6 +124,8 @@ export const STAGING: Schemas['Environment'] = ENVIRONMENTS[1]!
 export const PROJECT: Schemas['Project'] = {
   id: PROJECT_ID,
   slug: 'mock-app',
+  // What people read — deliberately not the slug, so a client that shows one for the other is seen.
+  name: 'Mock course app',
   blueprint: 'node-ts-mongo@1',
   starter: 'proof-app',
   owner: { id: ME.id, displayName: ME.displayName },

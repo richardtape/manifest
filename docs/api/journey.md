@@ -9,6 +9,7 @@ Every step from an idea to a launched app, who takes it, and the operations that
 | Sign in with CWL | person | `getMe` |
 | Choose a blueprint and a starter, and read its knowledge pack | either | `listBlueprints`, `getBlueprint`, `getKnowledgePack` |
 | Check a name, and create the project for an audience | person | `checkSlug`, `createProject` |
+| Give the project a name people read, and change it | either | `updateProject` |
 | Give an agent a delegated token | person | `mintToken`, `listTokens`, `revokeToken` |
 | Read the documentation | either | `listDocs`, `getDoc`, `getOpenApiDocument` |
 | See the code: the tree, a file, the history, one commit | either | `getTree`, `getFile`, `listCommits`, `getCommit` |

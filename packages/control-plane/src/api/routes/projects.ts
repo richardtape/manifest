@@ -1,26 +1,36 @@
+import { z } from 'zod/v4'
 import { appSpecs } from '../../db/index.js'
 import type { ModelCatalogue } from '../../ai/index.js'
 import { renderProjectSeed } from '../../blueprints/index.js'
 import { makeRedactor, publishEvent } from '../../observability/index.js'
 import {
+  actorPhrase,
+  assertCapability,
   assertSlugAvailable,
+  AuthorizationError,
   createProject,
   deleteProject,
   projectViews,
   recordRepository,
+  renameProject,
 } from '../../projects/index.js'
 import type { RepositoryLink } from '../../source/index.js'
 import { declaresModels, validateSpec } from '../../spec/index.js'
 import type { ValidationContext } from '../../spec/index.js'
 import { requireSession } from '../actor.js'
 import { defineRoute, NO_PARAMS, NO_QUERY } from '../contract/route.js'
+import { PATH } from '../contract/schemas.js'
 import { BadRequestError } from '../errors.js'
 import { toEnvironment } from '../representations/environments.js'
 import {
   CreatedProject,
   CreateProjectRequest,
+  Project,
   toProject,
+  UpdateProjectRequest,
 } from '../representations/projects.js'
+
+const ProjectParams = z.strictObject({ projectId: PATH.projectId })
 
 type ModelPolicy = Pick<
   ValidationContext,
@@ -95,7 +105,7 @@ export function validationContext(
  * a model → the rows in one transaction → the repository, and the project deleted if that
  * fails → the spec validated and recorded → the three events, LAST.
  */
-export const createProjectRoutes = [
+export const projectWriteRoutes = [
   defineRoute({
     operationId: 'createProject',
     credential: 'session',
@@ -138,6 +148,7 @@ export const createProjectRoutes = [
       response: {
         id: '2851c199-1ddd-4635-aca4-d5f173a904eb',
         slug: 'fixture-40adbffa',
+        name: 'fixture-40adbffa',
         blueprint: 'fixture-node@1',
         starter: null,
         owner: { id: '25ecede0-2db6-462f-a5f5-e56a27a8b401', displayName: 'Bio Prof' },
@@ -246,6 +257,8 @@ export const createProjectRoutes = [
         deps.reservedLabels,
         {
           slug: body.slug,
+          // The slug when none is given — `createProject` states that rule once (Decision 13).
+          ...(body.name === undefined ? {} : { name: body.name }),
           ownerId: actor.userId,
           blueprintRef: body.blueprint,
           starter: body.starter ?? null,
@@ -392,6 +405,84 @@ export const createProjectRoutes = [
           sensitiveDiff: { sensitive: false, fields: [] },
         },
       }
+    },
+  }),
+  /**
+   * WHAT PEOPLE CALL A PROJECT, CHANGED (the front-end enablement plan's Task 6, Decision 13) — the
+   * API's first `PATCH`. `project:write`, so a collaborator and a token holding it may; the slug,
+   * and every hostname, SP entity and repository derived from it, never moves. A rename to the name
+   * it already has answers the project and publishes nothing: the event is a change.
+   */
+  defineRoute({
+    operationId: 'updateProject',
+    method: 'PATCH',
+    path: '/v1/projects/{projectId}',
+    tag: 'projects',
+    summary: 'Rename a project',
+    description:
+      'Changes what people call the project — `name`, any text of 1 to 80 characters on one line — and nothing else: the slug, and so every hostname and the repository, never changes (§23, D26). Publishes `project.renamed` naming who did it; renaming a project to the name it already has answers the project and publishes nothing.',
+    params: ProjectParams,
+    query: NO_QUERY,
+    body: UpdateProjectRequest,
+    success: { status: 200, description: 'The project, as it now is.', schema: Project },
+    errors: ['NOT_FOUND', 'FORBIDDEN'],
+    examples: {
+      request: { name: 'CHEM 121 — Lab notebook' },
+      response: {
+        id: '77811340-0c79-4c30-a00f-b87e8460b6cf',
+        slug: 'chem-labs',
+        name: 'CHEM 121 — Lab notebook',
+        blueprint: 'fixture-node@1',
+        starter: null,
+        owner: { id: '40baf394-7897-4cbb-89d6-7df27e51626d', displayName: 'Bio Prof' },
+        audience: {
+          scale: 'solo',
+          burst: 'steady',
+          justification: null,
+          setBy: '40baf394-7897-4cbb-89d6-7df27e51626d',
+          setAt: '2026-09-26T21:49:02.609Z',
+        },
+        createdAt: '2026-09-26T21:49:02.611Z',
+        launchedAt: null,
+        repository: {
+          provider: 'local',
+          fullName: 'chem-labs',
+          webUrl: null,
+          mainProtected: true,
+          protectionDetail: null,
+          visibility: null,
+        },
+      },
+    },
+    handler: async ({ deps, actor, params, body }) => {
+      await assertCapability(deps.db, actor, params.projectId, 'project:write')
+      const renamed = await renameProject(deps.db, params.projectId, body.name)
+      if (renamed === undefined)
+        throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
+      const [view] = await projectViews(deps, [params.projectId])
+      if (view === undefined)
+        throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
+      if (renamed.from !== body.name) {
+        await publishEvent(
+          deps.db,
+          deps.bus,
+          {
+            projectId: params.projectId,
+            subject: `project:${view.project.slug}`,
+            type: 'project.renamed',
+            machineDetail: {
+              from: renamed.from,
+              to: body.name,
+              via: actor.credential,
+              userId: actor.userId,
+              tokenId: actor.credential === 'token' ? actor.tokenId : null,
+            },
+            humanMessage: `${await actorPhrase(deps.db, actor)} renamed ${renamed.from} to ${body.name}.`,
+          },
+          makeRedactor([]),
+        )
+      }
+      return toProject(view)
     },
   }),
 ]

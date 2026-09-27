@@ -2,7 +2,34 @@ import { z } from 'zod/v4'
 import type { ProjectView, StoredAudience } from '../../projects/index.js'
 import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
 import { Environment } from './environments.js'
+import { LONE_SURROGATE } from './source.js'
 import { SpecValidation } from './specs.js'
+
+/**
+ * A control character — `\p{Cc}`: C0, DEL and C1 — refused rather than stripped: a name a person
+ * typed with one is a paste gone wrong. The class a commit message refuses (`messageProblems` in
+ * `source.ts`), WHOLE: a message may carry a line break and a tab, and a name, which is one line
+ * of a heading, carries neither.
+ */
+const CONTROL = /\p{Cc}/u
+
+/**
+ * WHAT PEOPLE CALL A PROJECT (§6 as Spec action 4 amended it; the front-end enablement plan's
+ * Task 6, Decision 13). Trimmed, then 1 to 80 characters of well-formed text with no control
+ * character. It never reaches a hostname or anything else §23 derives: the slug does.
+ */
+export const ProjectName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(80)
+  .refine(
+    (s) => !CONTROL.test(s) && !LONE_SURROGATE.test(s),
+    'a name is text, with no control character (no tab or line break) and no lone surrogate',
+  )
+  .describe(
+    'What people call the project — any text of 1 to 80 characters, trimmed, on one line. Never part of an address: the slug is.',
+  )
 
 export const UserSummary = representation(
   'UserSummary',
@@ -94,8 +121,9 @@ export const Project = representation(
       slug: z
         .string()
         .describe(
-          'The project’s name, and the first label of every hostname it has (§23).',
+          'The project’s permanent identifier, and the first label of every hostname it has (§23). It never changes; `name` is what people read.',
         ),
+      name: ProjectName,
       blueprint: z.string().describe('`name@major` (§25).'),
       starter: z
         .string()
@@ -165,6 +193,9 @@ export const CreateProjectRequest = request(
         .string()
         .min(1)
         .describe('Checked by the same function as GET /v1/slugs/{slug} (§23).'),
+      name: ProjectName.optional().describe(
+        'What people call the project — any text of 1 to 80 characters, trimmed, on one line. The slug, when none is given; `updateProject` changes it later.',
+      ),
       blueprint: z.string().min(1).describe('`name@major`, from GET /v1/blueprints.'),
       starter: z
         .string()
@@ -177,7 +208,19 @@ export const CreateProjectRequest = request(
       audience: AudienceInput,
     })
     .describe(
-      'A new project: its name, its blueprint, an optional starter, and who it is for.',
+      'A new project: its slug, optionally a name people read, its blueprint, an optional starter, and who it is for.',
+    ),
+)
+
+/** `PATCH /v1/projects/{projectId}` (the front-end enablement plan's Task 6) — the API's first `PATCH`. */
+export const UpdateProjectRequest = request(
+  'UpdateProjectRequest',
+  z
+    .strictObject({
+      name: ProjectName,
+    })
+    .describe(
+      'What to change about a project. Only its name can change; its slug never does (§23, D26).',
     ),
 )
 
@@ -206,6 +249,7 @@ export function toProject(
   return {
     id: view.project.id,
     slug: view.project.slug,
+    name: view.project.name,
     blueprint: view.project.blueprintRef,
     starter: view.project.starter,
     owner: view.owner,

@@ -496,3 +496,17 @@ A secret’s value was removed from one environment; deploying a release that de
   "tokenId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f"
 }
 ```
+
+## `project.renamed`
+
+The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not.
+
+```json
+{
+  "from": "chem-labs",
+  "to": "CHEM 121 — Lab notebook",
+  "via": "session",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": null
+}
+```

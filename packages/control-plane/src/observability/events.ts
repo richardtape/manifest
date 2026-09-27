@@ -138,6 +138,12 @@ export const EVENT_TYPES = [
   'app_secret.set',
   /** …and CLEARED. Published only when a value was there to clear: clearing is idempotent. */
   'app_secret.cleared',
+  /**
+   * A PROJECT WAS RENAMED (the front-end enablement plan's Task 6; §6's `name`) — what people
+   * call it, from and to, and by whom. Never its slug, which never changes. Not published for a
+   * rename to the name it already has: the event is a change, and there was none.
+   */
+  'project.renamed',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

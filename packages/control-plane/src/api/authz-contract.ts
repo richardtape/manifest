@@ -733,6 +733,28 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // THE API'S FIRST `PATCH` (the front-end enablement plan's Task 6): a project's name, which
+    // is `project:write` — so `validateSpec`'s shape. Each actor renames it to a name of its own,
+    // so no case's answer depends on another's, and nothing else §23 derives moves.
+    method: 'PATCH',
+    url: '/v1/projects/:projectId',
+    request: (f, actor) => ({
+      url: `/v1/projects/${f.projectId}`,
+      payload: { name: `Named by ${actor}` },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
     // Re-validates manifest.yaml at a commit. `project:write`, so a collaborator
     // passes and a stranger is hidden — the same shape as every other write on a
     // project. Idempotent for the suite's purposes: it appends an AppSpec row for

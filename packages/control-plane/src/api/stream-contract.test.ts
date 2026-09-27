@@ -226,6 +226,17 @@ describe('the stream in the contract (D23.2)', () => {
       expect(res.statusCode, `${method} ${secretUrl}: ${res.body}`).toBe(200)
     }
 
+    // A PROJECT'S NAME (the front-end enablement plan's Task 6): renamed through the API's
+    // first `PATCH`, so `project.renamed` is REACHED and parsed here too.
+    const renamed = await app.inject({
+      method: 'PATCH',
+      url: `/v1/projects/${project.id}`,
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: { name: 'CHEM 121 — Lab notebook' },
+    })
+    expect(renamed.statusCode, renamed.body).toBe(200)
+
     // The unit tier's whole lifecycle, as `delivery.test.ts` drives it, plus a redeploy so
     // the retirer publishes too: a build that fails, one that succeeds, a release, a
     // healthy deploy, a second that replaces it, and one whose instance never starts.

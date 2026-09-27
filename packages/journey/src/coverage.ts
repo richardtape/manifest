@@ -32,6 +32,11 @@ export const JOURNEY: readonly JourneyStep[] = [
     operations: ['checkSlug', 'createProject'],
   },
   {
+    step: 'Give the project a name people read, and change it',
+    who: 'either',
+    operations: ['updateProject'],
+  },
+  {
     step: 'Give an agent a delegated token',
     who: 'person',
     operations: ['mintToken', 'listTokens', 'revokeToken'],

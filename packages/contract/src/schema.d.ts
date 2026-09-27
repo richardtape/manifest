@@ -449,7 +449,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Rename a project
+         * @description Changes what people call the project — `name`, any text of 1 to 80 characters on one line — and nothing else: the slug, and so every hostname and the repository, never changes (§23, D26). Publishes `project.renamed` naming who did it; renaming a project to the name it already has answers the project and publishes nothing.
+         */
+        patch: operations["updateProject"];
         trace?: never;
     };
     "/v1/projects/{projectId}/builds": {
@@ -1514,10 +1518,12 @@ export interface components {
             /** @description Run every check the commit would, write nothing, and answer what would have happened. */
             dryRun?: boolean;
         };
-        /** @description A new project: its name, its blueprint, an optional starter, and who it is for. */
+        /** @description A new project: its slug, optionally a name people read, its blueprint, an optional starter, and who it is for. */
         CreateProjectRequest: {
             /** @description Checked by the same function as GET /v1/slugs/{slug} (§23). */
             slug: string;
+            /** @description What people call the project — any text of 1 to 80 characters, trimmed, on one line. The slug, when none is given; `updateProject` changes it later. */
+            name?: string;
             /** @description `name@major`, from GET /v1/blueprints. */
             blueprint: string;
             /** @description One the blueprint offers. Without one: the skeleton and a minimal manifest. */
@@ -1541,8 +1547,10 @@ export interface components {
              * @description The project — what every project-scoped path names.
              */
             id: string;
-            /** @description The project’s name, and the first label of every hostname it has (§23). */
+            /** @description The project’s permanent identifier, and the first label of every hostname it has (§23). It never changes; `name` is what people read. */
             slug: string;
+            /** @description What people call the project — any text of 1 to 80 characters, trimmed, on one line. Never part of an address: the slug is. */
+            name: string;
             /** @description `name@major` (§25). */
             blueprint: string;
             /** @description The starter the first commit was seeded from (§25); null for the skeleton alone. */
@@ -3352,6 +3360,55 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "project.renamed";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not. */
+            machineDetail: {
+                /** @description What people called the project before. */
+                from: string;
+                /** @description What they call it now (`Project.name`). */
+                to: string;
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
+                via: "session" | "token";
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
+                userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
+                tokenId: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
         };
         /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
         Fleet: {
@@ -4139,8 +4196,10 @@ export interface components {
              * @description The project — what every project-scoped path names.
              */
             id: string;
-            /** @description The project’s name, and the first label of every hostname it has (§23). */
+            /** @description The project’s permanent identifier, and the first label of every hostname it has (§23). It never changes; `name` is what people read. */
             slug: string;
+            /** @description What people call the project — any text of 1 to 80 characters, trimmed, on one line. Never part of an address: the slug is. */
+            name: string;
             /** @description `name@major` (§25). */
             blueprint: string;
             /** @description The starter the first commit was seeded from (§25); null for the skeleton alone. */
@@ -4666,6 +4725,11 @@ export interface components {
         };
         /** @description The project’s delegated tokens — revoked and expired ones included. */
         TokenList: components["schemas"]["Token"][];
+        /** @description What to change about a project. Only its name can change; its slug never does (§23, D26). */
+        UpdateProjectRequest: {
+            /** @description What people call the project — any text of 1 to 80 characters, trimmed, on one line. Never part of an address: the slug is. */
+            name: string;
+        };
         /** @description A person, by name. */
         UserSummary: {
             /**
@@ -5866,6 +5930,7 @@ export interface operations {
                      *       {
                      *         "id": "71a3eefa-e530-44c1-b7f5-3dde5e38eef8",
                      *         "slug": "p-6e200d3a",
+                     *         "name": "p-6e200d3a",
                      *         "blueprint": "fixture-node@1",
                      *         "starter": null,
                      *         "owner": {
@@ -5893,6 +5958,7 @@ export interface operations {
                      *       {
                      *         "id": "f8920a3c-e857-4580-8f04-c72b008ae71f",
                      *         "slug": "authz-other-f891223a",
+                     *         "name": "authz-other-f891223a",
                      *         "blueprint": "fixture-node@1",
                      *         "starter": null,
                      *         "owner": {
@@ -5969,6 +6035,7 @@ export interface operations {
                      * @example {
                      *       "id": "2851c199-1ddd-4635-aca4-d5f173a904eb",
                      *       "slug": "fixture-40adbffa",
+                     *       "name": "fixture-40adbffa",
                      *       "blueprint": "fixture-node@1",
                      *       "starter": null,
                      *       "owner": {
@@ -6062,6 +6129,7 @@ export interface operations {
                      * @example {
                      *       "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
                      *       "slug": "chem-labs",
+                     *       "name": "chem-labs",
                      *       "blueprint": "fixture-node@1",
                      *       "starter": null,
                      *       "owner": {
@@ -6109,6 +6177,80 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateProject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "name": "CHEM 121 — Lab notebook"
+                 *     }
+                 */
+                "application/json": components["schemas"]["UpdateProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description The project, as it now is. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+                     *       "slug": "chem-labs",
+                     *       "name": "CHEM 121 — Lab notebook",
+                     *       "blueprint": "fixture-node@1",
+                     *       "starter": null,
+                     *       "owner": {
+                     *         "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "audience": {
+                     *         "scale": "solo",
+                     *         "burst": "steady",
+                     *         "justification": null,
+                     *         "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                     *         "setAt": "2026-09-26T21:49:02.609Z"
+                     *       },
+                     *       "createdAt": "2026-09-26T21:49:02.611Z",
+                     *       "launchedAt": null,
+                     *       "repository": {
+                     *         "provider": "local",
+                     *         "fullName": "chem-labs",
+                     *         "webUrl": null,
+                     *         "mainProtected": true,
+                     *         "protectionDetail": null,
+                     *         "visibility": null
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

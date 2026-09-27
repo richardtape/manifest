@@ -137,7 +137,12 @@ describe('the provider on every project (Decision 3)', () => {
     const owner = await ensureTestUser(db, 'bio_prof')
     const [project] = await db
       .insert(projects)
-      .values({ slug: 'old-labs', ownerId: owner.id, blueprintRef: 'fixture-node@1' })
+      .values({
+        slug: 'old-labs',
+        name: 'old-labs',
+        ownerId: owner.id,
+        blueprintRef: 'fixture-node@1',
+      })
       .returning()
     expect(await rowOf(project!.id)).toBeUndefined() // as a pre-0024 project was
     await db.execute(sql.raw(backfillStatement()))

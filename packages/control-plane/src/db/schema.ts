@@ -56,6 +56,13 @@ export const projects = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     slug: text('slug').notNull(),
+    /**
+     * WHAT PEOPLE CALL IT (§6 as Spec action 4 amended it, 2026-09-27; the front-end enablement
+     * plan's Task 6): free text, 1 to 80 characters, set at creation — the slug when none is
+     * given — and changed by `updateProject`. NEVER part of an address: every hostname, SP
+     * entity, Docker name and repository is derived from `slug`, which never changes.
+     */
+    name: text('name').notNull(),
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => users.id),
@@ -894,7 +901,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed')`,
     ),
   ],
 )

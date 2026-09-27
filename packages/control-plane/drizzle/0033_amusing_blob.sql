@@ -1,0 +1,9 @@
+-- EDITED BY HAND (the front-end enablement plan's Task 6): drizzle wrote `ADD COLUMN "name" text NOT NULL`,
+-- which fails on any table that already has a project. It is three statements instead — the column added
+-- nullable, every existing project named by its slug (what creation now does when no name is given),
+-- then NOT NULL. The CHECK literal gains `project.renamed`, as drizzle wrote it.
+ALTER TABLE "audit"."events" DROP CONSTRAINT "events_type_known";--> statement-breakpoint
+ALTER TABLE "projects" ADD COLUMN "name" text;--> statement-breakpoint
+UPDATE "projects" SET "name" = "slug" WHERE "name" IS NULL;--> statement-breakpoint
+ALTER TABLE "projects" ALTER COLUMN "name" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "audit"."events" ADD CONSTRAINT "events_type_known" CHECK ("audit"."events"."type" IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed'));
