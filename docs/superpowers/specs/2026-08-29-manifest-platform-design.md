@@ -507,9 +507,15 @@ The platform's logical model catalogue carries a `max_classification` per entry:
 default-chat-onprem              max_classification: confidential
 default-chat                     max_classification: internal      # may route off-prem
 default-chat-onprem-reasoning    max_classification: confidential
+default-chat-large               max_classification: internal      # the capable model — a commercial provider, off-prem
 default-chat-reasoning           max_classification: internal      # may route off-prem
 default-embed                    max_classification: internal
 ```
+
+**The capable model** is one logical name, `default-chat-large`, for the agent and app work a small model cannot do. Which
+model answers it is a platform setting (§26) — a commercial provider's today — so repointing it changes no app, key or manifest.
+Whether data of a given classification may reach a provider outside Canada is the Privacy Office's to say (§9); the name's
+`max_classification` is what the platform enforces meanwhile, and `confidential` never leaves on-premise hardware.
 
 An app declaring `data.classification: confidential` may therefore resolve only to
 on-premise model groups. This is checked at spec validation, so the failure is a
@@ -2067,7 +2073,7 @@ created per build and destroyed:
 | dnsmasq | 7153 | Serves `*.manifest.internal`; see §12. **Two processes** — one answering containers, one answering the host — because `--address` is global to a dnsmasq process (S7) |
 | Postgres | 7103 | **One server, three databases**: control plane, LiteLLM, IdP metadata — consistent with D11 and worth ~400 MB on a 16 GB machine. The IdP metadata database needs **two roles**: a read-only one for SimpleSAMLphp's metadata source (`CONNECT`, schema `USAGE` and `SELECT` only — §9) and a separate one the control plane writes SP rows with. SimpleSAMLphp's session store is a further client, and it writes (§9) |
 | Manifest IdP (SimpleSAMLphp) | 7122 | Deliberately *not* 6122 — that is already taken by the standalone `docker-simple-saml` on this machine |
-| LiteLLM | 7106 | Virtual keys and budgets against the shared Postgres. Reaches Ollama on the host via `extra_hosts: host.docker.internal:host-gateway` and `api_base: http://host.docker.internal:11434` (S7, S3). Runs with **`STORE_MODEL_IN_DB`** — the model catalogue must be DB-held, not file-held (§7) — and **without `--detailed_debug`**, which would write student prompts into the log pipeline (§7). One port serves both admin and proxy traffic, so key confinement is `allowed_routes` (§10). Deployed **by digest**, recorded in `infra/images.lock` — litellm 1.98.0, `sha256:20b5044b…` — because `ghcr.io/berriai/litellm:main-stable` is a moving tag (it moved between 2026-09-07 and 2026-09-09). This is the version §16 pins the AI error mapping to |
+| LiteLLM | 7106 | Virtual keys and budgets against the shared Postgres. Reaches Ollama on the host via `extra_hosts: host.docker.internal:host-gateway` and `api_base: http://host.docker.internal:11434` (S7, S3). Runs with **`STORE_MODEL_IN_DB`** — the model catalogue must be DB-held, not file-held (§7) — and **without `--detailed_debug`**, which would write student prompts into the log pipeline (§7). One port serves both admin and proxy traffic, so key confinement is `allowed_routes` (§10). Deployed **by digest**, recorded in `infra/images.lock` — litellm 1.98.0, `sha256:20b5044b…` — because `ghcr.io/berriai/litellm:main-stable` is a moving tag (it moved between 2026-09-07 and 2026-09-09). This is the version §16 pins the AI error mapping to. The capable model, when configured, is a commercial provider reached through the same LiteLLM with the network on; nothing offline depends on it, and `default-chat` stays the model every offline path uses (C1) |
 | Registry (`registry:2`) | 7107 | Required: §13 binds approval to a digest and restricts pushes |
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
@@ -2850,7 +2856,8 @@ working and a queue that is stale is not.
   spend against the intake budget, and the spend by person.
 - **Platform settings** — the values §10 leaves to an administrator. They are the
   monthly agent budget's default and any one person's, and the intake model, whose
-  change is a change to the model catalogue and takes its step-up (§20). They are
+  change is a change to the model catalogue and takes its step-up (§20), and the capable
+  model's provider and model, whose change is one too. They are
   also intake's bounds: a key's cap and life, the keys a person may start in a day,
   and the platform's monthly intake budget. Each change is audited with its actor
   (below).
