@@ -76,6 +76,10 @@ PORT_CONSOLE=7104
 # §21's inventory again: manifest-mock is a HOST process too — the published contract from
 # fixtures, so a front-end developer needs no platform at all (P5c Task 12).
 PORT_MOCK=7102
+# The faculty front-end's server (§5's separate project, ~/Developer/manifest-app) — a HOST process
+# another session runs, which the edge's `app.` site sends every non-API path to (the front-end
+# enablement plan's Decision 19). Manifest never starts it; `make doctor` asks it who it is.
+PORT_FRONTEND=7105
 PORT_POSTGRES=7103
 PORT_LITELLM=7106
 PORT_REGISTRY=7107

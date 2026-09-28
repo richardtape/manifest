@@ -196,12 +196,23 @@ mock_is_ours() {
   curl -sS -m 2 "http://127.0.0.1:$PORT_MOCK/v1/__doctor" 2>/dev/null \
     | grep -q 'manifest-mock'
 }
+# THE FOURTH TIME (the front-end enablement plan's F12, sitting 7 → closed at sitting 9a,
+# 2026-09-28). The faculty front-end's server on 7105 read "CLAIMED BY SOMETHING ELSE: 7105" for
+# three sittings, because nothing could tell it from a stranger. Its session serves a marker for
+# exactly this — `GET /api/__doctor` answers `{"name":"manifest-app"}`, needs no session, calls
+# nothing of the platform, and is under `/api`, which its index.html can never answer — and keeps
+# that path and answer (its message, 2026-09-28). ASK IT, as for the three above.
+frontend_is_ours() {
+  curl -sS -m 2 "http://127.0.0.1:$PORT_FRONTEND/api/__doctor" 2>/dev/null \
+    | grep -q '"name":"manifest-app"'
+}
 check_block() {
   local p busy="" foreign="" ours
   ours=" $(manifest_own_ports | tr '\n' ' ')"
   if control_plane_is_ours; then ours="$ours $PORT_CONTROL_PLANE "; fi
   if console_is_ours; then ours="$ours $PORT_CONSOLE "; fi
   if mock_is_ours; then ours="$ours $PORT_MOCK "; fi
+  if frontend_is_ours; then ours="$ours $PORT_FRONTEND "; fi
   for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
     port_free "$p" && continue
     case "$ours" in
