@@ -132,8 +132,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # login): +33 and one file — `api/projects.test.ts`'s name, rename and first-PATCH cases (9),
 # `api/auth.test.ts`'s four `uid` sign-ins (4), `api/members.test.ts` (11, new), and the
 # authorization matrix's `PATCH` row, once per actor (9).
-EXPECT_TESTS=2611
-EXPECT_FILES=172
+# Then its sitting 8 (2026-09-27, archive and restore): +50 and two files — `api/lifecycle.test.ts`
+# (16, new), `projects/state.test.ts` (2, new), `projects/authz.test.ts` (4), `db/locks.test.ts` (1),
+# `tokens/expiry.test.ts` (1), `routing/routes.test.ts` (3), `sso/entity.test.ts` (1), the fake
+# driver's contract (4), and the authorization matrix's archive and restore rows (18).
+EXPECT_TESTS=2661
+EXPECT_FILES=174
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=61
 

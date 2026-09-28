@@ -2082,3 +2082,26 @@ or match with `grep -F`, and ALWAYS print the diff before trusting the red or th
 takes NOW's UTC offset, not midnight's, so on the evening of the day DST starts and the morning of the day it ends the row it
 places at *"midnight + 1 minute"* lands on the wrong day. **The next is the morning of 2026-11-01** (DST ends). A red there on
 that date is the test's, not the platform's: compute the offset at the computed midnight (`Intl` with the date, not now).
+
+
+## Added by the front-end enablement plan's sitting 8 (2026-09-27, Task 11 — archive and restore)
+
+**POSTGRES REFUSES JAVASCRIPT'S LAST INSTANT.** `new Date(8.64e15)` — the year 275760 — is what `toISOString` writes as
+`+275760-09-13T00:00:00.000Z`, and a query binding it fails `22009` (`DateTimeParseError`), measured. An "every expiry there is"
+clock is `new Date('9999-12-31T23:59:59.999Z')` (`tokens/expiry.ts`'s `EVERY_QUESTION`), which both sides spell the same way.
+
+**A RACE BETWEEN A READ-THEN-WRITE AND A STATE CHANGE CAN BE MADE DETERMINISTIC WITH `FOR UPDATE`.** The mint route authorizes
+with a plain read and inserts a token later; an archive landing between them is a window no route test could widen, so removing
+the mint's `FOR SHARE` hold left every test green. A test transaction that holds the project's row `FOR UPDATE` lets the plain
+read through and blocks BOTH the hold and the insert's foreign-key check (`FOR KEY SHARE`); it sets the state and commits, and the
+request then finishes on the far side of the change (`api/lifecycle.test.ts`, *a token minted while the project is archived*).
+**An insert's own foreign key does NOT wait for an `UPDATE` of a non-key column** (`FOR KEY SHARE` against `FOR NO KEY UPDATE`),
+which is why `holdActiveProject` reads the row `FOR SHARE` rather than relying on the reference.
+
+**A SWITCHED-OFF NAME DIALS NOTHING** (Task 11, Decision 29). `Driver.switchOff` puts a `410` `static_response` under the
+hostname's own route `@id`; `servingRoute` answers `undefined` for it and `upstreamsInUse` does not list the old instance, so a
+retire is no longer refused `INSTANCE_SERVING` — which is the ORDER an archive relies on (the name first, then what served it).
+**Never `destroyInstance` an archived app's instance**: the Docker driver's removes the hostname's route by label, and the name
+falls through to the wildcard's `manifest OK` (control (a), measured on the Docker tier; the fake's `destroyInstance` drops only a
+route naming that instance, so the unit tier stays green). A Docker test that restarts the edge drops every switched-off page too;
+`finishTeardowns` at boot puts them back.

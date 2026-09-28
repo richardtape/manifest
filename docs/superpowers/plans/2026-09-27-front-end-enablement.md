@@ -51,8 +51,8 @@
 | 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.name` (the slug when none is given; one visible line), renamed by `PATCH /v1/projects/{projectId}`, `project.renamed`; `uid` asked for and kept as `users.cwl_login`, HELD BY WHOEVER SIGNED IN WITH IT LAST; `addMember` by exactly one of `puid`/`cwlLogin`/`email`, `MEMBER_USER_AMBIGUOUS`, `member.added`/`member.removed` naming `memberId`; one fresh whole-branch review, two Importants and two re-graded minors fixed (the last owner kept, a login miss that names email and PUID); `make verify`'s audit probe repaired (F16) |
 | 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | **DONE 2026-09-27** — `config.origins` and `originOf` (the arrival origin, never the request's own); CSRF, sign-in, step-up, cookies and sign-out by it; one SP entity with an ACS per origin and one SLO; a SAML client per origin, so an assertion answering one origin's request is refused on the other; a sign-out's `RelayState` names the client that checks the IdP's answer and the origin it returns to; the edge's `app.` site and pin; `make verify` **61** (60 as the task built it, one added by the review's fix); **a real sign-in on `app` in a browser, Rich typing** — `app`'s `/v1/me` `200`, the console's `401`. **And the faculty front-end's message recorded** (*Decided by Rich*), with **Spec actions 5 and 6 drafted** |
 | 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **And, from the front-end's message: `AgentSession.spentUsd` (FE-23) and the platform-paid INTAKE key (FE-1)** (Tasks 9–10's `[S6]`). **If it runs long, stop after Task 9 and sweep — and FE-1 opens the next sitting** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27; **Spec action 5** (FE-1) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-27** — `mintCappedKey`, ONE mint for an agent key (`mf-agent-<id>`, on the person's `mf-person-<userId>`) and an intake key (`mf-intake-<id>`, on `mf-platform-intake`): a cap, a life never past the credential that asked (a token's, or the signed-in session's — `SessionActor.expiresAt`), D17's models with production as a floor, never an empty list, never stored; `startAgentSession` (answered once), `listAgentSessions` (FE-23's `spentUsd`, null with a reason, never 0), `endAgentSession`, `getAgentBudget`; a revoked token ends its sessions, on a retry too, and a token revoked WHILE one starts leaves no live key (the review's I1); FE-1's `startIntakeSession` / `endIntakeSession`, session only, a Vancouver day under a per-person lock; the orphan script taught; one fresh whole-branch review, its Important fixed red-first |
-| 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | ← next |
-| 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | |
+| 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.state` (`active`/`archived`), `archived_at`, `archived_by`; `assertCapability` refuses an archived project all but `project:read`/`project:delete` (`409 PROJECT_ARCHIVED`), `tokenActor` any token of it; `POST …/archive` (person-only, step-up) and `…/restore` (person-only); the state, tokens and questions in ONE transaction, then `TEARDOWN_STEPS` — every name a `410` page (`Driver.switchOff`), every instance retired, each environment stopped keeping its data (`Driver.destroyEnvironment`), sandbox's and staging's SPs deregistered, agent sessions ended LAST; a failed step `500 PROJECT_TEARDOWN_INCOMPLETE`, finished on retry or at boot (`finishTeardowns`); three archive races closed as I1 was; one fresh whole-branch review, its two Importants fixed red-first |
+| 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | ← next |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
@@ -1749,7 +1749,7 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 - Modify: `packages/control-plane/src/db/schema.ts` — `state` gains `'deleted'`, `deleted_at`; **a custom migration** replacing `projects_slug_key` with `CREATE UNIQUE INDEX projects_slug_key ON projects (slug) WHERE state <> 'deleted'`
 - Modify: `packages/control-plane/src/releases/lifecycle.ts` — `deleteProject`
 - Modify: `packages/control-plane/src/secrets/store.ts` — `deleteSecretsOf(db, projectId)`; `packages/control-plane/src/ai/keys.ts` — `deleteAppUsers(client, projectId)` (`/user/delete` for `mf-<projectId>-<kind>`, three kinds — `[M7]` confirms the endpoint)
-- Modify: `packages/control-plane/src/projects/repository.ts` — every read of a project treats `deleted` as absent (`getProject`, `listProjects`, the fleet)
+- Modify: `packages/control-plane/src/projects/repository.ts` — every read of a project treats `deleted` as absent (`getProject`, `listProjectsFor`, `projectViews`, and `projects/fleet.ts`'s `listFleet` — corrected by sitting 8, F17: there is no `listProjects`)
 - Modify: `packages/control-plane/src/api/routes/lifecycle.ts` — **`deleteProject`** `DELETE /v1/projects/{projectId}`
 - Modify: the event files — `project.deleted`; `api/error-codes.ts` — `PROJECT_LAUNCHED_NOT_DELETABLE`
 - Modify: `packages/control-plane/src/api/authz-contract.ts` — the row, on throwaway projects
@@ -3795,3 +3795,154 @@ person can click, and agent sessions have no screen until Task 13.
 **Next: sitting 8 (Task 11 — archive and restore)**; Spec action 3 is applied; `pnpm test:docker` owed (`runtime/`, `releases/`,
 `routing/`, `sso/`, `ai/`); the contract moves, so its close-out lists every change for the front-end; Task 11's `[S7]` carries the
 review's I1 into archive.
+
+### Sitting 8 — 2026-09-27: Task 11, archive and restore
+
+**Run cold from ORIENTATION §7e** at Rich's *"read ORIENTATION.md and continue with the next sitting"* — with the faculty
+front-end's session running beside it (Rich: it may ask about API changes; it touches no code here). **In the first message**:
+the capable model's provider and `make refresh-vulndb` (due after 2026-10-01) asked, non-blocking; F12's marker asked to be
+relayed to the front-end. **Rich had not answered by the close**; §7e asks all three again. Machine at open as sitting 7 left it but for ONE `users` row
+(`ins000001`, created 02:49 UTC — a sign-in after sitting 7's close; truncated by this sitting's first unit run). Inline
+execution (`superpowers:executing-plans`), on `main`; one fresh whole-branch reviewer (Opus, read-only, told never to run a
+test) beside the owed Docker tier. Commits: `ce96baa` (Task 11), `50bf47e` and `2ff30d0` (two tests strengthened by the
+controls), `8b690fc` (the review's two Importants), and the close-out.
+
+**Rulings** (the ledger's `Task 11: Ruling:` lines, each with its cost if wrong):
+- **Switching a name off is a DRIVER method** (`Driver.switchOff(hostname, kind)`; the Docker driver's calls routing's
+  `applySwitchedOffRoute`). The plan had the archive call `applySwitchedOffRoute(deps, …)` from `releases/`, but outside the
+  Docker driver the control plane holds no Caddy client — `index.ts` hands `routing` to the driver alone — and the driver
+  already owns every other route write. The fake models it (`isSwitchedOff`), so the unit tier sees the step at all.
+- **The page is `410`, `no-store`** and carries §20's headers with a CSP of `default-src 'none'` — a `410` is heuristically
+  cacheable, and a restored app must not stay hidden behind a browser's copy (control (j)).
+- **Archive empties the project's Route records** in the switch-off step, under each environment's lock: nothing serves the
+  name, and boot's pass 1 would otherwise route every switched-off name back to a retired instance (an `INSTANCE_NOT_FOUND`
+  line per name per boot). The next deploy after a restore upserts a fresh one.
+- **Every environment's name is switched off, production's included**, so no name of an archived project answers the wildcard;
+  SPs are deregistered for sandbox and staging only (§11 as Spec action 6 wrote it).
+- **`projects.archived_by`** (→ `users`): the boot's `finishTeardowns` has no request to say who acted, and `endSessionsOf`'s
+  events need a person — the owner only when nothing recorded anybody. It is also the start of §8's open *"who acted"*.
+- **`project.archived` is published ONCE PER ARCHIVE**, read from the trail (an event of that type since `archived_at`, both
+  stamped by the database's clock): a retry of a finished archive runs every step again. `project.restored` only on a real
+  transition.
+- **The questions expire through the one rule**: `expirePendingActions(db, EVERY_QUESTION, { projectId })`, the scope gaining
+  `projectId` beside `tokenId` and the archive passing its own clock (9999-12-31) — not a second function.
+- **`SsoDeregistrar` is its own interface** beside `SsoRegistrar` (`ServerDeps.sso` holds both): a deploy registers and never
+  removes, and fifteen `DeployDeps` literals would otherwise have grown a method they never call.
+- **Sitting 7's deferred minor 3, decided**: with AI off, `endAgentSession` stamps an EXPIRED session without the gateway (its
+  key stopped at its own `duration`; what it spent is unknown); a live one still needs the gateway (a `500`) — so an archive, or
+  a token's revoke, can finish while AI is off (control (i)).
+- **`project:delete` leaves the matrix's `CAPABLE` set** (the mint route refuses it now), and `token-incapable` holds
+  `['quota:set']` (Decision 30); **no other row moved** (`[M13]`'s prediction held: 677 → 695, +18, the two new rows).
+- **The migration was squashed to one `0037`** (state and the events CHECK had been generated as `0037` and `0038` and applied
+  here only; reversed by hand in one transaction, two journal rows deleted, regenerated with `archived_by`, re-applied — **38
+  migrations**, the three constraints verified in `psql`).
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 Decision 27's *"a token cannot reach an archived project, because archiving revokes every token first"* was false in
+   three race windows**: a mint that authorized before the archive and inserted after (a token that survives the archive, live
+   again after a restore); an agent start (sitting 7's I1, carried by `[S7]`); a deploy that authorized before the archive and
+   took its environment's lock after (it would bring a switched-off app back up). Closed as I1 was: `holdActiveProject` reads
+   the project row `FOR SHARE` in the mint's and the start's transactions — an insert's own foreign key takes `FOR KEY SHARE`,
+   which an `UPDATE` of a non-key column does not wait for — `deployRelease` reads the state again as the first thing under its
+   lock, and `tokenActor` refuses a token whose project is not active (a join on its one lookup). Each held by a test and a
+   control: (e), (f), (g), (h).
+2. **F2 The plan's switch-off could not be wired as written** — `applySwitchedOffRoute(deps, …)` from `releases/`, where no
+   Caddy client exists (the ruling above).
+3. **F3 The plan's *"the fake keeps no routes"* (Step 10's control (a)) is stale** — the fake has a route map since P4b finding
+   73. The prediction it supported still held, for another reason: the fake's `destroyInstance` drops only a route that names
+   that instance, and a switched-off name names none.
+4. **F4 Boot would have routed every switched-off name back to a retired instance**: the Route records still named the instance
+   an archive retired, and pass 1 re-applies them — found reading `recover.ts` before wiring `finishTeardowns`; the archive
+   empties them.
+5. **F5 A teardown the BOOT finishes had no one to attribute its events to** — `endSessionsOf` publishes `agent_session.ended`
+   naming who acted, and a boot has no request: `projects.archived_by`.
+6. **F6 Postgres refuses JavaScript's last instant**: `new Date(8.64e15)` is written `+275760-…`, and the scoped expiry failed
+   `22009` (`DateTimeParseError`) — measured by the expiry test's first green run. TRAPS.md has it.
+7. **F7 `project.archived` would have been published once per REQUEST** — a retry of a finished archive re-runs every step —
+   held by *an archive that stops at a step* (a third request publishes nothing).
+8. **F8 The fake driver's service ids collided once a service was removed** (`svc-${services.size + 1}`, the shape its own
+   comment warns about for instances) — reachable for the first time now that an archive removes services.
+9. **F9 The mint route's third check — *"no more than the minter holds"* — has no capability left that reaches it**: every
+   capability a collaborator lacks is privileged (`members:manage`, `release:promote`) or person-only (`project:delete`), and an
+   administrator's extra three are too. `api/tokens.test.ts`'s case, which used `project:delete`, went red (`400` for `403`) and
+   is re-aimed at the person-only refusal; the check stays, for the next owner-only mintable capability.
+10. **F10 With AI switched off, an archive of any project that ever ran an agent session could never finish** — every session
+    row stays unended past its expiry, and each asked the gateway (sitting 7's deferred minor 3); decided above.
+11. **F11 A switched-off `410` is heuristically cacheable** — a restored app could have stayed hidden behind a browser's copy.
+12. **F12 The first draft of the deploy race could see the re-check and not the ORDER** (Step 10's control (b)): it set the state
+    by hand. Rewritten to race a REAL archive against a waiting deploy (`50bf47e`); (b) then turned it red.
+13. **F13 Control (b) turned THREE tests red where two were predicted**: the third, *a session starting WHILE the project is
+    archived*, shows the start's `FOR SHARE` hold works only BECAUSE the state changes before the sessions are ended — the order
+    and the hold are one control, not two.
+14. **F14 Control (h) could not fail** — no route test could widen the mint's window, so removing its hold left all 25 tests
+    green. A test transaction holding the project row `FOR UPDATE` (a plain read passes it; the hold and the foreign key both
+    wait) made it deterministic (`2ff30d0`); (h) is then RED (`201` for `409`). TRAPS.md has the technique.
+15. **F15 (the review's I1) The one step that needs the model gateway stood FIRST, and a run stops at its first failure** —
+    so with LiteLLM down, or AI off, and one live agent session, an "archived" app kept serving its students, its tokens stayed
+    live, and a restore revived them (the restore route's own contract says they stay revoked). The state, the tokens and the
+    questions now change in ONE transaction, and `end-agent-sessions` runs LAST — nothing depends on it, and an agent key is a
+    gateway credential, not a way into the app. RED first (`expected false to be true` — the name still served), `8b690fc`.
+    **The transaction's own share cannot be made to fail in a test** (the reordered revoke step revokes anyway; only a database
+    failure between the flip and that step shows it) — kept, by construction, and said so here.
+16. **F16 (the review's I2) An instance whose deploy never recorded its handle kept its model key for ever** — a deploy stores
+    the instance's key BEFORE its container is ready, and the archive's null-handle branch moved the row to `gone` without a
+    revoke, so no archive, retire or boot would ever see it again. Revoked there now; RED first (one key where two belonged).
+    The same test measures the ordinary path's revocation too, which nothing measured (the review's minor 6).
+
+17. **F17 Task 12's *Files* names `listProjects`, which does not exist** — the reads a deleted project must be absent from are
+    `getProject`, `listProjectsFor`, `projectViews` and the fleet's `listFleet` (`projects/`). Found by the close's post-sweep
+    check, opening what §7e pointed at; §7e says so, and Task 12's text is corrected in place.
+
+**The gates found nothing new**: `make doctor`'s one failure is sitting 7's F12 — the faculty front-end's own server on 7105,
+restarted since the open (another PID) — and the Docker tier was green on its first run.
+
+**The negative controls — every one predicted in writing first (`t11-predictions.md`), run after its commit, and restored:**
+(a) retire-instances DESTROYS → the unit case GREEN as predicted, and the Docker case RED *"manifest OK host=arch-….staging…
+expected 200 to be 410"* — plus *a restored project's next deploy* (the name answered the wildcard before the redeploy), not
+predicted; (b) the state set LAST → three RED (F13); (c) a step's failure swallowed → *stops at a step* RED (`200` for `500`),
+and the AI-off case's refusal half; (d) `finishTeardowns` never called at boot → both boot cases RED; (e) no hold in the
+agent start → RED twice (a live key, `200` for `401`); (f) no project-state line in `tokenActor` → RED (`200` for `401`); (g) no
+re-check in `deployRelease` → RED (`200` for `409`); (h) no hold in the mint → GREEN (F14), then RED; (i) the gateway always
+asked → the AI-off case RED (`500` for `200`); (j) no `no-store` → `routes.test.ts` RED; (k) `project:delete` out of
+`PERSON_ONLY` → four RED, the matrix GREEN as predicted (every token is refused its credential class by the wrapper first).
+
+**Deferred minors** (the review's — the ledger's `Final: minor (deferred)` lines): a retirer pass already draining an instance
+when an archive lands races it to the same container (Docker's `409` "removal already in progress", a spurious `500`, a retry
+succeeds); **a restored project whose FIRST deploy fails lands on the wildcard, not the switched-off page** (`ensureInstance`'s
+`previous` is `undefined` for a `410` route, so its rollback removes the route — the shape a never-deployed name has today);
+**every boot re-runs the whole teardown of every archived project, for ever** — nothing records completion (a
+`teardown_finished_at` would let a finished project only re-apply its pages); and with the gateway REACHABLE but failing, an
+EXPIRED session is still not stamped (after F15 it is the last step, so the app is already off). **Declined to judge, all nine
+standing** as the spec or a decision already says (the ledger's `Final: Ruling:` line).
+
+**Gates at close**: **`pnpm test` 2661 passed in 174 files**, twice on the final tree (`8b690fc`: 633 s and 651 s, identical,
+load ~4–5) — up from 2611 in 172 by 50 tests and two files (`api/lifecycle.test.ts` 16, `projects/state.test.ts` 2; `authz` 4,
+`locks` 1, `expiry` 1, `routes` 3, `entity` 1, the fake driver's contract 4, and the matrix 18 — two rows, nine actors) —
+**exactly the 2661 in 174 predicted before the runs**. **`pnpm test:docker` 232 in 39 files** — owed (`runtime/`, `releases/`,
+`routing/`, `sso/`, `ai/`, `projects/`), run ONCE beside the reviewer with no Vitest beside it: **green first time**, 1064 s at
+load ~5–9; +10 tests (`releases/lifecycle.docker.test.ts` 5, the SSO deregistration 1, the Docker driver's contract 4) and +1
+file, exactly as predicted. **The fix pass touched lines the Docker case runs** (`releases/lifecycle.ts`): that file re-run
+alone on `8b690fc`, 5 of 5. `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean; `packages/contract` built at every
+commit. **`make verify` 61/0/0** (unchanged), `mf- containers=6 networks=2 volumes=4` after the cleanup. **`make doctor` 20
+checks, 1 failed — F12's 7105**, the other nineteen pass; `EXPECT_DOCTOR` does not move. The contract is **`1.4.0`**,
+additive: **65 operations** (+2), **125 error codes** (+2), **89 schemas** (unchanged), **45 event types** (+3). Migrations
+**38** (`0037`, squashed).
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions,
+0 intake sessions, **38 migrations** (`psql`); `launch-app`'s six `mf-launch-app-*` containers running, untouched, and no other
+`mf-` container; nothing of this platform's on 7100, 7104, 7110 or 8765 — **the control plane is not running** — while **7102
+and 7105 are held by the faculty front-end's session** (its node processes, its own); the GitHub fake absent; **both models
+unloaded** (`/api/ps` lists none); the edge restarted by the Docker tier, no runtime route applied on `srv0` or `srv1`. The
+three cleanup scripts, after `--apply` (allowed — 7 networks and 1 volume, the tier's; 2 LiteLLM users, `p4b-probe-user` and
+`mf-platform-intake`, each with no live key; 14 app images), run bare again: nothing dead. The snapshot diff shows uptimes, the
+edge's restart, HEAD, and **3 GiB less free disk** (69 → 66 Gi); Docker's build cache 25.1 GB (20.9 GB reclaimable), which no
+script touches. `docker-simple-saml-saml-idp-1` exited, as at open; `docker-simple-saml` clean but its old untracked
+`cert.zip`. **HEAD did not move under the sitting.** **The four shared HTML pages** were checked: the schematic's *Status*
+line moves when a plan finishes (sittings 2–7 left it too), and Spec action 3's words were swept when it was applied — nothing
+to change. WALKTHROUGH unchanged: archive has no screen until Task 13.
+
+**Next: sitting 9 (Task 12 — delete)**; Spec action 3 is applied; `pnpm test:docker` owed (`runtime/`, `source/`,
+`services/`); the contract moves, so its close-out lists every change for the front-end; §7e carries what Task 12's text does
+not say — above all that removing the switched-off routes is a `Driver` method, and that a deleted project is `404` to
+everyone.
