@@ -462,34 +462,31 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
    * checked: behind a reverse proxy the public port is legitimately not ours.
    */
   const spOrigin = raw.MANIFEST_CONTROL_PLANE_ORIGIN
-  // APPLIED TO EVERY ORIGIN (the front-end enablement plan's Task 8): the front-end's is an ACS
-  // the IdP posts to exactly as the console's is, and the Docker tier boots it at loopback too.
-  const checkLoopbackPort = (setting: string, origin: string, code: string) => {
+  // APPLIED TO EVERY ORIGIN (the front-end enablement plan's Task 8): the front-end's is an ACS the IdP posts to exactly as
+  // the console's is, and the Docker tier boots it at loopback too. EACH CODE IS THROWN AS A LITERAL, at its own call site:
+  // `api/error-codes.test.ts` finds the codes the source throws by the constructor's quoted first argument, and a helper
+  // that took the code as a parameter hid both from it (sitting 6's close — F14).
+  const portMismatch = (setting: string, origin: string): string | undefined => {
     const loopback = /^https?:\/\/(127\.0\.0\.1|\[::1\]|localhost)(?::(\d+))?$/.exec(
       origin,
     )
-    if (loopback && Number(loopback[2] ?? '80') !== raw.MANIFEST_PORT) {
-      throw new ConfigError(
-        code,
-        `${setting} is '${origin}' but MANIFEST_PORT is ` +
-          `${raw.MANIFEST_PORT}. The origin is what the IdP posts a person's assertion ` +
-          'back to, so a loopback origin naming a different port registers a callback ' +
-          'nothing is listening on.',
-      )
-    }
+    return loopback && Number(loopback[2] ?? '80') !== raw.MANIFEST_PORT
+      ? `${setting} is '${origin}' but MANIFEST_PORT is ${raw.MANIFEST_PORT}. The origin is what the IdP ` +
+          "posts a person's assertion back to, so a loopback origin naming a different port registers a " +
+          'callback nothing is listening on.'
+      : undefined
   }
-  checkLoopbackPort(
-    'MANIFEST_CONTROL_PLANE_ORIGIN',
-    spOrigin,
-    'CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH',
-  )
+  const spMismatch = portMismatch('MANIFEST_CONTROL_PLANE_ORIGIN', spOrigin)
+  if (spMismatch !== undefined) {
+    throw new ConfigError('CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH', spMismatch)
+  }
   const frontendOrigin = raw.MANIFEST_FRONTEND_ORIGIN
-  if (frontendOrigin !== '') {
-    checkLoopbackPort(
-      'MANIFEST_FRONTEND_ORIGIN',
-      frontendOrigin,
-      'CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH',
-    )
+  const frontendMismatch =
+    frontendOrigin === ''
+      ? undefined
+      : portMismatch('MANIFEST_FRONTEND_ORIGIN', frontendOrigin)
+  if (frontendMismatch !== undefined) {
+    throw new ConfigError('CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH', frontendMismatch)
   }
   const origins = [spOrigin, ...(frontendOrigin === '' ? [] : [frontendOrigin])]
   // A request names its origin by its HOST (`api/origins.ts`), so two origins on one host would

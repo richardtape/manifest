@@ -622,6 +622,12 @@ export const ERROR_CODES = {
   CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH: config(
     'A loopback origin names a port the control plane does not listen on.',
   ),
+  CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH: config(
+    'MANIFEST_FRONTEND_ORIGIN is a loopback origin naming a port the control plane does not listen on.',
+  ),
+  CONFIG_ORIGINS_SHARE_A_HOST: config(
+    'MANIFEST_CONTROL_PLANE_ORIGIN and MANIFEST_FRONTEND_ORIGIN are on one host, so a request could not say which it arrived on.',
+  ),
   CONFIG_LITELLM_MASTER_KEY_REQUIRED: config(
     'MANIFEST_LITELLM_MASTER_KEY is required outside development.',
   ),

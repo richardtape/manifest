@@ -7967,11 +7967,13 @@
           "BLUEPRINT_NOT_FOUND",
           "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED",
           "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH",
+          "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH",
           "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT",
           "CONFIG_GITHUB_INSECURE_URL",
           "CONFIG_INVALID",
           "CONFIG_LITELLM_MASTER_KEY_REQUIRED",
           "CONFIG_MASTER_SECRET_REQUIRED",
+          "CONFIG_ORIGINS_SHARE_A_HOST",
           "CREDENTIAL_AMBIGUOUS",
           "CSRF_ORIGIN_REFUSED",
           "DOC_NOT_FOUND",
@@ -8083,11 +8085,13 @@
           "BLUEPRINT_NOT_FOUND": "No blueprint with this reference is in the registry.",
           "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED": "MANIFEST_BUILD_CREDENTIAL_SECRET is required outside development.",
           "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH": "A loopback origin names a port the control plane does not listen on.",
+          "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH": "MANIFEST_FRONTEND_ORIGIN is a loopback origin naming a port the control plane does not listen on.",
           "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT": "A GitHub URL names loopback — the fake GitHub a laptop runs — on the GitHub driver outside development.",
           "CONFIG_GITHUB_INSECURE_URL": "A GitHub URL is plain http beyond loopback, so an installation token would cross the network in plaintext.",
           "CONFIG_INVALID": "A setting failed validation.",
           "CONFIG_LITELLM_MASTER_KEY_REQUIRED": "MANIFEST_LITELLM_MASTER_KEY is required outside development.",
           "CONFIG_MASTER_SECRET_REQUIRED": "MANIFEST_MASTER_SECRET is required outside development.",
+          "CONFIG_ORIGINS_SHARE_A_HOST": "MANIFEST_CONTROL_PLANE_ORIGIN and MANIFEST_FRONTEND_ORIGIN are on one host, so a request could not say which it arrived on.",
           "CREDENTIAL_AMBIGUOUS": "The request carried both a session cookie and a delegated token; it carries one or the other.",
           "CSRF_ORIGIN_REFUSED": "A request carrying a session did not come from the console’s origin.",
           "DOC_NOT_FOUND": "No page of the API’s documentation has this slug.",
@@ -15688,6 +15692,11 @@
       "summary": "A loopback origin names a port the control plane does not listen on.",
       "remedy": "The control plane refuses to start until its operator corrects the setting the message names; nothing a client sends changes it."
     },
+    "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH": {
+      "status": 409,
+      "summary": "MANIFEST_FRONTEND_ORIGIN is a loopback origin naming a port the control plane does not listen on.",
+      "remedy": "The control plane refuses to start until its operator corrects the setting the message names; nothing a client sends changes it."
+    },
     "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT": {
       "status": 409,
       "summary": "A GitHub URL names loopback — the fake GitHub a laptop runs — on the GitHub driver outside development.",
@@ -15711,6 +15720,11 @@
     "CONFIG_MASTER_SECRET_REQUIRED": {
       "status": 409,
       "summary": "MANIFEST_MASTER_SECRET is required outside development.",
+      "remedy": "The control plane refuses to start until its operator corrects the setting the message names; nothing a client sends changes it."
+    },
+    "CONFIG_ORIGINS_SHARE_A_HOST": {
+      "status": 409,
+      "summary": "MANIFEST_CONTROL_PLANE_ORIGIN and MANIFEST_FRONTEND_ORIGIN are on one host, so a request could not say which it arrived on.",
       "remedy": "The control plane refuses to start until its operator corrects the setting the message names; nothing a client sends changes it."
     },
     "CREDENTIAL_AMBIGUOUS": {
