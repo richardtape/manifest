@@ -66,6 +66,7 @@ it. A list copied from the app's own `manifest.yaml` would make both checks vacu
 | 3 | Proof app IAM registration | Phase 2 ending with a genuinely launchable app | Generated registration package (§9) | — | — | not yet | **not raised** |
 | 4 | Proof app PIA | Same | Generated PIA draft (§9) | — | — | not yet | **not raised** |
 | 5 | Access to `authentication.stg.id.ubc.ca` | D21's pre-production rehearsal; Phase 2. **Since P6a sitting 9 this is the ONLY part of a first production launch Manifest cannot do for itself** — it runs a local, production-shaped rehearsal and says in the checklist that it proves the registration's shape and never UBC's acceptance of it | Nothing — an access request. Two settings change when it arrives: `MANIFEST_IDP_BASE_URL` and the rehearsal account | — | — | not yet | **not raised** |
+| 11 | **The capable model's provider** (added 2026-09-27 from the faculty front-end's message §3; Rich decided a capable model is added beside `qwen3.5:4b`, and which provider is UBC's) | The building agent on UBC infrastructure writing working apps; FE-1's intake model | The options with D17's classification for each — (A) open weights on UBC-hosted GPUs, `confidential`; (B) a commercial API in a Canadian region under a UBC agreement, `internal` at most; a provider with no residency guarantee is `public` at most and not recommended — and, once the tracked tooling item has run, an authoring eval's pass rate and cost per pass for each model tried (ORIENTATION §8 *Open*; the roadmap's *The faculty front-end's message*) | — | — | not yet | **not raised** |
 | 9 | `passport-ubcshib`'s SAML library carries a critical advisory | Nothing in Manifest — it is **not** blocking us | The measurement, and the clean successor (`@node-saml/passport-saml@5.1.0`) | — | — | 2026-09-08 | **not raised** |
 
 ### Later, but name them now
@@ -105,11 +106,16 @@ faculty front-end's, `app` (§9 and §21 as Spec action 2 amended them; the fron
 enablement plan's Task 8): at UBC, `https://<console origin>/auth/saml/callback` at index 0
 and `https://app.<production zone>/auth/saml/callback` at index 1, with ONE
 SingleLogoutService, the console origin's `/auth/logout`. A person signs in on the origin
-they are using, and no session crosses between them. Measured against SimpleSAMLphp before it
-was built (that plan's `[M3]`): an AuthnRequest naming index 1 is answered at index 1, and one
-naming a URL the row does NOT list is answered at index 0 — **so a UBC registration missing
-`app`'s URL fails closed**, as a sign-in on `app` that the platform refuses as not bound to the
-browser (`SAML_LOGIN_NOT_BOUND`), never as an assertion sent somewhere unlisted. The one-name lookup `uid` and
+they are using, and no session crosses between them. Measured against the **Manifest IdP (SimpleSAMLphp)**
+before it was built (that plan's `[M3]`): an AuthnRequest naming index 1 is answered at index 1,
+and one naming a URL the row does NOT list is answered at index 0 — so there, a registration
+missing `app`'s URL fails closed, as a sign-in on `app` the platform refuses as not bound to the
+browser (`SAML_LOGIN_NOT_BOUND`). **UBC runs Shibboleth IdP, which was not measured**; it is
+expected to refuse such a request outright with its own error page — closed either way, never an
+assertion sent somewhere unlisted. **And with ONE SingleLogoutService, the console origin's, every
+sign-out begun on `app` and every sign-out the IdP begins passes through the console's origin** —
+so at UBC that origin must be reachable by every browser that signs in on `app` (the sitting's
+review, 2026-09-27). The one-name lookup `uid` and
 `mail` make possible — an owner adding a colleague — also lets anyone who creates a project
 learn whether a given login or address has signed in to Manifest (Decision 14 accepted it);
 **the platform PIA should say so.**

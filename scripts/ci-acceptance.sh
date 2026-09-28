@@ -132,10 +132,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # login): +33 and one file — `api/projects.test.ts`'s name, rename and first-PATCH cases (9),
 # `api/auth.test.ts`'s four `uid` sign-ins (4), `api/members.test.ts` (11, new), and the
 # authorization matrix's `PATCH` row, once per actor (9).
-EXPECT_TESTS=2484
-EXPECT_FILES=167
+EXPECT_TESTS=2509
+EXPECT_FILES=168
 EXPECT_DOCTOR=20
-EXPECT_VERIFY=57
+EXPECT_VERIFY=61
 
 STEPS=""
 FAILED=0

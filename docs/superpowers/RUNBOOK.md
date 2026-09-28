@@ -243,6 +243,9 @@ MANIFEST_CONSOLE_HOST=app.manifest.internal pnpm --filter @manifest/console prev
 open https://app.manifest.internal/
 ```
 
+`MANIFEST_CONSOLE_HOST` matters only under `vite dev`, where it names the host HMR's socket connects to; `preview` has no
+HMR, so under `preview` it is harmless and does nothing (the sitting's review, M7).
+
 The control plane judges each request against the origin it ARRIVED on, so a sign-in begun here names app's
 assertion-consumer URL, comes back here, and sets a cookie on `app.` only — **a session on one origin is not a
 session on the other**, and signing out of one leaves the other signed in (the plan's *What this plan does not
@@ -738,8 +741,8 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
-and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-27 at the close of the front-end enablement plan's sitting 5 (Tasks 6 and 7 — a project's name and people by CWL login name or email — and its whole-branch review's fix pass), and one moved: `pnpm test` **2484 passed** in 167 files on both runs of the final tree (was 2451 in 166); `make doctor` 20 with **0 warnings** — the vulnerability database goes stale after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 (its audit probe repaired: it could no longer seed a project, and read that as the audit log being editable), and `pnpm test:docker` **217 in 36**, unchanged (owed, run once, green first time).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+and the current numbers are **`make doctor` 20 / 0 and `make verify` 61 / 0**
+(**All four were re-measured on 2026-09-27 at the close of the front-end enablement plan's sitting 6 (Task 8 — the `app` origin — and its whole-branch review's fix pass), and three moved: `pnpm test` **2509 passed** in 168 files on both runs of the final tree (was 2484 in 167; 562 s and 578 s); `make doctor` 20 with **0 warnings** — the vulnerability database goes stale after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` **61** (was 57: `app.manifest.internal`'s four checks), and `pnpm test:docker` **218 in 36** (was 217; owed, run once, green first time).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has FOURTEEN steps, 1 to 14, after step 0's offline check** (the authoring API plan's Task 13 added step 14, `make demo-authoring`, which runs on either driver) — P5a sitting 12 added `make demo-journey` as step 8,

@@ -2023,3 +2023,35 @@ owned by other users, and Valet's dnsmasq runs as `nobody` — so port 53 reads 
 while dnsmasq is plainly listening on it. The snapshot script reported `(free)` on its
 first run and that was wrong; it now says "nothing visible to this user" and explains
 why. `make doctor` (P1 Task 2) will need the same care.
+
+## Added by the front-end enablement plan's sitting 6 (2026-09-27, Task 8 — the `app` origin)
+
+**AFTER `make up` RECREATES THE HOST'S RESOLVER, macOS ANSWERS THE OLD ADDRESS FOR A FEW SECONDS.** Restoring dnsmasq's
+`app.` pin (`infra/compose.yaml`) and running `make up` recreated `manifest-dns-host`, which answered `127.0.0.2` at once
+(`dig +short @127.0.0.1 -p 7153 app.manifest.internal`) — while `dscacheutil -q host -a name app.manifest.internal` still
+answered `127.0.0.3` for about 5 s, and `curl` reached the PUBLIC wildcard in that window. Ask dnsmasq directly before
+believing the host's answer, or wait and re-read; never conclude the pin is broken from the first read after a `make up`.
+(`dig` without `@127.0.0.1 -p 7153` answers nothing for this zone on macOS — the front-end enablement plan's `[M4]`.)
+
+**A DOCKER FILE THAT BOOTS THE REAL CONTROL PLANE BUILDS `dist/` FROM THE WORKING TREE** — `identity/saml.docker.test.ts`
+and `boot.docker.test.ts` run `pnpm --filter @manifest/control-plane build` first. Run one under a negative control and
+`dist/` keeps the break after you restore the source; the next `node dist/index.js` (RUNBOOK's `dev` rebuilds first; a
+script that runs `dist/` directly does not) is the broken control plane. Rebuild after restoring.
+
+**`app.inject` SENDS `Host: localhost:80` UNLESS TOLD OTHERWISE**, which names no configured origin — so since the `app`
+origin every existing unit test is judged against the FIRST origin, the console's, and stays green unchanged. A test of
+what happens ON `app.` must send `headers: { host: 'app.manifest.internal' }` (`ws` honours a `host` in its `headers`
+too). A test that overrides `config.sp.origin` alone no longer changes what a request is judged against — override
+`config.origins`.
+
+**COPYING A CADDY SITE COPIES ITS COMMENTS.** The `app.` site began as the console's block verbatim, and the console's
+comments say *"7104"* and *"the reference console"* above a proxy to 7105. Trim a copy's comments to pointers, and check
+the DIRECTIVES differ in exactly the places you meant — a script that strips comments and compares line by line did it.
+
+**AN ERROR CODE PASSED AS A PARAMETER IS INVISIBLE TO THE REGISTRY'S GATE** (sitting 6's F14). `api/error-codes.test.ts` finds
+every code the source throws by the constructor's quoted first argument — `new SomeError(` followed by a quoted literal — so a
+helper that takes the code as a parameter hides it: a registered code then reads as *registered but never thrown*, and a new one
+is never required to be registered. Throw each code as a literal at its own call site. **And a COMMENT quoting that pattern is
+read as a throw** (the fix's own first comment registered a code named `LITERAL`). Run `api/error-codes.test.ts` beside
+`api/contract/` whenever a code moves — the task that met this named only the latter, and only the close's full run caught it.
+

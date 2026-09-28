@@ -49,12 +49,12 @@
 | 3 | 4 | **Binary files**: a write's `encoding: 'base64'`, confined to recognised media types, refused for text sent as bytes, scanned for secrets by its printable runs; `getFile`'s `encoding`; both drivers' contract | **Yes** — `source/`, `build/` | none (a plan decision — *Decided by Rich*) | **DONE 2026-09-27** — `source/binary.ts`; bytes through `Change` to `planChanges` (the blob is git's own id for the bytes, both drivers); a base64 write canonical, ≤ 2 MiB, never text, NAMED as one of the ten kinds (the review's I1/I2) and one of them by its bytes; printable runs scanned — the only layer for a binary write, its blind spots named; `getFile?encoding=base64`; a real PNG and TTF built, deployed and served byte-exact through the edge; one fresh whole-branch review, three Importants fixed and one (a pre-existing quadratic scan) handed to Task 5 |
 | 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) — **and `scanText`'s quadratic long line** (Task 5's `[S3]`, from sitting 3) | **Yes** — `blueprints/`, `source/`, `build/` | none | **DONE 2026-09-27** — `[S3]` fixed by one regex source read from the token's first dot, and its class found and fixed in §14's redactor (PEM, JWT, URL, `trimCut`'s tail) and in the unauthenticated logout (a bounded inflate, of the message node-saml reads); F1 (pinned by a test), F4, F7–F12; `CommitDetail.truncated` published; one fresh whole-branch review, its Critical (a request beside a response bypassed the bound) fixed red-first |
 | 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.name` (the slug when none is given; one visible line), renamed by `PATCH /v1/projects/{projectId}`, `project.renamed`; `uid` asked for and kept as `users.cwl_login`, HELD BY WHOEVER SIGNED IN WITH IT LAST; `addMember` by exactly one of `puid`/`cwlLogin`/`email`, `MEMBER_USER_AMBIGUOUS`, `member.added`/`member.removed` naming `memberId`; one fresh whole-branch review, two Importants and two re-graded minors fixed (the last owner kept, a login miss that names email and PUID); `make verify`'s audit probe repaired (F16) |
-| 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | ← next |
-| 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **If it runs long, stop after Task 9 and sweep** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27 | |
+| 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | **DONE 2026-09-27** — `config.origins` and `originOf` (the arrival origin, never the request's own); CSRF, sign-in, step-up, cookies and sign-out by it; one SP entity with an ACS per origin and one SLO; a SAML client per origin, so an assertion answering one origin's request is refused on the other; a sign-out's `RelayState` names the client that checks the IdP's answer and the origin it returns to; the edge's `app.` site and pin; `make verify` **61** (60 as the task built it, one added by the review's fix); **a real sign-in on `app` in a browser, Rich typing** — `app`'s `/v1/me` `200`, the console's `401`. **And the faculty front-end's message recorded** (*Decided by Rich*), with **Spec actions 5 and 6 drafted** |
+| 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **And, from the front-end's message: `AgentSession.spentUsd` (FE-23) and the platform-paid INTAKE key (FE-1)** (Tasks 9–10's `[S6]`). **If it runs long, stop after Task 9 and sweep — and FE-1 opens the next sitting** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27; **Spec action 5** (FE-1) — applied 2026-09-27 (`25e7445`) | ← next |
 | 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | |
 | 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | |
-| 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not | **No** | — | |
-| 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example | **No** — unless a step reaches `blueprints/` | — | |
+| 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | |
+| 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -101,6 +101,52 @@
   D23.9), not option (e)'s `202` — in `1d1afd7`, the four shared HTML pages swept in the close-out that followed; and **the
   agent budget defaults are Decision 22's: $10 a month per person, $2 a session**. No task's *If Rich chooses otherwise*
   paragraph applies.
+- **THE FACULTY FRONT-END'S MESSAGE — DECIDED BY RICH IN THE FRONT-END'S OWN SESSION, 2026-09-27, AND CARRIED HERE BY
+  SITTING 6.** The front-end is a separate project (§5) at `~/Developer/manifest-app`, served at `app.manifest.internal`
+  from 7105, consuming `@manifest/contract` by a pnpm `link:` to this repository's WORKING TREE. Its findings are `FE-1`…
+  `FE-25` in `manifest-app/docs/api-findings.md`; the message is `manifest-app/docs/2026-09-27-to-the-platform-session.md`.
+  **Never change anything in `manifest-app`** — it is another session's repository. What Rich decided, and where it lands:
+  - **FE-2 — the front-end's SERVER may replay the person's session cookie to `GET /v1/me`, to learn who it serves, and for
+    nothing else.** `manifest_session` is `Path=/`, and Decision 19 sends every non-API path on `app.` to 7105, so every page
+    request delivers the session to that server whether it wants it or not. **Sitting 6 leaves the cookie alone** (done).
+    **Sitting 11's *Building a front-end* states the rule**: replay to `getMe` only; never log it, store it or use it for any
+    other call — a server can set its own `Origin`, so CSRF does not stop it; the rule is the control. Task 14's *"Two
+    credentials, two places"* understates it and is rewritten (its `[S6]`). *Rejected by Rich:* stripping the cookie at the
+    edge plus a *"who minted this token"* read; a signed identity statement for the front-end's server.
+  - **FE-1 — an INTAKE session with no project, APPROVED IN PRINCIPLE, built in sitting 7**: a platform-paid model key for
+    the front-end's intake agents (understanding a description, proposing names checked by `checkSlug`, choosing the
+    blueprint and starter), started only by an interactive session, answered once (`withholdOnReplay`), one model named by
+    a platform setting that D17 allows for `internal`, bounded per person (recommended $0.25 and 30 minutes a key, 10 keys a
+    person a day), confined like every key, audited against the person. Rich: *"the 'understanding what the user asked for,
+    proposing names, etc.' can be considered a platform cost. That will always be the same model for all users (and that's
+    something we'll need to set as part of our options at the platform level). So I approve of that spec change."* **Its
+    words are Spec action 5** (drafted by sitting 6, below — **APPLIED 2026-09-27 (`25e7445`) — Rich approved it as drafted, option (a), in sitting 7's first message, and confirmed so to sitting 6 directly**). **If sitting 7 runs long,
+    FE-1 opens the next sitting** (this plan's own rule).
+  - **FE-23 — `AgentSession.spentUsd`, built in sitting 7**: faculty see the AI allowance ALWAYS, per conversation (*"$0.40
+    so far · $9.60 left this month"*), so *What this plan does not build*'s *"no screen needs it yet"* no longer holds.
+    `spentUsd: number | null`, read from LiteLLM `/key/info` by the alias the plan derives (`mf-agent-<id>`), `null` with a
+    reason — never `0` — when LiteLLM does not answer, cached like the month.
+  - **A CAPABLE MODEL OPTION BESIDE `qwen3.5:4b`**, behind the same LiteLLM, with the `max_classification` D17 allows it;
+    `qwen3.5:4b` stays the offline floor (C1); FE-1's intake setting may name the capable one. **Which provider is UBC's
+    call**, put to Rich as a decision (ORIENTATION §8 *Open*) and placed in the roadmap — **not this plan's scope** unless he
+    says so. Sitting 7 owes one check only: nothing hard-codes a chat name (Decision 23 already reads the catalogue).
+  - **FE-24 — STAGING IS UBC'S REAL STAGING WORLD** (the fake IdP is the sandbox's; staging signs real people in against UBC's
+    staging IdP with a staging CWL and reaches UBC's staging Canvas and academic API; the laptop's staging keeps the fake
+    sign-in, stated in §21's divergences). **Its words are Spec action 6** (drafted by sitting 6, below — **APPLIED 2026-09-27 (`25e7445`) — Rich approved it as drafted, option (a), in sitting 7's first message, and confirmed so to sitting 6 directly**). **Its one code
+    consequence is sitting 10's**: `getInstanceOutput` refuses staging as it refuses production, by a code that names the
+    rule, so the recent-output read is sandbox-only (Task 13's `[S6]`).
+  - **FE-17, FE-18 and FE-5's sentence, folded into sittings 10–11**: a browser refused at `/auth/*` shown a short page or
+    sent to its origin's `/` with a code, not raw JSON (FE-17, Task 13); `@manifest/contract`'s `dist/` complete with its
+    types, and a sentence on consuming it from outside the workspace (FE-18, Tasks 13–14); `PendingAction.bodySha256`'s
+    canonical form published (FE-5, Task 14).
+  - **After this plan, in Rich's order**: the launch path first (FE-6 — the three clocks with D19's drafts, *"I've sent it"*
+    and *waiting since*, the staging registration as a tracked object; FE-25 — an owner's *"please sign this off"* feeding
+    §26's queue); then FE-19, FE-20, FE-21, FE-22, FE-7 and FE-3; FE-8 to FE-16 are smaller. **FE-4 — nothing notices a live app
+    that has died — stays in Phase 4, as specified**; meanwhile **the front-end's server requests every launched app's
+    production address once a minute through the edge** (on the public listener) and emails the owners when it stops
+    answering.
+  - **Keeping in step**: each sitting's close-out lists what it changed in the contract (operations, fields, codes, events)
+    and Rich relays it; **`packages/contract` stays buildable at every commit** (the front-end links the working tree).
 - **Carried from earlier plans, still binding:** D24's privileged four and the person-only class; step-up for a production
   deploy, an approval, member management and a production secret; the stored preview an approval binds; `SENSITIVE_FIELDS`
   as §7's list; every platform model call whose answer is read or shown is STRUCTURED OUTPUT (the D5 plan's Decision 22 —
@@ -111,7 +157,7 @@
 
 ## What Rich does, and when
 
-**Seven things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
+**Eight things in this plan are Rich's hands, not an agent's** (the eighth added by sitting 6). Each is asked at the sitting that needs it, never assumed.
 
 1. ~~**Review this plan, and approve or re-cut the sittings split**~~ — **DONE 2026-09-27**, after sitting 1: approved
    as written, twelve sittings (*Decided by Rich*).
@@ -137,6 +183,11 @@
    (Decision 22). At UBC it is real money, and the number is his. **Decided 2026-09-27: the recommendation — $10 a month,
    and $2 a session (`MANIFEST_AGENT_SESSION_CAP_USD`) — for the laptop; the number at UBC is still his when it gets
    there.**
+
+8. ~~**Added by sitting 6 (2026-09-27), from the faculty front-end's message: read and decide Spec actions 5 and 6**~~ — **DONE 2026-09-27: both approved as drafted, option (a), in sitting 7's first message, and applied (`25e7445`)** (drafted
+   by sitting 6 — *Spec actions*, its end): **5 before sitting 7** (FE-1, the intake key), **6 now** (FE-24, staging is UBC's
+   real staging; its code is sitting 10's). **And the capable model's provider** — a decision with options, placed by sitting 6
+   in ORIENTATION §8 *Open* and the roadmap; it is not this plan's scope.
 
 ---
 
@@ -1279,6 +1330,21 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > `/user/new` with `auto_create_key: false` made no key. Spend: `/user/info`'s `user_info.spend` (and its `keys[].spend`;
 > `/key/info`'s `info.spend`), **3–6 s after the call** (3.1 s and 6.2 s on two runs); `budget_reset_at` is the first of next month, 00:00 UTC.
 
+> **[S6] — FROM SITTING 6 AND THE FACULTY FRONT-END'S MESSAGE (2026-09-27; *Decided by Rich*, its front-end bullet).** Sitting
+> 7 grows by two of the front-end's findings. **FE-1, the INTAKE key** — a platform-paid key with no project, APPROVED IN PRINCIPLE,
+> whose words are **Spec action 5 — drafted by sitting 6, APPLIED 2026-09-27 (`25e7445`) after Rich approved it as drafted in this sitting's first message**. Its draft recommends **a table
+> of its own, `IntakeSession`**, not a nullable `AgentSession.project_id` (every agent-session rule is keyed on the project, and
+> `audit.events.project_id` is `NOT NULL`), an alias `mf-intake-<id>`, the platform's own LiteLLM user carrying a monthly intake
+> budget, and a key cap/life/daily count as platform settings ($0.25, 30 minutes, 10 a person a day). **Write `mintAgentKey` to
+> take the LiteLLM user and the alias as parameters**, so the intake key shares it; and **`scripts/litellm-orphans.sh` must hold
+> the platform's intake user as it holds a person's** (Decision 26's shape). Its model is ONE catalogue entry an administrator
+> names, allowed for `internal` (`max_classification` `internal` or `confidential`), checked at every mint. **Open for this
+> sitting to decide** (the draft's *Where I was unsure*): the platform's monthly intake budget's default (Rich gave none), whether
+> *"a day"* is UTC or Vancouver, and one refusal code or two (a person's day spent vs the platform's month). **FE-23**:
+> `personSpend`'s sibling for ONE key — `/key/info` by alias (`info.spend`, `[M8]`), `null` with a reason, never `0`. **And
+> one check for the capable model** (Rich decided to add one; its provider is UBC's): nothing here hard-codes a chat name —
+> `agentModelsFor` reads the catalogue, and the intake model is a setting.
+
 **SPEC ACTION 1 MUST BE DECIDED BEFORE THIS TASK STARTS.** The steps build its recommended option (a) for the models. **If Rich chooses (b), an administrator's agent catalogue**, `agentModelsFor` reads that catalogue instead of D17's ranks, and a setting holds it (`MANIFEST_AGENT_MODELS`, comma-separated logical names); **if (c), on-premise only**, it answers the entries whose `max_classification` is `confidential` whatever the project says. Nothing else in this task moves. **`[M7]` and `[M8]` must have held** — a key's `duration` and `max_budget` refused on 1.98.0, deletion by alias, and the spend field's name; each correction is a `[M<n>]` block here.
 
 **Files:**
@@ -1358,6 +1424,16 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > than the 3–6 s spend lag measured on two runs — so a read straight after a call may still show the spend before it. A key refused for the SESSION's cap and one refused for the PERSON's month both arrive as
 > `429 budget_exceeded`, told apart only by LiteLLM's message — so a mapping that must say which reads the numbers it set (the
 > session's cap, the month's spend), never the body.
+
+> **[S6] — FROM THE FACULTY FRONT-END'S MESSAGE (2026-09-27).** (1) **FE-23: `AgentSession` gains `spentUsd: number | null`**
+> (and a reason when `null`), read from `/key/info` by `mf-agent-<id>` and cached like the month — faculty see *"$0.40 so far ·
+> $9.60 left this month"* on every conversation, so `listAgentSessions` answers it. (2) **FE-1's routes**, if Spec action 5 is
+> approved as drafted: `startIntakeSession` (a SESSION only — `credential: 'session'`; `withholdOnReplay`), `endIntakeSession`,
+> and the refusal codes the front-end shows as *"Describing new apps is paused for today"*. No project stream: the row is the
+> record (the draft's §6 row). **If this sitting runs long, FE-1 opens the next sitting** (the plan's rule). (3) **How the
+> front-end will call these** (its message §7): its SERVER holds one delegated token per conversation — `project:read`,
+> `source:write`, `secret:write`, `build:create`, `release:create`, `release:deploy`, `output:read`, `agent:session`; seven days —
+> named after the conversation, so `AgentSession.via` names the thread; only its lead agent calls the platform.
 
 **SPEC ACTION 1 MUST BE DECIDED BEFORE THIS TASK STARTS** (as Task 9). If Rich declines it outright, Tasks 9 and 10 are dropped, and Task 15's agent phase with them.
 
@@ -1498,6 +1574,11 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 ---
 
 ## Task 11: Archive and restore — `projects.state`, a teardown that is idempotent and finished at boot, a switched-off page on every name, person-only with step-up
+
+> **[S6] — FROM THE FACULTY FRONT-END'S MESSAGE (2026-09-27).** Spec action 6 (APPLIED 2026-09-27, `25e7445`) changes §11's
+> sentence on SP registrations to *"its SP registrations with the Manifest IdP are removed — the sandbox's and, on a laptop,
+> staging's"*, and leaves a UBC registration alone. **On the laptop, Step 5 of Decision 28 is unchanged** — both registrations are
+> the Manifest IdP's — so this task builds as written; the sentence is what the code comment should say.
 
 > **[M9] [M15] — MEASURED 2026-09-27 BY TASK 1; both halves as Decisions 28 and 29 assume.** `destroyServiceContainer({ deleteData:
 > false })` kept `-data`, and a container re-created on it found the document; `{ deleteData: true }` removed the volume; no
@@ -1730,6 +1811,34 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > request names exactly one key is a `superRefine`, invisible to the generated client (`schema.d.ts` types `{ role }` as valid —
 > the review's minor 3): the console must hold it itself, or this task makes the schema a `oneOf`.
 
+> **[S6] — FROM SITTING 6 AND THE FACULTY FRONT-END'S MESSAGE (2026-09-27).** Three of the front-end's findings land in this
+> sitting beside the console and the mock. (1) **FE-24's code — the recent-output read becomes SANDBOX-ONLY**, once Spec action 6
+> is decided: `getInstanceOutput` refuses a staging instance before the driver is asked, by a code that names the rule, as it
+> refuses production (`api/routes/instances.ts:202-206` today checks `kind === 'production'` alone). The draft recommends a
+> SIBLING code beside `INSTANCE_OUTPUT_PRODUCTION` rather than renaming a published one (D23.8); the route's description
+> (*"a sandbox or staging instance"*), `INSTANCE_OUTPUT_PRODUCTION`'s remedy (*"Read a sandbox or staging instance's output
+> instead"*, `api/error-codes.ts`), the authorization matrix's row and any demo step reading a staging instance's output all
+> move. (2) **FE-17 — a browser refused at `/auth/*` sees raw JSON** (verified by sitting 6: every `SamlError` is `errors.ts`'s
+> `401` envelope — `SAML_LOGIN_NOT_BOUND`, `SAML_ASSERTION_REJECTED`, `SAML_NO_PUID`, `SAML_USER_UPSERT_FAILED`,
+> `SAML_STEP_UP_NO_SESSION`, `SAML_STEP_UP_WRONG_USER` — and a malformed body `400 REQUEST_INVALID`). Asked: a browser (an
+> `Accept: text/html` POST from the IdP's form) is shown a short page, or sent to ITS ORIGIN's `/` with a code the front-end
+> renders — the arrival origin is `originOf(request, config.origins)` since Task 8 — and a non-browser caller keeps the JSON.
+> (3) **FE-18 — `@manifest/contract` consumed from a sibling repository** (verified by sitting 6): its runtime is the
+> git-ignored `dist/index.js`; **`dist/index.d.ts` imports `./schema.js` and no `dist/schema.*` exists** (tsc emits nothing for
+> the `.d.ts` input), so a consumer type-checking `dist/` alone breaks; `src/errors.ts:13-17` uses constructor parameter
+> properties, refused by a CONSUMER that sets `erasableSyntaxOnly` (this package does not set it — only `packages/github-fake`
+> does). Asked: `dist/` complete with its types (copy `schema.d.ts` in the build, and a test that `dist/index.d.ts` resolves);
+> the parameter properties written as fields. **Sitting 6 built the `app` origin** — the console is servable there
+> (`MANIFEST_CONSOLE_HOST`, RUNBOOK's *Serving the reference console on the front-end's origin*) and needs no other change.
+> (4) **Sitting 6's review, M2 — deferred here because FE-17 touches `/auth/*`**: `GET /auth/logout` reads `query.RelayState`
+> as Fastify decodes it, while node-saml verifies the RAW `RelayState` token (`lib/saml.js:659-669`) — so an appended
+> `Relay%53tate=…` can differ from the signed one. Harmless as built (the named client must hold the InResponseTo; the target is
+> always a configured origin; a duplicate parses as an array and falls back to the arrival origin), but the comments at
+> `routes/auth.ts` and `identity/saml.ts` claim the route reads what the IdP signed: reword them, or read `RelayState` from the
+> raw query token node-saml verified, before anything else rides on it. (5) **Its M3**: a non-canonical configured origin
+> (`https://App.manifest.internal`, `:443` spelled out) passes `loadConfig` and refuses every mutation `403 CSRF_ORIGIN_REFUSED`
+> — require `new URL(o).origin === o` there, with a `ConfigError` naming the canonical form, if this sitting touches config.
+
 **D22's rule, unchanged: the console is the proof that the API is complete, not the product.** Its quality bar is §22's — *"plain but presentable"* — and **none of this task is the faculty front-end's design**, which is drawn screen by screen after this plan against the design system (`docs/superpowers/design/`). What a screen here must do is CALL each operation the way a real client would, and show a person the answer honestly.
 
 **Files:**
@@ -1769,6 +1878,23 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > `repository.secret_refused`'s `line` counts runs in a base64 file. **Stale sentences today** (the review's minor 9):
 > `authoring.md:8` (*"one text file’s content"*), `:193` (*"**Text only.**"*), and the *"A binary file … cannot be read as
 > text"* samples at `authoring.md:34` and `getting-started.md:86`. Two 2 MiB files fit in one commit's 8 MiB body.
+
+> **[S6] — WHAT SITTING 6 BUILT, AND WHAT THE FRONT-END'S MESSAGE ASKS THE GUIDES TO SAY (2026-09-27).** *Authentication*
+> and *Building a front-end*: **Manifest signs a person in on either of its two origins** — the console's and `app`'s — each
+> judged by the origin a request ARRIVED on: a sign-in, a step-up and a sign-out begun on one origin complete on it, set a
+> HOST-ONLY cookie there, and a mutation's `Origin` must be the origin it arrived on (`403 CSRF_ORIGIN_REFUSED` otherwise — the
+> other Manifest origin included). **A session on one origin is not a session on the other**; signing out of one leaves the
+> other signed in; and a sign-out the IdP begins (signing out of a deployed app) reaches only the CONSOLE's origin, so an `app`
+> session outlives it until it expires (*What this plan does not build*). **FE-2 — rewrite *"Two credentials, two places"*
+> (Step 1, below).** The session is not only in the browser: `manifest_session` is `Path=/`, and the edge sends every non-API
+> path on `app.` to the front-end's server, so **every page request delivers the person's session to that server, whether it
+> wants it or not**. State the rule Rich chose: **the server may replay that cookie to `GET /v1/me` to learn whom it serves —
+> and for nothing else**; it never logs it, stores it or uses it for any other call. A server sets its own `Origin`, so CSRF
+> does not stop it: **the rule is the control**. **FE-18's sentence**: consuming `@manifest/contract` from outside the workspace
+> — build it first (`pnpm --filter @manifest/contract build`), and what `dist/` holds once Task 13 completes it. **FE-5's**:
+> `PendingAction.bodySha256` is the SHA-256 of the request body in a canonical JSON form — object keys sorted at every depth,
+> properties whose value is `undefined` dropped, arrays in order, values as `JSON.stringify` writes them, and an absent body as
+> `null` (`tokens/pending.ts:34-46`) — published, so a front-end can show a person exactly what an agent asked.
 
 > **[S5] — WHAT SITTING 5 BUILT THAT THE GUIDES MUST SAY (Tasks 6 and 7; 2026-09-27).** **A project has a `name`** — what
 > people read; 1 to 80 characters, trimmed, one line with something visible, no control character, line separator or
@@ -1885,14 +2011,14 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
   - **F12** — an app answers `frame-ancestors 'self'`, so a preview inside another origin's page is refused; open it in a tab;
   - **F13** — no conversation object. The front-end keeps its own, and can key a thread to a token's name, which `madeThrough.tokenName` and `AgentSession.via` answer back.
 - **An administrator setting one person's agent budget** — §6's `User.agent_monthly_usd` (Spec action 1) and §26's People screen. Until then the platform default binds everyone (Decision 22).
-- **A session's own spend** — `getAgentBudget` answers the month; per-session spend is LiteLLM's `/key/info`, one call per session, and no screen needs it yet.
+- ~~**A session's own spend**~~ — **built after all, in sitting 7 (FE-23; Rich, 2026-09-27)**: the faculty front-end shows the allowance on every conversation, so `AgentSession.spentUsd` is read from `/key/info` by alias (Task 10's `[S6]`).
 - **An app's AI spend** (§14's per-app metric, §26's fleet column) — the same LiteLLM reads, for the per-project users. Additive, and the admin console's.
 - **The Anthropic-format route for agent keys** (`/v1/messages`). Every key keeps §10's three `allowed_routes`, so an agent harness must speak the OpenAI-compatible API. Widening them is a change to §10's own sentence — a spec action, not a setting.
 - **Inviting someone who has never signed in** — `MEMBER_USER_NOT_FOUND` stands, as the prototype's People screen already says (*"They must have signed in to Manifest once"*). **A people directory or search** — deliberately not (Decision 14).
 - **An administrator's reason for acting on another person's project** — §26's non-repudiation rule, ORIENTATION §8's open question. **This plan makes it more pressing**: an administrator holds `project:delete` on every project, so they can archive a course app. `project.archived` names who did it; nothing records why.
 - **Disposing of a launched project's data, and its deletion** — `data.retention_days` and UBC's sunset procedure (§9, §19), the Privacy Office's. An administrator's deletion after it is §26's.
 - **Deleting registry images** — the laptop's registry does not enable deletion. A deleted project's images stay until `scripts/app-images.sh` meets them, and a recreated slug's images are tagged by different commits.
-- **Signing out of both origins at once** — each origin keeps its own cookie (Decision 18), so signing out on `app` leaves a console session alive until it expires. That is the same property that keeps each origin's sign-in to itself.
+- **Signing out of both origins at once** — each origin keeps its own cookie (Decision 18), so signing out on `app` leaves a console session alive until it expires. That is the same property that keeps each origin's sign-in to itself. **And, found building it (sitting 6): a sign-out the IdP BEGINS — signing out of a deployed app — reaches only the FIRST origin's SingleLogoutService (the console's; SimpleSAMLphp uses the first of a binding, `[M5]`), so it ends the console's session and an `app` session outlives it until it expires (12 h).** A second SLO would be registered and never used, and a chained clearing `GET` from the console to `app` is a logout-CSRF primitive unless it carries a signed token of its own — a design for when it is needed, not a line.
 - **A GitHub push to an archived project** (driver 2) is still received, validated and recorded; only the work that follows is refused. Refusing the webhook would leave the mirror behind GitHub, so a restore would build stale code.
 - **Live tailing of an app's output** — §14, not v1. **Production's output** — never; its Incident's `log_tail` is the window.
 - **Rollback as an operation** — P6b's list; a rollback is a deploy of an older release through staging, as today.
@@ -1906,7 +2032,7 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Spec actions
 
-**FOUR, ALL APPLIED ON 2026-09-27 (`1d1afd7`), EACH AS OPTION (a).** Drafted overnight; Rich approved all four later the same day, before sitting 2, each explained to him in plain language with its options, as recommended — Spec action 3 with its sixth edit as drafted, not option (e). **Applied as the words below, with two consequential words beyond them**, both forced by the drafted text and named in the commit: D24's *"holding either"* became *"holding any of them"* (two person-only actions became three), and §12's *"Clients reach the API on the reference console's origin (§21)"* names both of Manifest's origins. **Shared pages swept:** `manifest-decisions.html` D2, D8 and D24 (the build loop gains the model session; the person-only sentence two → three); `manifest-phases.html` stage 2; `manifest-schematic.html` *The other way in* (*"the four actions that always need a person"* → *"the few"*, and a sentence that switching an app off or deleting one is a person's alone too); `manifest-stories.html` checked by `grep` and unchanged. **`docs/external-track.md` is still Task 8's sweep**, as Spec actions 2 and 4 say. The text below is kept as it was drafted, so the reasoning and the options rejected stay readable. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §6, §9, §10, §11, §20, §21, D2, D8 and D24 in plain language, and each action below names the pages it moves.
+**FOUR, ALL APPLIED ON 2026-09-27 (`1d1afd7`), EACH AS OPTION (a) — AND TWO MORE, 5 AND 6, DRAFTED BY SITTING 6 FROM THE FACULTY FRONT-END'S MESSAGE AND APPLIED 2026-09-27 (`25e7445`) — Rich approved both as drafted, option (a), in sitting 7's first message, and confirmed it to sitting 6 directly (at the end of this section).** Drafted overnight; Rich approved all four later the same day, before sitting 2, each explained to him in plain language with its options, as recommended — Spec action 3 with its sixth edit as drafted, not option (e). **Applied as the words below, with two consequential words beyond them**, both forced by the drafted text and named in the commit: D24's *"holding either"* became *"holding any of them"* (two person-only actions became three), and §12's *"Clients reach the API on the reference console's origin (§21)"* names both of Manifest's origins. **Shared pages swept:** `manifest-decisions.html` D2, D8 and D24 (the build loop gains the model session; the person-only sentence two → three); `manifest-phases.html` stage 2; `manifest-schematic.html` *The other way in* (*"the four actions that always need a person"* → *"the few"*, and a sentence that switching an app off or deleting one is a person's alone too); `manifest-stories.html` checked by `grep` and unchanged. **`docs/external-track.md` is still Task 8's sweep**, as Spec actions 2 and 4 say. The text below is kept as it was drafted, so the reasoning and the options rejected stay readable. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §6, §9, §10, §11, §20, §21, D2, D8 and D24 in plain language, and each action below names the pages it moves.
 
 ### 1. D2, D8, §6, §10, §15, §17, §20 and D24 — an agent outside a sandbox is issued a model key, charged to the person it works for (before sitting 7)
 
@@ -1979,6 +2105,623 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 *Options:* **(a) as proposed** — a colleague is found by CWL login name or email (recommended; Decision 14); **(b) email only** — no new attribute asked of UBC, and one fewer field in Manifest's own PIA; **(c) CWL login name only**. The name is proposed without options — it is a field, and the design review's F7 is its reason.
 
 **Shared pages:** none restate §6's fields or Manifest's own attribute request (checked on 2026-09-27 — recheck at application). **`docs/external-track.md`**: Manifest's own registration asks for `uid` (Task 8's sweep carries both this and Spec action 2's second ACS).
+
+### Spec actions 5 and 6 — DRAFTED 2026-09-27 BY SITTING 6 FROM THE FACULTY FRONT-END'S MESSAGE; ✅ BOTH APPROVED BY RICH AS DRAFTED, OPTION (a), AND APPLIED THE SAME DAY (`25e7445`)
+
+**Rich decided both in principle in the front-end's own session on 2026-09-27** (*Decided by Rich*, its front-end bullet):
+FE-1's intake key (*"So I approve of that spec change"*) and FE-24's staging (*"staging will be a real staging
+environment"*). **The spec rule stands: each is applied only after Rich has read its exact words.** Sitting 6 drafted them —
+a read-only drafter, every quoted passage checked to occur EXACTLY ONCE in the spec as it stands at `edc0327` (by `grep -c
+-F` on a one-line anchor and by the whole quote, whitespace-normalised; 35 passages, all 1) — and the words below are the
+draft as it came back, unedited. **Both were APPLIED on 2026-09-27 (`25e7445`)** by the session that opened sitting 7, after Rich approved them as drafted in its first message (he confirmed it to sitting 6 directly) — the words below are what was applied; that commit names three consequential changes to the shared pages. **Spec action 5 was needed before sitting 7** (FE-1 is built there); **Spec action 6 is a
+spec change now, and its one code consequence is sitting 10's** (Task 13's `[S6]`). An applier matches on normalised
+whitespace or on each anchor's line, with a script asserting one replacement each (the memory *spec edits and the
+classifier*: the classifier may refuse an edit, or a READ, of the approved spec — stop and ask; never work around it).
+
+### 5. D2, D8, §6, §10, §17, §20 and §26: an intake key, meaning a model before a project exists, paid for by the platform (before sitting 7)
+
+**Why.** A faculty member says what they need before any project exists. The front-end's *intake* agents need a model
+at that point:
+- one understands the description and asks follow-up questions;
+- one proposes names and checks them with `checkSlug`;
+- one chooses the blueprint and starter.
+
+Today the spec has no way to provide one. D2 charges every agent key to *"the person the agent works for"*, §10's only
+agent key is *"one person's agent, on one project"*, and `startAgentSession` is a project's operation.
+
+Rich's first answer was that intake could come out of the person's AI budget. On 2026-09-27 he replaced it with this:
+*"the 'understanding what the user asked for, proposing names, etc.' can be considered a platform cost. That will
+always be the same model for all users (and that's something we'll need to set as part of our options at the platform
+level). So I approve of that spec change."* He approved it **in principle**, and it is to be built in sitting 7. These
+are the exact words he approved it in principle for.
+
+**Proposed**, nine edits:
+
+- **D2, the decision.** After *"An agent running outside Manifest — the faculty front-end's own, or a person's own — is
+  issued one through the API from Phase 2 (§10); the agent that runs **inside** a sandbox gets one from Phase 3."* add:
+  *" **One key is the platform's to pay for: an *intake* key**, issued to a person in an interactive session before any
+  project exists, so that what they describe can be understood. It calls one model an administrator names and is
+  bounded per person, and no project, no token, and no person's or app's budget is involved (§10)."*
+- **D2, the rationale.** After *"An agent outside Manifest is held to the same bound: what it holds, if it leaks, is a
+  short-lived, spend-capped key to the model routes for one person's work on one project — never a provider credential,
+  and never a Manifest credential (§20)."* add: *" An intake key is held to a tighter bound still: one model, cents and
+  minutes, a few a day per person, and no project at all. It is the platform's cost because understanding what a person
+  asked for is the same work for everyone, and it comes before there is anything to charge (Rich, 2026-09-27)."*
+- **D8.** *"Virtual keys are minted **per app+environment** and **per agent session** — an agent session's charged to the
+  person it works for — and spend is attributed **per end user** via hashed `ubcEduCwlPuid`."* becomes *"Virtual keys are
+  minted **per app+environment**, **per agent session** — an agent session's charged to the person it works for — and
+  **per intake session**, which the platform pays for (§10); spend is attributed **per end user** via hashed
+  `ubcEduCwlPuid`."*
+- **§6, a new row after `AgentSession`.** After the row's last words, *"…and its key is answered once, when it starts,
+  and never stored |"*, add a row:
+  *"| **IntakeSession** | `id`, `user_id` (the person who started it, who is never charged), `model`, `cap_usd`,
+  `expires_at`, `created_at`, `ended_at`. It has no project and no token: only an interactive session starts one, before
+  a project exists, and it is paid from the platform's intake budget (§10). Its key is answered once and never stored.
+  The row is the record that the key was issued, because there is no project stream to publish on |"*
+- **§10's table, a row after the Agent key.** After *"…held on a LiteLLM user for that person, independent of every app
+  budget |"* add:
+  *"| **Intake key** | one `IntakeSession`: one person describing an app, before any project exists | carries a `duration`
+  TTL of 30 minutes by default, and never past the expiry of the interactive session that started it, so it expires even
+  if the control plane never calls `/key/delete`; revoked when its session is ended. No token starts one, so no token's
+  revocation reaches it | the key's own hard cap ($0.25 by default), inside **the platform's** monthly intake budget. That
+  budget is held on one LiteLLM user for the platform, independent of every person's and every app's. A person may start
+  a bounded number a day (10 by default) |"*
+- **§10, a paragraph after the agent paragraph.** After *"This is the agent key of the table without a sandbox around
+  it; the platform-initiated session of §15 still waits for Phase 3."* add:
+  > **Before a project exists, a person describing one is issued an *intake* key, which the platform pays for (Phase 2).**
+  > Understanding what a person asked for is the same work for everyone: the follow-up questions, the names proposed and
+  > checked (§23), and the blueprint and starter chosen (§25). It also happens before there is a project to charge, so
+  > it is a platform cost (decided by Rich, 2026-09-27). Only a person in an interactive session starts an
+  > `IntakeSession`, because a delegated token belongs to one project (D24) and there is none yet. The person is answered
+  > the key, the address it is used at and its model, once; Manifest keeps no copy. **Its model is a single model, the same for
+  > everyone, named by an administrator as part of the model catalogue** (§13), so changing it is changing the catalogue,
+  > with the catalogue's step-up (§20). There is no manifest yet, so **it must be a model D17 allows for §7's default
+  > classification, `internal`: a catalogue entry whose `max_classification` is `internal` or `confidential`.** What a
+  > person types before their app exists then goes no further than an app of the default classification could send it.
+  > The check runs every time a key is minted: if the entry loses its classification, or is lowered to `public`, intake
+  > pauses rather than sending anything elsewhere (§7). **Its cost is bounded three ways, each a platform setting (§26)**:
+  > a hard cap and a life for each key ($0.25 and 30 minutes by default), a number of keys per person per day (10), and a
+  > monthly intake budget for the whole platform. A person past the day's number, or a platform past its month, is
+  > refused by a code of its own, and intake is paused until that bound resets. It is never charged to the person's agent
+  > budget instead. The key is confined by `allowed_routes` like every other, and carries no capability on the control
+  > plane (§20). There is no project stream to publish on, so the `IntakeSession` row is the record that a key was issued
+  > and names the person, and an administrator reads intake spend by person (§26). An intake key never becomes an agent
+  > key: once the person creates the project, the work continues under agent keys charged to them, as above.
+- **§17**, Phase 2's deliverable. *"**and agent sessions outside a sandbox — a model key charged to the person (§10)**"*
+  becomes *"**and agent sessions outside a sandbox — a model key charged to the person (§10) — and an intake key before a
+  project exists, which the platform pays for (§10)**"*.
+- **§20**, the paragraph after the credential table. *"**An agent key (§10) is neither class.** It authenticates to
+  LiteLLM's model routes and nothing else, carries no capability on the control plane, and is issued to a credential of
+  one of the two classes above — never instead of one."* becomes *"**An agent key or an intake key (§10) is neither
+  class.** Each authenticates to LiteLLM's model routes and nothing else, carries no capability on the control plane,
+  and is issued to a credential of one of the two classes above, never instead of one. An intake key is issued only to an
+  interactive session, because it belongs to no project and a delegated token belongs to one."*
+- **§26, *The other screens*.** *"- **Spend** — AI spend by project and by end user, which D8's per-user attribution
+  already produces. Answers "which of 300 students spent the budget" without a bespoke report."* becomes:
+  *"- **Spend** — AI spend by project and by end user, which D8's per-user attribution already produces. Answers "which
+  of 300 students spent the budget" without a bespoke report. It also shows what the platform spends on intake (§10):
+  the month's spend against the intake budget, and the spend by person.
+  - **Platform settings** — the values §10 leaves to an administrator. They are the monthly agent budget's default and any
+  one person's, and the intake model, whose change is a change to the model catalogue and takes its step-up (§20). They
+  are also intake's bounds: a key's cap and life, the keys a person may start in a day, and the platform's monthly intake
+  budget. Each change is audited with its actor (below)."*
+
+*Options:*
+- **(a) As proposed** (recommended). It gives intake its own `IntakeSession` table, the model has to be allowed for
+  `internal`, the platform pays, and each person is bounded.
+- **(b) A nullable `AgentSession.project_id`.** There is one table instead of two, but every rule keyed on the project
+  gains a null branch (below). The §6 and §10 agent rows would also each need an exception clause.
+- **(c) The intake model must be on-premise** (`confidential`). This is the strictest option, and the one a cautious
+  Privacy Office might ask for first, because a person may type personal information into a description. It rules out
+  an off-premise capable model for intake, which Rich's decision on the building agent's model (message §3) expects:
+  *"FE-1's intake setting may name the capable one"*. UBC would have to host that model itself.
+- **(d) Charge intake to the person's agent budget.** This was Rich's first answer, and he replaced it. There would be
+  no platform budget and no daily count, and a person whose month is spent could not describe a new app.
+- **(e) Decline.** The front-end creates a project first, which means a slug, a repository and three environments exist
+  before the person has agreed to anything.
+
+**Recommendation on the question the message leaves to this session: a small table of its own (`IntakeSession`), not
+a nullable `AgentSession.project_id`.** Six reasons, each from the spec or the plan:
+1. **Every agent-session rule is keyed on the project.** Authorisation is checked against `ProjectMember` on every
+   route (§20 *Authorization*). The plan's `endAgentSession` says *"the session row names the project; `agent:session`"*,
+   `listAgentSessions` is a project's read, and archive and delete end a project's sessions (§11). With a nullable
+   column, each of these gets a null branch. The first route written later that forgets that branch has the IDOR shape
+   §16's authorisation suite exists to catch.
+2. **Who pays is different, and two columns that must agree need a CHECK.** An agent session is charged to
+   `mf-person-<userId>` (Decision 21). An intake session is charged to the platform's user. A shared table would need a
+   payer column that must always agree with whether `project_id` is null.
+3. **An intake session has no event row to write.** `audit.events.project_id` is `NOT NULL … ON DELETE RESTRICT`
+   (`packages/control-plane/src/db/schema.ts:886`). An intake event with no project would mean changing the audit
+   table's shape. Its own row is the record instead, and §6's `RoleChange`, a person-level record in its own table
+   (`schema.ts:1005`), is the precedent.
+4. **Everything else differs too.** The models are one setting rather than D17-by-project (Decision 23).
+   `requested_by_token` is always null. There is no `token_revoked`, `project_archived` or `project_deleted` end reason.
+   And the per-person daily count is a count over this table's own rows.
+5. **§6 and §10 stay true as Spec action 1 wrote them.** Spec action 1 made the agent row *"one person's agent, on one
+   project"*, and that needs no exception clause.
+6. **What it costs** is a second table, an alias of its own (`mf-intake-<id>`) that `/key/delete` names, and one more
+   pattern in `scripts/litellm-orphans.sh`. `mintAgentKey` can be shared, taking the user and the alias as parameters.
+
+**What this changes from the front-end's first draft (FE-1), and why:**
+1. **The table is decided, not left open:** the reasons are above.
+2. **The draft's *"never outlives the session that started it"* becomes *"never past the expiry of the interactive
+   session that started it"*.** A Phase 1 session is stateless and cannot be revoked (§20, *Manifest's own front door*),
+   so *"never outlives"* reads as a revocation that nothing performs. The session's `expiresAt` is enforceable, in the
+   same way Decision 22 bounds an agent key by its token's expiry. A sign-out does not end the key, and its 30-minute
+   life is the bound.
+3. **The model is named "as part of the model catalogue".** Changing it therefore takes the step-up the catalogue
+   already has (§20) without adding a new item to §20's privileged list. That list's alignment is enforced by a test
+   (*"Keeping the lists aligned is a test"*), and a new item would widen the change.
+4. **D17 is stated exactly, as *"a catalogue entry whose `max_classification` is `internal` or `confidential`"*, and it
+   is checked every time a key is minted.** It is not checked only when the setting is saved. This follows §7's rule
+   that an unclassified entry is never resolvable, and Decision 23's *"before anything is minted"*.
+5. **The platform's monthly intake budget is made explicit, and running it out is separate from running out a person's
+   day.** The draft names *"the platform's intake budget"* as the source, but does not say what happens when it is spent.
+6. **"Never charged to the person's agent budget instead"** closes off the fallback that Rich's replaced first answer
+   implied.
+7. **D8, §17 and §26 are added.** D8 lists where keys are minted, and §17 lists Phase 2's deliverables. §26 had no
+   settings screen at all, although Spec action 1's *"an administrator may change for one person (§26)"* already points
+   there. The new *Platform settings* line fills that gap for both actions.
+8. **The D2 exception goes after the whole decision**, not after *"charged to the person the agent works for"*.
+   Otherwise D2's next sentence, about outside and inside the sandbox, would read as if it applied to intake.
+9. **§5 is unchanged** (checked: *"Out of scope for this repo: chat UI, agent orchestration, project ideation"*, line
+   259). As the draft says, the front-end keeps the ideation: the prompt, the conversation and what it does with the
+   answer. The platform only supplies and pays for the model.
+
+**Checked and unchanged.**
+- **D24:** a token cannot start intake, and its *"can do"* list is unchanged.
+- **§13 *Roles*:** *"manages blueprints and the model catalogue"* already covers the intake model under (a).
+- **§14:** agent sessions publish their events. Intake has no stream, and §10's new paragraph says so.
+- **§3.5 asset 6:** *"Model credentials and budget"* is unchanged in kind.
+- **§15's platform-initiated `AgentSession` row:** unaffected.
+
+**Shared pages:**
+- `manifest-decisions.html` **D2** (line 61). After *"…whether it runs in Manifest&rsquo;s sandbox or in the faculty
+  front-end&rsquo;s own server."* add: *"One exception is the platform&rsquo;s own cost: before an app exists, the AI that
+  helps a person describe it uses one model the platform chooses, with a small allowance per person each day."*
+- `manifest-decisions.html` **D8** (line 91). *"AI spending is tracked per app, per build session, charged to the person
+  the AI works for, and per person using the app."* becomes *"… and per person using the app; the AI that helps a person
+  describe a new app is the platform&rsquo;s own cost, capped per person per day."*
+- `manifest-phases.html` **stage 2** (line 265). After *"And an AI working for a person gets its own model access,
+  charged to that person."* add: *"Describing a new app, before it exists, uses a model the platform pays for."*
+- `manifest-schematic.html`, **three places**:
+  - ***Describing it*** (line 187). After *"…and stays quiet about everything else."* add a sentence: *"That conversation
+    is the platform&rsquo;s own cost, on one model the platform chooses, with a small allowance per person each day,
+    because nothing exists yet to charge it to."*
+  - **The admin screens' *AI spending*** (line 1020). After *"…without building a special report."* add *"It also shows
+    what the platform spends helping people describe new apps."*
+  - Nothing else: `grep -n -i -E 'budget|allowance|spend|pays|cost'` finds only the capacity and D29 passages.
+- `manifest-stories.html`: checked with `grep -n -i -E 'describ|model|budget|cost|pay'` and unchanged. Its *"Describes
+  it"* beats say nothing about a model or who pays.
+
+*Verification (5), the passage, its line, and `grep -c -F` of its anchor. The whole normalised quote is also 1 in
+every case:*
+- D2 decision, *"the agent that runs **inside** a sandbox gets one from Phase 3."*: line 198, count 1
+- D2 rationale, *"never a provider credential, and never a Manifest credential (§20)."*: line 198, count 1
+- D8, *"Virtual keys are minted **per app+environment** and **per agent session**"*: line 204, count 1
+- §6 insertion point, *"and its key is answered once, when it starts, and never stored |"*: line 342, count 1
+- §10 table insertion point, *"held on a LiteLLM user for that person, independent of every app budget |"*: line 901,
+  count 1
+- §10 paragraph insertion point, *"platform-initiated session of §15 still waits for Phase 3."*: line 918, count 1
+- §17, *"**and agent sessions outside a sandbox — a model key charged to the person (§10)**"*: line 1669, count 1
+- §20, *"**An agent key (§10) is neither class.**"*: line 1806 (the passage runs to 1808), count 1
+- §26, *"- **Spend** — AI spend by project and by end user"*: line 2750 (the passage runs to 2752), count 1
+- Facts cited:
+  - §7's default classification is `internal` (`packages/control-plane/src/spec/schema.ts:261`, `.default('internal')`,
+    and the spec's own §7 example at line 403).
+  - `audit.events.project_id` is `NOT NULL` with `RESTRICT` (`db/schema.ts:886`).
+  - `RoleChange` is an `audit.` table (`db/schema.ts:1005`).
+  - Sessions last 12 hours and are stateless (`identity/session.ts:4`, `SESSION_TTL_MS`).
+
+---
+
+### 6. D6, D16, D21, §3.5, §5, §8, §9, §11, §13, §14, §15, §16, §19, §20 and §21: staging is UBC's real staging world, not the fake one (spec now; code in sitting 10)
+
+**Why.** Rich, 2026-09-27: *"in the sandbox we will use the fake IdP, but in staging, we'll actually be connecting to
+the real Staging IdP from UBC's Identity and Access Management team. The sandbox is where the agents and instructors can
+log in freely with fake users, but the staging environment has a real connection to real (staging) services at the
+university. Same with Canvas and Academic API etc. Sandbox will be a fake environment, staging will be a real staging
+environment, and production (of course) will be real."*
+
+His answers to what that raised:
+- **An app's staging registration with UBC IAM is reviewed, with a wait.** It is a third clock, beside the production
+  registration and the privacy assessment, and it gates the trying-out address.
+- **Staging accounts are real people's:** *"Folks can get a staging cwl. It's separate and distinct from their
+  production CWL. There's no 'test' accounts. Only accounts associated with a real person, like production."*
+- **On the laptop, staging keeps the fake sign-in**, stated in §21's honest divergences (C1).
+
+The spec says the opposite in D6, §9, D21 and §14, and it rests three rules on staging serving no real person: the
+recent-output read (§14), D16's reason, and the IdP signing key's scope (§3.5, §9).
+
+**Proposed**, twenty-two edits. They cover every passage the message named, plus every other hit from the spec-wide
+grep that I judged affected. The hits I judged unaffected are listed after the edits, with their reasons.
+
+- **§3.5, asset 8.** *"8. The **Manifest IdP signing key** — high value, but scoped to sandbox and staging only (D6), so
+  its compromise never touches real user identities."* becomes *"8. The **Manifest IdP signing key** — high value, but
+  scoped to the sandbox, and to a laptop's staging (D6, §21), so its compromise never touches real user identities."*
+- **D6, the decision.** *"**Two identity paths.** The Manifest IdP (a SimpleSAMLphp instance Manifest controls) serves
+  **sandbox and staging** with test users. **Production apps are registered directly with real UBC Shibboleth**, one
+  registration per app. The Manifest IdP does not proxy to real CWL and never authenticates a real user."* becomes
+  *"**Three identity paths, one per environment.** The Manifest IdP (a SimpleSAMLphp instance Manifest controls) serves
+  **the sandbox** with test users, whom agents and instructors sign in as freely. **Staging and production apps are
+  registered with UBC**: staging with UBC's staging IdP, where real people sign in with a staging CWL, and production
+  with real UBC Shibboleth. There is one registration per app and environment, each a request UBC IAM reviews (§9). The
+  Manifest IdP does not proxy to real CWL and never authenticates a real user. On the laptop, which cannot reach UBC
+  (C1), it serves staging as well (§21). *(Changed 2026-09-27: staging was the Manifest IdP's until Rich decided it is
+  UBC's real staging world.)*"*
+- **D6, the rationale.** *"A useful side effect: the Manifest IdP's signing key never touches real identities, which
+  removes it from the top of the asset list in §3.5. *(A SAML-proxy variant was considered and rejected.)*"* becomes
+  *"A useful side effect: the Manifest IdP's signing key never touches real identities, which removes it from the top of
+  the asset list in §3.5. **Staging is UBC's real staging world, with its IdP and its staging Canvas and academic API
+  (§15), so that real people try an app against the services it will use before it goes live. The sandbox stays the
+  one place where anyone may sign in as a pretend person.** *(A SAML-proxy variant was considered and rejected.)*"*
+- **D16, the rationale.** *"Under D6 staging uses test users, so the harvesting risk is lower than first assessed — but
+  the control is retained for a stronger reason:"* becomes *"Under D6 staging signs in real people, each with a staging
+  CWL, so the harvesting risk first assessed holds there as it does in production, and only the sandbox's test users are
+  free of it. The control is kept in every environment for a second reason as well:"* (The sentence continues
+  unchanged: *"in production, `auth.attributes` must be a subset…"*.)
+- **D21, the rationale.** *"Staging on the Manifest IdP keeps iteration frictionless, but an app whose first contact
+  with real Shibboleth is production launch day will fail on launch day. The rehearsal validates the registration, the
+  attribute release and the certificate before anything is public."* becomes *"An app whose first contact with real
+  Shibboleth is production launch day will fail on launch day. **Staging now makes that contact every day**, signing
+  people in against UBC's staging IdP through its own registration (§9). What the rehearsal adds is therefore narrower:
+  it exercises the **production** registration, its attribute release and its certificate before anything is public.
+  Whether that still needs a blocking item once staging is registered is an open question (§19); until it is answered,
+  the rehearsal stays. *(Rationale changed 2026-09-27: it rested on staging using the Manifest IdP.)*"* The decision
+  cell is unchanged, because the rehearsal is still not part of the daily build loop.
+- **§5, the module map.** *"`sso/            Manifest IdP SP registration (sandbox + staging)`"* becomes
+  *"`sso/            Manifest IdP SP registration (the sandbox; staging on a laptop, §21)`"*.
+- **§8, three rows.** The names do not change, so the blueprint reads the same variables and only staging's values
+  move. §16's drift tier asserts names, not these values.
+  - `SAML_ENVIRONMENT`: *"`LOCAL` for sandbox and staging (Manifest IdP), `PRODUCTION` for production."* becomes
+    *"`LOCAL` for the sandbox (Manifest IdP), `STAGING` for staging (UBC's staging IdP; `LOCAL` on a laptop, §21),
+    `PRODUCTION` for production."*
+  - `SAML_ISSUER`: *"sandbox/staging: `https://manifest.ubc.ca/sp/{slug}/{env}`; production: the entityID registered
+    with UBC IAM (§9)"* becomes *"sandbox: `https://manifest.ubc.ca/sp/{slug}/{env}` (and a laptop's staging, §21);
+    staging and production: the entityID registered with UBC IAM for that environment (§9)"*.
+  - `SAML_IDP_METADATA_URL`: *"sandbox/staging: the Manifest IdP; production:
+    `https://authentication.ubc.ca/idp/shibboleth`"* becomes *"sandbox: the Manifest IdP (and a laptop's staging, §21);
+    staging: `https://authentication.stg.id.ubc.ca/idp/shibboleth`; production:
+    `https://authentication.ubc.ca/idp/shibboleth`"*. The staging URL is `passport-ubcshib`'s own `STAGING` preset
+    (`passport-ubcshib/index.js:21`, `metadataUrl`).
+- **§9's opening, two words.** *"There are **three** identity paths"* becomes *"There are **four** identity paths"*,
+  and *"The other two are the app-facing paths (D6):"* becomes *"The other three are the app-facing paths, one per
+  environment (D6):"*.
+- **§9's table.** The whole table (lines 627–634), *"| | **sandbox + staging** | **production** | … | `passport-ubcshib`
+  preset | `LOCAL` (pointed at the Manifest IdP) | `PRODUCTION` |"*, becomes:
+
+  | | **sandbox** | **staging** | **production** |
+  |---|---|---|---|
+  | IdP | Manifest IdP (SimpleSAMLphp) | UBC's staging IdP (`authentication.stg.id.ubc.ca`) | real UBC Shibboleth |
+  | Users | test users (`bio_prof`, `bio_student`) | real people, each with a staging CWL: no test accounts | real staff and students |
+  | Registration | automatic, seconds | **a request to UBC IAM, reviewed by people, with a wait** (C4) | **a request to UBC IAM, reviewed by people** (C4) |
+  | Keypair | per app+environment, rotatable freely | registered with the request | long-lived and stable (D20) |
+  | PIA | not required | not yet settled (§19) | **required** (C4) |
+  | `passport-ubcshib` preset | `LOCAL` (pointed at the Manifest IdP) | `STAGING` | `PRODUCTION` |
+
+  followed by one line: *"On a laptop, staging takes the sandbox's column (§21)."*
+- **§9, the heading.** *"### Sandbox and staging: SP auto-provisioning"* becomes *"### The sandbox: SP
+  auto-provisioning"*, followed by a new first paragraph: *"This is the sandbox's path, and a laptop's staging's (§21).
+  At UBC, staging is registered with UBC's staging IdP instead (below)."* No other document names this heading: I checked
+  with `grep -rn -F "SP auto-provisioning"`, and it finds only phrases in plan prose, never a link to the heading.
+- **§9, a new subsection** inserted before *"### Production: real UBC IAM registration"*:
+  > ### Staging: a registration with UBC's staging IdP
+  >
+  > **Staging is UBC's real staging world** (decided by Rich, 2026-09-27). An app's staging environment signs people in
+  > against **UBC's staging IdP** (`authentication.stg.id.ubc.ca`, `passport-ubcshib`'s `STAGING` preset). It reaches
+  > UBC's staging services, Canvas and the academic API among them (§15), where the sandbox reaches stand-ins. **The
+  > people who sign in are real.** Each holds a staging CWL, separate and distinct from their production CWL, and there
+  > are no test accounts. They are the instructor, a TA, a colleague, and any student who has one. How a person gets a
+  > staging CWL is UBC's process.
+  >
+  > **Registering an app's staging environment is a request to UBC IAM, reviewed by people, with a wait**, and it is no
+  > more programmatic than production's (C4). It is **a third clock**, beside the production registration and the privacy
+  > assessment (§13), and the first of the three to start. **It gates the staging address**: until IAM has registered it,
+  > a CWL app's staging environment serves but signs nobody in, and people try the app in the sandbox. An app with
+  > `auth.provider: none` registers nothing and waits for nothing. Manifest derives the request's values as it derives
+  > production's (D15):
+  > - the entityID `https://{platform-domain}/sp/{slug}/staging`, fixed at registration;
+  > - the ACS and SLO URLs on the staging hostname;
+  > - the requested attributes, each with its justification.
+  >
+  > **How Manifest drafts and tracks the request is not yet designed** (§19). `IamRegistration` (§6) is production's
+  > today.
+  >
+  > **On the laptop, staging keeps the Manifest IdP's fake sign-in** (§21). C1 forbids a laptop that needs UBC's
+  > network, so a laptop's staging registers itself the way the sandbox does, above.
+- **§9, *Pre-production rehearsal*.** After *"The rehearsal is a `LaunchReadiness` item, not part of the daily build
+  loop."* add: *" **Staging now signs people in against the same IdP every day**, through its own registration (above).
+  What only the rehearsal exercises is the **production** registration: its entityID, ACS URL, attributes and
+  certificate, before anything is public. Whether that still needs a blocking item once staging is registered is an
+  open question (§19); until it is answered, the rehearsal stays."*
+- **§9, *Registration hardening*, the IdP key bullet.** *"Under D6 it signs assertions only for test users in sandbox
+  and staging, so its compromise never touches a real identity — but it can still be used to forge access to a staging
+  app holding real work, so it is treated as sensitive."* becomes *"Under D6 it signs assertions only for test users in
+  the sandbox (and a laptop's staging, §21), so its compromise never touches a real identity. It can still be used to
+  forge access to a sandbox holding real work, though, so it is treated as sensitive."*
+- **§9, *Attribute changes are gated in every environment (D16)*.** *"Under D6 staging uses the Manifest IdP with test
+  users, so the harvesting risk is lower than first assessed — the control is retained for a stronger reason:"* becomes
+  *"Under D6 only the sandbox uses test users. Staging signs in real people, each with a staging CWL, so the harvesting
+  risk first assessed holds there as it does in production. The control is kept in every environment for a second
+  reason as well:"*
+- **§9, *Enforced attribute release*.** *"### Enforced attribute release (sandbox and staging)"* followed by its first
+  paragraph, *"Attribute release is enforced **at the IdP** by the `core:AttributeLimit` processing filter, populated
+  from `auth.attributes`. An app cannot receive an attribute it did not declare."*, becomes *"### Enforced attribute
+  release (the sandbox)"* followed by the same paragraph plus: *" **In staging and production the release is UBC's**:
+  its IdPs release what IAM registered for that environment, and Manifest's filter is not in the path. The exception is
+  a laptop's staging, which is the Manifest IdP's (§21)."*
+- **§11, *Ending an app*.** *"its backing services stop; its sandbox and staging SP registrations are removed (§9)."*
+  becomes *"its backing services stop; its SP registrations with the Manifest IdP are removed, meaning the sandbox's and,
+  on a laptop, staging's (§9, §21). A registration with UBC IAM, whether staging's or production's, is UBC's record and
+  is left as it is."* Sitting 8 has not been built yet. The laptop behaves exactly as Task 11 plans, because there both
+  registrations are the Manifest IdP's.
+- **§13, *First production launch is a checklist*.** After *"A faculty member should never discover the existence of a
+  PIA on the day they wanted to launch."* add: *" A CWL app has **a third clock, and it starts first**: its staging
+  registration with UBC's staging IdP (§9). It gates signing in at the staging address rather than going live, and it
+  is surfaced at the same moment as the other two."* The checklist table is unchanged, because the staging registration
+  is not a launch item.
+- **§14, the recent-output read.** *"**A bounded read of an instance's recent output is — in sandbox and staging
+  only.** A project member, or a delegated token holding the capability for it, may read the last lines of an
+  instance's output — bounded in lines and in bytes, read on request and never streamed — redacted at read with the
+  rules that redact `Incident.log_tail`. Sandbox and staging serve the Manifest IdP's test users and never a real person
+  (D6), which is what makes their output readable; production's is not, and its Incident's `log_tail` stays the only
+  window onto it."* becomes:
+  *"**A bounded read of an instance's recent output is, in the sandbox only.** A project member, or a delegated token
+  holding the capability for it, may read the last lines of a sandbox instance's output. The read is bounded in lines
+  and in bytes, made on request and never streamed, and redacted at read with the rules that redact `Incident.log_tail`.
+  The sandbox serves the Manifest IdP's test users and never a real person (D6), which is what makes its output
+  readable. **Staging and production serve real people**: staging CWL holders in staging, and real staff and students in
+  production (§9). So the output of both is refused, each by a code that names that rule, and an Incident's `log_tail`
+  stays the only window onto either. The rule is decided by the environment's kind, not by its IdP. A laptop's staging,
+  which keeps the fake sign-in (§21), is refused all the same, so nothing built against a laptop reads what UBC's
+  staging will refuse."*
+  One wording point: the new sentence keeps §14's odd construction *"A bounded read … is"*, meaning that a bounded read
+  **is** v1, set against the sentence before it about live tailing. It is kept word for word except where it moves.
+- **§15, the `integrations` row.** *"| `integrations: []` in the spec | reserved, must be empty | LTI 1.3 launch inside
+  Canvas; roster/class-list integration via `FakeAcademicAPI` and `canvas-bridge` |"* becomes *"| `integrations: []` in
+  the spec | reserved, must be empty | LTI 1.3 launch inside Canvas; roster/class-list integration via `FakeAcademicAPI`
+  and `canvas-bridge`. **Each environment reaches its own world** (D6): the sandbox reaches a stand-in such as
+  `FakeAcademicAPI`, staging reaches UBC's staging instances of Canvas and the academic API, and production reaches the
+  real ones |"*. `FakeAcademicAPI` is, by its own README, *"a local, Dockerized substitute for UBC's Academic API"*, which
+  is exactly a sandbox stand-in. `canvas-bridge` is not a Canvas fake (it bridges Canvas exports into WordPress), so the
+  new words do not call it one.
+- **§16, the identity-path regression tier.** *"a production environment never resolves to the Manifest IdP; a sandbox
+  or staging environment never resolves to real UBC Shibboleth;"* becomes *"a production environment never resolves to
+  the Manifest IdP or to UBC's staging IdP; a staging environment never resolves to UBC's production IdP, and resolves
+  to the Manifest IdP only on a laptop (§21); a sandbox environment never resolves to real UBC Shibboleth, staging or
+  production;"*. As written today, this tier asserts the very thing FE-24 reverses.
+- **§19, the staging IdP row, and three rows after it.** *"| Access to UBC's staging IdP (`authentication.stg.id.ubc.ca`)
+  for the pre-production rehearsal (D21) | Needed at Phase 2 | UBC IAM |"* becomes:
+  *"| Access to UBC's staging IdP (`authentication.stg.id.ubc.ca`), for every CWL app's staging environment (§9) and for
+  the pre-production rehearsal (D21) | Needed at Phase 2 for the rehearsal; before any app's staging serves at UBC for
+  the rest | UBC IAM |
+  | **UBC IAM registration, one per CWL app's staging environment** (§9): reviewed by people, with a wait. How Manifest
+  drafts and tracks it, beside `IamRegistration` or as a second kind of it, is not yet designed | Blocks signing in at an
+  app's staging address | UBC IAM + Manifest team |
+  | **Whether a privacy assessment covers an app's staging use by real people** (staging CWL holders, the owner's
+  colleagues and students among them), or staging needs cover of its own (§9) | Open; needed before any app's staging
+  serves at UBC | UBC Privacy Office |
+  | **Whether D21's rehearsal keeps a purpose** once staging signs people in against UBC's staging IdP every day (§9) |
+  Open; the rehearsal stays a blocking item until it is answered | UBC IAM + Manifest team |"*
+- **§20, the control map.** *"IdP-enforced attribute release in sandbox/staging;"* becomes *"IdP-enforced attribute
+  release in the sandbox (and a laptop's staging, §21), and in staging and production UBC's release of only what IAM
+  registered;"*
+- **§21, *Honest divergences*, item 5.** *"5. The Manifest IdP serves test users only; no real Shibboleth is involved
+  (D6)."* becomes *"5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6). **On the laptop it
+  serves staging as well as the sandbox.** At UBC, staging signs real people in against UBC's staging IdP and reaches
+  UBC's staging services (§9, §15). A laptop cannot reach those offline (C1), so a laptop's staging keeps the sandbox's
+  fake sign-in and stand-ins, and proves nothing about a staging registration. Whatever rests on staging serving real
+  people still holds on the laptop, because it is decided by the environment's kind and not by its IdP: staging's recent
+  output is refused here too (§14)."*
+
+**The three consequences, and where each is handled:**
+1. **A third clock gates the trying-out address.** This is handled in §9's new subsection (stated), §13 (surfaced
+   beside the other two), and §19 (a row of its own). The tracked object is deliberately not designed here: it belongs
+   to FE-6, and §19 says so.
+2. **Staging accounts are real people's.** This is handled in D6, the §9 table, the new subsection, D16 and the §9 D16
+   subsection, §3.5 asset 8, and the IdP-key bullet.
+3. **The recent-output read becomes sandbox-only.** This is handled in §14 and §21 item 5. **Code in sitting 10:**
+   - `getInstanceOutput` refuses staging, by a code that names the rule, before the driver is asked, as production is
+     refused today (`packages/control-plane/src/api/routes/instances.ts:189`).
+   - The route's description (*"the last lines a sandbox or staging instance printed"*, `instances.ts:181`) changes.
+   - `INSTANCE_OUTPUT_PRODUCTION`'s remedy (*"Read a sandbox or staging instance's output instead"*,
+     `api/error-codes.ts:594-601`) changes.
+   - The authorisation matrix's row (`api/authz-contract.ts:111`) changes.
+   - **Any demo or journey step that reads a staging instance's output** moves to the sandbox.
+
+**Checked and judged unaffected**, each hit from `grep -n -i -F` on *test user*, *Manifest IdP*, *never a real person*,
+*rehearsal*, *Canvas*, *cademic*, *fake*, *stg.id*, *STAGING*, *real person*, *real user*, *bio_prof* and
+*real identit*:
+- **§1 success criteria** (lines 46–61): the journey is on a MacBook, where staging keeps the fake sign-in (§21 item 5
+  says so).
+- **§2** (line 78): *"`FakeAcademicAPI`, `canvas-bridge` | Future `integrations:` targets"* is still true, and §15
+  carries the new rule.
+- **C4** (lines 101–107): its *"no design may assume programmatic SP registration with real UBC CWL"* already covers
+  staging's registration. I did not propose an edit to a constraint.
+- **§8, lines 561–565**: `SAML_ENVIRONMENT` defaulting to `'STAGING'` is still fail-open for the **sandbox**, so the
+  regression argument stands.
+- **§8 `SAML_PRIVATE_KEY_PATH`** (line 588): *"Required in staging and production (the Manifest IdP requires signed
+  AuthnRequests per §9, and real UBC encrypts assertions)"* is still true as a pair.
+- **§9 line 623**: *"Locally it uses the Manifest IdP like everything else"* is about Manifest's own SP on the laptop.
+- **§9 *Registration hardening*, lines 774–778**: *"Both must be `true` in staging and production"* is about how the IdP
+  is deployed, not about an app's environment. *See the uncertainties list.*
+- **§9 *Local behaviour*** (lines 816–851): the whole subsection is the laptop's. Its *"This does not retire D21's
+  pre-production rehearsal"* is still true there.
+- **§11's lifetime table** (lines 1012–1022): Data *"persistent, resettable"* and Secrets *"environment secrets"* are
+  unchanged in kind. Staging's data is now real people's, and I have put that into the PIA question.
+- **§12, line 1130** (*"The staging-is-UBC-only requirement is met by listener assignment"*): still true.
+- **§12, lines 1242–1243**: the egress baseline *"(the registry mirror, LiteLLM, the Manifest IdP)"*. It is already
+  loose for production and is not made materially worse. *See the uncertainties list.*
+- **§12 *Backups*, lines 1413–1414**: staging is still never backed up. This goes into the PIA question.
+- **§13, line 1448**: the checklist's rehearsal row is unchanged under (a).
+- **§20 *Key management*, line 1900**: *"It signs only for test users (D6)"* is still true.
+- **§22, line 2192**: *"Log in with CWL (Manifest IdP, test user)"* is the console's login on the laptop.
+- **§23**: the reserved label `canvas` is unaffected.
+- **§24, lines 2559–2570**: this is a load rehearsal that *"mirrors D21's IdP rehearsal"*, used only as an analogy.
+- **§26**: the queue has no staging-registration row yet. That is FE-6's work, and the open questions carry it.
+- **§27**: the fork row *"The SP keypair and IAM registration"* covers staging's registration as well.
+- **D1, D12, D19, D20**: unaffected. D19's *"the IAM registration"* is production's until FE-6.
+
+*Options:*
+- **(a) As proposed** (recommended). Staging is UBC's; the laptop keeps the fake sign-in; the output read is
+  sandbox-only; and D21 is kept, with its rationale rewritten and its purpose left as an open question.
+- **(b) As (a), but retire D21 now.** Staging's daily sign-ins prove *a* registration against UBC's staging IdP, but
+  they prove staging's, not production's entityID, ACS and certificate, which is what the P6a rehearsal records
+  (`db/schema.ts`, the `rehearsals` comment). Retiring it would also remove a `LaunchReadiness` item and code. Not
+  recommended until IAM says how a production SP can be exercised on the staging IdP.
+- **(c) Keep the output read in staging, with stricter redaction.** Rejected: §14 already says *"heuristics miss
+  things"*, and names and email addresses are not pattern-shaped.
+- **(d) Give the laptop's staging a stand-in for UBC's staging IdP**, meaning a second Manifest IdP instance playing the
+  part. Rejected: Rich answered *"on the laptop, staging keeps the fake sign-in"*, and a second fake proves nothing
+  about UBC.
+
+**Shared pages** (each passage below was checked with `grep -c -F` and found exactly once):
+- **`manifest-decisions.html`**
+  - **D6** (lines 81–82). *"There are two separate sign-in systems. Practice apps use a Manifest-run copy with fake test
+    users. Live apps use the real UBC CWL, registered one app at a time."* becomes *"There are three sign-in worlds.
+    Draft apps, in the sandbox, use a Manifest-run copy with pretend users. Apps being tried out, in staging, use
+    UBC&rsquo;s real staging CWL, where each person has a staging account of their own. Live apps use the real UBC CWL.
+    Staging and live apps are each registered with UBC, one app at a time."* In the *why*, *"A side benefit: the
+    practice sign-in system never touches…"* becomes *"A side benefit: the pretend sign-in system never touches…"*.
+  - **D21** (line 157). *"Practising against Manifest&rsquo;s own sign-in keeps daily work fast, but an app whose first
+    contact with the real system is launch day will fail on launch day."* becomes *"The test copy now signs people in
+    against UBC&rsquo;s real test system every day, so the rehearsal&rsquo;s job is narrower: it checks the live
+    app&rsquo;s own registration before launch. Whether it is still needed is a question for UBC."* The *what* (line
+    156) is unchanged.
+  - **D24** (line 172). *"reading the last lines a practice app printed, on request and cleaned of anything shaped like
+    a secret (never a live app&rsquo;s, which serves real people)"* becomes *"reading the last lines an app printed in
+    its sandbox, on request and cleaned of anything shaped like a secret (never the test copy&rsquo;s or the live
+    app&rsquo;s, because real people sign in to both)"*. Separately, the same sentence's *"agreed on 2026-09-26 and next
+    to be built"* has been stale since sitting 2 built it. That is not this action's change, but the applier should
+    notice it.
+  - D16 (line 132) was checked and is unchanged: its words say nothing about who staging's users are.
+- **`manifest-phases.html`** **What waits** (line 349). *"read on request while it is being tested, never in
+  production"* becomes *"read on request in the sandbox only: never from the test copy or the live app, because real
+  people sign in to both"*. The same item's *"Agreed on 2026-09-26, and the next thing to be built"* is stale too, as
+  above. The *What waits* Canvas bullet (line 354) was checked and is unchanged.
+- **`manifest-schematic.html`**
+  - ***Three places* table** (lines 551, 554, 557):
+    - *Who signs in*: *"Fake test users"* in the Sandbox column stays. The Test copy column becomes *"Real people, each
+      with a UBC test account"*.
+    - *Real student data*: the Test copy column becomes *"Only what its testers enter"*.
+    - *Approval to get here*: the Test copy column becomes *"None to deploy; sign-in waits for UBC to register it"*.
+  - ***Signing in* section** (lines 903–947):
+    - The heading *"Two sign-in systems, and why they must not be confused"* becomes *"Three sign-in worlds, and why they
+      must not be confused"*.
+    - The claim becomes *"Draft apps sign in against a Manifest-run copy with invented users. Test copies sign in
+      against UBC&rsquo;s real test system, with real people&rsquo;s test accounts. Live apps sign in against real UBC
+      CWL. **Only the draft one is Manifest&rsquo;s, and it never touches a real person&rsquo;s identity.**"*
+    - The table gains a middle column, *Test copies*: *UBC&rsquo;s test CWL*; *Real people, each with a test account*; *A
+      request to UBC, read by people*; *Serious*. The first column's head becomes *Sandboxes*.
+    - In the paragraph under the table, *"practice sign-in is instant"* becomes *"sandbox sign-in is instant"*, followed
+      by *"; a test copy&rsquo;s registration is the first of three things UBC reviews, and the platform tracks it with
+      the other two."*
+    - The *Three things* bullet *"The practice system is worth little to an attacker"* becomes *"The sandbox&rsquo;s
+      sign-in system is worth little to an attacker"*.
+    - The rehearsal bullet (line 944) gets D21's plain-language change above.
+  - **Glossary** (lines 1069–1072). *Test copy*'s *"using invented test users rather than real people"* becomes *"where
+    real people sign in with their UBC test accounts"*. *Live*'s *"the only one requiring UBC registration and privacy
+    approval"* becomes *"the only one requiring privacy approval; it and the test copy each need a UBC registration"*.
+  - The launch-checklist mock (lines 444–456) was checked and is unchanged until FE-6 designs the third clock's card.
+- **`manifest-stories.html`**, story 1:
+  - A new beat after *Week 1*: *"Week 1: the first registration. The test copy&rsquo;s own UBC registration goes in on
+    day one, because it is the first of three waits. Until it comes back, trying happens in the sandbox."*
+  - The *"In parallel"* beat (line 114): *"against test students"* becomes *"against pretend students in the sandbox,
+    and then with real colleagues on the test copy"*.
+  - The *"Once registered"* beat (line 118): *"A rehearsal sign-in against UBC&rsquo;s real test system catches a
+    mismatch in one field name."* becomes *"The instructor and two TAs sign in to the test copy with their own UBC test
+    accounts, and catch a mismatch in one field name."* **This rewrites the story's example.** If D21 keeps its purpose,
+    the rehearsal beat stays as a second, later one.
+  - Story 3's Canvas beats (lines 190, 204) were checked and are unchanged.
+- **Not a shared page, but it moves at application:** `docs/external-track.md` item 5 (line 68, *"Access to
+  `authentication.stg.id.ubc.ca` | D21's pre-production rehearsal"*) widens to cover every CWL app's staging
+  environment, and the third clock is a new item there.
+
+*Verification (6), the passage, its line, and `grep -c -F` of its anchor. The whole normalised quote is also 1 in
+every case:*
+- §3.5 asset 8, *"8. The **Manifest IdP signing key** — high value, but scoped to sandbox and"*: line 161, count 1
+- D6 decision, *"**Two identity paths.** The Manifest IdP"*: line 202, count 1
+- D6 rationale, *"*(A SAML-proxy variant was considered and rejected.)*"*: line 202, count 1
+- D16 rationale, *"Under D6 staging uses test users, so the harvesting risk is lower than first assessed"*: line 212,
+  count 1
+- D21 rationale, *"Staging on the Manifest IdP keeps iteration frictionless"*: line 217, count 1
+- §5, *"sso/            Manifest IdP SP registration (sandbox + staging)"*: line 295, count 1
+- §8 `SAML_ENVIRONMENT`, *"`LOCAL` for sandbox and staging (Manifest IdP), `PRODUCTION` for production."*: line 581,
+  count 1
+- §8 `SAML_ISSUER`, *"sandbox/staging: `https://manifest.ubc.ca/sp/{slug}/{env}`; production:"*: line 582, count 1
+- §8 `SAML_IDP_METADATA_URL`, *"sandbox/staging: the Manifest IdP; production:"*: line 586, count 1
+- §9, *"There are **three** identity paths"*: line 612, count 1
+- §9, *"The other two are the app-facing paths (D6):"*: line 625, count 1
+- §9 table, *"| | **sandbox + staging** | **production** |"*: line 627 (the table runs to 634), count 1
+- §9 heading, *"### Sandbox and staging: SP auto-provisioning"*: line 636, count 1
+- §9 insertion point, *"### Production: real UBC IAM registration"*: line 656, count 1
+- §9 rehearsal, *"`LaunchReadiness` item, not part of the daily build loop."*: line 743, count 1
+- §9 IdP key, *"identity — but it can still be used to forge access to a staging app holding"*: line 771 (the passage
+  runs 769–772), count 1
+- §9 D16 subsection, *"environment. Under D6 staging uses the Manifest IdP with test users, so the"*: line 789, count 1
+- §9 enforced release, *"### Enforced attribute release (sandbox and staging)"*: line 795 (the passage runs to 799),
+  count 1
+- §11, *"its sandbox and staging SP registrations are removed"*: line 1099, count 1
+- §13, *"should never discover the existence of a PIA on the day they wanted to launch."*: line 1454, count 1
+- §14, *"**A bounded read of an instance's recent output is — in sandbox and staging only.**"*: line 1527 (the passage
+  runs to 1533), count 1
+- §15, *"| `integrations: []` in the spec | reserved, must be empty |"*: line 1582, count 1
+- §16, *"a sandbox or staging environment never resolves to real UBC Shibboleth"*: line 1613, count 1
+- §19, *"for the pre-production rehearsal (D21) | Needed at Phase 2 | UBC IAM |"*: line 1731, count 1
+- §20, *"IdP-enforced attribute release in sandbox/staging;"*: line 1945, count 1
+- §21, *"5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6)."*: line 2121, count 1
+
+*Open questions to carry*, in ORIENTATION §8 and the external track. §19 would carry the first three once this is
+applied:
+1. **Whether D21's rehearsal keeps a purpose** once staging exercises UBC's staging IdP every day. This is UBC IAM's
+   and Rich's question: can a production SP be exercised on the staging IdP, and does the rehearsal prove anything that
+   staging's own registration does not?
+2. **Whether a privacy assessment covers an app's staging use by real people** holding staging CWLs, or staging needs
+   cover of its own. This is for the Privacy Office, through Rich. It should also cover staging's data: it is now real
+   people's, it is never backed up (§12), and *"resettable by design"* (§11).
+3. **The staging registration as a tracked object, together with FE-6.** Is it a first-class object like
+   `IamRegistration`, or a second kind of it? Is it drafted by D19's generator? Does the owner say *"I've sent it"*? Does
+   it have a *waiting since* state? Does it get a §26 queue row, a laptop override in §21's *Gates that cannot exist
+   offline*, and an item in `docs/external-track.md`?
+4. **Found while drafting, not in the message: are a staging release's attributes validated against staging's
+   registration**, as a production release's are against production's (§7, *Validation*)? UBC's staging IdP will
+   release only what IAM registered for staging, so an attribute added after registration fails at sign-in unless
+   something checks it first.
+5. **Found while drafting: does the slug become immutable once staging is registered?** §9 makes it immutable after
+   production launch *"because it is registered externally"*. A staging registration is external too, and its entityID
+   contains the slug.
+6. **Found while drafting: does D24's line for staging still hold?** A delegated token may *"deploy to sandbox and
+   staging"* and *"set its app's sandbox and staging secrets"*. Under FE-24 a token's deploy puts agent-written code in
+   front of real people with staging CWLs, and a staging secret is presented to real UBC staging services.
+   §20 makes a production secret session-only because *"it is what a live app presents to a real service"*. I recommend
+   no change now, because staging is internal-only and its people chose to try the app. But it is Rich's line to draw,
+   not this draft's.
+
+#### Where the drafting was unsure — for Rich, with the two actions
+
+1. **The staging keypair row in §9's table** (*"registered with the request"*). This assumes UBC's staging IdP
+   registers the SP's certificate, as production does, because it encrypts assertions to it. If IAM's staging process
+   is looser than that, the cell should say so. The same assumption is behind *"fixed at registration"* for staging's
+   entityID.
+2. **"A CWL app's staging environment serves but signs nobody in" until it is registered.** This is my reading of
+   *"gates the trying-out address"*. Rich may mean that the address should not be served at all until it is registered.
+3. **The output refusal's code** is left to sitting 10. My suggestion is to keep `INSTANCE_OUTPUT_PRODUCTION` as it is,
+   because a published `/v1` code is not renamed (D23.8), and add a sibling for staging, rather than make one new code
+   for both.
+4. **Intake's platform-wide monthly budget has no number.** Rich gave the per-key and per-person numbers only. The
+   spec states the mechanism, and sitting 7 should propose the default. That leaves two more of sitting 7's calls open:
+   whether "a day" is UTC or Vancouver time, and whether a person past the day's number and a platform past its month
+   get one code or two. The front-end's words, *"paused for today"*, only fit the first case.
+5. **`IntakeSession` is an ordinary table, not an `audit.` table.** If Rich wants the start of an intake session in the
+   append-only trail, `RoleChange` is the precedent (`db/schema.ts:1005`).
+6. **Two passages I left alone that a stricter reading might change.**
+   - §9, lines 774–778: *"Both must be `true` in staging and production"* is about the IdP's own deployment, as I read
+     it.
+   - §12, lines 1242–1243: *"a platform baseline (the registry mirror, LiteLLM, the Manifest IdP)"*. This was already
+     loose for production, which has never used the Manifest IdP. A staging or production app at UBC would reach UBC's
+     IdPs, if it needs to reach an IdP at all (the certificate is mounted, and sign-in is browser-mediated).
+7. **Nothing was refused.** Every read of the spec, the plan, the message and the code succeeded. No file outside the
+   scratchpad was written, and no test or `pnpm`/`make` command was run.
 
 ---
 
@@ -2711,3 +3454,165 @@ attribute request (Spec action 4's *Shared pages*, rechecked).
 
 **Next: sitting 6 (Task 8 — the `app` origin)**; Spec action 2 is applied; `pnpm test:docker` owed (`identity/`, `sso/`,
 `infra/`); its Step 10 drives a sign-in on `https://app.manifest.internal` in a browser, and **Rich types the password**.
+
+### Sitting 6 — 2026-09-27: Task 8, the `app` origin — and the faculty front-end's message
+
+**Run cold from ORIENTATION §7e**, at Rich's *"read ORIENTATION.md and proceed with the next sitting"*, on the LEAN budget, and
+**handed a second instruction in the same message**: the faculty front-end's session's note of Rich's decisions
+(`manifest-app/docs/2026-09-27-to-the-platform-session.md`), to be recorded here, in ORIENTATION §8 and the roadmap, with its
+spec actions drafted. Inline execution (`superpowers:executing-plans`), committing on `main`; three read-only background agents
+for the message's research (Spec actions 5 and 6 drafted, every quote verified unique; the capable-model decision; the FE claims
+checked against the code); one fresh whole-branch reviewer (Opus, read-only, told never to run a test) beside the Docker tier;
+one fix pass. Commits: `f1e3908` (Task 8), `8bb6b22` (the review's fix pass), `3c38199` (F14, found by the close's first full
+run), and the close-out. **Spec actions 5 and 6 — drafted here — were approved by Rich as drafted in sitting 7's first message and
+applied (`25e7445`) while this sitting was closing**; he confirmed it to this sitting directly. **The contract moved only by two
+`ErrorCode` values** — `CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH` and `CONFIG_ORIGINS_SHARE_A_HOST` (F14; still `1.4.0`, 57 operations;
+`/auth/*` is outside the versioned contract, D23.8). **For Rich to relay to the front-end**: those two codes (boot-time
+configuration refusals, never a client's), and the behaviour — the `app` origin is live, a sign-in there sets `app`'s own cookie,
+a mutation's `Origin` must be the origin it arrived on, and a sign-out begun there returns there.
+
+**Rulings** (the ledger's `Ruling:` lines):
+- **Decision 18 as the code needed it** — a sign-out's LogoutResponse is validated by the client of the origin its `RelayState`
+  names (exactly one of `config.origins`; else the arrival origin's), because node-saml caches a LogoutRequest's ID in the
+  instance that sent it and the IdP answers at the FIRST SLO (`[M5]`). `RelayState` is signed by the IdP with the message
+  (node-saml 5.1.0 `lib/saml.js:668`). F1.
+- **Task 8's step *"a callback on the console carrying app's sign-in is refused, as a sign-in this browser did not start"* is
+  the host-only cookie's, and was green before the feature** — so the red-first property behind it was added: an assertion
+  answering `app`'s request is refused on the console EVEN WHEN BOUND (`401 SAML_ASSERTION_REJECTED`). F2.
+- **An IdP-initiated sign-out reaches only the console's origin** — recorded in *What this plan does not build*, not fixed. F3.
+- **The stream-upgrade CSRF case is in `api/events.test.ts`** (its harness), not `csrf.test.ts`; **the Docker case is in
+  `identity/saml.docker.test.ts`** (sitting 5's F8, as Task 8's `[S5]` said): a second origin `http://localhost:7189` beside
+  `127.0.0.1:7189`, every hop connecting to 127.0.0.1 with `Host: localhost:7189` — a browser's request, with no resolver in it.
+- **The copied Caddy site's comments were trimmed to pointers**; its DIRECTIVES differ from the console's in exactly two places,
+  checked by a script that strips comments and compares line by line. F4.
+- **`make verify`'s *app serves the API* probes `/v1/me` and accepts `[502]` or `[401]`+`UNAUTHENTICATED`** — `make verify`
+  usually runs with no control plane, exactly the console check's reason — and refuses the wildcard's text and `@outside`'s.
+- **`MANIFEST_FRONTEND_ORIGIN`'s default applies to the Docker tier's loopback control planes too** — their test rows list an
+  unused `https://app.manifest.internal` ACS; harmless (each run registers its own entity and removes it).
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 Decision 18 as written could not work.** A sign-out's LogoutRequest ID goes into the InResponseTo cache of the SAML
+   instance that SENT it (`createSamlSp`'s `logoutUrl`, read before a line was written), and the IdP answers every sign-out at
+   the FIRST SingleLogoutService (`[M5]`) — so with one client per origin, an `app` sign-out's answer would have been validated
+   by the console's client and refused `400 SAML_LOGOUT_REJECTED` instead of sending the browser home. Fixed by the ruling
+   above; held by *refuses an answer whose RelayState names the origin that did NOT ask* (control (b): RED with one client).
+2. **F2 Step 7's *"a callback on the console carrying app's sign-in is refused, as a sign-in this browser did not start"* was
+   GREEN before the feature** — it tests the host-only login cookie, which is years older than Task 8. A test of what Task 8
+   adds was written beside it: an assertion answering `app`'s request, posted to the console WITH the binding, is refused
+   `SAML_ASSERTION_REJECTED` — red first (`302`), and red again under control (b).
+3. **F3 A sign-out the IdP BEGINS reaches only the console's origin** (one SingleLogoutService; SimpleSAMLphp answers the first
+   of a binding), so an `app` session outlives signing out of a deployed app, for up to 12 h. Recorded in *What this plan does
+   not build* and put to Rich (ORIENTATION §8 *Open*); the review confirmed a clearing hop gated on the IdP's answer would be
+   replayable (node-saml never removes a redirect-binding LogoutResponse from its cache).
+4. **F4 The plan's *"copied from `console.manifest.internal`'s and changed in exactly two places"* copies the console's
+   comments** — *"the reference console, a host process on 7104"* above a proxy to 7105. Trimmed to pointers; the directives
+   compared by script (and now by `make verify`, F10).
+5. **F5 `auth.test.ts`'s *"sets a session cookie without Secure only on a loopback http origin"* went red** once cookies
+   followed the arrival origin: it overrode `config.sp.origin` alone, and the configured LIST is now the source. Updated to set
+   `origins` too — TRAPS.md has the shape (`app.inject` sends `Host: localhost:80`, so every existing test is judged against
+   the first origin).
+6. **F6 The roadmap's front-end heading still read *"SITTING 5 IS NEXT"*** — sitting 5's sweep updated its paragraph and not
+   its heading. Found opening the roadmap for this sitting's sweep; corrected.
+7. **F7 macOS answered the OLD address for ~5 s after `make up` recreated the host's resolver** (control (d)'s restore:
+   `dscacheutil` read `127.0.0.3` while dnsmasq answered `127.0.0.2`). TRAPS.md.
+8. **F8 `identity/saml.docker.test.ts` BUILDS `dist/`**, so running it under control (b) left `dist/` carrying the break after
+   the source was restored — harmless here (the Docker tier rebuilt it before anything ran `dist/`), a trap otherwise.
+   TRAPS.md.
+9. **F9 The front-end's FE-18(c) is only partly true**: `src/errors.ts:13-17` uses constructor parameter properties, but
+   `erasableSyntaxOnly` is set only in `packages/github-fake`, not in `packages/contract` — so it bites a CONSUMER that sets
+   the flag, not this build. Verified read-only; Task 13's `[S6]` says so. (FE-2, FE-24, FE-17 and FE-18 (a) and (b) verified
+   true; FE-5's canonical form found at `tokens/pending.ts:34-46`.)
+10. **F10 (review I1) `make verify`'s *app serves the API* passed ANY `[502]`**, which could not tell `/v1/*` forwarded to 7100
+    from forwarded to 7105 — dropping `/auth/*` from `app.`'s `@api`, or swapping its upstreams, stayed green, and nothing else
+    routes through `app.` (every demo signs in on the console). Fixed (`8bb6b22`): `[502]` only while nothing listens on 7100,
+    and a STATIC check that `app.`'s site is the console's with only the upstream changed — `make verify` **61**. Controls (h)
+    and (i), below.
+11. **F11 (review M1, re-graded Important) The session cookie's `Secure` following the ARRIVAL origin had no test that went
+    red** — the mixed-scheme test read `manifest_login` only. A test now completes a sign-in on each scheme; control (g)
+    (`secure` from `config.sp.origin`) RED.
+12. **F12 (review M6, M5) `docs/external-track.md` presented SimpleSAMLphp's index-0 fallback as UBC's behaviour** — UBC runs
+    Shibboleth IdP, unmeasured, which likely refuses outright; reworded, closed either way — and it now says that at UBC the
+    console's origin must be reachable by every browser that signs in on `app` (one SLO).
+13. **F13 (review M4, M7) Two settings were documented wrongly**: `.env.example` still called the console's origin *"the ONLY
+    Origin a cookie-carrying change is accepted from"* and did not list `MANIFEST_FRONTEND_ORIGIN`; and `MANIFEST_CONSOLE_HOST`
+    does nothing under `vite preview` (it feeds HMR only). Both corrected.
+14. **F14 Task 8's own refactor hid two error codes from the registry's gate** — found only by the close's first FULL run (`8bb6b22`,
+    580 s: 2509 in 168, **2 failed**). `api/error-codes.test.ts` finds the codes the source throws by the constructor's quoted first
+    argument; moving the loopback port check into a helper that took the code as a PARAMETER made
+    `CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH` read as registered-but-never-thrown and hid `CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH`,
+    while `CONFIG_ORIGINS_SHARE_A_HOST` read as thrown-but-unregistered. The task's wider run named `api/contract/` and not
+    `api/error-codes.test.ts`. Fixed (`3c38199`): each code thrown as a literal at its own call site, both registered, the
+    contract regenerated — and **the fix's own first comment quoted the constructor pattern and was read as a throw of `LITERAL`**,
+    reworded. The predicted *"contract unchanged"* was wrong by these two codes.
+
+**Deferred minors** (the review's, not numbered): the `RelayState` the route reads is Fastify's decoding, not always the raw token
+node-saml verified — harmless as built, the comments overclaim (M2 — Task 13's `[S6]`); a non-canonical configured origin passes
+config and refuses every mutation, fail-closed (M3 — Task 13's `[S6]`). **Declined to judge, all eight standing**: FE-2's cookie
+reaching the front-end's server (Rich's decision); the document's `servers` naming the console alone (moves the contract — Tasks
+13 and 15); sessions not bound to the origin that minted them (§20's mechanism is host-only cookies); the front-end origin's
+laptop default at UBC (Phase 5, like every origin default); LogoutResponse replay within node-saml's cache (pre-existing; the
+route ends nothing); a container reaching `host.docker.internal:7100` with a forged Host (a §12 topology question,
+pre-existing); `checkLoopbackPort`'s `?? '80'` for an https loopback origin (pre-existing); a design for signing out of both
+origins (recorded).
+
+**Step 10, the browser — DONE WITH RICH.** The reference console built and served on 7105 (`MANIFEST_CONSOLE_HOST=app.manifest.internal
+… preview --port 7105 --strictPort`) behind `https://app.manifest.internal` answered `200` with its document; the agent clicked
+*Sign in with CWL* and stopped at the practice CWL page (the extension did not touch it); **Rich typed `instructor`'s password**;
+the page read *Test Instructor `ins000001`* — nothing created. **In the same browser**: `app.manifest.internal/v1/me` → `200
+{"puid":"ins000001",…}`, `console.manifest.internal/v1/me` → `401 UNAUTHENTICATED` — the session is `app`'s alone; `users`
+kept `cwl_login = instructor`. The console needed no change: it reads `window.location.origin` for every call, as predicted.
+
+**Measured, and as the plan predicted** (not findings): `app.` resolved `127.0.0.2` after `make up` (`dscacheutil`); `https://app.manifest.internal/v1/me`
+answered `401 UNAUTHENTICATED` through the edge with the control plane up and `502` without it; the platform's SP row read two
+`AssertionConsumerService` entries (index 0 the console's, 1 `app`'s) and one `SingleLogoutService` (the console's); a real
+sign-in through the IdP on the second loopback origin was posted to ITS ACS (`[M3]` again, live); `make doctor` **20** (the
+zone split grew, the count did not) and `make verify` **60**, both as predicted (61 after the review's fix pass added a check);
+`make demo-identity` (29 s) and `make demo-token` (31 s) green and unchanged.
+
+**The negative controls — every one predicted in writing (`t8-predictions.md` in the workspace), run after `f1e3908`, and restored:**
+- (a) CSRF accepting any configured origin — *refuses a mutation on app whose Origin is the console — and one on the console whose
+  Origin is app* RED (`201` for `403`), and the stream's *refuses an UPGRADE on app…* RED (`{opened:true}` for `{status:403}`).
+- (b) ONE SAML client for every origin — *a sign-in begun on app completes on app* RED on the ACS, *…even when bound* RED (`302`
+  for `401`), *a step-up begun on app returns to app* RED on the ACS, *refuses an answer whose RelayState names the origin that
+  did NOT ask* RED (`302` for `400`); the app sign-out's way home GREEN, as predicted (one cache holds the request) — **and the
+  Docker case RED against the real IdP**: its form posted to `http://127.0.0.1:7189/auth/saml/callback`, the ACS the request named.
+- (c) `originOf` answering the request's own `Origin` when its host matches nothing — *never the request's own* RED and the
+  unknown-host CSRF case RED, as predicted, **plus three pre-existing CSRF tests RED** (a sibling app's origin, the refusal before
+  the Idempotency-Key, a sign-out from a sibling): an injected request's `Host` matches no origin, so it would be judged against
+  itself — stronger than predicted, which is the property the rule exists for.
+- (d) dnsmasq's `app.` pin dropped (`make up`) — `app.` resolved `127.0.0.3`; `make doctor`'s zone split RED (*answers 127.0.0.3,
+  want 127.0.0.2*); `make verify`'s *the host reaches the API on https://app.manifest.internal* RED on the body *`manifest OK
+  host=app.manifest.internal … listener=public` [200]* — **a status-only check would have read `200` and passed**. Restored.
+- (e) any `RelayState` honoured — *a RelayState naming anything but one of Manifest's origins ends on /* RED (`https://evil.example/`).
+- (f) the same-host refusal off — *refuses two origins on one host* RED.
+
+**Gates at close**: **`pnpm test` 2509 passed in 168 files**, twice on the final tree (`3c38199`: 562 s and 578 s, identical, load
+~4–5) — up from 2484 in 167 by 25 tests and one file (`api/origins.test.ts`): config 5, origins 3, csrf 4, events 1, platform 2,
+auth 6 (one the review's M1), logout 4 — **the 25 predicted before the runs**; no route was added, so the authorization matrix did
+not grow. An earlier full run on `8bb6b22` read the same 2509 in 168 with **2 failed** (F14) and was not counted; its twin was
+stopped a minute in. **`pnpm test:docker` 218 in 36 files** — owed, run once on `f1e3908` beside the reviewer, green first time in
+953 s at load ~3–7 (+1: the two-origin real sign-in); the fix passes touched no line a Docker case runs (`verify.sh`, a unit test,
+`.env.example`, a comment, and `config.ts`'s throw sites, which boot runs unchanged in effect — grepped: no Docker file names the
+two new codes). `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean. **`make doctor` 20/0/0; `make verify` 61/0/0** (57 at
+open; four `app.` checks) — measured with the control plane down (`[502]`) and up (`[401] UNAUTHENTICATED`); its per-app line
+`mf- containers=6 networks=2 volumes=4`, as at open. **`make demo-identity` and `make demo-token` green** (29 s, 31 s). The contract
+is **`1.4.0`**: 57 operations, 116 error codes (+2, F14), 40 event types.
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 secrets, 0 instances, 0 users, **35
+migrations** (none this sitting); `launch-app`'s six `mf-launch-app-*` containers running, untouched, and no other `mf-` container
+(the two demos' six removed with `docker rm -f -v`); nothing listening on 7100, 7102, 7104, 7105, 7110 or 8765 — **the control plane
+is not running and nothing serves 7105**; the GitHub fake absent; **both models unloaded** (the chat model warmed for the tier, the
+embedder loaded by `make verify` — Ollama's `/api/ps` lists none); the edge reloaded by Task 8's `make up`, restarted by the Docker tier
+and reloaded twice more by control (i) (its break and its restore), no runtime route applied; `manifest-dns-host` recreated with the `app.` pin. The three cleanup scripts, after `--apply`
+(allowed — 9 networks and 5 volumes: the tier's 7 and 1 and the demos'; 3 LiteLLM users: `p4b-probe-user` and the two demo apps';
+16 app images) and run bare again at the very end: `none dead`, nothing to delete, 0 dead app images. `infra/idp/config/authsources.php`
+and the IdP's copy agree (`ca7e4d6d…`). The snapshot diff shows only uptimes, `manifest-dns-host`'s recreation, the edge's restart and
+**2 GiB less free disk** (74 → 72 Gi); Docker's build cache is 25.1 GB (20.9 GB reclaimable), which no cleanup script touches.
+`docker-simple-saml-saml-idp-1` exited, as at open; `docker-simple-saml` clean but its old untracked `cert.zip`. **HEAD moved under
+the sitting** — `25e7445`, the session opening sitting 7, applying Spec actions 5 and 6 — and nothing of it was staged here.
+**The four shared HTML pages were checked**: Task 8 builds what Spec action 2 already restated (swept at its application), so none
+moved; Spec actions 5 and 6's page changes are `25e7445`'s.
+
+**Next: sitting 7 (Tasks 9 and 10 — agent sessions, with FE-23 and FE-1; Spec actions 5 and 6 were approved and applied in its first message, `25e7445`, while this sitting was closing — Rich confirmed the approval to this sitting directly)**;
+`pnpm test:docker` owed (`ai/`, `projects/`); the contract moves, so its close-out lists every change for the front-end.
