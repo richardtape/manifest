@@ -545,37 +545,39 @@ describe('archive and restore (§11, Task 11)', () => {
   }, 30_000)
 
   /**
-   * A deploy AUTHORIZES before it takes the environment's lock. One that authorized before the
-   * archive and reaches the lock after the archive has taken it down must not bring the app back:
-   * `deployRelease` reads the project's state again under the lock.
+   * A deploy AUTHORIZES before it takes the environment's lock. One that authorized before an
+   * archive began, and was waiting for that lock when the archive set the project's state, must be
+   * refused — not deploy, answer `200`, and be torn down behind its caller's back. Two things hold
+   * it: the archive sets the state FIRST (Decision 28), and `deployRelease` reads the state again
+   * under the lock. The deploy queues for the lock before the archive does, so it is granted it
+   * first, and finds the project already archived.
    */
-  it('a deploy that begins during an archive is refused, and starts nothing', async () => {
+  it('a deploy waiting when an archive begins is refused, and starts nothing', async () => {
     await withLifecycleServer(async (ctx) => {
       const deployed = await deployWithDatabase(ctx)
       const driver = ctx.deps.driver as FakeDriver
       let deploying: ReturnType<typeof mutate> | undefined
+      let archiving: ReturnType<typeof archive> | undefined
       await withEnvironmentLock(ctx.stagingEnvironmentId, async () => {
         deploying = mutate(ctx, `/v1/environments/${ctx.stagingEnvironmentId}/deploy`, {
           releaseId: deployed.releaseId,
         })
-        // Long enough that the deploy has authorized and is waiting for this lock.
+        // Long enough that the deploy has authorized and is waiting for this lock…
         await new Promise((resolve) => setTimeout(resolve, 300))
-        await ctx.db
-          .update(projects)
-          .set({ state: 'archived' })
-          .where(eq(projects.id, ctx.projectId))
+        archiving = archive(ctx, ctx.ownerSteppedUp)
+        // …and that the archive has set its state and is waiting for it too.
+        await new Promise((resolve) => setTimeout(resolve, 300))
       })
-      const instancesBefore = await ctx.db
-        .select()
-        .from(instances)
-        .where(eq(instances.environmentId, ctx.stagingEnvironmentId))
       expect(refusal(await deploying!)).toEqual({ status: 409, code: 'PROJECT_ARCHIVED' })
-      const instancesAfter = await ctx.db
+      expect((await archiving!).statusCode).toBe(200)
+      // Nothing it started: every instance of staging is the first deploy's, and it is gone.
+      const staging = await ctx.db
         .select()
         .from(instances)
         .where(eq(instances.environmentId, ctx.stagingEnvironmentId))
-      expect(instancesAfter.length).toBe(instancesBefore.length)
-      expect(await driver.servingInstance(deployed.hostname)).toBe(deployed.handle)
+      expect(staging.map((row) => row.id)).toEqual([deployed.instanceId])
+      expect(staging[0]!.state).toBe('gone')
+      expect(driver.isSwitchedOff(deployed.hostname)).toBe(true)
     })
   }, 30_000)
 
