@@ -1,10 +1,11 @@
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-import { events, projects } from '../db/index.js'
+import { events, projects, sourceRepositories } from '../db/index.js'
 import { withProject } from '../db/testing.js'
 import { createEventBus } from '../observability/index.js'
 import type { MirrorAdvance } from '../source/index.js'
 import { createSourceObserver } from './source-events.js'
+import { projectForRepository } from './source-repositories.js'
 
 const A = 'a'.repeat(40)
 const B = 'b'.repeat(40)
@@ -48,6 +49,52 @@ describe('the source observer reports commits too large to scan (Task 12)', () =
       expect((await incomplete()).map((r) => r.humanMessage)).toContain(
         `A commit pushed to GitHub (${A.slice(0, 12)}) was too large for Manifest to scan for secrets, so nothing in it was checked. A build of any commit still scans the whole tree it builds.`,
       )
+    })
+  })
+})
+
+/**
+ * A SLUG A DELETED PROJECT FREED, TAKEN AGAIN (the front-end enablement plan's Task 12): two rows share
+ * it, one a tombstone. Both lookups BY NAME — the mirror's observer by slug, a webhook's delivery by
+ * the repository's full name — must reach the LIVE project, never the tombstone its trail belongs to.
+ */
+describe('a slug taken again after a delete (Task 12)', () => {
+  it('attributes an advance, and a delivery, to the live project — never the tombstone', async () => {
+    await withProject(async (db, { projectId }) => {
+      const [old] = await db.select().from(projects).where(eq(projects.id, projectId))
+      await db
+        .update(projects)
+        .set({ state: 'deleted', deletedAt: new Date() })
+        .where(eq(projects.id, projectId))
+      const [live] = await db
+        .insert(projects)
+        .values({
+          slug: old!.slug,
+          name: old!.slug,
+          ownerId: old!.ownerId,
+          blueprintRef: old!.blueprintRef,
+        })
+        .returning()
+      for (const id of [projectId, live!.id])
+        await db
+          .insert(sourceRepositories)
+          .values({ projectId: id, provider: 'github', fullName: `Org/${old!.slug}` })
+          .onConflictDoUpdate({
+            target: sourceRepositories.projectId,
+            set: { provider: 'github', fullName: `Org/${old!.slug}` },
+          })
+
+      expect((await projectForRepository(db, 'github', `Org/${old!.slug}`))?.id).toBe(
+        live!.id,
+      )
+      await createSourceObserver({ db, bus: createEventBus() }).advanced(
+        advanceOf(old!.slug, [A]),
+      )
+      const [row] = await db
+        .select()
+        .from(events)
+        .where(eq(events.type, 'repository.scan_incomplete'))
+      expect(row!.projectId).toBe(live!.id)
     })
   })
 })
