@@ -28,6 +28,7 @@ import {
 } from './rate-limit.js'
 import { assertSameOrigin } from './csrf.js'
 import { originOf } from './origins.js'
+import { sendRefusalPage, wantsRefusalPage } from './auth-page.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore, type WithholdOnReplay } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
@@ -342,13 +343,14 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
       // token, and telling its holder to log in is a hint they cannot act on (D23.7).
       // Deliberately says nothing about WHICH way a token was unacceptable — `tokenActor`
       // has the reason it must not.
-      return reply.status(401).send({
-        error: {
-          code: 'UNAUTHENTICATED',
-          message: 'a valid credential is required',
-          hint: 'Sign in at /auth/login for a session, or send Authorization: Bearer <token> for an agent. A token that is unknown, revoked or expired is refused the same way.',
-        },
-      })
+      const unauthenticated = {
+        code: 'UNAUTHENTICATED',
+        message: 'a valid credential is required',
+        hint: 'Sign in at /auth/login for a session, or send Authorization: Bearer <token> for an agent. A token that is unknown, revoked or expired is refused the same way.',
+      }
+      // FE-17: a browser NAVIGATING to /auth/* is shown a page, never raw JSON.
+      if (wantsRefusalPage(request)) return sendRefusalPage(reply, 401, unauthenticated)
+      return reply.status(401).send({ error: unauthenticated })
     }
     const { status, body } = toErrorResponse(error)
     if (error instanceof RateLimitedError)
@@ -376,6 +378,8 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
       )
       console.error((error as Error).stack ?? error)
     }
+    // FE-17: a browser NAVIGATING to /auth/* is shown the refusal as a page, never raw JSON.
+    if (wantsRefusalPage(request)) return sendRefusalPage(reply, status, body.error)
     return reply.status(status).send(body)
   })
 
