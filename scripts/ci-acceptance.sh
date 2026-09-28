@@ -140,8 +140,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `projects/state.test.ts` (1), `projects/source-events.test.ts` (1), `source/plumbing.test.ts` (1),
 # the source driver contract on both drivers (2), `source/github/driver.test.ts` (1),
 # `build/context.test.ts` (1), the fake driver's contract (1), and the matrix's delete row (9).
-EXPECT_TESTS=2689
-EXPECT_FILES=174
+# Then its sitting 9a (2026-09-28, the capable model): +18 and one file — `ai/capable.test.ts` (17,
+# new) and `config.test.ts`'s capable-model setting (1); the scrub list grew inside an existing test.
+EXPECT_TESTS=2707
+EXPECT_FILES=175
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=61
 

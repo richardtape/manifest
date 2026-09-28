@@ -162,39 +162,45 @@ gitignored, and — like the IdP keypair and the envelope master key — **not r
 
 ### The capable model
 
-*Added 2026-09-28 (the front-end enablement plan's Task 12a; §7, §21 and §26 as Spec action 7 amended them).*
-`default-chat-large` is ONE logical name for the agent and app work `qwen3.5:4b` cannot do. Which model answers it
-is a setting, a commercial provider's today, **and it needs the network**. Nothing offline depends on it:
-`default-chat` stays the floor every demo and the offline acceptance run on (C1). It is **unset by default**, and a
-laptop without a provider key registers nothing.
+*Added 2026-09-28 (the front-end enablement plan's Task 12a, as its whole-branch review left it; §7, §21 and §26 as Spec action 7
+amended them).* `default-chat-large` is ONE logical name for the agent and app work `qwen3.5:4b` cannot do. Which model answers it
+is a setting, a commercial provider's today, **and it needs the network**. Nothing offline depends on it: `default-chat` stays the
+floor every demo and the offline acceptance run on (C1). It is **unset by default**, and a laptop without a provider key registers
+nothing. *(Its fallback to the on-premise model, when the provider fails, is Spec action 8's and sitting 9b's — not built yet.)*
 
-1. **In `.env`, set the two lines `.env.example`'s section 2f documents**: `OPENAI_API_KEY=` (the provider's key —
-   real money; it is yours, and no agent types, reads or prints it) and `MANIFEST_CAPABLE_MODEL=openai/gpt-6-luna`
-   (a LiteLLM model string; Rich's choice on 2026-09-28, with `openai/gpt-6-sol` as the one-line switch if luna is
-   not capable enough).
-2. **`make up`** — LiteLLM reads its environment only when it is created, and `infra/compose.yaml` hands it
-   `OPENAI_API_KEY` and hands the key to nothing else. Check with
-   `docker exec manifest-litellm sh -c '[ -n "$OPENAI_API_KEY" ] && echo set'`, never by printing it. **Do it with
-   the network ON**: `gpt-6-*` is priced only by the list LiteLLM fetches when it starts online, because the list
-   bundled in 1.98.0 stops at gpt-5.6.
-3. **Start (or restart) the control plane** as above. RUNBOOK's `set -a; . ./.env` exports both lines into it. The
-   control plane reads `MANIFEST_CAPABLE_MODEL` and **scrubs `OPENAI_API_KEY` at boot**, before any child process
-   can inherit it. At boot it registers `default-chat-large` at `internal` through LiteLLM's admin API, never as
-   an `infra/litellm/config.yaml` line (a config-file deployment cannot be removed through the admin API).
-   **Read the boot line's `capableModel`**, which is one of:
-   - `registered`, `unchanged`, `removed` or `absent`;
-   - `refused` or `failed`, each with ONE `[boot] the capable model (MANIFEST_CAPABLE_MODEL) …` line. The boot
-     always goes on.
-4. **Check it**: `curl -s http://127.0.0.1:7106/model/info -H "authorization: Bearer $LITELLM_MASTER_KEY"`, then
-   look for `default-chat-large` with `max_classification: internal` and a positive `input_cost_per_token`.
-   `startAgentSession` on an `internal` or `public` project lists it in `session.models`. A `confidential`
-   project's session never does.
+1. **In `.env`, set the two lines `.env.example`'s section 2f documents**: `OPENAI_API_KEY=` (the provider's key — real money; it
+   is yours, and no agent types, reads or prints it) and `MANIFEST_CAPABLE_MODEL=openai/gpt-6-luna` (a LiteLLM model string;
+   Rich's choice on 2026-09-28 — a more capable model, `openai/gpt-6-sol`, is a one-line REPOINT, never a fallback). Both are
+   commented in `.env.example`, because `make doctor` reads every uncommented line there as a key every `.env` must have.
+2. **`make up`, with the network ON** — LiteLLM reads its environment only when it is CREATED (`docker restart` keeps the old
+   one), and `infra/compose.yaml` hands it `OPENAI_API_KEY` and hands the key to nothing else. Check with
+   `docker exec manifest-litellm sh -c '[ -n "$OPENAI_API_KEY" ] && echo set'`, never by printing it. Online matters: `gpt-6-*`
+   is priced only by the list LiteLLM fetches when it starts online, because the list bundled in 1.98.0 stops at gpt-5.6.
+3. **Start (or restart) the control plane** as above. RUNBOOK's `set -a; . ./.env` exports both lines into it; it reads
+   `MANIFEST_CAPABLE_MODEL` and **scrubs `OPENAI_API_KEY` at boot**, before any child process can inherit it. **Straight after it
+   starts listening** it registers `default-chat-large` at `internal` through LiteLLM's admin API — never as an
+   `infra/litellm/config.yaml` line, which the admin API could not remove — **pinned at the price LiteLLM itself reported**, so a
+   later LiteLLM restart without the network cannot make it free. **Read the boot line's `capableModel`**: `registered`,
+   `unchanged`, `removed`, `absent`, `disabled` (AI off), or `refused` / `failed`, each of the last two with ONE `[boot] the
+   capable model (MANIFEST_CAPABLE_MODEL) …` line. The boot always goes on.
+4. **Check it**: `curl -s http://127.0.0.1:7106/model/info -H "authorization: Bearer $LITELLM_MASTER_KEY"` — `default-chat-large`
+   with `max_classification: internal` and a positive `input_cost_per_token` in BOTH `litellm_params` (pinned) and `model_info`.
+   `startAgentSession` on an `internal` or `public` project lists it in `session.models`; a `confidential` project's never does.
 
-**`refused` means LiteLLM cannot price the model.** A model priced at $0 would never bind an agent budget, a session
-cap or the intake month, so the platform will not offer it. The usual cause is a LiteLLM started offline:
-`docker restart manifest-litellm` with the network on, then restart the control plane. **Unsetting the line and
-restarting removes it.** `MANIFEST_INTAKE_MODEL` may name it too, which means the platform pays for intake on it.
-A call with no provider key in LiteLLM is refused inside LiteLLM, as `500 litellm.AuthenticationError`.
+**`refused` says why, in its `[boot]` line.** *Cannot price*: LiteLLM has no price for the model — a model priced at $0 would never
+bind an agent budget, a session cap or the intake month, so the platform will not offer it; the usual cause is a LiteLLM started
+offline — `docker restart manifest-litellm` with the network on, then restart the control plane. *Would not serve*: LiteLLM answered
+the registration with an error — check the provider prefix (`openai/<model>`), and `docker logs manifest-litellm`. **A refused
+REPOINT keeps the model that was working** (the line says which), unless that one is itself unpriced. `failed` means LiteLLM did
+not answer, or refused a change it was asked for; the line says which.
+
+**Every control plane that boots WITHOUT the line removes `default-chat-large` from the shared LiteLLM** — the Docker tier's own
+control planes and `ai/capable.docker.test.ts` included (only a boot that fails before it serves changes nothing). So after `pnpm
+test:docker`, or a control plane started without the line, restart it WITH the line. **Unsetting the line and restarting removes
+it** — and an app whose manifest declares `default-chat-large` is then refused `SPEC_MODEL_UNKNOWN`, and a launched one's redeploy
+`RELEASE_MODEL_NOT_IN_CATALOGUE`, until it is set again. `MANIFEST_INTAKE_MODEL` may name it too, which means the platform pays for
+intake on it. A call with no provider key in LiteLLM was refused inside LiteLLM as `500 litellm.AuthenticationError` — measured with
+the variable ABSENT from the container; the compose line now sets it EMPTY when `.env` lacks it, which was not re-measured.
 
 ## The four verbs
 
@@ -778,7 +784,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 61 / 0**
-(**All four were re-measured on 2026-09-27 at the close of the front-end enablement plan's sitting 9 (Task 12, delete — and its whole-branch review's fix pass), and two moved: `pnpm test` **2689 passed** in 174 files on both runs of the final tree (was 2661; 688 s and 656 s), and `pnpm test:docker` **240 in 40** (was 232 in 39; owed; green on its first run, alone); `make doctor` 20 with **0 warnings** — and **1 failed while the faculty front-end's own server holds 7105**, which its port check does not yet recognise (the plan's F12) — the vulnerability database goes stale after 2026-10-01; refresh it with `make refresh-vulndb` — and `make verify` **61** (red once at that close, and repaired: its audit probe's `ON CONFLICT (slug)` against the new partial index).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-28 at the close of the front-end enablement plan's sitting 9a (Task 12a, the capable model — and its whole-branch review's fix pass), and three moved: `pnpm test` **2707 passed** in 175 files on both runs of the final tree (was 2689; 693 s and 690 s), and `pnpm test:docker` **243 in 41** (was 240 in 40; owed; green on its first run, alone); `make doctor` 20 with **0 failed and 0 warnings** — the faculty front-end's server on 7105 now recognised by its marker (the plan's F12, closed) — the vulnerability database goes stale after 2026-10-01; refresh it with `make refresh-vulndb` — and `make verify` **61**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has FOURTEEN steps, 1 to 14, after step 0's offline check** (the authoring API plan's Task 13 added step 14, `make demo-authoring`, which runs on either driver) — P5a sitting 12 added `make demo-journey` as step 8,

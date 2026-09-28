@@ -29,8 +29,9 @@
 **One sitting per session, with a check-in at each boundary.** This pattern has carried every plan since P4a. It means a session limit never lands in the middle of a task. This plan commits after every task: a stop *between* tasks is recoverable, a stop *inside* one is not.
 
 > **TWELVE SITTINGS — APPROVED BY RICH ON 2026-09-27** (*"12 sittings is fine"*) — **AND A THIRTEENTH, SITTING 9a (Task 12a, the
-> capable model), ADDED BY RICH AT SITTING 8'S CLOSE**, between sittings 9 and 10; every other number stands, because the faculty
-> front-end's documents cite them. 1 the measurements; 2 recent output, end to end; 3 binary
+> capable model), ADDED BY RICH AT SITTING 8'S CLOSE**, between sittings 9 and 10, **AND A FOURTEENTH, SITTING 9b (Task 12b, the
+> capable model's fallback), ADDED BY RICH AT SITTING 9a** (2026-09-28, after Spec action 8); every other number stands, because the
+> faculty front-end's documents cite them. 1 the measurements; 2 recent output, end to end; 3 binary
 > files; 4 what the authoring API hands over; 5 a project's name and people by CWL login; 6 the `app` origin; 7 agent
 > sessions; 8 archive and restore; 9 delete; 10 the console and the mock; 11 the guides; 12 the acceptance. **The order
 > is chosen so the spec actions are needed as LATE as possible**: sittings 2–4 build nothing a spec action changes (§14's
@@ -55,7 +56,8 @@
 | 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **And, from the front-end's message: `AgentSession.spentUsd` (FE-23) and the platform-paid INTAKE key (FE-1)** (Tasks 9–10's `[S6]`). **If it runs long, stop after Task 9 and sweep — and FE-1 opens the next sitting** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27; **Spec action 5** (FE-1) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-27** — `mintCappedKey`, ONE mint for an agent key (`mf-agent-<id>`, on the person's `mf-person-<userId>`) and an intake key (`mf-intake-<id>`, on `mf-platform-intake`): a cap, a life never past the credential that asked (a token's, or the signed-in session's — `SessionActor.expiresAt`), D17's models with production as a floor, never an empty list, never stored; `startAgentSession` (answered once), `listAgentSessions` (FE-23's `spentUsd`, null with a reason, never 0), `endAgentSession`, `getAgentBudget`; a revoked token ends its sessions, on a retry too, and a token revoked WHILE one starts leaves no live key (the review's I1); FE-1's `startIntakeSession` / `endIntakeSession`, session only, a Vancouver day under a per-person lock; the orphan script taught; one fresh whole-branch review, its Important fixed red-first |
 | 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.state` (`active`/`archived`), `archived_at`, `archived_by`; `assertCapability` refuses an archived project all but `project:read`/`project:delete` (`409 PROJECT_ARCHIVED`), `tokenActor` any token of it; `POST …/archive` (person-only, step-up) and `…/restore` (person-only); the state, tokens and questions in ONE transaction, then `TEARDOWN_STEPS` — every name a `410` page (`Driver.switchOff`), every instance retired, each environment stopped keeping its data (`Driver.destroyEnvironment`), sandbox's and staging's SPs deregistered, agent sessions ended LAST; a failed step `500 PROJECT_TEARDOWN_INCOMPLETE`, finished on retry or at boot (`finishTeardowns`); three archive races closed as I1 was; one fresh whole-branch review, its two Importants fixed red-first |
 | 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `DELETE /v1/projects/{projectId}` (person-only, step-up): refused before anything for a launched project (`409 PROJECT_LAUNCHED_NOT_DELETABLE`) or another driver's repository; switched off KEEPING everything under the one project lock, `launched_at` read again (a launch in flight is refused, left archived), then the data, the Manifest IdP's production row, the names (`Driver.removeName`), the model users, the repository and the secrets destroyed; `project.deleted` once; a tombstone (`state = 'deleted'`, migration `0038`); `projects_slug_key` partial, so the slug is free; a deleted project `404` to everyone and absent from every read; driver 2's `destroyRepository` idempotent; one fresh whole-branch review, its four Importants fixed red-first; `make verify`'s probe repaired for the partial index |
-| 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — applied 2026-09-27 (`959af7f`) | ← next |
+| 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — applied 2026-09-27 (`959af7f`) | **DONE 2026-09-28** — `ai/capable.ts`: `default-chat-large` → `openai/gpt-6-luna` (Rich's choice) at `internal`, registered straight after `listen` under a chosen id, PINNED at the price LiteLLM itself reported (so an offline restart of LiteLLM cannot make it free), a repoint created before the old one goes, a setting LiteLLM will not serve or cannot price refused with the working model kept; the provider key LiteLLM's alone and scrubbed from the control plane (with `MANIFEST_APP_PASSWORD` and `MANIFEST_REHEARSAL_PASSWORD`); live on Rich's key — an agent session listed it, one chat `200`, `spentUsd` read; F12 closed (the front-end's marker on 7105); one fresh whole-branch review, its three Importants fixed red-first; **Spec action 8 drafted** (the fallback) |
+| 9b | 12b | **The capable model's fallback** (Rich, 2026-09-28): a platform setting naming a CATALOGUE entry — `default-chat-onprem` recommended (Ollama on the laptop, Pickerel at UBC) — that LiteLLM's own fallback (`POST /fallback`, measured) answers `default-chat-large` with when its provider fails, the network off included; the fallback's classification enforced by the platform, because the gateway does not check a key's model list before it falls back (measured) | **Yes** — `ai/` | **Spec action 8** — drafted by sitting 9a; ✅ approved (a) and APPLIED 2026-09-28, at 9a's close | ← next |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
@@ -161,6 +163,18 @@
   has read it; Task 12a's Step 1 is the first thing that will use it); and **a yes, in advance, for Task 12a's live steps** — Step
   1's (e)–(f) and Step 5, the network and real money on his key. He changed neither budget default: $10 a month a person and $2 a
   session stand, now in real dollars on the capable model.
+- **THE CAPABLE MODEL'S FALLBACK IS THE ON-PREM MODEL, NAMED BY ITS CATALOGUE NAME — SITTING 9b** (2026-09-28, at sitting 9a,
+  in his words: *"sol (or perhaps terra if it is released) shouldn't really be a 'fallback' model — as it's a more capable (and
+  expensive) model. The fallback really should be the on-prem models."*). UBC's on-premise inference is **Pickerel**, reachable only
+  from UBC's network — or from **UBC's own LiteLLM, already deployed in AWS**, which routes to several providers, Pickerel among
+  them; **Manifest's LiteLLM on the laptop is a stand-in for that real one**, and Ollama is the laptop's on-prem stand-in. Asked
+  two questions, he chose both recommendations: **the fallback names a CATALOGUE entry** (`default-chat` here, whose deployment
+  already carries its `api_base`; at UBC the same name points at Pickerel), not a provider string; and **record it now, build it as
+  sitting 9b**, after 9a measures LiteLLM 1.98.0's fallbacks and drafts **Spec action 8** for him to approve first. **He approved it
+  the same day, at 9a's close, as drafted — option (a), the default `default-chat-onprem` — and it is APPLIED.** *Not a fallback:*
+  a more capable model (sol) — that is a repoint of `MANIFEST_CAPABLE_MODEL`, one line and a restart (sitting 9a's ruling).
+  **And the gateway at UBC is a question of its own** — Manifest creating §10's users, keys and budgets in a SHARED LiteLLM means
+  holding that gateway's master key — placed in ORIENTATION §8 *Open*, not decided.
 - **Carried from earlier plans, still binding:** D24's privileged four and the person-only class; step-up for a production
   deploy, an approval, member management and a production secret; the stored preview an approval binds; `SENSITIVE_FIELDS`
   as §7's list; every platform model call whose answer is read or shown is STRUCTURED OUTPUT (the D5 plan's Decision 22 —
@@ -1947,6 +1961,68 @@ that it is starting.
 
 ---
 
+## Task 12b: The capable model's fallback — the on-premise model, named by its catalogue name; LiteLLM's own `/fallback`, the classification the platform's
+
+> **ADDED 2026-09-28 AT RICH'S DECISION, at sitting 9a** (*"The fallback really should be the on-prem models"* — then, asked: **a
+> catalogue name**, and **its own sitting, 9b**). **Spec action 8** (*Spec actions*, `### 8.`) was **APPROVED BY RICH AS DRAFTED, OPTION (a),
+> AND APPLIED AT 9a'S CLOSE (2026-09-28)**; this task was written with that option, `default-chat-onprem` the default. Sitting 9a
+> measured what it rests on (`spikes/frontend-baseline/README.md`, *Task 12a, after its review*). *If Rich chooses (a′)*: the default
+> becomes `default-chat`, nothing else changes. *If he chooses (b)*: this task is not built, and 9b is struck from the table.
+
+**Decisions (made while writing it; each with its cost if wrong):**
+- **`MANIFEST_CAPABLE_MODEL_FALLBACK`, a CATALOGUE name, default `default-chat-onprem`; empty is NONE** (the preprocess sitting 9a
+  copied). *Rejected:* a provider string (Rich) — an on-premise deployment needs its address and key beside it, which the catalogue's
+  entry carries (`api_base: http://host.docker.internal:11434` here; Pickerel's at UBC).
+- **Set with LiteLLM's own `POST /fallback {model: 'default-chat-large', fallback_models: [<the setting>], fallback_type: 'general'}`**
+  (measured: DB-held, `LiteLLM_Config.router_settings`), at every boot straight after `ensureCapableModel`, and **`DELETE
+  /fallback/default-chat-large`** when the setting is empty or the capable model is absent, removed or refused (a `404` *"No general
+  fallbacks configured"* read as done). Never a `config.yaml` line — the same reason as the capable model's. `context_window` and
+  `content_policy` fallbacks are not set.
+- **THE CLASSIFICATION IS THE PLATFORM'S TO ENFORCE**: the fallback must be a CLASSIFIED catalogue entry whose `max_classification`
+  rank is at least `internal` (the capable model's), or it is refused with one `[boot]` operator line naming the setting — because
+  the gateway falls back WITHOUT consulting a key's model list (measured: a key holding only the primary was answered by the
+  fallback). A `public`-rank fallback would carry `internal` data where no key was allowed to send it. An `embedding` entry is refused
+  too (a chat cannot fall back to it).
+- **A call the fallback answers is charged to the same key at the fallback's price** (measured) — so budgets bind unchanged, and the
+  agent can tell from the answer's `model` (the fallback's own provider string) and `x-litellm-attempted-fallbacks`.
+- **A FIRST registration made offline stays refused** (sitting 9a's rule: LiteLLM cannot price the primary, so no `default-chat-large`
+  group exists to fall back FROM) — *the alternative, measured first if 9b wants it:* registering the name with only the fallback's
+  deployment until an online boot. **Ruling in 9b, with the cost.** A registration made ONLINE is pinned (9a's fix), so after it the
+  fallback is what answers offline.
+- **Never fatal**, like 9a: a refused or failed fallback is one operator line; the boot line gains `capableFallback: <state>`.
+
+**Files:**
+- Modify: `packages/control-plane/src/ai/capable.ts` — `ensureCapableFallback(client, capableState, setting, catalogue)`,
+  `capableModelAtBoot` calling it; `ai/testing.ts` — the fake answers `POST /fallback` (refusing a model or fallback it does not hold,
+  as 1.98.0 does: `404` / `400`), `GET` and `DELETE /fallback/{model}`, and its `use()` falls back as measured (ignoring the key's list)
+- Modify: `packages/control-plane/src/config.ts` (`MANIFEST_CAPABLE_MODEL_FALLBACK`, `config.litellm.capableFallback`),
+  `config.test.ts`; `packages/control-plane/src/index.ts` (the boot line's `capableFallback`)
+- Test: `ai/capable.test.ts`; `ai/capable.docker.test.ts` — a primary at an UNREACHABLE `api_base` (no key, no network, no money)
+  answered by the fallback through a key holding only the primary, and the refusal of a `public`-rank fallback
+- Modify: `.env.example` (section 2f, commented), `docs/superpowers/RUNBOOK.md` (*The capable model*), `docs/api/agents.md`
+  (*`default-chat-large` answers offline too, from the on-premise model, at its price*), then `pnpm docs:write`
+
+**Interfaces:** Consumes `ensureCapableModel`'s result, `loadModelCatalogue`, `CLASSIFICATION_RANK`. Produces
+`ensureCapableFallback(...) → { state: 'set' | 'unchanged' | 'removed' | 'absent' | 'refused'; fallback?: string; reason?: string }`
+and `config.litellm.capableFallback: string | undefined`.
+
+- [ ] **Step 1: Measure** (`probes/t12b-*.sh`, predictions first): the fallback survives `docker restart manifest-litellm` (DB-held);
+  `POST /fallback` twice is an update, not a second entry; `DELETE` of an absent one is `404`; what `GET /fallback/{model}` answers
+  after the primary deployment is deleted and re-created (a repoint keeps the NAME).
+- [ ] **Step 2: The failing tests** — sets it; unchanged; removes it with the setting and with the capable model; refuses a `public`
+  fallback, an unclassified one, an embedding one and one the catalogue lacks; never fatal; a key holding only the primary answered by
+  the fallback (the fake copying the measurement).
+- [ ] **Step 3: The setting and the boot.**
+- [ ] **Step 4: The Docker tier** (the unreachable primary, answered by `default-chat-onprem` through a key holding only the primary;
+  spend at the fallback's price) — no key, no network, no money.
+- [ ] **Step 5: The gates; commit.** Contract unchanged; `pnpm docs:write`; the four gates; `pnpm test` twice at the close;
+  **`pnpm test:docker` owed** (`ai/`); `make doctor` and `make verify` unchanged.
+- [ ] **Step 6: Watch it fail.** (a) Skip the classification check — predict the `public`-fallback test RED (and nothing else); (b)
+  never `DELETE /fallback` — predict *removes it with the capable model* RED; (c) set it with `fallback_type: 'context_window'` —
+  predict the Docker unreachable-primary case RED (`500` *Connection error*).
+
+---
+
 ## Task 13: The console and the mock — every new operation called, `DELIBERATELY_UNCALLED` empty again, the mock scripting what examples cannot
 
 > **[S7] — FROM SITTING 7 (2026-09-27).** **Six operations are parked for this task** (`packages/console/src/coverage.test.ts`):
@@ -2055,6 +2131,15 @@ that it is starting.
 
 ## Task 14: The guides — *Building a front-end*, and every guide the API's new surface touches; every code block a run example
 
+> **[S9a] — FROM SITTING 9a (Task 12a, the capable model; 2026-09-28).** (1) **`agents.md` gained *The models you may call***
+> (`7ad1cce`): read the names from the session's `models`, never assume one; `default-chat-large` is the capable model, listed only
+> where the platform offers one and the classification is `internal` or `public`, needs the network and costs the person real money;
+> `default-chat` is small and answers offline. *Building a front-end* says the same for a front-end's agent — and that the logical
+> name never changes when the platform repoints it (the faculty front-end's `MANIFEST_APP_PLAN_MODEL` is `default-chat-large`).
+> (2) **A bodyless `DELETE` sends no `content-type`**: with `content-type: application/json` and no body it is `400 REQUEST_INVALID`
+> before authentication (measured; `scripts/lib/api.sh`'s `api DELETE` does exactly this — TRAPS.md). `endAgentSession`,
+> `deleteProject`, `revokeToken`, `clearAppSecret`, `removeMember` and `endIntakeSession` are the six; say it where each is shown.
+
 > **[S7] — FROM SITTING 7 (2026-09-27).** *For an AI agent* and *Building a front-end* gain the model sessions: an agent's key is
 > started with `startAgentSession` (answered once — the retry's `AGENT_SESSION_ALREADY_STARTED` names the session, never the
 > key), used as `Authorization: Bearer` at the answer's `baseUrl` for the models it lists, never past the token that asked, and
@@ -2150,6 +2235,12 @@ that it is starting.
 ---
 
 ## Task 15: The acceptance — `make demo-frontend`: a front-end's server on the `app` origin drives all of it for a signed-in instructor, and a person clicks it
+
+> **[S9a] — FROM SITTING 9a (2026-09-28).** **`make demo-frontend` must not depend on `default-chat-large`**: it needs the network
+> and a provider key, and `demo-frontend` is the offline acceptance's step 15 (C1) — use `default-chat` for every model call, and at
+> most REPORT whether `session.models` lists the capable model. The boot line now carries `capableModel`; a control plane started
+> without `MANIFEST_CAPABLE_MODEL` REMOVES it from the shared LiteLLM (so does the Docker tier), which a clicked half that shows the
+> capable model must start with the line set.
 
 > **[S9] — FROM SITTING 9 (Task 12, delete; 2026-09-27).** Step 9's *"`deleteProject` on `launch-app` → `409
 > PROJECT_LAUNCHED_NOT_DELETABLE`"* holds only for **`launch-app`'s owner or an administrator, stepped up**: the route asks
@@ -2959,6 +3050,53 @@ agent can be given. *Not offered:* a repoint of `default-chat` — it is the off
 
 **Shared pages:** `manifest-decisions.html` (D17's list, if it restates the five names) and `manifest-schematic.html` (any
 passage saying every model runs on the laptop).
+
+### 8. §7, §21 and §26 — the capable model's FALLBACK: the on-premise model, named by its catalogue name (before sitting 9b) — DRAFTED 2026-09-28 BY SITTING 9a, FROM RICH'S DECISION; ✅ **APPROVED BY RICH AS DRAFTED, OPTION (a) — `default-chat-onprem` — AND APPLIED THE SAME DAY, AT 9a'S CLOSE**
+
+**Why.** Rich, 2026-09-28, at sitting 9a: *"sol (or perhaps terra if it is released) shouldn't really be a 'fallback' model — as it's
+a more capable (and expensive) model. The fallback really should be the on-prem models."* UBC's on-premise inference is **Pickerel**,
+reachable only from UBC's network or from UBC's own LiteLLM in AWS; Manifest's LiteLLM on the laptop stands in for that one, and
+Ollama for Pickerel. Asked, he chose **a catalogue name** as the fallback (not a provider string — an on-premise deployment needs
+its address and key beside the string, which the catalogue entry already carries) and **sitting 9b** to build it once this is
+approved. Spec action 7's text says ONE setting names what answers `default-chat-large`, and says nothing of what answers when that
+provider fails — so a fallback changes §7, §21 and §26.
+
+**Measured by sitting 9a** (LiteLLM 1.98.0, `@sha256:20b5044b…`; `spikes/frontend-baseline/README.md`, *Task 12a*, its last part):
+LiteLLM's own **`POST /fallback {model, fallback_models, fallback_type: "general"}`** sets it (DB-held, `LiteLLM_Config`'s
+`router_settings`; `GET` / `DELETE /fallback/{model}`); a primary that cannot connect — **the network-off case** — is answered by
+the fallback (`200`, `x-litellm-attempted-fallbacks: 1`, `x-litellm-model-group: default-chat`, the answer's `model` the fallback's
+own provider string), **charged to the SAME key at the FALLBACK's price** (19 + 2 tokens → `2.5e-05` = 19 × 1e-06 + 2 × 3e-06); with
+no fallback the call is `500` *"Connection error. No fallback model group found"*. **And a key whose model list holds ONLY the
+primary is answered by the fallback anyway** (predicted refused; measured `200`) — **the gateway does not check a key's model list
+before it falls back**, so the fallback's classification is the platform's to enforce, not LiteLLM's.
+
+**Proposed**, three edits:
+- **§7, after *The capable model* paragraph**: *"**Its fallback is the on-premise model.** A second platform setting (§26) names a
+  catalogue entry — `default-chat-onprem` by default, which is Ollama on a laptop and UBC's on-premise inference at UBC — that the
+  gateway answers `default-chat-large` with whenever its provider fails, the network off included. A call the fallback answers is
+  charged at the fallback's price to the same key. The fallback's `max_classification` must be at least the capable model's, and the
+  platform refuses one that is not, because the gateway falls back without consulting a key's list of models. A more capable model
+  is a repoint of the capable model, never its fallback."*
+- **§21, the LiteLLM row's last sentence** becomes: *"The capable model, when configured, is a commercial provider reached through the
+  same LiteLLM with the network on; offline, the gateway answers it with its fallback, the on-premise model (§7), so nothing offline
+  depends on the provider, and `default-chat` stays the model every offline path uses (C1)."*
+- **§26, *Platform settings***: *"… and the capable model's provider and model, and its fallback, whose change is one too."*
+
+*Options:* **(a) as proposed, the default `default-chat-onprem`** (recommended — by its own definition on-premise hardware at UBC, and
+`confidential` is at least `internal`); **(a′) as proposed, the default `default-chat`** — the same model on the laptop, but §7 says
+it *"may route off-prem"*, so at UBC it may not be the on-premise one Rich asked for; **(b) no fallback** — sitting 9a's behaviour, where
+a provider failure reaches the agent as LiteLLM's `500` and the agent must name another model itself. *Not offered:* a provider string
+(Rich chose the catalogue name); a more capable model as the fallback (Rich: a repoint).
+
+**What 9b must also settle, below the spec** (each a ruling there, measured first): whether the fallback is set with LiteLLM's
+`/fallback` at every boot beside `ensureCapableModel`, and removed with it; whether a FIRST registration made offline (the primary
+unpriced — sitting 9a's refusal) should register nothing, as today, or register the name with the fallback alone; that the setting
+survives a LiteLLM restart (the row is DB-held — measure it); `context_window` fallbacks (not proposed); and **UBC's shared gateway** —
+a fallback is router-wide there, one of the reasons ORIENTATION §8's *Open* question about a shared LiteLLM is Rich's.
+
+**Shared pages:** `manifest-schematic.html`'s *"The quality of AI-written code"* passage (it says the small local model is what runs
+with the network off — true, and now also what answers the capable model's name offline) and `manifest-decisions.html` if it restates
+D17's list.
 
 ## What the self-review caught
 
@@ -4302,3 +4440,117 @@ to change. WALKTHROUGH unchanged: delete has no screen until Task 13.
 
 **Next: sitting 9a (Task 12a — the capable model)**; its live steps cost Rich money and he said yes in advance (still say before
 each); `pnpm test:docker` owed (`ai/`); the contract does not move. §7e carries what Task 12a's text does not say.
+
+### Sitting 9a — 2026-09-28: Task 12a, the capable model
+
+**Run cold from ORIENTATION §7e** at Rich's *"please read ORIENTATION.md and proceed with the next sitting"*, with TWO faculty
+front-end sessions running beside it (`manifest-app-66`, whose control plane — PID 83687 — was on 7100 with four projects, one of
+them Rich's own click that morning; and `manifest-app-b0`). **Messaged first**, as §7e asked; answered *"nothing of ours needs to
+survive"*; **Rich, asked, "Yes, go ahead"**, and the control plane was stopped before any Vitest. **Rich chose the model:
+`openai/gpt-6-luna`** (*"We may switch to openai/gpt-6-terra if luna is not able"* — terra does not exist; `gpt-6-sol` does, and is a
+repoint, not a fallback). **F12 closed at the front-end's hand**: `manifest-app-b0` built a marker on 7105 (`GET /api/__doctor` →
+`{"name":"manifest-app"}`) at Rich's request, and `make doctor` now asks it. Inline execution (`superpowers:executing-plans`), on
+`main`; one fresh whole-branch reviewer (Opus, read-only, told never to run a test) beside the owed Docker tier. Commits: `54ec514`
+(the scrub), `e47eff3` (F12), `7ad1cce` (Task 12a), `5df6322` (the review's fix pass), and the close-out.
+
+**Step 1, measured first** (`spikes/frontend-baseline/README.md`, *Task 12a*; predictions written before each; every probe row,
+user and key deleted): `/model/new` honours a CHOSEN `model_info.id`; the price is `/model/info`'s `model_info.input_cost_per_token`;
+**`gpt-6-luna` is priced ONLY by the list LiteLLM fetches at its own start online** (the bundled one stops at gpt-5.6); an unknown
+`openai/*` model is priced `0`; an unknown provider is a `500` that SAVES a row `/model/info` never lists; a second delete is `400`.
+**Live, at Rich's advance yes, said before each** (about $0.00004 in all): (f) no key in the container → `500
+litellm.AuthenticationError`, from inside LiteLLM; (e) after `make up` gave LiteLLM the key → `200`, spend `3.3e-06` = the price
+exactly. **Step 5, live**: the control plane booted with the setting → `"capableModel":"registered"`; as `instructor`, an `internal`
+project's `startAgentSession` listed `default-chat-large`; one chat on it `200`; `listAgentSessions`' `spentUsd` `0.0000033` (FE-23 on
+real money); the session ended `200`, its key gone from LiteLLM.
+
+**Rulings** (the ledger's `Task 12a: Ruling:` and `Final: Ruling:` lines, each with its cost if wrong):
+- **The refusal rule stands** — a price that is not a positive number is refused — and its reason names the network-fetched list.
+- **Registered under an id the control plane chooses**, deleted by it on any failure — the not-live row is otherwise unfindable.
+- **`unchanged` requires a positive price, and (after the review) a PINNED one.**
+- **The fake copies the measurements**, not the plan's sketch: `openai/unpriced-*` registers at `0`; an unknown provider is a `500`
+  keeping a not-live row.
+- **No automatic fallback in 9a** — then Rich's own words made the fallback the ON-PREMISE model, named by a catalogue entry, built as
+  **sitting 9b** after **Spec action 8** (drafted here, *Spec actions*, `### 8.`; APPROVED by Rich as drafted, option (a), and applied at this sitting's close).
+- **The review's three Importants fixed; M9 re-graded into the fix pass** (below); ten minors deferred; ten declined lines stand.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 The plan's *"LiteLLM's bundled price map prices `openai/*` offline"* was half true** — the bundled map stops at gpt-5.6; Rich's
+   `gpt-6-luna` is priced only by the list LiteLLM downloads when it starts with the network on (`LITELLM_LOCAL_MODEL_COST_MAP=True`
+   → `None`; default → `1e-07`, 4394 entries).
+2. **F2 "Unpriced" is `0`, not the `null` the plan's fake sketched** — `openai/gpt-6-terra` registered at `0`.
+3. **F3 An unknown provider's `/model/new` is a `500` that SAVES the row anyway**, absent from `/model/info` — so the control plane
+   chooses the id and deletes by it (control (e) later LEFT exactly such a row in LiteLLM's table, invisible to `/model/info`, and it
+   was deleted by its id).
+4. **F4 Step 1 (f) was predicted `401` and is `500`** — LiteLLM refuses a keyless call itself, as an `AuthenticationError`.
+5. **F5 The relayed *"gpt-6-sol … in both price lists"* was false** — measured in the container; the bundled list has no gpt-6 at all,
+   so a price-triggered fallback to sol would never have helped offline.
+6. **F6 RUNBOOK's `set -a; . ./.env` exports ALL of `.env` into the control plane**, and neither `OPENAI_API_KEY` nor
+   `MANIFEST_APP_PASSWORD` (since P4a) was scrubbed — every `git` and `docker` child inherited them. RED first, `54ec514`.
+7. **F7 `scripts/lib/api.sh`'s `api DELETE` is `400 REQUEST_INVALID`** — `content-type: application/json` with no body; Step 5's first
+   *end* did nothing, and its *"ended key: 200"* was a key never ended. The harness's, not the platform's; Task 14's `[S9a]`.
+8. **F8 (the review's I1) A LiteLLM restarted OFFLINE under a running control plane would serve `default-chat-large` at `$0`** once
+   the network came back — the boot's price check ran once; the price lives in LiteLLM's memory. **Measured the fix first**: a price
+   pinned in `litellm_params` overrides both lists and charges spend exactly. Registered as set, then PINNED at LiteLLM's own price.
+9. **F9 (the review's I2) A repoint LiteLLM would not serve deleted the working model first**, then said *"restart once LiteLLM
+   answers"* while `make doctor` was green. Now created first; an answered refusal is `refused` naming the setting, the working
+   model kept (unless itself unpriced); only an outage throws.
+10. **F10 (the review's I3) The removal ran before boot steps that can fail** — a second control plane dying on `EADDRINUSE` had
+    already removed the running one's model. RED first in the Docker tier (the compiled boot on a held port: *"expected [] to deeply
+    equal [ 'openai/gpt-5.6-luna' ]"*); the call now runs straight after `listen`.
+11. **F11 (the review's M9, re-graded) `MANIFEST_REHEARSAL_PASSWORD` was unscrubbed too** — F6's class; RED first.
+12. **F12 LiteLLM falls back WITHOUT checking the key's model list** (predicted refused; measured `200` for a key holding only the
+    primary) — so Spec action 8 makes the fallback's classification the platform's to enforce.
+13. **F13 Control (c) went red one assertion earlier than predicted** (the snapshot's entry, not the confidential floor) — still red,
+    and the floor assertion alone would also have caught it.
+
+**The negative controls** — every one predicted in writing first (`t12a-predictions-controls.md`), run on `7ad1cce`, restored: (a) a
+key in `litellm_params` → *naming no key* RED only; (b) no price check → both refusal tests and the boot's *refused* line RED, and the
+Docker refusal RED; (c) `confidential` → the body and the agent case RED, *unchanged* GREEN as predicted (F13); (d) the name in
+`config.yaml` + LiteLLM restarted → unit 10 of 12, Docker 3 of 3 and the catalogue case RED (a config entry cannot be deleted: `400`);
+(e) no cleanup of a failed create → unit and Docker RED, a real not-live row left (F3); (f) *unchanged* without its price check → the
+vanished-price test RED only; (h) `make doctor` without `frontend_is_ours` → *"CLAIMED BY SOMETHING ELSE: 7105"*, 1 failed; (i) no line
+on *refused* → that boot test RED only. **The fix pass's tests were each RED on the code before it** (7 of 17 unit, the I3 Docker case,
+the scrub list).
+
+**Deferred minors** (the ledger's `Final: minor (deferred)` lines): M1 the refusal reads the input price only; M2 a `/model/new` that
+times out may land after its cleanup — an orphan under a random id; M3 a `/model/delete` failing while `/model/info` answers leaves the
+stated state untrue; M4 with the setting unset and LiteLLM down, every boot prints a `(unset)` line; M5 an app declaring the name while
+it is absent is told `SPEC_MODEL_UNKNOWN`; M6 the keyless refusal was measured with the variable ABSENT and compose now sets it EMPTY;
+M8 test gaps (two deployments; a failing delete; no boot test reads `capableModel`); the scrub list is hand-kept; M10 two unset boots at
+once. **M7** (RUNBOOK's states omitted `disabled`) was this sitting's own text — corrected in the close-out.
+
+**Spec action 8 — drafted, then approved and applied in the same sitting.** From 9a's measurements of LiteLLM's `/fallback`
+(*Spec actions*, `### 8.`); Rich, asked at the close in plain language, chose **(a) as drafted — the default `default-chat-onprem`**;
+applied to §7, §21 and §26 (`e6c272d`), and `manifest-schematic.html`'s *What a laptop cannot prove* says it in plain language
+(`manifest-decisions.html` names no models). **Task 12b is written** (`## Task 12b:`), and ORIENTATION §8 *Open* gains Rich's other
+question: whether Manifest at UBC should use UBC's existing LiteLLM.
+
+**Gates at close**: **`pnpm test` 2707 passed in 175 files**, twice on the final code (`5df6322`: 693 s and 690 s, identical, load
+~5–7) — up from 2689 by 18 tests and one file (`ai/capable.test.ts` 17, `config.test.ts` 1) — **exactly the 2707 in 175 predicted before
+the runs**. **`pnpm test:docker` 243 in 41 files** — owed (`ai/`, `infra/`), run ONCE beside the reviewer with no Vitest beside it:
+**green first time**, 1084 s at load ~2.5–4.8; +3 tests and +1 file (`ai/capable.docker.test.ts`). **The fix pass touched lines three
+Docker files run** (`ai/capable.ts`, `index.ts`): `ai/capable.docker.test.ts` (4, the I3 case added), `ai/ai-path.docker.test.ts` and
+`boot.docker.test.ts` re-run alone, 18 of 18. `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean; `packages/contract`
+untouched. **`make doctor` 20 checks, 0 failed, 0 warnings** (F12 closed); **`make verify` 61/0/0** (`mf- containers=6 networks=2
+volumes=4`, 0 runtime routes). **The contract did not move** (`1.4.0`: 66 operations, 90 schemas, 126 error codes, 46 event types).
+Migrations **39**.
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions, 0 intake
+sessions, **39 migrations** (`psql`) — the four projects found at open were erased by this sitting's test runs, as Rich agreed;
+`launch-app`'s six `mf-launch-app-*` containers running, untouched, and no other `mf-` container; **THE CONTROL PLANE IS RUNNING** —
+PID 85028 on 7100, started detached from Rich's `.env` (now carrying `MANIFEST_CAPABLE_MODEL`), boot line `"capableModel":"registered"`,
+`"secretsScrubbed":14`, logging to the plan's git-ignored workspace (`.superpowers/sdd/…/close-s9a-cp.log`), its session secret
+random; 7102 and 7105 the faculty front-end's (node 9787 and 63784); nothing on 7104, 7110 or 8765. **LiteLLM** recreated by this
+sitting's `make up` (it now holds `OPENAI_API_KEY`) and restarted twice by control (d); its model table holds ONE row,
+`default-chat-large` → `openai/gpt-6-luna`, pinned at `1e-07` / `5e-07`, `internal`; `LiteLLM_Config.router_settings` =
+`{"fallbacks": []}` (left by the fallback probe — inert); 2 LiteLLM users (`launch-app`'s). **Both Ollama models unloaded** (`/api/ps`
+empty). The edge restarted by the Docker tier, no runtime route on `srv0` or `srv1`. The three cleanup scripts, after `--apply`
+(allowed — 7 networks and 1 volume, the tier's; 4 LiteLLM users: `p4b-probe-user`, the Step 5 instructor's and one front-end walk's
+agent budgets, `mf-platform-intake`; 15 app images), run bare again: nothing dead. The snapshot diff shows uptimes, the edge and
+LiteLLM recreated, HEAD, and **2 GiB less free disk** (63 → 61 Gi). `docker-simple-saml-saml-idp-1` exited, as at open;
+`docker-simple-saml` clean but its old untracked `cert.zip`. **HEAD did not move under the sitting.** **The four shared HTML pages**
+were checked: only the schematic changed (Spec action 8's sentence); WALKTHROUGH's LiteLLM row names the capable model.
+
+**Next: sitting 9b (Task 12b — the capable model's fallback)**, Spec action 8 applied; no network and no money needed; `pnpm
+test:docker` owed (`ai/`); the contract does not move. §7e carries what Task 12b's text does not say.

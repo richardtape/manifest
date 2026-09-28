@@ -105,3 +105,20 @@ with. We may switch to openai/gpt-6-terra if luna is not able"*).
 **What it changed in Task 12a** (the ledger's rulings): the refusal rule stands (a price that is not a positive number); the operator
 line names the network-fetched map as the cause; the control plane registers under an id it CHOOSES and deletes by it on any failure
 (the not-live row); `unchanged` requires a positive price too; the fake copies both unpriced shapes.
+
+### Task 12a, after its review — a pinned price, and LiteLLM's fallbacks (2026-09-28, sitting 9a)
+
+Measured for the review's I1 and for Spec action 8 (`probes/t12a-pin.sh`, `probes/t12a-fallback.sh`; predictions first; every probe
+row, user and key deleted):
+- **A price PINNED in `/model/new`'s `litellm_params` overrides both of LiteLLM's lists** — `openai/gpt-6-terra` 0 → the pinned
+  `2e-06`, `openai/gpt-6-luna` 1e-07 → the pinned `3e-07` — shows in `/model/info`'s `litellm_params` AND `model_info`, and **charges
+  spend exactly** (a local deployment pinned at 5e-05 / 1e-04: 19 + 2 tokens → key spend `0.00115`). So `ensureCapableModel`
+  registers the price LiteLLM itself reported, pinned; an offline restart of LiteLLM cannot unprice it.
+- **LiteLLM 1.98.0's fallbacks**: `POST /fallback {model, fallback_models: ["default-chat"], fallback_type: "general"}` → `200`, DB-held
+  (`LiteLLM_Config.router_settings`); `GET /fallback/{model}` lists it; `DELETE` → `200`, then `404` *"No general fallbacks configured"*.
+  A primary at an unreachable `api_base` (the network-off case) → **`200` from `default-chat`** (`x-litellm-attempted-fallbacks: 1`,
+  `x-litellm-model-group: default-chat`, the answer's `model` = `ollama_chat/qwen3.5:4b`), **charged to the same key at the fallback's
+  price** (`2.5e-05` = 19 × 1e-06 + 2 × 3e-06); without the fallback → `500` *"Connection error. No fallback model group found"*.
+  **A key holding ONLY the primary was answered by the fallback too** (predicted refused) — the gateway does not check a key's model
+  list before falling back. Left behind: `LiteLLM_Config` now holds `router_settings = {"fallbacks": []}` (the DELETE empties the
+  list, it does not remove the row) — inert.

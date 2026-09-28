@@ -2136,3 +2136,53 @@ both as done (`SourceError.hostStatus`). The error-code registry's gate finds a 
 
 **THE TOOL SHELL IS zsh, WHICH DOES NOT WORD-SPLIT `$VAR`.** `P="docker exec … psql"; $P -c …` is `command not found` — and
 NOTHING ran, which a control built on it would read as its result. Put multi-word commands in a `bash` script, or a function.
+
+## Added by the front-end enablement plan's sitting 9a (2026-09-28, Task 12a — the capable model)
+
+**LITELLM 1.98.0 PRICES `gpt-6-*` ONLY FROM THE LIST IT DOWNLOADS AT ITS OWN START, WITH THE NETWORK ON.** The container sets no
+`LITELLM_LOCAL_MODEL_COST_MAP`, so at import LiteLLM fetches a newer price map (4,394 entries on 2026-09-28) and falls back to its
+BUNDLED copy offline — which is dated Aug 22 and stops at gpt-5.6 (measured in the container: `LITELLM_LOCAL_MODEL_COST_MAP=True
+python -c 'import litellm; …'` answers `None` for `gpt-6-luna`; the default answers `1e-07`). So `openai/gpt-6-luna` is priced
+after a `make up` or `docker restart manifest-litellm` ONLINE and unpriced after one OFFLINE. **Since `5df6322` the control plane
+PINS the price LiteLLM reported onto what it registers** (a price in `litellm_params` overrides both lists — measured), so a
+registration made online stays priced through any later restart; only a FIRST registration made against a LiteLLM started offline
+is refused (`capableModel: refused`, one `[boot]` line). The fix is a restart of LiteLLM with the network on, then of the control
+plane.
+
+**"UNPRICED" IS `0`, NOT `null`, AND AN UNKNOWN PROVIDER IS A `500` THAT SAVES THE ROW ANYWAY.** An `openai/*` model neither map
+knows (`openai/gpt-6-terra` — which does not exist) registers through `/model/new` with `input_cost_per_token: 0`. A model string
+whose provider LiteLLM cannot resolve (`unpriced/whatever`) answers `500` *"Model create was saved to the database, but the model
+id(s) […] are not live in this pod's router"* — and the row STAYS in `LiteLLM_ProxyModelTable`, **absent from `/model/info`**, so
+nothing reading the catalogue can find it. It is deleted only by its id: pass your own `model_info.id` to `/model/new` (honoured)
+and delete by it on any failure (`ai/capable.ts` does). A second `/model/delete` of an id is `400` *"not found in db"*. Look in
+the table itself: `docker exec manifest-postgres psql -U manifest -d litellm -Atc 'select model_id, model_name from
+"LiteLLM_ProxyModelTable"'`.
+
+**WITH NO PROVIDER KEY, LITELLM REFUSES A CHAT AS `500`, NOT `401`** — *"litellm.AuthenticationError: … The api_key client option
+must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable"*, from inside LiteLLM,
+before any call to the provider. LiteLLM reads its environment only when the container is CREATED: `make up` after changing
+`OPENAI_API_KEY` in `.env` (a `docker restart` keeps the old environment).
+
+**RUNBOOK'S `set -a; . ./.env` EXPORTS ALL OF `.env` INTO THE CONTROL PLANE.** So every secret `.env` holds — the capable model's
+`OPENAI_API_KEY`, which is LiteLLM's alone — arrives in the control plane's environment too, and reaches every child it spawns
+(`git` in `source/scan-commits.ts`, `docker` in `runtime/docker/builder.ts` spread `{ ...process.env }`) unless it is on
+`secrets/scrub.ts`'s `SECRET_ENV_NAMES`. `OPENAI_API_KEY` and `MANIFEST_APP_PASSWORD` (unscrubbed since P4a) were added at sitting
+9a. **A new secret in `.env` is a new line in that list**, and in `scrub.test.ts`'s.
+
+**EVERY CONTROL PLANE THAT BOOTS WITHOUT `MANIFEST_CAPABLE_MODEL` REMOVES `default-chat-large` FROM THE SHARED LITELLM** — by design
+(the setting is the one source), and it includes the Docker tier's own control planes and `ai/capable.docker.test.ts`'s `finally`.
+Only a boot that FAILS before it serves changes nothing — the call runs straight after `listen` since `5df6322` (before it, a second
+control plane dying on `EADDRINUSE` had already removed the running one's model — the review's I3, red first).
+After `pnpm test:docker`, or a control plane started without the line, restart the control plane WITH it to register the model
+again, and read the boot line's `capableModel`.
+
+**`scripts/lib/api.sh`'s `api DELETE …` IS REFUSED `400 REQUEST_INVALID`** — it sends `content-type: application/json` with no body,
+which the server reads as an empty JSON body before it authenticates (measured at sitting 9a: a session's `DELETE
+/v1/agent-sessions/{id}` through it answered the envelope, and the session stayed `active`). A bodyless `DELETE` sends no
+content type (`curl -X DELETE` with the cookie, the idempotency key and the origin). No demo calls `api DELETE` yet.
+
+**LITELLM FALLS BACK WITHOUT CHECKING THE KEY'S MODEL LIST** (measured at sitting 9a for Spec action 8). With `POST /fallback
+{model: P, fallback_models: [F]}` set, a key whose `models` holds ONLY `P` is answered by `F` when `P` fails (`200`,
+`x-litellm-attempted-fallbacks: 1`, `x-litellm-model-group: F`, charged to the same key at `F`'s price). So a fallback's
+classification is the platform's to enforce: a `public`-rank fallback behind an `internal` model would take `internal` data where the
+key was never allowed to send it. `DELETE /fallback/{model}` empties `LiteLLM_Config.router_settings`' list; it leaves the row.
