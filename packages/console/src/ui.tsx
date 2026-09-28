@@ -180,11 +180,17 @@ export function Panel({ title, children }: { title: string; children: React.Reac
   )
 }
 
+/**
+ * A `<div>`, NOT A `<p>` (the front-end enablement plan's Task 13): a field holds lists, forms and
+ * a refusal — the Environments list, an instance's output, a rename — none of which HTML allows in
+ * a paragraph, and React said so in the console on every one. `.field` sets its own margin, so
+ * nothing moves.
+ */
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <p className="field">
+    <div className="field">
       <span className="label">{label}</span> {children}
-    </p>
+    </div>
   )
 }
 

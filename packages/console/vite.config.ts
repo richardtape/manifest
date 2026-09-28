@@ -13,7 +13,12 @@ import { defineConfig, type Plugin } from 'vite'
  *
  * Unset — which is every other use — this proxy is `undefined` and nothing changes.
  */
-const MOCK = process.env.MANIFEST_MOCK === undefined ? undefined : 'http://127.0.0.1:7102'
+const MOCK =
+  process.env.MANIFEST_MOCK === undefined
+    ? undefined
+    : // The mock's own variable (RUNBOOK, *Running manifest-mock*), so a second mock — another
+      // session's holds 7102 — can serve this console without stopping the first (sitting 10).
+      `http://127.0.0.1:${process.env.MANIFEST_MOCK_PORT ?? '7102'}`
 
 /**
  * THE TWO ORIGINS THE EDGE SERVES THIS CONSOLE ON (the front-end enablement plan's Task 8,

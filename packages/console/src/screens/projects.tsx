@@ -97,7 +97,7 @@ function Describe({ api }: { api: Api }) {
           </Field>
           <Field label="Model">
             <code>{started.session.model}</code>, at most $
-            {started.session.capUsd.toFixed(2)}, until{' '}
+            {started.session.capUsd.toFixed(2)}; it stops working{' '}
             <Instant at={started.session.expiresAt} />
           </Field>
           <button type="button" disabled={busy} onClick={() => void end()}>

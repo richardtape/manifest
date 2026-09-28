@@ -412,7 +412,7 @@ function StartSession({
           step={0.01}
           value={cap}
           onChange={(e) => setCap(e.target.value)}
-          placeholder="the platform’s cap"
+          placeholder="optional"
         />{' '}
         — never more than what is left of your month
       </Field>
@@ -450,9 +450,9 @@ function KeyOnce({
     <Panel title="The agent’s key — copy it now">
       <p className="hint">
         This is the only time it is shown; Manifest keeps no copy. Give the agent the key
-        and this address, and it can call {started.session.models.join(', ')} until{' '}
-        <Instant at={started.session.expiresAt} /> or ${started.session.capUsd.toFixed(2)}{' '}
-        is spent.
+        and this address, and it can call {started.session.models.join(', ')}. It stops
+        working <Instant at={started.session.expiresAt} />, or once $
+        {started.session.capUsd.toFixed(2)} is spent.
       </p>
       <pre className="secret">{started.key}</pre>
       <Field label="Address">
@@ -515,7 +515,10 @@ function SessionRow({
         ) : (
           <>
             ended <Instant at={session.endedAt} />
-            {session.endReason !== null && ` (${session.endReason.replace('_', ' ')})`}
+            {/* Why, when it was not simply ended: a revoked token, or the project switched off. */}
+            {session.endReason !== null &&
+              session.endReason !== 'ended' &&
+              ` — ${session.endReason.replace('_', ' ')}`}
           </>
         )}
       </div>
