@@ -38,7 +38,7 @@ import {
   writesOf,
   type ScanLimits,
 } from '../scan-commits.js'
-import { createGithubClient, GithubRefusal } from './client.js'
+import { createGithubClient } from './client.js'
 import { gitWithToken, isAuthRefusal } from './git.js'
 import { createTokenCache, type TokenPermissions } from './tokens.js'
 
@@ -657,7 +657,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         `/repos/${o.org}/${slug}`,
       )
     } catch (error) {
-      if (error instanceof GithubRefusal && error.status === 422) return
+      if (error instanceof SourceError && error.hostStatus === 422) return
       throw error
     }
     if (res.status === 404) return

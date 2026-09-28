@@ -233,6 +233,12 @@ export class SourceError extends Error {
   constructor(
     readonly code: string,
     message: string,
+    /**
+     * The status the HOST answered (GitHub's), for the one caller that must tell one refusal from
+     * another: a delete retried, whose repository is already gone (the front-end enablement plan's
+     * Task 12). Never on the wire — the code is.
+     */
+    readonly hostStatus?: number,
   ) {
     super(message)
     this.name = 'SourceError'

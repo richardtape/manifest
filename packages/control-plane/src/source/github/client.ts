@@ -19,25 +19,10 @@ export interface GithubClient {
     body?: unknown,
   ): Promise<GithubResponse>
   /**
-   * `SOURCE_GITHUB_REFUSED`, from GitHub's own `message` alone — never its whole body. The real
-   * client's is a `GithubRefusal`, carrying GitHub's status.
+   * `SOURCE_GITHUB_REFUSED`, from GitHub's own `message` alone — never its whole body — carrying
+   * GitHub's status as `hostStatus`.
    */
   refusal(operation: string, res: GithubResponse): SourceError
-}
-
-/**
- * GitHub said no — `SOURCE_GITHUB_REFUSED` on the wire, like any refusal, carrying GitHub's STATUS for
- * the one caller that must tell one refusal from another: a delete retried (the front-end enablement
- * plan's Task 12), whose repository is already gone and for which GitHub refuses even the token
- * (`422`, conformance C5b).
- */
-export class GithubRefusal extends SourceError {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super('SOURCE_GITHUB_REFUSED', message)
-  }
 }
 
 /**
@@ -113,7 +98,8 @@ export function createGithubClient(o: {
     refusal(operation, res) {
       const message = (res.json as { message?: unknown } | undefined)?.message
       const said = typeof message === 'string' ? message.slice(0, 200) : 'no message'
-      return new GithubRefusal(
+      return new SourceError(
+        'SOURCE_GITHUB_REFUSED',
         `GitHub answered ${res.status} to ${operation}: ${said}`,
         res.status,
       )
