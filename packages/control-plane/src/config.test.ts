@@ -155,6 +155,48 @@ describe('configuration', () => {
     expect(config.litellm.internalUrl).toBe('http://manifest-litellm:4000/v1')
   })
 
+  // The front-end enablement plan's Task 9 (Decision 22, Rich 2026-09-27) and FE-1 (Spec action 5):
+  // the numbers an agent session and an intake session are bounded by, each a platform setting.
+  it('defaults the agent budget and the intake bounds to the numbers Rich decided', () => {
+    const config = loadConfig({ ...base, MANIFEST_ENV: 'development' })
+    expect(config.agent).toEqual({
+      monthlyUsd: 10,
+      sessionCapUsd: 2,
+      llmUrl: 'http://127.0.0.1:7106/v1',
+    })
+    expect(config.intake).toEqual({
+      model: 'default-chat',
+      keyCapUsd: 0.25,
+      keyMinutes: 30,
+      dailyKeys: 10,
+      monthlyUsd: 50,
+    })
+  })
+
+  it('coerces the agent and intake numbers, and refuses one that is not positive', () => {
+    const config = loadConfig({
+      ...base,
+      MANIFEST_AGENT_MONTHLY_USD: '25',
+      MANIFEST_INTAKE_DAILY_KEYS: '3',
+    })
+    expect(config.agent.monthlyUsd).toBe(25)
+    expect(config.intake.dailyKeys).toBe(3)
+    for (const name of [
+      'MANIFEST_AGENT_MONTHLY_USD',
+      'MANIFEST_AGENT_SESSION_CAP_USD',
+      'MANIFEST_INTAKE_KEY_CAP_USD',
+      'MANIFEST_INTAKE_KEY_MINUTES',
+      'MANIFEST_INTAKE_DAILY_KEYS',
+      'MANIFEST_INTAKE_MONTHLY_USD',
+    ]) {
+      expect(() => loadConfig({ ...base, [name]: '0' }), name).toThrow(ConfigError)
+    }
+    // A key's life is whole minutes: LiteLLM's `duration` is written in seconds from it.
+    expect(() => loadConfig({ ...base, MANIFEST_INTAKE_KEY_MINUTES: '1.5' })).toThrow(
+      ConfigError,
+    )
+  })
+
   it('reads MANIFEST_AI_ENABLED as 0 or 1 and nothing else', () => {
     expect(loadConfig({ ...base, MANIFEST_AI_ENABLED: '0' }).litellm.enabled).toBe(false)
     // `false` is the typo that matters: read loosely, it is a truthy string.

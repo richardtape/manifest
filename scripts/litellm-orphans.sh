@@ -126,9 +126,35 @@ USERS="$(list_users)" || fail "/user/list did not answer a list of users"
 
 HELD=''
 ORPHANS=''
+# A BUDGET USER IS NOT AN APP'S (the front-end enablement plan's Decision 26). `mf-person-<id>` holds
+# one person's month of agent spend and `mf-platform-intake` the platform's month of intake spend
+# (§10, Spec actions 1 and 5) — no container carries their keys, so the container rule above would
+# call every one an orphan and erase every month on the first cleanup. They are HELD while LiteLLM
+# lists a key of theirs that has not expired (a session still able to spend), and orphaned
+# otherwise — deleting one then resets that month on THIS machine, which the report says first.
+BUDGET_HELD=''
 for user in $USERS; do
   # LiteLLM's own row. Not ours, never deleted here.
   if [ "$user" = default_user_id ]; then continue; fi
+  case "$user" in
+    mf-person-*|mf-platform-intake)
+      # Compared in node, not as strings in bash: LiteLLM writes `expires` with its own offset and
+      # precision. A key with no expiry at all never stops spending, so it holds its user too.
+      live="$(api GET "/user/info?user_id=$user" \
+        | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log((j.keys??[]).filter(k=>k.expires==null||Date.parse(k.expires)>Date.now()).length)})')" \
+        || fail "/user/info did not answer for $user"
+      if [ "$live" -gt 0 ]; then
+        HELD="$HELD$user
+"
+        BUDGET_HELD="$BUDGET_HELD$user ($live live key(s))
+"
+      else
+        ORPHANS="$ORPHANS$user
+"
+      fi
+      continue
+      ;;
+  esac
   tokens="$(api GET "/user/info?user_id=$user" \
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);(j.keys??[]).forEach(k=>{if(k.token)console.log(k.token)})})')"
   is_held=no
@@ -143,10 +169,17 @@ done
 held_count="$(printf '%s' "$HELD" | grep -c . || true)"
 orphan_count="$(printf '%s' "$ORPHANS" | grep -c . || true)"
 
-say "Held by a container ($held_count) — these are LEFT ALONE"
+say "Held ($held_count) — by a container, or a budget by a live key — these are LEFT ALONE"
 printf '%s' "$HELD" | sed 's/^/  /'
-say "Orphaned ($orphan_count) — no app holds any of their keys"
-printf '%s' "$ORPHANS" | sed 's/^/  /'
+if [ -n "$BUDGET_HELD" ]; then
+  echo "  of which budgets held by a live agent or intake key:"
+  printf '%s' "$BUDGET_HELD" | sed 's/^/    /'
+fi
+say "Orphaned ($orphan_count) — no app holds any of their keys, and no budget holds a live one"
+printf '%s' "$ORPHANS" | sed \
+  -e "s/^\(mf-person-.*\)$/\1   <- a person's agent budget: deleting it resets their month on this machine/" \
+  -e "s/^\(mf-platform-intake\)$/\1   <- the platform's intake budget: deleting it resets the intake month on this machine/" \
+  -e 's/^/  /'
 echo
 echo "  (read $CONTAINER_COUNT app container(s); 'default_user_id' is LiteLLM's own and is never touched)"
 

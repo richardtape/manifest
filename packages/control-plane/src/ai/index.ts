@@ -23,3 +23,22 @@ export {
   storeInstanceKey,
 } from './keys.js'
 export type { AiKeyService, InstanceKeyScope, MintAppKeyInput } from './keys.js'
+export {
+  agentKeyAlias,
+  budgetSpend,
+  ensureIntakeBudget,
+  ensurePersonBudget,
+  INTAKE_AI_USER,
+  intakeKeyAlias,
+  intakeSpend,
+  mintAgentKey,
+  mintCappedKey,
+  mintIntakeKey,
+  personAiUserId,
+  personSpend,
+  revokeAgentKey,
+  revokeIntakeKey,
+  revokeKeyByAlias,
+} from './agent-keys.js'
+export type { BudgetSpend, CappedKeyInput } from './agent-keys.js'
+export { agentModelsFor, classificationFloor } from './models.js'

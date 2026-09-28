@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { parse } from 'yaml'
 import { createCatalogueCache, type ModelCatalogue } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
+import { mapLiteLlmError } from './errors.js'
 
 /**
  * Probe keys for §16's AI-path tier (P4b Task 3). NOT `ai/keys.ts` — that is Task 7,
@@ -143,4 +144,196 @@ export async function deleteProbeKey(key: string): Promise<void> {
 /** For a key this process never saw: the child probe 14's unconfined key mints. */
 export async function deleteProbeKeyByAlias(alias: string): Promise<void> {
   await admin('/key/delete', { key_aliases: [alias] })
+}
+
+/**
+ * A RECORDING FAKE LiteLLM (the front-end enablement plan's Task 9): the unit tier's gateway for
+ * agent and intake keys. It answers `LiteLlmClient`'s `get`/`post` from an in-memory map of users
+ * and keys, records every call, and FAILS the way Task 5's client really fails — an `AiError` built
+ * by `mapLiteLlmError` from the status — so a `409` on `/user/new` or a `404` on `/key/delete` is
+ * recognised exactly as the real one is.
+ *
+ * `use(key)` is the MODEL route's half: it refuses a key the way `[M7]` measured 1.98.0 refusing —
+ * `401 token_not_found_in_db` once deleted, `401 expired_key` past its `duration`, `429
+ * budget_exceeded` over its own `max_budget` or its user's, `403 key_model_access_denied` for a
+ * model outside its list. `testAiKeyService` stays for the tests that want no gateway at all.
+ */
+export interface FakeLiteLlmCall {
+  method: 'GET' | 'POST'
+  path: string
+  body?: Record<string, unknown>
+  query?: Record<string, string>
+}
+
+interface FakeUser {
+  maxBudget: number
+  spend: number
+}
+
+interface FakeKey {
+  key: string
+  alias: string
+  userId: string
+  models: string[]
+  maxBudget: number
+  expiresAt: number
+  spend: number
+  metadata: unknown
+}
+
+export interface FakeLiteLlm extends LiteLlmClient {
+  readonly calls: FakeLiteLlmCall[]
+  readonly users: ReadonlyMap<string, FakeUser>
+  readonly keys: ReadonlyMap<string, FakeKey>
+  /** Sets a user's month spent, in USD. */
+  spend(litellmUserId: string, usd: number): void
+  /** Charges one key (and its user) as a model call would. */
+  charge(alias: string, usd: number): void
+  /** The next `n` calls to `path` fail with `status`, as the real gateway's would. */
+  fail(path: string, status: number, n?: number): void
+  /** The model route: what calling it with `key` for `model` answers. */
+  use(key: string, model: string): { status: number; type?: string }
+  /** Moves the fake's clock, in milliseconds. */
+  advance(ms: number): void
+}
+
+export function fakeLiteLlm(): FakeLiteLlm {
+  const calls: FakeLiteLlmCall[] = []
+  const users = new Map<string, FakeUser>()
+  const keys = new Map<string, FakeKey>()
+  const failures = new Map<string, { status: number; n: number }>()
+  let clock = Date.now()
+  let minted = 0
+
+  const refuse = (status: number, type = 'internal_server_error'): never => {
+    throw mapLiteLlmError(status, { error: { type, message: 'fake' } })
+  }
+  const failIfAsked = (path: string) => {
+    const f = failures.get(path)
+    if (f === undefined || f.n <= 0) return
+    f.n -= 1
+    refuse(f.status)
+  }
+  const seconds = (duration: unknown): number => {
+    const m = typeof duration === 'string' ? /^(\d+)s$/.exec(duration) : null
+    if (!m) refuse(400, 'bad_request_error')
+    return Number(m![1])
+  }
+
+  async function post<T>(path: string, raw: unknown): Promise<T> {
+    const body = (raw ?? {}) as Record<string, unknown>
+    calls.push({ method: 'POST', path, body })
+    failIfAsked(path)
+    switch (path) {
+      case '/user/new': {
+        const id = String(body.user_id)
+        if (users.has(id)) refuse(409)
+        users.set(id, { maxBudget: Number(body.max_budget), spend: 0 })
+        return { user_id: id } as T
+      }
+      case '/user/update': {
+        const user = users.get(String(body.user_id))
+        if (user === undefined) refuse(404)
+        user!.maxBudget = Number(body.max_budget)
+        return {} as T
+      }
+      case '/key/generate': {
+        const userId = String(body.user_id)
+        // S3: a key under an auto-created user is refused — the fake requires the user first.
+        if (!users.has(userId)) refuse(401, 'auth_error')
+        const alias = String(body.key_alias)
+        if ([...keys.values()].some((k) => k.alias === alias))
+          refuse(400, 'bad_request_error')
+        const key = `sk-fake-${++minted}`
+        keys.set(key, {
+          key,
+          alias,
+          userId,
+          models: (body.models as string[]) ?? [],
+          maxBudget: Number(body.max_budget),
+          expiresAt: clock + seconds(body.duration) * 1000,
+          spend: 0,
+          metadata: body.metadata,
+        })
+        return { key, key_alias: alias } as T
+      }
+      case '/key/delete': {
+        const aliases = (body.key_aliases as string[] | undefined) ?? []
+        const values = (body.keys as string[] | undefined) ?? []
+        const doomed = [...keys.values()].filter(
+          (k) => aliases.includes(k.alias) || values.includes(k.key),
+        )
+        if (doomed.length === 0) refuse(404, 'not_found_error')
+        for (const k of doomed) keys.delete(k.key)
+        return { deleted_keys: doomed.map((k) => k.alias) } as T
+      }
+      default:
+        return refuse(404, 'not_found_error')
+    }
+  }
+
+  async function get<T>(path: string, query?: Record<string, string>): Promise<T> {
+    calls.push({ method: 'GET', path, ...(query === undefined ? {} : { query }) })
+    failIfAsked(path)
+    if (path !== '/user/info') return refuse(404, 'not_found_error')
+    const id = query?.user_id ?? ''
+    const user = users.get(id)
+    if (user === undefined) return refuse(404, 'not_found_error')
+    const reset = new Date(clock)
+    const next = new Date(Date.UTC(reset.getUTCFullYear(), reset.getUTCMonth() + 1, 1))
+    return {
+      user_id: id,
+      user_info: {
+        spend: user.spend,
+        max_budget: user.maxBudget,
+        budget_reset_at: next.toISOString(),
+      },
+      keys: [...keys.values()]
+        .filter((k) => k.userId === id)
+        .map((k) => ({
+          key_alias: k.alias,
+          spend: k.spend,
+          max_budget: k.maxBudget,
+          expires: new Date(k.expiresAt).toISOString(),
+          // LiteLLM answers the key's HASH here; the fake answers a marker, so a test can assert
+          // no caller ever carries it.
+          token: `hash-of-${k.alias}`,
+        })),
+    } as T
+  }
+
+  return {
+    calls,
+    users,
+    keys,
+    get,
+    post,
+    spend: (id, usd) => {
+      const user = users.get(id)
+      if (user === undefined) throw new Error(`fakeLiteLlm: no user '${id}'`)
+      user.spend = usd
+    },
+    charge: (alias, usd) => {
+      const k = [...keys.values()].find((x) => x.alias === alias)
+      if (k === undefined) throw new Error(`fakeLiteLlm: no key '${alias}'`)
+      k.spend += usd
+      users.get(k.userId)!.spend += usd
+    },
+    fail: (path, status, n = 1) => failures.set(path, { status, n }),
+    use: (key, model) => {
+      const k = keys.get(key)
+      if (k === undefined) return { status: 401, type: 'token_not_found_in_db' }
+      if (clock >= k.expiresAt) return { status: 401, type: 'expired_key' }
+      if (!k.models.includes(model))
+        return { status: 403, type: 'key_model_access_denied' }
+      const user = users.get(k.userId)!
+      if (k.spend >= k.maxBudget || user.spend >= user.maxBudget) {
+        return { status: 429, type: 'budget_exceeded' }
+      }
+      return { status: 200 }
+    },
+    advance: (ms) => {
+      clock += ms
+    },
+  }
 }

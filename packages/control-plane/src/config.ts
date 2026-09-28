@@ -295,6 +295,32 @@ const envSchema = z.object({
   // key carries allowed_routes (Task 7). '0' or '1' only — `false` is a truthy string.
   MANIFEST_AI_ENABLED: z.enum(['0', '1']).default('1'),
   /**
+   * AN AGENT SESSION'S NUMBERS (the front-end enablement plan's Decision 22; Rich, 2026-09-27, for
+   * the laptop — at UBC the numbers are his). The month is a person's, on their own LiteLLM user;
+   * the cap is one session's, on its key, and never more than what remains of the month.
+   */
+  MANIFEST_AGENT_MONTHLY_USD: z.coerce.number().positive().default(10),
+  MANIFEST_AGENT_SESSION_CAP_USD: z.coerce.number().positive().default(2),
+  /**
+   * Where a session's key is USED — the gateway's OpenAI-compatible base, as the agent reaches it.
+   * The faculty front-end's server is a host process on the laptop, so the published port; at UBC
+   * it is the gateway's own address. Answered in `startAgentSession`, never called by this process.
+   */
+  MANIFEST_AGENT_LLM_URL: z.string().url().default('http://127.0.0.1:7106/v1'),
+  /**
+   * THE INTAKE KEY (Spec action 5, FE-1): the platform pays, so every bound is the platform's. The
+   * model is ONE catalogue entry, the same for everyone, checked against D17 for `internal` at
+   * every mint — a setting, so the capable model Rich has decided to add later is named here and
+   * nowhere in the code. The cap and life are one key's; the daily count is a person's, over a
+   * Vancouver day (sitting 7's ruling); the month is the platform's, on its own LiteLLM user.
+   * $50 a month is sitting 7's proposal for the laptop (Rich gave none) — 200 keys at the full cap.
+   */
+  MANIFEST_INTAKE_MODEL: z.string().min(1).default('default-chat'),
+  MANIFEST_INTAKE_KEY_CAP_USD: z.coerce.number().positive().default(0.25),
+  MANIFEST_INTAKE_KEY_MINUTES: z.coerce.number().int().positive().default(30),
+  MANIFEST_INTAKE_DAILY_KEYS: z.coerce.number().int().positive().default(10),
+  MANIFEST_INTAKE_MONTHLY_USD: z.coerce.number().positive().default(50),
+  /**
    * D5's two drivers, ONE per control-plane process (the D5 plan's Decision 3): `local`,
    * bare repositories under MANIFEST_REPOS_ROOT (driver 1), or `github`, an organisation
    * behind a GitHub App with a local mirror at the same path (driver 2). Switching is a
@@ -417,6 +443,16 @@ export interface Config {
     masterKey?: string
     /** Whether the catalogue is fetched. Never whether a key is confined. */
     enabled: boolean
+  }
+  /** An agent session's bounds (Decision 22): a person's month, one session's cap, and where its key is used. */
+  agent: { monthlyUsd: number; sessionCapUsd: number; llmUrl: string }
+  /** An intake session's bounds (Spec action 5): all the platform's, because the platform pays. */
+  intake: {
+    model: string
+    keyCapUsd: number
+    keyMinutes: number
+    dailyKeys: number
+    monthlyUsd: number
   }
   /** Which of D5's drivers this process runs (the D5 plan's Decision 3). */
   sourceDriver: 'local' | 'github'
@@ -664,6 +700,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
         ? {}
         : { masterKey: raw.MANIFEST_LITELLM_MASTER_KEY }),
       enabled: raw.MANIFEST_AI_ENABLED === '1',
+    },
+    agent: {
+      monthlyUsd: raw.MANIFEST_AGENT_MONTHLY_USD,
+      sessionCapUsd: raw.MANIFEST_AGENT_SESSION_CAP_USD,
+      llmUrl: raw.MANIFEST_AGENT_LLM_URL,
+    },
+    intake: {
+      model: raw.MANIFEST_INTAKE_MODEL,
+      keyCapUsd: raw.MANIFEST_INTAKE_KEY_CAP_USD,
+      keyMinutes: raw.MANIFEST_INTAKE_KEY_MINUTES,
+      dailyKeys: raw.MANIFEST_INTAKE_DAILY_KEYS,
+      monthlyUsd: raw.MANIFEST_INTAKE_MONTHLY_USD,
     },
     sourceDriver: raw.MANIFEST_SOURCE_DRIVER,
     github: {
