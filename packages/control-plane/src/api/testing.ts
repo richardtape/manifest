@@ -997,6 +997,8 @@ export interface TestProject {
   otherProjectId: string
   /** The commit its seeded manifest was validated at — what a build takes. */
   commitSha: string
+  /** The one environment whose instances' output is readable (§14, FE-24; sitting 10). */
+  sandboxEnvironmentId: string
   stagingEnvironmentId: string
   productionEnvironmentId: string
 }
@@ -1060,6 +1062,7 @@ export async function withProjectServer(
       projectId: project.id,
       otherProjectId: (other.json() as { id: string }).id,
       commitSha: project.spec.commitSha,
+      sandboxEnvironmentId: environmentId('sandbox'),
       stagingEnvironmentId: environmentId('staging'),
       productionEnvironmentId: environmentId('production'),
     })

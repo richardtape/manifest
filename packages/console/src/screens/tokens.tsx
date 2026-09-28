@@ -70,8 +70,8 @@ const CAPABILITIES = everyCapability([
    */
   'secret:write',
   /**
-   * Reading a running app's recent output, in sandbox and staging (§14; the front-end
-   * enablement plan's Task 3). Mintable, and not given by `project:read`: a test user's input
+   * Reading a running app's recent output, in the sandbox only (§14; the front-end enablement
+   * plan's Task 3, and FE-24's code in its sitting 10). Mintable, and not given by `project:read`: a test user's input
    * can be in what an app prints, so a read-only dashboard token does not carry it by default.
    */
   'output:read',

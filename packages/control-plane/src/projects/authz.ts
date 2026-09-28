@@ -43,11 +43,11 @@ export const CAPABILITIES = [
   /**
    * READING A RUNNING APP'S RECENT OUTPUT — `getInstanceOutput` (§14's bounded read, applied
    * 2026-09-26; the front-end enablement plan's Task 3, Decision 5). Its OWN capability rather
-   * than `project:read`: sandbox and staging output carries what test users typed, and a
-   * person minting a read-only token for a dashboard should not hand that over by default —
-   * §14 says *"a delegated token holding the capability for it"*. Owner, collaborator and
-   * administrator hold it; it is mintable, and neither privileged nor person-only. Production
-   * is refused by its own code whatever the credential holds.
+   * than `project:read`: sandbox output carries what test users typed, and a person minting a
+   * read-only token for a dashboard should not hand that over by default — §14 says *"a delegated
+   * token holding the capability for it"*. Owner, collaborator and administrator hold it; it is
+   * mintable, and neither privileged nor person-only. Staging and production are each refused by
+   * their own code whatever the credential holds (staging since FE-24's code, sitting 10).
    */
   'output:read',
   /**

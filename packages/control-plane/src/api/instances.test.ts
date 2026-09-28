@@ -19,7 +19,15 @@ import {
  */
 
 /** Build the seeded commit, release it, and deploy it to staging — through the routes. */
-async function deployToStaging(ctx: TestProject) {
+const deployToStaging = (ctx: TestProject) => deployTo(ctx, ctx.stagingEnvironmentId)
+
+/**
+ * …and to the SANDBOX, the one environment whose output is readable (§14 as Spec action 6 left it;
+ * FE-24's code, sitting 10) — every read below is of a sandbox instance.
+ */
+const deployToSandbox = (ctx: TestProject) => deployTo(ctx, ctx.sandboxEnvironmentId)
+
+async function deployTo(ctx: TestProject, environmentId: string) {
   const mutate = (url: string, payload: Record<string, unknown>) =>
     ctx.app.inject({
       method: 'POST',
@@ -38,7 +46,7 @@ async function deployToStaging(ctx: TestProject) {
   })
   expect(release.statusCode, release.body).toBe(201)
   const releaseId = (release.json() as { id: string }).id
-  const deployed = await mutate(`/v1/environments/${ctx.stagingEnvironmentId}/deploy`, {
+  const deployed = await mutate(`/v1/environments/${environmentId}/deploy`, {
     releaseId,
   })
   expect(deployed.statusCode, deployed.body).toBe(200)
@@ -173,13 +181,13 @@ describe('listInstances — an environment’s instances (Task 3)', () => {
 })
 
 describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', () => {
-  it('reads the last lines of a staging instance, redacted', async () => {
+  it('reads the last lines of a sandbox instance, redacted', async () => {
     await withProjectServer(async (ctx) => {
-      const instance = await deployToStaging(ctx)
+      const instance = await deployToSandbox(ctx)
       // The platform's OWN set for the scope — the app's session secret is in it (§8).
       const [secret] = await ctx.deps.appSecrets.secretValues(ctx.db, {
         projectId: ctx.projectId,
-        environmentKind: 'staging',
+        environmentKind: 'sandbox',
       })
       expect(secret!.length).toBeGreaterThanOrEqual(6)
       fake(ctx).seedLogs(instance.handle, [
@@ -204,8 +212,8 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
       }
       expect(body).toMatchObject({
         instanceId: instance.id,
-        environmentId: ctx.stagingEnvironmentId,
-        environmentKind: 'staging',
+        environmentId: ctx.sandboxEnvironmentId,
+        environmentKind: 'sandbox',
         truncated: { lines: false, bytes: false },
         failure: null,
       })
@@ -220,13 +228,13 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
 
   it('refuses a production instance by its own code, and never asks the driver', async () => {
     await withProjectServer(async (ctx) => {
-      const staging = await deployToStaging(ctx)
+      const sandbox = await deployToSandbox(ctx)
       // A production instance row written directly: a launch is not this test's subject.
       const production = await instanceRow(ctx, {
         environmentId: ctx.productionEnvironmentId,
-        releaseId: staging.releaseId,
+        releaseId: sandbox.releaseId,
         state: 'healthy',
-        handle: staging.handle,
+        handle: sandbox.handle,
       })
       const logs = vi.spyOn(ctx.deps.driver, 'logs')
 
@@ -236,8 +244,36 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
       })
       expect(logs).toHaveBeenCalledTimes(0)
 
-      // The positive control: the same person, the same handle, in staging — read.
-      const read = await outputOf(ctx, staging.id)
+      // The positive control: the same person, the same handle, in the sandbox — read.
+      const read = await outputOf(ctx, sandbox.id)
+      expect(read.statusCode, read.body).toBe(200)
+      expect(logs).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  /**
+   * FE-24'S CODE (sitting 10; §14 as Spec action 6 left it): staging serves real people — staging
+   * CWL holders at UBC — so its output is refused like production's, by a code that names THAT
+   * rule, and decided by the environment's KIND: a laptop's staging, which keeps the fake sign-in,
+   * is refused all the same. A real DEPLOY to staging, so the row is the platform's own.
+   */
+  it('refuses a staging instance by its own code, and never asks the driver', async () => {
+    await withProjectServer(async (ctx) => {
+      const staging = await deployToStaging(ctx)
+      expect(staging.state).toBe('healthy')
+      const logs = vi.spyOn(ctx.deps.driver, 'logs')
+
+      const res = await outputOf(ctx, staging.id)
+      expect(refusal(res)).toEqual({ status: 403, code: 'INSTANCE_OUTPUT_STAGING' })
+      // An OutputError carries no `hint` (Task 3's envelope); its remedy is the registry's.
+      expect((res.json() as { error: { message: string } }).error.message).toContain(
+        'Incident',
+      )
+      expect(logs).toHaveBeenCalledTimes(0)
+
+      // The positive control: the same person, the same release, in the sandbox — read.
+      const sandbox = await deployToSandbox(ctx)
+      const read = await outputOf(ctx, sandbox.id)
       expect(read.statusCode, read.body).toBe(200)
       expect(logs).toHaveBeenCalledTimes(1)
     })
@@ -245,9 +281,9 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
 
   it('answers a gone instance 409 INSTANCE_OUTPUT_UNAVAILABLE, naming the Incident as the place to look', async () => {
     await withProjectServer(async (ctx) => {
-      const { releaseId } = await deployToStaging(ctx)
+      const { releaseId } = await deployToSandbox(ctx)
       const gone = await instanceRow(ctx, {
-        environmentId: ctx.stagingEnvironmentId,
+        environmentId: ctx.sandboxEnvironmentId,
         releaseId,
         state: 'gone',
         handle: 'a-container-long-gone',
@@ -259,7 +295,7 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
       )
       // And one the driver never created.
       const never = await instanceRow(ctx, {
-        environmentId: ctx.stagingEnvironmentId,
+        environmentId: ctx.sandboxEnvironmentId,
         releaseId,
         state: 'pending',
         handle: null,
@@ -280,7 +316,7 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
         state: 'failed',
         healthy: false,
       })
-      const failed = await deployToStaging(ctx)
+      const failed = await deployToSandbox(ctx)
       expect(failed.state).toBe('failed')
       status.mockRestore()
       expect(failed.handle).not.toBeNull()
@@ -293,7 +329,7 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
 
   it('a token holding output:read reads it; one holding only project:read is refused', async () => {
     await withProjectServer(async (ctx) => {
-      const instance = await deployToStaging(ctx)
+      const instance = await deployToSandbox(ctx)
       const read = async (capabilities: string[]) => {
         const { plaintext } = await mintTestToken(ctx.db, {
           userId: ctx.userId,
@@ -317,7 +353,7 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
 
   it('finds the project from the INSTANCE’s environment row, never the request', async () => {
     await withProjectServer(async (ctx) => {
-      const instance = await deployToStaging(ctx)
+      const instance = await deployToSandbox(ctx)
       const stranger = await sessionFor(ctx, 'unrelated_user')
       expect(refusal(await outputOf(ctx, instance.id, stranger))).toEqual({
         status: 404,
@@ -335,7 +371,7 @@ describe('getInstanceOutput — a running app’s last lines (Task 3, §14)', ()
 
   it('refuses lines past 1000 as a malformed request', async () => {
     await withProjectServer(async (ctx) => {
-      const instance = await deployToStaging(ctx)
+      const instance = await deployToSandbox(ctx)
       const ask = (lines: number) =>
         ctx.app.inject({
           method: 'GET',

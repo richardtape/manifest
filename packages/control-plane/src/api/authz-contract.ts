@@ -109,6 +109,8 @@ const STEP_UP = { status: 403, code: 'STEP_UP_REQUIRED' } as const
  * `output:read`, so a row reading a bare `403` would be green against `FORBIDDEN` too.
  */
 const PRODUCTION_OUTPUT = { status: 403, code: 'INSTANCE_OUTPUT_PRODUCTION' } as const
+/** …and staging's, since FE-24's code (sitting 10; §14 as Spec action 6 left it), by its own code. */
+const STAGING_OUTPUT = { status: 403, code: 'INSTANCE_OUTPUT_STAGING' } as const
 
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
@@ -231,13 +233,15 @@ interface Fixture {
    * plan's Task 3) — what the output rows are aimed at. Both rows read `failed`, so neither
    * serves, and no other row moves; sandbox's handle is an instance the fake driver is RUNNING,
    * because the route asks the driver first and answers an instance it no longer holds `409
-   * INSTANCE_OUTPUT_UNAVAILABLE` (the review's I3). **Not staging**: the staging deploy rows run
-   * first, and a deploy retires every
-   * instance of its environment that is not serving (P4c) — so a staging row read `gone` and
-   * answered `409 INSTANCE_OUTPUT_UNAVAILABLE` to every `pass` (measured, sitting 2). Nothing in
-   * this table deploys to sandbox.
+   * INSTANCE_OUTPUT_UNAVAILABLE` (the review's I3). **Staging was not a `pass` target**: the
+   * staging deploy rows run first, and a deploy retires every instance of its environment that is
+   * not serving (P4c) — so a staging row read `gone` and answered `409 INSTANCE_OUTPUT_UNAVAILABLE`
+   * to every `pass` (measured, sitting 2). Nothing in this table deploys to sandbox. **Since
+   * FE-24's code (sitting 10) staging IS a row**: its refusal is decided from the environment's
+   * kind BEFORE the instance's state is read, so a retired staging row answers `403
+   * INSTANCE_OUTPUT_STAGING` to everyone holding `output:read` whatever the deploy rows did to it.
    */
-  instanceId: { sandbox: string; production: string }
+  instanceId: { sandbox: string; staging: string; production: string }
 }
 
 const SESSION_ACTORS: SessionActor[] = [
@@ -1629,6 +1633,24 @@ const ROUTES: RouteCase[] = [
   {
     method: 'GET',
     url: '/v1/instances/:instanceId/output',
+    label: 'staging',
+    request: (f) => ({ url: `/v1/instances/${f.instanceId.staging}/output` }),
+    expect: {
+      owner: STAGING_OUTPUT,
+      collaborator: STAGING_OUTPUT,
+      stranger: 404,
+      admin: STAGING_OUTPUT,
+      anonymous: 401,
+      'token-capable': STAGING_OUTPUT,
+      // The capability is checked FIRST, as for production.
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': STAGING_OUTPUT,
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/instances/:instanceId/output',
     label: 'production',
     request: (f) => ({ url: `/v1/instances/${f.instanceId.production}/output` }),
     expect: {
@@ -2304,6 +2326,8 @@ export function describeAuthorizationContract(
         previewId: '',
         instanceId: {
           sandbox: await instanceIn(environmentOf('sandbox'), running.id),
+          // Refused by its kind before its state is read, so a `gone` row is as good as any.
+          staging: await instanceIn(environmentOf('staging'), 'authz-staging-instance'),
           production: await instanceIn(
             environmentOf('production'),
             'authz-production-instance',

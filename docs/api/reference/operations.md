@@ -811,7 +811,7 @@ Answer, `200`:
 
 `GET /v1/instances/{instanceId}/output` · a session or a delegated token
 
-§14: the last lines a sandbox or staging instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never production**: its output is refused, and its Incident is the only window onto it.
+§14: the last lines a sandbox instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never staging or production**: both serve real people, so each is refused by its own code, and an Incident is the only window onto either. Decided by the environment’s kind, so a laptop’s staging is refused too.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -824,7 +824,7 @@ Answer, `200`:
 {
   "instanceId": "3124947b-b928-4e66-be25-59a427f96569",
   "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
-  "environmentKind": "staging",
+  "environmentKind": "sandbox",
   "readAt": "2026-09-27T16:34:54.701Z",
   "lines": [
     {
@@ -857,7 +857,8 @@ Answer, `200`:
 | Error | Status | What to do |
 |---|---|---|
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
-| `INSTANCE_OUTPUT_PRODUCTION` | 403 | Read a sandbox or staging instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production. |
+| `INSTANCE_OUTPUT_PRODUCTION` | 403 | Read a sandbox instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production. |
+| `INSTANCE_OUTPUT_STAGING` | 403 | Read a sandbox instance’s output instead — deploy the same release there (`deploy`) to see what it prints — or a failed staging instance’s Incident (`listIncidents`), whose log tail is the only window onto staging. |
 | `INSTANCE_OUTPUT_UNAVAILABLE` | 409 | Read the environment’s Incidents (`listIncidents`): a failed instance’s last lines are in its Incident. `listInstances` says which instance is running now. |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |

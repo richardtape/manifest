@@ -1412,7 +1412,7 @@
           "delivery"
         ],
         "summary": "A running instance’s recent output",
-        "description": "§14: the last lines a sandbox or staging instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never production**: its output is refused, and its Incident is the only window onto it.",
+        "description": "§14: the last lines a sandbox instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never staging or production**: both serve real people, so each is refused by its own code, and an Incident is the only window onto either. Decided by the environment’s kind, so a laptop’s staging is refused too.",
         "parameters": [
           {
             "name": "instanceId",
@@ -1450,7 +1450,7 @@
                 "example": {
                   "instanceId": "3124947b-b928-4e66-be25-59a427f96569",
                   "environmentId": "df060503-98c8-4d67-ad08-f3ca0e7373ef",
-                  "environmentKind": "staging",
+                  "environmentKind": "sandbox",
                   "readAt": "2026-09-27T16:34:54.701Z",
                   "lines": [
                     {
@@ -1482,7 +1482,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INSTANCE_OUTPUT_PRODUCTION, INSTANCE_OUTPUT_UNAVAILABLE, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INSTANCE_OUTPUT_PRODUCTION, INSTANCE_OUTPUT_STAGING, INSTANCE_OUTPUT_UNAVAILABLE, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1495,6 +1495,7 @@
         "x-manifest-error-codes": [
           "FORBIDDEN",
           "INSTANCE_OUTPUT_PRODUCTION",
+          "INSTANCE_OUTPUT_STAGING",
           "INSTANCE_OUTPUT_UNAVAILABLE",
           "INTERNAL",
           "NOT_FOUND",
@@ -9255,6 +9256,7 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INSTANCE_OUTPUT_PRODUCTION",
+          "INSTANCE_OUTPUT_STAGING",
           "INSTANCE_OUTPUT_UNAVAILABLE",
           "INTAKE_BUDGET_EXHAUSTED",
           "INTAKE_DAILY_LIMIT_REACHED",
@@ -9383,6 +9385,7 @@
           "IDEMPOTENCY_KEY_REQUIRED": "A mutation arrived without an Idempotency-Key of at least 8 characters (D23.6).",
           "IDEMPOTENCY_KEY_REUSED": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
           "INSTANCE_OUTPUT_PRODUCTION": "A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.",
+          "INSTANCE_OUTPUT_STAGING": "A staging instance’s output is not readable (§14): staging serves real people — staging CWL holders at UBC — whose input its output can carry. Decided by the environment’s kind, so a laptop’s staging is refused too.",
           "INSTANCE_OUTPUT_UNAVAILABLE": "The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.",
           "INTAKE_BUDGET_EXHAUSTED": "The platform’s monthly intake budget is spent (§10), so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.",
           "INTAKE_DAILY_LIMIT_REACHED": "This person has started the intake sessions a person may start in a day (§10), so describing new apps is paused for them until midnight, Vancouver time.",
@@ -14329,7 +14332,7 @@
         "additionalProperties": false
       },
       "InstanceOutput": {
-        "description": "A running instance’s recent output (§14): read on request, never streamed, never stored — in sandbox and staging only.",
+        "description": "A running instance’s recent output (§14): read on request, never streamed, never stored — in the sandbox only.",
         "type": "object",
         "properties": {
           "instanceId": {
@@ -14345,7 +14348,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "environmentKind": {
-            "description": "Only sandbox and staging output is readable (§14).",
+            "description": "Only a sandbox instance’s output is readable (§14): since FE-24’s code a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.",
             "type": "string",
             "enum": [
               "sandbox",
@@ -17778,7 +17781,12 @@
     "INSTANCE_OUTPUT_PRODUCTION": {
       "status": 403,
       "summary": "A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.",
-      "remedy": "Read a sandbox or staging instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production."
+      "remedy": "Read a sandbox instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production."
+    },
+    "INSTANCE_OUTPUT_STAGING": {
+      "status": 403,
+      "summary": "A staging instance’s output is not readable (§14): staging serves real people — staging CWL holders at UBC — whose input its output can carry. Decided by the environment’s kind, so a laptop’s staging is refused too.",
+      "remedy": "Read a sandbox instance’s output instead — deploy the same release there (`deploy`) to see what it prints — or a failed staging instance’s Incident (`listIncidents`), whose log tail is the only window onto staging."
     },
     "INSTANCE_OUTPUT_UNAVAILABLE": {
       "status": 409,

@@ -599,7 +599,18 @@ export const ERROR_CODES = {
     summary:
       'A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.',
     remedy:
-      'Read a sandbox or staging instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production.',
+      'Read a sandbox instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production.',
+  },
+  // FE-24's code (the front-end enablement plan's sitting 10; §14 as Spec action 6 left it): a
+  // SIBLING of the production code rather than a rename of it (D23.8 — a published code keeps its
+  // meaning), because the rule it names is staging's own.
+  INSTANCE_OUTPUT_STAGING: {
+    status: 403,
+    families: ['OutputError'],
+    summary:
+      'A staging instance’s output is not readable (§14): staging serves real people — staging CWL holders at UBC — whose input its output can carry. Decided by the environment’s kind, so a laptop’s staging is refused too.',
+    remedy:
+      'Read a sandbox instance’s output instead — deploy the same release there (`deploy`) to see what it prints — or a failed staging instance’s Incident (`listIncidents`), whose log tail is the only window onto staging.',
   },
   INSTANCE_OUTPUT_UNAVAILABLE: {
     status: 409,

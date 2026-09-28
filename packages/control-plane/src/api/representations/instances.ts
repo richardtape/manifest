@@ -97,7 +97,9 @@ export const InstanceOutput = representation(
       environmentId: Uuid.describe('The environment it runs in.'),
       environmentKind: z
         .enum(['sandbox', 'staging'])
-        .describe('Only sandbox and staging output is readable (§14).'),
+        .describe(
+          'Only a sandbox instance’s output is readable (§14): since FE-24’s code a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.',
+        ),
       readAt: Timestamp.describe(
         'When Manifest read it. Nothing is kept: read again to see newer lines.',
       ),
@@ -124,7 +126,7 @@ export const InstanceOutput = representation(
         ),
     })
     .describe(
-      'A running instance’s recent output (§14): read on request, never streamed, never stored — in sandbox and staging only.',
+      'A running instance’s recent output (§14): read on request, never streamed, never stored — in the sandbox only.',
     ),
 )
 

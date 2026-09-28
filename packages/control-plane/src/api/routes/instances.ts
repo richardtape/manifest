@@ -28,7 +28,9 @@ const InstanceParams = z.strictObject({ instanceId: PATH.instanceId })
 
 // Captured from a run of `api/instances.test.ts`'s shape on the fake driver, 2026-09-27: a
 // healthy staging deploy, then a second that failed; and the first instance's last three lines,
-// its session secret redacted.
+// its session secret redacted. The OUTPUT example reads `sandbox` since FE-24's code (sitting 10):
+// a staging instance's output is refused (§14), so an example of a read of one would document an
+// answer the route never gives.
 const EXAMPLE_LIST: z.input<typeof InstanceList> = {
   environmentId: 'df060503-98c8-4d67-ad08-f3ca0e7373ef',
   instances: [
@@ -56,7 +58,7 @@ const EXAMPLE_LIST: z.input<typeof InstanceList> = {
 const EXAMPLE_OUTPUT: z.input<typeof InstanceOutput> = {
   instanceId: '3124947b-b928-4e66-be25-59a427f96569',
   environmentId: 'df060503-98c8-4d67-ad08-f3ca0e7373ef',
-  environmentKind: 'staging',
+  environmentKind: 'sandbox',
   readAt: '2026-09-27T16:34:54.701Z',
   lines: [
     {
@@ -178,7 +180,7 @@ export const instanceRoutes = [
     tag: 'delivery',
     summary: 'A running instance’s recent output',
     description:
-      '§14: the last lines a sandbox or staging instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never production**: its output is refused, and its Incident is the only window onto it.',
+      '§14: the last lines a sandbox instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never staging or production**: both serve real people, so each is refused by its own code, and an Incident is the only window onto either. Decided by the environment’s kind, so a laptop’s staging is refused too.',
     params: InstanceParams,
     query: OutputQuery,
     body: NO_BODY,
@@ -187,6 +189,7 @@ export const instanceRoutes = [
       'NOT_FOUND',
       'FORBIDDEN',
       'INSTANCE_OUTPUT_PRODUCTION',
+      'INSTANCE_OUTPUT_STAGING',
       'INSTANCE_OUTPUT_UNAVAILABLE',
     ],
     examples: { response: EXAMPLE_OUTPUT },
@@ -203,6 +206,14 @@ export const instanceRoutes = [
         throw new OutputError(
           'INSTANCE_OUTPUT_PRODUCTION',
           'a production instance’s output is not readable (§14); its Incident’s log tail is the only window onto it',
+        )
+      // FE-24 (sitting 10; §14 as Spec action 6 left it): staging serves real people too, so it is
+      // refused the same way, by its own code — by the KIND, never the IdP, so a laptop's staging
+      // (the fake sign-in, §21) is refused exactly as UBC's will be.
+      if (kind === 'staging')
+        throw new OutputError(
+          'INSTANCE_OUTPUT_STAGING',
+          'a staging instance’s output is not readable (§14): staging serves real people; its Incident’s log tail is the only window onto it',
         )
       const { instance } = found
       const unavailable = (): OutputError =>
