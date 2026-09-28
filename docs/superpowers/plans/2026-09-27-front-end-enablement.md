@@ -28,7 +28,9 @@
 
 **One sitting per session, with a check-in at each boundary.** This pattern has carried every plan since P4a. It means a session limit never lands in the middle of a task. This plan commits after every task: a stop *between* tasks is recoverable, a stop *inside* one is not.
 
-> **TWELVE SITTINGS — APPROVED BY RICH ON 2026-09-27** (*"12 sittings is fine"*). 1 the measurements; 2 recent output, end to end; 3 binary
+> **TWELVE SITTINGS — APPROVED BY RICH ON 2026-09-27** (*"12 sittings is fine"*) — **AND A THIRTEENTH, SITTING 9a (Task 12a, the
+> capable model), ADDED BY RICH AT SITTING 8'S CLOSE**, between sittings 9 and 10; every other number stands, because the faculty
+> front-end's documents cite them. 1 the measurements; 2 recent output, end to end; 3 binary
 > files; 4 what the authoring API hands over; 5 a project's name and people by CWL login; 6 the `app` origin; 7 agent
 > sessions; 8 archive and restore; 9 delete; 10 the console and the mock; 11 the guides; 12 the acceptance. **The order
 > is chosen so the spec actions are needed as LATE as possible**: sittings 2–4 build nothing a spec action changes (§14's
@@ -53,6 +55,7 @@
 | 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **And, from the front-end's message: `AgentSession.spentUsd` (FE-23) and the platform-paid INTAKE key (FE-1)** (Tasks 9–10's `[S6]`). **If it runs long, stop after Task 9 and sweep — and FE-1 opens the next sitting** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27; **Spec action 5** (FE-1) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-27** — `mintCappedKey`, ONE mint for an agent key (`mf-agent-<id>`, on the person's `mf-person-<userId>`) and an intake key (`mf-intake-<id>`, on `mf-platform-intake`): a cap, a life never past the credential that asked (a token's, or the signed-in session's — `SessionActor.expiresAt`), D17's models with production as a floor, never an empty list, never stored; `startAgentSession` (answered once), `listAgentSessions` (FE-23's `spentUsd`, null with a reason, never 0), `endAgentSession`, `getAgentBudget`; a revoked token ends its sessions, on a retry too, and a token revoked WHILE one starts leaves no live key (the review's I1); FE-1's `startIntakeSession` / `endIntakeSession`, session only, a Vancouver day under a per-person lock; the orphan script taught; one fresh whole-branch review, its Important fixed red-first |
 | 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.state` (`active`/`archived`), `archived_at`, `archived_by`; `assertCapability` refuses an archived project all but `project:read`/`project:delete` (`409 PROJECT_ARCHIVED`), `tokenActor` any token of it; `POST …/archive` (person-only, step-up) and `…/restore` (person-only); the state, tokens and questions in ONE transaction, then `TEARDOWN_STEPS` — every name a `410` page (`Driver.switchOff`), every instance retired, each environment stopped keeping its data (`Driver.destroyEnvironment`), sandbox's and staging's SPs deregistered, agent sessions ended LAST; a failed step `500 PROJECT_TEARDOWN_INCOMPLETE`, finished on retry or at boot (`finishTeardowns`); three archive races closed as I1 was; one fresh whole-branch review, its two Importants fixed red-first |
 | 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | ← next |
+| 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — DRAFTED, awaiting Rich | |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
@@ -147,6 +150,12 @@
     answering.
   - **Keeping in step**: each sitting's close-out lists what it changed in the contract (operations, fields, codes, events)
     and Rich relays it; **`packages/contract` stays buildable at every commit** (the front-end links the working tree).
+- **THE CAPABLE MODEL — AN OPTION TO SET IT, AND OPENAI'S MODELS FOR NOW** (2026-09-27, at sitting 8's close: *"We'll need an
+  option to set the capable model. But for now it can use OpenAI's models."*; then, asked, **`internal`** — the classification
+  §7's catalogue already gives `default-chat`, *"may route off-prem"* — and **its own sitting in this plan, straight after
+  sitting 9**). So §8's *The capable model's provider* is decided for now; options A (UBC-hosted GPUs) and D (a larger local
+  model and an authoring eval) stay the roadmap's tracked item, and `qwen3.5:4b` stays the offline floor. **Task 12a (sitting
+  9a)** builds it; **Spec action 7** carries the words; Rich supplies the OpenAI key (*What Rich does* 9).
 - **Carried from earlier plans, still binding:** D24's privileged four and the person-only class; step-up for a production
   deploy, an approval, member management and a production secret; the stored preview an approval binds; `SENSITIVE_FIELDS`
   as §7's list; every platform model call whose answer is read or shown is STRUCTURED OUTPUT (the D5 plan's Decision 22 —
@@ -187,7 +196,13 @@
 8. ~~**Added by sitting 6 (2026-09-27), from the faculty front-end's message: read and decide Spec actions 5 and 6**~~ — **DONE 2026-09-27: both approved as drafted, option (a), in sitting 7's first message, and applied (`25e7445`)** (drafted
    by sitting 6 — *Spec actions*, its end): **5 before sitting 7** (FE-1, the intake key), **6 now** (FE-24, staging is UBC's
    real staging; its code is sitting 10's). **And the capable model's provider** — a decision with options, placed by sitting 6
-   in ORIENTATION §8 *Open* and the roadmap; it is not this plan's scope.
+   in ORIENTATION §8 *Open* and the roadmap; it is not this plan's scope. **— Decided at sitting 8's close: OpenAI for now, at
+   `internal`, built by this plan's Task 12a (item 9).**
+
+9. **Added at sitting 8's close (2026-09-27): the capable model.** Before sitting 9a: **decide Spec action 7**, and **put an OpenAI
+   API key in `.env`** as `OPENAI_API_KEY=` (the line Task 12a adds to `.env.example`, commented) — the key is his; no agent
+   types, reads or prints it. During sitting 9a: **a yes for Task 12a's live steps** (Step 1's (e)–(f) and Step 5 — the network,
+   and real money on his key).
 
 ---
 
@@ -1795,6 +1810,134 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ---
 
+## Task 12a: The capable model — one logical name, `default-chat-large`, whose provider is a setting; OpenAI for now, at `internal`
+
+> **ADDED 2026-09-27 AT RICH'S DECISION, after sitting 8's close** (*"We'll need an option to set the capable model. But for now
+> it can use OpenAI's models."* — then, asked: **`internal`**, and **its own sitting in this plan, straight after sitting 9**). It
+> is **sitting 9a**, between sittings 9 and 10: every other sitting and task keeps its number, because the faculty front-end's
+> own documents cite them. §8's *The capable model's provider* is DECIDED by this; options A (UBC GPUs) and D (a larger local
+> model and an eval) stay the roadmap's tracked item for later, and `qwen3.5:4b` stays the offline floor (C1).
+
+**SPEC ACTION 7 MUST BE DECIDED BEFORE THIS TASK STARTS** (*Spec actions*, below): §7's catalogue gains the name, §21's local
+topology the network model, §26's *Platform settings* the setting. **And Rich supplies an OpenAI API key** (*What Rich does* 9),
+which goes in his `.env` and never in a file this repository tracks, a row, an event, a log or a test.
+
+**Decisions (made while writing it; each with its cost if wrong):**
+- **ONE logical name, `default-chat-large`**, never a repoint of `default-chat` — `default-chat` is the offline floor every
+  demo and the offline acceptance run on (C1), and an app or an agent CHOOSES the capable model by naming it. *Rejected:* a
+  per-provider name (`default-chat-openai`) — the provider is the setting's, and repointing it later must change no app, no key
+  and no manifest (§7's *Logical model names*).
+- **`max_classification: internal`** (Rich) — §7's catalogue already marks `default-chat` *"may route off-prem"* at `internal`;
+  `confidential` stays on-premise only. Whether a US-hosted provider suits `internal` data is the Privacy Office's question,
+  recorded in ORIENTATION §8 *Open* and `docs/external-track.md` — never assumed answered.
+- **REGISTERED BY THE CONTROL PLANE AT BOOT through LiteLLM's `/model/new`, from `MANIFEST_CAPABLE_MODEL`** — a LiteLLM model
+  string (`openai/<model>` now; `azure/…`, `ollama_chat/…` or UBC's own later) — and removed with `/model/delete` when the setting
+  is empty. **Never an `infra/litellm/config.yaml` line**: a config-file deployment cannot be deleted through the admin API (S3
+  §Evidence 7), and it would put a model that cannot answer into every agent key on a machine with no key. **This setting IS the
+  "option to set the capable model"** until §26's console gives it a screen (Spec action 7's §26 line). *Rejected:* a model
+  chosen per project — D17 already chooses per classification, and a second choice is a second rule.
+- **THE PROVIDER'S KEY NEVER PASSES THROUGH THE CONTROL PLANE**: `OPENAI_API_KEY` lives in `.env` (commented in `.env.example`'s
+  settings half, so `make doctor`'s required-key check does not move) and reaches ONLY the LiteLLM container, by
+  `infra/compose.yaml`'s `OPENAI_API_KEY: ${OPENAI_API_KEY:-}`; the deployment names no `api_key`, so LiteLLM reads the
+  provider's own environment variable — **Step 1 measures that 1.98.0 does, for a DB-stored deployment**. *Rejected:* the control
+  plane passing the key in `/model/new`'s `litellm_params` — it would then hold, and have to guard, a credential it never uses.
+- **A MODEL LITELLM CANNOT PRICE IS REFUSED**: a deployment with no `input_cost_per_token` spends `$0` for ever, so no agent
+  budget, cap or intake month would ever bind on real money. The boot deletes what it registered and logs one operator line
+  naming the setting — and the boot CONTINUES (an unpriced capable model must not take the platform down; `default-chat` still
+  serves). *Measured in Step 1*: LiteLLM's bundled price map prices `openai/*` offline.
+- **WHO MAY USE IT: whoever D17 allows, as for every catalogue model** — `agentModelsFor` hands it to an agent key on an
+  `internal` or `public` project with no change; `MANIFEST_INTAKE_MODEL` MAY name it (Rich's setting; the default stays
+  `default-chat`); an app may declare it in `ai.models` — §7's sensitive field, so an administrator sees it on a launched app.
+- **OFFLINE (C1)**: registration is a LiteLLM database write and needs no network; a CALL to the model needs it, and fails
+  offline with LiteLLM's own error. Nothing on the offline path names `default-chat-large`: every demo and `make verify` use
+  `default-chat`.
+
+**Files:**
+- Create: `packages/control-plane/src/ai/capable.ts`, `packages/control-plane/src/ai/capable.test.ts` — `CAPABLE_MODEL_NAME`,
+  `ensureCapableModel(client, setting)`; `packages/control-plane/src/ai/capable.docker.test.ts`
+- Modify: `packages/control-plane/src/ai/testing.ts` — `fakeLiteLlm` answers `/model/new`, `/model/delete` and `GET
+  /model/info` from an in-memory deployment list, pricing an `openai/*` model and refusing to price anything named `unpriced/*`
+- Modify: `packages/control-plane/src/ai/index.ts` (exports); `packages/control-plane/src/config.ts` — `MANIFEST_CAPABLE_MODEL`
+  (optional; empty is unset), `config.litellm.capableModel`; `packages/control-plane/src/index.ts` — the boot's call, after the
+  LiteLLM client exists and before `listen`, and `capableModel` on the boot line
+- Modify: `infra/compose.yaml` (litellm's `OPENAI_API_KEY: ${OPENAI_API_KEY:-}`); `.env.example` (section 2f:
+  `# MANIFEST_CAPABLE_MODEL=` and `# OPENAI_API_KEY=`, both commented, with what each does)
+- Modify: `packages/control-plane/src/ai/ai-path.docker.test.ts` — *the running catalogue matches infra/litellm/config.yaml*
+  allows exactly one extra entry, `default-chat-large`, and asserts its `internal`
+- Modify: `docs/superpowers/RUNBOOK.md` — a *The capable model* subsection: the two lines to uncomment, `make up` (LiteLLM
+  re-reads its environment), the restart, and how to check it (`/model/info`); `docs/api/agents.md` (the guide an agent reads:
+  the name, and that it needs the network) — then `pnpm docs:write`
+
+**Interfaces:**
+- Consumes: `LiteLlmClient` (`ai/client.ts`); `loadModelCatalogue` (`ai/catalogue.ts`); `agentModelsFor` (`ai/models.ts`).
+- Produces: `CAPABLE_MODEL_NAME = 'default-chat-large'`; `ensureCapableModel(client: LiteLlmClient, setting: string | undefined):
+  Promise<{ state: 'registered' | 'unchanged' | 'removed' | 'absent' | 'refused'; model?: string; reason?: string }>`;
+  `config.litellm.capableModel: string | undefined`.
+
+- [ ] **Step 1: Measure, before anything is built** (`spikes/frontend-baseline/`, a section *Task 12a*; every probe's deployment
+  named `probe-capable-*` and deleted by the same probe). With NO key and the network off or on: (a) `POST /model/new` with
+  `{ model_name: 'probe-capable', litellm_params: { model: 'openai/<a current model>' }, model_info: { max_classification:
+  'internal' } }` → the `id`; (b) `GET /model/info` → the entry, its `max_classification`, and **its `input_cost_per_token`
+  non-null** (LiteLLM's bundled price map); (c) a deployment named `unpriced/whatever` → the cost field's value (`null`, or
+  absent — the test's fake copies whichever); (d) `POST /model/delete { id }` → gone, and a second delete's status. **Then, at
+  Rich's yes, with the network on and his key in `.env` and `make up` run**: (e) one `POST /v1/chat/completions` through a probe
+  key limited to `probe-capable` → `200`, and the key's `spend` > 0 afterwards (the price is real); (f) the same with
+  `OPENAI_API_KEY` unset in the container → LiteLLM's own `401`/`AuthenticationError`, recorded, so a missing key reads as what it
+  is. **Predict each first.** If (b) is null for every `openai/*` string, STOP: the refusal rule needs a price setting beside the
+  model, and that is Rich's.
+
+- [ ] **Step 2: The failing tests** (`ai/capable.test.ts`, against `fakeLiteLlm`):
+  ```ts
+  it('registers default-chat-large at internal from the setting, naming no key', async () => { /* /model/new's body: model_name,
+     litellm_params.model = the setting, NO api_key anywhere in it, model_info.max_classification 'internal'; state 'registered' */ })
+  it('changes nothing when it is already registered as the setting says', async () => { /* second call: no /model/new, 'unchanged' */ })
+  it('repoints the ONE deployment when the setting changes', async () => { /* old deleted, new registered; one deployment named
+     default-chat-large before and after */ })
+  it('removes it when the setting is empty, and answers absent when there was nothing', async () => {})
+  it('refuses a model LiteLLM cannot price — deletes what it registered, and says so', async () => { /* 'unpriced/x' →
+     state 'refused', reason names MANIFEST_CAPABLE_MODEL; /model/info lists no default-chat-large afterwards */ })
+  it('gives an agent on an internal project the capable model, and one on a confidential project never', async () => {
+     /* the catalogue read after registration → agentModelsFor(snapshot, 'internal') contains it; 'confidential' does not */ })
+  ```
+  Then `ai/capable.ts`: read `/model/info`, find every deployment whose `model_name` is `CAPABLE_MODEL_NAME`; setting empty →
+  delete each (`removed`) or nothing (`absent`); one deployment whose `litellm_params.model` is the setting and whose
+  classification is `internal` → `unchanged`; otherwise delete each and `/model/new` once, read `/model/info` back, and refuse
+  (delete, `refused`) when its `input_cost_per_token` is not a positive number. **Never a `.catch(() => undefined)`**: a gateway
+  that does not answer is thrown, and the boot's caller turns it into its operator line.
+
+- [ ] **Step 3: The setting and the boot.** `MANIFEST_CAPABLE_MODEL` in `config.ts` (a string; `''` is unset — the preprocess
+  `MANIFEST_LITELLM_MASTER_KEY` uses); in `index.ts`, after the LiteLLM client is built and only when AI is on (`config.litellm.enabled`), `await
+  ensureCapableModel(litellm, config.litellm.capableModel)` inside a try: a throw or `refused` is ONE operator line
+  (`[boot] the capable model (MANIFEST_CAPABLE_MODEL) …: <code or reason>`) and the boot continues; the boot line gains
+  `capableModel: <state>`. `config.test.ts` holds the empty-is-unset rule. The catalogue cache (60 s) picks the change up by
+  itself.
+
+- [ ] **Step 4: The Docker tier** (`ai/capable.docker.test.ts`, against the running LiteLLM — no key, no network): register
+  `openai/<the model Step 1 measured>` through `ensureCapableModel`, read the catalogue through `loadModelCatalogue` — the entry
+  at `internal`, priced — and `agentModelsFor` as Step 2; then `ensureCapableModel(client, undefined)` → removed, and the
+  catalogue as `config.yaml` has it again. **Its `finally` deletes any `default-chat-large` it left.** And
+  `ai-path.docker.test.ts`'s catalogue case allows exactly that one extra entry, at `internal` — a machine whose control plane
+  registered one must not turn it red.
+
+- [ ] **Step 5: Live, at Rich's yes (network on, his key)**: `make up`, start the control plane with `MANIFEST_CAPABLE_MODEL`
+  set, and through the API — `startAgentSession` on an `internal` project → `session.models` contains `default-chat-large`; one
+  chat with the key → `200`; `listAgentSessions` → `spentUsd` > 0 (FE-23 on real money). Record the model, the answer's status
+  and the spend. **This is Rich's network and Rich's money: ask once, with the exact calls.**
+
+- [ ] **Step 6: The gates; commit.** Contract: unchanged (a model name is catalogue data, not a route) — predict `openapi.json`
+  does not move; `pnpm docs:write` for `agents.md`. The four gates; `pnpm test` twice at the close; **`pnpm test:docker` owed**
+  (`ai/`); `make doctor` and `make verify` (predict unchanged — the key is commented, the setting unset by default). Commit:
+  ```bash
+  git commit -m "feat(ai): the capable model — default-chat-large, whose provider is MANIFEST_CAPABLE_MODEL (OpenAI for now, at internal), registered at boot, refused unpriced, its key LiteLLM's alone"
+  ```
+
+- [ ] **Step 7: Watch it fail.** (a) Pass the key in `/model/new`'s `litellm_params` — predict *naming no key* RED. (b) Skip the
+  price check — predict *refuses a model LiteLLM cannot price* RED. (c) Register at `confidential` — predict the agent case RED on
+  the confidential project. (d) Put `default-chat-large` in `config.yaml` instead — predict *removes it when the setting is
+  empty* RED in the Docker tier (a config-file deployment cannot be deleted) and the catalogue case RED.
+
+---
+
 ## Task 13: The console and the mock — every new operation called, `DELIBERATELY_UNCALLED` empty again, the mock scripting what examples cannot
 
 > **[S7] — FROM SITTING 7 (2026-09-27).** **Six operations are parked for this task** (`packages/console/src/coverage.test.ts`):
@@ -2759,6 +2902,34 @@ applied:
    scratchpad was written, and no test or `pnpm`/`make` command was run.
 
 ---
+
+### 7. §7, §21 and §26 — the capable model: one logical name whose provider is a platform setting (before sitting 9a) — DRAFTED 2026-09-27 BY SITTING 8'S CLOSE, FROM RICH'S DECISION
+
+**Why.** Rich, 2026-09-27: *"We'll need an option to set the capable model. But for now it can use OpenAI's models"* — at
+`internal`, built as this plan's sitting 9a (Task 12a). `qwen3.5:4b` is very likely too small to write a working app through tool
+calls (§21 says so itself). The spec's catalogue (§7, *Classification gates model routing*) lists five names, all local on the
+laptop; a sixth backed by a commercial provider, reachable only with the network on, changes what §7 lists, what §21 says the
+laptop runs, and what §26's platform settings hold.
+
+**Proposed**, three edits:
+- **§7's catalogue block** gains, after `default-chat-onprem-reasoning`: `default-chat-large   max_classification: internal   # the
+  capable model — a commercial provider, off-prem`, and after the block: *"**The capable model** is one logical name,
+  `default-chat-large`, for the agent and app work a small model cannot do. Which model answers it is a platform setting (§26) —
+  a commercial provider's today — so repointing it changes no app, key or manifest. Whether data of a given classification may
+  reach a provider outside Canada is the Privacy Office's to say (§9); the name's `max_classification` is what the platform
+  enforces meanwhile, and `confidential` never leaves on-premise hardware."*
+- **§21, *Local development topology*** — the LiteLLM row of its services table (`| LiteLLM | 7106 | …`) gains a sentence: *"The
+  capable model, when configured, is a commercial provider reached through the same LiteLLM with the network on; nothing offline
+  depends on it, and `default-chat` stays the model every offline path uses (C1)."*
+- **§26, its *Platform settings* bullet** (which names *"the intake model, whose change is a change to the model catalogue"*,
+  Spec action 5's words) gains: *"and the capable model's provider and model, whose change is one too."*
+
+*Options:* **(a) as proposed** (recommended); **(b) §21 and §26 only** — leave §7's catalogue listing illustrative and let
+`infra/litellm/config.yaml` and the setting be the list, at the cost of a spec whose catalogue no longer names every model an
+agent can be given. *Not offered:* a repoint of `default-chat` — it is the offline floor.
+
+**Shared pages:** `manifest-decisions.html` (D17's list, if it restates the five names) and `manifest-schematic.html` (any
+passage saying every model runs on the laptop).
 
 ## What the self-review caught
 

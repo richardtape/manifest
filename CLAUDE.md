@@ -20,7 +20,9 @@ GitHub source driver and the authoring API. Every one has an acceptance that pas
 enablement plan is being executed** — it replaced Spec action 1's plan and folds in its recent-output read. It was
 WRITTEN on 2026-09-27, overnight and with recommendations, and **Rich has approved the plan, its twelve sittings and all
 four of its spec actions — APPLIED to the spec the same day — and the two its sitting 6 drafted from the faculty front-end's
-message (5, the intake key; 6, staging is UBC's real staging), APPLIED in its sitting 7** — ORIENTATION §7e says what is next. Each plan's
+message (5, the intake key; 6, staging is UBC's real staging), APPLIED in its sitting 7** — and at its sitting 8's close
+**added a thirteenth sitting, 9a: the capable model, OpenAI for now at `internal`, behind a setting** (Spec action 7 drafted for
+it, awaiting him) — ORIENTATION §7e says what is next. Each plan's
 *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
