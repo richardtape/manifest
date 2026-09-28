@@ -10,17 +10,21 @@ export type ErrorCode = components['schemas']['ErrorCode']
  */
 export class ManifestApiError extends Error {
   readonly code: ErrorCode | 'UNPARSEABLE'
-  constructor(
-    readonly status: number,
-    readonly envelope: ErrorEnvelope | undefined,
-    readonly operation: string,
-  ) {
+  // FIELDS, NOT CONSTRUCTOR PARAMETER PROPERTIES (FE-18): a consumer compiling this source with
+  // `erasableSyntaxOnly` — recent Vite templates set it — refuses the parameter-property form.
+  readonly status: number
+  readonly envelope: ErrorEnvelope | undefined
+  readonly operation: string
+  constructor(status: number, envelope: ErrorEnvelope | undefined, operation: string) {
     super(
       envelope?.error === undefined
         ? `${operation} failed with ${status} and no error envelope`
         : `${operation} failed with ${status} ${envelope.error.code}: ${envelope.error.message}`,
     )
     this.name = 'ManifestApiError'
+    this.status = status
+    this.envelope = envelope
+    this.operation = operation
     this.code = envelope?.error?.code ?? 'UNPARSEABLE'
   }
 }

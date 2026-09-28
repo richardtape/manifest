@@ -12,7 +12,7 @@
     "./openapi.json": "./openapi.json"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node build.mjs",
     "typecheck": "tsc --noEmit",
     "generate": "openapi-typescript openapi.json --output src/schema.d.ts"
   },
