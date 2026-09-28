@@ -484,6 +484,36 @@ describe('a sign-out begun on the front-end’s origin ends there (Task 8)', () 
     await app.close()
   })
 
+  /**
+   * SITTING 6'S REVIEW, M2 (fixed in sitting 10): the route reads the RelayState node-saml VERIFIED —
+   * the first raw query token naming it, the one in the signed string — never Fastify's decoding of
+   * the query, which also reads a key spelled `Relay%53tate` that node-saml's check never sees. An
+   * answer the IdP signed with NO RelayState, with one appended, is the console's own answer: it
+   * lands on `/`, validated by the client that asked. Before the fix the appended value named app,
+   * whose client never held the request, and the person was refused.
+   */
+  it('reads only the RelayState the IdP signed — one appended unsigned is ignored', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signInOn(app, idp, 'console.manifest.internal')
+    const res = await signOutOn(app, session, 'console.manifest.internal', ORIGIN)
+    const requestId = requestIdOf(res.json<{ redirectTo: string }>().redirectTo)!
+    const signed = idp.redirect({
+      kind: 'LogoutResponse',
+      destination: SLO,
+      inResponseTo: requestId,
+    })
+    const done = await app.inject({
+      method: 'GET',
+      url: `/auth/logout?${signed}&Relay%53tate=${encodeURIComponent(APP_ORIGIN)}`,
+      headers: { host: 'console.manifest.internal' },
+    })
+    expect(done.statusCode, done.body).toBe(302)
+    expect(done.headers.location).toBe('/')
+    await app.close()
+  })
+
   it('refuses an answer whose RelayState names the origin that did NOT ask — the client it names never sent the request', async () => {
     // The console asked; an answer claiming app's RelayState is validated by app's client, whose
     // cache never held the request — refused, not sent to app.

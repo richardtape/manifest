@@ -20,6 +20,7 @@ import {
   verifySession,
 } from '../../identity/index.js'
 import { requireSession } from '../actor.js'
+import { sendRefusalPage, wantsRefusalPage } from '../auth-page.js'
 import { originOf } from '../origins.js'
 import type { ServerDeps } from '../server.js'
 
@@ -58,6 +59,24 @@ export function rawQueryValues(originalQuery: string): Record<string, string> {
     }
   }
   return out
+}
+
+/**
+ * THE RelayState node-saml VERIFIED on a redirect-binding message (sitting 6's review, M2; fixed
+ * in sitting 10): `hasValidSignatureForRedirect` signs over the FIRST raw query token that
+ * matches `/RelayState/` — so this reads exactly that token, decoded as a URI component, and
+ * answers `undefined` when that token is not a `RelayState=` (a key that merely contains the
+ * word) or when there is none. Fastify's own query decoding also reads `Relay%53tate=`, which
+ * node-saml never sees, and so could name a value no signature covered.
+ */
+export function signedRelayState(originalQuery: string): string | undefined {
+  const token = originalQuery.split('&').find((t) => /RelayState/.test(t))
+  if (token === undefined || !token.startsWith('RelayState=')) return undefined
+  try {
+    return decodeURIComponent(token.slice('RelayState='.length))
+  } catch {
+    return undefined
+  }
 }
 
 export async function registerAuthRoutes(
@@ -338,14 +357,17 @@ export async function registerAuthRoutes(
     { config: { idempotency: 'exempt' } },
     async (request, reply) => {
       const query = (request.query ?? {}) as Record<string, unknown>
-      const refusal = (hint: string) =>
-        reply.status(400).send({
-          error: {
-            code: 'SAML_LOGOUT_REJECTED',
-            message: 'the single-logout request could not be verified',
-            hint,
-          },
-        })
+      const refusal = (hint: string) => {
+        const error = {
+          code: 'SAML_LOGOUT_REJECTED',
+          message: 'the single-logout request could not be verified',
+          hint,
+        }
+        // FE-17: the IdP REDIRECTS a browser here, so a refusal is what the person sees.
+        return wantsRefusalPage(request)
+          ? sendRefusalPage(reply, 400, error)
+          : reply.status(400).send({ error })
+      }
 
       // ONE OPERATOR LINE PER SINGLE LOGOUT, arrival and outcome both. §4: a
       // failure that leaves no operator line hides the next one — and F11 was
@@ -370,16 +392,17 @@ export async function registerAuthRoutes(
       // EXACTLY one of Manifest's configured origins names the client that validates the answer
       // and the origin the browser goes back to; anything else is validated by this origin's
       // client and lands on `/`. A RelayState names nothing but one of Manifest's own origins,
-      // so this is no redirector.
+      // so this is no redirector. AND IT IS THE RelayState THE SIGNATURE COVERS — read from the
+      // raw query token node-saml verifies (`signedRelayState`, M2), never Fastify's decoding.
       if (isResponse) {
         const here = originOf(request, deps.config.origins)
+        const originalQuery = (request.raw.url ?? '').split('?')[1] ?? ''
+        const relayState = signedRelayState(originalQuery)
         const named =
-          typeof query.RelayState === 'string' &&
-          deps.config.origins.includes(query.RelayState)
-            ? query.RelayState
+          relayState !== undefined && deps.config.origins.includes(relayState)
+            ? relayState
             : here
         try {
-          const originalQuery = (request.raw.url ?? '').split('?')[1] ?? ''
           await deps
             .samlSpFor(named)
             .completeSpLogout(rawQueryValues(originalQuery), originalQuery)
