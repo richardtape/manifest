@@ -158,9 +158,9 @@ second one wins.
 5. The **control plane** itself — it holds credentials for every driver, registry, IdP and LiteLLM.
 6. **Model credentials and budget** — abuse is expensive and attributable to UBC.
 7. **The UBC network position** every deployed app occupies.
-8. The **Manifest IdP signing key** — high value, but scoped to sandbox and
-   staging only (D6), so its compromise never touches real user identities. This
-   is a direct benefit of the C4 constraint.
+8. The **Manifest IdP signing key** — high value, but scoped to the sandbox, and to a
+   laptop's staging (D6, §21), so its compromise never touches real user identities.
+   This is a direct benefit of the C4 constraint.
 
 ### Trust boundaries
 
@@ -195,13 +195,13 @@ boundary intact even when the code inside is actively hostile.
 | # | Decision | Rationale |
 |---|---|---|
 | D1 | Manifest owns an execution primitive, **"an instance of a build"**, with three lifetime policies: `build`, `sandbox`, `environment`. | The agent's dev sandbox and the staging runtime are the same object. Owning it once gives dev/prod parity for free and prevents a second, divergent orchestration layer growing inside the front-end project. |
-| D2 | The AI coding agent obtains model access from a scoped, short-lived LiteLLM key, **issued for one agent session and charged to the person the agent works for**. An agent running outside Manifest — the faculty front-end's own, or a person's own — is issued one through the API from Phase 2 (§10); the agent that runs **inside** a sandbox gets one from Phase 3. | Keeps provider credentials out of agent-reachable memory entirely, and gives the agent a fast local filesystem for its inner loop. An agent outside Manifest is held to the same bound: what it holds, if it leaks, is a short-lived, spend-capped key to the model routes for one person's work on one project — never a provider credential, and never a Manifest credential (§20). |
+| D2 | The AI coding agent obtains model access from a scoped, short-lived LiteLLM key, **issued for one agent session and charged to the person the agent works for**. An agent running outside Manifest — the faculty front-end's own, or a person's own — is issued one through the API from Phase 2 (§10); the agent that runs **inside** a sandbox gets one from Phase 3. **One key is the platform's to pay for: an *intake* key**, issued to a person in an interactive session before any project exists, so that what they describe can be understood. It calls one model an administrator names and is bounded per person, and no project, no token, and no person's or app's budget is involved (§10). | Keeps provider credentials out of agent-reachable memory entirely, and gives the agent a fast local filesystem for its inner loop. An agent outside Manifest is held to the same bound: what it holds, if it leaks, is a short-lived, spend-capped key to the model routes for one person's work on one project — never a provider credential, and never a Manifest credential (§20). An intake key is held to a tighter bound still: one model, cents and minutes, a few a day per person, and no project at all. It is the platform's cost because understanding what a person asked for is the same work for everyone, and it comes before there is anything to charge (Rich, 2026-09-27). |
 | D3 | Backing services are **dedicated containers per app per environment**. | Simpler isolation, and it composes with hibernation: a sleeping app's database sleeps too, so an idle course tool costs nothing. Accepted costs: backup fan-out and version sprawl, both owned centrally by Manifest. |
 | D4 | The app→platform contract is a schema-validated **`manifest.yaml` in the repo**. | Versioned with the code, diffable at the approval gate, and expressive enough to state "this app needs Qdrant and CWL with these attributes". |
 | D5 | Git access is behind a **provider interface**; driver 1 is local bare repos, driver 2 is a UBC GitHub org. | Satisfies C1: the laptop build needs no GitHub org, no tokens, no webhook tunnel. |
-| D6 | **Two identity paths.** The Manifest IdP (a SimpleSAMLphp instance Manifest controls) serves **sandbox and staging** with test users. **Production apps are registered directly with real UBC Shibboleth**, one registration per app. The Manifest IdP does not proxy to real CWL and never authenticates a real user. | Per C4, which is non-negotiable. A useful side effect: the Manifest IdP's signing key never touches real identities, which removes it from the top of the asset list in §3.5. *(A SAML-proxy variant was considered and rejected.)* |
+| D6 | **Three identity paths, one per environment.** The Manifest IdP (a SimpleSAMLphp instance Manifest controls) serves **the sandbox** with test users, whom agents and instructors sign in as freely. **Staging and production apps are registered with UBC**: staging with UBC's staging IdP, where real people sign in with a staging CWL, and production with real UBC Shibboleth. There is one registration per app and environment, each a request UBC IAM reviews (§9). The Manifest IdP does not proxy to real CWL and never authenticates a real user. On the laptop, which cannot reach UBC (C1), it serves staging as well (§21). *(Changed 2026-09-27: staging was the Manifest IdP's until Rich decided it is UBC's real staging world.)* | Per C4, which is non-negotiable. A useful side effect: the Manifest IdP's signing key never touches real identities, which removes it from the top of the asset list in §3.5. **Staging is UBC's real staging world, with its IdP and its staging Canvas and academic API (§15), so that real people try an app against the services it will use before it goes live. The sandbox stays the one place where anyone may sign in as a pretend person.** *(A SAML-proxy variant was considered and rejected.)* |
 | D7 | Manifest is a **client of LiteLLM's admin API**, not a gateway of its own. | LiteLLM already provides virtual keys, budgets, multi-provider routing and an admin API. Building a second one would be waste. |
-| D8 | Virtual keys are minted **per app+environment** and **per agent session** — an agent session's charged to the person it works for — and spend is attributed **per end user** via hashed `ubcEduCwlPuid`. | A looping agent burns its own cap. Per-user attribution answers "which of 300 students spent the budget" and enables fair-share quotas inside a manifested app. |
+| D8 | Virtual keys are minted **per app+environment**, **per agent session** — an agent session's charged to the person it works for — and **per intake session**, which the platform pays for (§10); spend is attributed **per end user** via hashed `ubcEduCwlPuid`. | A looping agent burns its own cap. Per-user attribution answers "which of 300 students spent the budget" and enables fair-share quotas inside a manifested app. |
 | D9 | Production approval is **first-launch only**, plus **automatic re-escalation when a sensitive field changes**. | Preserves faculty velocity while closing the "the AI silently rewrote the app" hole. The escalation is free because the diff is computed for the first review anyway. |
 | D10 | Control plane is a **desired-state reconciler with pluggable drivers**, but the first implementation is a **straight-line imperative path**. | Learn the domain against real Docker before committing to a loop. The reconciler later *wraps* the straight-line function rather than replacing it. |
 | D11 | Stack: **TypeScript/Node + Fastify, Postgres, Drizzle, React+Vite** admin UI. | Team fit, and LiteLLM already requires Postgres — the control plane database adds no new infrastructure dependency. |
@@ -209,12 +209,12 @@ boundary intact even when the code inside is actively hostile.
 | D13 | **Dockerfiles are blueprint-managed.** Apps cannot supply their own build definition. | Build time is the most privileged moment in the pipeline; an app-supplied Dockerfile is arbitrary RCE on the builder. It also violated the rule in D4/§7 that an app declares *what*, never *how*. Custom Dockerfiles may return later behind rootless BuildKit with a credential-free, network-restricted builder. |
 | D14 | **Privileged actions require an interactive human session, whichever client initiates them.** No agent-held credential — Manifest's own or a third party's — carries privileged capability. A sandbox in particular holds no credential able to mutate anything outside itself. | Prompt injection makes any agent a confused deputy: text it reads — a student PDF, a scraped page, a package README — is potential attacker instruction. The property is *not* "our front-end does it", which would make third-party clients second-class by construction and misstate the control. Stated this way it protects against a prompt-injected agent on someone's laptop exactly as it protects against one in our sandbox: one rule, one enforcement point. Generalises Vibonarium's *"the agent suggests, the human clicks, the gateway executes."* |
 | D15 | **SAML ACS and SLO URLs are derived by Manifest**, never accepted from the app. `auth.callback` is a path, not a URL. | Registering an SP means directing signed identity assertions at a URL. Free-text ACS is an assertion-phishing primitive reachable from a buggy agent or an injection in the registration path. |
-| D16 | **A newly requested CWL attribute requires approval in every environment**, not only production. | Under D6 staging uses test users, so the harvesting risk is lower than first assessed — but the control is retained for a stronger reason: in production, `auth.attributes` must be a subset of what UBC IAM actually registered. Catching an attribute change at approval time turns a launch-day login failure into a change request raised weeks earlier. |
+| D16 | **A newly requested CWL attribute requires approval in every environment**, not only production. | Under D6 staging signs in real people, each with a staging CWL, so the harvesting risk first assessed holds there as it does in production, and only the sandbox's test users are free of it. The control is kept in every environment for a second reason as well: in production, `auth.attributes` must be a subset of what UBC IAM actually registered. Catching an attribute change at approval time turns a launch-day login failure into a change request raised weeks earlier. |
 | D17 | **`data.classification` constrains which logical models an app may use.** | A BC public body sending student personal information to a US model provider is a FIPPA problem, and the pre-review design was one YAML line away from it by accident. Both fields already existed; linking them is nearly free. |
 | D18 | **Egress is default-deny in every environment**, through a forced proxy. | The pre-review design enforced egress only in sandboxes. Production is long-lived, holds real data and sits inside UBC's network — a compromised production app is a better pivot than a 45-minute sandbox. |
 | D19 | **Manifest generates and tracks the IAM registration and the PIA as first-class objects**, and blocks production deployment until both are approved. | The platform knows more about the app than its owner does: it can derive the SP metadata, a per-attribute justification, and most of a PIA from the AppSpec. A faculty member should review and sign, not author from nothing. This converts C4 from a blocker into the platform's most valuable service. |
 | D20 | **The production SP keypair is long-lived and stable**, generated once at registration; rotation is a tracked IAM change request with an overlap window. Certificate expiry is monitored and alarmed months ahead. | An SP certificate is registered with UBC IAM; rotating it per deploy would break authentication. Conversely an unnoticed expiry silently kills login for a live course application mid-term — an operational hazard that is invisible until it is urgent. |
-| D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | Staging on the Manifest IdP keeps iteration frictionless, but an app whose first contact with real Shibboleth is production launch day will fail on launch day. The rehearsal validates the registration, the attribute release and the certificate before anything is public. |
+| D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | An app whose first contact with real Shibboleth is production launch day will fail on launch day. **Staging now makes that contact every day**, signing people in against UBC's staging IdP through its own registration (§9). What the rehearsal adds is therefore narrower: it exercises the **production** registration, its attribute release and its certificate before anything is public. Whether that still needs a blocking item once staging is registered is an open question (§19); until it is answered, the rehearsal stays. *(Rationale changed 2026-09-27: it rested on staging using the Manifest IdP.)* |
 | D22 | **This repo ships a `console/` — a reference console — as a Phase 1 deliverable.** It is the executable proof that the public API is complete and sufficient, not the product. It imports *only* the generated client from `contract/`, enforced by a lint boundary and a test. | Without it, the faculty journey is undemonstrable until Phase 3, and API gaps surface when the front-end team hits them rather than while they are cheap to fix. The import rule converts "is the API complete?" from an opinion into a build failure. |
 | D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
 | D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. **Three actions are stricter still — *person-only*: approving a release (§13), recording UBC's IAM registration or Privacy Office assessment (§9), and archiving or deleting a project (§11).** A delegated token can never be minted holding any of them, and a token that asks is refused outright rather than given a pending action, because each is a record that a named person decided — and a confirmed retry would let the token make that record. *(Added 2026-09-22.)* | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: read everything about its project, trigger builds, deploy to sandbox and staging, set its app's sandbox and staging secrets, start a model session for its agent, stream logs and events — the entire build loop. Only four things need a human. **A token is scoped to one project and so does not create projects**: a human creates the project in an interactive session and mints the token for it, which is the natural order anyway. *(Reconciled 2026-09-17: this sentence previously listed project creation, which contradicts the scope rule in the decision beside it — a project-scoped token cannot use what it creates. The scope rule wins; an unscoped "creator" token is left to the phase that needs one.)* |
@@ -292,7 +292,7 @@ services/       backing service provisioning + credentials
 routing/        hostnames, custom domains + DNS verification, Caddy config,
                 listener assignment, certificates (§23)
 secrets/        envelope encryption, injection
-sso/            Manifest IdP SP registration (sandbox + staging)
+sso/            Manifest IdP SP registration (the sandbox; staging on a laptop, §21)
 launch/         production identity & privacy lifecycle: IamRegistration,
                 PrivacyAssessment, LaunchReadiness, registration-package generation
 ai/             LiteLLM admin client, key minting, spend
@@ -340,6 +340,7 @@ admin-ui/       React admin front-end
 | **DelegatedToken** | `id`, `user_id`, `project_id`, `name`, `token_hash`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `revoked_at`, `last_used_at`, `rate_limit` — the plaintext exists only at minting and is never stored, so `token_hash` is what authenticates a presented token, `name` is what makes one reviewable in a list, and `revoked_at` is how one is ended **before** its expiry. Revocation is not optional for a credential an agent holds, which is why a delegated token has a server-side record where a Phase 1 session does not (§20) |
 | **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `expires_at`, `resolved_by`, `resolved_at`, `consumed_at` — `expires_at` is what makes the `expired` state reachable rather than decorative, and `consumed_at` records that a confirmation has been **spent**, so confirming grants exactly one retry rather than a standing permission. `consumed_at` is a column and not a fifth state: "confirmed but not yet retried" and "confirmed and used" are one decision at two moments |
 | **AgentSession** | `id`, `project_id`, `user_id` (the person it works for, and is charged to), `instance_id` (the sandbox it runs in — null for an agent outside Manifest), `requested_by_token` (null when a person started it in a session), `litellm_key_id`, `cap_usd`, `expires_at`, `ended_at` — a session outlives neither its `expires_at` nor the credential that started it, and its key is answered once, when it starts, and never stored |
+| **IntakeSession** | `id`, `user_id` (the person who started it, who is never charged), `model`, `cap_usd`, `expires_at`, `created_at`, `ended_at`. It has no project and no token: only an interactive session starts one, before a project exists, and it is paid from the platform's intake budget (§10). Its key is answered once and never stored. The row is the record that the key was issued, because there is no project stream to publish on |
 | **Event** | `id`, `project_id`, `subject`, `type`, `machine_detail`, `human_message`, `created_at` |
 | **RoleChange** | `id`, `user_id`, `from_role`, `to_role`, `actor`, `reason`, `created_at` — append-only by grant, like `Event`; `actor` is text, because the first administrator's grant has no administrator to attribute it to (§20) |
 | **Incident** | `id`, `instance_id`, `exit_reason`, `log_tail`, `failed_check`, `diff_since_healthy` |
@@ -578,12 +579,12 @@ wrong:
 | `MANIFEST_PROJECT_SLUG` | project slug | all |
 | `PORT` | `runtime.port` | all |
 | `SESSION_SECRET` | generated per app+environment | all |
-| **`SAML_ENVIRONMENT`** | `LOCAL` for sandbox and staging (Manifest IdP), `PRODUCTION` for production. **Never left unset** — see above. | all |
-| `SAML_ISSUER` | sandbox/staging: `https://manifest.ubc.ca/sp/{slug}/{env}`; production: the entityID registered with UBC IAM (§9) | all |
+| **`SAML_ENVIRONMENT`** | `LOCAL` for the sandbox (Manifest IdP), `STAGING` for staging (UBC's staging IdP; `LOCAL` on a laptop, §21), `PRODUCTION` for production. **Never left unset** — see above. | all |
+| `SAML_ISSUER` | sandbox: `https://manifest.ubc.ca/sp/{slug}/{env}` (and a laptop's staging, §21); staging and production: the entityID registered with UBC IAM for that environment (§9) | all |
 | `SAML_CALLBACK_URL` | `{MANIFEST_APP_URL}{auth.callback}`, derived (D15) | all |
 | **`SAML_ENTRY_POINT`** | the IdP SSO endpoint. Required because `UBC_CONFIG.LOCAL` hardcodes `http://localhost:8080/simplesaml/...` and the Manifest IdP is elsewhere (§21). Those are SimpleSAMLphp **1.x** paths and 404 against 2.x, which serves SSO at `/module.php/saml/idp/singleSignOnService`, SLO at `/module.php/saml/idp/singleLogout` and metadata at `/module.php/saml/idp/metadata` (measured 2026-09-07). | all |
 | `SAML_LOGOUT_URL` | IdP logout endpoint. The library's `logout()` helper reads this from **env, not options** — so it must be injected even though the entry point is passed in code. | all |
-| `SAML_IDP_METADATA_URL` | sandbox/staging: the Manifest IdP; production: `https://authentication.ubc.ca/idp/shibboleth` | all |
+| `SAML_IDP_METADATA_URL` | sandbox: the Manifest IdP (and a laptop's staging, §21); staging: `https://authentication.stg.id.ubc.ca/idp/shibboleth`; production: `https://authentication.ubc.ca/idp/shibboleth` | all |
 | **`SAML_IDP_CERT_PATH`** | mounted path to the IdP's public signing certificate. **Mandatory:** the strategy builds `cert: options.cert \|\| (() => { throw ... })()`, an IIFE that evaluates at construction — so it throws unless a certificate is supplied, and the library's `_fetchCertificate()` fallback is unreachable. Manifest mounts it; the blueprint never fetches it at runtime. | all |
 | `SAML_PRIVATE_KEY_PATH` | mounted path to the **SP's own** private key, used to sign AuthnRequests and decrypt assertions. Required in staging and production (the Manifest IdP requires signed AuthnRequests per §9, and real UBC encrypts assertions). Optional in sandbox. | staging, production |
 | `MONGODB_URI`, `MONGODB_DB_NAME` | per declared `mongo` service | if declared |
@@ -609,31 +610,36 @@ blueprint, so §16 carries a test asserting exactly that.
 
 ## 9. Identity
 
-There are **three** identity paths, and conflating them is the easiest mistake to
-make in this design. The first is easy to forget: **Manifest itself is an SP.** Its
-own users log in with CWL (`identity/`, §22 step 1), so on UBC infrastructure the
-control plane needs **its own IAM registration and its own platform-level PIA**,
-independent of any app's. **That registration names both of Manifest's own origins** —
-the reference console's and the faculty front-end's (§21) — with an assertion-consumer
-URL for each, under one entity: a person signs in on the origin they are using, and no
-session is carried from one origin to the other. **It asks UBC to release
-`ubcEduCwlPuid`, `mail`, the person's name (`givenName`, `sn`) and `uid`, the CWL login
-name** — the last so that a person can add a colleague to a project by the name the
-colleague signs in with. The PUID stays the only key a person is identified by. Locally
-it uses the Manifest IdP like everything else.
+There are **four** identity paths, and conflating them is the easiest mistake to make
+in this design. The first is easy to forget: **Manifest itself is an SP.** Its own
+users log in with CWL (`identity/`, §22 step 1), so on UBC infrastructure the control
+plane needs **its own IAM registration and its own platform-level PIA**, independent
+of any app's. **That registration names both of Manifest's own origins** — the
+reference console's and the faculty front-end's (§21) — with an assertion-consumer
+URL for each, under one entity: a person signs in on the origin they are using, and
+no session is carried from one origin to the other. **It asks UBC to release
+`ubcEduCwlPuid`, `mail`, the person's name (`givenName`, `sn`) and `uid`, the CWL
+login name** — the last so that a person can add a colleague to a project by the name
+the colleague signs in with. The PUID stays the only key a person is identified by.
+Locally it uses the Manifest IdP like everything else.
 
-The other two are the app-facing paths (D6):
+The other three are the app-facing paths, one per environment (D6):
 
-| | **sandbox + staging** | **production** |
-|---|---|---|
-| IdP | Manifest IdP (SimpleSAMLphp) | real UBC Shibboleth |
-| Users | test users (`bio_prof`, `bio_student`) | real staff and students |
-| Registration | automatic, seconds | **a request to UBC IAM, reviewed by people** (C4) |
-| Keypair | per app+environment, rotatable freely | long-lived and stable (D20) |
-| PIA | not required | **required** (C4) |
-| `passport-ubcshib` preset | `LOCAL` (pointed at the Manifest IdP) | `PRODUCTION` |
+| | **sandbox** | **staging** | **production** |
+|---|---|---|---|
+| IdP | Manifest IdP (SimpleSAMLphp) | UBC's staging IdP (`authentication.stg.id.ubc.ca`) | real UBC Shibboleth |
+| Users | test users (`bio_prof`, `bio_student`) | real people, each with a staging CWL: no test accounts | real staff and students |
+| Registration | automatic, seconds | **a request to UBC IAM, reviewed by people, with a wait** (C4) | **a request to UBC IAM, reviewed by people** (C4) |
+| Keypair | per app+environment, rotatable freely | registered with the request | long-lived and stable (D20) |
+| PIA | not required | not yet settled (§19) | **required** (C4) |
+| `passport-ubcshib` preset | `LOCAL` (pointed at the Manifest IdP) | `STAGING` | `PRODUCTION` |
 
-### Sandbox and staging: SP auto-provisioning
+On a laptop, staging takes the sandbox's column (§21).
+
+### The sandbox: SP auto-provisioning
+
+This is the sandbox's path, and a laptop's staging's (§21). At UBC, staging is
+registered with UBC's staging IdP instead (below).
 
 The **Manifest IdP** (`infra/idp/`) keeps the IdP role here — an image Manifest
 builds from `php:8.3-apache` plus SimpleSAMLphp 2.x, with **no dependency on
@@ -652,6 +658,37 @@ attributes  exactly auth.attributes from the AppSpec
 keypair     generated per app+environment; private key stored as a Secret,
             mounted at SAML_PRIVATE_KEY_PATH
 ```
+
+### Staging: a registration with UBC's staging IdP
+
+**Staging is UBC's real staging world** (decided by Rich, 2026-09-27). An app's
+staging environment signs people in against **UBC's staging IdP**
+(`authentication.stg.id.ubc.ca`, `passport-ubcshib`'s `STAGING` preset). It reaches
+UBC's staging services, Canvas and the academic API among them (§15), where the
+sandbox reaches stand-ins. **The people who sign in are real.** Each holds a staging
+CWL, separate and distinct from their production CWL, and there are no test accounts.
+They are the instructor, a TA, a colleague, and any student who has one. How a person
+gets a staging CWL is UBC's process.
+
+**Registering an app's staging environment is a request to UBC IAM, reviewed by
+people, with a wait**, and it is no more programmatic than production's (C4). It is
+**a third clock**, beside the production registration and the privacy assessment
+(§13), and the first of the three to start. **It gates the staging address**: until
+IAM has registered it, a CWL app's staging environment serves but signs nobody in,
+and people try the app in the sandbox. An app with `auth.provider: none` registers
+nothing and waits for nothing. Manifest derives the request's values as it derives
+production's (D15):
+
+- the entityID `https://{platform-domain}/sp/{slug}/staging`, fixed at registration;
+- the ACS and SLO URLs on the staging hostname;
+- the requested attributes, each with its justification.
+
+**How Manifest drafts and tracks the request is not yet designed** (§19).
+`IamRegistration` (§6) is production's today.
+
+**On the laptop, staging keeps the Manifest IdP's fake sign-in** (§21). C1 forbids a
+laptop that needs UBC's network, so a laptop's staging registers itself the way the
+sandbox does, above.
 
 ### Production: real UBC IAM registration
 
@@ -740,7 +777,12 @@ Before first production launch, the app is exercised once against UBC's staging
 IdP (`authentication.stg.id.ubc.ca`) using the `STAGING` preset. This validates the
 registration, the attribute release and the certificate against real Shibboleth —
 so that launch day is not the first time any of it is tested. The rehearsal is a
-`LaunchReadiness` item, not part of the daily build loop.
+`LaunchReadiness` item, not part of the daily build loop. **Staging now signs people
+in against the same IdP every day**, through its own registration (above). What only
+the rehearsal exercises is the **production** registration: its entityID, ACS URL,
+attributes and certificate, before anything is public. Whether that still needs a
+blocking item once staging is registered is an open question (§19); until it is
+answered, the rehearsal stays.
 
 ### Registration hardening
 
@@ -767,10 +809,11 @@ to SQL-backed metadata widens it. Controls:
   specifically on ACS URL changes.
 - **The Manifest IdP signing key is in separate custody** from application
   secrets, with a documented rotation procedure. Under D6 it signs assertions only
-  for test users in sandbox and staging, so its compromise never touches a real
-  identity — but it can still be used to forge access to a staging app holding
-  real work, so it is treated as sensitive. The genuinely top-tier identity
-  secrets are the **production SP private keys** (§3.5), one per production app.
+  for test users in the sandbox (and a laptop's staging, §21), so its compromise
+  never touches a real identity. It can still be used to forge access to a sandbox
+  holding real work, though, so it is treated as sensitive. The genuinely top-tier
+  identity secrets are the **production SP private keys** (§3.5), one per production
+  app.
 - **The deployed IdP must not inherit the local development configuration.**
   `docker-simple-saml/config/simplesamlphp/saml20-sp-remote.php` currently sets
   `validate.authnrequest => false` and `validate.logout => false`. Both must be
@@ -786,17 +829,20 @@ to SQL-backed metadata widens it. Controls:
 ### Attribute changes are gated in every environment (D16)
 
 A newly requested attribute re-escalates to approval regardless of the target
-environment. Under D6 staging uses the Manifest IdP with test users, so the
-harvesting risk is lower than first assessed — the control is retained for a
-stronger reason: in production, `auth.attributes` must be a subset of what UBC IAM
-registered, so catching the change at approval turns a launch-day login outage into
-a change request raised weeks earlier.
+environment. Under D6 only the sandbox uses test users. Staging signs in real people,
+each with a staging CWL, so the harvesting risk first assessed holds there as it does
+in production. The control is kept in every environment for a second reason as well:
+in production, `auth.attributes` must be a subset of what UBC IAM registered, so
+catching the change at approval turns a launch-day login outage into a change request
+raised weeks earlier.
 
-### Enforced attribute release (sandbox and staging)
+### Enforced attribute release (the sandbox)
 
-Attribute release is enforced **at the IdP** by the `core:AttributeLimit`
-processing filter, populated from `auth.attributes`. An app cannot receive an
-attribute it did not declare.
+Attribute release is enforced **at the IdP** by the `core:AttributeLimit` processing
+filter, populated from `auth.attributes`. An app cannot receive an attribute it did
+not declare. **In staging and production the release is UBC's**: its IdPs release
+what IAM registered for that environment, and Manifest's filter is not in the path.
+The exception is a laptop's staging, which is the Manifest IdP's (§21).
 
 **S2 found this is not free, and its failure mode is silent.** The filter is **not
 in SimpleSAMLphp's default chain**: without it the metadata row's `attributes` list
@@ -899,6 +945,7 @@ single port.
 |---|---|---|---|
 | **App key** | app + environment | one key per instance: minted before the instance starts; revoked when that instance is retired, after its drain (§11), or discarded if it never became ready; revoked on archive | `ai.budget.project_monthly_usd`, held on the LiteLLM *user* rather than the key, so it survives key rotation |
 | **Agent key** | one `AgentSession`: one person's agent, on one project | carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete`; revoked when its session is ended, when the delegated token that started it is revoked, and when the project is archived; never outlives that token. Inside a sandbox (Phase 3) it also dies with the sandbox | the session's own hard cap, inside **the person's** monthly agent budget — held on a LiteLLM user for that person, independent of every app budget |
+| **Intake key** | one `IntakeSession`: one person describing an app, before any project exists | carries a `duration` TTL of 30 minutes by default, and never past the expiry of the interactive session that started it, so it expires even if the control plane never calls `/key/delete`; revoked when its session is ended. No token starts one, so no token's revocation reaches it | the key's own hard cap ($0.25 by default), inside **the platform's** monthly intake budget. That budget is held on one LiteLLM user for the platform, independent of every person's and every app's. A person may start a bounded number a day (10 by default) |
 | **End user** | app passes `hash(ubcEduCwlPuid ‖ project ‖ environment)` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` — **validated, not enforced, in Phase 1** (below) |
 
 **An agent outside a sandbox is issued its key through the API (Phase 2).** A person
@@ -916,6 +963,34 @@ it, and the person, or a token acting for them, can read what their agents have 
 this month. Starting and ending a session are events in the project's stream, naming
 the person. This is the agent key of the table without a sandbox around it; the
 platform-initiated session of §15 still waits for Phase 3.
+
+**Before a project exists, a person describing one is issued an *intake* key, which
+the platform pays for (Phase 2).** Understanding what a person asked for is the same
+work for everyone: the follow-up questions, the names proposed and checked (§23), and
+the blueprint and starter chosen (§25). It also happens before there is a project to
+charge, so it is a platform cost (decided by Rich, 2026-09-27). Only a person in an
+interactive session starts an `IntakeSession`, because a delegated token belongs to
+one project (D24) and there is none yet. The person is answered the key, the address
+it is used at and its model, once; Manifest keeps no copy. **Its model is a single
+model, the same for everyone, named by an administrator as part of the model
+catalogue** (§13), so changing it is changing the catalogue, with the catalogue's
+step-up (§20). There is no manifest yet, so **it must be a model D17 allows for §7's
+default classification, `internal`: a catalogue entry whose `max_classification` is
+`internal` or `confidential`.** What a person types before their app exists then goes
+no further than an app of the default classification could send it. The check runs
+every time a key is minted: if the entry loses its classification, or is lowered to
+`public`, intake pauses rather than sending anything elsewhere (§7). **Its cost is
+bounded three ways, each a platform setting (§26)**: a hard cap and a life for each
+key ($0.25 and 30 minutes by default), a number of keys per person per day (10), and
+a monthly intake budget for the whole platform. A person past the day's number, or a
+platform past its month, is refused by a code of its own, and intake is paused until
+that bound resets. It is never charged to the person's agent budget instead. The key
+is confined by `allowed_routes` like every other, and carries no capability on the
+control plane (§20). There is no project stream to publish on, so the `IntakeSession`
+row is the record that a key was issued and names the person, and an administrator
+reads intake spend by person (§26). An intake key never becomes an agent key: once
+the person creates the project, the work continues under agent keys charged to them,
+as above.
 
 **The end-user identifier must be namespaced per app and environment, not a bare
 hash of the CWL PUID.** LiteLLM keys its end-user budget on that string globally
@@ -1096,13 +1171,15 @@ first, so nothing new starts; then every environment's instances are retired —
 serving one included — and each of its hostnames answers a platform page saying the app
 has been switched off, never another app and never nothing. Its agent sessions end and
 their keys are revoked (§10); its delegated tokens are revoked and its pending actions
-expire; its backing services stop; its sandbox and staging SP registrations are removed
-(§9). **Its code, its data, its secrets and its records are kept.** Every step is
+expire; its backing services stop; its SP registrations with the Manifest IdP are
+removed, meaning the sandbox's and, on a laptop, staging's (§9, §21). A registration
+with UBC IAM, whether staging's or production's, is UBC's record and is left as it
+is. **Its code, its data, its secrets and its records are kept.** Every step is
 idempotent, and an interrupted archive is finished on retry or at the control plane's
-next boot. Restoring makes it an ordinary project again, and its next deploy brings it
-back on its kept data; an archived project can be read and restored, and nothing else.
-A launched app can be archived — that is its owner switching production off for its
-students, which is why it asks for step-up — and its IAM registration and privacy
+next boot. Restoring makes it an ordinary project again, and its next deploy brings
+it back on its kept data; an archived project can be read and restored, and nothing
+else. A launched app can be archived — that is its owner switching production off for
+its students, which is why it asks for step-up — and its IAM registration and privacy
 assessment are untouched, because they are UBC's records and not the platform's.
 
 **Delete archives, then destroys what archive kept — the repository, every data volume
@@ -1451,7 +1528,10 @@ drives, rather than a single approval click:
 
 The first two have multi-week lead times, so Manifest surfaces them the moment a
 project is created — not at the point the owner asks to go live. A faculty member
-should never discover the existence of a PIA on the day they wanted to launch.
+should never discover the existence of a PIA on the day they wanted to launch. A CWL
+app has **a third clock, and it starts first**: its staging registration with UBC's
+staging IdP (§9). It gates signing in at the staging address rather than going live,
+and it is surfaced at the same moment as the other two.
 
 ### Gate (D9)
 
@@ -1524,13 +1604,18 @@ tolerable in production at all.
   among them. A connection that arrives late is replayed the project's recent events.
   **Live tailing of a running application's own output is not v1**: it would carry
   whatever the application prints, which is the hardest text to redact (below).
-  **A bounded read of an instance's recent output is — in sandbox and staging only.**
-  A project member, or a delegated token holding the capability for it, may read the
-  last lines of an instance's output — bounded in lines and in bytes, read on request
-  and never streamed — redacted at read with the rules that redact `Incident.log_tail`.
-  Sandbox and staging serve the Manifest IdP's test users and never a real person
-  (D6), which is what makes their output readable; production's is not, and its
-  Incident's `log_tail` stays the only window onto it.
+  **A bounded read of an instance's recent output is, in the sandbox only.** A
+  project member, or a delegated token holding the capability for it, may read the
+  last lines of a sandbox instance's output. The read is bounded in lines and in
+  bytes, made on request and never streamed, and redacted at read with the rules that
+  redact `Incident.log_tail`. The sandbox serves the Manifest IdP's test users and
+  never a real person (D6), which is what makes its output readable. **Staging and
+  production serve real people**: staging CWL holders in staging, and real staff and
+  students in production (§9). So the output of both is refused, each by a code that
+  names that rule, and an Incident's `log_tail` stays the only window onto either.
+  The rule is decided by the environment's kind, not by its IdP. A laptop's staging,
+  which keeps the fake sign-in (§21), is refused all the same, so nothing built
+  against a laptop reads what UBC's staging will refuse.
 - Per-app metrics: request count, error rate, p95 latency, memory, AI spend.
   Sufficient for a faculty dashboard; not a general-purpose metrics system.
 
@@ -1579,7 +1664,7 @@ Everything else on the ambition list can wait.
 | Hook | Shipped in v1 as | Unlocks later |
 |---|---|---|
 | `Instance.kind` (`web`\|`worker`\|`cron`) | always `web` | scheduled jobs and background workers |
-| `integrations: []` in the spec | reserved, must be empty | LTI 1.3 launch inside Canvas; roster/class-list integration via `FakeAcademicAPI` and `canvas-bridge` |
+| `integrations: []` in the spec | reserved, must be empty | LTI 1.3 launch inside Canvas; roster/class-list integration via `FakeAcademicAPI` and `canvas-bridge`. **Each environment reaches its own world** (D6): the sandbox reaches a stand-in such as `FakeAcademicAPI`, staging reaches UBC's staging instances of Canvas and the academic API, and production reaches the real ones |
 | `data: {classification, retention_days}` | **partly enforced already**: `classification` gates model routing at spec validation (D17); `retention_days` drives backup retention (§12). Placement is the unenforced part. | FIPPA-driven placement constraints |
 | `Project.forked_from` | **used from Phase 2** — the showcase ships with forking (§27) | remix at scale; provenance across a fleet of derived apps |
 | `Project.visibility` / `published` | **used from Phase 2** — the showcase (§27) | department- and faculty-scoped galleries; curation |
@@ -1610,7 +1695,7 @@ the system becomes ordinary test-first development.
 | **Authorization contract suite** | Every API route, exercised as owner, collaborator, unrelated user, and admin. IDOR is the likeliest bug class in a multi-tenant control plane, so tenant isolation is a test tier rather than a code-review hope. |
 | **Injection-contract drift** | The §8 table is asserted against the blueprint: every variable the blueprint reads is injected, and `SAML_ENVIRONMENT` is never absent. This is what keeps §8 honest — it was wrong once, from being written against memory of the libraries rather than against them. |
 | **AI-path regression** | An embedding through the blueprint asserts its **dimension**, not merely that a vector came back — without `encoding_format: 'float'` the toolkit silently returns 192 near-zero values in place of 768 (§21, S3), and every other assertion still passes. A *streamed* completion through `default-chat` asserts non-empty content, which a thinking model fails silently. LiteLLM's over-budget, revoked-key, expired-key and route-denied responses are pinned to the mapping in §20, against the LiteLLM version in §21's inventory. |
-| **Identity-path regression** | A production release whose `auth.attributes` exceed `IamRegistration.registered_attributes` fails at build; a production environment never resolves to the Manifest IdP; a sandbox or staging environment never resolves to real UBC Shibboleth; certificate expiry within 90 days raises an alert. |
+| **Identity-path regression** | A production release whose `auth.attributes` exceed `IamRegistration.registered_attributes` fails at build; a production environment never resolves to the Manifest IdP or to UBC's staging IdP; a staging environment never resolves to UBC's production IdP, and resolves to the Manifest IdP only on a laptop (§21); a sandbox environment never resolves to real UBC Shibboleth, staging or production; certificate expiry within 90 days raises an alert. |
 | **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane or a metadata endpoint; **an app or sandbox cannot reach the control plane *through the edge* either** — addressing the edge directly, with the console's hostname — while the same request from the host succeeds (§12); **a sandbox's LiteLLM key is refused on `/key/generate` and every other admin route** (there is no admin *port* to block — §10, §12 — so this asserts the `allowed_routes` confinement, and a key minted without it is the negative control); a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. **Every denial in this tier is paired with a positive control** — the same probe succeeding from a bridge network — **and a control that cannot be paired is reported as unpaired rather than omitted.** A matrix of denials with no positive control is indistinguishable from a matrix where the probe tool is missing or the address never resolved, and S6's first run produced exactly that. One probe's control needs the internet, which the rest of the tier does not, so the tier says out loud when a pairing could not be made. |
 | **Contract** | The OpenAPI document is generated from the routes and checked in; drift fails CI. `manifest-mock` is validated against the same document, so a front-end built against the mock cannot compile against a contract the real API does not serve. |
 | **Integration** | Real Postgres, real Docker driver, one tiny fixture app; Supertest per route. |
@@ -1666,7 +1751,7 @@ the contract and the console describe redeploys as they will be.
 | **1b — Identity, secrets & AI** | SP auto-provisioning against the metadata mechanism S2 selects, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the **`node-ts-mongo` blueprint *content*** against 1a's machinery — auth component, attribute bridge, AI wiring, knowledge pack — LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
 | **1b+ — Redeploys that do not interrupt** | §11's redeploy guarantee in the `Driver` contract and both drivers; in-place route moves verified by identity; background drain and retire of every instance that is not serving; Route records, re-applied at boot; a shared session store in `node-ts-mongo@1`. **Demo:** the proof app redeployed twice and failed once, under a request loop and a signed-in student asking questions, with no failed request. | Can an app change while people are using it? |
 | **1c — Contract & clients** | OpenAPI generation under `/v1`, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), **blueprint starters (§25)**, **reserved labels and the slug check (§23)**, `console/` with its import boundary **on one origin with the API, behind the edge (§21)**, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete? *Whether a second developer can reproduce all of it on another machine is tracked separately and is not part of 1c's acceptance (2026-09-16).* |
-| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation, **and the authoring slice of the API — a project's files listed, read and committed, its history, and its app secrets' values, with the API's own documentation served beside it (§22)**, **and agent sessions outside a sandbox — a model key charged to the person (§10)** | Is it safe, and can we get an app legitimately launched? |
+| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation, **and the authoring slice of the API — a project's files listed, read and committed, its history, and its app secrets' values, with the API's own documentation served beside it (§22)**, **and agent sessions outside a sandbox — a model key charged to the person (§10) — and an intake key before a project exists, which the platform pays for (§10)** | Is it safe, and can we get an app legitimately launched? |
 | **3 — Sandboxes** | agent `exec`, per-session keys **inside the sandbox**, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project, which began against Phase 2's authoring slice, gains sandboxes, `exec` and the chat pane.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
 | **5 — UBC infra driver** | k8s or VM driver passing the contract suite; real deployment | Does it leave the laptop? |
@@ -1728,7 +1813,10 @@ Each phase ends in something demonstrable in a browser.
 | Wildcard DNS and certificates on UBC infra | Needed at Phase 5 | UBC IT |
 | **Privacy Impact Assessment — resolved: one per production app** (C4). Manifest generates the draft (§9); the owner reviews and signs. A platform-level PIA covering the control plane itself is still needed separately. | Blocks every production launch | UBC Privacy Office + project owner |
 | **UBC IAM registration — one per production app** (C4). Manifest generates the package (§9); turnaround is external and multi-week. | Blocks every production launch | UBC IAM + Manifest team |
-| Access to UBC's staging IdP (`authentication.stg.id.ubc.ca`) for the pre-production rehearsal (D21) | Needed at Phase 2 | UBC IAM |
+| Access to UBC's staging IdP (`authentication.stg.id.ubc.ca`), for every CWL app's staging environment (§9) and for the pre-production rehearsal (D21) | Needed at Phase 2 for the rehearsal; before any app's staging serves at UBC for the rest | UBC IAM |
+| **UBC IAM registration, one per CWL app's staging environment** (§9): reviewed by people, with a wait. How Manifest drafts and tracks it, beside `IamRegistration` or as a second kind of it, is not yet designed | Blocks signing in at an app's staging address | UBC IAM + Manifest team |
+| **Whether a privacy assessment covers an app's staging use by real people** (staging CWL holders, the owner's colleagues and students among them), or staging needs cover of its own (§9) | Open; needed before any app's staging serves at UBC | UBC Privacy Office |
+| **Whether D21's rehearsal keeps a purpose** once staging signs people in against UBC's staging IdP every day (§9) | Open; the rehearsal stays a blocking item until it is answered | UBC IAM + Manifest team |
 | **Independent security review / penetration test** | Required before the first public production app | UBC IT Security |
 | **Incident response ownership.** When a manifested app is breached at 3am, who responds? The faculty owner cannot. | Must be named before public launch | To be assigned |
 | Breach notification procedure, and data disposal on app sunset | Required before public launch | UBC Privacy Office |
@@ -1803,9 +1891,11 @@ produces a `PendingAction` that a human resolves in an interactive session. This
 enforced centrally at the authorization layer, not per-route, so a new privileged
 route cannot accidentally omit it.
 
-**An agent key (§10) is neither class.** It authenticates to LiteLLM's model routes and
-nothing else, carries no capability on the control plane, and is issued to a credential
-of one of the two classes above — never instead of one.
+**An agent key or an intake key (§10) is neither class.** Each authenticates to
+LiteLLM's model routes and nothing else, carries no capability on the control plane,
+and is issued to a credential of one of the two classes above, never instead of one.
+An intake key is issued only to an interactive session, because it belongs to no
+project and a delegated token belongs to one.
 
 Delegated tokens carry **per-token rate limits and quotas**. The edge limits in this
 section protect deployed apps; the control-plane API needs its own, because a
@@ -1942,7 +2032,7 @@ affordable precisely because there is only one of them (§17, Phase 1).
 | Container escape from a sandbox | §12 hardening baseline; no runtime socket; `isolationLevel`; spike S6 |
 | Lateral movement between tenants | per-app networks; dedicated services (D3); authorization contract suite |
 | Assertion phishing via SP registration | D15 derived ACS; read-only IdP metadata user; ACS-change alerting |
-| Silent attribute escalation | D16 (gated in every environment); IdP-enforced attribute release in sandbox/staging; in production, `auth.attributes` must be a subset of `IamRegistration.registered_attributes`, enforced at build (§9) |
+| Silent attribute escalation | D16 (gated in every environment); IdP-enforced attribute release in the sandbox (and a laptop's staging, §21), and in staging and production UBC's release of only what IAM registered; in production, `auth.attributes` must be a subset of `IamRegistration.registered_attributes`, enforced at build (§9) |
 | Production SP certificate expiry breaking a live app | D20: `cert_expires_at` tracked, escalating alerts from 90 days, renewal as a tracked IAM change |
 | An app reaching production without a PIA or IAM registration | `LaunchReadiness` blocks deployment on both (§13); surfaced at project creation, not at launch |
 | Personal information reaching an off-premise model | D17 classification-constrained model routing; LiteLLM log retention policy |
@@ -2118,7 +2208,14 @@ Stated so nobody discovers them at the wrong moment:
 3. One Postgres server holds three databases; production separates them.
 4. **Developer laptops are arm64 and UBC infrastructure is x86-64.** Laptop-built
    images are never promoted (§13); CI builds everything that leaves the laptop.
-5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6).
+5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6). **On
+   the laptop it serves staging as well as the sandbox.** At UBC, staging signs real
+   people in against UBC's staging IdP and reaches UBC's staging services (§9, §15).
+   A laptop cannot reach those offline (C1), so a laptop's staging keeps the
+   sandbox's fake sign-in and stand-ins, and proves nothing about a staging
+   registration. Whatever rests on staging serving real people still holds on the
+   laptop, because it is decided by the environment's kind and not by its IdP:
+   staging's recent output is refused here too (§14).
 6. `Driver.capabilities().isolationLevel` is `container`, the weakest level (§12).
    S6 measured that as **adequate for staging and production apps** on 2026-09-07;
    whether it is adequate for **sandboxes** is left to S5 (§12).
@@ -2749,7 +2846,14 @@ working and a queue that is stale is not.
   and their outstanding delegated tokens.
 - **Spend** — AI spend by project and by end user, which D8's per-user attribution
   already produces. Answers "which of 300 students spent the budget" without a
-  bespoke report.
+  bespoke report. It also shows what the platform spends on intake (§10): the month's
+  spend against the intake budget, and the spend by person.
+- **Platform settings** — the values §10 leaves to an administrator. They are the
+  monthly agent budget's default and any one person's, and the intake model, whose
+  change is a change to the model catalogue and takes its step-up (§20). They are
+  also intake's bounds: a key's cap and life, the keys a person may start in a day,
+  and the platform's monthly intake budget. Each change is audited with its actor
+  (below).
 - **Health and risk** — open incidents (§14); certificates expiring within 90 days,
   covering both SP certificates (D20) and uploaded custom-domain certificates
   (D28); policies a driver reports it cannot enforce (§12 `capabilities()`); failed

@@ -184,7 +184,9 @@
     <h3>Describing it</h3>
     <span class="where">WHERE <b>the same page</b> &middot; a conversation, not a form</span>
     <p>They type what they want. The AI asks the few questions that genuinely change the app,
-    and stays quiet about everything else.</p>
+    and stays quiet about everything else. That conversation is the platform&rsquo;s own cost,
+    on one model the platform chooses, with a small allowance per person each day, because
+    nothing exists yet to charge it to.</p>
     <p>One of its questions matters more than it looks: <em>does the app need to know who
     each person is?</em> The answer here is yes &mdash; you cannot book a bench anonymously
     &mdash; and that single answer commits the app to CWL sign-in, which commits it to UBC
@@ -548,13 +550,13 @@
     <thead><tr><th>&nbsp;</th><th>Sandbox</th><th>Test copy</th><th>Live</th></tr></thead>
     <tbody>
       <tr><td class="k">Who can reach it</td><td>Only you</td><td>Anyone inside UBC with the link</td><td>Its intended audience</td></tr>
-      <tr><td class="k">Who signs in</td><td>Fake test users</td><td>Fake test users</td><td class="yes">Real CWL</td></tr>
+      <tr><td class="k">Who signs in</td><td>Fake test users</td><td>Real people, each with a UBC test account</td><td class="yes">Real CWL</td></tr>
       <tr><td class="k">How long it lasts</td><td>Hours</td><td>As long as you want</td><td>Years</td></tr>
       <tr><td class="k">Can the AI run commands in it</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td></tr>
-      <tr><td class="k">Real student data</td><td class="no">Never</td><td class="no">Never</td><td class="yes">Yes</td></tr>
+      <tr><td class="k">Real student data</td><td class="no">Never</td><td>Only what its testers enter</td><td class="yes">Yes</td></tr>
       <tr><td class="k">Custom web address</td><td class="no">No</td><td class="no">No</td><td class="yes">Optional</td></tr>
       <tr><td class="k">Size settings apply</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
-      <tr><td class="k">Approval to get here</td><td>None</td><td>None</td><td class="yes">The full gate</td></tr>
+      <tr><td class="k">Approval to get here</td><td>None</td><td>None to deploy; sign-in waits for UBC to register it</td><td class="yes">The full gate</td></tr>
     </tbody>
   </table>
   </div>
@@ -900,28 +902,31 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
 
 <section id="signin">
   <p class="kicker">09 &mdash; Signing in</p>
-  <h2>Two sign-in systems, and why they must not be confused</h2>
-  <p class="claim">Practice apps sign in against a Manifest-run copy with invented users. Live
-  apps sign in against real UBC CWL. <strong>They are never the same system, and the practice one
-  never touches a real person&rsquo;s identity.</strong></p>
+  <h2>Three sign-in worlds, and why they must not be confused</h2>
+  <p class="claim">Draft apps sign in against a Manifest-run copy with invented users. Test
+  copies sign in against UBC&rsquo;s real test system, with real people&rsquo;s test accounts.
+  Live apps sign in against real UBC CWL. <strong>Only the draft one is Manifest&rsquo;s, and
+  it never touches a real person&rsquo;s identity.</strong></p>
 
   <div class="tw">
   <table>
-    <thead><tr><th>&nbsp;</th><th>Sandboxes and test copies</th><th>Live apps</th></tr></thead>
+    <thead><tr><th>&nbsp;</th><th>Sandboxes</th><th>Test copies</th><th>Live apps</th></tr></thead>
     <tbody>
-      <tr><td class="k">Signs in against</td><td>A Manifest-run sign-in system</td><td class="yes">Real UBC CWL</td></tr>
-      <tr><td class="k">The users are</td><td>Invented test people</td><td class="yes">Real staff and students</td></tr>
-      <tr><td class="k">Setting it up</td><td>Under a second, automatic</td><td class="no">A request to UBC, read by people</td></tr>
-      <tr><td class="k">If it were broken into</td><td>You could impersonate a fake student</td><td class="no">Serious</td></tr>
+      <tr><td class="k">Signs in against</td><td>A Manifest-run sign-in system</td><td class="yes">UBC&rsquo;s test CWL</td><td class="yes">Real UBC CWL</td></tr>
+      <tr><td class="k">The users are</td><td>Invented test people</td><td class="yes">Real people, each with a test account</td><td class="yes">Real staff and students</td></tr>
+      <tr><td class="k">Setting it up</td><td>Under a second, automatic</td><td class="no">A request to UBC, read by people</td><td class="no">A request to UBC, read by people</td></tr>
+      <tr><td class="k">If it were broken into</td><td>You could impersonate a fake student</td><td class="no">Serious</td><td class="no">Serious</td></tr>
     </tbody>
   </table>
   </div>
 
   <p>Registering a live app with UBC is a request that people read and decide on. That step
   exists so somebody accountable looks properly at an application about to handle real
-  identities, and Manifest is built around it rather than against it: practice sign-in is
+  identities, and Manifest is built around it rather than against it: sandbox sign-in is
   instant, so daily work is never held up, and the real registration is treated as a tracked
-  piece of work the platform drafts, submits and follows up on.</p>
+  piece of work the platform drafts, submits and follows up on; a test copy&rsquo;s
+  registration is the first of three things UBC reviews, and the platform tracks it with the
+  other two.</p>
 
   <div class="note good">
     <p><b>Where this is going.</b> Today Manifest prepares the request and a person submits it.
@@ -936,14 +941,15 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
 
   <h3>Three things this arrangement buys</h3>
   <ul>
-    <li><b>The practice system is worth little to an attacker.</b> It only ever knows about
+    <li><b>The sandbox&rsquo;s sign-in system is worth little to an attacker.</b> It only ever knows about
       invented people, so breaking into it gains nothing real.</li>
     <li><b>An app cannot say where sign-in results should be delivered.</b> Manifest works that
       out. Otherwise a mistake, or a manipulated AI, could have proof of somebody&rsquo;s identity
       delivered to the wrong place.</li>
-    <li><b>One rehearsal against UBC&rsquo;s real test system before launch.</b> An app whose first
-      contact with real CWL is launch day will fail on launch day, and the rehearsal is the only
-      way to find that out while it is still fixable.</li>
+    <li><b>One rehearsal against UBC&rsquo;s real test system before launch.</b> The test copy now signs people
+      in against UBC&rsquo;s real test system every day, so the rehearsal&rsquo;s job is
+      narrower: it checks the live app&rsquo;s own registration before launch. Whether it is
+      still needed is a question for UBC.</li>
   </ul>
 </section>
 
@@ -1017,7 +1023,8 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
       last changed, how big it is, what addresses it answers on, and what it has spent on AI.</li>
     <li><b>People</b> &mdash; everyone using the platform, what they own, when they were last seen.</li>
     <li><b>AI spending</b> &mdash; by app and by individual, which is how you answer &ldquo;which
-      of the 300 students used the budget&rdquo; without building a special report.</li>
+      of the 300 students used the budget&rdquo; without building a special report. It also shows
+      what the platform spends helping people describe new apps.</li>
     <li><b>Health &amp; risk</b> &mdash; apps that have crashed, certificates expiring in the next
       90 days, security problems found in things apps depend on, and anything running on an old
       blueprint.</li>
@@ -1067,9 +1074,9 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
     <div><dt>Sandbox</dt><dd>A private workspace where the AI builds. Only its owner can see it,
       and it disappears when it is done.</dd></div>
     <div><dt>Test copy</dt><dd>A real running version at a real address, reachable from inside
-      UBC only, using invented test users rather than real people.</dd></div>
-    <div><dt>Live</dt><dd>The version students use. Real CWL sign-in, real data, and the only one
-      requiring UBC registration and privacy approval.</dd></div>
+      UBC only, where real people sign in with their UBC test accounts.</dd></div>
+    <div><dt>Live</dt><dd>The version students use. Real CWL sign-in, real data, and the only one requiring privacy approval; it and the test copy each need a UBC
+      registration.</dd></div>
     <div><dt>CWL</dt><dd>Campus-Wide Login &mdash; the UBC username everyone already has.</dd></div>
     <div><dt>Sign-in registration</dt><dd>The formal request that lets a specific live app use
       CWL. Read and decided on by the UBC identity team. One per app, every time.</dd></div>

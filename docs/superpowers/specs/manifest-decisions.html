@@ -58,7 +58,7 @@
 <span class="dtag">Running apps</span></div></article>
 
 <article class="d" data-tag="AI"><div class="did">D2</div><div>
-<p class="dwhat">The AI that writes the app gets its access to language models handed to it in a form that expires and is charged to the person it works for &mdash; whether it runs in Manifest&rsquo;s sandbox or in the faculty front-end&rsquo;s own server.</p>
+<p class="dwhat">The AI that writes the app gets its access to language models handed to it in a form that expires and is charged to the person it works for &mdash; whether it runs in Manifest&rsquo;s sandbox or in the faculty front-end&rsquo;s own server. One exception is the platform&rsquo;s own cost: before an app exists, the AI that helps a person describe it uses one model the platform chooses, with a small allowance per person each day.</p>
 <p class="dwhy">The real account keys for the model providers are never anywhere the AI can read them. If the AI is tricked into leaking what it holds, what leaks is a short-lived, spend-capped key for one project.</p>
 <span class="dtag">AI</span></div></article>
 
@@ -78,8 +78,8 @@
 <span class="dtag">Choices &amp; tools</span></div></article>
 
 <article class="d" data-tag="Signing in"><div class="did">D6</div><div>
-<p class="dwhat">There are two separate sign-in systems. Practice apps use a Manifest-run copy with fake test users. Live apps use the real UBC CWL, registered one app at a time.</p>
-<p class="dwhy">UBC requires a separate registration for every live application, decided by people rather than by software &mdash; so it cannot sit inside a daily build loop. A side benefit: the practice sign-in system never touches a real person&rsquo;s identity, so breaking into it gets you nothing.</p>
+<p class="dwhat">There are three sign-in worlds. Draft apps, in the sandbox, use a Manifest-run copy with pretend users. Apps being tried out, in staging, use UBC&rsquo;s real staging CWL, where each person has a staging account of their own. Live apps use the real UBC CWL. Staging and live apps are each registered with UBC, one app at a time.</p>
+<p class="dwhy">UBC requires a separate registration for every live application, decided by people rather than by software &mdash; so it cannot sit inside a daily build loop. A side benefit: the pretend sign-in system never touches a real person&rsquo;s identity, so breaking into it gets you nothing.</p>
 <span class="dtag">Signing in</span></div></article>
 
 <article class="d" data-tag="AI"><div class="did">D7</div><div>
@@ -88,7 +88,7 @@
 <span class="dtag">AI</span></div></article>
 
 <article class="d" data-tag="AI"><div class="did">D8</div><div>
-<p class="dwhat">AI spending is tracked per app, per build session, charged to the person the AI works for, and per person using the app.</p>
+<p class="dwhat">AI spending is tracked per app, per build session, charged to the person the AI works for, and per person using the app; the AI that helps a person describe a new app is the platform&rsquo;s own cost, capped per person per day.</p>
 <p class="dwhy">An AI stuck in a loop spends only its own allowance and then stops. And when a course tool&rsquo;s AI budget runs out in week three, you can answer &ldquo;which of the 300 students spent it&rdquo; rather than guessing.</p>
 <span class="dtag">AI</span></div></article>
 
@@ -154,7 +154,7 @@
 
 <article class="d" data-tag="Signing in"><div class="did">D21</div><div>
 <p class="dwhat">Before an app goes live it does one rehearsal sign-in against UBC&rsquo;s real test system.</p>
-<p class="dwhy">Practising against Manifest&rsquo;s own sign-in keeps daily work fast, but an app whose first contact with the real system is launch day will fail on launch day. The rehearsal is the only way to find that out while it is still fixable.</p>
+<p class="dwhy">The test copy now signs people in against UBC&rsquo;s real test system every day, so the rehearsal&rsquo;s job is narrower: it checks the live app&rsquo;s own registration before launch. Whether it is still needed is a question for UBC.</p>
 <span class="dtag">Signing in</span></div></article>
 
 <article class="d" data-tag="Ways in"><div class="did">D22</div><div>
@@ -169,7 +169,7 @@
 
 <article class="d" data-tag="Safety"><div class="did">D24</div><div>
 <p class="dwhat">There are two kinds of access. A person signed in through a browser can do anything they are entitled to. A token held by an AI or a script can do a great deal but never the four consequential things &mdash; those queue up for a person to confirm.</p>
-<p class="dwhy">This is what makes &ldquo;bring your own AI&rdquo; safe rather than a loophole. Worth noting how much a token still covers: reading everything about its project, building, testing, deploying to practice environments, setting the secret values those practice environments use, getting its AI model access charged to the person it works for, watching logs &mdash; and, agreed on 2026-09-26 and next to be built, reading the last lines a practice app printed, on request and cleaned of anything shaped like a secret (never a live app&rsquo;s, which serves real people) &mdash; the entire day-to-day loop. Only four actions need a human. Setting a secret for the live app is a person&rsquo;s job too: it is what the app shows a real university service, so only someone signed in, who has just proved it is them again, can set one &mdash; a token that asks is simply refused. A token belongs to one project, so the person starts the project themselves and then hands their AI a token for it. Three things are stricter still, because each is a record that a named person decided: approving a release for production, recording what the university&rsquo;s sign-in and privacy offices said, and switching a project off or deleting it. A token can never hold any of them, and asking does not even queue a question &mdash; only a person, signed in, can do them.</p>
+<p class="dwhy">This is what makes &ldquo;bring your own AI&rdquo; safe rather than a loophole. Worth noting how much a token still covers: reading everything about its project, building, testing, deploying to practice environments, setting the secret values those practice environments use, getting its AI model access charged to the person it works for, watching logs &mdash; and reading the last lines an app printed in its sandbox, on request and cleaned of anything shaped like a secret (never the test copy&rsquo;s or the live app&rsquo;s, because real people sign in to both) &mdash; the entire day-to-day loop. Only four actions need a human. Setting a secret for the live app is a person&rsquo;s job too: it is what the app shows a real university service, so only someone signed in, who has just proved it is them again, can set one &mdash; a token that asks is simply refused. A token belongs to one project, so the person starts the project themselves and then hands their AI a token for it. Three things are stricter still, because each is a record that a named person decided: approving a release for production, recording what the university&rsquo;s sign-in and privacy offices said, and switching a project off or deleting it. A token can never hold any of them, and asking does not even queue a question &mdash; only a person, signed in, can do them.</p>
 <span class="dtag">Safety</span></div></article>
 
 <article class="d" data-tag="Ways in"><div class="did">D25</div><div>
