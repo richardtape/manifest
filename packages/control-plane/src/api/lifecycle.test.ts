@@ -545,6 +545,45 @@ describe('archive and restore (§11, Task 11)', () => {
   }, 30_000)
 
   /**
+   * THE MINT'S WINDOW, MADE DETERMINISTIC (control (h) stayed green without it): a transaction here
+   * holds the project's row `FOR UPDATE`, which a plain read — `assertCapability`'s — passes, and
+   * which blocks both the mint's `FOR SHARE` hold and its insert's foreign-key check. The state is
+   * set to archived in that transaction and committed. Held, the mint then reads the state and is
+   * refused; without the hold, its insert proceeds and a token survives the archive — alive again
+   * after a restore, where archive's rule is that every token stays revoked.
+   */
+  it('a token minted while the project is archived is refused, and none is left to come back after a restore', async () => {
+    await withLifecycleServer(async (ctx) => {
+      let minting: ReturnType<typeof mutate> | undefined
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .select({ id: projects.id })
+          .from(projects)
+          .where(eq(projects.id, ctx.projectId))
+          .for('update')
+        minting = mutate(ctx, `/v1/projects/${ctx.projectId}/tokens`, {
+          name: 'racing',
+          capabilities: ['project:read'],
+          expiresInDays: 1,
+        })
+        // Long enough that the mint has authorized and is waiting on this row.
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        await tx
+          .update(projects)
+          .set({ state: 'archived' })
+          .where(eq(projects.id, ctx.projectId))
+      })
+      expect(refusal(await minting!)).toEqual({ status: 409, code: 'PROJECT_ARCHIVED' })
+      expect(
+        await ctx.db
+          .select()
+          .from(delegatedTokens)
+          .where(eq(delegatedTokens.projectId, ctx.projectId)),
+      ).toEqual([])
+    })
+  })
+
+  /**
    * A deploy AUTHORIZES before it takes the environment's lock. One that authorized before an
    * archive began, and was waiting for that lock when the archive set the project's state, must be
    * refused — not deploy, answer `200`, and be torn down behind its caller's back. Two things hold
