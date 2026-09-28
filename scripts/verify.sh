@@ -808,13 +808,16 @@ events_are_append_only_by_grant() {
   # and the app's DELETE below then removes NOTHING and succeeds — which this check read as the
   # cascade path open (the front-end enablement plan's sitting 5, F16: `projects.name` became
   # NOT NULL and this seed did not name its project). ONE transaction (-1), so a seed that
-  # fails leaves no probe user behind for the early return to strand.
+  # fails leaves no probe user behind for the early return to strand. The conflict target NAMES the
+  # partial index's predicate: `projects_slug_key` is `WHERE state <> 'deleted'` since migration
+  # 0038, and a bare `ON CONFLICT (slug)` is then `42P10`, "no unique or exclusion constraint
+  # matching the ON CONFLICT specification" (the front-end enablement plan's sitting 9's close, measured).
   docker exec -i manifest-postgres psql -U manifest -d "$db" -q -1 -v ON_ERROR_STOP=1 >/dev/null 2>&1 <<SQL || { echo "could not seed the probe row"; return 1; }
 INSERT INTO users (ubc_cwl_puid, email, display_name) VALUES ('$probe','$probe@example.ubc.ca','probe')
   ON CONFLICT (ubc_cwl_puid) DO NOTHING;
 INSERT INTO projects (slug, name, owner_id, blueprint_ref)
   SELECT '$probe', '$probe', id, 'fixture-node@1' FROM users WHERE ubc_cwl_puid='$probe'
-  ON CONFLICT (slug) DO NOTHING;
+  ON CONFLICT (slug) WHERE state <> 'deleted' DO NOTHING;
 INSERT INTO audit.events (project_id, subject, type, machine_detail, human_message)
   SELECT id, 's', 'sso.registered', '{}', 'probe' FROM projects WHERE slug='$probe';
 SQL
