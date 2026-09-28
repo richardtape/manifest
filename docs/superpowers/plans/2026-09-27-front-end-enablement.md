@@ -54,8 +54,8 @@
 | 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | **DONE 2026-09-27** — `config.origins` and `originOf` (the arrival origin, never the request's own); CSRF, sign-in, step-up, cookies and sign-out by it; one SP entity with an ACS per origin and one SLO; a SAML client per origin, so an assertion answering one origin's request is refused on the other; a sign-out's `RelayState` names the client that checks the IdP's answer and the origin it returns to; the edge's `app.` site and pin; `make verify` **61** (60 as the task built it, one added by the review's fix); **a real sign-in on `app` in a browser, Rich typing** — `app`'s `/v1/me` `200`, the console's `401`. **And the faculty front-end's message recorded** (*Decided by Rich*), with **Spec actions 5 and 6 drafted** |
 | 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **And, from the front-end's message: `AgentSession.spentUsd` (FE-23) and the platform-paid INTAKE key (FE-1)** (Tasks 9–10's `[S6]`). **If it runs long, stop after Task 9 and sweep — and FE-1 opens the next sitting** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27; **Spec action 5** (FE-1) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-27** — `mintCappedKey`, ONE mint for an agent key (`mf-agent-<id>`, on the person's `mf-person-<userId>`) and an intake key (`mf-intake-<id>`, on `mf-platform-intake`): a cap, a life never past the credential that asked (a token's, or the signed-in session's — `SessionActor.expiresAt`), D17's models with production as a floor, never an empty list, never stored; `startAgentSession` (answered once), `listAgentSessions` (FE-23's `spentUsd`, null with a reason, never 0), `endAgentSession`, `getAgentBudget`; a revoked token ends its sessions, on a retry too, and a token revoked WHILE one starts leaves no live key (the review's I1); FE-1's `startIntakeSession` / `endIntakeSession`, session only, a Vancouver day under a per-person lock; the orphan script taught; one fresh whole-branch review, its Important fixed red-first |
 | 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.state` (`active`/`archived`), `archived_at`, `archived_by`; `assertCapability` refuses an archived project all but `project:read`/`project:delete` (`409 PROJECT_ARCHIVED`), `tokenActor` any token of it; `POST …/archive` (person-only, step-up) and `…/restore` (person-only); the state, tokens and questions in ONE transaction, then `TEARDOWN_STEPS` — every name a `410` page (`Driver.switchOff`), every instance retired, each environment stopped keeping its data (`Driver.destroyEnvironment`), sandbox's and staging's SPs deregistered, agent sessions ended LAST; a failed step `500 PROJECT_TEARDOWN_INCOMPLETE`, finished on retry or at boot (`finishTeardowns`); three archive races closed as I1 was; one fresh whole-branch review, its two Importants fixed red-first |
-| 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | ← next |
-| 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — applied 2026-09-27 (`959af7f`) | |
+| 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `DELETE /v1/projects/{projectId}` (person-only, step-up): refused before anything for a launched project (`409 PROJECT_LAUNCHED_NOT_DELETABLE`) or another driver's repository; switched off KEEPING everything under the one project lock, `launched_at` read again (a launch in flight is refused, left archived), then the data, the Manifest IdP's production row, the names (`Driver.removeName`), the model users, the repository and the secrets destroyed; `project.deleted` once; a tombstone (`state = 'deleted'`, migration `0038`); `projects_slug_key` partial, so the slug is free; a deleted project `404` to everyone and absent from every read; driver 2's `destroyRepository` idempotent; one fresh whole-branch review, its four Importants fixed red-first; `make verify`'s probe repaired for the partial index |
+| 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — applied 2026-09-27 (`959af7f`) | ← next |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
@@ -1956,6 +1956,18 @@ that it is starting.
 > document's examples; script at least a spent month (`AGENT_BUDGET_EXHAUSTED`), `spentUsd: null` with `spentUnavailable`, and a
 > paused intake (`INTAKE_DAILY_LIMIT_REACHED`, `INTAKE_BUDGET_EXHAUSTED`).
 
+> **[S9] — FROM SITTING 9 (Task 12, delete; 2026-09-27).** (1) **THREE lifecycle operations are parked for this task**
+> (`packages/console/src/coverage.test.ts`): `archiveProject` and `restoreProject` (sitting 8) and **`deleteProject`** — the
+> Project screen's switch-off, restore and delete. Archive and delete need step-up (Task 8's `/auth/step-up` round trip), and
+> **delete answers `DeletedProject` — `{ id, slug, state: 'deleted', deletedAt }` — not a `Project`**: after it every route answers
+> the project `404`, so the console leaves the screen rather than reading it back. Offer delete only while `launchedAt` is null,
+> and still show `409 PROJECT_LAUNCHED_NOT_DELETABLE` by its code (a launch can complete while a delete starts; the project is then
+> left ARCHIVED — say so, and offer restore). `500 PROJECT_TEARDOWN_INCOMPLETE` says *send the same request again*; the route's
+> description warns that a RESTORE of a half-deleted project may have lost its code or data. (2) **The mock** answers the three from
+> the document's examples; script `PROJECT_LAUNCHED_NOT_DELETABLE` and a `404` for the deleted project afterwards. (3) **A deferred
+> minor that bites the Tokens screen** (the review's M4): `DELETE /v1/tokens/{tokenId}` still answers the minter of a DELETED
+> project's token `200`, naming the project — the one route Decision 31's *"404 to everyone"* misses.
+
 > **[S3] — FROM SITTING 3 (Task 4, binary files; 2026-09-27).** (1) **manifest-mock answers `getFile`'s `utf8` example to
 > `?encoding=base64`** (`packages/mock/src/server.ts:260`; the review's minor 7) — honest about its encoding, but a front-end
 > built against the mock cannot exercise the byte read: script a base64 answer. (2) **The console's Code screen says *"a
@@ -2138,6 +2150,14 @@ that it is starting.
 ---
 
 ## Task 15: The acceptance — `make demo-frontend`: a front-end's server on the `app` origin drives all of it for a signed-in instructor, and a person clicks it
+
+> **[S9] — FROM SITTING 9 (Task 12, delete; 2026-09-27).** Step 9's *"`deleteProject` on `launch-app` → `409
+> PROJECT_LAUNCHED_NOT_DELETABLE`"* holds only for **`launch-app`'s owner or an administrator, stepped up**: the route asks
+> `project:delete` and step-up FIRST (`FORBIDDEN` / `404 NOT_FOUND` for anybody else, `403 STEP_UP_REQUIRED` unstepped), then the
+> launched refusal — which IS read-only, before any state changes (the second launched check, after the switch-off, is for a launch
+> IN FLIGHT and never meets a project launched long before). The deleted scratch project's names answer the edge's WILDCARD
+> (`manifest OK host=…`), not the switched-off page — `releases/delete.docker.test.ts` asserts exactly that; and a deleted project
+> leaves its images in the local registry, `127.0.0.1:7107/local/<slug>` (not deleted, Decision 31).
 
 > **[S7] — FROM SITTING 7 (2026-09-27).** The demo's agent phase starts its model session with the conversation's token
 > (`startAgentSession`), calls the model with the key, reads `listAgentSessions`' `spentUsd` and `getAgentBudget`, and ends the
@@ -4126,3 +4146,159 @@ to change. WALKTHROUGH unchanged: archive has no screen until Task 13.
 `services/`); the contract moves, so its close-out lists every change for the front-end; §7e carries what Task 12's text does
 not say — above all that removing the switched-off routes is a `Driver` method, and that a deleted project is `404` to
 everyone.
+
+### Sitting 9 — 2026-09-27: Task 12, delete
+
+**Run cold from ORIENTATION §7e** at Rich's *"please read ORIENTATION.md and proceed with the next sitting"*, with the faculty
+front-end's session running beside it. **In the first message**: nothing to ask about the capable model (answered at sitting 8's
+close); `make refresh-vulndb` (due after 2026-10-01) named as his; F12's marker asked to be relayed to the front-end — **no answer
+by the close**, so §7e carries it. Machine at open exactly as sitting 8 left it (queried: 0 projects, 0 events, 0 users, 38
+migrations; `launch-app`'s six containers; nothing on 7100; 7102 and 7105 the front-end's). Inline execution
+(`superpowers:executing-plans`), on `main`; one fresh whole-branch reviewer (Opus, read-only, told never to run a test) beside the
+owed Docker tier. **Mid-sitting the front-end's session asked for an hour's window on the running platform for its F2 acceptance** —
+answered: not until this sitting's close-out is committed, which a message tells it; it then starts the control plane itself, per
+RUNBOOK, with Rich's agreement. Commits: `bfae957` (Task 12), `88df89a` and `83e6079` (tests the controls asked for), `3349b6c`
+(the registry gate's catch), `da8cfff` (the review's four Importants), `0837dda` (`make verify`'s probe), and the close-out.
+
+**A measurement first** (the running LiteLLM, `ghcr.io/berriai/litellm@sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4`):
+`/user/delete` of a user holding a key → `200`, and its key gone too (`/key/info` → `404`); the same user again → `404 "User not
+found"`; **a list naming one missing user → `404`, and NOTHING deleted** — the other user's `/user/info` still `200`. So
+`deleteAppUsers` makes one call per user and reads `404` as done; the fake LiteLLM answers the same.
+
+**Rulings** (the ledger's `Task 12: Ruling:` and `Final: Ruling:` lines, each with its cost if wrong):
+- **The delete switches the app off under its OWN project lock**, through `switchOffUnderLock` — `archiveProject`'s body, split
+  out. The plan said *"archive first (Task 11's function, whole)"*; `withProjectLock` is a session-level advisory lock on a pooled
+  connection, so calling `archiveProject` inside the delete's lock would wait on itself for ever (F2).
+- **The switch-off KEEPS everything; the delete destroys only after it** (the review's I1 and I2 — reversing this sitting's first
+  ruling, one teardown run with `deleteData`): `launched_at` is read again once every environment lock has been taken after the
+  state changed, and `destroy-data` is the first of `DELETE_STEPS`. A delete stops the environments twice, keeping then destroying.
+- **Refused before anything is touched**: `launched_at` (`409 PROJECT_LAUNCHED_NOT_DELETABLE`, Decision 31) and a repository another
+  source driver made (`409 SOURCE_PROVIDER_MISMATCH`, through `repositoryOf`) — without the second, a delete would switch the app off
+  and then stop at `destroy-repository` on every retry, for ever.
+- **`DELETE_STEPS`**: `destroy-data` (the archive's stop again, destroying), `deregister-production-sp` (the Manifest IdP's
+  PRODUCTION row, which a laptop's launch rehearsal (D21) writes for a project that has not launched — the archive removes sandbox's
+  and staging's only, Spec action 6's words), `release-names` (`Driver.removeName` under each environment's lock), `delete-model-users`
+  (skipped with AI off — the orphan script reclaims them), `destroy-repository` (by `repositoryOf`) and `destroy-secrets` LAST (a
+  `secrets` row is the only reference to a model key).
+- **`project.deleted` once, BEFORE the tombstone flip**: a failure between the two is finished by the retry without a second event,
+  and a deleted project never lacks its event.
+- **The boot does not finish a delete, and a restore of an interrupted one is not refused** (§7e's accepted shape): `finishTeardowns`
+  finishes the switch-off only, keeping what is left; the route's description says to finish the delete, and warns that a restore
+  may give back a project that has lost its code or data (F19).
+- **`AuthorizationError` moved to `projects/errors.ts`** (re-exported by `authz.ts`), so `state.ts`'s `projectStateRefusal` — the
+  one choice — answers a DELETED project's `404` in the race windows (`holdActiveProject`, the deploy's re-check) with no module
+  cycle; `assertCapability` refuses `deleted` BEFORE the membership read, an administrator included.
+- **The reads that treat `deleted` as absent**: the plan's four (`getProject`, `listProjectsFor`, `projectViews`, `listFleet`) and
+  `checkSlug`, the GitHub observer's slug lookup and `projectForRepository` — the last two find a project by a NAME a new project may
+  now share.
+- **drizzle-kit wrote the partial index itself** from `.where(sql…)` — no `--custom` migration; ONE migration, `0038` (the column,
+  both `CHECK`s, the index); a second `db:generate` writes nothing; `\d projects` reads `UNIQUE, btree (slug) WHERE state <>
+  'deleted'`. **39 migrations.**
+- **GitHub's `destroyRepository` idempotent**: `assertOwned`, not `mirrorOf`; the `DELETE`'s `404`, and the token's `422` IN C5b'S OWN
+  WORDS (*"does not exist or is not accessible"*), read as gone — any other `422` refused (the review's I4). GitHub's status rides on
+  `SourceError.hostStatus`, never on the wire — a subclass had hidden the code from the registry's gate (F12).
+- **`project.archived` during a delete says so** (*"switched X off, to delete it."*); a delete refused for a launch found after the
+  switch-off publishes the archive's own words, because that is what happened.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 The plan's *"`checkSlug` and `createProject` need no change: both ask the database, and the index is what they ask"* was
+   false** — `checkSlug` `SELECT`s by slug and would have read the tombstone as the holder: every deleted slug `SLUG_TAKEN`. Control
+   (b) is its test.
+2. **F2 The plan's *"archive first (Task 11's function, whole)"* under the project lock deadlocks** — the lock is not re-entrant
+   (TRAPS.md).
+3. **F3 GitHub's `destroyRepository` was not idempotent** — the new source-contract case *destroying a repository twice is the same
+   as once* went RED on driver 2 (*"chem-labs has no mirror on this machine"*), green on driver 1: a delete retried after that step
+   could never finish on driver 2.
+4. **F4 A never-launched project may hold a PRODUCTION SP row in the Manifest IdP** — D21's rehearsal writes it; the archive leaves it
+   (Spec action 6's words), so only the delete removes it.
+5. **F5 Two lookups by NAME would have found the tombstone** once a new project took the slug — the GitHub observer's by slug, the
+   webhook's `projectForRepository` by full name. Controls (l) and (l2) are their test (`88df89a`).
+6. **F6 In the race windows a DELETED project answered `409 PROJECT_ARCHIVED`** (*"restore it"*) — a delete that finished while a
+   request held the row or waited on a lock. `projectStateRefusal`; control (f).
+7. **F7 `[S4]` measured**: a commit whose repository was deleted under it named the laptop path in *"git ls-tree failed (128):
+   error: unable to normalize alternate object path…"* — RED first, scrubbed in `must()` in both of macOS's spellings.
+8. **F8 LiteLLM's `/user/delete` deletes nothing when one listed user is missing** (the measurement above) — a single call naming the
+   project's three users, `404` read as done, would have deleted none of them and reported success. Control (j).
+9. **F9 The plan's custom migration was unnecessary** — drizzle-kit writes a partial unique index from `.where()`.
+10. **F10 Control (k) went RED for the wrong reason first** — a `TypeError` on a `500`'s body: with both list filters removed the
+    owner's list 500s, because the `Project` representation has no `deleted` state (a third layer). The test now asserts `200` first
+    (`83e6079`), and (k) reads *"expected 500 to be 200"*.
+11. **F11 Control (h) could not fail** — with the `DELETE`'s `404` branch removed the driver-2 contract stayed green, because GitHub
+    refuses the TOKEN (`422`) for a repository already gone before any `DELETE` is sent; the `404` path is reached only with a CACHED
+    token (a person deleting the repository on GitHub while one lives). Kept, and said so.
+12. **F12 The registry's gate caught the first draft**: `GithubRefusal extends SourceError`, calling `super('SOURCE_GITHUB_REFUSED',
+    …)`, hid the code's ONLY literal throw site from `api/error-codes.test.ts` (*"registers nothing the source never throws: expected
+    ['SOURCE_GITHUB_REFUSED'] to deeply equal []"*) — found by `task-done`'s run; `hostStatus` on `SourceError` (`3349b6c`).
+13. **F13 (the review's I1) A production launch in flight when a delete began was recorded launched and then had its data
+    destroyed** — the deploy held production's lock with the project still active, `recordLaunch` wrote `launched_at` inside it
+    after the delete read it null, and the teardown, waiting on that lock, then destroyed a LAUNCHED app's volumes and released its
+    permanent name. RED first (`200` for `409`), `da8cfff`.
+14. **F14 (the review's I2) An interrupted delete's boot recorded *"its code, data and secrets are kept"* after the data was
+    destroyed** — into the append-only trail. RED first (a `deleteData: true` stop), fixed by the same change.
+15. **F15 (the review's I3) A build queued before a delete, exporting after the repository went, put this machine's paths into
+    `builds.error`, the build log and `build.failed`'s reason** — `execFile`'s own message is the whole command line. RED first,
+    `withoutPaths` in `build/context.ts`.
+16. **F16 (the review's I4) Every `422` at GitHub's token mint was read as the repository gone** — a permissions `422`, after an
+    organisation's owner narrowed the App, would have freed the slug over a private repository still on GitHub.
+17. **F17 F16's first RED did not count**: `createRepository` had cached a token with the same permission, so the refused mint was
+    never asked; the harness now answers `401` to a held token (as a stale one meets), and the test is RED without the message check.
+18. **F18 `make verify` went RED at the close** — *"could not seed the probe row"*: its seed's `ON CONFLICT (slug) DO NOTHING` is
+    `42P10` (*"there is no unique or exclusion constraint matching the ON CONFLICT specification"*, measured) once
+    `projects_slug_key` is partial; Postgres infers a partial index only from a target stating its predicate. The only such statement
+    in the repository (grepped); `0837dda`.
+19. **F19 A restore after an interrupted delete gives back a project that may have lost its data, repository or secrets** — accepted
+    (§7e's shape), said in the route's description; the review's M3 (a lost `project.deleted` after such a restore) is its minor.
+
+**The negative controls — every one predicted in writing first (`t12-predictions.md`), run after its commit, and restored:**
+(a) `launched_at` checked after the archive → *refuses a launched project* RED (`archived` for `active`); (b) `checkSlug`'s filter off
+→ *releases the slug* RED; (b2) the index UNCONDITIONAL in the database → RED *"409 SLUG_TAKEN … expected 409 to be 201"* — its first
+attempt could not build the index at all (the last run's tombstone and live row share a slug; one `psql -c` is one transaction, so
+the `DROP` rolled back with it), re-run on a truncated database; (c) `DELETE FROM projects` of a row an event references → `23503
+… violates foreign key constraint "events_project_id_projects_id_fk" on table "events"` (schema `audit`) — *Read this first* 7
+measured; (d) `release-names` out → TWO red as predicted; (e) `assertCapability`'s deleted branch off → only *needs step-up* RED
+(`200` — the early tombstone — for `404`), the reads green behind `projectViews`' filter, as predicted; (f) `projectStateRefusal` never
+`NOT_FOUND` → the state test RED; (g) GitHub's `422` branch off → driver 2 RED on C5b's words, driver 1 green; (h) the `404` branch
+off → GREEN (F11); (i) `deleteAppUsers`' `404` tolerance off → RED (`500` at `delete-model-users`); (j) one call naming all three →
+RED; (k) both list filters off → RED (F10); (k1) one alone → GREEN as predicted; (l), (l2) the name lookups' filters off → RED; (m)
+the plumbing scrub off → RED. **The fix pass's four tests were each RED on the code before it** (F13–F17).
+
+**Deferred minors** (the review's — the ledger's `Final: minor (deferred)` lines): M1 `release-names` runs before the external steps,
+so a delete stopping at LiteLLM or GitHub leaves its archived names on the wildcard until the retry; M2 `archiveProject` does not
+re-read the state under its lock — an archive authorized while a delete runs re-applies `410` pages on the tombstone's released
+names, which only the next project's deploy replaces; M3 `publishDeletedOnce` reads ANY `project.deleted` as the one; M4 `DELETE
+/v1/tokens/{tokenId}` answers the minter of a deleted project's token `200` (Task 13's `[S9]`); M5 (the reviewer's untraced guess)
+GitHub's mirror removed outside its `exclusively` queue; M8 two functions named `deleteProject`. **M6 and M7 were this sitting's own
+wrong text** — the journey's *"Delete a project … neither is built yet"* and the restore row's comment above the delete row —
+corrected in `da8cfff`. **Declined to judge, all eleven standing** as the spec, a decision or a ruling already says (the ledger's
+`Final: Ruling:` line).
+
+**Gates at close**: **`pnpm test` 2689 passed in 174 files**, twice on the final tree (`0837dda`: 688 s and 656 s, identical, load
+~6–13) — up from 2661 by 28 tests and no file (`api/lifecycle.test.ts` 11, `projects/state.test.ts` 1, `projects/source-events.test.ts`
+1, `source/plumbing.test.ts` 1, the source driver contract on both drivers 2, `source/github/driver.test.ts` 1, `build/context.test.ts`
+1, the fake driver's contract 1, and the matrix's delete row 9) — **exactly the 2689 in 174 predicted before the runs**.
+**`pnpm test:docker` 240 in 40 files** — owed (`runtime/`, `source/`, `services/`, `releases/`, `projects/`, `secrets/`, `ai/`,
+`build/`), run ONCE beside the reviewer with no Vitest beside it: **green first time**, 1098 s at load ~6–7; +8 tests
+(`releases/delete.docker.test.ts` 7 — green alone on its first run too, 51 s — and the Docker driver's `removeName` contract case 1)
+and +1 file. **The fix pass touched lines two Docker files run** (`releases/lifecycle.ts`): both re-run alone on `da8cfff`, 12 of 12;
+grepped, no Docker case reaches its `build/context.ts` or GitHub lines. `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean;
+`packages/contract` built at every commit. **`make verify` 61/0/0** after F18's repair (`mf- containers=6 networks=2 volumes=4`, 0
+runtime routes). **`make doctor` 20 checks, 1 failed — F12's 7105**, the other nineteen pass. The contract is **`1.4.0`**, additive:
+**66 operations** (+1), **126 error codes** (+1), **90 schemas** (+1, `DeletedProject`), **46 event types** (+1). Migrations **39**
+(`0038`).
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions, 0 intake sessions,
+**39 migrations** (`psql`); `launch-app`'s six `mf-launch-app-*` containers running, untouched, and no other `mf-` container; nothing
+of this platform's on 7100, 7104, 7110 or 8765 — **the control plane is not running** — while **7102 and 7105 are held by the
+faculty front-end's session** (its node processes, its own; 7105's PID changed since the open); the GitHub fake absent; **both models
+unloaded** (`/api/ps` lists none — the tier's warm-up unloaded by hand); the edge restarted by the Docker tier, no runtime route on
+`srv0` or `srv1`. The three cleanup scripts, after `--apply` (allowed — 7 networks and 1 volume, the tier's; 2 LiteLLM users,
+`p4b-probe-user` and `mf-platform-intake`; 14 app images), run bare again: nothing dead; nothing of the delete test's slug (`mf-del-*`)
+anywhere. The snapshot diff shows uptimes, the edge's restart, HEAD, and **3 GiB less free disk** (66 → 63 Gi); Docker's build cache
+25.1 GB (20.9 GB reclaimable), which no script touches. `docker-simple-saml-saml-idp-1` exited, as at open; `docker-simple-saml`
+clean but its old untracked `cert.zip`. **HEAD did not move under the sitting.** **The four shared HTML pages** were checked: they
+speak of delete as a decision (the schematic's *"switching an app off … or deleting one, is a person's"*), never as unbuilt — nothing
+to change. WALKTHROUGH unchanged: delete has no screen until Task 13.
+
+**Next: sitting 9a (Task 12a — the capable model)**; its live steps cost Rich money and he said yes in advance (still say before
+each); `pnpm test:docker` owed (`ai/`); the contract does not move. §7e carries what Task 12a's text does not say.

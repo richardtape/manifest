@@ -2105,3 +2105,34 @@ retire is no longer refused `INSTANCE_SERVING` — which is the ORDER an archive
 falls through to the wildcard's `manifest OK` (control (a), measured on the Docker tier; the fake's `destroyInstance` drops only a
 route naming that instance, so the unit tier stays green). A Docker test that restarts the edge drops every switched-off page too;
 `finishTeardowns` at boot puts them back.
+
+
+## Added by the front-end enablement plan's sitting 9 (2026-09-27, Task 12 — delete)
+
+**`withProjectLock` (AND `withEnvironmentLock`) IS NOT RE-ENTRANT.** Each is a session-level `pg_advisory_lock` on a connection
+the call takes from the pool, so calling it again from inside itself takes a SECOND connection and waits for the first for ever —
+a hang, not an error. Anything that must run "archive, then more" under one project lock calls the archive's BODY
+(`switchOffUnderLock` in `releases/lifecycle.ts`), never `archiveProject`.
+
+**LiteLLM 1.98.0's `/user/delete` DELETES NOTHING WHEN ONE NAMED USER IS MISSING.** A list of `user_ids` with one it does not
+hold answers `404 "User not found, passed user_id=…"`, and the users it DOES hold are left (measured, sitting 9: the other user's
+`/user/info` still `200`). A user deleted alone takes its keys with it (`/key/info` → `404`), and a second delete of it is
+`404`. So delete ONE user per call and read `404` as done (`ai/keys.ts`'s `deleteAppUsers`; the fake LiteLLM answers the same).
+
+**A DELETED PROJECT'S ROW NEVER GOES — `DELETE FROM projects` IS `23503`.** `audit.events` references it `ON DELETE RESTRICT`
+(measured: `violates foreign key constraint "events_project_id_projects_id_fk" on table "events"`, schema `audit`), so a delete
+is a TOMBSTONE (`state = 'deleted'`). **Two rows may then share a slug** — `projects_slug_key` is partial (`WHERE state <>
+'deleted'`) — so ANY lookup of a project by slug or repository name must say `state <> 'deleted'` or it may find the tombstone
+(`checkSlug`, the GitHub observer, `projectForRepository` do). **And a raw `INSERT … ON CONFLICT (slug)` is `42P10`** —
+*"there is no unique or exclusion constraint matching the ON CONFLICT specification"* — because Postgres infers a PARTIAL index only
+from a target that states its predicate: `ON CONFLICT (slug) WHERE state <> 'deleted'` (`make verify`'s audit probe went red on
+exactly this at sitting 9's close). And a `DROP INDEX …; CREATE UNIQUE INDEX … (slug)` sent as ONE `psql -c` is one transaction:
+with a tombstone and a live row sharing a slug the CREATE fails and the DROP rolls back with it.
+
+**GITHUB REFUSES A TOKEN FOR A REPOSITORY THAT IS GONE — `422`, BEFORE ANY `DELETE` IS SENT** (conformance C5b). A driver-2
+operation retried after the repository was deleted meets the MINT's refusal, not the call's `404`; `destroyRepository` reads
+both as done (`SourceError.hostStatus`). The error-code registry's gate finds a code only at a LITERAL `new SourceError('CODE'`
+— a subclass calling `super('CODE', …)` reads as registered-and-never-thrown (sitting 9's first draft did exactly that).
+
+**THE TOOL SHELL IS zsh, WHICH DOES NOT WORD-SPLIT `$VAR`.** `P="docker exec … psql"; $P -c …` is `command not found` — and
+NOTHING ran, which a control built on it would read as its result. Put multi-word commands in a `bash` script, or a function.

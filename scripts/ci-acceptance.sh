@@ -136,7 +136,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # (16, new), `projects/state.test.ts` (2, new), `projects/authz.test.ts` (4), `db/locks.test.ts` (1),
 # `tokens/expiry.test.ts` (1), `routing/routes.test.ts` (3), `sso/entity.test.ts` (1), the fake
 # driver's contract (4), and the authorization matrix's archive and restore rows (18).
-EXPECT_TESTS=2661
+# Then its sitting 9 (2026-09-27, delete): +28, no new file — `api/lifecycle.test.ts` (11),
+# `projects/state.test.ts` (1), `projects/source-events.test.ts` (1), `source/plumbing.test.ts` (1),
+# the source driver contract on both drivers (2), `source/github/driver.test.ts` (1),
+# `build/context.test.ts` (1), the fake driver's contract (1), and the matrix's delete row (9).
+EXPECT_TESTS=2689
 EXPECT_FILES=174
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=61
