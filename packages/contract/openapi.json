@@ -14348,7 +14348,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "environmentKind": {
-            "description": "Only a sandbox instance’s output is readable (§14): since FE-24’s code a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.",
+            "description": "Only a sandbox instance’s output is readable (§14): a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.",
             "type": "string",
             "enum": [
               "sandbox",

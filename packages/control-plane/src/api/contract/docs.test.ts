@@ -22,11 +22,12 @@ const doc = openApiDocument(ROUTE_DEFINITIONS) as Json
 
 /**
  * Text a reader OUTSIDE the team cannot resolve (Decision 14): a plan, a task, a sitting, a
- * decision or finding number, a person. The spec's own `§n`, `Dnn` and `Cn` are public and
- * allowed — they resolve in the approved design.
+ * decision or finding number — the faculty front-end's `FE-n` included — a spec action, a
+ * person. The spec's own `§n`, `Dnn` and `Cn` are public and allowed — they resolve in the
+ * approved design.
  */
 const INTERNAL =
-  /\b(P[1-6][abc]?|sitting|Task \d+|Decision \d+|Rich|Rich's)\b|the D5 plan|\bR[1-9]\b|\bF\d{1,3}\b/
+  /\b(P[1-6][abc]?|sitting|Task \d+|Decision \d+|Rich|Rich's|Spec action \d+)\b|the D5 plan|\bR[1-9]\b|\bF\d{1,3}\b|\bFE-\d+\b/
 
 /** One sentence at least: long enough to say something, and ending like a sentence. */
 const SENTENCE = (text: unknown): boolean =>

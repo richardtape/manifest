@@ -98,7 +98,7 @@ export const InstanceOutput = representation(
       environmentKind: z
         .enum(['sandbox', 'staging'])
         .describe(
-          'Only a sandbox instance’s output is readable (§14): since FE-24’s code a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.',
+          'Only a sandbox instance’s output is readable (§14): a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.',
         ),
       readAt: Timestamp.describe(
         'When Manifest read it. Nothing is kept: read again to see newer lines.',

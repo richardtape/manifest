@@ -4270,7 +4270,7 @@ export interface components {
              */
             environmentId: string;
             /**
-             * @description Only a sandbox instance’s output is readable (§14): since FE-24’s code a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.
+             * @description Only a sandbox instance’s output is readable (§14): a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.
              * @enum {string}
              */
             environmentKind: "sandbox" | "staging";
