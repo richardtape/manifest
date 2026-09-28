@@ -36,9 +36,13 @@ import {
  *    a person made by clicking. `SCAN_SILENCE_MS` is that window, and it is a default
  *    rather than a constant so a test need not wait ten seconds for it.
  *
- * WHAT IS NOT SCRIPTED IS AS DELIBERATE AS WHAT IS: `consumeAction` and `addMember`
- * publish NO event (P5c sitting 7, F2), so nothing here invents one. A mock that sends a
- * frame the platform never sends is the fixture that lies (Decision 10).
+ * WHAT IS NOT SCRIPTED IS AS DELIBERATE AS WHAT IS: `consumeAction` publishes NO event (P5c
+ * sitting 7, F2), so nothing here invents one. A mock that sends a frame the platform never sends
+ * is the fixture that lies (Decision 10). `addMember`/`removeMember` DO publish `member.added` /
+ * `member.removed` since the front-end enablement plan's Task 7, and `updateProject`
+ * `project.renamed` since its Task 6 — but this timeline is fixed per connection and the mock
+ * keeps no state (P5c Decision 9), so a rename or a membership change made here plays no frame:
+ * those three are the platform's to show.
  */
 
 export const SCAN_SILENCE_MS = 10_000

@@ -359,7 +359,7 @@ operation without one, the document's own examples — with a scripted WebSocket
 plane.
 
 ```bash
-pnpm --filter @manifest/mock dev            # builds, then listens on 127.0.0.1:7102
+pnpm --filter @manifest/mock dev            # runs from source (writes nothing) on 127.0.0.1:7102
 MANIFEST_MOCK=1 pnpm --filter @manifest/console dev
 open http://127.0.0.1:7104/                 # THE ONE TIME 7104 IS THE RIGHT ADDRESS
 ```
@@ -371,11 +371,31 @@ section above describes does not apply: `MANIFEST_MOCK=1` makes `vite.config.ts`
 a fake cookie and comes straight back — a mock that made a person sign in would defeat its
 own purpose.
 
+**It starts from SOURCE since the front-end enablement plan's sitting 10 (FE-26 (b))** —
+`node --import ../github-fake/resolve-ts.mjs src/main.ts`, Node 24's own type stripping, no
+`tsc` and no `dist/` — so a sibling repository starting it writes nothing into this one.
+`MANIFEST_MOCK_PORT=0` takes any free port, and the line it prints names the one it took.
+
+**Whom it trusts (FE-26):** exactly the session its own sign-in sets —
+`manifest_session=mock-session` — and **any** Bearer (it has no token store; its one mint
+answers one fixed secret, and the guides' examples send one it never minted). Any other
+session value, empty included, is `401 UNAUTHENTICATED`; a Bearer on an operation whose
+`security` names the session alone (`getMe`, `mintToken`, `createProject`, the intake and
+lifecycle operations, the approvals…) is `403 TOKEN_CREDENTIAL_REFUSED`, as the platform
+answers it. **What it holds (FE-27):** the fixtures' ids — a path naming any other project,
+environment, instance, release, build, pending action, agent or intake session, token,
+approval preview or blueprint is `404 NOT_FOUND`, naming the mock. `mock-app`'s sandbox runs
+an instance (and keeps an earlier failed one), staging runs one, production none —
+`listInstances` and `getProject` agree — and every key's time is counted from the request.
+
 | Variable | Default | What it changes |
 |---|---|---|
 | `MANIFEST_MOCK_PORT` | `7102` | Where it listens |
 | `MANIFEST_MOCK_ROLE` | `member` | `admin` makes §26's fleet answer `200` instead of `403 FORBIDDEN` |
 | `MANIFEST_MOCK_FAIL` | unset | `1` plays the deploy's other ending: `instance.failed` + `incident.opened` |
+| `MANIFEST_MOCK_LAUNCHED` | unset | `1`: `mock-app` has been to production — `launchedAt` set, and a delete is `409 PROJECT_LAUNCHED_NOT_DELETABLE` |
+| `MANIFEST_MOCK_AGENT_BUDGET` | `ok` | `exhausted`: the month is spent — a session start is `409 AGENT_BUDGET_EXHAUSTED`; `unavailable`: the gateway does not answer — every spend reads `null` with its reason |
+| `MANIFEST_MOCK_INTAKE` | `open` | `daily-limit` or `budget-spent`: describing a new app is paused — `409 INTAKE_DAILY_LIMIT_REACHED` or `INTAKE_BUDGET_EXHAUSTED` |
 | `MANIFEST_MOCK_SCAN_MS` | `10000` | §12's silent scan window (below). Shorten it in a test |
 
 **What the scripted stream does, and why each part is there.** On subscribe it replays the
@@ -411,7 +431,12 @@ platform (the P5 brief's §8). Specifically:
   IDEMPOTENCY_KEY_REQUIRED` under eight characters, `409 IDEMPOTENCY_KEY_REUSED` for a key
   replayed with a different body) and the fleet's `403`.
 - **It has no state.** Every read answers a fixture; a mutation does not change what the
-  next read returns. It is a contract mock, not a simulator.
+  next read returns. It is a contract mock, not a simulator. A rename answers the name you
+  asked for and an archive `archived`, but the next read is the fixture again; a delete
+  answers the tombstone, and the platform's `404` afterwards is the platform's to show.
+- **It does not play §20's step-up.** Archive, delete, a production secret or deploy, and
+  adding a member are answered without a second sign-in, as they always have been here; the
+  console's step-up round trip is proved against the platform.
 - **It does not know §23’s reserved labels, and it answers as though they were free.**
   `checkSlug` treats the one slug its fixtures already use as taken and *everything else* as
   available, so `edge` — which `infra/reserved-labels/labels.yaml` reserves as "Manifest’s

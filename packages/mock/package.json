@@ -11,10 +11,10 @@
     }
   },
   "scripts": {
-    "dev": "pnpm run build && node dist/main.js",
+    "dev": "node --import ../github-fake/resolve-ts.mjs src/main.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "start": "node dist/main.js"
+    "start": "node --import ../github-fake/resolve-ts.mjs src/main.ts"
   },
   "dependencies": {
     "@manifest/contract": "workspace:*",

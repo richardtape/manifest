@@ -30,6 +30,9 @@ export const PRODUCTION_ID = '33333333-3333-4333-8333-333333333333'
 export const BUILD_ID = '44444444-4444-4444-8444-444444444444'
 export const RELEASE_ID = '55555555-5555-4555-8555-555555555555'
 export const INSTANCE_ID = '66666666-6666-4666-8666-666666666666'
+/** The sandbox's two (Task 13, FE-27): the one its hostname reaches, and an earlier failed one. */
+export const SANDBOX_INSTANCE_ID = '66666666-6666-4666-8666-666666666661'
+export const SANDBOX_FAILED_INSTANCE_ID = '66666666-6666-4666-8666-666666666662'
 export const TOKEN_ID = '77777777-7777-4777-8777-777777777777'
 export const PENDING_ACTION_ID = '88888888-8888-4888-8888-888888888881'
 export const CONFIRMED_ACTION_ID = '88888888-8888-4888-8888-888888888882'
@@ -42,6 +45,11 @@ export const APPROVAL_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 export const APPROVAL_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 export const WITHHELD_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd2'
 export const UNAVAILABLE_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd3'
+/** Instructor One's agent sessions on `mock-app` (Task 13): one running, one ended. */
+export const AGENT_SESSION_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1'
+export const ENDED_AGENT_SESSION_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2'
+/** The one intake session the mock starts and ends (Task 13; FE-1's key). */
+export const INTAKE_SESSION_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff1'
 
 export const ME: Schemas['Me'] = {
   id: USER_ID,
@@ -113,13 +121,94 @@ export const FAILED_INSTANCE: Schemas['Instance'] = {
   lastSeenAt: null,
 }
 
+/**
+ * THE SANDBOX RUNS TOO (Task 13, sitting 10): since FE-24's code only a SANDBOX instance's output
+ * is readable, so the mock's project needs one for `getInstanceOutput` to answer anything — the
+ * release staging runs, deployed to the sandbox first, as an agent would.
+ */
+export const SANDBOX_INSTANCE: Schemas['Instance'] = {
+  ...INSTANCE,
+  id: SANDBOX_INSTANCE_ID,
+  environmentId: SANDBOX_ID,
+}
+
+/** `MANIFEST_MOCK_FAIL=1`'s ending of a SANDBOX deploy — the same rule as `FAILED_INSTANCE`. */
+export const FAILED_SANDBOX_INSTANCE: Schemas['Instance'] = {
+  ...SANDBOX_INSTANCE,
+  state: 'failed',
+  lastSeenAt: null,
+}
+
 export const ENVIRONMENTS: Schemas['EnvironmentList'] = [
-  ENVIRONMENT(SANDBOX_ID, 'sandbox', null),
+  ENVIRONMENT(SANDBOX_ID, 'sandbox', SANDBOX_INSTANCE),
   ENVIRONMENT(STAGING_ID, 'staging', INSTANCE),
   ENVIRONMENT(PRODUCTION_ID, 'production', null),
 ]
 
 export const STAGING: Schemas['Environment'] = ENVIRONMENTS[1]!
+
+/**
+ * EACH ENVIRONMENT'S OWN INSTANCES (FE-27): what `listInstances` answers, keyed on the environment
+ * asked — agreeing with `ENVIRONMENTS`, whose `instance` is the one each hostname reaches. The
+ * sandbox keeps an EARLIER failed attempt beside the one serving (§11: a failed instance stays
+ * listed after it is replaced); production has never run.
+ */
+export const INSTANCE_LISTS: Record<string, Schemas['InstanceList']> = {
+  [SANDBOX_ID]: {
+    environmentId: SANDBOX_ID,
+    instances: [
+      { ...SANDBOX_INSTANCE, serving: true },
+      {
+        ...SANDBOX_INSTANCE,
+        id: SANDBOX_FAILED_INSTANCE_ID,
+        state: 'failed',
+        lastSeenAt: '2026-09-18T08:40:00.000Z',
+        serving: false,
+      },
+    ],
+    truncated: false,
+  },
+  [STAGING_ID]: {
+    environmentId: STAGING_ID,
+    instances: [{ ...INSTANCE, serving: true }],
+    truncated: false,
+  },
+  [PRODUCTION_ID]: { environmentId: PRODUCTION_ID, instances: [], truncated: false },
+}
+
+/**
+ * THE SANDBOX INSTANCE'S LAST LINES (Task 13): one the platform redacted — its session secret —
+ * and one cut at §14's 4 KiB, which ends in the platform's own marker, so a screen built here
+ * shows both before it meets the platform. Oldest first; `readAt` is the reader's, set per request.
+ */
+export const OUTPUT: Omit<Schemas['InstanceOutput'], 'readAt'> = {
+  instanceId: SANDBOX_INSTANCE_ID,
+  environmentId: SANDBOX_ID,
+  environmentKind: 'sandbox',
+  lines: [
+    { at: ISO, stamped: true, stream: 'stdout', text: 'listening on 3000' },
+    {
+      at: ISO,
+      stamped: true,
+      stream: 'stdout',
+      text: 'GET /healthz 200 — session store connected with [REDACTED]',
+    },
+    {
+      at: ISO,
+      stamped: true,
+      stream: 'stderr',
+      text: `payload ${'x'.repeat(40)}…[cut: 6122 bytes]`,
+    },
+    {
+      at: ISO,
+      stamped: true,
+      stream: 'stdout',
+      text: 'POST /posts 201 — a student posted',
+    },
+  ],
+  truncated: { lines: false, bytes: false },
+  failure: null,
+}
 
 export const PROJECT: Schemas['Project'] = {
   id: PROJECT_ID,
@@ -691,6 +780,123 @@ export const MINTED_TOKEN: Schemas['MintedToken'] = {
 }
 
 /**
+ * AN AGENT OR INTAKE KEY'S TIMES ARE COUNTED FROM NOW, AT EACH REQUEST (FE-27): a key is valid
+ * for its life from when it was started, and a client that holds a key to its `expiresAt` — the
+ * faculty front-end does — refused every key the document's fixed, past instants described. So
+ * these are FUNCTIONS of the moment asked, the `HOURS_FROM_NOW` rule below taken one step further:
+ * computed per request rather than once at load, so a mock left running all day stays honest.
+ */
+const at = (now: number, minutes: number): string =>
+  new Date(now + minutes * 60_000).toISOString()
+
+/** The key an agent or intake session answers once — never a real one. */
+export const MOCK_MODEL_KEY = 'sk-mock-not-a-real-key'
+/** Where a key is used: the document's example, the laptop's LiteLLM. */
+export const MODEL_BASE_URL = 'http://127.0.0.1:7106/v1'
+const AGENT_MODELS = [
+  'default-chat',
+  'default-chat-onprem',
+  'default-chat-large',
+  'default-embed',
+]
+
+/** What the gateway says when it cannot say what was spent — the platform's own words. */
+export const SPEND_UNKNOWN =
+  'the model gateway did not answer, so what it has spent is not known right now'
+
+export function agentSession(
+  now: number,
+  fields: Partial<Schemas['AgentSession']> & { id: string },
+): Schemas['AgentSession'] {
+  return {
+    projectId: PROJECT_ID,
+    name: 'Build the bulletin board',
+    person: { id: ME.id, name: ME.displayName },
+    via: null,
+    models: AGENT_MODELS,
+    capUsd: 2,
+    expiresAt: at(now, 55),
+    state: 'active',
+    endedAt: null,
+    endReason: null,
+    spentUsd: 0.4,
+    spentUnavailable: null,
+    createdAt: at(now, -5),
+    ...fields,
+  }
+}
+
+/** `mock-app`'s sessions, newest first: one running, one ended an hour ago. */
+export function agentSessions(
+  now: number,
+  spend: 'known' | 'unavailable',
+): Schemas['AgentSessionList'] {
+  const unknown =
+    spend === 'unavailable' ? { spentUsd: null, spentUnavailable: SPEND_UNKNOWN } : {}
+  return {
+    sessions: [
+      agentSession(now, { id: AGENT_SESSION_ID, ...unknown }),
+      agentSession(now, {
+        id: ENDED_AGENT_SESSION_ID,
+        name: 'Fix the sign-in page',
+        state: 'ended',
+        endedAt: at(now, -60),
+        endReason: 'ended',
+        expiresAt: at(now, -30),
+        createdAt: at(now, -90),
+        spentUsd: 0.25,
+        ...unknown,
+      }),
+    ],
+    truncated: false,
+  }
+}
+
+/** Instructor One's month: $10, of which $0.65 is spent — or all of it, or unreadable. */
+export function agentBudget(
+  now: number,
+  state: 'ok' | 'exhausted' | 'unavailable',
+): Schemas['AgentBudget'] {
+  const date = new Date(now)
+  const resetsAt = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1),
+  ).toISOString()
+  if (state === 'unavailable')
+    return {
+      monthlyUsd: 10,
+      spentUsd: null,
+      remainingUsd: null,
+      resetsAt: null,
+      unavailable: SPEND_UNKNOWN,
+    }
+  const spentUsd = state === 'exhausted' ? 10 : 0.65
+  return {
+    monthlyUsd: 10,
+    spentUsd,
+    remainingUsd: Math.round((10 - spentUsd) * 1e6) / 1e6,
+    resetsAt,
+    unavailable: null,
+  }
+}
+
+/** The intake session: the platform's intake model, $0.25 of the platform's money, 30 minutes. */
+export function intakeSession(
+  now: number,
+  fields: Partial<Schemas['IntakeSession']> = {},
+): Schemas['IntakeSession'] {
+  return {
+    id: INTAKE_SESSION_ID,
+    model: 'default-chat',
+    capUsd: 0.25,
+    expiresAt: at(now, 30),
+    state: 'active',
+    endedAt: null,
+    createdAt: at(now, 0),
+    ...fields,
+  }
+}
+
+/**
  * A DEADLINE IS THE ONE FIXTURE VALUE THAT MUST NOT BE A FIXED INSTANT, and this file's own
  * rule says the opposite for every other one. Measured in a browser on 2026-09-19: with a
  * fixed `expiresAt`, the queue's only `pending` row had already lapsed by the wall clock, so
@@ -910,6 +1116,16 @@ export const FIXTURES: [string, unknown][] = [
   ['EnvironmentList', ENVIRONMENTS],
   ['Instance', INSTANCE],
   ['Instance', FAILED_INSTANCE],
+  ['Instance', SANDBOX_INSTANCE],
+  ['Instance', FAILED_SANDBOX_INSTANCE],
+  ...Object.values(INSTANCE_LISTS).map((l): [string, unknown] => ['InstanceList', l]),
+  ['InstanceOutput', { ...OUTPUT, readAt: ISO }],
+  ['AgentSessionList', agentSessions(Date.parse(ISO), 'known')],
+  ['AgentSessionList', agentSessions(Date.parse(ISO), 'unavailable')],
+  ['AgentBudget', agentBudget(Date.parse(ISO), 'ok')],
+  ['AgentBudget', agentBudget(Date.parse(ISO), 'exhausted')],
+  ['AgentBudget', agentBudget(Date.parse(ISO), 'unavailable')],
+  ['IntakeSession', intakeSession(Date.parse(ISO))],
   ['Build', BUILD],
   ['Build', BUILD_RUNNING],
   ['BuildList', BUILDS],

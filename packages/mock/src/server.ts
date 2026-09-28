@@ -28,13 +28,32 @@ import { createValidator, type Validate } from './validate.js'
  * The two are different facts and the mock says which: a mock that answers a plausible
  * `200` to everything is the stand-in that produces a real-looking failure (P4c finding 74).
  *
- * WHAT IT DELIBERATELY DOES NOT ENFORCE: §20's CSRF origin check. A browser pointed at the
+ * WHO IT TRUSTS (FE-26, the front-end enablement plan's sitting 10): ONLY THE SESSION IT ISSUED —
+ * `manifest_session=mock-session`, which its own `/auth/login` sets — and any Bearer. A session
+ * of any other value, empty included, is `401 UNAUTHENTICATED`, as the platform answers a session
+ * it never signed; a Bearer on an operation whose `security` names the session alone is `403
+ * TOKEN_CREDENTIAL_REFUSED`, read from the document per operation. **Any Bearer is accepted** on
+ * the rest, deliberately (the guides' examples send one the mock never minted): the mock has no
+ * token store, and its one mint answers one fixed secret.
+ *
+ * WHAT IT HOLDS (FE-27): the fixtures' ids. An operation whose path names a project, environment,
+ * instance, release, build, pending action, agent or intake session, token, preview or blueprint
+ * the mock does not hold answers `404 NOT_FOUND`, naming the mock, before any answer is built —
+ * `HELD` below. It KEEPS NO STATE (P5c Decision 9): a rename, an archive or a delete is answered
+ * as the platform would answer it, and the next read answers the fixtures again.
+ *
+ * WHAT IT DELIBERATELY DOES NOT ENFORCE: §20's CSRF origin check, and §20's STEP-UP — an archive,
+ * a delete or a production secret is answered here without a second sign-in, as every step-up
+ * operation always has been; the console's step-up handling is proved against the platform.
+ * And §20's CSRF origin check: A browser pointed at the
  * mock through Vite's proxy sends `Origin: http://127.0.0.1:7104`, and the platform wants
  * the console's origin — so enforcing it here would refuse every mutation the mock exists to
  * let a developer make. It is stated in RUNBOOK as a limit rather than hidden.
  */
 
 const SESSION_COOKIE = 'manifest_session'
+/** The one session value the mock issues, and so the one it trusts (FE-26). */
+export const ISSUED_SESSION = 'mock-session'
 const DOCUMENT = new URL('../../contract/openapi.json', import.meta.url)
 
 export interface MockOptions {
@@ -42,6 +61,17 @@ export interface MockOptions {
   role?: 'admin' | 'member'
   /** `MANIFEST_MOCK_FAIL=1` plays the deploy's other ending. */
   fail?: boolean
+  /**
+   * THE STATES TASK 13 SCRIPTS (sitting 10), each a mock option like `fail` because the mock keeps
+   * no state: `MANIFEST_MOCK_LAUNCHED=1` — `mock-app` has been to production, so a delete is `409
+   * PROJECT_LAUNCHED_NOT_DELETABLE`; `MANIFEST_MOCK_AGENT_BUDGET=exhausted` — the month is spent, so
+   * a session start is `409 AGENT_BUDGET_EXHAUSTED` — or `=unavailable`, the gateway not answering,
+   * so every spend reads null with its reason; `MANIFEST_MOCK_INTAKE=daily-limit` or `=budget-spent`
+   * — describing a new app is paused, `409 INTAKE_DAILY_LIMIT_REACHED` or `INTAKE_BUDGET_EXHAUSTED`.
+   */
+  launched?: boolean
+  agentBudget?: 'ok' | 'exhausted' | 'unavailable'
+  intake?: 'open' | 'daily-limit' | 'budget-spent'
   /** §12's silent scan window; shortened by a test that must not wait ten seconds. */
   scanSilenceMs?: number
 }
@@ -57,6 +87,10 @@ interface Context {
   example: Answer | undefined
   /** The document this mock serves from, as read — what `getOpenApiDocument` answers. */
   document: Document
+  /** The moment of the request — every time counted from now is counted from this (FE-27). */
+  now: number
+  /** Which credential the request carried (FE-26). */
+  credential: 'session' | 'token'
 }
 
 interface Answer {
@@ -72,18 +106,82 @@ const ok = (schema: string, body: unknown): Answer => ({ status: 200, schema, bo
 const created = (schema: string, body: unknown): Answer => ({ status: 201, schema, body })
 
 export class MockRefusal extends Error {
+  // FIELDS, NOT PARAMETER PROPERTIES (FE-26 (b)): the mock starts from source under Node's own
+  // type stripping, which refuses a constructor parameter property.
+  readonly status: number
+  readonly code: string
+  readonly hint: string | undefined
+  /** On `SPEC_INVALID`: each problem, as the platform's envelope carries them. */
+  readonly details: unknown[] | undefined
   constructor(
-    readonly status: number,
-    readonly code: string,
+    status: number,
+    code: string,
     message: string,
-    readonly hint?: string,
-    /** On `SPEC_INVALID`: each problem, as the platform's envelope carries them. */
-    readonly details?: unknown[],
+    hint?: string,
+    details?: unknown[],
   ) {
     super(message)
     this.name = 'MockRefusal'
+    this.status = status
+    this.code = code
+    this.hint = hint
+    this.details = details
   }
 }
+
+/**
+ * THE IDS THE MOCK HOLDS, BY THE PATH PARAMETER THAT NAMES THEM (FE-27). Anything else is the
+ * platform's `404 NOT_FOUND` — a front-end that asks for the wrong id learns it here, not first
+ * against the platform. `userId` is not keyed: removing someone who is not a member is idempotent
+ * and answers the list (P5b Task 8). `commitSha`, a file's path and a doc's slug are keyed by their
+ * own answers below, in the platform's own codes.
+ */
+const HELD: Record<string, { what: string; ids: readonly string[] }> = {
+  projectId: { what: 'project', ids: [f.PROJECT_ID] },
+  environmentId: {
+    what: 'environment',
+    ids: [f.SANDBOX_ID, f.STAGING_ID, f.PRODUCTION_ID],
+  },
+  instanceId: {
+    what: 'instance',
+    ids: [f.INSTANCE_ID, f.SANDBOX_INSTANCE_ID, f.SANDBOX_FAILED_INSTANCE_ID],
+  },
+  releaseId: { what: 'release', ids: [f.RELEASE_ID] },
+  buildId: { what: 'build', ids: [f.BUILD_ID] },
+  tokenId: { what: 'token', ids: [f.TOKEN_ID] },
+  pendingActionId: { what: 'pending action', ids: f.PENDING_ACTIONS.map((a) => a.id) },
+  sessionId: {
+    what: 'agent session',
+    ids: [f.AGENT_SESSION_ID, f.ENDED_AGENT_SESSION_ID],
+  },
+  intakeSessionId: { what: 'intake session', ids: [f.INTAKE_SESSION_ID] },
+  previewId: {
+    what: 'approval preview',
+    ids: [f.APPROVAL_PREVIEW_ID, f.WITHHELD_PREVIEW_ID, f.UNAVAILABLE_PREVIEW_ID],
+  },
+  blueprintRef: { what: 'blueprint', ids: f.BLUEPRINTS.map((b) => b.ref) },
+}
+
+function assertHeld(params: Record<string, string>): void {
+  for (const [name, value] of Object.entries(params)) {
+    const held = HELD[name]
+    if (held !== undefined && !held.ids.includes(value))
+      throw new MockRefusal(
+        404,
+        'NOT_FOUND',
+        `manifest-mock holds no ${held.what} '${value}'`,
+        `The mock answers only its fixtures' ids — ${held.ids.join(', ')}. Drive the platform for any other.`,
+      )
+  }
+}
+
+/** `mock-app` as asked: launched when `MANIFEST_MOCK_LAUNCHED=1` says so (Task 13). */
+const projectOf = (ctx: Context): typeof f.PROJECT =>
+  ctx.options.launched
+    ? { ...f.PROJECT, launchedAt: '2026-09-18T12:00:00.000Z' }
+    : f.PROJECT
+
+const bodyOf = <T>(ctx: Context): Partial<T> => (ctx.body ?? {}) as Partial<T>
 
 /**
  * P6b Task 9's RUNTIME RULE, played here because the document cannot state it: `previewId` is
@@ -142,8 +240,44 @@ const ANSWERS: Record<string, Answerer> = {
   getEnvironment: () => ok('Environment', f.STAGING),
   // A DEPLOY THAT NEVER BECOMES READY IS A `200` WHOSE STATE IS `failed` (P4b Task 13), so
   // the failing ending is a 200 here too. A client switching on the HTTP status must fail
-  // against the mock exactly as it fails against the platform.
-  deploy: (ctx) => ok('Instance', ctx.options.fail ? f.FAILED_INSTANCE : f.INSTANCE),
+  // against the mock exactly as it fails against the platform. KEYED ON THE ENVIRONMENT for the
+  // sandbox since Task 13 (FE-27): a sandbox deploy answers the sandbox's instance, never
+  // staging's. Production still answers staging's fixture — the mock scripts no launch.
+  deploy: (ctx) =>
+    ctx.params.environmentId === f.SANDBOX_ID
+      ? ok('Instance', ctx.options.fail ? f.FAILED_SANDBOX_INSTANCE : f.SANDBOX_INSTANCE)
+      : ok('Instance', ctx.options.fail ? f.FAILED_INSTANCE : f.INSTANCE),
+  // EACH ENVIRONMENT'S OWN INSTANCES (FE-27), agreeing with `getProject`'s environments.
+  listInstances: (ctx) =>
+    ok('InstanceList', f.INSTANCE_LISTS[ctx.params.environmentId ?? '']),
+  /**
+   * THE SANDBOX INSTANCE'S LINES, AND EVERY OTHER INSTANCE REFUSED BY ITS OWN CODE (Task 13): the
+   * failed one no longer runs (`409 INSTANCE_OUTPUT_UNAVAILABLE`, as the platform answers a failed
+   * instance whose container is gone), and staging's is `403 INSTANCE_OUTPUT_STAGING` — FE-24's
+   * code, the rule decided by the environment's kind. `lines` keeps the newest.
+   */
+  getInstanceOutput: (ctx) => {
+    const id = ctx.params.instanceId
+    if (id === f.INSTANCE_ID)
+      throw new MockRefusal(
+        403,
+        'INSTANCE_OUTPUT_STAGING',
+        'a staging instance’s output is not readable (§14): staging serves real people; its Incident’s log tail is the only window onto it',
+      )
+    if (id !== f.SANDBOX_INSTANCE_ID)
+      throw new MockRefusal(
+        409,
+        'INSTANCE_OUTPUT_UNAVAILABLE',
+        `instance '${String(id)}' is not running — it never started, or it no longer runs — so there is no output to read; if it failed, its Incident has its last lines`,
+      )
+    const lines = Number(ctx.query.get('lines') ?? '200')
+    return ok('InstanceOutput', {
+      ...f.OUTPUT,
+      readAt: new Date(ctx.now).toISOString(),
+      lines: f.OUTPUT.lines.slice(-lines),
+      truncated: { lines: f.OUTPUT.lines.length > lines, bytes: false },
+    })
+  },
   // KEYED ON THE PATH PARAMETER, because an Incident belongs to ONE environment. Answering
   // the same fixture for every id put a staging incident under `sandbox`, which reads as a
   // failed deploy of an environment that has never been deployed — measured in a browser
@@ -174,18 +308,60 @@ const ANSWERS: Record<string, Answerer> = {
   getPendingAction: (ctx) =>
     ok(
       'PendingAction',
-      f.PENDING_ACTIONS.find((a) => a.id === ctx.params.pendingActionId) ??
-        f.CONFIRMED_ACTION,
+      // `HELD` has refused any id not in the list, so this always finds one (FE-27).
+      f.PENDING_ACTIONS.find((a) => a.id === ctx.params.pendingActionId)!,
     ),
   confirmPendingAction: () => ok('PendingAction', f.CONFIRMED_ACTION),
   rejectPendingAction: () => ok('PendingAction', f.REJECTED_ACTION),
-  listProjects: () => ok('ProjectList', f.PROJECTS),
+  listProjects: (ctx) => ok('ProjectList', [projectOf(ctx)]),
   createProject: () => created('CreatedProject', f.CREATED_PROJECT),
   getProject: (ctx) =>
     ok(
       'Project',
-      ctx.query.get('expand') === 'environments' ? f.PROJECT_EXPANDED : f.PROJECT,
+      ctx.query.get('expand') === 'environments'
+        ? { ...projectOf(ctx), environments: f.ENVIRONMENTS }
+        : projectOf(ctx),
     ),
+  /**
+   * §11 AND A NAME, ON THE ONE PROJECT (Task 13). A rename answers `mock-app` under the name ASKED
+   * — the rename IS the request, so answering the fixture's name would show a person a rename that
+   * did not take (the plan's `[S5]` (2)); an archive answers it `archived` now, a restore `active`
+   * with the archive's time kept (the platform's answer); a delete its tombstone. **Nothing is
+   * kept** (Decision 9): the next read answers the fixture again, and a real delete's `404` after
+   * is the platform's to show. A LAUNCHED project (`MANIFEST_MOCK_LAUNCHED=1`) is refused a delete
+   * in the platform's words.
+   */
+  updateProject: (ctx) =>
+    ok('Project', {
+      ...projectOf(ctx),
+      name: bodyOf<{ name: string }>(ctx).name ?? f.PROJECT.name,
+    }),
+  archiveProject: (ctx) =>
+    ok('Project', {
+      ...projectOf(ctx),
+      state: 'archived',
+      archivedAt: new Date(ctx.now).toISOString(),
+    }),
+  restoreProject: (ctx) =>
+    ok('Project', {
+      ...projectOf(ctx),
+      state: 'active',
+      archivedAt: new Date(ctx.now - 60_000).toISOString(),
+    }),
+  deleteProject: (ctx) => {
+    if (ctx.options.launched)
+      throw new MockRefusal(
+        409,
+        'PROJECT_LAUNCHED_NOT_DELETABLE',
+        `'${f.PROJECT.slug}' has been to production, so it cannot be deleted: its data is disposed of under its retention period and UBC's sunset procedure, and its production name stays held. Archive it to switch it off`,
+      )
+    return ok('DeletedProject', {
+      id: f.PROJECT_ID,
+      slug: f.PROJECT.slug,
+      state: 'deleted',
+      deletedAt: new Date(ctx.now).toISOString(),
+    })
+  },
   listBuilds: (ctx) => ok('BuildList', [ctx.buildIsRunning ? f.BUILD_RUNNING : f.BUILD]),
   // `202` WITH THE BUILD `running` (Rich's R6): the answer that arrived is not the answer.
   startBuild: () => ({ status: 202, schema: 'Build', body: f.BUILD_RUNNING }),
@@ -239,7 +415,16 @@ const ANSWERS: Record<string, Answerer> = {
   // P6b Task 9: the stored preview. Taking one and re-reading it answer the SAME fixture, which
   // is the platform's property (a re-read never recomputes) and also all a stateless mock can do.
   createApprovalPreview: () => created('ApprovalPreview', f.APPROVAL_PREVIEW),
-  getApprovalPreview: () => ok('ApprovalPreview', f.APPROVAL_PREVIEW),
+  // KEYED ON THE PREVIEW (FE-27): each of the three it holds answers as itself.
+  getApprovalPreview: (ctx) =>
+    ok(
+      'ApprovalPreview',
+      ctx.params.previewId === f.WITHHELD_PREVIEW_ID
+        ? f.WITHHELD_APPROVAL_PREVIEW
+        : ctx.params.previewId === f.UNAVAILABLE_PREVIEW_ID
+          ? f.UNAVAILABLE_APPROVAL_PREVIEW
+          : f.APPROVAL_PREVIEW,
+    ),
   // The slug the fixtures already use is taken; everything else is free, so the create
   // form's check-as-you-type has both answers to render.
   checkSlug: (ctx) =>
@@ -250,6 +435,92 @@ const ANSWERS: Record<string, Answerer> = {
         : { slug: ctx.params.slug ?? '', available: true },
     ),
   revokeToken: () => ok('Token', f.REVOKED_TOKEN),
+  /**
+   * AGENT AND INTAKE SESSIONS (Task 13; FE-27): on the project asked, under the name asked, their
+   * keys living from NOW — 60 minutes, or the life asked for; 30 for intake — and a key that is the
+   * mock's alone. The spent month and the paused intake are the scripted options above; a start
+   * retried with its key is refused below, as the platform refuses it, and never answers the key
+   * twice.
+   */
+  startAgentSession: (ctx) => {
+    if (ctx.options.agentBudget === 'exhausted')
+      throw new MockRefusal(
+        409,
+        'AGENT_BUDGET_EXHAUSTED',
+        "this month's agent budget of $10 is spent ($10.00 so far)",
+      )
+    const body = bodyOf<{ name: string; capUsd: number; durationMinutes: number }>(ctx)
+    const minutes = body.durationMinutes ?? 60
+    return created('AgentSessionStarted', {
+      session: f.agentSession(ctx.now, {
+        id: f.AGENT_SESSION_ID,
+        name: body.name ?? 'an agent session',
+        capUsd: body.capUsd ?? 2,
+        via:
+          ctx.credential === 'token'
+            ? { tokenId: f.TOKEN_ID, tokenName: f.TOKEN.name }
+            : null,
+        expiresAt: new Date(ctx.now + minutes * 60_000).toISOString(),
+        createdAt: new Date(ctx.now).toISOString(),
+        spentUsd: 0,
+      }),
+      key: f.MOCK_MODEL_KEY,
+      baseUrl: f.MODEL_BASE_URL,
+    })
+  },
+  listAgentSessions: (ctx) =>
+    ok(
+      'AgentSessionList',
+      f.agentSessions(
+        ctx.now,
+        ctx.options.agentBudget === 'unavailable' ? 'unavailable' : 'known',
+      ),
+    ),
+  endAgentSession: (ctx) => {
+    const held = f
+      .agentSessions(ctx.now, 'known')
+      .sessions.find((s) => s.id === ctx.params.sessionId)!
+    return ok(
+      'AgentSession',
+      held.state === 'ended'
+        ? held
+        : {
+            ...held,
+            state: 'ended',
+            endedAt: new Date(ctx.now).toISOString(),
+            endReason: 'ended',
+          },
+    )
+  },
+  getAgentBudget: (ctx) =>
+    ok('AgentBudget', f.agentBudget(ctx.now, ctx.options.agentBudget ?? 'ok')),
+  startIntakeSession: (ctx) => {
+    if (ctx.options.intake === 'daily-limit')
+      throw new MockRefusal(
+        409,
+        'INTAKE_DAILY_LIMIT_REACHED',
+        'you have started the 10 intake sessions a person may start in a day, so describing new apps is paused for today',
+      )
+    if (ctx.options.intake === 'budget-spent')
+      throw new MockRefusal(
+        409,
+        'INTAKE_BUDGET_EXHAUSTED',
+        "the platform's monthly intake budget of $25 is spent, so describing new apps is paused until the month resets",
+      )
+    return created('IntakeSessionStarted', {
+      session: f.intakeSession(ctx.now),
+      key: f.MOCK_MODEL_KEY,
+      baseUrl: f.MODEL_BASE_URL,
+    })
+  },
+  endIntakeSession: (ctx) =>
+    ok(
+      'IntakeSession',
+      f.intakeSession(ctx.now - 10 * 60_000, {
+        state: 'ended',
+        endedAt: new Date(ctx.now).toISOString(),
+      }),
+    ),
   // THE DOCUMENT'S OWN EXAMPLES, KEYED ON WHAT NAMES THEM (the authoring API plan's Task 10).
   // Each answers `ctx.example` — the one statement of the answer (Decision 15) — and nothing
   // hand-written; what these four add is refusing to answer it for something ELSE. A mock
@@ -267,6 +538,20 @@ const ANSWERS: Record<string, Answerer> = {
         `manifest-mock holds the text of one file, the document's example '${held}'`,
         'Open that file here, or drive the platform to read any other.',
       )
+    // A BYTE READ IS ANSWERED AS ONE (the plan's `[S3]` (1)): the same file's bytes, as canonical
+    // base64 — the platform answers `encoding=base64` for any file — so a front-end can exercise
+    // the byte read here rather than meet it first against the platform.
+    if (ctx.query.get('encoding') === 'base64') {
+      const file = example.body as { content: string }
+      return {
+        ...example,
+        body: {
+          ...file,
+          encoding: 'base64',
+          content: Buffer.from(file.content, 'utf8').toString('base64'),
+        },
+      }
+    }
     return example
   },
   getCommit: (ctx) => {
@@ -398,6 +683,8 @@ interface Operation {
   names: string[]
   /** Every mutation the document gives a required `Idempotency-Key` header parameter. */
   needsIdempotencyKey: boolean
+  /** The operation's `security` names the session alone (FE-26): a Bearer is refused. */
+  sessionOnly: boolean
   /**
    * THE DOCUMENT'S OWN ANSWER (the authoring API plan's Decision 15): the success response's
    * `example`, its status and the component it claims to be — what an operation with no
@@ -413,6 +700,7 @@ interface Document {
       string,
       {
         operationId?: string
+        security?: Record<string, unknown>[]
         parameters?: { in: string; name: string; required?: boolean }[]
         responses?: Record<
           string,
@@ -474,6 +762,11 @@ export function operationsOf(document: Document): Operation[] {
         needsIdempotencyKey: (operation.parameters ?? []).some(
           (p) => p.in === 'header' && p.name === 'Idempotency-Key' && p.required === true,
         ),
+        // An operation's own `security` overrides the document's global one (either credential).
+        sessionOnly:
+          operation.security !== undefined &&
+          operation.security.length > 0 &&
+          operation.security.every((scheme) => Object.keys(scheme).join() === 'session'),
         ...(() => {
           const example = exampleOf(operation.responses ?? {})
           return example === undefined ? {} : { example }
@@ -560,6 +853,19 @@ export function createMockServer(options: MockOptions = {}): Server {
     role:
       options.role ?? (process.env.MANIFEST_MOCK_ROLE === 'admin' ? 'admin' : 'member'),
     fail: options.fail ?? process.env.MANIFEST_MOCK_FAIL === '1',
+    launched: options.launched ?? process.env.MANIFEST_MOCK_LAUNCHED === '1',
+    agentBudget:
+      options.agentBudget ??
+      (process.env.MANIFEST_MOCK_AGENT_BUDGET === 'exhausted' ||
+      process.env.MANIFEST_MOCK_AGENT_BUDGET === 'unavailable'
+        ? process.env.MANIFEST_MOCK_AGENT_BUDGET
+        : 'ok'),
+    intake:
+      options.intake ??
+      (process.env.MANIFEST_MOCK_INTAKE === 'daily-limit' ||
+      process.env.MANIFEST_MOCK_INTAKE === 'budget-spent'
+        ? process.env.MANIFEST_MOCK_INTAKE
+        : 'open'),
     scanSilenceMs:
       options.scanSilenceMs ??
       (process.env.MANIFEST_MOCK_SCAN_MS === undefined
@@ -616,7 +922,7 @@ export function createMockServer(options: MockOptions = {}): Server {
       const safe = /^\/(?!\/)[^\s\\]{0,511}$/.test(returnTo) ? returnTo : '/'
       response.writeHead(302, {
         location: safe,
-        'set-cookie': `${SESSION_COOKIE}=mock-session; Path=/; HttpOnly; SameSite=Lax`,
+        'set-cookie': `${SESSION_COOKIE}=${ISSUED_SESSION}; Path=/; HttpOnly; SameSite=Lax`,
       })
       response.end()
       return
@@ -668,7 +974,15 @@ export function createMockServer(options: MockOptions = {}): Server {
         )
       }
 
-      assertOneCredential(request)
+      const credential = assertOneCredential(request)
+      // FE-26: the credential the operation's `security` does not list — the platform's words.
+      if (operation.sessionOnly && credential === 'token')
+        throw new MockRefusal(
+          403,
+          'TOKEN_CREDENTIAL_REFUSED',
+          'this action is only available in an interactive session (D24)',
+          'Sign in to the console and do it there. An agent asks a human for the ones D24 makes pending.',
+        )
 
       const params: Record<string, string> = {}
       operation.names.forEach((name, i) => {
@@ -693,6 +1007,25 @@ export function createMockServer(options: MockOptions = {}): Server {
               'IDEMPOTENCY_KEY_REUSED',
               `Idempotency-Key '${key}' was already used on this route with a different body`,
             )
+          // A STARTED SESSION'S KEY IS NEVER REPLAYED EITHER (Task 13): the platform's words.
+          if (operation.operationId === 'startAgentSession') {
+            const { session } = JSON.parse(stored.body) as {
+              session: { id: string; name: string }
+            }
+            throw new MockRefusal(
+              409,
+              'AGENT_SESSION_ALREADY_STARTED',
+              `this request already started the agent session '${session.name}' (${session.id}); its key was answered then and is never shown again — end it with endAgentSession and start another if that answer was lost`,
+            )
+          }
+          if (operation.operationId === 'startIntakeSession') {
+            const { session } = JSON.parse(stored.body) as { session: { id: string } }
+            throw new MockRefusal(
+              409,
+              'INTAKE_SESSION_ALREADY_STARTED',
+              `this request already started the intake session '${session.id}'; its key was answered then and is never shown again — end it with endIntakeSession and start another if that answer was lost`,
+            )
+          }
           // A MINT IS NEVER REPLAYED (the platform's `withholdOnReplay`, the authoring API plan's
           // Task 12): the first answer was the only one with the secret, and what is kept is the
           // token — so the retry is told which token it minted, in the platform's words.
@@ -712,6 +1045,9 @@ export function createMockServer(options: MockOptions = {}): Server {
         }
       }
 
+      // FE-27: an id the mock does not hold is the platform's 404, before any answer is built.
+      assertHeld(params)
+
       const {
         status,
         schema,
@@ -724,6 +1060,8 @@ export function createMockServer(options: MockOptions = {}): Server {
         buildIsRunning: buildSucceedsAt !== undefined && Date.now() < buildSucceedsAt,
         example,
         document,
+        now: Date.now(),
+        credential,
       })
 
       // EVERY BODY IS VALIDATED ON ITS WAY OUT, in-process. A mock that lies is worse than
@@ -749,11 +1087,15 @@ export function createMockServer(options: MockOptions = {}): Server {
         seen.set(`${key}|${operation.method} ${operation.path}`, {
           hash: JSON.stringify(body ?? null),
           status,
-          // The platform keeps a mint's token WITHOUT its secret; so does the mock.
+          // The platform keeps a mint's token WITHOUT its secret, and a session WITHOUT its key;
+          // so does the mock.
           body:
             operation.operationId === 'mintToken'
               ? JSON.stringify({ token: (answered as { token: unknown }).token })
-              : text,
+              : operation.operationId === 'startAgentSession' ||
+                  operation.operationId === 'startIntakeSession'
+                ? JSON.stringify({ session: (answered as { session: unknown }).session })
+                : text,
         })
       send(response, status, text)
     } catch (error) {
@@ -772,9 +1114,12 @@ export function createMockServer(options: MockOptions = {}): Server {
   /**
    * A REQUEST WITH NO CREDENTIAL IS `401 UNAUTHENTICATED`, so the console's sign-in screen
    * is reachable against the mock — and one carrying BOTH classes is `400
-   * CREDENTIAL_AMBIGUOUS`, refused before either is read, exactly as `api/server.ts` does.
+   * CREDENTIAL_AMBIGUOUS`, refused before either is read, exactly as `api/server.ts` does. A
+   * SESSION THE MOCK DID NOT ISSUE is refused the same way as none (FE-26): the platform answers a
+   * cookie it never signed `401`, and a front-end must be able to prove here that it does not
+   * trust one.
    */
-  function assertOneCredential(request: IncomingMessage): void {
+  function assertOneCredential(request: IncomingMessage): 'session' | 'token' {
     const session = cookiesOf(request)[SESSION_COOKIE]
     const bearer = request.headers.authorization
     if (session !== undefined && bearer !== undefined)
@@ -783,13 +1128,15 @@ export function createMockServer(options: MockOptions = {}): Server {
         'CREDENTIAL_AMBIGUOUS',
         'a request carries either a session or a delegated token, never both',
       )
-    if (session === undefined && bearer === undefined)
+    if (bearer !== undefined) return 'token'
+    if (session !== ISSUED_SESSION)
       throw new MockRefusal(
         401,
         'UNAUTHENTICATED',
         'a valid credential is required',
-        'Sign in at /auth/login for a session, or send Authorization: Bearer <token>.',
+        'Sign in at /auth/login for a session, or send Authorization: Bearer <token> for an agent. A token that is unknown, revoked or expired is refused the same way.',
       )
+    return 'session'
   }
 
   // THE SCRIPTED STREAM. `noServer: true` and an explicit `upgrade` handler, because the
@@ -805,8 +1152,9 @@ export function createMockServer(options: MockOptions = {}): Server {
     // after the upgrade can only be a close code, on a socket the stranger already holds
     // (P4b sitting 9). An HTTP status written here is what a Node `ws` client sees as
     // `unexpected-response`; a BROWSER is shown nothing but close 1006.
+    // FE-26: the session it issued, or a Bearer — as the http half.
     if (
-      cookiesOf(request)[SESSION_COOKIE] === undefined &&
+      cookiesOf(request)[SESSION_COOKIE] !== ISSUED_SESSION &&
       request.headers.authorization === undefined
     ) {
       socket.end('HTTP/1.1 401 Unauthorized\r\nconnection: close\r\n\r\n')
