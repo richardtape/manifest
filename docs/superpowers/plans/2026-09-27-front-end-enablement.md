@@ -20,7 +20,7 @@
 
 **Predecessor:** [`2026-09-25-authoring-api.md`](./2026-09-25-authoring-api.md), executed 2026-09-27. **Its *What this plan does not build* is an input list**: the recent-output read (Spec action 1, applied to §14 on 2026-09-26) is Tasks 2–3; *no operation lists an environment's instances* (its sitting 10's F13) is Task 3; its sitting 10's F1 (the knowledge pack's missing `express.urlencoded`), F4 (the seed read as *pushed with git*) and the whole-branch review's six minors (F7–F12) are Task 5; binary files, deleting a project and the audience's change are named there — the first two are built here, the third is not.
 
-**Successor:** the vulnerability database in the console (Rich, 2026-09-24), unchanged. **Then the faculty front-end itself**, designed screen by screen against this plan's API (Rich, 2026-09-27: *"think through, screen by screen, and even step-by-step what the faculty experience is like"*), in its own project (§5).
+**Successor:** the faculty front-end's LAUNCH PATH (FE-6, FE-25) — then the vulnerability database in the console (Rich, 2026-09-27, in sitting 7's first message: *"Launch path first"*; it had been the vulnerability database since 2026-09-24). **Then the faculty front-end itself**, designed screen by screen against this plan's API (Rich, 2026-09-27: *"think through, screen by screen, and even step-by-step what the faculty experience is like"*), in its own project (§5).
 
 ---
 
@@ -50,8 +50,8 @@
 | 4 | 5 | **What the authoring API hands over**: the knowledge pack's `express.urlencoded` sentence (F1), the seed commit's wording (F4), and the review's six minors (F7–F12) — **and `scanText`'s quadratic long line** (Task 5's `[S3]`, from sitting 3) | **Yes** — `blueprints/`, `source/`, `build/` | none | **DONE 2026-09-27** — `[S3]` fixed by one regex source read from the token's first dot, and its class found and fixed in §14's redactor (PEM, JWT, URL, `trimCut`'s tail) and in the unauthenticated logout (a bounded inflate, of the message node-saml reads); F1 (pinned by a test), F4, F7–F12; `CommitDetail.truncated` published; one fresh whole-branch review, its Critical (a request beside a response bypassed the bound) fixed red-first |
 | 5 | 6, 7 | **A project's name** (`updateProject`, the API's first `PATCH`) and **people by CWL login name or email** (`uid` asked for and kept; `member.added` / `member.removed`) | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 4** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.name` (the slug when none is given; one visible line), renamed by `PATCH /v1/projects/{projectId}`, `project.renamed`; `uid` asked for and kept as `users.cwl_login`, HELD BY WHOEVER SIGNED IN WITH IT LAST; `addMember` by exactly one of `puid`/`cwlLogin`/`email`, `MEMBER_USER_AMBIGUOUS`, `member.added`/`member.removed` naming `memberId`; one fresh whole-branch review, two Importants and two re-graded minors fixed (the last owner kept, a login miss that names email and PUID); `make verify`'s audit probe repaired (F16) |
 | 6 | 8 | **The `app` origin**: a configured list of origins; CSRF, sign-in, step-up and sign-out by the origin a request arrived on; one SP entity, one assertion-consumer URL per origin; the edge's `app.manifest.internal` site and dnsmasq pin; `make doctor` and `make verify` checks; the reference console servable there for the clicked half | **Yes** — `identity/`, `sso/`, `infra/` | **Spec action 2** — applied 2026-09-27 | **DONE 2026-09-27** — `config.origins` and `originOf` (the arrival origin, never the request's own); CSRF, sign-in, step-up, cookies and sign-out by it; one SP entity with an ACS per origin and one SLO; a SAML client per origin, so an assertion answering one origin's request is refused on the other; a sign-out's `RelayState` names the client that checks the IdP's answer and the origin it returns to; the edge's `app.` site and pin; `make verify` **61** (60 as the task built it, one added by the review's fix); **a real sign-in on `app` in a browser, Rich typing** — `app`'s `/v1/me` `200`, the console's `401`. **And the faculty front-end's message recorded** (*Decided by Rich*), with **Spec actions 5 and 6 drafted** |
-| 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **And, from the front-end's message: `AgentSession.spentUsd` (FE-23) and the platform-paid INTAKE key (FE-1)** (Tasks 9–10's `[S6]`). **If it runs long, stop after Task 9 and sweep — and FE-1 opens the next sitting** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27; **Spec action 5** (FE-1) — applied 2026-09-27 (`25e7445`) | ← next |
-| 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | |
+| 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **And, from the front-end's message: `AgentSession.spentUsd` (FE-23) and the platform-paid INTAKE key (FE-1)** (Tasks 9–10's `[S6]`). **If it runs long, stop after Task 9 and sweep — and FE-1 opens the next sitting** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27; **Spec action 5** (FE-1) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-27** — `mintCappedKey`, ONE mint for an agent key (`mf-agent-<id>`, on the person's `mf-person-<userId>`) and an intake key (`mf-intake-<id>`, on `mf-platform-intake`): a cap, a life never past the credential that asked (a token's, or the signed-in session's — `SessionActor.expiresAt`), D17's models with production as a floor, never an empty list, never stored; `startAgentSession` (answered once), `listAgentSessions` (FE-23's `spentUsd`, null with a reason, never 0), `endAgentSession`, `getAgentBudget`; a revoked token ends its sessions, on a retry too, and a token revoked WHILE one starts leaves no live key (the review's I1); FE-1's `startIntakeSession` / `endIntakeSession`, session only, a Vancouver day under a per-person lock; the orphan script taught; one fresh whole-branch review, its Important fixed red-first |
+| 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | ← next |
 | 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
@@ -1580,6 +1580,21 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > staging's"*, and leaves a UBC registration alone. **On the laptop, Step 5 of Decision 28 is unchanged** — both registrations are
 > the Manifest IdP's — so this task builds as written; the sentence is what the code comment should say.
 
+> **[S7] — WHAT SITTING 7 LEFT FOR THIS TASK (2026-09-27).** (1) **Step 1 of Decision 28 is `endSessionsOf(deps, { projectId },
+> 'project_archived', { userId, tokenId })`** (`ai/sessions.ts`): it takes `{ db, bus, llm }`, reads each key's spend, revokes it by
+> alias BEFORE stamping the row, and THROWS naming what is still live — so archive's retry reaches it again, and it must. With AI
+> switched off (`deps.llm` undefined) it throws `AI_CATALOGUE_DISABLED` wrapped as a 500 (the review's deferred minor 3 — decide
+> whether archive stamps already-EXPIRED sessions without the gateway). (2) **THE REVIEW'S I1, CARRIED**: a `startAgentSession`
+> that passed `assertCapability` before the project went `archived` would commit a live key after archive's `endSessionsOf` ran —
+> exactly the race sitting 7 closed for a revoked token by holding the token's row `FOR SHARE` in the start's transaction. **Hold
+> or re-check `projects.state` the same way** (a `FOR SHARE` read of the project row in `startAgentSession`'s transaction, and
+> archive's state change an UPDATE of that row), with a test on the slowed fake (`fakeLiteLlm().slow('/key/generate', 100)`).
+> (3) **Intake sessions belong to no project** — archive and delete do not touch them. (4) **`token-incapable` holds
+> `['project:delete']`** in the matrix; Decision 30 moves it to `['quota:set']` — sitting 7 added six rows (four agent, two
+> intake) and `agent:session` to `CAPABLE`, all of which must stay green. (5) Review Focus 2's *"archiving ends every agent session, and
+> LiteLLM refuses their keys"* is a Docker case against the real gateway — `ai/agent-sessions.docker.test.ts`'s `withGateway` is
+> the shape (it ends every session it started and deletes its `mf-person-` user).
+
 > **[M9] [M15] — MEASURED 2026-09-27 BY TASK 1; both halves as Decisions 28 and 29 assume.** `destroyServiceContainer({ deleteData:
 > false })` kept `-data`, and a container re-created on it found the document; `{ deleteData: true }` removed the volume; no
 > anonymous volume leaked. **The re-created Mongo reached its data only because it was given the SAME root credentials** —
@@ -1782,6 +1797,13 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 
 ## Task 13: The console and the mock — every new operation called, `DELIBERATELY_UNCALLED` empty again, the mock scripting what examples cannot
 
+> **[S7] — FROM SITTING 7 (2026-09-27).** **Six operations are parked for this task** (`packages/console/src/coverage.test.ts`):
+> `startAgentSession`, `listAgentSessions`, `endAgentSession`, `getAgentBudget` (an Agents screen and a budget line — the start's
+> answer shows the key ONCE, with *"Manifest keeps no copy"*, and never stores it in the browser beyond the page) and
+> `startIntakeSession`, `endIntakeSession` (a describe-a-new-app step; a person's session only). The mock answers all six from the
+> document's examples; script at least a spent month (`AGENT_BUDGET_EXHAUSTED`), `spentUsd: null` with `spentUnavailable`, and a
+> paused intake (`INTAKE_DAILY_LIMIT_REACHED`, `INTAKE_BUDGET_EXHAUSTED`).
+
 > **[S3] — FROM SITTING 3 (Task 4, binary files; 2026-09-27).** (1) **manifest-mock answers `getFile`'s `utf8` example to
 > `?encoding=base64`** (`packages/mock/src/server.ts:260`; the review's minor 7) — honest about its encoding, but a front-end
 > built against the mock cannot exercise the byte read: script a base64 answer. (2) **The console's Code screen says *"a
@@ -1868,6 +1890,14 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 ---
 
 ## Task 14: The guides — *Building a front-end*, and every guide the API's new surface touches; every code block a run example
+
+> **[S7] — FROM SITTING 7 (2026-09-27).** *For an AI agent* and *Building a front-end* gain the model sessions: an agent's key is
+> started with `startAgentSession` (answered once — the retry's `AGENT_SESSION_ALREADY_STARTED` names the session, never the
+> key), used as `Authorization: Bearer` at the answer's `baseUrl` for the models it lists, never past the token that asked, and
+> ended with `endAgentSession`; `getAgentBudget` is the person's month, `listAgentSessions`' `spentUsd` each conversation's (FE-23:
+> *"$0.40 so far · $9.60 left this month"*) — both null with a reason, never 0, and spend lands a few seconds after a call.
+> The front-end's intake agents use `startIntakeSession` from the person's session (never a token), on `session.model`, a few a
+> day. Name every refusal code. Every code block a run example.
 
 > **[S3] — WHAT SITTING 3 BUILT THAT THE GUIDES MUST SAY (Task 4, binary files; 2026-09-27).** A write's `encoding: 'base64'`
 > takes canonical base64 of at most 2 MiB decoded, **at a path ending in `.png .jpg .jpeg .gif .webp .ico .pdf .woff .woff2
@@ -1956,6 +1986,11 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 ---
 
 ## Task 15: The acceptance — `make demo-frontend`: a front-end's server on the `app` origin drives all of it for a signed-in instructor, and a person clicks it
+
+> **[S7] — FROM SITTING 7 (2026-09-27).** The demo's agent phase starts its model session with the conversation's token
+> (`startAgentSession`), calls the model with the key, reads `listAgentSessions`' `spentUsd` and `getAgentBudget`, and ends the
+> session; its intake phase starts one from the instructor's session. Both on the running gateway — end every session the demo
+> started, and let `scripts/litellm-orphans.sh` reclaim the `mf-person-` user afterwards.
 
 **ALONE, AND LAST.** Every other task is done, every spec action it builds is applied, and the vulnerability database is fresh (*What Rich does* 4).
 
@@ -3616,3 +3651,147 @@ moved; Spec actions 5 and 6's page changes are `25e7445`'s.
 
 **Next: sitting 7 (Tasks 9 and 10 — agent sessions, with FE-23 and FE-1; Spec actions 5 and 6 were approved and applied in its first message, `25e7445`, while this sitting was closing — Rich confirmed the approval to this sitting directly)**;
 `pnpm test:docker` owed (`ai/`, `projects/`); the contract moves, so its close-out lists every change for the front-end.
+
+### Sitting 7 — 2026-09-27: Tasks 9 and 10, agent sessions — with FE-23 and FE-1, the intake key
+
+**Run cold from ORIENTATION §7e** at Rich's *"proceed with the next sitting"*, **while sitting 6 was still closing** (`manifest-99`):
+this session asked it, waited for its close-out (`64ff35c`) before any Vitest, Docker tier or cleanup script, and applied the spec
+first, which touches none of them. **Rich, in the first message**: Spec action 5 (the intake key) **approved as drafted, option
+(a)**; Spec action 6 (staging is UBC's real staging world) **approved as drafted**; **the launch path first** after this plan; the
+capable model's provider left open. Both actions APPLIED before any code (`25e7445`: 36 spec edits and 28 shared-page edits, each
+passage asserted to occur exactly once by script, every added sentence cross-checked against the plan's words), with three
+consequential page changes named in the commit. Inline execution (`superpowers:executing-plans`), committing on `main`; one fresh
+whole-branch reviewer (Opus, read-only, told never to run a test); one fix pass. Commits: `25e7445` (the spec), `b3d22f4` (Task 9),
+`313075d` (Task 10), `3cb6c82` and `52b4daf` (FE-1), `498b427` (the review's I1), and the close-out.
+
+**Rulings** (the ledger's `Ruling:` lines, each with its cost if wrong):
+- **FE-1's three open details, decided**: the platform's monthly intake budget defaults to **$50** (`MANIFEST_INTAKE_MONTHLY_USD`;
+  200 keys at the full $0.25 — Rich gave none, and the number at UBC is his); **"a day" is America/Vancouver** (*"paused for today"*
+  is read in Vancouver, and a UTC day reopens at 16:00 or 17:00 local; the MONTH stays LiteLLM's calendar month, UTC); **two codes**,
+  `INTAKE_DAILY_LIMIT_REACHED` (the person's day) and `INTAKE_BUDGET_EXHAUSTED` (the platform's month), because only the first is
+  *"paused for today"* — plus `INTAKE_MODEL_UNAVAILABLE` (503: intake PAUSES, never another model) and
+  `INTAKE_SESSION_ALREADY_STARTED`, all in the `AgentSessionError` family.
+- **The intake model is a setting** (`MANIFEST_INTAKE_MODEL`, default `default-chat`) naming one catalogue entry, checked for
+  `internal` at every mint — §26's *Platform settings* as Spec action 5 wrote it, an env setting until §26's console.
+- **One mint** (`mintCappedKey(user, alias, models, cap, seconds, metadata)`); `mintAgentKey` keeps the plan's signature and
+  `mintIntakeKey` calls the same — §7e's instruction.
+- **`startAgentSession` reads the catalogue FIRST** (a platform with AI off answers `AI_CATALOGUE_DISABLED`; a project no model may
+  serve is refused before any gateway call); a requested cap is clamped to the platform's session cap, visibly.
+- **Events carry the acting triple** (`via`, `userId`, `tokenId`) beside the plan's fields, as every event since Task 6.
+- **A single `endAgentSession` whose revocation fails answers the gateway's own code** (503 `AI_*`); `endSessionsOf` — the
+  revoke's, and archive's to come — is the 500 naming what is still live, as Decision 25 says.
+- **The spend cache is keyed per LiteLLM client** (a `WeakMap`) and forgets a person on every start and end; **only the unit matrix
+  gets a recording gateway** (`testDeps()` keeps its honest `llm: undefined`).
+- **FE-1 is its own table** (`intake_sessions`, Spec action 5's recommendation, now spec); its routes are session-only under tag
+  `agents`; `endIntakeSession` is the starter's alone (an administrator is answered 404, as `revokeToken` answers anyone but the
+  minter); no event and no operator line on a start — *the row is the record*.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 FE-23's *"read from `/key/info` by `mf-agent-<id>`"* cannot work**: `/key/info` takes the KEY (Task 1's probe called it
+   with the key), and the platform never holds one (Decision 20). LiteLLM 1.98.0's `/user/info` answers the user row AND every key
+   as a full row — `key_alias`, `spend`, `expires` (read in the container's own `_process_keys_for_user_info`, then measured with
+   probe users) — so ONE read per person answers the month and each live session. And an ended key's row is DELETED with it, so
+   an ended session's spend is read before the revoke and kept in `agent_sessions.spent_usd`.
+2. **F2 The plan's `personSpend` would have refused every person's FIRST session**: it throws when `/user/info` fails, and a
+   person with no LiteLLM user yet is `404 User not found` (the container's `user_info`), so the start — which reads the month
+   before `ensurePersonBudget` — would have answered 503 to everyone new. A `404` is now a known zero (a person who never started
+   one, or one the orphan script reclaimed, which resets the month by Decision 26); every other failure still throws.
+3. **F3 Decision 22 bounded a key by the TOKEN's expiry alone**, while Spec action 1's §6 says a session outlives *"neither its
+   `expires_at` nor the credential that started it"* — a signed-in person asking for 480 minutes near the end of a 12-hour
+   session would get a key hours past it. `SessionActor.expiresAt` (the cookie's) now bounds it too, and FE-1's intake key the
+   same way (Spec action 5's §10 row); `tsc` found both constructions. Held by *never lets a key outlive the signed-in session
+   that asked for it* (control (e), RED `expected 3600 to be less than or equal to 300`).
+4. **F4 The start's own answer re-cached the pre-start month for ten seconds**: it read spend through the cache to fill the
+   answer, after the start had forgotten it, so a budget read straight after a start answered $0 spent. Two budget tests RED while
+   building; a just-started session's spend is a known $0, passed in rather than read.
+5. **F5 A cap floored to FOUR places read the plan's own `$0.00002` as `$0`** and refused it `AGENT_BUDGET_EXHAUSTED`, *"spent ($0.00
+   so far)"* — found by the sitting's own Docker case; every unit cap had four places or fewer. Fixed red-first (*keeps a cap
+   smaller than a hundredth of a cent*): `cap_usd numeric(12, 6)`, a spent month decided on what REMAINS, and a request cap of at
+   least $0.000001. Migrations `0035` and `0036`, uncommitted and applied only here, were SQUASHED into one `0035` (the table
+   dropped, two journal rows deleted, regenerated, re-applied; the CHECK and `numeric(12,6)` verified in `psql`).
+6. **F6 Task 9 Step 5's *"compare ISO dates as strings"* is wrong for LiteLLM's `expires`**, which it writes
+   `2026-09-28T01:11:28.334000+00:00` — microseconds and an offset — so a string comparison with any other format is meaningless.
+   The orphan script compares in node (`Date.parse`), and a key with NO expiry holds its user. Measured live: a held, an orphaned
+   and an expired probe user classified as predicted, then removed.
+7. **F7 The plan's `agentModelsFor(catalogue: ModelCatalogue, …)` is not what its own Task 10 snippet passes** (`await
+   deps.catalogue()` — a snapshot); it takes the `CatalogueSnapshot`.
+8. **F8 The intake lock's control could not fail against the instant fake**: without `pg_advisory_xact_lock`, three concurrent
+   starts still ran one after another (counts measured 0, 1, 1) and the test stayed green three times. The real gateway's mint
+   takes ~100 ms and holds the first transaction open; `fakeLiteLlm().slow(path, ms)` gives a test that window, and without the lock
+   the answer is then `[201, 201, 201]` against a one-key day — RED. TRAPS.md has it.
+9. **F9 (the review's I1) A token revoked WHILE its session was starting left the agent a working key**: the revoke's
+   `endSessionsOf` found no committed row while the mint was in flight, and the start then committed. The start's transaction now
+   reads the token's row `FOR SHARE` — the revoke waits and ends the session, or it committed first and the start answers `401
+   UNAUTHENTICATED`. RED first on the slowed fake (`expected { status: 200 } to deeply equal { status: 401 … }`), green three times.
+   **The same race exists between a start and an archive** — carried to Task 11's `[S7]`.
+10. **F10 (process, this session's) Unit Vitest ran BESIDE the first Docker tier** — the I1 red run, its three green runs and a gate
+    run (ORIENTATION §4 trap 8). The tier read 2 failed in 38 files (Task 10's own Docker file, `INTERNAL` at fixture setup, its
+    tables truncated under it) and the gate run dozens of unrelated reds. Neither counted; the tier was re-run in full on the final
+    tree with nothing beside it.
+11. **F11 A negative control that did not run**: control (a) deleted the key's `duration` with `grep … && sed`, BSD `grep` read `${`
+    as an anchor, nothing changed, and its Docker run passed — on the unbroken code. Re-run by line number with the diff printed:
+    RED. TRAPS.md has it.
+12. **F12 `make doctor`'s port check reads the faculty front-end on its OWN port as a foreign claim** — *"CLAIMED BY SOMETHING ELSE:
+    7105"* whenever `~/Developer/manifest-app`'s server runs, which it now does by design (§21, Decision 19). The fourth time this
+    check has met a Manifest port it did not know (7100, 7104, 7102 before), and the remedy each time was to ASK the holder; the
+    front-end is another repository, so asking needs a marker it serves — a cross-session contract, not this sitting's code.
+    Handed to §7e: sitting 8 raises it with the front-end's session (Rich relays) and adds `frontend_is_ours`.
+
+**Deferred minors** (the review's thirteen — the ledger's `Final: minor (deferred)` lines): a failure after the start's commit
+answering 500 with a live key nobody holds, and a mint that succeeded at LiteLLM but timed out at the client leaving one too;
+`endSessionsOf`'s comment claiming every failure logged itself; long-expired sessions treated as live (and, with AI off, a 500 on
+every revoke of a token that ever started one — **Task 11's `[S7]` asks whether archive stamps them without the gateway**); four
+undeclared `AI_*` codes; a moved route's FastAPI 404 read as a known zero; no operator line on a read's gateway failure;
+`asClassification`'s `in`; **the Vancouver-day test uses now's offset, not midnight's — RED on the evening of DST start and the
+morning of DST end, which is 2026-11-01**; `agent_session.ended`'s sentence naming neither who ended it nor the token; a test
+comment overclaiming; a credential with under a second left reaching a 500; **intake recording no spend at its end** (§26's
+*"an administrator reads intake spend by person"* needs a column first); a read in flight across a start re-caching the pre-start
+month. **Declined to judge, all eighteen standing** as the spec or a decision already says (the ledger's `Final: Ruling:` line).
+
+**The negative controls — every one predicted in writing first, run after its commit, and restored:**
+- Task 9 (after `b3d22f4`): (a) `duration` dropped → six unit cases RED and the Docker case RED *"expected { status: 200 } to deeply
+  equal { status: 401, type: 'expired_key' }"* (F11: its first attempt did not run); (b) the empty-models guard removed → RED
+  *"promise resolved 'sk-fake-1' instead of rejecting"*; (c) spend 0 on a gateway failure → RED; (d, not the plan's) the
+  production floor dropped → RED *"expected 'public' to be 'confidential'"*.
+- Task 10 (after `313075d`): (a) `withholdOnReplay` removed → RED (the replay answered 201); (b) `endSessionsOf` dropped from
+  `revokeToken` → two unit cases RED **and the Docker case RED** (the revoked token's key still answering 200 at the real gateway);
+  (c) the key charged to `mf-<projectId>-sandbox` → RED one assertion earlier than predicted, at the fake's S3 rule (a key under a
+  user nobody created, `503 AI_UNMAPPED`); (d) the token bound skipped → RED; (e, mine) the session bound skipped → RED.
+- FE-1 (after `3cb6c82`): (a) the day zone `UTC` → the Vancouver-day test RED (the evening branch ran: a row at Vancouver's
+  midnight +1 min is today here and yesterday in UTC); (b) the model check removed → RED (201 for 503); (c) the lock removed → RED
+  only once the fake was slowed (F8); (d) intake charged to `mf-person-<id>` → RED at the S3 rule.
+- The fix pass: I1's test RED before `498b427`.
+
+**Gates at close**: **`pnpm test` 2611 passed in 172 files**, twice on the final tree (`498b427`: 605 s and 600 s, identical, load
+~4–6) — up from 2509 in 168 by 102 tests and four files (`ai/agent-keys.test.ts` 12, `ai/models.test.ts` 5, `api/agents.test.ts`
+20, `api/intake.test.ts` 9), config 2, and the authorization matrix 54 (four agent rows and two intake rows, nine actors each) —
+**exactly the 2611 in 172 predicted before the runs**. **`pnpm test:docker` 222 in 38 files** (+4 tests, +2 files:
+`ai/agent-keys.docker.test.ts`, `ai/agent-sessions.docker.test.ts`) — owed (`ai/`, `projects/`), **run TWICE**: the first, beside the
+reviewer, read 2 failed in Task 10's own Docker file because unit Vitest ran beside it (F10) and did not count; the second, on the
+final tree with nothing beside it, green first time, 985 s at load ~5–6. `pnpm typecheck`, `pnpm lint` and `pnpm format:check`
+clean. **`make verify` 61/0/0** (unchanged), its per-app line `mf- containers=6 networks=2 volumes=4` after the cleanup (9 and 5
+before it). **`make doctor` 20 checks, 1 failed — `ports 7100-7199 free, or held only by Manifest` reading *"CLAIMED BY SOMETHING
+ELSE: 7105"***: the faculty front-end's own server, running by design from `~/Developer/manifest-app` (another session's, for Rich's
+sign-in check); the other nineteen pass, and the check count — `EXPECT_DOCTOR` — did not move (F12, below). The contract is
+**`1.4.0`**, additive: **63 operations** (+6), **123 error codes** (+7), **89 schemas** (+7), **42 event types** (+2);
+`packages/contract` built at every commit. Migrations **37** (`0035` agent sessions, `0036` intake sessions).
+
+**The machine at close, queried**: the control database EMPTY — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions, 0
+intake sessions, **37 migrations** (`0035`, `0036` this sitting); `launch-app`'s six `mf-launch-app-*` containers running,
+untouched, and no other `mf-` container; nothing of this platform's listening on 7100, 7104, 7110 or 8765 — **the control plane is
+not running** — while **7102 and 7105 are held by the faculty front-end's session** (`~/Developer/manifest-app`'s node processes,
+its own; this sitting served nothing on either); the GitHub fake absent; **both models unloaded** (the chat model warmed for the
+Docker tier and the embedder loaded by `make verify`, each unloaded with `keep_alive: 0` — `/api/ps` lists none); the edge
+restarted by the Docker tier, no runtime route applied. The three cleanup scripts, after `--apply` (allowed — 7 networks and 1
+volume, the tier's; 3 LiteLLM users: `p4b-probe-user`, a Docker test person's `mf-person-…` and `mf-platform-intake`, each with no
+live key; 21 app images), run bare again: `none dead`, nothing to delete, 0 dead app images. The snapshot diff shows uptimes, the
+edge's restart, the front-end's two ports, and **3 GiB less free disk** (72 → 69 Gi); Docker's build cache is 25.1 GB (20.9 GB
+reclaimable), which no cleanup script touches. `docker-simple-saml-saml-idp-1` exited, as at open; `docker-simple-saml` clean but
+its old untracked `cert.zip`. **HEAD did not move under the sitting** after sitting 6's close (`64ff35c`). **The four shared HTML
+pages** moved in `25e7445` (Spec actions 5 and 6); nothing built since restates them. WALKTHROUGH unchanged: it describes what a
+person can click, and agent sessions have no screen until Task 13.
+
+**Next: sitting 8 (Task 11 — archive and restore)**; Spec action 3 is applied; `pnpm test:docker` owed (`runtime/`, `releases/`,
+`routing/`, `sso/`, `ai/`); the contract moves, so its close-out lists every change for the front-end; Task 11's `[S7]` carries the
+review's I1 into archive.

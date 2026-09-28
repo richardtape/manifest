@@ -19,7 +19,8 @@ and Phase 2's first four plans, P6a (the first production launch), P6b (subseque
 GitHub source driver and the authoring API. Every one has an acceptance that passes. **The front-end
 enablement plan is being executed** — it replaced Spec action 1's plan and folds in its recent-output read. It was
 WRITTEN on 2026-09-27, overnight and with recommendations, and **Rich has approved the plan, its twelve sittings and all
-four of its spec actions — APPLIED to the spec the same day** — ORIENTATION §7e says what is next. Each plan's
+four of its spec actions — APPLIED to the spec the same day — and the two its sitting 6 drafted from the faculty front-end's
+message (5, the intake key; 6, staging is UBC's real staging), APPLIED in its sitting 7** — ORIENTATION §7e says what is next. Each plan's
 *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
@@ -150,7 +151,7 @@ For the platform itself it is `make doctor` and `make verify`.
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.
 - **Never edit the spec directly.** `docs/superpowers/specs/2026-08-29-manifest-platform-design.md`
   is marked *Approved design*. Record proposed changes and ask — **every spec change this
-  project has made was approved by Rich first**, most recently **the front-end enablement plan's four, on 2026-09-27** (each option (a): agent model keys outside a sandbox, charged to the person; the `app` origin; archive, restore and delete; a project's name and a person's CWL login — `1d1afd7`) — after **§26's *Scope*, the same day** (the interface design brief's §13: the admin console gets real design effort and no longer inherits `console/`'s plain bar, which stays with §22), and the authoring API plan's Spec actions 1 and 3 and **§7's two edits for the per-user AI budget, on 2026-09-26** (Spec action 4, option (a): validated, not enforced before Phase 4 as §10 already said, refused above the project's AI quota, and a validation warning that it binds no one) — the same day as §20's and D24's three edits for who may set an app secret's value (Spec action 2, option (a)). The
+  project has made was approved by Rich first**, most recently **the front-end enablement plan's Spec actions 5 and 6, on 2026-09-27** (each option (a), as drafted: an intake key before a project exists, paid for by the platform; staging is UBC's real staging world, with the laptop's staging keeping the fake sign-in — `25e7445`) — after **its four, the same day** (each option (a): agent model keys outside a sandbox, charged to the person; the `app` origin; archive, restore and delete; a project's name and a person's CWL login — `1d1afd7`) — after **§26's *Scope*, the same day** (the interface design brief's §13: the admin console gets real design effort and no longer inherits `console/`'s plain bar, which stays with §22), and the authoring API plan's Spec actions 1 and 3 and **§7's two edits for the per-user AI budget, on 2026-09-26** (Spec action 4, option (a): validated, not enforced before Phase 4 as §10 already said, refused above the project's AI quota, and a validation warning that it binds no one) — the same day as §20's and D24's three edits for who may set an app secret's value (Spec action 2, option (a)). The
   roadmap's *Spec action(s) raised by…* sections are the list; this file deliberately states no
   count, because a restated number drifts (ORIENTATION §9) and this one already had.
   **A spec action is not finished when the spec changes**: the four shared HTML pages restate it

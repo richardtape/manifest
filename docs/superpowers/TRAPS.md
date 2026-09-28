@@ -2055,3 +2055,30 @@ is never required to be registered. Throw each code as a literal at its own call
 read as a throw** (the fix's own first comment registered a code named `LITERAL`). Run `api/error-codes.test.ts` beside
 `api/contract/` whenever a code moves — the task that met this named only the latter, and only the close's full run caught it.
 
+
+## Added by the front-end enablement plan's sitting 7 (2026-09-27, Tasks 9–10 and FE-1 — agent and intake keys)
+
+**A FAKE THAT ANSWERS AT ONCE HIDES A RACE THE REAL SERVICE OPENS.** Intake's daily count is taken and its row written under a
+per-person `pg_advisory_xact_lock`, in the same transaction as the mint. Against `fakeLiteLlm`, which answered `/key/generate`
+at once, three concurrent starts ran one after another anyway (counts measured 0, 1, 1) and removing the lock left the test
+green — the real gateway's mint takes ~100 ms and holds the first transaction open while the others count. `fakeLiteLlm`'s
+`slow(path, ms)` gives a test the real window; with it, the missing lock answers `[201, 201, 201]` against a one-key day.
+
+**A MONEY COLUMN'S PRECISION IS A RULE.** `agent_sessions.cap_usd` was `numeric(10, 4)` and the cap was floored to four places,
+so the plan's own Docker case — `capUsd: 0.00002`, a cap that one model call exceeds — read as `$0` and was refused
+`AGENT_BUDGET_EXHAUSTED` with a message saying the month was spent. Every unit test used caps of four places or fewer; only the
+Docker tier asked for less. Six places now, and a spent month is decided on what REMAINS, never on the rounded cap.
+
+**`/key/info` TAKES THE KEY, NOT ITS ALIAS** (LiteLLM 1.98.0). The platform never holds an agent's key, so per-session spend is
+read from `/user/info`, whose `keys[]` are LiteLLM's full rows — `key_alias`, `spend`, `expires` (written like
+`2026-09-28T01:11:28.334000+00:00`: compare it with `Date.parse`, not as a string) — and the key's HASH as `token`, which nothing
+may carry. A revoked key's row is DELETED, so what it spent is read before it is revoked, and kept on the session's row.
+
+**`grep` ON macOS READS `${` AS AN ANCHOR.** A negative control that deleted `duration: \`${input.seconds}s\`,` with `grep … && sed`
+found no line, changed nothing, and its Docker run passed — on the unbroken code. Delete by line number (after checking the line),
+or match with `grep -F`, and ALWAYS print the diff before trusting the red or the green.
+
+**`api/intake.test.ts`'s VANCOUVER-DAY TEST IS RED TWICE A YEAR** (the review's deferred minor, sitting 7). `vancouverMidnight()`
+takes NOW's UTC offset, not midnight's, so on the evening of the day DST starts and the morning of the day it ends the row it
+places at *"midnight + 1 minute"* lands on the wrong day. **The next is the morning of 2026-11-01** (DST ends). A red there on
+that date is the test's, not the platform's: compute the offset at the computed midnight (`Intl` with the date, not now).
