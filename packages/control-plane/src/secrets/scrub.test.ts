@@ -46,6 +46,12 @@ describe('the process.env scrub (§12)', () => {
       // for one secret is a second thing to scrub.
       'MANIFEST_LITELLM_MASTER_KEY',
       'SSP_RO_PASSWORD',
+      // The `manifest_app` role's password, which RUNBOOK's `set -a; . ./.env` exports beside the URL
+      // built from it — unscrubbed until the front-end enablement plan's sitting 9a found it.
+      'MANIFEST_APP_PASSWORD',
+      // The capable model's PROVIDER key (Task 12a): LiteLLM's alone, by infra/compose.yaml — and
+      // the same `set -a` exports it into this process too, where no line of the control plane reads it.
+      'OPENAI_API_KEY',
     ]) {
       expect(SECRET_ENV_NAMES).toContain(name)
     }

@@ -19,6 +19,11 @@ export const SECRET_ENV_NAMES = [
   'SSP_RO_PASSWORD',
   'SSP_ADMIN_PASSWORD',
   'SSP_SECRET_SALT',
+  // RUNBOOK's `set -a; . ./.env` exports these too (the front-end enablement plan's sitting 9a): the
+  // `manifest_app` role's password beside the URL built from it, and the capable model's PROVIDER
+  // key, which is LiteLLM's alone (infra/compose.yaml) and read by no line of this process.
+  'MANIFEST_APP_PASSWORD',
+  'OPENAI_API_KEY',
 ] as const
 
 /** Returns the names actually removed, so the boot line can say how many. */
