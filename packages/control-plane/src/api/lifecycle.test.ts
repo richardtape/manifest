@@ -1052,8 +1052,11 @@ describe('delete (§11, Task 12)', () => {
         'project.archived',
         'project.deleted',
       ])
-      // The archive's own stop, keeping the data, never ran: the delete destroys it, once per kind.
+      // The switch-off KEEPS everything (the review's I1/I2); only then does the delete destroy it.
       expect(driver.destroyedEnvironments().map((e) => e.deleteData)).toEqual([
+        false,
+        false,
+        false,
         true,
         true,
         true,
@@ -1069,8 +1072,11 @@ describe('delete (§11, Task 12)', () => {
       expect((await remove(ctx, ctx.ownerSteppedUp)).statusCode).toBe(200)
       expect(await eventTypes(ctx, 'project.archived')).toHaveLength(1)
       expect(await eventTypes(ctx, 'project.deleted')).toHaveLength(1)
-      // The archive kept the data; the delete destroyed it.
+      // The archive kept the data, and so did the delete's own switch-off; then it destroyed it.
       expect(driver.destroyedEnvironments().map((e) => e.deleteData)).toEqual([
+        false,
+        false,
+        false,
         false,
         false,
         false,
@@ -1156,6 +1162,85 @@ describe('delete (§11, Task 12)', () => {
       } finally {
         source.destroyRepository = destroy
       }
+    })
+  }, 30_000)
+
+  /**
+   * THE WHOLE-BRANCH REVIEW'S I1: a production LAUNCH in flight when a delete begins. The launch's
+   * deploy holds production's environment lock (the test holds it here, as that deploy does) and
+   * records `launched_at` inside it (`recordLaunch`), AFTER the delete read `launched_at` as null. The
+   * delete's teardown waits for that lock — and must read `launched_at` AGAIN once it has it, before
+   * anything is destroyed: a launched app is never deleted by its owner (Decision 31).
+   */
+  it('a launch recorded while the delete waits for its lock stops the delete before anything is destroyed', async () => {
+    await withLifecycleServer(async (ctx) => {
+      const deployed = await deployWithDatabase(ctx)
+      const driver = ctx.deps.driver as FakeDriver
+      let deleting: ReturnType<typeof remove> | undefined
+      await withEnvironmentLock(ctx.productionEnvironmentId, async () => {
+        deleting = remove(ctx, ctx.ownerSteppedUp)
+        for (let i = 0; i < 400 && (await stateOf(ctx)).state !== 'archived'; i++)
+          await new Promise((resolve) => setTimeout(resolve, 5))
+        expect((await stateOf(ctx)).state).toBe('archived')
+        // What `recordLaunch` does, inside the launch's lock — the delete is waiting for it now.
+        await ctx.db
+          .update(projects)
+          .set({ launchedAt: new Date() })
+          .where(eq(projects.id, ctx.projectId))
+      })
+      expect(refusal(await deleting!)).toEqual({
+        status: 409,
+        code: 'PROJECT_LAUNCHED_NOT_DELETABLE',
+      })
+      // Switched off — an archive — and NOTHING destroyed: every stop kept its data.
+      expect(await stateOf(ctx)).toEqual({ state: 'archived', deletedAt: null })
+      expect(driver.destroyedEnvironments().every((e) => !e.deleteData)).toBe(true)
+      expect(driver.destroyedEnvironments()).toHaveLength(3)
+      expect(await secretCount(ctx)).toBeGreaterThan(0)
+      expect(
+        await ctx.deps.source.headCommit(ctx.deps.source.repositoryFor(deployed.slug)),
+      ).toMatch(/^[0-9a-f]{40}$/)
+      expect(await eventTypes(ctx, 'project.deleted')).toEqual([])
+    })
+  }, 30_000)
+
+  /**
+   * THE WHOLE-BRANCH REVIEW'S I2: a delete interrupted INSIDE its archive — a step after the services
+   * stopped — is finished by the next boot as an archive, which publishes `project.archived` saying
+   * *"its code, data and secrets are kept"*. That record is append-only, so it must be TRUE: nothing
+   * a delete destroys may go before its archive has finished.
+   */
+  it('a delete interrupted inside its archive keeps the data, so the boot’s record of it is true', async () => {
+    await withLifecycleServer(async (ctx, _lite, sso) => {
+      await deployWithDatabase(ctx)
+      const driver = ctx.deps.driver as FakeDriver
+      const deregister = sso.deregisterServiceProvider
+      let failures = 1
+      sso.deregisterServiceProvider = (db, input) => {
+        if (failures > 0) {
+          failures -= 1
+          return Promise.reject(new Error('the IdP did not answer'))
+        }
+        return deregister(db, input)
+      }
+      expect(refusal(await remove(ctx, ctx.ownerSteppedUp))).toEqual({
+        status: 500,
+        code: 'PROJECT_TEARDOWN_INCOMPLETE',
+      })
+      const report = await recoverAtBoot({
+        db: ctx.db,
+        driver: ctx.deps.driver,
+        bus: ctx.deps.bus,
+        retirer: { schedule: () => undefined },
+        finishTeardowns: () => finishTeardowns(lifecycleDeps(ctx.deps)),
+      })
+      expect(report.teardowns.finished).toHaveLength(1)
+      const archived = await eventTypes(ctx, 'project.archived')
+      expect(archived).toHaveLength(1)
+      expect(archived[0]!.humanMessage).toContain('kept')
+      // …and it is: no stop destroyed anything, and the secrets are all there.
+      expect(driver.destroyedEnvironments().every((e) => !e.deleteData)).toBe(true)
+      expect(await secretCount(ctx)).toBeGreaterThan(0)
     })
   }, 30_000)
 

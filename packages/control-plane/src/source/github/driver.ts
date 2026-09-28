@@ -644,8 +644,12 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
    * THE REPOSITORY GONE FROM GITHUB — and gone ALREADY is gone (the front-end enablement plan's Task
    * 12): a delete that stopped after this step runs it again on its retry. GitHub then answers
    * `404` to the `DELETE` — or, first, `422` to the token for a repository the installation no
-   * longer has (conformance C5b's golden, measured on github.com 2026-09-24 and 2026-09-25), which
-   * with `repository_selection: all` means it does not exist. Every other refusal is real.
+   * longer has, IN C5b'S OWN WORDS (conformance's golden, measured on github.com 2026-09-24 and
+   * 2026-09-25): *"does not exist or is not accessible"*. GitHub cannot tell this App the two apart —
+   * an inaccessible repository answers it `404` everywhere — so either way it is gone from what
+   * Manifest can reach. **Any OTHER `422` is real** (the whole-branch review's I4): a token refused
+   * its PERMISSIONS, after an organisation's owner narrowed the App, leaves the private repository
+   * on GitHub, and reading it as destroyed would free the slug over it.
    */
   async function deleteOnGithub(slug: string): Promise<void> {
     let res
@@ -657,7 +661,12 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         `/repos/${o.org}/${slug}`,
       )
     } catch (error) {
-      if (error instanceof SourceError && error.hostStatus === 422) return
+      if (
+        error instanceof SourceError &&
+        error.hostStatus === 422 &&
+        error.message.includes('does not exist or is not accessible')
+      )
+        return
       throw error
     }
     if (res.status === 404) return

@@ -150,6 +150,21 @@ async function loadDescriptor(blueprintDir: string): Promise<BlueprintDescriptor
  * an approval to a digest, and P2's driver contract asserts the determinism
  * directly.
  */
+/**
+ * THIS MACHINE'S PATHS OUT OF A REFUSAL (the front-end enablement plan's Task 12; its review's I3):
+ * a refusal here is `builds.error`, a build-log line and `build.failed`'s reason — the append-only
+ * trail — and `execFile`'s own message is the whole command line. A build queued before a delete
+ * exports after the repository is gone, which is how the path first became reachable. Both of
+ * macOS's spellings of a temporary path, `/var/…` and its real `/private/var/…`.
+ */
+function withoutPaths(text: string, paths: Record<string, string>): string {
+  let out = text
+  for (const [name, path] of Object.entries(paths)) {
+    for (const spelling of [`/private${path}`, path]) out = out.split(spelling).join(name)
+  }
+  return out
+}
+
 export async function sourceDateEpoch(
   repoPath: string,
   commitSha: string,
@@ -163,7 +178,7 @@ export async function sourceDateEpoch(
   ]).catch((error: Error) => {
     throw new BuildContextError(
       'SOURCE_TIMESTAMP_UNREADABLE',
-      `cannot read the commit time of ${commitSha} in ${repoPath}: ${error.message}`,
+      `cannot read the commit time of ${commitSha} in the repository: ${withoutPaths(error.message, { '<repository>': repoPath })}`,
       "The commit must exist in the project's bare repository.",
     )
   })
@@ -204,7 +219,13 @@ export async function assembleContext(input: ContextInput): Promise<string> {
   ]).catch((error: Error) => {
     throw new BuildContextError(
       'SOURCE_EXPORT_FAILED',
-      `cannot export ${input.commitSha} from ${input.repoPath}: ${error.message}`,
+      `cannot export ${input.commitSha} from the repository: ${withoutPaths(
+        error.message,
+        {
+          '<scratch>': input.workDir,
+          '<repository>': input.repoPath,
+        },
+      )}`,
       "The commit must exist in the project's bare repository, and `repoPath` is a " +
         'FILESYSTEM PATH, not the `file://` URL a builder is handed. ' +
         '`git --git-dir=<repo> cat-file -t <sha>` is the same question asked directly.',
@@ -213,7 +234,10 @@ export async function assembleContext(input: ContextInput): Promise<string> {
   await run('tar', ['-x', '-f', tarball, '-C', dir]).catch((error: Error) => {
     throw new BuildContextError(
       'SOURCE_EXPORT_FAILED',
-      `cannot unpack the export of ${input.commitSha}: ${error.message}`,
+      `cannot unpack the export of ${input.commitSha}: ${withoutPaths(error.message, {
+        '<scratch>': input.workDir,
+        '<repository>': input.repoPath,
+      })}`,
       'The archive git produced could not be read.',
     )
   })

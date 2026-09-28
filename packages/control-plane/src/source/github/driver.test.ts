@@ -50,6 +50,11 @@ interface Harness {
    * every other call still answer — a GitHub partly down (the authoring API plan's Task 12).
    */
   failRepositoryReads(on: boolean): void
+  /**
+   * Every token mint answers THIS instead of GitHub's answer, until `undefined` — a narrowed App —
+   * and every call with a token this process already holds answers `401`, so the driver mints again.
+   */
+  refuseMints(answer: { status: number; message: string } | undefined): void
   /** The same GitHub, restarted: same data, same App key, same port — and a new token key. */
   restart(): Promise<void>
   cleanup(): Promise<void>
@@ -66,6 +71,7 @@ async function harness(
   let fake = await startFake({ ...options, dataDir })
   const observer = recordingObserver()
   let repositoryReadsFail = false
+  let mintRefusal: { status: number; message: string } | undefined
   // A spy on the wire. It never changes an answer — unless a test fails the repository read.
   const spyFetch: typeof fetch = async (input, init) => {
     if (
@@ -74,6 +80,18 @@ async function harness(
       /\/repos\/[^/]+\/[^/]+$/.test(String(input))
     ) {
       throw new TypeError('fetch failed')
+    }
+    if (mintRefusal !== undefined && String(input).endsWith('/access_tokens')) {
+      return new Response(JSON.stringify({ message: mintRefusal.message }), {
+        status: mintRefusal.status,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    if (mintRefusal !== undefined && /\/repos\//.test(String(input))) {
+      return new Response(JSON.stringify({ message: 'Bad credentials' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      })
     }
     const res = await fetch(input, init)
     if (String(input).endsWith('/access_tokens')) {
@@ -112,6 +130,9 @@ async function harness(
     failObserver: (error) => observer.fail(error),
     failRepositoryReads: (on) => {
       repositoryReadsFail = on
+    },
+    refuseMints: (answer) => {
+      mintRefusal = answer
     },
     async restart() {
       const port = Number(new URL(fake.url).port)
@@ -229,6 +250,39 @@ describeSourceDriver(
 
 describe('the GitHub driver keeps what only a REMOTE driver has to promise', () => {
   const SEED = { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' }
+
+  /**
+   * THE DELETE READS ONE 422 AS GONE, AND ONLY ONE (the front-end enablement plan's Task 12; its
+   * whole-branch review's I4): GitHub refuses a token for a repository the installation lacks with
+   * C5b's words — *"does not exist or is not accessible"* — and that is the retry of a delete whose
+   * repository already went. A token refused for any OTHER reason — the App's permissions narrowed by
+   * an organisation's owner — must not be read as the repository destroyed: it is still on GitHub,
+   * private, and the delete says so and keeps the mirror, so its retry can finish it.
+   */
+  it('refuses to call a repository destroyed when GitHub refuses the token for any reason but its absence', async () => {
+    const h = await harness()
+    try {
+      const { ref } = await h.driver.createRepository('chem-labs', SEED)
+      h.refuseMints({
+        status: 422,
+        message: 'The permissions requested are not granted to this installation.',
+      })
+      await expect(h.driver.destroyRepository(ref)).rejects.toMatchObject({
+        code: 'SOURCE_GITHUB_REFUSED',
+      })
+      expect(existsSync(join(h.mirrorRoot, 'chem-labs.git'))).toBe(true)
+      // The positive control: C5b's own words ARE the repository gone — and so is a real delete.
+      h.refuseMints({
+        status: 422,
+        message:
+          'There is at least one repository that does not exist or is not accessible to the parent installation.',
+      })
+      await h.driver.destroyRepository(ref)
+      expect(existsSync(join(h.mirrorRoot, 'chem-labs.git'))).toBe(false)
+    } finally {
+      await h.cleanup()
+    }
+  })
 
   /**
    * Decision 13, WHERE GITHUB WILL NOT (`[M10]`(b), measured by conformance C13): a FREE

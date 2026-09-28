@@ -158,10 +158,10 @@ export const JOURNEY: readonly JourneyStep[] = [
     },
   },
   {
-    step: 'Delete a project, or roll back a release',
+    step: 'Roll back a release',
     who: 'person',
     operations: [],
-    later: { plan: 'not yet scheduled', why: 'neither is built yet' },
+    later: { plan: 'not yet scheduled', why: 'it is not built yet' },
   },
   {
     step: 'Work on a branch in a sandbox, with exec',

@@ -633,9 +633,9 @@ export const ERROR_CODES = {
     status: 409,
     families: ['ProjectStateError'],
     summary:
-      'The project has been to production, so it cannot be deleted (§11): its data is disposed of under its retention period and UBC’s sunset procedure, which are the Privacy Office’s, and its production name stays held for good (D26). Nothing was changed.',
+      'The project has been to production, so it cannot be deleted (§11): its data is disposed of under its retention period and UBC’s sunset procedure, which are the Privacy Office’s, and its production name stays held for good (D26). Nothing was destroyed — and nothing was changed, unless the launch completed while the delete was starting, when the app has been switched off (archived) with everything kept.',
     remedy:
-      'Archive it instead (`archiveProject`) to switch it off for everyone; its data and records are kept for their retention period.',
+      'Archive it instead (`archiveProject`) to switch it off for everyone; its data and records are kept for their retention period. One the delete switched off is restored with `restoreProject`.',
   },
 
   // ai/sessions.ts — a model session's start (§10; the front-end enablement plan's Task 10, Spec

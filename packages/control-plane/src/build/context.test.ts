@@ -1,10 +1,17 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { assembleContext, renderDockerfile } from './context.js'
+import { assembleContext, renderDockerfile, sourceDateEpoch } from './context.js'
 
 /**
  * The REAL blueprint, not a stand-in. Its Dockerfile is a `.tmpl` named by
@@ -100,6 +107,36 @@ describe('build context assembly (D13)', () => {
         workDir: workDir(),
       }),
     ).rejects.toMatchObject({ code: 'SOURCE_EXPORT_FAILED' })
+  })
+
+  /**
+   * THE DELETE'S RACE, BY THE BUILD'S ROUTE (the front-end enablement plan's Task 12; its review's I3):
+   * a build queued before a delete exports after the repository is gone. The refusal's message is
+   * `builds.error`, a line of the build log and `build.failed`'s reason — the append-only trail — and
+   * `execFile`'s own message carries the whole command line. So neither this machine's repository
+   * path nor its scratch directory may be in it, in either of macOS's spellings of a temporary path.
+   */
+  it('a repository deleted under a build is refused naming no path of this machine', async () => {
+    const { repoPath, commitSha } = bareRepoWith({ 'src/index.js': 'console.log(1)\n' })
+    rmSync(repoPath, { recursive: true, force: true })
+    const scratch = workDir()
+    const failures = [
+      await assembleContext({
+        repoPath,
+        commitSha,
+        blueprintDir: BLUEPRINT_DIR,
+        workDir: scratch,
+      }).catch((error: unknown) => error),
+      await sourceDateEpoch(repoPath, commitSha).catch((error: unknown) => error),
+    ]
+    for (const failure of failures) {
+      const message = (failure as Error).message
+      expect(failure).toMatchObject({ name: 'BuildContextError' })
+      // The positive control: git DID fail on the repository, and the message still says so.
+      expect(message).toContain('<repository>')
+      for (const unique of [repoPath.split('/').at(-2)!, scratch.split('/').at(-1)!])
+        expect(message).not.toContain(unique)
+    }
   })
 
   it('THROWS for a commit that is not in the repository', async () => {

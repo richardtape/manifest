@@ -371,23 +371,26 @@ export async function archiveProject(
   deps: LifecycleDeps,
   input: { projectId: string; actor: SessionActor },
 ): Promise<void> {
-  await withProjectLock(input.projectId, () =>
-    archiveUnderLock(deps, input.projectId, input.actor, 'archive'),
-  )
+  await withProjectLock(input.projectId, async () => {
+    const by = await switchOffUnderLock(deps, input.projectId, input.actor)
+    await publishArchivedOnce(deps, input.projectId, by)
+  })
 }
 
 /**
- * The archive's body — for `archiveProject`, and for `deleteProject`, which must archive under the
- * SAME lock: `withProjectLock` is a session-level advisory lock on a pooled connection, so taking it
- * again from inside would wait on itself for ever. A delete's teardown destroys the data rather than
- * keeping it, and its `project.archived` says the project is being deleted.
+ * The archive's body, but for its event — for `archiveProject`, and for `deleteProject`, which must
+ * switch the app off under the SAME lock (`withProjectLock` is a session-level advisory lock on a
+ * pooled connection, so taking it again from inside would wait on itself for ever) and read
+ * `launched_at` again BEFORE it says what the switch-off was for. **ALWAYS KEEPING THE DATA** (the
+ * sitting's whole-branch review, I1 and I2): whatever a delete destroys goes only after this has
+ * finished, so a delete interrupted here — and the boot that finishes it as an archive, saying the
+ * data is kept — leaves exactly what an archive leaves.
  */
-async function archiveUnderLock(
+async function switchOffUnderLock(
   deps: LifecycleDeps,
   projectId: string,
   actor: SessionActor,
-  purpose: 'archive' | 'delete',
-): Promise<void> {
+): Promise<EndedBy> {
   const by: EndedBy = { userId: actor.userId, tokenId: null }
   // THE STATE, THE TOKENS AND THE QUESTIONS IN ONE TRANSACTION (the whole-branch review's I1): all
   // three are the database's alone, so no failure after this — the gateway's included — can leave
@@ -405,8 +408,8 @@ async function archiveUnderLock(
     await revokeTokensOf(tx, projectId)
     await expirePendingActions(tx, EVERY_QUESTION, { projectId })
   })
-  await runTeardown(deps, { projectId, by }, { deleteData: purpose === 'delete' })
-  await publishArchivedOnce(deps, projectId, by, purpose)
+  await runTeardown(deps, { projectId, by }, { deleteData: false })
+  return by
 }
 
 /**
@@ -502,11 +505,14 @@ export interface DeleteDeps extends LifecycleDeps {
 }
 
 /**
- * WHAT A DELETE DESTROYS AFTER ITS ARCHIVE (Decision 31) — the archive's own teardown, run with
- * `deleteData`, has already removed every data volume. Each step is idempotent, so the same request
- * retried runs them all again from the first; the finished ones answer at once.
+ * WHAT A DELETE DESTROYS AFTER ITS SWITCH-OFF (Decision 31) — which KEPT everything, and after which
+ * `launched_at` is read again. Each step is idempotent, so the same request retried runs them all
+ * again from the first; the finished ones answer at once.
  */
 export const DELETE_STEPS = [
+  // Every environment's services destroyed WITH their data volumes — the archive's own stop, again,
+  // now destroying. FIRST, and only here: the switch-off before it kept everything (I1, I2).
+  'destroy-data',
   // The Manifest IdP's production row — written by a laptop's launch REHEARSAL (D21), which a
   // never-launched project may have run. Sandbox's and staging's went with the archive. A UBC
   // registration is never in this IdP, so there is nothing of UBC's to remove.
@@ -524,14 +530,15 @@ export const DELETE_STEPS = [
 
 export type DeleteStep = (typeof DELETE_STEPS)[number]
 
-interface Deletion {
+/** A teardown whose stop destroys — what `destroy-data` hands the archive's own step. */
+interface Deletion extends Teardown {
   deps: DeleteDeps
-  projectId: string
-  slug: string
-  environments: EnvironmentRow[]
 }
 
 const DELETE_STEP: Record<DeleteStep, (d: Deletion) => Promise<unknown>> = {
+  // The services by the names the releases gave them, as the archive's stop finds them.
+  'destroy-data': (d) => STEP['stop-environments'](d),
+
   'deregister-production-sp': (d) =>
     d.deps.sso.deregisterServiceProvider(d.deps.db, {
       projectId: d.projectId,
@@ -579,8 +586,10 @@ export interface Tombstone {
  *    sunset procedure, and its canonical hostname is permanent, D26), or one whose repository another
  *    source driver made (`409 SOURCE_PROVIDER_MISMATCH`: this driver cannot destroy it, and a delete
  *    that archived first would then stop at that step for ever).
- * 2. **Archived** — the archive's own body, its teardown DESTROYING every data volume rather than
- *    keeping it — then `DELETE_STEPS`.
+ * 2. **Switched off** — the archive's own body, KEEPING everything — then `launched_at` read AGAIN
+ *    (a launch in flight when the delete began is recorded under a lock the switch-off waited for:
+ *    refused then, and left archived); then `project.archived`, and `DELETE_STEPS`, the first of
+ *    which destroys every data volume.
  * 3. `project.deleted` published ONCE, then the row made a TOMBSTONE: `state = 'deleted'`,
  *    `deleted_at`. The row stays because the append-only audit trail references it; the partial
  *    `projects_slug_key` frees its slug. In that order, so a failure between the two is finished by
@@ -617,7 +626,26 @@ export async function deleteProject(
     // Throws SOURCE_PROVIDER_MISMATCH for another driver's repository — before anything is taken down.
     await repositoryOf(deps, { id: input.projectId, slug: project.slug })
 
-    await archiveUnderLock(deps, input.projectId, input.actor, 'delete')
+    const by = await switchOffUnderLock(deps, input.projectId, input.actor)
+    /**
+     * `launched_at` AGAIN (the whole-branch review's I1). A launch's deploy that took production's
+     * environment lock BEFORE the state changed passed its own re-check, and records the launch
+     * inside that lock — after the read above. The switch-off just took every environment's lock
+     * after the state changed, so no launch can be recorded from here on: read now, it is final.
+     * A launched app is never deleted by its owner; it stays switched off, keeping everything.
+     */
+    const [now] = await deps.db
+      .select({ launchedAt: projects.launchedAt })
+      .from(projects)
+      .where(eq(projects.id, input.projectId))
+    if (now?.launchedAt !== null && now?.launchedAt !== undefined) {
+      await publishArchivedOnce(deps, input.projectId, by)
+      throw new ProjectStateError(
+        'PROJECT_LAUNCHED_NOT_DELETABLE',
+        `'${project.slug}' went to production while the delete was starting, so it cannot be deleted. It is switched off (archived), and its code, data and secrets are kept; restore it to bring it back`,
+      )
+    }
+    await publishArchivedOnce(deps, input.projectId, by, 'delete')
     const deletion: Deletion = {
       deps,
       projectId: input.projectId,
@@ -627,6 +655,8 @@ export async function deleteProject(
         .from(environments)
         .where(eq(environments.projectId, input.projectId))
         .orderBy(environments.kind),
+      by,
+      deleteData: true,
     }
     for (const step of DELETE_STEPS) {
       try {
