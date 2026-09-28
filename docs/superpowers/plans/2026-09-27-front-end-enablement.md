@@ -58,8 +58,8 @@
 | 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `DELETE /v1/projects/{projectId}` (person-only, step-up): refused before anything for a launched project (`409 PROJECT_LAUNCHED_NOT_DELETABLE`) or another driver's repository; switched off KEEPING everything under the one project lock, `launched_at` read again (a launch in flight is refused, left archived), then the data, the Manifest IdP's production row, the names (`Driver.removeName`), the model users, the repository and the secrets destroyed; `project.deleted` once; a tombstone (`state = 'deleted'`, migration `0038`); `projects_slug_key` partial, so the slug is free; a deleted project `404` to everyone and absent from every read; driver 2's `destroyRepository` idempotent; one fresh whole-branch review, its four Importants fixed red-first; `make verify`'s probe repaired for the partial index |
 | 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — applied 2026-09-27 (`959af7f`) | **DONE 2026-09-28** — `ai/capable.ts`: `default-chat-large` → `openai/gpt-6-luna` (Rich's choice) at `internal`, registered straight after `listen` under a chosen id, PINNED at the price LiteLLM itself reported (so an offline restart of LiteLLM cannot make it free), a repoint created before the old one goes, a setting LiteLLM will not serve or cannot price refused with the working model kept; the provider key LiteLLM's alone and scrubbed from the control plane (with `MANIFEST_APP_PASSWORD` and `MANIFEST_REHEARSAL_PASSWORD`); live on Rich's key — an agent session listed it, one chat `200`, `spentUsd` read; F12 closed (the front-end's marker on 7105); one fresh whole-branch review, its three Importants fixed red-first; **Spec action 8 drafted** (the fallback) |
 | 9b | 12b | **The capable model's fallback** (Rich, 2026-09-28): a platform setting naming a CATALOGUE entry — `default-chat-onprem` recommended (Ollama on the laptop, Pickerel at UBC) — that LiteLLM's own fallback (`POST /fallback`, measured) answers `default-chat-large` with when its provider fails, the network off included; the fallback's classification enforced by the platform, because the gateway does not check a key's model list before it falls back (measured) | **Yes** — `ai/` | **Spec action 8** — drafted by sitting 9a; ✅ approved (a) and APPLIED 2026-09-28, at 9a's close | **DONE 2026-09-28** — `ai/capable.ts`'s `ensureCapableFallback`: `MANIFEST_CAPABLE_MODEL_FALLBACK` (`default-chat-onprem` by default, EMPTY none) set as `default-chat-large`'s `general` fallback with LiteLLM's own `POST /fallback` straight after the capable model — measured DB-held, surviving a LiteLLM restart and a repoint — **removed by `DELETE` whenever the capable model is absent** (the entry outlives its primary, measured), and **refused unless every deployment of the name is a classified chat entry ranked at least the capable model's** (the gateway falls back without consulting a key's list, measured again); the boot line's `capableFallback`; the admin transport's `delete`; live in the Docker tier — an unreachable primary answered by the on-premise model through a key holding only `default-chat-large`, at the fallback's price; one fresh whole-branch review, its Important (the Docker cases beside the owner's real model) fixed red-first; the contract unchanged |
-| 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | ← next |
-| 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
+| 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-28** — `DELIBERATELY_UNCALLED` empty again, 66 of 66: the console calls every operation this plan added (instances and sandbox-only output on Deploy; binary files previewed, downloaded and uploaded on Code, with the message checked and a commit's 1000-change stop said; name, rename, archive, restore and delete-never-launched on Project, members by CWL login name, email or PUID; agent sessions with the key shown once and the month's budget on Tokens; the intake key on Projects); **FE-24's code** (`INSTANCE_OUTPUT_STAGING`, a sibling code, decided by kind before the driver); **FE-17** (a browser refused at `/auth/*` sees a page); **FE-18** (`dist/` type-checks alone; `erasableSyntaxOnly`); **FE-26 and FE-27** (confirmed by Rich at the open: the mock trusts only its own session, refuses a Bearer where the security names the session alone, 404s ids it does not hold, answers each environment's instances and times from now, scripts its refusal states as options, starts from source); sitting 6's M2 (the signed `RelayState`); clicked against the mock and on the platform, Rich typing the sign-in and one step-up; one fresh whole-branch review, its two Importants fixed red-first; `pnpm test:docker` 246 in 41, green first run |
+| 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5); **and Task 14's `[S10]`** (sandbox-only output, FE-17's page, the mock's rules) | **No** — unless a step reaches `blueprints/` | — | ← next |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -2141,6 +2141,23 @@ and `config.litellm.capableFallback: string | undefined`.
 ---
 
 ## Task 14: The guides — *Building a front-end*, and every guide the API's new surface touches; every code block a run example
+
+> **[S10] — WHAT SITTING 10 BUILT THAT THE GUIDES MUST SAY (Task 13, FE-17, FE-18, FE-24, FE-26, FE-27; 2026-09-28).** (1) **Recent
+> output is SANDBOX-ONLY** (FE-24's code, `bb32fa6`): a staging instance is `403 INSTANCE_OUTPUT_STAGING` — a code of its own beside
+> `INSTANCE_OUTPUT_PRODUCTION`, decided by the environment's kind, so a laptop's staging is refused too; the envelope carries no
+> `hint` (the remedy is the reference's); `InstanceOutput.environmentKind` only ever reads `sandbox`. [S2]'s sentences say *"sandbox
+> and staging"* — correct them, and `agents.md:118`'s *"not available yet"*. (2) **A browser refused at `/auth/*` sees a page**
+> (FE-17, `c944a71`): `Accept: text/html` gets the short page naming the code; everything else keeps the envelope — *Authentication*
+> says so, and that a front-end NEED NOT render `/auth/*` refusals itself. (3) **`manifest-mock`** (FE-26/27, `18f3214`): it trusts
+> only `manifest_session=mock-session` (its own sign-in's) and any Bearer; a Bearer on a session-only operation is `403
+> TOKEN_CREDENTIAL_REFUSED`; a path id it does not hold is `404`; keys' times count from now; the refusal states are options
+> (`MANIFEST_MOCK_LAUNCHED`, `_AGENT_BUDGET=exhausted|unavailable`, `_INTAKE=daily-limit|budget-spent`); it keeps no state and plays no
+> step-up; `pnpm --filter @manifest/mock start` runs from source. *Building a front-end*'s *develop against the mock* section says
+> all of it (RUNBOOK's *Running manifest-mock* is the operator's copy). (4) **FE-18** (`46399c5`): `pnpm --filter @manifest/contract
+> build` is `node build.mjs` and `dist/` now carries `schema.d.ts`, so a sibling may type-check `dist/` alone; its source compiles
+> under `erasableSyntaxOnly`. (5) **Step-up guards `members:manage` too** — measured clicking: adding a member is `403
+> STEP_UP_REQUIRED` without it; *Authentication*'s step-up list names managing members already — check the guides' member examples
+> say so.
 
 > **[S9b] — FROM SITTING 9b (Task 12b, the capable model's fallback; 2026-09-28).** **`agents.md` gained the fallback** (`28d76da`,
 > made true by `2ab13ca` — the review's M7): when `default-chat-large`'s provider cannot answer, the network off included, the
@@ -4713,3 +4730,134 @@ pages** were checked: none changed — the schematic already says, in present te
 cannot be reached (now true); WALKTHROUGH's LiteLLM row names the fallback.
 
 **Next: sitting 10 (Task 13 — the console and the mock).** §7e carries what Task 13's text does not say.
+
+### Sitting 10 — 2026-09-28: Task 13, the console and the mock — with FE-24, FE-17, FE-18, FE-26 and FE-27
+
+**Run from ORIENTATION §7e** at Rich's *"read … ORIENTATION.md and then tell me what that next sitting is"*, with the faculty front-end's
+session beside it — `manifest-app-fa`, then from mid-sitting **`manifest-app-6a`** (Rich: *"a new agent will be continuing"*), then during
+the close-out **`manifest-app-c4`** (Rich: *"I'm going to ask a new agent to start the next sitting"*). **Messaged
+first**, as §7e asked; both agreed nothing of theirs on 7100 must survive, and each contract and mock commit was messaged as it landed.
+**Rich confirmed in this session's first exchange that FE-26 and FE-27 join Task 13** (*"Both join Task 13"*) and that he would do the
+clicked half. Inline execution (`superpowers:executing-plans`), on `main`; one fresh whole-branch reviewer (Opus, read-only, told never
+to run a test) beside the owed Docker tier. Commits: `bb32fa6` (FE-24), `46399c5` (FE-18), `18f3214` (the mock), `c944a71` (FE-17),
+`a97604e` (M2), `59eb75f` (the console), `63437d5` (fixes found by clicking), `c33d4df` (the review's fix pass), and the close-out.
+
+**What it built.** **FE-24's code** — `getInstanceOutput` refuses a staging instance `403 INSTANCE_OUTPUT_STAGING`, a SIBLING of the
+production code (D23.8), decided from the environment's kind after the capability check and before the instance's state or the driver;
+the output reads moved to sandbox deploys (`TestProject.sandboxEnvironmentId`), the matrix gained a staging row, the example reads a
+sandbox. **FE-18** — `@manifest/contract`'s build is `node build.mjs` (`tsc` then a copy of `schema.d.ts`), `ManifestApiError`'s
+parameter properties are fields, `erasableSyntaxOnly` in its tsconfig; `src/dist.test.ts` type-checks a consumer of `dist/` alone and of
+`src/` under `erasableSyntaxOnly`. **The mock** — FE-26 (only `mock-session`; a Bearer on a session-only operation `403
+TOKEN_CREDENTIAL_REFUSED`; starts from source), FE-27 (`HELD`: `404 NOT_FOUND` for a path id it does not hold; each environment's
+instances, the sandbox serving one beside an earlier failed one; keys timed from the request; agent and intake sessions keyed; approval
+previews keyed; a sandbox deploy answers the sandbox's instance), and Task 13's states (the sandbox instance's output with a redacted and
+a cut line; agent sessions, budget, intake; rename, archive, restore, delete; base64 `getFile`; `MANIFEST_MOCK_LAUNCHED`,
+`_AGENT_BUDGET`, `_INTAKE`). **FE-17** — `api/auth-page.ts`: a browser refused at `/auth/*` sees a short page. **M2** —
+`signedRelayState`. **The console** — the twelve callers and every screen Task 13 names; `DELIBERATELY_UNCALLED` empty, 66 of 66.
+
+**Rulings** (the ledger's `Task 13:` and `Final: Ruling:` lines, each with its cost if wrong):
+- **FE-26 keys only the session**; any Bearer is still accepted on either-credential operations — the mock has no token store and the
+  guides' examples send one it never minted.
+- **FE-27 is "keyed on what names each answer"**; `createProject`, `mintToken`, `createCommit` and `checkSlug` still answer their fixtures
+  (a stateless mock cannot make a created project readable under its asked slug; restating §23's labels would drift) — `startAgentSession`
+  and `updateProject` DO answer the name asked.
+- **The mock keeps NO state** (P5c Decision 9): the plan's *"a 404 for the deleted project afterwards"* is the platform's to show.
+- **Its refusal states are OPTIONS**, like `MANIFEST_MOCK_FAIL`; **its sandbox gains a serving instance** (only a sandbox's output is
+  readable now); **it plays no step-up** (unchanged).
+- **FE-17 is a PAGE, not a redirect with a code** — nothing is asked of either front-end, and the console's `/` sits behind sign-in, so a
+  refused sign-in redirected there loops to the IdP.
+- **`InstanceOutput.environmentKind` keeps `staging` in its enum** — removing a response value breaks a consumer that switches on it.
+- **The staging refusal carries no `hint`** — an `OutputError` envelope has none (Task 3's); the test asserts the message.
+- **`[S6]` (5), M3 (a non-canonical configured origin), NOT built** — the plan conditions it on touching config. **Carry it**: a mistyped
+  `MANIFEST_ORIGINS` entry refuses every mutation `403 CSRF_ORIGIN_REFUSED` with no `ConfigError` (the review asks it carried prominently).
+- **`INSTANCE_OUTPUT_STAGING` is not reachable through the console** — it offers output for the sandbox alone and says why; the unit
+  tier, the matrix and the mock reach it. **`PROJECT_LAUNCHED_NOT_DELETABLE`, `AGENT_BUDGET_EXHAUSTED` and `INTAKE_DAILY_LIMIT_REACHED`
+  were reached on screen in the mock half**, not against the platform (no launched project after the unit tier's truncate; a spent month
+  is not a click) — which proves the console's handling, not the platform's wording (the unit tier holds that).
+- **Upload defaults to `public/<file name>`**; **delete asks for the slug typed** before its button enables.
+- **The review's I1 and I2 fixed red-first; M4 was this sitting's own text, corrected** (9b's precedent); **M3, M5–M10 deferred**; the
+  reviewer's twelve declined lines stand.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 The console's `Field` rendered a `<p>` that held lists, forms, divs and `<pre>`s** — React logged `In HTML, <ul> cannot be a
+   descendant of <p>` on the Project screen; three of the four were this sitting's (instances, output, rename) and **one pre-dated the
+   plan** (Overview's *Environments* `<ul>`, since P5c) — no gate reads the browser console. `Field` is a `<div>` (`.field` sets its own
+   margin, so nothing moved).
+2. **F2 "until in 60m" and "until in 30m"** — `<Instant>` already says *"in"*; found clicking both key panels.
+3. **F3 "ended 1h ago (ended)"** — an ended session's `endReason` repeated its state; now shown only when it is not `ended`.
+4. **F4 The session cap's placeholder was clipped to "the platfo"** in its narrow input — now *"optional"*.
+5. **F5 The console's mock proxy was hard-coded to 7102**, which another session's mock held — so this console could not be driven
+   against a second mock without stopping the first; `vite.config.ts` now reads `MANIFEST_MOCK_PORT`.
+6. **F6 The mock's `getPendingAction` answered the CONFIRMED action for ANY id it did not hold** (a lie outside FE-27's list), found
+   writing FE-27's 404 test; `HELD` now answers `404`.
+7. **F7 The mock's `getApprovalPreview` answered one preview for every id**, so its *withheld* and *unavailable* fixtures were
+   unreachable over HTTP; each of the three answers as itself.
+8. **F8 The mock's `deploy` answered STAGING's instance to a sandbox deploy** (`environmentId` staging); a sandbox deploy answers the
+   sandbox's.
+9. **F9 After FE-24, four statements said staging output was readable** — the operation's documented example (a staging read, an
+   answer the route now refuses), `InstanceOutput`'s description, and the `output:read` comments in `projects/authz.ts` and
+   `screens/tokens.tsx`.
+10. **F10 `MockRefusal`'s constructor parameter properties stopped the mock starting from source** — Node's own type stripping refuses
+    them — found making FE-26 (b) work; fields now.
+11. **F11 My FE-24 test assumed the refusal carried a `hint`**; an `OutputError` envelope has none — the test was wrong, not the route.
+12. **F12 (the review's I1) After a delete that stopped part way, the Ending panel promised a restore kept everything** — the project
+    is left archived with something destroyed, and `deleteProject`'s own description says to finish the delete. **RED first**
+    (`ending-state.test.ts`, the words inline in the screen) → `ending-state.ts`'s `RESTORE_SENTENCE` and `deleteRefusalAdvice`.
+13. **F13 (the review's I2) The mock's `AGENT_BUDGET=unavailable` answered a session start `201`** where the platform — which reads the
+    month fresh — answers `503 AI_BACKEND_UNAVAILABLE`. **RED first** (*"expected 201 to be 503"*) → the platform's words.
+14. **F14 (the review's M4) This sitting's insertions left two doc comments above the wrong function** in `api.ts` (and one in
+    `api.test.ts`), and `routes/instances.ts`'s example comment still said staging — corrected.
+15. **F15 Adding a member needs step-up too** (`members:manage`, `403 STEP_UP_REQUIRED` measured clicking) — Task 13's Step 2 named only
+    archive and delete; the one step-up covered all three inside its ten minutes.
+16. **F16 `PROJECT_LAST_OWNER`'s hint says *"…then remove this one"* for a DEMOTION too** — the platform's wording (`projects/`), read on
+    screen; not this plan's, carried.
+17. **F17 The Chrome extension's element-reference clicks did not fire React's `onClick` on the console** (three times: *Start
+    describing*, two *Recent output* buttons); coordinate and page-script clicks did — a tooling trap, now in TRAPS.md.
+18. **F18 9b's sweep left the roadmap's plan heading saying *"SITTING 9b … IS NEXT"*** after 9b closed — found opening it for this
+    close-out; it now says 9b and 10 are done, and names no next job (ORIENTATION §7e and the sittings table do).
+19. **F19 My own new §7e named `manifest-app-6a` as the live front-end session** — `manifest-app-c4` had taken over during this
+    close-out; found by the post-sweep check (§7e now says a name changes at every handover: send to what `ListAgents` prints).
+
+**Negative controls** (Task 13's Step 4, predicted in writing first, `s10-predictions-controls.md`): **(a)** `getAgentBudget`'s caller
+removed → `coverage.test.ts` red naming `GET /v1/agent-budget (getAgentBudget)` and `api.test.ts` red (`TypeError`) — as predicted;
+**(b)** a `listInstances` park left behind → the stale-park check red naming it — as predicted; **(c)** a key in the sessions list from a
+cached state → no test can see it (no DOM tier) — the browser reload is the check, and **measured twice**: after a reload the key panel is
+gone, against the mock and on the platform. Each break restored by `git checkout`; tree clean after each. **The new tests' own REDs**:
+FE-24 (a staging read `200`), FE-18 (TS2307 ×4, TS1294 ×3), the mock 17 of 17, FE-17 4 of 5 (the non-`/auth` control green), M2 (`400`
+where `302` belongs), the console (`TypeError`, six `code-state` REDs), I1, I2.
+
+**The clicked half.** *Against the mock* (my own on 7112 — the front-end's 7102 untouched — and the console `vite` on 7104): every new
+control clicked; the redacted and cut output lines; `INSTANCE_OUTPUT_UNAVAILABLE` in the platform's words; the key shown once and gone after
+a reload; restarted with the three refusal options — `INTAKE_DAILY_LIMIT_REACHED`, `AGENT_BUDGET_EXHAUSTED` and *"cannot be deleted"*
+rendered. *On the platform* (the console's `preview` build through the edge; **Rich typed the sign-in and one step-up**): FE-17's page
+through the edge; a real intake key started and ended; `s10-throwaway` created, renamed (`project.renamed` names who), built, released and
+deployed to the sandbox — its real output line read through the console; a real 48×48 PNG uploaded, an ESC in the message refused before
+sending, checked, committed, marked binary by the tree and previewed from its bytes; an agent session started (the key once, six models),
+ended, gone after a reload; then, stepped up: `MEMBER_USER_NOT_FOUND` and `PROJECT_LAST_OWNER` on screen, **Switch it off** (its sandbox
+address answered `410` *Switched off*), **Restore**, and **Delete** (typed slug → back at `/`, the old URL `NOT_FOUND`). `launch-app` and
+every other project untouched.
+
+**Gates at the close** (`63437d5` → `c33d4df`): `pnpm test:docker` **246 in 41**, green first run, 1145 s, on `63437d5` beside the
+reviewer — exactly as predicted (no Docker file changed; owed by `observability/output.ts`); the fix pass touched no owing path.
+`pnpm test` on the final tree (`c33d4df`): **run 1 2769 of 2771** — two
+5-second timeouts at load 6–7, in `api/intake.test.ts` and `api/webhooks.test.ts`, neither touched by this sitting, both green re-run
+alone (29 of 29, at load 12–17), so load, not a leak (§4's trap) — 854 s; **run 2 2771 passed, 0 skipped, in 179 files**, 847 s, load
+~6–13 — **exactly as predicted** (2726 + 29 package tests + 16 unit tests, four new files); `make doctor` **20 / 0 / 0**; `make verify`
+**61 / 0 / 0**; `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean. `scripts/ci-acceptance.sh` reads `2771 / 179 / 20 / 61`.
+
+**The machine at the close** (queried, not remembered): 
+
+- the control database: **2 projects — `fixture-f44d79da` and `other-5a3899cc`, the fixture rows of this sitting's last single-file
+  re-run** (a test resets at its start, not its end), 6 events, 3 users, 0 instances, 0 agent sessions, 1 intake session, **39
+  migrations** (`psql`); every row the sitting's clicks made (`s10-throwaway`, deleted anyway) truncated by the final runs;
+- **`launch-app`'s six `mf-launch-app-*` containers and the faculty front-end's `f3-measure-mulp4617` sandbox's three**, running with no
+  rows behind them (the front-end said nothing of theirs must survive) — left as found; no other `mf-` container;
+- **THE CONTROL PLANE RUNNING** — PID 89341 on 7100, started detached (`nohup`) from Rich's `.env` by RUNBOOK's block (the plan's
+  git-ignored `.superpowers/sdd/2026-09-27-front-end-enablement/s10-cp-start.sh`, logging beside it to `close-s10-cp.log`), boot line
+  **`"capableModel":"registered"`, `"capableFallback":"set"`**, `"secretsScrubbed":14`; **7102 and 7105 are the faculty front-end's**
+  (node 83842 and 85878 — never stop them); nothing on 7104 or 7112 (this sitting's console and mock, stopped);
+- **LiteLLM**: `default-chat-large` → `openai/gpt-6-luna`, one row; its fallback `default-chat-onprem` (`general`); 3 LiteLLM users;
+- both Ollama models unloaded (`/api/ps` empty); the GitHub fake absent; the edge restarted by the Docker tier;
+- the three cleanup scripts clean after `--apply` (allowed — `bash scripts/<name>.sh`) and bare again after: nothing dead, 0 app images;
+  `make verify`'s INFO `mf- containers=9 networks=3 volumes=6`; `make doctor` 20/0/0; free disk 52 Gi (54 at open).

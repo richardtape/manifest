@@ -145,8 +145,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then its sitting 9b (2026-09-28, the capable model's fallback): +19, no new file — `ai/capable.test.ts`
 # (17: the fallback's 12 and the boot's 5), `config.test.ts`'s fallback setting (1) and `ai/client.test.ts`'s
 # DELETE (1).
-EXPECT_TESTS=2726
-EXPECT_FILES=175
+# Then its sitting 10 (2026-09-28, the console and the mock): +45 and four files — `mock/src/scripted.test.ts`
+# (17, new), `contract/src/dist.test.ts` (2, new), `api/auth-page.test.ts` (5, new), `console/src/ending-state.test.ts`
+# (4, new), `console/src/code-state.test.ts` (5), `console/src/api.test.ts` (1), `api/instances.test.ts` (1),
+# `api/logout.test.ts` (1), and the matrix's staging-output row (9).
+EXPECT_TESTS=2771
+EXPECT_FILES=179
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=61
 

@@ -2212,3 +2212,15 @@ red. When a control must write a value to compile or to continue, write the one 
 **ONE DOCKER FILE RUNS FROM THE REPOSITORY ROOT.** `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker
 packages/control-plane/src/ai/capable.docker.test.ts` works from the root (the `docker` project is defined in the root
 `vitest.config.ts`); the same command from `packages/control-plane/` prints `No test files found` and exits 1 (sitting 9b).
+
+**THE CHROME EXTENSION'S ELEMENT-REFERENCE CLICK DID NOT FIRE REACT'S `onClick` ON THE CONSOLE** (the front-end enablement plan's
+sitting 10). Three times — *Start describing* and two *Recent output* buttons — a `left_click` by `ref` reported success and nothing
+happened (no request, no state change, no refusal); the same button clicked by COORDINATES, or by `element.click()` from a page
+script, worked every time. Measured against `vite dev` and `vite preview` alike. **After a ref click, read the screen before believing
+it**; drive a React control by coordinates or a page script, and set an input's value through the native setter plus an `input`
+event, which is what React listens for.
+
+**A `<p>` THAT HOLDS A LIST IS AN ERROR ONLY THE BROWSER'S CONSOLE REPORTS** (sitting 10, F1). The console's `Field` rendered a `<p>`,
+and a list, a form or a refusal inside it made React log `In HTML, <ul> cannot be a descendant of <p>` — one case since P5c — which
+no gate reads, because the console has no DOM tier. `Field` is a `<div>` now; **read the browser console when clicking a screen**
+(`read_console_messages` with a pattern), and put block content in a `Field` freely.
