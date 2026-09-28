@@ -18,7 +18,8 @@ export async function readAFile(
     }),
     'getTree',
   )
-  // Never guess a path: list the tree. A binary file is listed and cannot be read as text.
+  // Never guess a path: list the tree. A binary file is listed too — read it as bytes, with
+  // `encoding=base64`, never as text.
   const entry = tree.entries.find((e) => e.path === path && e.type === 'file')
   if (entry === undefined || entry.binary === true) {
     throw new Error(`${path} is not a text file at ${tree.commitSha}`)

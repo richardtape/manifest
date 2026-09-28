@@ -1,12 +1,12 @@
 # Authoring
 
-How to read and change an app’s code through the API — the tree, a file, the history and one commit; a commit and its dry run; what is refused and why; and who a commit is attributed to. For a developer building an editor and for an agent writing an app.
+How to read and change an app’s code through the API — the tree, a file, the history and one commit; a commit and its dry run; images, PDFs and fonts as bytes; what is refused and why; and who a commit is attributed to. For a developer building an editor and for an agent writing an app.
 
 ## Reading
 
 - **`getTree`** lists every entry at a ref — `main` unless you name another branch or a full commit id — and answers the commit it read (`commitSha`). Each entry says whether it is a `file`, a `directory`, a `symlink` or a `submodule`, and a file whether it is `binary`.
-- **`getFile`** answers one text file’s content. `path` and `ref` are QUERY parameters (`?path=server.js&ref=<commit>`). Read it at the commit the tree was read at (`ref`), so the two agree. A binary file, or one that is not UTF-8, is `409 SOURCE_FILE_NOT_TEXT`; one over 1 MiB is `409 SOURCE_FILE_TOO_LARGE`; a path that is not a file is `409 SOURCE_PATH_NOT_A_FILE`.
-- **`listCommits`** is `main`’s history, newest first, paged; **`getCommit`** is one commit and what it changed — each file with its line counts and a unified diff.
+- **`getFile`** answers one file’s content — as text, or as bytes with `encoding=base64`. `path`, `ref` and `encoding` are QUERY parameters (`?path=server.js&ref=<commit>`). Read it at the commit the tree was read at (`ref`), so the two agree. As text, a binary file, or one that is not UTF-8, is `409 SOURCE_FILE_NOT_TEXT` — read it as bytes — and one over 1 MiB is `409 SOURCE_FILE_TOO_LARGE`; as bytes, any file up to 2 MiB is read. A path that is not a file is `409 SOURCE_PATH_NOT_A_FILE`. Every answer says its `encoding`.
+- **`listCommits`** is `main`’s history, newest first, paged; **`getCommit`** is one commit and what it changed — each file with its line counts and a unified diff, at most 1000 files, the first by path, with `truncated: true` when it changed more (read the rest with git).
 
 <!-- example: example-read -->
 
@@ -31,7 +31,8 @@ export async function readAFile(
     }),
     'getTree',
   )
-  // Never guess a path: list the tree. A binary file is listed and cannot be read as text.
+  // Never guess a path: list the tree. A binary file is listed too — read it as bytes, with
+  // `encoding=base64`, never as text.
   const entry = tree.entries.find((e) => e.path === path && e.type === 'file')
   if (entry === undefined || entry.binary === true) {
     throw new Error(`${path} is not a text file at ${tree.commitSha}`)
@@ -54,11 +55,11 @@ export async function readAFile(
 
 ## Committing
 
-**`createCommit`** writes and deletes text files on `main` as one commit. Its body names:
+**`createCommit`** writes and deletes files on `main` as one commit — text, or an image, a PDF or a font as its bytes (*Images, PDFs and fonts*, below). Its body names:
 
 - **`baseCommit`** — the commit you read, and computed your change from. Required.
-- **`message`** — the commit message; its first line is what the history shows.
-- **`changes`** — each `{ "op": "write", "path", "content" }` or `{ "op": "delete", "path" }`.
+- **`message`** — the commit message; its first line is what the history shows. Well-formed Unicode with no control character but a line break and a tab.
+- **`changes`** — each `{ "op": "write", "path", "content" }` (with `"encoding": "base64"` for bytes) or `{ "op": "delete", "path" }`.
 
 Every change is checked before anything is written, in this order: the request’s shape, the paths, secrets in the files and in the message, the base, the tree, and the manifest.yaml the commit would leave. Only when all pass is anything written. The answer is the new commit, what changed, and its manifest’s validation.
 
@@ -187,12 +188,90 @@ export async function commitOnWhatIsThere(
 
 <!-- /example -->
 
+## Images, PDFs and fonts
+
+A write carries a file’s bytes with `encoding: 'base64'`: canonical base64 of at most 2 MiB, at a path ending in `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.ico`, `.pdf`, `.woff`, `.woff2`, `.ttf` or `.otf`, whose first bytes are one of those ten kinds. The kind is recognised from the bytes — so a PNG named `.jpg` is accepted, as a PNG — and anything else sent as bytes is refused `400 REQUEST_INVALID`, **text included: send text as text**. Two 2 MiB files fit in one commit’s 8 MiB request. Read any file back as bytes with `getFile` and `encoding=base64`.
+
+<!-- example: example-binary -->
+
+```ts
+import { createManifestClient, idempotencyKey, unwrap } from '@manifest/contract'
+
+/**
+ * Commit an image, a PDF or a font as its BYTES: `encoding: 'base64'` on the write, the bytes as
+ * canonical base64, at most 2 MiB, at a path ending in one of the ten kinds' extensions. Text is
+ * never sent as bytes — it is refused; send it as text. In a browser, base64 a `File` with
+ * `FileReader.readAsDataURL` and keep what follows the comma.
+ */
+export async function commitAFile(
+  origin: string,
+  token: string,
+  projectId: string,
+  path: string,
+  bytes: Uint8Array,
+  message: string,
+): Promise<string> {
+  const client = createManifestClient({ origin, token })
+  const tree = unwrap(
+    await client.GET('/v1/projects/{projectId}/tree', {
+      params: { path: { projectId } },
+    }),
+    'getTree',
+  )
+  const outcome = unwrap(
+    await client.POST('/v1/projects/{projectId}/commits', {
+      params: { path: { projectId }, header: { 'Idempotency-Key': idempotencyKey() } },
+      body: {
+        baseCommit: tree.commitSha,
+        message,
+        changes: [
+          {
+            op: 'write',
+            path,
+            content: Buffer.from(bytes).toString('base64'),
+            encoding: 'base64',
+          },
+        ],
+      },
+    }),
+    'createCommit',
+  )
+  if (outcome.commitSha === null)
+    throw new Error('a commit that is not a dry run has an id')
+  return outcome.commitSha
+}
+
+/**
+ * Read any file as bytes — an image, or text — up to 2 MiB: `getFile` with `encoding=base64`.
+ * `getTree` marks a binary file `binary: true`; read those this way.
+ */
+export async function readBytes(
+  origin: string,
+  token: string,
+  projectId: string,
+  path: string,
+  ref: string,
+): Promise<Uint8Array> {
+  const client = createManifestClient({ origin, token })
+  const file = unwrap(
+    await client.GET('/v1/projects/{projectId}/file', {
+      params: { path: { projectId }, query: { path, ref, encoding: 'base64' } },
+    }),
+    'getFile',
+  )
+  return new Uint8Array(Buffer.from(file.content, 'base64'))
+}
+```
+
+<!-- /example -->
+
 ## What is refused, and why
 
 - **Paths.** Relative and `/`-separated; at most 1024 bytes, 255 per part and 32 parts deep; no empty, `.` or `..` part, no backslash, no control character; and nothing inside `.git`, in any case. Each is `400 REQUEST_INVALID`, naming the change and the rule.
-- **Text only.** A write’s `content` is well-formed Unicode with no NUL, written as its UTF-8 bytes exactly — at most 1 MiB of it per file, 500 changes per commit, 8 MiB per request. A new file is created as an ordinary file; an existing one keeps its mode.
-- **The tree.** A write where a directory is, or under a file, a symbolic link or a submodule; a write to a symbolic link; deleting a directory; or naming one path twice — each is `409 SOURCE_PATH_CONFLICT`. Deleting a path that is not there is `409 SOURCE_PATH_NOT_FOUND`. A commit that changes nothing is `409 SOURCE_NOTHING_TO_COMMIT`.
-- **Secrets.** Content or a message carrying something shaped like a credential is `409 SOURCE_SECRET_DETECTED`, naming the file, the line and the rule — never the value. Declare the secret in manifest.yaml and set its value with `setAppSecret` (*Secrets*).
+- **Text, or one of ten kinds of bytes.** A text write’s `content` is well-formed Unicode with no NUL, written as its UTF-8 bytes exactly — at most 1 MiB of it per file; a write in bytes is one of the ten kinds above, at most 2 MiB. At most 500 changes per commit, and 8 MiB per request. A new file is created as an ordinary file; an existing one keeps its mode.
+- **The message.** A NUL, a carriage return, an escape or any other control character but a line break and a tab is `400 REQUEST_INVALID`, checked with the request’s shape — before the secret scan.
+- **The tree.** A write where a directory is, or under a file, a symbolic link or a submodule; a write to a symbolic link; deleting a directory; naming one path twice; or a file and a directory at one path in the same commit (`docs` and `docs/intro.md`) — each is `409 SOURCE_PATH_CONFLICT`. Deleting a path that is not there is `409 SOURCE_PATH_NOT_FOUND`. A commit that changes nothing is `409 SOURCE_NOTHING_TO_COMMIT`.
+- **Secrets.** Content or a message carrying something shaped like a credential is `409 SOURCE_SECRET_DETECTED`, naming the file, the line and the rule — never the value. Declare the secret in manifest.yaml and set its value with `setAppSecret` (*Secrets*). **A file in bytes is scanned by its printable text only**, and its `line` counts those runs of text: text a PDF stores compressed, text in UTF-16 and a PNG’s compressed text chunks are not scanned — so never put a credential in one.
 - **The manifest.** A commit that would leave manifest.yaml invalid — deleting it included — is `422 SPEC_INVALID`, with every problem in `details`. manifest.yaml must name the project’s own blueprint.
 - **A `Dockerfile` or `.npmrc`** is accepted and committed, and **replaced by the blueprint’s at build**: the blueprint owns how an app is built, and an app declares what it needs in manifest.yaml.
 

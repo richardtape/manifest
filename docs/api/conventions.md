@@ -10,7 +10,8 @@ Every resource route is under `/v1`. Within `/v1` the API only grows: an answer 
 
 **Every mutation carries an `Idempotency-Key` header** — a new random value of at least eight characters, a UUID, for each action a person or an agent takes. Without one it is `400 IDEMPOTENCY_KEY_REQUIRED`.
 
-- **Reuse the key when you retry the same action.** A request that timed out may have succeeded; send it again with the same key and exactly the same body, and you are answered the first result — the commit made once, the project created once. **The one exception is minting a token**: its secret is answered to the first request alone, so a retry is `409 TOKEN_ALREADY_MINTED`, naming the token it minted ([Authentication](authentication.md)).
+- **Reuse the key when you retry the same action.** A request that timed out may have succeeded; send it again with the same key and exactly the same body, and you are answered the first result — the commit made once, the project created once. **The exception is an answer that carries a credential, which is answered to the first request alone**: minting a token (a retry is `409 TOKEN_ALREADY_MINTED`, naming the token — [Authentication](authentication.md)), and starting an agent or intake session (`409 AGENT_SESSION_ALREADY_STARTED`, `409 INTAKE_SESSION_ALREADY_STARTED`, naming the session). If that first answer was lost, end or revoke what the refusal names, and start again with a new key.
+- **A refused request is not remembered.** Nothing is recorded for a request that failed, so once you have dealt with the refusal you may send it again with the same key — and a failure the platform asks you to repeat, such as `500 PROJECT_TEARDOWN_INCOMPLETE`, is repeated with the same key and body.
 - **A new action is a new key.** The same key with a different body — or on another resource, such as another environment's secret — is `409 IDEMPOTENCY_KEY_REUSED`.
 - **A dry run is a new key every time**: it writes nothing, so a replay protects nothing, and would answer a check made before the code moved.
 - A retry that spans the platform rotating its session secret is `409 IDEMPOTENCY_KEY_REUSED`: send it again with a new key.
@@ -101,12 +102,12 @@ An operation that starts something long answers **`202`** with the thing in its 
 
 ## Paging
 
-A list that can be long takes `cursor` and answers `next`: pass `next` as `cursor` for the following page, until `next` is `null`. The history of a project’s commits (`listCommits`) pages this way.
+A list that can be long takes `cursor` and answers `next`: pass `next` as `cursor` for the following page, until `next` is `null`. The history of a project’s commits (`listCommits`) pages this way. **A list that is bounded instead** answers at most its bound and says `truncated: true` when there was more: an environment’s instances (`listInstances`) and a project’s agent sessions (`listAgentSessions`), newest first, at most 50 each; one commit’s changed files (`getCommit`), at most 1000.
 
 ## Limits
 
 - **A request body is at most 1 MiB**, except a commit’s (`createCommit`), which is at most 8 MiB; larger is `413 REQUEST_BODY_TOO_LARGE`.
-- **A request with no body carries no `Content-Type`** — a `GET`, and a `DELETE` that takes none (`clearAppSecret`, `revokeToken`). Sent with `Content-Type: application/json` and no body, it is `400 REQUEST_INVALID`. The generated client already omits it; a `curl` must too.
+- **A request with no body carries no `Content-Type`** — a `GET`; every `DELETE`, none of which takes a body (`clearAppSecret`, `revokeToken`, `removeMember`, `endAgentSession`, `endIntakeSession`, `deleteProject`); and the three `POST`s that take none (`startIntakeSession`, `runRehearsal`, `createApprovalPreview`). Sent with `Content-Type: application/json` and no body, it is `400 REQUEST_INVALID`. The generated client already omits it; a `curl` must too.
 - A body is JSON, sent as `Content-Type: application/json`; anything else is `415 REQUEST_MEDIA_TYPE_UNSUPPORTED`.
 - A delegated token has its own rate limit (*Authentication*).
 - A path that matches no route is `404 ROUTE_NOT_FOUND`.

@@ -10,13 +10,15 @@ Your first calls:
 
 1. `getDoc` with the slug `agents` — this page. `listDocs` lists the others; `getOpenApiDocument` is the whole API.
 2. `getProject` for the project you were given (or `listProjects`, to find its id), and `getBlueprint` for its `blueprint`.
-3. `getKnowledgePack` for that blueprint — how an app on it is written. The pack is prose; the blueprint's CODE — its skeleton, which the pack describes file by file — is already in your project, because a project starts as that skeleton: `getTree` lists it.
+3. `getKnowledgePack` for that blueprint — how an app on it is written. The pack is prose; the blueprint's CODE — its skeleton, which the pack describes file by file — is already in your project, because a project starts as that skeleton: `getTree` lists it. **Read the pack before you replace a file of the skeleton**: an app that replaces `server.js` must keep what the pack says it keeps — `express.urlencoded` among it, without which CWL's sign-in answer is never read and nobody can sign in.
 
 `getMe` is not one of them: it answers who a SESSION belongs to, and a token asking is refused `403 TOKEN_CREDENTIAL_REFUSED`. A token acts as the person who minted it.
 
-### The models you may call
+### Your model key, and the models you may call
 
-A model key comes from `startAgentSession`, answered once, beside the `baseUrl` it is used at. It is charged to the person, within their month and the session's cap. **The session's `models` lists every model the key may call. Read the names from there and never assume one**: the list follows the project's data classification, and a `confidential` project's key reaches on-premise models only.
+If you need a model, ask for a key with `startAgentSession` — a name for the task, and optionally a cap (`capUsd`) and a life (`durationMinutes`). **The key is in that answer and nowhere else**, beside the `baseUrl` it is used at: send it as `Authorization: Bearer …` to that OpenAI-compatible API, keep it in memory, and never write it to a file, a commit or a log. It is charged to the person your token acts for, within their month and the session's cap; it never outlives your token; and it calls models and nothing else. A retry with the same `Idempotency-Key` is `409 AGENT_SESSION_ALREADY_STARTED`, naming the session and never the key — end that one and start another. `getAgentBudget` is the person's month and `listAgentSessions` what each session has spent — `null` with a reason, never `0`, when the gateway cannot say. **End the session when the work is done** (`endAgentSession`); it is ended for you if your token is revoked or the project is switched off. *Building a front-end* has the whole of it in code.
+
+**The session's `models` lists every model the key may call. Read the names from there and never assume one**: the list follows the project's data classification, and a `confidential` project's key reaches on-premise models only.
 
 - **`default-chat-large` is the capable model**, for work a small model cannot do well, such as writing an app. Use it when it is listed. It is listed only where the platform offers one and the project's data may leave on-premise hardware (`internal` or `public`). Its own answers need the network, and every call costs the person real money.
 - **When its provider cannot answer — the network off included — the platform's on-premise model answers `default-chat-large` in its place**, wherever the platform sets one (it does by default), charged to the same key at the on-premise model's price. Such an answer carries the response header `x-litellm-attempted-fallbacks: 1`, and its `model` names the on-premise model rather than the capable one: check the header before you rely on the answer's quality, because it is a smaller model's work. If no fallback is set, or it cannot answer either, the call fails like any other: choose another model from `models`.
@@ -55,7 +57,7 @@ A model key comes from `startAgentSession`, answered once, beside the `baseUrl` 
 - `rejected` is final; `pendingAction.reason` is their reason. Do not ask again for the same thing.
 - `expired` means nobody answered in time.
 
-Some things are a person’s alone, and a token that asks is refused outright with `403 TOKEN_CREDENTIAL_REFUSED` — no question is created, and none would change the answer: approving a release for production, recording UBC’s IAM registration or privacy assessment, minting a token, creating a project, and setting a production secret’s value, which also asks the person to sign in again first (`STEP_UP_REQUIRED`). Reading who is signed in (`getMe`) and a project’s tokens (`listTokens`) are a session’s too. An operation’s description says when a token is refused.
+Some things are a person’s alone, and a token that asks is refused outright with `403 TOKEN_CREDENTIAL_REFUSED` — no question is created, and none would change the answer: approving a release for production, recording UBC’s IAM registration or privacy assessment, minting a token, creating a project, switching an app off, bringing it back or deleting it, and setting a production secret’s value, which also asks the person to sign in again first (`STEP_UP_REQUIRED`). Reading who is signed in (`getMe`) and a project’s tokens (`listTokens`) are a session’s too. An operation’s description says when a token is refused.
 
 <!-- example: example-pending -->
 
@@ -114,5 +116,90 @@ export async function waitForAPerson(
 - `404 NOT_FOUND` — the id is wrong, or the resource is another project’s. A token sees one project.
 - `429 RATE_LIMITED` — wait the seconds `Retry-After` gives, then retry. Your token’s limit was fixed when it was minted.
 - A `409` from the source family — `SOURCE_CONFLICT`, `SOURCE_PATH_CONFLICT`, `SOURCE_PATH_NOT_FOUND`, `SOURCE_NOTHING_TO_COMMIT` — is about the code as it is now: read it again.
+- `409 PROJECT_ARCHIVED` — the person switched the app off. Nothing about it can change, and your token was revoked with it: stop, and tell them.
+- `409 AGENT_BUDGET_EXHAUSTED` — the person’s month is spent. No key is issued; tell them when it resets (`getAgentBudget`).
+- `403 INSTANCE_OUTPUT_STAGING` or `INSTANCE_OUTPUT_PRODUCTION` — only a sandbox instance’s output is readable. `409 INSTANCE_OUTPUT_UNAVAILABLE` — the instance no longer runs; its Incident has its last lines.
 
-Reading a running app’s own output is not available yet; *The journey* says what is planned.
+## Reading what your app printed
+
+To debug an app, deploy it to the **sandbox** and read what it printed: `listInstances` for the sandbox environment says which instance is `serving`, and `getInstanceOutput` answers its last lines, oldest first, redacted. Only a sandbox instance’s output is readable — staging and production serve real people, and each is refused by its own code — so deploy the release you are debugging to the sandbox. You are answered at most the `lines` you asked for (200 by default, at most 1000); a line longer than 4 KiB ends `…[cut: N bytes]`. Nothing is kept: read again to see newer lines, and read a failed instance’s Incident (`listIncidents`) once it no longer runs. Never print a secret to find out whether it arrived: the redaction is a safety net, not a guarantee.
+
+<!-- example: example-output -->
+
+```ts
+import {
+  createManifestClient,
+  ManifestApiError,
+  unwrap,
+  type Schemas,
+} from '@manifest/contract'
+
+export type AppOutput =
+  | { read: true; instanceId: string; lines: Schemas['InstanceOutput']['lines'] }
+  | { read: false; instanceId: string | null; code: string | null; next: string }
+
+/**
+ * What a running app printed: the last lines of the instance an environment's hostname reaches,
+ * oldest first and redacted. Only a SANDBOX instance's output is readable — staging and
+ * production serve real people, and each is refused by its own code — so to see what a staging
+ * release prints, deploy the same release to the sandbox and read it there. Nothing is kept:
+ * each read asks the running instance again.
+ */
+export async function whatTheAppPrinted(
+  origin: string,
+  token: string,
+  environmentId: string,
+  lines: number,
+): Promise<AppOutput> {
+  const client = createManifestClient({ origin, token })
+  const list = unwrap(
+    await client.GET('/v1/environments/{environmentId}/instances', {
+      params: { path: { environmentId } },
+    }),
+    'listInstances',
+  )
+  // The one the hostname reaches now. A failed one stays listed after it is replaced.
+  const serving = list.instances.find((i) => i.serving)
+  if (serving === undefined)
+    return {
+      read: false,
+      instanceId: null,
+      code: null,
+      next: 'Nothing is running here: deploy a release first.',
+    }
+  try {
+    const output = unwrap(
+      await client.GET('/v1/instances/{instanceId}/output', {
+        // At most `lines` — a long line the runtime split counts as several.
+        params: { path: { instanceId: serving.id }, query: { lines } },
+      }),
+      'getInstanceOutput',
+    )
+    return { read: true, instanceId: serving.id, lines: output.lines }
+  } catch (error) {
+    if (!(error instanceof ManifestApiError)) throw error
+    switch (error.code) {
+      case 'INSTANCE_OUTPUT_STAGING':
+      case 'INSTANCE_OUTPUT_PRODUCTION':
+        return {
+          read: false,
+          instanceId: serving.id,
+          code: error.code,
+          next: 'Deploy the same release to the sandbox and read it there, or read a failed instance’s Incident (listIncidents).',
+        }
+      case 'INSTANCE_OUTPUT_UNAVAILABLE':
+        // It stopped between the two reads: its last lines are in its Incident.
+        return {
+          read: false,
+          instanceId: serving.id,
+          code: error.code,
+          next: 'It no longer runs: read its Incident (listIncidents).',
+        }
+      default:
+        throw error
+    }
+  }
+}
+```
+
+<!-- /example -->

@@ -4,7 +4,7 @@ The shortest correct path from nothing to an app running in staging, for a devel
 
 ## 1. A person signs in and creates the project
 
-A person signs in with CWL in a browser — the console at `https://console.manifest.internal` on a laptop — and creates the project: its name (`checkSlug` says whether one is free), the blueprint it is built from (`listBlueprints`), and who it is for. `createProject` answers the project, its three environments — sandbox, staging and production — and a repository seeded with the blueprint’s skeleton and a valid manifest.yaml. Creating a project needs a person’s session; a token cannot.
+A person signs in with CWL in a browser — the console at `https://console.manifest.internal` on a laptop — and creates the project: its slug, which its addresses are made from (`checkSlug` says whether one is free), a name people read if it should be other than the slug, the blueprint it is built from (`listBlueprints`), and who it is for. `createProject` answers the project, its three environments — sandbox, staging and production — and a repository seeded with the blueprint’s skeleton and a valid manifest.yaml. Creating a project needs a person’s session; a token cannot.
 
 ## 2. The person gives their agent a token
 
@@ -83,7 +83,8 @@ export async function readAFile(
     }),
     'getTree',
   )
-  // Never guess a path: list the tree. A binary file is listed and cannot be read as text.
+  // Never guess a path: list the tree. A binary file is listed too — read it as bytes, with
+  // `encoding=base64`, never as text.
   const entry = tree.entries.find((e) => e.path === path && e.type === 'file')
   if (entry === undefined || entry.binary === true) {
     throw new Error(`${path} is not a text file at ${tree.commitSha}`)

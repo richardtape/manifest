@@ -51,6 +51,7 @@ export const READING_ORDER: readonly string[] = [
   'events.md',
   'launching.md',
   'agents.md',
+  'frontend.md',
   'reference/errors.md',
   'reference/events.md',
   'reference/manifest-yaml.md',

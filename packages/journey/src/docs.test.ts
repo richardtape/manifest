@@ -101,9 +101,12 @@ function relativeLinks(markdown: string): string[] {
     .map((t) => t.split('#')[0]!)
 }
 
-/** Task 9's rule for public text: nothing a reader outside the team cannot resolve. */
+/**
+ * Task 9's rule for public text: nothing a reader outside the team cannot resolve — the faculty
+ * front-end's findings (`FE-n`) and the spec's actions included.
+ */
 const INTERNAL =
-  /\b(P[1-6][abc]?|sitting|Task \d+|Decision \d+|Rich)\b|the D5 plan|\bR[1-9]\b/
+  /\b(P[1-6][abc]?|sitting|Task \d+|Decision \d+|Rich|Spec action \d+)\b|the D5 plan|\bR[1-9]\b|\bFE-\d+\b/
 
 describe('the guides (Decisions 16 and 19)', () => {
   it('are exactly what `pnpm docs:write` writes — every page, the reference and llms.txt', async () => {

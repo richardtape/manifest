@@ -1,4 +1,5 @@
 import { readdir } from 'node:fs/promises'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManifestApiError } from '@manifest/contract'
 /**
  * THE MOCK BY ITS PATH, NOT ITS PACKAGE NAME: naming `@manifest/mock` as this package's
@@ -8,12 +9,23 @@ import { ManifestApiError } from '@manifest/contract'
  */
 import { createMockServer, fixtures } from '../../mock/src/index.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import {
+  askTheModel,
+  endTheSession,
+  startAModelSession,
+  whatItHasSpent,
+} from './example-agent-session.js'
+import { bringBack, deleteForGood, switchOff } from './example-archive.js'
+import { bodySha256, questionAbout } from './example-body-hash.js'
+import { commitAFile, readBytes } from './example-binary.js'
 import { buildAndWatch } from './example-build.js'
 import { checkManifest } from './example-check.js'
 import { commitAChange } from './example-commit.js'
 import { commitOnWhatIsThere } from './example-conflict.js'
 import { releaseToStaging } from './example-deploy.js'
+import { startDescribing, stopDescribing } from './example-intake.js'
 import { whatALaunchNeeds } from './example-launch.js'
+import { whatTheAppPrinted } from './example-output.js'
 import { pendingActionOf, waitForAPerson } from './example-pending.js'
 import { readAFile } from './example-read.js'
 import { setStagingSecret } from './example-secret.js'
@@ -48,6 +60,68 @@ beforeAll(async () => {
 afterAll(async () => {
   await new Promise((resolve) => server.close(resolve))
 })
+
+/** A second mock in one of its scripted states (`MockOptions`), for as long as `use` runs. */
+async function withMock<T>(
+  options: Parameters<typeof createMockServer>[0],
+  use: (origin: string) => Promise<T>,
+): Promise<T> {
+  const other = createMockServer(options)
+  await new Promise<void>((resolve) => other.listen(0, '127.0.0.1', resolve))
+  try {
+    return await use(`http://127.0.0.1:${(other.address() as { port: number }).port}`)
+  } finally {
+    await new Promise((resolve) => other.close(resolve))
+  }
+}
+
+interface Heard {
+  method: string
+  url: string
+  headers: IncomingMessage['headers']
+  body: string
+}
+
+/**
+ * A STAND-IN FOR WHAT THE MOCK DOES NOT PLAY — the model gateway, step-up, a teardown that stops
+ * part way: it answers each request with the next of `answers` (the last repeats) and keeps what
+ * it heard, so a case can assert what an example SENT.
+ */
+async function withStandIn<T>(
+  answers: { status: number; body: unknown; headers?: Record<string, string> }[],
+  use: (origin: string, heard: Heard[]) => Promise<T>,
+): Promise<T> {
+  const heard: Heard[] = []
+  const standIn = createServer((req: IncomingMessage, res: ServerResponse) => {
+    let body = ''
+    req.on('data', (chunk: Buffer) => (body += chunk.toString('utf8')))
+    req.on('end', () => {
+      heard.push({
+        method: req.method ?? '',
+        url: req.url ?? '',
+        headers: req.headers,
+        body,
+      })
+      const answer = answers[Math.min(heard.length, answers.length) - 1]!
+      res.writeHead(answer.status, {
+        'content-type': 'application/json',
+        ...(answer.headers ?? {}),
+      })
+      res.end(JSON.stringify(answer.body))
+    })
+  })
+  await new Promise<void>((resolve) => standIn.listen(0, '127.0.0.1', resolve))
+  try {
+    return await use(
+      `http://127.0.0.1:${(standIn.address() as { port: number }).port}`,
+      heard,
+    )
+  } finally {
+    await new Promise((resolve) => standIn.close(resolve))
+  }
+}
+
+const refusal = (code: string, message: string) => ({ error: { code, message } })
 
 /** Which example files a case below ran — held to the directory at the end. */
 const ran = new Set<string>()
@@ -197,6 +271,231 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
       forMs: 50,
     })
     expect(waiting.state).toBe('pending')
+  })
+
+  it('example-output: the serving sandbox instance’s last lines, redacted and cut — staging refused by its own code', async () => {
+    ran.add('example-output')
+    const sandbox = await whatTheAppPrinted(origin, TOKEN, fixtures.SANDBOX_ID, 50)
+    if (!sandbox.read) throw new Error(`expected the sandbox's lines: ${sandbox.next}`)
+    expect(sandbox.instanceId).toBe(fixtures.SANDBOX_INSTANCE_ID)
+    expect(sandbox.lines.map((l) => l.text)).toContain(
+      'GET /healthz 200 — session store connected with [REDACTED]',
+    )
+    expect(sandbox.lines.some((l) => /…\[cut: \d+ bytes\]$/.test(l.text))).toBe(true)
+    // `lines` is at most what was asked, the newest kept.
+    const two = await whatTheAppPrinted(origin, TOKEN, fixtures.SANDBOX_ID, 2)
+    expect(two.read && two.lines.length).toBe(2)
+    // Staging and production serve real people: each is refused by its own code.
+    const staging = await whatTheAppPrinted(origin, TOKEN, fixtures.STAGING.id, 50)
+    expect(staging).toEqual({
+      read: false,
+      instanceId: fixtures.INSTANCE_ID,
+      code: 'INSTANCE_OUTPUT_STAGING',
+      next: expect.stringContaining('sandbox'),
+    })
+    // Nothing has run in production, so there is nothing to ask for.
+    expect(await whatTheAppPrinted(origin, TOKEN, fixtures.PRODUCTION_ID, 50)).toEqual({
+      read: false,
+      instanceId: null,
+      code: null,
+      next: expect.stringContaining('deploy'),
+    })
+  })
+
+  it('example-agent-session: the month read, a key answered once, the model asked, what it spent, and the session ended', async () => {
+    ran.add('example-agent-session')
+    const started = await startAModelSession(
+      origin,
+      TOKEN,
+      PROJECT_ID,
+      'Build the bulletin board',
+    )
+    if (!started.started) throw new Error(`expected a key: ${started.why}`)
+    expect(started.key).toBe(fixtures.MOCK_MODEL_KEY)
+    // The capable model, because the session lists it.
+    expect(started.model).toBe('default-chat-large')
+    // The gateway is a stand-in answering as the platform's does when the on-premise model
+    // answered in the capable model's place.
+    const answer = await withStandIn(
+      [
+        {
+          status: 200,
+          body: {
+            model: 'default-chat-onprem',
+            choices: [{ message: { content: 'Hello.' } }],
+          },
+          headers: { 'x-litellm-attempted-fallbacks': '1' },
+        },
+      ],
+      async (gateway, heard) => {
+        const said = await askTheModel(
+          { ...started, baseUrl: `${gateway}/v1` },
+          'Say hello.',
+        )
+        expect(heard[0]).toMatchObject({ method: 'POST', url: '/v1/chat/completions' })
+        expect(heard[0]!.headers.authorization).toBe(`Bearer ${fixtures.MOCK_MODEL_KEY}`)
+        expect(JSON.parse(heard[0]!.body)).toMatchObject({ model: 'default-chat-large' })
+        return said
+      },
+    )
+    expect(answer).toEqual({
+      text: 'Hello.',
+      answeredBy: 'default-chat-onprem',
+      fellBack: true,
+    })
+    expect(
+      await whatItHasSpent(origin, TOKEN, PROJECT_ID, fixtures.AGENT_SESSION_ID),
+    ).toBe('$0.40 so far · $9.35 left this month')
+    expect(await endTheSession(origin, TOKEN, started.sessionId)).toBe('ended')
+  })
+
+  it('example-agent-session: a spent month is said plainly and no key is asked for; unknown spend is never $0', async () => {
+    await withMock({ agentBudget: 'exhausted' }, async (spent) => {
+      expect(
+        await startAModelSession(spent, TOKEN, PROJECT_ID, 'Fix the sign-in page'),
+      ).toEqual({
+        started: false,
+        why: expect.stringMatching(
+          /^This month’s \$10\.00 of agent budget is spent; it resets /,
+        ),
+      })
+    })
+    await withMock({ agentBudget: 'unavailable' }, async (unknown) => {
+      expect(
+        await whatItHasSpent(unknown, TOKEN, PROJECT_ID, fixtures.AGENT_SESSION_ID),
+      ).toBe('spend not known right now · the month not known right now')
+    })
+  })
+
+  it('example-intake: a person describing an app is given the platform’s model for minutes; a paused day is said plainly', async () => {
+    ran.add('example-intake')
+    const started = await startDescribing(origin, SESSION)
+    if (!started.started) throw new Error(`expected a key: ${started.why}`)
+    expect(started).toMatchObject({
+      key: fixtures.MOCK_MODEL_KEY,
+      baseUrl: fixtures.MODEL_BASE_URL,
+      model: 'default-chat',
+    })
+    expect(await stopDescribing(origin, SESSION, started.intakeSessionId)).toBe('ended')
+    await withMock({ intake: 'daily-limit' }, async (paused) => {
+      expect(await startDescribing(paused, SESSION)).toEqual({
+        started: false,
+        code: 'INTAKE_DAILY_LIMIT_REACHED',
+        why: expect.stringContaining('10 intake sessions'),
+      })
+    })
+  })
+
+  it('example-binary: an image committed as its bytes, and a file read back as bytes', async () => {
+    ran.add('example-binary')
+    // A PNG's first bytes are what the platform recognises it by.
+    const png = Uint8Array.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13,
+    ])
+    expect(
+      await commitAFile(
+        origin,
+        TOKEN,
+        PROJECT_ID,
+        'public/logo.png',
+        png,
+        'Add the course logo',
+      ),
+    ).toMatch(/^[0-9a-f]{40}$/)
+    // Any file reads as bytes — text too — so the bytes of the one the mock holds are its text.
+    const text = await readAFile(origin, TOKEN, PROJECT_ID, 'src/app.js')
+    const bytes = await readBytes(origin, TOKEN, PROJECT_ID, 'src/app.js', text.commitSha)
+    expect(new TextDecoder().decode(bytes)).toBe(text.text)
+  })
+
+  it('example-archive: switched off, brought back, and a never-launched app deleted — each refusal with what to do next', async () => {
+    ran.add('example-archive')
+    const here = '/projects/mock-app'
+    expect(await switchOff(origin, SESSION, PROJECT_ID, here)).toEqual({
+      done: true,
+      state: 'archived',
+    })
+    expect(await bringBack(origin, SESSION, PROJECT_ID)).toEqual({
+      done: true,
+      state: 'active',
+    })
+    expect(await deleteForGood(origin, SESSION, PROJECT_ID, here)).toEqual({
+      done: true,
+      state: 'deleted',
+    })
+    await withMock({ launched: true }, async (launched) => {
+      expect(await deleteForGood(launched, SESSION, PROJECT_ID, here)).toEqual({
+        done: false,
+        refused: 'PROJECT_LAUNCHED_NOT_DELETABLE',
+        next: expect.stringContaining('Switch it off instead'),
+      })
+    })
+    // The mock plays no step-up: a stand-in refuses as the platform does without a recent one.
+    await withStandIn(
+      [{ status: 403, body: refusal('STEP_UP_REQUIRED', 'sign in again first') }],
+      async (platform) => {
+        expect(await switchOff(platform, SESSION, PROJECT_ID, here)).toEqual({
+          done: false,
+          stepUpAt: '/auth/step-up?returnTo=%2Fprojects%2Fmock-app',
+        })
+      },
+    )
+    // A delete that stops part way is finished by the SAME request — the same key — never restored.
+    await withStandIn(
+      [
+        {
+          status: 500,
+          body: refusal('PROJECT_TEARDOWN_INCOMPLETE', 'stopped at release-names'),
+        },
+        {
+          status: 200,
+          body: {
+            id: PROJECT_ID,
+            slug: 'mock-app',
+            state: 'deleted',
+            deletedAt: '2026-09-28T16:00:00.000Z',
+          },
+        },
+      ],
+      async (platform, heard) => {
+        expect(await deleteForGood(platform, SESSION, PROJECT_ID, here)).toEqual({
+          done: true,
+          state: 'deleted',
+        })
+        expect(heard.map((h) => h.method)).toEqual(['DELETE', 'DELETE'])
+        expect(heard[1]!.headers['idempotency-key']).toBe(
+          heard[0]!.headers['idempotency-key'],
+        )
+        // A bodyless DELETE carries no Content-Type (Conventions).
+        expect(heard[0]!.headers['content-type']).toBeUndefined()
+      },
+    )
+  })
+
+  it('example-body-hash: the platform’s canonical hash of a body, and the question about a request', async () => {
+    ran.add('example-body-hash')
+    // THE SAME THREE VECTORS as the platform's own `tokens/pending.test.ts` — its hash, not a copy.
+    expect(await bodySha256({ b: [2, 1], a: { d: undefined, c: 'x' } })).toBe(
+      '938ba65323cc63ca467b83df32d11c44b6ae4306205b6d91900297d9c946b621',
+    )
+    expect(await bodySha256(undefined)).toBe(
+      '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
+    )
+    expect(
+      await bodySha256({ n: 1.5, body: { value: 'é ✓', environmentKind: 'production' } }),
+    ).toBe('4d081fb3e5378c1c58d4e3caa85fa846abb3d462003d7c3cb0db1f814c3150e5')
+    const asked = fixtures.PENDING_ACTION
+    expect(
+      questionAbout(
+        [fixtures.CONFIRMED_ACTION, asked],
+        asked.method,
+        asked.path,
+        asked.bodySha256,
+      ),
+    ).toBe(asked)
+    expect(
+      questionAbout([asked], asked.method, asked.path, '0'.repeat(64)),
+    ).toBeUndefined()
   })
 
   it('ran every example file in this directory', async () => {

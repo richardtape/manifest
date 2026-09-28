@@ -66,6 +66,21 @@ describe('the request fingerprint (P5b Task 6)', () => {
     expect(bodySha256(undefined)).toBe(bodySha256(null))
   })
 
+  it('is the PUBLISHED canonical form — the vectors a front-end’s own hash is held to', () => {
+    // THE SAME THREE VECTORS as `packages/journey/src/examples.test.ts`'s example-body-hash case:
+    // *Building a front-end* publishes this form so a client can match its own request to a
+    // question, so a change here must move that guide and its example too.
+    expect(bodySha256({ b: [2, 1], a: { d: undefined, c: 'x' } })).toBe(
+      '938ba65323cc63ca467b83df32d11c44b6ae4306205b6d91900297d9c946b621',
+    )
+    expect(bodySha256(undefined)).toBe(
+      '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
+    )
+    expect(
+      bodySha256({ n: 1.5, body: { value: 'é ✓', environmentKind: 'production' } }),
+    ).toBe('4d081fb3e5378c1c58d4e3caa85fa846abb3d462003d7c3cb0db1f814c3150e5')
+  })
+
   it('records the concrete path without its query string', () => {
     // The path is part of the question — "may this agent act on THIS project" — but a
     // query string is not: two retries that differ only in `?limit=10` are one ask.
