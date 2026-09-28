@@ -386,6 +386,18 @@ describe('Task 13 — the states the document’s examples cannot show', () => {
     const b = await budget(unreadable)
     expect(b).toMatchObject({ spentUsd: null, remainingUsd: null })
     expect(b.unavailable).toMatch(/gateway/)
+    // The review's I2: the platform reads the month FRESH to start a session (`ai/sessions.ts`), so a
+    // gateway that cannot say what was spent refuses the start `503 AI_BACKEND_UNAVAILABLE` — never a key.
+    const start = await fetch(
+      `${unreadable}/v1/projects/${f.PROJECT_ID}/agent-sessions`,
+      {
+        method: 'POST',
+        headers: mutation(SESSION),
+        body: JSON.stringify({ name: 'x' }),
+      },
+    )
+    expect(start.status).toBe(503)
+    expect(await codeOf(start)).toBe('AI_BACKEND_UNAVAILABLE')
     const listed = (await (
       await fetch(`${unreadable}/v1/projects/${f.PROJECT_ID}/agent-sessions`, {
         headers: SESSION,

@@ -26,11 +26,11 @@ import {
 const EnvironmentParams = z.strictObject({ environmentId: PATH.environmentId })
 const InstanceParams = z.strictObject({ instanceId: PATH.instanceId })
 
-// Captured from a run of `api/instances.test.ts`'s shape on the fake driver, 2026-09-27: a
-// healthy staging deploy, then a second that failed; and the first instance's last three lines,
-// its session secret redacted. The OUTPUT example reads `sandbox` since FE-24's code (sitting 10):
-// a staging instance's output is refused (§14), so an example of a read of one would document an
-// answer the route never gives.
+// Captured from a run of `api/instances.test.ts`'s shape on the fake driver, 2026-09-27: a healthy
+// deploy, then a second that failed; and the first instance's last three lines, its session secret
+// redacted. Captured from a STAGING deploy, whose output was readable then; since FE-24's code
+// (sitting 10) only a sandbox instance's is, so the OUTPUT example reads `sandbox` — an example of a
+// staging read would document an answer the route never gives.
 const EXAMPLE_LIST: z.input<typeof InstanceList> = {
   environmentId: 'df060503-98c8-4d67-ad08-f3ca0e7373ef',
   instances: [

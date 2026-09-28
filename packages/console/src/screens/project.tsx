@@ -3,6 +3,7 @@ import { ManifestApiError, type Schemas } from '@manifest/contract'
 import type { Api } from '../api'
 import { href, navigate, type Route } from '../router'
 import { useProjectStream } from '../stream'
+import { deleteRefusalAdvice, RESTORE_SENTENCE } from '../ending-state'
 import { Instant, Field, Panel, Pill, Refusal, useAsync, Warnings } from '../ui'
 import { Builds } from './builds'
 import { Code } from './code'
@@ -450,11 +451,7 @@ function Ending({
     <Panel title="Ending this app">
       {archived ? (
         <>
-          <p>
-            <strong>Restore</strong> brings it back as it was when it was switched off:
-            its code, data and secrets were kept. It is not redeployed — deploy it again
-            to serve.
-          </p>
+          <p>{RESTORE_SENTENCE}</p>
           <button type="button" disabled={busy} onClick={() => void act('restore')}>
             Restore
           </button>
@@ -502,12 +499,13 @@ function Ending({
         </p>
       )}
       <Refusal error={error} />
+      {/*
+        A DELETE THAT STOPPED PART WAY IS FINISHED, NEVER RESTORED (the whole-branch review's I1): the
+        project is left archived with something destroyed, so the panel says so beside the refusal.
+      */}
       {error instanceof ManifestApiError &&
-        error.code === 'PROJECT_LAUNCHED_NOT_DELETABLE' && (
-          <p className="hint">
-            If it launched while the delete was starting, it is now switched off with
-            everything kept — reload this page, and restore it to bring it back.
-          </p>
+        deleteRefusalAdvice(error.code) !== undefined && (
+          <p className="hint">{deleteRefusalAdvice(error.code)}</p>
         )}
     </Panel>
   )

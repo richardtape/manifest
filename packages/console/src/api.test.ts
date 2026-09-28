@@ -425,11 +425,6 @@ describe('the console’s data layer against manifest-mock', () => {
    * raw `fetch` below is the only way to reach the refusal, and it asserts the CODE.
    */
   /**
-   * THE DOCS SCREEN'S THREE CALLS (the authoring API plan's Task 11): the index, one page, and
-   * the OpenAPI document — whose `info.version` the screen shows. Against the mock, a page is
-   * answered for its own slug alone, so the one the index names first is the one read here.
-   */
-  /**
    * EVERY OPERATION THE FRONT-END ENABLEMENT PLAN ADDS, CALLED THROUGH `api.ts` (its Task 13): the
    * instances and a sandbox instance's output, a name changed, agent sessions and their budget,
    * the intake key, archive, restore and delete — each answer read for the field its screen shows.
@@ -488,6 +483,11 @@ describe('the console’s data layer against manifest-mock', () => {
     })
   })
 
+  /**
+   * THE DOCS SCREEN'S THREE CALLS (the authoring API plan's Task 11): the index, one page, and
+   * the OpenAPI document — whose `info.version` the screen shows. Against the mock, a page is
+   * answered for its own slug alone, so the one the index names first is the one read here.
+   */
   it('reads the documentation: the index, a page, and the OpenAPI document', async () => {
     await withMock(async (origin) => {
       const a = api(origin)

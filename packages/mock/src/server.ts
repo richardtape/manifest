@@ -66,7 +66,8 @@ export interface MockOptions {
    * no state: `MANIFEST_MOCK_LAUNCHED=1` — `mock-app` has been to production, so a delete is `409
    * PROJECT_LAUNCHED_NOT_DELETABLE`; `MANIFEST_MOCK_AGENT_BUDGET=exhausted` — the month is spent, so
    * a session start is `409 AGENT_BUDGET_EXHAUSTED` — or `=unavailable`, the gateway not answering,
-   * so every spend reads null with its reason; `MANIFEST_MOCK_INTAKE=daily-limit` or `=budget-spent`
+   * so every spend reads null with its reason and a start is `503 AI_BACKEND_UNAVAILABLE`;
+   * `MANIFEST_MOCK_INTAKE=daily-limit` or `=budget-spent`
    * — describing a new app is paused, `409 INTAKE_DAILY_LIMIT_REACHED` or `INTAKE_BUDGET_EXHAUSTED`.
    */
   launched?: boolean
@@ -443,6 +444,16 @@ const ANSWERS: Record<string, Answerer> = {
    * twice.
    */
   startAgentSession: (ctx) => {
+    // THE PLATFORM READS THE MONTH FRESH TO START ONE (`ai/sessions.ts`), so a gateway that cannot
+    // say what was spent refuses the start — `503 AI_BACKEND_UNAVAILABLE`, in `ai/errors.ts`'s words —
+    // and never mints a key (the whole-branch review's I2: this state answered 201 here).
+    if (ctx.options.agentBudget === 'unavailable')
+      throw new MockRefusal(
+        503,
+        'AI_BACKEND_UNAVAILABLE',
+        'The AI service is not answering right now.',
+        'Check `make doctor`. If the platform is up, the model host (Ollama, locally) is not answering.',
+      )
     if (ctx.options.agentBudget === 'exhausted')
       throw new MockRefusal(
         409,

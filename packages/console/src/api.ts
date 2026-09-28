@@ -502,7 +502,6 @@ export function createApi(options: ApiOptions) {
       )
     },
 
-    /** §14's Incident, shaped as a repair prompt: why it exited, which check failed, the diff since the last healthy release and the log tail. */
     /**
      * §14'S BOUNDED READ (the front-end enablement plan's Task 3): an environment's instances,
      * the serving one marked, and a SANDBOX instance's last lines — staging's and production's
@@ -533,6 +532,7 @@ export function createApi(options: ApiOptions) {
       )
     },
 
+    /** §14's Incident, shaped as a repair prompt: why it exited, which check failed, the diff since the last healthy release and the log tail. */
     async listIncidents(environmentId: string): Promise<Schemas['IncidentList']> {
       return unwrap(
         await client.GET('/v1/environments/{environmentId}/incidents', {
@@ -839,12 +839,6 @@ export function createApi(options: ApiOptions) {
     },
 
     /**
-     * §26's queue. A SESSION that may read the project sees EVERY question on it; a TOKEN
-     * sees only the ones it asked (P5b Task 8) — and the console is always the first, so
-     * this call always returns the project's whole queue. Newest first
-     * (`orderBy(desc(createdAt))`), every state and not only `pending`.
-     */
-    /**
      * AGENT SESSIONS (the front-end enablement plan's Task 10; Spec action 1): a model key for an
      * agent working outside Manifest, charged to the person, capped and short-lived. **The key is
      * answered ONCE** — Manifest keeps no copy — so a screen shows it exactly as it shows a
@@ -918,6 +912,12 @@ export function createApi(options: ApiOptions) {
       )
     },
 
+    /**
+     * §26's queue. A SESSION that may read the project sees EVERY question on it; a TOKEN
+     * sees only the ones it asked (P5b Task 8) — and the console is always the first, so
+     * this call always returns the project's whole queue. Newest first
+     * (`orderBy(desc(createdAt))`), every state and not only `pending`.
+     */
     async listPendingActions(projectId: string): Promise<Schemas['PendingActionList']> {
       return unwrap(
         await client.GET('/v1/projects/{projectId}/pending-actions', {
