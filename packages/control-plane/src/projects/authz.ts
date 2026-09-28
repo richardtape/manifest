@@ -2,7 +2,8 @@ import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { projectMembers, projects } from '../db/index.js'
 import { isSteppedUp } from '../identity/index.js'
-import { archivedRefusal } from './state.js'
+import { AuthorizationError } from './errors.js'
+import { projectStateRefusal } from './state.js'
 
 export type ProjectRole = 'owner' | 'collaborator'
 
@@ -397,15 +398,8 @@ export function capabilitiesFor(
   return new Set()
 }
 
-export class AuthorizationError extends Error {
-  constructor(
-    readonly code: 'FORBIDDEN' | 'NOT_FOUND',
-    message: string,
-  ) {
-    super(message)
-    this.name = 'AuthorizationError'
-  }
-}
+// Its own file, so `state.ts` can answer a deleted project's `NOT_FOUND` without importing this one.
+export { AuthorizationError }
 
 /**
  * D24's central refusal: a delegated token asked for one of `PRIVILEGED`.
@@ -578,7 +572,10 @@ export async function assertCapability(
     .select({ id: projects.id, state: projects.state })
     .from(projects)
     .where(eq(projects.id, projectId))
-  if (!project) {
+  // A DELETED project is a stranger's to everybody — its owner and an administrator included
+  // (Decision 31): a tombstone kept for the audit trail, not a project anybody can read. BEFORE the
+  // membership read, so it is the same answer whoever asks.
+  if (!project || project.state === 'deleted') {
     throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
   }
 
@@ -613,6 +610,6 @@ export async function assertCapability(
     capability !== 'project:read' &&
     capability !== 'project:delete'
   ) {
-    throw archivedRefusal(projectId)
+    throw projectStateRefusal(projectId, project.state)
   }
 }

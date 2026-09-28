@@ -47,6 +47,10 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
     'the front-end enablement plan’s Task 13 adds the Project screen’s switch-off and removes this',
   restoreProject:
     'the front-end enablement plan’s Task 13 adds the Project screen’s restore and removes this',
+  // Its Task 12 (sitting 9): §11's delete — a never-launched project, step-up. Task 13 adds the
+  // Project screen's delete and removes this park with the two above.
+  deleteProject:
+    'the front-end enablement plan’s Task 13 adds the Project screen’s delete and removes this',
   // **EMPTY AGAIN SINCE THE AUTHORING API PLAN'S TASK 10 (sitting 7, 2026-09-26)**, and that
   // is a measurement: all 51 operations have a caller. That plan's Tasks 5, 6 and 8 parked
   // eight here naming Task 10 as their remover — `getTree`, `getFile`, `listCommits`,

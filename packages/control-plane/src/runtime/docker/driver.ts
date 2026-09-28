@@ -739,6 +739,13 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
      */
     switchOff: (hostname, kind) => applySwitchedOffRoute(options.routing, hostname, kind),
 
+    /**
+     * §11's delete (Task 12): the hostname's `@id` removed from its listener. Caddy answers `404`
+     * for an `@id` it does not hold, which the admin client reads as done — so twice is once, and
+     * NOTHING is swallowed here: a failure is a name still answering the page, and the delete says so.
+     */
+    removeName: (hostname, kind) => removeRoute(options.routing, hostname, kind),
+
     stopInstance: (id) => stopInstanceContainer(engine, id),
 
     async destroyInstance(id: string): Promise<void> {

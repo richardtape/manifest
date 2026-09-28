@@ -11,6 +11,7 @@ export {
 export { createAppSecrets, type AppSecretResolver } from './resolver.js'
 export {
   deleteSecret,
+  deleteSecretsOf,
   ensureSessionSecret,
   getSecret,
   loadMasterKeypair,

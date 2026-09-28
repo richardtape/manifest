@@ -175,6 +175,12 @@ export const EVENT_TYPES = [
   'project.archived',
   /** …and RESTORED: an ordinary project again, starting nothing; its next deploy brings it back. */
   'project.restored',
+  /**
+   * §11: A NEVER-LAUNCHED PROJECT WAS DELETED by its owner (the front-end enablement plan's Task 12)
+   * — archived first, then its repository, data volumes, secrets and model users destroyed, and its
+   * names released. The LAST event of a project: its row stays as a tombstone this one references.
+   */
+  'project.deleted',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

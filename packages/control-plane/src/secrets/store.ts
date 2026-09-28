@@ -121,6 +121,21 @@ export async function deleteSecret(db: Db, scope: SecretScope): Promise<boolean>
 }
 
 /**
+ * EVERY SECRET OF A PROJECT, in every environment kind — §11's delete (the front-end enablement
+ * plan's Task 12, Decision 31): app secrets, the session secret, service credentials, SP keypairs,
+ * model keys. Answers how many went; idempotent, because a second call finds none. Only a delete
+ * calls it, after the archive has revoked every key a row names — a row is the only reference to
+ * a model key, so deleting one first would leave a live key nobody can find.
+ */
+export async function deleteSecretsOf(db: Db, projectId: string): Promise<number> {
+  const deleted = await db
+    .delete(secrets)
+    .where(eq(secrets.projectId, projectId))
+    .returning({ id: secrets.id })
+  return deleted.length
+}
+
+/**
  * Every secret in one scope, as plaintext — the input Task 8's redactor needs.
  *
  * Scoped to the environment KIND rather than the project, because a redactor

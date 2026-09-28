@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { projects, type Db } from '../db/index.js'
 import { SLUG } from '../spec/index.js'
 import type { ReservedLabels } from './reserved-labels.js'
@@ -67,7 +67,9 @@ export async function checkSlug(
   const [holder] = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(eq(projects.slug, slug))
+    // Every project but a TOMBSTONE holds its slug — the question `projects_slug_key`'s partial
+    // index asks (Task 12): a deleted project's name is free for another.
+    .where(and(eq(projects.slug, slug), ne(projects.state, 'deleted')))
     .limit(1)
   if (holder !== undefined) reasons.push(slugTaken(slug))
   return reasons.length === 0

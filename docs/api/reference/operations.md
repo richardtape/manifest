@@ -2899,6 +2899,46 @@ Answer, `200`:
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
+### `deleteProject` — Delete a project that never launched
+
+`DELETE /v1/projects/{projectId}` · a session only — a delegated token is refused
+
+Deletes the project for good (§11) — only one that has never been to production. It is switched off first, exactly as `archiveProject` does, and then its repository, every data volume, every secret and its model budgets are destroyed and its names released: each answers nothing of this project’s. Its record and its audit trail remain, and its slug is free for another project to take. From then on every route answers it `404`. A launched project is refused `409 PROJECT_LAUNCHED_NOT_DELETABLE` — its data is disposed of under its retention period and UBC’s sunset procedure, and its production name stays held; archive it instead. A project whose repository another source driver made is refused `409 SOURCE_PROVIDER_MISMATCH` before anything is touched. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left ARCHIVED: send the same request again to finish the delete. The control plane’s next boot only finishes switching it off, keeping whatever data is left — and restoring it instead gives back a project that may have lost its code or data, so finish the delete. Answers once all of that is done — seconds, bounded by the drain. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived` (if it was active), then `project.deleted`.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `projectId` | path | yes | The project’s id, from `listProjects` or `createProject`. |
+
+Answer, `200`:
+
+```json
+{
+  "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+  "slug": "chem-labs",
+  "state": "deleted",
+  "deletedAt": "2026-12-18T17:04:12.518Z"
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `PROJECT_LAUNCHED_NOT_DELETABLE` | 409 | Archive it instead (`archiveProject`) to switch it off for everyone; its data and records are kept for their retention period. |
+| `PROJECT_TEARDOWN_INCOMPLETE` | 500 | Send the same request again: every finished step answers at once, and the rest continue. The control plane’s next boot finishes an archive too — never a delete, which only the same request finishes. If it keeps stopping at the same step, tell a platform administrator. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `SOURCE_PROVIDER_MISMATCH` | 409 | Use a control plane running the project’s own driver: a project stays with the driver that created its repository. |
+| `STEP_UP_REQUIRED` | 403 | Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up. |
+| `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
 ### `archiveProject` — Switch a project off (archive it)
 
 `POST /v1/projects/{projectId}/archive` · a session only — a delegated token is refused
@@ -2958,7 +2998,7 @@ Answer, `200`:
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
-| `PROJECT_TEARDOWN_INCOMPLETE` | 500 | Send the same request again: every finished step answers at once, and the rest continue. The control plane’s next boot finishes it too. If it keeps stopping at the same step, tell a platform administrator. |
+| `PROJECT_TEARDOWN_INCOMPLETE` | 500 | Send the same request again: every finished step answers at once, and the rest continue. The control plane’s next boot finishes an archive too — never a delete, which only the same request finishes. If it keeps stopping at the same step, tell a platform administrator. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |

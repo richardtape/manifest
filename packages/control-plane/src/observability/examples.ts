@@ -253,4 +253,5 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
   },
   'project.archived': { via: 'session', userId: UUID, tokenId: null },
   'project.restored': { via: 'session', userId: UUID, tokenId: null },
+  'project.deleted': { via: 'session', userId: UUID, tokenId: null },
 }

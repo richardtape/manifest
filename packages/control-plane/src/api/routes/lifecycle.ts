@@ -7,13 +7,15 @@ import {
 } from '../../projects/index.js'
 import {
   archiveProject,
+  deleteProject,
   restoreProject,
+  type DeleteDeps,
   type LifecycleDeps,
 } from '../../releases/index.js'
 import { requireSession } from '../actor.js'
-import { defineRoute, NO_QUERY } from '../contract/route.js'
+import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { EmptyRequest, PATH } from '../contract/schemas.js'
-import { Project, toProject } from '../representations/projects.js'
+import { DeletedProject, Project, toProject } from '../representations/projects.js'
 import type { ServerDeps } from '../server.js'
 
 const ProjectParams = z.strictObject({ projectId: PATH.projectId })
@@ -30,6 +32,11 @@ export function lifecycleDeps(deps: ServerDeps): LifecycleDeps {
     appSecrets: deps.appSecrets,
     drainMs: deps.config.drainTimeoutMs,
   }
+}
+
+/** …and a delete's: the archive's, and the source driver that holds the repository. */
+export function deleteDeps(deps: ServerDeps): DeleteDeps {
+  return { ...lifecycleDeps(deps), source: deps.source }
 }
 
 /** The project as it now is — archived or active — through the one representation. */
@@ -71,9 +78,9 @@ const ARCHIVED_EXAMPLE = {
 
 /**
  * §11's *Ending an app* — archive and restore (Spec action 3, applied 2026-09-27; the front-end
- * enablement plan's Task 11, Decisions 27–30).
+ * enablement plan's Task 11, Decisions 27–30), and delete (Task 12, Decision 31).
  *
- * **PERSON-ONLY (D24), AND ARCHIVE STEPS UP (§20).** Both routes are `credential: 'session'`, so a
+ * **PERSON-ONLY (D24), AND ARCHIVE AND DELETE STEP UP (§20).** All three routes are `credential: 'session'`, so a
  * token is refused `TOKEN_CREDENTIAL_REFUSED` before the handler runs; `project:delete` is in
  * `PERSON_ONLY` besides, so a token holding it is refused centrally too — two layers, two codes.
  * Archive takes an app away from its students, so it asks for step-up AFTER the capability (the
@@ -143,6 +150,58 @@ export const lifecycleRoutes = [
       await assertCapability(deps.db, actor, params.projectId, 'project:delete')
       await restoreProject(lifecycleDeps(deps), { projectId: params.projectId, actor })
       return answer(deps, params.projectId)
+    },
+  }),
+  defineRoute({
+    operationId: 'deleteProject',
+    credential: 'session',
+    method: 'DELETE',
+    path: '/v1/projects/{projectId}',
+    tag: 'projects',
+    summary: 'Delete a project that never launched',
+    description:
+      'Deletes the project for good (§11) — only one that has never been to production. It is switched off first, exactly as `archiveProject` does, and then its repository, every data volume, every secret and its model budgets are destroyed and its names released: each answers nothing of this project’s. Its record and its audit trail remain, and its slug is free for another project to take. From then on every route answers it `404`. A launched project is refused `409 PROJECT_LAUNCHED_NOT_DELETABLE` — its data is disposed of under its retention period and UBC’s sunset procedure, and its production name stays held; archive it instead. A project whose repository another source driver made is refused `409 SOURCE_PROVIDER_MISMATCH` before anything is touched. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left ARCHIVED: send the same request again to finish the delete. The control plane’s next boot only finishes switching it off, keeping whatever data is left — and restoring it instead gives back a project that may have lost its code or data, so finish the delete. Answers once all of that is done — seconds, bounded by the drain. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived` (if it was active), then `project.deleted`.',
+    params: ProjectParams,
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description:
+        'What remains of the project: its id, its now-free slug, and when it was deleted.',
+      schema: DeletedProject,
+    },
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'STEP_UP_REQUIRED',
+      'PROJECT_LAUNCHED_NOT_DELETABLE',
+      'SOURCE_PROVIDER_MISMATCH',
+      'PROJECT_TEARDOWN_INCOMPLETE',
+    ],
+    examples: {
+      // A real answer, from `api/lifecycle.test.ts`.
+      response: {
+        id: '77811340-0c79-4c30-a00f-b87e8460b6cf',
+        slug: 'chem-labs',
+        state: 'deleted' as const,
+        deletedAt: '2026-12-18T17:04:12.518Z',
+      },
+    },
+    handler: async ({ deps, request, params }) => {
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'project:delete')
+      assertStepUp(actor, 'project:delete')
+      const tombstone = await deleteProject(deleteDeps(deps), {
+        projectId: params.projectId,
+        actor,
+      })
+      return {
+        id: tombstone.id,
+        slug: tombstone.slug,
+        state: 'deleted' as const,
+        deletedAt: tombstone.deletedAt.toISOString(),
+      }
     },
   }),
 ]

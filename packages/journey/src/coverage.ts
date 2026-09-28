@@ -177,6 +177,11 @@ export const JOURNEY: readonly JourneyStep[] = [
     who: 'person',
     operations: ['archiveProject', 'restoreProject'],
   },
+  {
+    step: 'Delete an app that never launched — a trial, or a mistake',
+    who: 'person',
+    operations: ['deleteProject'],
+  },
 ]
 
 /** In the document, and deliberately in no faculty step — each with its reason. */

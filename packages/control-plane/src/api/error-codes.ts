@@ -625,9 +625,17 @@ export const ERROR_CODES = {
     status: 500,
     families: ['ProjectStateError'],
     summary:
-      'Switching the project off stopped at a step (named in the message). It is archived — nothing new starts — but something it ran may still be up.',
+      'Switching the project off, or deleting it, stopped at a step (named in the message). It is archived — nothing new starts — but something it ran, or something a delete destroys, may still be there.',
     remedy:
-      'Send the same request again: every finished step answers at once, and the rest continue. The control plane’s next boot finishes it too. If it keeps stopping at the same step, tell a platform administrator.',
+      'Send the same request again: every finished step answers at once, and the rest continue. The control plane’s next boot finishes an archive too — never a delete, which only the same request finishes. If it keeps stopping at the same step, tell a platform administrator.',
+  },
+  PROJECT_LAUNCHED_NOT_DELETABLE: {
+    status: 409,
+    families: ['ProjectStateError'],
+    summary:
+      'The project has been to production, so it cannot be deleted (§11): its data is disposed of under its retention period and UBC’s sunset procedure, which are the Privacy Office’s, and its production name stays held for good (D26). Nothing was changed.',
+    remedy:
+      'Archive it instead (`archiveProject`) to switch it off for everyone; its data and records are kept for their retention period.',
   },
 
   // ai/sessions.ts — a model session's start (§10; the front-end enablement plan's Task 10, Spec

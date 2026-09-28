@@ -164,6 +164,35 @@ export const Project = representation(
     ),
 )
 
+/**
+ * §11's DELETE (the front-end enablement plan's Task 12): what is left of a deleted project — the
+ * record the audit trail keeps — as `deleteProject` answers it, the one time anybody is told. Every
+ * route answers a deleted project `404` afterwards, so this is never read back.
+ */
+export const DeletedProject = representation(
+  'DeletedProject',
+  z
+    .strictObject({
+      id: Uuid.describe(
+        'The project that was deleted. Every route answers it `404` from now on.',
+      ),
+      slug: z
+        .string()
+        .describe(
+          'Its permanent identifier — now FREE: another project may be created with it (§11).',
+        ),
+      state: z
+        .literal('deleted')
+        .describe(
+          '§11: `deleted` — its repository, every data volume, every secret and its model budgets destroyed. Its record and its audit trail remain.',
+        ),
+      deletedAt: Timestamp.describe('When it was deleted.'),
+    })
+    .describe(
+      'A deleted project (§11): what remains of it — the record its audit trail refers to.',
+    ),
+)
+
 export const ProjectList = representation(
   'ProjectList',
   z

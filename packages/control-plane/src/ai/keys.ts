@@ -78,6 +78,32 @@ export async function ensureAiUser(
 }
 
 /**
+ * §11's DELETE (the front-end enablement plan's Task 12, Decision 31): the project's three LiteLLM
+ * users — one per environment kind, each carrying that app's monthly spend — deleted. **ONE CALL PER
+ * USER**: LiteLLM 1.98.0 answers `404` to a list naming one user it does not hold and deletes NOTHING
+ * of the rest (measured, sitting 9), and a project that never deployed with AI has none of them.
+ * `404` is the end state (`User not found`), so a retry finishes one that stopped. Deleting a user
+ * deletes its keys too (measured) — but an archive has revoked every app key by then anyway.
+ * Answers the ids that were there.
+ */
+export async function deleteAppUsers(
+  client: LiteLlmClient,
+  projectId: string,
+): Promise<string[]> {
+  const deleted: string[] = []
+  for (const kind of ['production', 'sandbox', 'staging'] as const) {
+    const userId = aiUserId(projectId, kind)
+    try {
+      await client.post('/user/delete', { user_ids: [userId] })
+      deleted.push(userId)
+    } catch (error) {
+      if (!(error instanceof AiError && error.status === 404)) throw error
+    }
+  }
+  return deleted
+}
+
+/**
  * §10's "rotated every deploy", with no moment at which a live call can fail (Rich,
  * 2026-09-14) — and, since P4c, no moment at which two instances cannot both answer.
  *

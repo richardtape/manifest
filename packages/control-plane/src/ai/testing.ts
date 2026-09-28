@@ -242,6 +242,18 @@ export function fakeLiteLlm(): FakeLiteLlm {
         users.set(id, { maxBudget: Number(body.max_budget), spend: 0 })
         return { user_id: id } as T
       }
+      case '/user/delete': {
+        // As 1.98.0 answers (sitting 9): a list naming ANY user it does not hold is `404` and
+        // deletes nothing; otherwise every named user goes, and their keys with them.
+        const ids = (body.user_ids as string[] | undefined) ?? []
+        if (ids.length === 0 || ids.some((id) => !users.has(id)))
+          refuse(404, 'not_found_error')
+        for (const id of ids) {
+          users.delete(id)
+          for (const k of [...keys.values()]) if (k.userId === id) keys.delete(k.key)
+        }
+        return ids.length as T
+      }
       case '/user/update': {
         const user = users.get(String(body.user_id))
         if (user === undefined) refuse(404)

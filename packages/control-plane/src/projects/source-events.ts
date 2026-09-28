@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { projects, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import type { MirrorAdvance, SourceObserver } from '../source/index.js'
@@ -27,7 +27,8 @@ export function createSourceObserver(deps: { db: Db; bus: EventBus }): SourceObs
       const [project] = await deps.db
         .select({ id: projects.id })
         .from(projects)
-        .where(eq(projects.slug, advance.projectSlug))
+        // The slug's LIVE holder: a deleted project's slug may be another project's now (Task 12).
+        .where(and(eq(projects.slug, advance.projectSlug), ne(projects.state, 'deleted')))
       if (project === undefined) {
         throw new Error(
           `the mirror of '${advance.projectSlug}' advanced, and no project has that slug; nothing can be reported for it`,

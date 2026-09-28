@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { projects, sourceRepositories, type Db } from '../db/index.js'
 import {
   SourceError,
@@ -101,6 +101,8 @@ export async function projectForRepository(
       and(
         eq(sourceRepositories.provider, provider),
         eq(sourceRepositories.fullName, fullName),
+        // A deleted project's repository is gone, and its name may be a NEW project's (Task 12).
+        ne(projects.state, 'deleted'),
       ),
     )
   return row

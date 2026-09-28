@@ -291,6 +291,11 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
       switchedOff.add(hostname)
     },
 
+    async removeName(hostname: string): Promise<void> {
+      routes.delete(hostname)
+      switchedOff.delete(hostname)
+    },
+
     async stopInstance(id: string): Promise<void> {
       const instance = instances.get(id)
       if (instance) instance.state = 'hibernated' // volumes survive — §11

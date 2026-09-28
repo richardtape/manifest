@@ -103,7 +103,8 @@ export const projects = pgTable(
     launchedAt: timestamp('launched_at', { withTimezone: true }),
     /**
      * §11's *Ending an app* (Spec action 3, applied 2026-09-27; the front-end enablement plan's
-     * Task 11, Decision 27): `active`, or `archived` — switched off by its owner and restorable.
+     * Task 11, Decision 27): `active`, or `archived` — switched off by its owner and restorable —
+     * or `deleted` (Task 12), a tombstone: absent to every read, its slug free.
      * `assertCapability` refuses every capability but `project:read` and `project:delete` on a
      * project that is not active. Set to `archived` FIRST, before anything is taken down, so
      * nothing new starts while the teardown runs; the teardown finishes on retry or at boot.
@@ -117,10 +118,24 @@ export const projects = pgTable(
      * and it is the start of §26's *"who acted"* for this action (ORIENTATION §8's open question).
      */
     archivedBy: uuid('archived_by').references(() => users.id),
+    /**
+     * §11's DELETE (Spec action 3; the front-end enablement plan's Task 12, Decision 31): when the
+     * project became a TOMBSTONE — `state = 'deleted'`, its repository, data, secrets and model
+     * users destroyed. The row itself stays, because the append-only audit trail references it
+     * (`audit.events.project_id` is `RESTRICT`), so the log still says what happened to it.
+     */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (t) => [
-    uniqueIndex('projects_slug_key').on(t.slug),
-    check('projects_state_known', sql`${t.state} IN ('active', 'archived')`),
+    /**
+     * A SLUG IS HELD BY EVERY PROJECT BUT A TOMBSTONE (Task 12): a deleted project's slug is free
+     * for another (§11), and every hostname, SP entity and Docker name derived from it with it.
+     * `checkSlug` asks the same question in its `WHERE`, so the check and this index agree.
+     */
+    uniqueIndex('projects_slug_key')
+      .on(t.slug)
+      .where(sql`${t.state} <> 'deleted'`),
+    check('projects_state_known', sql`${t.state} IN ('active', 'archived', 'deleted')`),
   ],
 )
 
@@ -1010,7 +1025,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
     ),
   ],
 )

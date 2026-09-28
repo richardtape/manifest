@@ -38,7 +38,7 @@ import {
   writesOf,
   type ScanLimits,
 } from '../scan-commits.js'
-import { createGithubClient } from './client.js'
+import { createGithubClient, GithubRefusal } from './client.js'
 import { gitWithToken, isAuthRefusal } from './git.js'
 import { createTokenCache, type TokenPermissions } from './tokens.js'
 
@@ -640,13 +640,27 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     throw client.refusal(`protect main on ${o.org}/${slug}`, res)
   }
 
+  /**
+   * THE REPOSITORY GONE FROM GITHUB — and gone ALREADY is gone (the front-end enablement plan's Task
+   * 12): a delete that stopped after this step runs it again on its retry. GitHub then answers
+   * `404` to the `DELETE` — or, first, `422` to the token for a repository the installation no
+   * longer has (conformance C5b's golden, measured on github.com 2026-09-24 and 2026-09-25), which
+   * with `repository_selection: all` means it does not exist. Every other refusal is real.
+   */
   async function deleteOnGithub(slug: string): Promise<void> {
-    const res = await restAs(
-      slug,
-      { administration: 'write' },
-      'DELETE',
-      `/repos/${o.org}/${slug}`,
-    )
+    let res
+    try {
+      res = await restAs(
+        slug,
+        { administration: 'write' },
+        'DELETE',
+        `/repos/${o.org}/${slug}`,
+      )
+    } catch (error) {
+      if (error instanceof GithubRefusal && error.status === 422) return
+      throw error
+    }
+    if (res.status === 404) return
     if (res.status !== 204) throw client.refusal(`delete ${o.org}/${slug}`, res)
   }
 
@@ -912,7 +926,8 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     },
 
     async destroyRepository(repo) {
-      const mirror = mirrorOf(repo)
+      // Not `mirrorOf`: a second destroy finds no mirror, and that is its end state (Task 12).
+      const mirror = assertOwned(repo)
       await deleteOnGithub(repo.projectSlug)
       tokens.forget(repo.projectSlug)
       await rm(mirror, { recursive: true, force: true })

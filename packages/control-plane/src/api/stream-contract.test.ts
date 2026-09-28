@@ -73,6 +73,8 @@ const PUBLISHED_ELSEWHERE = {
   // tier has no IdP for.
   'project.archived': 'api/lifecycle.test.ts — archiveProject, every step',
   'project.restored': 'api/lifecycle.test.ts — restoreProject',
+  'project.deleted':
+    'api/lifecycle.test.ts — deleteProject, and releases/delete.docker.test.ts',
   'sso.deregistered': 'sso/registration.docker.test.ts — the real IdP',
 } as const
 

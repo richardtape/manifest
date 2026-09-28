@@ -372,6 +372,14 @@ export interface Driver {
    * student the platform's probe text (ORIENTATION §4 trap 16).
    */
   switchOff(hostname: string, kind: 'sandbox' | 'staging' | 'production'): Promise<void>
+  /**
+   * §11's DELETE (the front-end enablement plan's Task 12, Decision 31): the hostname's route
+   * REMOVED — the switched-off page included — so the name answers nothing of this project's and
+   * falls through to the edge's wildcard, as a name nobody holds does: a deleted project's slug may
+   * be the next project's. Idempotent; a name with no route answers at once. Only a delete calls it,
+   * after every instance of the name is retired — an archive keeps the page (`switchOff`).
+   */
+  removeName(hostname: string, kind: 'sandbox' | 'staging' | 'production'): Promise<void>
   stopInstance(id: string): Promise<void>
   destroyInstance(id: string): Promise<void>
   destroyService(id: string, opts: { deleteData: boolean }): Promise<void>

@@ -865,6 +865,19 @@ export function describeSourceDriver(
       expect(await code(h.driver.resolveRef(repo, 'main'))).toBe('SOURCE_GIT_FAILED')
     })
 
+    /**
+     * §11's delete (the front-end enablement plan's Task 12): a delete that stopped after this step
+     * runs it AGAIN when the same request is retried — so a repository already destroyed must answer
+     * at once. On driver 2 that is a GitHub repository already gone, for which GitHub refuses even
+     * the token to ask (`422`, conformance C5b).
+     */
+    it('destroying a repository twice is the same as once', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      await h.driver.destroyRepository(repo)
+      await h.driver.destroyRepository(repo)
+      expect(await code(h.driver.headCommit(repo))).toBe('SOURCE_GIT_FAILED')
+    })
+
     extra?.(() => h)
   })
 }

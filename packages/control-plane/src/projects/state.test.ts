@@ -75,4 +75,17 @@ describe('holdActiveProject (§11, Task 11)', () => {
       db.transaction((tx) => holdActiveProject(tx, projectId)),
     ).rejects.toMatchObject({ name: 'ProjectStateError', code: 'PROJECT_ARCHIVED' })
   })
+
+  /**
+   * THE DELETE'S RACE (Task 12, Decision 31): a start that authorized before a delete FINISHED and
+   * holds the row after it. It must be told what everybody is told of a deleted project — the
+   * stranger's `NOT_FOUND` — never "archived, restore it", which a tombstone cannot be.
+   */
+  it('refuses a DELETED project as a stranger’s, never as one to restore', async () => {
+    await db.update(projects).set({ state: 'deleted' }).where(eq(projects.id, projectId))
+    await expect(
+      db.transaction((tx) => holdActiveProject(tx, projectId)),
+    ).rejects.toMatchObject({ name: 'AuthorizationError', code: 'NOT_FOUND' })
+    await db.update(projects).set({ state: 'active' }).where(eq(projects.id, projectId))
+  })
 })

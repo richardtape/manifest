@@ -42,7 +42,7 @@ import type { AppSecretResolver } from '../secrets/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { SpRegistration, SsoRegistrar } from '../sso/index.js'
 import type { Config } from '../config.js'
-import { archivedRefusal } from '../projects/index.js'
+import { projectStateRefusal } from '../projects/index.js'
 import { productionApprovalFor, unsatisfiedReason } from './approval.js'
 import { launchedAt, recordLaunch } from './launched.js'
 import { assertPromotable } from './promotion.js'
@@ -414,7 +414,8 @@ export async function deployRelease(
       .select({ state: projects.state })
       .from(projects)
       .where(eq(projects.id, environment.projectId))
-    if (current?.state !== 'active') throw archivedRefusal(environment.projectId)
+    if (current?.state !== 'active')
+      throw projectStateRefusal(environment.projectId, current?.state ?? 'deleted')
 
     const [row] = await db
       .insert(instances)

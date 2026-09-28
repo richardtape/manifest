@@ -151,5 +151,6 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `sso.deregistered` | The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11). |
 | `project.archived` | The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored. |
 | `project.restored` | A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked. |
+| `project.deleted` | The project, which never launched, was deleted by its owner (§11): switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has. |
 
 <!-- /event-types -->

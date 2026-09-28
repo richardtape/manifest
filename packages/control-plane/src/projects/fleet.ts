@@ -1,4 +1,4 @@
-import { desc, eq, max } from 'drizzle-orm'
+import { desc, eq, max, ne } from 'drizzle-orm'
 import {
   builds,
   environments,
@@ -44,6 +44,8 @@ export async function listFleet(db: Db, reserved: ReservedLabels): Promise<Fleet
     })
     .from(projects)
     .innerJoin(users, eq(projects.ownerId, users.id))
+    // A deleted project is a tombstone, not part of the fleet (§11, Decision 31).
+    .where(ne(projects.state, 'deleted'))
     .orderBy(desc(projects.createdAt))
   const entries: FleetEntry[] = []
   for (const row of rows) {

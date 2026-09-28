@@ -714,4 +714,14 @@ export const EVENT_DETAIL_SCHEMAS = {
     .describe(
       'A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.',
     ),
+  /** The front-end enablement plan's Task 12 — who, as `project.archived` records it (person-only). */
+  'project.deleted': z
+    .strictObject({
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe(
+      'The project, which never launched, was deleted by its owner (§11): switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has.',
+    ),
 } satisfies Record<EventType, z.ZodType>

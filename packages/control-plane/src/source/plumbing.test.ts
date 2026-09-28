@@ -246,6 +246,31 @@ describe('buildCommit — no worktree, the objects borrowed, the tree exactly th
   })
   afterEach(() => rmSync(root, { recursive: true, force: true }))
 
+  /**
+   * THE DELETE'S RACE (the front-end enablement plan's Task 12, `[S4]` from sitting 4's review M2): a
+   * commit under way when `destroyRepository` removes the repository it borrows objects from. git
+   * then names the ALTERNATE's path — the repository's own, on this laptop — and the refusal's
+   * message goes on the wire. The repository's directory name is unique to this test, so neither
+   * spelling of the path (`/var/…` or its `/private/var/…` real path) may survive in the message.
+   */
+  it('a commit whose repository was deleted under it is refused naming no path of this machine', async () => {
+    rmSync(bare, { recursive: true, force: true })
+    const failure = await buildCommit({
+      objects: bare,
+      base,
+      changes: [{ op: 'write', path: 'README.md', content: 'late\n' }],
+      message: 'after the delete',
+      author: ADA,
+    }).catch((error: unknown) => error)
+    expect(failure).toBeInstanceOf(SourceError)
+    const message = (failure as SourceError).message
+    expect((failure as SourceError).code).toBe('SOURCE_GIT_FAILED')
+    // The positive control: git DID say why — the alternate — so a scrub has something to scrub.
+    expect(message).toMatch(/alternate/)
+    expect(message).not.toContain(root.split('/').pop()!)
+    expect(message).toContain('<repository>')
+  })
+
   it('builds a commit whose tree is exactly the plan, from a bare repository whose objects it borrows', async () => {
     const built = await buildCommit({
       objects: bare,

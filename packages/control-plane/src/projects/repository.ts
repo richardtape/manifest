@@ -161,7 +161,11 @@ export async function getProject(
   db: Db,
   projectId: string,
 ): Promise<Project | undefined> {
-  const [project] = await db.select().from(projects).where(eq(projects.id, projectId))
+  // A deleted project is ABSENT (§11, Decision 31): a tombstone for the audit trail, read by nobody.
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, projectId), ne(projects.state, 'deleted')))
   return project
 }
 
@@ -202,7 +206,8 @@ export async function projectViews(
     .from(projects)
     .innerJoin(users, eq(projects.ownerId, users.id))
     .leftJoin(sourceRepositories, eq(sourceRepositories.projectId, projects.id))
-    .where(inArray(projects.id, [...projectIds]))
+    // A deleted project is absent from every view (Decision 31), as from `getProject`.
+    .where(and(inArray(projects.id, [...projectIds]), ne(projects.state, 'deleted')))
   const byId = new Map(
     await Promise.all(
       rows.map(async (r): Promise<[string, ProjectView]> => {
@@ -249,7 +254,7 @@ export async function listProjectsFor(db: Db, actor: Actor): Promise<Project[]> 
   return db
     .select()
     .from(projects)
-    .where(inArray(projects.id, ids))
+    .where(and(inArray(projects.id, ids), ne(projects.state, 'deleted')))
     .orderBy(desc(projects.createdAt))
 }
 

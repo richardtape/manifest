@@ -13,6 +13,7 @@ export {
   AI_ALLOWED_ROUTES,
   aiUserId,
   createAiKeyService,
+  deleteAppUsers,
   disabledAiKeyService,
   discardAppKey,
   ensureAiUser,

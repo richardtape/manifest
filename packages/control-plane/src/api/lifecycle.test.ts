@@ -9,6 +9,8 @@ import {
   pendingActions,
   projects,
   routes,
+  secrets,
+  sourceRepositories,
   withEnvironmentLock,
 } from '../db/index.js'
 import type { AiKeyService } from '../ai/index.js'
@@ -22,7 +24,7 @@ import {
 } from '../releases/index.js'
 import type { FakeDriver } from '../runtime/index.js'
 import type { SsoDeregistrar, SsoRegistrar } from '../sso/index.js'
-import { fingerprintOf, recordPendingAction } from '../tokens/index.js'
+import { fingerprintOf, recordPendingAction, tokenActor } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { lifecycleDeps } from './routes/lifecycle.js'
 import type { ServerDeps } from './server.js'
@@ -30,6 +32,7 @@ import {
   commitManifest,
   loginAs,
   mutationHeaders,
+  projectBody,
   refusal,
   sessionFor,
   withProjectServer,
@@ -817,6 +820,386 @@ describe('archive and restore (§11, Task 11)', () => {
         .from(projects)
         .where(eq(projects.id, ctx.otherProjectId))
       expect(driver.isSwitchedOff(`${other!.slug}.staging.manifest.internal`)).toBe(false)
+    })
+  }, 30_000)
+})
+
+/**
+ * §11's DELETE (Spec action 3; the front-end enablement plan's Task 12, Decision 31): only a project
+ * that never launched; archive first, then destroy what archive kept — every data volume, every
+ * secret, the repository, the model users — and the names answer nothing of this project's. The
+ * row stays, a tombstone the append-only audit trail references, and its slug is free again.
+ */
+describe('delete (§11, Task 12)', () => {
+  const remove = (
+    ctx: TestProject,
+    cookies: Record<string, string>,
+    headers = mutationHeaders(ctx.deps),
+  ) =>
+    ctx.app.inject({
+      method: 'DELETE',
+      url: `/v1/projects/${ctx.projectId}`,
+      cookies,
+      headers,
+    })
+
+  const stateOf = async (ctx: TestProject) => {
+    const [row] = await ctx.db
+      .select({ state: projects.state, deletedAt: projects.deletedAt })
+      .from(projects)
+      .where(eq(projects.id, ctx.projectId))
+    return row!
+  }
+
+  const secretCount = async (ctx: TestProject) =>
+    (await ctx.db.select().from(secrets).where(eq(secrets.projectId, ctx.projectId)))
+      .length
+
+  const userDeletes = (lite: FakeLiteLlm) =>
+    lite.calls.filter((c) => c.path === '/user/delete').map((c) => c.body)
+
+  it('deletes a never-launched project: its repository, its data, its secrets and its model users destroyed; the row a tombstone', async () => {
+    await withLifecycleServer(async (ctx, lite, sso) => {
+      const deployed = await deployWithDatabase(ctx)
+      const driver = ctx.deps.driver as FakeDriver
+      // One of the project's three model users exists, as a deploy with AI would have made it; the
+      // other two do not, and each is asked for alone — a list with one missing deletes NOTHING
+      // (measured on LiteLLM, sitting 9).
+      await lite.post('/user/new', {
+        user_id: `mf-${ctx.projectId}-staging`,
+        max_budget: 5,
+      })
+      expect(await secretCount(ctx)).toBeGreaterThan(0)
+      const repo = ctx.deps.source.repositoryFor(deployed.slug)
+      expect(await ctx.deps.source.headCommit(repo)).toMatch(/^[0-9a-f]{40}$/)
+
+      const res = await remove(ctx, ctx.ownerSteppedUp)
+      expect(res.statusCode, res.body).toBe(200)
+      const body = res.json() as Record<string, unknown>
+      expect(Object.keys(body).sort()).toEqual(['deletedAt', 'id', 'slug', 'state'])
+      expect(body).toMatchObject({
+        id: ctx.projectId,
+        slug: deployed.slug,
+        state: 'deleted',
+      })
+      expect(Date.parse(String(body.deletedAt))).not.toBeNaN()
+
+      // 1. Every environment's services destroyed WITH their data.
+      expect(
+        driver
+          .destroyedEnvironments()
+          .filter((e) => e.deleteData)
+          .map((e) => ({ ...e, services: [...e.services] }))
+          .sort((a, b) => a.kind.localeCompare(b.kind)),
+      ).toEqual([
+        { slug: deployed.slug, kind: 'production', services: [], deleteData: true },
+        { slug: deployed.slug, kind: 'sandbox', services: [], deleteData: true },
+        {
+          slug: deployed.slug,
+          kind: 'staging',
+          services: [`${deployed.slug}-staging-db`],
+          deleteData: true,
+        },
+      ])
+      // 2. Every secret of the project gone.
+      expect(await secretCount(ctx)).toBe(0)
+      // 3. The repository gone.
+      await expect(ctx.deps.source.headCommit(repo)).rejects.toMatchObject({
+        code: 'SOURCE_GIT_FAILED',
+      })
+      // 4. The three model users asked for, ONE per call; the one that existed is gone.
+      expect(userDeletes(lite)).toEqual(
+        ['production', 'sandbox', 'staging'].map((kind) => ({
+          user_ids: [`mf-${ctx.projectId}-${kind}`],
+        })),
+      )
+      expect(lite.users.has(`mf-${ctx.projectId}-staging`)).toBe(false)
+      // 5. The names answer nothing of this project's — not even the switched-off page.
+      expect(driver.isSwitchedOff(deployed.hostname)).toBe(false)
+      expect(await driver.servingInstance(deployed.hostname)).toBeUndefined()
+      // Every Manifest-IdP registration — the archive's two, and production's, which a laptop's
+      // launch rehearsal writes for a project that never launched.
+      expect(sso.removed.map((r) => r.environmentKind).sort()).toEqual([
+        'production',
+        'sandbox',
+        'staging',
+      ])
+      // 6. The tombstone: the row, deleted, and the trail it anchors still there.
+      expect(await stateOf(ctx)).toMatchObject({ state: 'deleted' })
+      expect((await stateOf(ctx)).deletedAt).not.toBeNull()
+      const deleted = await eventTypes(ctx, 'project.deleted')
+      expect(deleted).toHaveLength(1)
+      expect(deleted[0]!.machineDetail).toEqual({
+        via: 'session',
+        userId: ctx.userId,
+        tokenId: null,
+      })
+      expect(deleted[0]!.humanMessage).not.toContain('bio_prof')
+      expect(await eventTypes(ctx, 'project.created')).toHaveLength(1)
+      // And to everyone — the administrator included — a deleted project is a stranger's 404.
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      for (const cookies of [ctx.ownerCookies, admin]) {
+        const read = await ctx.app.inject({
+          method: 'GET',
+          url: `/v1/projects/${ctx.projectId}`,
+          cookies,
+        })
+        expect(refusal(read)).toEqual({ status: 404, code: 'NOT_FOUND' })
+      }
+    })
+  }, 30_000)
+
+  it('refuses a launched project by its own code, and destroys nothing', async () => {
+    await withLifecycleServer(async (ctx, lite) => {
+      const deployed = await deployWithDatabase(ctx)
+      const driver = ctx.deps.driver as FakeDriver
+      await ctx.db
+        .update(projects)
+        .set({ launchedAt: new Date() })
+        .where(eq(projects.id, ctx.projectId))
+      expect(refusal(await remove(ctx, ctx.ownerSteppedUp))).toEqual({
+        status: 409,
+        code: 'PROJECT_LAUNCHED_NOT_DELETABLE',
+      })
+      // Nothing was asked of anything: not even the archive ran.
+      expect(await stateOf(ctx)).toEqual({ state: 'active', deletedAt: null })
+      expect(driver.destroyedEnvironments()).toEqual([])
+      expect(driver.isSwitchedOff(deployed.hostname)).toBe(false)
+      expect(await driver.servingInstance(deployed.hostname)).toBe(deployed.handle)
+      expect(userDeletes(lite)).toEqual([])
+      expect(await eventTypes(ctx, 'project.archived')).toEqual([])
+      expect(
+        await ctx.deps.source.headCommit(ctx.deps.source.repositoryFor(deployed.slug)),
+      ).toMatch(/^[0-9a-f]{40}$/)
+    })
+  }, 30_000)
+
+  it('releases the slug: a new project may take it, and the old one stays a tombstone', async () => {
+    await withLifecycleServer(async (ctx) => {
+      const slug = await slugOf(ctx)
+      const check = () =>
+        ctx.app.inject({
+          method: 'GET',
+          url: `/v1/slugs/${slug}`,
+          cookies: ctx.ownerCookies,
+        })
+      expect((await check()).json()).toMatchObject({ available: false })
+      expect((await remove(ctx, ctx.ownerSteppedUp)).statusCode).toBe(200)
+      expect((await check()).json()).toEqual({ slug, available: true })
+      const again = await ctx.app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        payload: projectBody(slug),
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(again.statusCode, again.body).toBe(201)
+      const fresh = again.json() as { id: string }
+      expect(fresh.id).not.toBe(ctx.projectId)
+      const holders = await ctx.db
+        .select({ id: projects.id, state: projects.state })
+        .from(projects)
+        .where(eq(projects.slug, slug))
+      expect(holders.map((h) => h.state).sort()).toEqual(['active', 'deleted'])
+      // The new one is the only one anybody sees: the owner's list names it, once.
+      const list = await ctx.app.inject({
+        method: 'GET',
+        url: '/v1/projects',
+        cookies: ctx.ownerCookies,
+      })
+      const listed = list.json() as { id: string; slug: string }[]
+      expect(listed.filter((p) => p.slug === slug).map((p) => p.id)).toEqual([fresh.id])
+      // …and the fleet the same.
+      const fleet = await ctx.app.inject({
+        method: 'GET',
+        url: '/v1/fleet',
+        cookies: await loginAs(ctx.deps, 'platform_admin'),
+      })
+      expect(fleet.statusCode, fleet.body).toBe(200)
+      expect(fleet.body).not.toContain(ctx.projectId)
+      // And while a slug is held by a LIVE project, it is still taken: the index is partial, not gone.
+      expect((await check()).json()).toMatchObject({ available: false })
+    })
+  }, 30_000)
+
+  it('archives first when the project is active', async () => {
+    await withLifecycleServer(async (ctx, lite) => {
+      await deployWithDatabase(ctx)
+      const driver = ctx.deps.driver as FakeDriver
+      const started = await startSession(ctx)
+      expect(started.statusCode, started.body).toBe(201)
+      const session = started.json() as { session: { models: string[] }; key: string }
+      const { plaintext } = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      expect((await remove(ctx, ctx.ownerSteppedUp)).statusCode).toBe(200)
+      // Every step of the archive — the session's key refused, the token revoked — then the destroy:
+      // `project.archived` recorded BEFORE `project.deleted`.
+      expect(lite.use(session.key, session.session.models[0]!).status).toBe(401)
+      expect(await tokenActor(ctx.db, plaintext)).toBeUndefined()
+      const trail = (
+        await ctx.db
+          .select({ type: events.type })
+          .from(events)
+          .where(eq(events.projectId, ctx.projectId))
+          .orderBy(events.createdAt)
+      ).map((e) => e.type)
+      expect(trail.filter((t) => t.startsWith('project.'))).toEqual([
+        'project.created',
+        'project.archived',
+        'project.deleted',
+      ])
+      // The archive's own stop, keeping the data, never ran: the delete destroys it, once per kind.
+      expect(driver.destroyedEnvironments().map((e) => e.deleteData)).toEqual([
+        true,
+        true,
+        true,
+      ])
+    })
+  }, 30_000)
+
+  it('deletes an archived project without switching it off twice', async () => {
+    await withLifecycleServer(async (ctx) => {
+      await deployWithDatabase(ctx)
+      const driver = ctx.deps.driver as FakeDriver
+      expect((await archive(ctx, ctx.ownerSteppedUp)).statusCode).toBe(200)
+      expect((await remove(ctx, ctx.ownerSteppedUp)).statusCode).toBe(200)
+      expect(await eventTypes(ctx, 'project.archived')).toHaveLength(1)
+      expect(await eventTypes(ctx, 'project.deleted')).toHaveLength(1)
+      // The archive kept the data; the delete destroyed it.
+      expect(driver.destroyedEnvironments().map((e) => e.deleteData)).toEqual([
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+      ])
+    })
+  }, 30_000)
+
+  it('needs step-up, and is a person’s alone', async () => {
+    await withLifecycleServer(async (ctx) => {
+      expect(refusal(await remove(ctx, ctx.ownerCookies))).toEqual({
+        status: 403,
+        code: 'STEP_UP_REQUIRED',
+      })
+      const collaborator = await sessionFor(ctx, 'bio_student', 'collaborator', {
+        steppedUp: true,
+      })
+      expect(refusal(await remove(ctx, collaborator))).toEqual({
+        status: 403,
+        code: 'FORBIDDEN',
+      })
+      const { plaintext } = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['project:read', 'project:delete'],
+      })
+      const asToken = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}`,
+        headers: {
+          authorization: `Bearer ${plaintext}`,
+          'idempotency-key': randomUUID(),
+        },
+      })
+      expect(refusal(asToken)).toEqual({ status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' })
+      // Each refusal took nothing down.
+      expect(await stateOf(ctx)).toEqual({ state: 'active', deletedAt: null })
+      // The positive control: an administrator, stepped up, may.
+      const admin = await loginAs(ctx.deps, 'platform_admin', { steppedUp: true })
+      const res = await remove(ctx, admin)
+      expect(res.statusCode, res.body).toBe(200)
+      // And a deleted project is gone for its deleter too: the same request again is a 404.
+      expect(refusal(await remove(ctx, admin))).toEqual({
+        status: 404,
+        code: 'NOT_FOUND',
+      })
+    })
+  }, 30_000)
+
+  it('a delete that stops at a step is finished by the same request retried', async () => {
+    await withLifecycleServer(async (ctx) => {
+      const deployed = await deployWithDatabase(ctx)
+      const source = ctx.deps.source
+      const destroy = source.destroyRepository.bind(source)
+      let failures = 1
+      source.destroyRepository = async (repo) => {
+        if (failures > 0) {
+          failures -= 1
+          throw new Error('the disk did not answer')
+        }
+        return destroy(repo)
+      }
+      try {
+        const headers = mutationHeaders(ctx.deps)
+        const first = await remove(ctx, ctx.ownerSteppedUp, headers)
+        expect(refusal(first)).toEqual({
+          status: 500,
+          code: 'PROJECT_TEARDOWN_INCOMPLETE',
+        })
+        expect(first.body).not.toContain('the disk did not answer')
+        // ARCHIVED, not deleted: a person still sees it, and nothing runs.
+        expect(await stateOf(ctx)).toEqual({ state: 'archived', deletedAt: null })
+        expect(await eventTypes(ctx, 'project.deleted')).toEqual([])
+        const second = await remove(ctx, ctx.ownerSteppedUp, headers)
+        expect(second.statusCode, second.body).toBe(200)
+        expect(await stateOf(ctx)).toMatchObject({ state: 'deleted' })
+        expect(await eventTypes(ctx, 'project.deleted')).toHaveLength(1)
+        await expect(
+          source.headCommit(source.repositoryFor(deployed.slug)),
+        ).rejects.toMatchObject({ code: 'SOURCE_GIT_FAILED' })
+      } finally {
+        source.destroyRepository = destroy
+      }
+    })
+  }, 30_000)
+
+  it('refuses a project whose repository another source driver made, before it takes anything down', async () => {
+    await withLifecycleServer(async (ctx) => {
+      await ctx.db
+        .update(sourceRepositories)
+        .set({ provider: 'github' })
+        .where(eq(sourceRepositories.projectId, ctx.projectId))
+      expect(refusal(await remove(ctx, ctx.ownerSteppedUp))).toEqual({
+        status: 409,
+        code: 'SOURCE_PROVIDER_MISMATCH',
+      })
+      expect(await stateOf(ctx)).toEqual({ state: 'active', deletedAt: null })
+      expect(await eventTypes(ctx, 'project.archived')).toEqual([])
+    })
+  })
+
+  it('a token of a deleted project authenticates nothing, and the boot leaves a tombstone alone', async () => {
+    await withLifecycleServer(async (ctx) => {
+      const deployed = await deployWithDatabase(ctx)
+      const driver = ctx.deps.driver as FakeDriver
+      const { plaintext } = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      expect((await remove(ctx, ctx.ownerSteppedUp)).statusCode).toBe(200)
+      const asToken = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}`,
+        headers: { authorization: `Bearer ${plaintext}` },
+      })
+      expect(refusal(asToken)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
+      // A boot finishes ARCHIVED projects' teardowns; a deleted one is none of them, so its names
+      // are never switched off again — they belong to whoever takes the slug next.
+      const report = await recoverAtBoot({
+        db: ctx.db,
+        driver: ctx.deps.driver,
+        bus: ctx.deps.bus,
+        retirer: { schedule: () => undefined },
+        finishTeardowns: () => finishTeardowns(lifecycleDeps(ctx.deps)),
+      })
+      expect(report.teardowns).toEqual({ finished: [], failed: [] })
+      expect(driver.isSwitchedOff(deployed.hostname)).toBe(false)
     })
   }, 30_000)
 })

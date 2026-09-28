@@ -548,6 +548,24 @@ export function describeDriverContract(
         expect(await driver.servingInstance(hostname)).toBe(next.id)
       }, 600_000)
 
+      /**
+       * §11's DELETE (the front-end enablement plan's Task 12): a switched-off name RELEASED — no
+       * page, no route of this project's — so it belongs to whoever takes the slug next. Idempotent,
+       * and a name that holds nothing answers at once. What the name then answers is the edge's
+       * (the wildcard), which `releases/delete.docker.test.ts` reads through the edge itself.
+       */
+      it('removeName releases a switched-off name, twice is the same as once, and the next instance takes it', async () => {
+        const driver = await factory()
+        const hostname = host()
+        await driver.switchOff(hostname, 'staging')
+        await driver.removeName(hostname, 'staging')
+        await driver.removeName(hostname, 'staging')
+        await driver.removeName(host(), 'staging')
+        expect(await driver.servingInstance(hostname)).toBeUndefined()
+        const next = await driver.ensureInstance(beside(hostname, 'release-cccccccc'))
+        expect(await driver.servingInstance(hostname)).toBe(next.id)
+      }, 600_000)
+
       it('listInstances names every instance of a hostname — serving or not — and nothing else', async () => {
         const driver = await factory()
         const hostname = host()

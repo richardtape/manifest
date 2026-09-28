@@ -194,37 +194,46 @@ export function runGit(
 async function must(
   gitDir: string,
   args: readonly string[],
-  o: Parameters<typeof runGit>[2] & { scratch?: string } = {},
+  o: Parameters<typeof runGit>[2] & Scrub = {},
 ): Promise<string> {
   const r = await runGit(gitDir, args, o)
   if (r.code === 0) return r.stdout
   const said = r.stderr.trim().split('\n').slice(-2).join(' | ')
   // The message goes on the wire, and a laptop path is not an answer — the scratch directory
   // first (a scratch repository sits inside it), then the repository itself, as `read` in
-  // `reading.ts` does (F10: `listBase` failing put the repository's path in a 500's body).
-  const clean = (o.scratch === undefined ? said : said.split(o.scratch).join('<scratch>'))
-    .split(gitDir)
-    .join('<repository>')
+  // `reading.ts` does (F10: `listBase` failing put the repository's path in a 500's body) — and
+  // the repository a scratch one BORROWS objects from (`objects`), which git names when a delete
+  // removed it under a commit (the front-end enablement plan's Task 12, `[S4]`): in both spellings
+  // macOS has for a temporary path, `/var/…` and its real `/private/var/…`.
+  let clean = o.scratch === undefined ? said : said.split(o.scratch).join('<scratch>')
+  clean = clean.split(gitDir).join('<repository>')
+  if (o.objects !== undefined) {
+    for (const spelling of [`/private${o.objects}`, o.objects])
+      clean = clean.split(spelling).join('<repository>')
+  }
   throw new SourceError(
     'SOURCE_GIT_FAILED',
     `git ${args[0]} failed (${r.code}): ${clean}`,
   )
 }
 
+/** The paths a failure's message must not carry: the scratch directory, the borrowed objects' repository. */
+interface Scrub {
+  scratch?: string
+  objects?: string
+}
+
 /** Every entry of a commit's tree, trees included — what the planner reads. */
 export async function listBase(
   gitDir: string,
   commit: string,
+  scrub: Scrub = {},
 ): Promise<Map<string, BaseEntry>> {
-  const out = await must(gitDir, [
-    'ls-tree',
-    '-r',
-    '-t',
-    '-l',
-    '-z',
-    '--full-tree',
-    commit,
-  ])
+  const out = await must(
+    gitDir,
+    ['ls-tree', '-r', '-t', '-l', '-z', '--full-tree', commit],
+    scrub,
+  )
   const map = new Map<string, BaseEntry>()
   for (const rec of out.split('\0')) {
     if (rec === '') continue
@@ -283,10 +292,12 @@ export async function buildCommit(input: {
       )
     }
     const index = { GIT_INDEX_FILE: join(scratch, 'index') }
+    // Every git call below may read the borrowed objects, and names their repository when it fails.
+    const scrub: Scrub = { scratch, objects: input.objects }
     const base =
       input.base === null
         ? new Map<string, BaseEntry>()
-        : await listBase(gitDir, input.base)
+        : await listBase(gitDir, input.base, scrub)
     const plan = planChanges(base, input.changes)
     // Every blob in ONE process, from NUMBERED files — never at the file's own path.
     const writes = plan.filter((c) => c.bytes !== undefined)
@@ -303,7 +314,7 @@ export async function buildCommit(input: {
       const out = (
         await must(gitDir, ['hash-object', '-w', '--no-filters', '--stdin-paths'], {
           input: files.join('\n') + '\n',
-          scratch,
+          ...scrub,
         })
       )
         .trim()
@@ -323,7 +334,7 @@ export async function buildCommit(input: {
       )
     }
     if (input.base !== null) {
-      await must(gitDir, ['read-tree', input.base], { env: index, scratch })
+      await must(gitDir, ['read-tree', input.base], { env: index, ...scrub })
     }
     const lines = effective
       .map((c) =>
@@ -335,10 +346,10 @@ export async function buildCommit(input: {
     await must(gitDir, ['update-index', '-z', '--index-info'], {
       input: lines,
       env: index,
-      scratch,
+      ...scrub,
     })
-    const tree = (await must(gitDir, ['write-tree'], { env: index, scratch })).trim()
-    await assertTreeIs(gitDir, tree, base, effective, shas)
+    const tree = (await must(gitDir, ['write-tree'], { env: index, ...scrub })).trim()
+    await assertTreeIs(gitDir, tree, base, effective, shas, scrub)
     const commit = (
       await must(
         gitDir,
@@ -357,7 +368,7 @@ export async function buildCommit(input: {
             GIT_COMMITTER_NAME: MANIFEST_COMMITTER.name,
             GIT_COMMITTER_EMAIL: MANIFEST_COMMITTER.email,
           },
-          scratch,
+          ...scrub,
         },
       )
     ).trim()
@@ -385,6 +396,7 @@ async function assertTreeIs(
   base: ReadonlyMap<string, BaseEntry>,
   changes: readonly PlannedChange[],
   shas: ReadonlyMap<string, string>,
+  scrub: Scrub,
 ): Promise<void> {
   const expected = new Map<string, string>()
   for (const [p, e] of base) if (e.type !== 'tree') expected.set(p, `${e.mode} ${e.sha}`)
@@ -393,7 +405,7 @@ async function assertTreeIs(
     else expected.set(c.path, `${c.mode} ${shas.get(c.path)!}`)
   }
   const actual = new Map<string, string>()
-  for (const [p, e] of await listBase(gitDir, tree))
+  for (const [p, e] of await listBase(gitDir, tree, scrub))
     if (e.type !== 'tree') actual.set(p, `${e.mode} ${e.sha}`)
   const wrong = [...new Set([...expected.keys(), ...actual.keys()])].filter(
     (p) => expected.get(p) !== actual.get(p),

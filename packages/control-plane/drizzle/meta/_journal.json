@@ -267,6 +267,13 @@
       "when": 1790566733057,
       "tag": "0037_lumpy_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790572554968,
+      "tag": "0038_curved_amazoness",
+      "breakpoints": true
     }
   ]
 }

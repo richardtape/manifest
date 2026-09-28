@@ -1,5 +1,6 @@
 import { and, eq, gte, ne, sql } from 'drizzle-orm'
 import {
+  deleteAppUsers,
   endSessionsOf,
   type AiKeyService,
   type EndedBy,
@@ -17,9 +18,15 @@ import {
   type Db,
 } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
-import { personName, ProjectStateError, type SessionActor } from '../projects/index.js'
+import {
+  personName,
+  ProjectStateError,
+  repositoryOf,
+  type SessionActor,
+} from '../projects/index.js'
 import { canTransition, nextState, serviceName, type Driver } from '../runtime/index.js'
-import type { AppSecretResolver } from '../secrets/index.js'
+import { deleteSecretsOf, type AppSecretResolver } from '../secrets/index.js'
+import type { SourceDriver } from '../source/index.js'
 import type { SsoDeregistrar } from '../sso/index.js'
 import { EVERY_QUESTION, expirePendingActions, revokeTokensOf } from '../tokens/index.js'
 import type { ResolvedConfigSet } from './release.js'
@@ -269,17 +276,41 @@ export async function runTeardown(
     try {
       await STEP[step](teardown)
     } catch (error) {
-      console.error(
-        `[lifecycle] switching ${project.slug} off stopped at ${step}: ${
-          (error as { code?: string }).code ?? (error as Error).name
-        } — the same request retried, or the next boot, continues from the first step`,
-      )
-      throw new ProjectStateError(
-        'PROJECT_TEARDOWN_INCOMPLETE',
-        `switching '${project.slug}' off stopped at '${step}'. The project is archived; retrying the same request finishes it, and so does the control plane's next boot`,
+      throw stoppedAt(
+        project.slug,
+        step,
+        error,
+        options.deleteData
+          ? { doing: 'deleting', then: 'retrying the same request finishes it' }
+          : {
+              doing: 'switching off',
+              then: "retrying the same request finishes it, and so does the control plane's next boot",
+            },
       )
     }
   }
+}
+
+/**
+ * A step that threw: ONE operator line naming the step and the error's CODE — never its message,
+ * which could carry a path or a key — and `500 PROJECT_TEARDOWN_INCOMPLETE` naming the step. The
+ * project stays archived either way, so nothing new starts on a half-finished one.
+ */
+function stoppedAt(
+  slug: string,
+  step: string,
+  error: unknown,
+  words: { doing: string; then: string },
+): ProjectStateError {
+  console.error(
+    `[lifecycle] ${words.doing} ${slug} stopped at ${step}: ${
+      (error as { code?: string }).code ?? (error as Error).name
+    } — ${words.then}, continuing from the first step`,
+  )
+  return new ProjectStateError(
+    'PROJECT_TEARDOWN_INCOMPLETE',
+    `${words.doing} '${slug}' stopped at '${step}'. The project is archived; ${words.then}`,
+  )
 }
 
 /**
@@ -292,6 +323,7 @@ async function publishArchivedOnce(
   deps: LifecycleDeps,
   projectId: string,
   by: EndedBy,
+  purpose: 'archive' | 'delete' = 'archive',
 ): Promise<void> {
   const [project] = await deps.db
     .select({ slug: projects.slug, archivedAt: projects.archivedAt })
@@ -318,7 +350,10 @@ async function publishArchivedOnce(
       subject: `project:${projectId}`,
       type: 'project.archived',
       machineDetail: { via: 'session', userId: by.userId, tokenId: by.tokenId },
-      humanMessage: `${await personName(deps.db, by.userId)} switched ${project.slug} off. Each of its names now answers a page saying so; its code, data and secrets are kept, and it can be restored.`,
+      humanMessage:
+        purpose === 'delete'
+          ? `${await personName(deps.db, by.userId)} switched ${project.slug} off, to delete it.`
+          : `${await personName(deps.db, by.userId)} switched ${project.slug} off. Each of its names now answers a page saying so; its code, data and secrets are kept, and it can be restored.`,
     },
     makeRedactor([]),
   )
@@ -336,27 +371,42 @@ export async function archiveProject(
   deps: LifecycleDeps,
   input: { projectId: string; actor: SessionActor },
 ): Promise<void> {
-  const by: EndedBy = { userId: input.actor.userId, tokenId: null }
-  await withProjectLock(input.projectId, async () => {
-    // THE STATE, THE TOKENS AND THE QUESTIONS IN ONE TRANSACTION (the whole-branch review's I1): all
-    // three are the database's alone, so no failure after this — the gateway's included — can leave
-    // an archived project with a live token that a restore would revive. The steps below revoke and
-    // expire again, idempotently, for a boot finishing an archive.
-    await deps.db.transaction(async (tx) => {
-      await tx
-        .update(projects)
-        .set({
-          state: 'archived',
-          archivedAt: sql`now()`,
-          archivedBy: input.actor.userId,
-        })
-        .where(and(eq(projects.id, input.projectId), eq(projects.state, 'active')))
-      await revokeTokensOf(tx, input.projectId)
-      await expirePendingActions(tx, EVERY_QUESTION, { projectId: input.projectId })
-    })
-    await runTeardown(deps, { projectId: input.projectId, by }, { deleteData: false })
-    await publishArchivedOnce(deps, input.projectId, by)
+  await withProjectLock(input.projectId, () =>
+    archiveUnderLock(deps, input.projectId, input.actor, 'archive'),
+  )
+}
+
+/**
+ * The archive's body — for `archiveProject`, and for `deleteProject`, which must archive under the
+ * SAME lock: `withProjectLock` is a session-level advisory lock on a pooled connection, so taking it
+ * again from inside would wait on itself for ever. A delete's teardown destroys the data rather than
+ * keeping it, and its `project.archived` says the project is being deleted.
+ */
+async function archiveUnderLock(
+  deps: LifecycleDeps,
+  projectId: string,
+  actor: SessionActor,
+  purpose: 'archive' | 'delete',
+): Promise<void> {
+  const by: EndedBy = { userId: actor.userId, tokenId: null }
+  // THE STATE, THE TOKENS AND THE QUESTIONS IN ONE TRANSACTION (the whole-branch review's I1): all
+  // three are the database's alone, so no failure after this — the gateway's included — can leave
+  // an archived project with a live token that a restore would revive. The steps below revoke and
+  // expire again, idempotently, for a boot finishing an archive.
+  await deps.db.transaction(async (tx) => {
+    await tx
+      .update(projects)
+      .set({
+        state: 'archived',
+        archivedAt: sql`now()`,
+        archivedBy: actor.userId,
+      })
+      .where(and(eq(projects.id, projectId), eq(projects.state, 'active')))
+    await revokeTokensOf(tx, projectId)
+    await expirePendingActions(tx, EVERY_QUESTION, { projectId })
   })
+  await runTeardown(deps, { projectId, by }, { deleteData: purpose === 'delete' })
+  await publishArchivedOnce(deps, projectId, by, purpose)
 }
 
 /**
@@ -444,4 +494,183 @@ export async function finishTeardowns(deps: LifecycleDeps): Promise<TeardownsFin
     }
   }
   return report
+}
+
+/** What a delete needs beyond an archive: the source driver that holds the repository. */
+export interface DeleteDeps extends LifecycleDeps {
+  source: Pick<SourceDriver, 'name' | 'repositoryFor' | 'destroyRepository'>
+}
+
+/**
+ * WHAT A DELETE DESTROYS AFTER ITS ARCHIVE (Decision 31) — the archive's own teardown, run with
+ * `deleteData`, has already removed every data volume. Each step is idempotent, so the same request
+ * retried runs them all again from the first; the finished ones answer at once.
+ */
+export const DELETE_STEPS = [
+  // The Manifest IdP's production row — written by a laptop's launch REHEARSAL (D21), which a
+  // never-launched project may have run. Sandbox's and staging's went with the archive. A UBC
+  // registration is never in this IdP, so there is nothing of UBC's to remove.
+  'deregister-production-sp',
+  // Each environment's name, the switched-off page included: the slug is the next project's.
+  'release-names',
+  // The three LiteLLM users carrying the app's monthly spend (`mf-<projectId>-<kind>`).
+  'delete-model-users',
+  // The repository — on driver 2 the GitHub repository and its mirror.
+  'destroy-repository',
+  // Every secret of the project, LAST: an archive revoked every key a row names, and a row is the
+  // only reference to one, so a failure above must leave them for the retry to find.
+  'destroy-secrets',
+] as const
+
+export type DeleteStep = (typeof DELETE_STEPS)[number]
+
+interface Deletion {
+  deps: DeleteDeps
+  projectId: string
+  slug: string
+  environments: EnvironmentRow[]
+}
+
+const DELETE_STEP: Record<DeleteStep, (d: Deletion) => Promise<unknown>> = {
+  'deregister-production-sp': (d) =>
+    d.deps.sso.deregisterServiceProvider(d.deps.db, {
+      projectId: d.projectId,
+      slug: d.slug,
+      environmentKind: 'production',
+    }),
+
+  'release-names': async (d) => {
+    for (const environment of d.environments) {
+      await withEnvironmentLock(environment.id, () =>
+        d.deps.driver.removeName(environment.hostname, environment.kind),
+      )
+    }
+  },
+
+  // With AI switched off there is no gateway to ask; `scripts/litellm-orphans.sh` reclaims the
+  // users, because no container holds a key of theirs.
+  'delete-model-users': (d) =>
+    d.deps.llm === undefined
+      ? Promise.resolve()
+      : deleteAppUsers(d.deps.llm, d.projectId),
+
+  // By the project's own driver (`repositoryOf`), which the delete checked before anything began.
+  'destroy-repository': async (d) =>
+    d.deps.source.destroyRepository(
+      await repositoryOf(d.deps, { id: d.projectId, slug: d.slug }),
+    ),
+
+  'destroy-secrets': (d) => deleteSecretsOf(d.deps.db, d.projectId),
+}
+
+/** A deleted project's record, as the one route that ever answers it answers it. */
+export interface Tombstone {
+  id: string
+  slug: string
+  deletedAt: Date
+}
+
+/**
+ * §11's DELETE (Spec action 3; the front-end enablement plan's Task 12, Decision 31) — for a project
+ * that has NEVER LAUNCHED. Under the project's lock:
+ *
+ * 1. **Refused before anything is touched** — a launched project (`409
+ *    PROJECT_LAUNCHED_NOT_DELETABLE`: its data is disposed of under `data.retention_days` and UBC's
+ *    sunset procedure, and its canonical hostname is permanent, D26), or one whose repository another
+ *    source driver made (`409 SOURCE_PROVIDER_MISMATCH`: this driver cannot destroy it, and a delete
+ *    that archived first would then stop at that step for ever).
+ * 2. **Archived** — the archive's own body, its teardown DESTROYING every data volume rather than
+ *    keeping it — then `DELETE_STEPS`.
+ * 3. `project.deleted` published ONCE, then the row made a TOMBSTONE: `state = 'deleted'`,
+ *    `deleted_at`. The row stays because the append-only audit trail references it; the partial
+ *    `projects_slug_key` frees its slug. In that order, so a failure between the two is finished by
+ *    the retry without a second event — and never leaves a deleted project with no event.
+ *
+ * A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project ARCHIVED: the same
+ * request retried finishes it. **The boot does not**: `finishTeardowns` finishes an archive, keeping
+ * whatever data is left, and the delete is finished only when somebody asks again.
+ */
+export async function deleteProject(
+  deps: DeleteDeps,
+  input: { projectId: string; actor: SessionActor },
+): Promise<Tombstone> {
+  return withProjectLock(input.projectId, async () => {
+    const [project] = await deps.db
+      .select({
+        slug: projects.slug,
+        state: projects.state,
+        launchedAt: projects.launchedAt,
+        deletedAt: projects.deletedAt,
+      })
+      .from(projects)
+      .where(eq(projects.id, input.projectId))
+    if (project === undefined) throw new Error(`no project '${input.projectId}'`)
+    // A delete that finished while this one waited for the lock: answered as it is.
+    if (project.state === 'deleted' && project.deletedAt !== null)
+      return { id: input.projectId, slug: project.slug, deletedAt: project.deletedAt }
+    if (project.launchedAt !== null) {
+      throw new ProjectStateError(
+        'PROJECT_LAUNCHED_NOT_DELETABLE',
+        `'${project.slug}' has been to production, so it cannot be deleted: its data is disposed of under its retention period and UBC's sunset procedure, and its production name stays held. Archive it to switch it off`,
+      )
+    }
+    // Throws SOURCE_PROVIDER_MISMATCH for another driver's repository — before anything is taken down.
+    await repositoryOf(deps, { id: input.projectId, slug: project.slug })
+
+    await archiveUnderLock(deps, input.projectId, input.actor, 'delete')
+    const deletion: Deletion = {
+      deps,
+      projectId: input.projectId,
+      slug: project.slug,
+      environments: await deps.db
+        .select()
+        .from(environments)
+        .where(eq(environments.projectId, input.projectId))
+        .orderBy(environments.kind),
+    }
+    for (const step of DELETE_STEPS) {
+      try {
+        await DELETE_STEP[step](deletion)
+      } catch (error) {
+        throw stoppedAt(project.slug, step, error, {
+          doing: 'deleting',
+          then: 'retrying the same request finishes it',
+        })
+      }
+    }
+    await publishDeletedOnce(deps, input.projectId, project.slug, input.actor.userId)
+    const [tombstone] = await deps.db
+      .update(projects)
+      .set({ state: 'deleted', deletedAt: sql`now()` })
+      .where(eq(projects.id, input.projectId))
+      .returning({ deletedAt: projects.deletedAt })
+    return { id: input.projectId, slug: project.slug, deletedAt: tombstone!.deletedAt! }
+  })
+}
+
+/** `project.deleted`, once: a project is deleted once, ever, so any such event is THE one. */
+async function publishDeletedOnce(
+  deps: LifecycleDeps,
+  projectId: string,
+  slug: string,
+  userId: string,
+): Promise<void> {
+  const [published] = await deps.db
+    .select({ id: events.id })
+    .from(events)
+    .where(and(eq(events.projectId, projectId), eq(events.type, 'project.deleted')))
+    .limit(1)
+  if (published !== undefined) return
+  await publishEvent(
+    deps.db,
+    deps.bus,
+    {
+      projectId,
+      subject: `project:${projectId}`,
+      type: 'project.deleted',
+      machineDetail: { via: 'session', userId, tokenId: null },
+      humanMessage: `${await personName(deps.db, userId)} deleted ${slug}. Its code, data and secrets are gone; this record remains, and the name ${slug} is free for another project.`,
+    },
+    makeRedactor([]),
+  )
 }

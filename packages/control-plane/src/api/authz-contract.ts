@@ -800,6 +800,27 @@ const ROUTES: RouteCase[] = [
    * …and RESTORE: the same capability and credential class, and NO step-up (Decision 30) — so the
    * owner and the administrator pass, restoring a project that is active, which answers it as it is.
    */
+  /**
+   * …and DELETE (Task 12, Decision 31): the same capability, credential class and step-up as
+   * archive — so, unstepped, the owner and the administrator are `STEP_UP` and nothing is deleted;
+   * each actor on its own throwaway project besides, so no answer here is another case's tombstone.
+   */
+  {
+    method: 'DELETE',
+    url: '/v1/projects/:projectId',
+    request: async (f) => ({ url: `/v1/projects/${await f.throwaway()}` }),
+    expect: {
+      owner: STEP_UP,
+      collaborator: 403,
+      stranger: 404,
+      admin: STEP_UP,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
   {
     method: 'POST',
     url: '/v1/projects/:projectId/restore',

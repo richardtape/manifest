@@ -605,3 +605,15 @@ A switched-off project was restored (§11). Nothing started: its names answer th
   "tokenId": null
 }
 ```
+
+## `project.deleted`
+
+The project, which never launched, was deleted by its owner (§11): switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has.
+
+```json
+{
+  "via": "session",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": null
+}
+```
