@@ -170,6 +170,28 @@ interface FakeUser {
   spend: number
 }
 
+/**
+ * A deployment as `/model/info` lists it (the front-end enablement plan's Task 12a). The five
+ * `config.yaml` entries are seeded as CONFIG-FILE deployments (`db_model: false`), which
+ * `/model/delete` cannot remove, as a real gateway's cannot; `/model/new` adds DB-held ones.
+ */
+export interface FakeDeployment {
+  id: string
+  modelName: string
+  /** `litellm_params.model` — the provider's model string, decrypted as `/model/info` answers it. */
+  model: string
+  modelInfo: Record<string, unknown>
+  dbModel: boolean
+  /**
+   * False for a row LiteLLM SAVED but could not serve — an unknown provider, measured at sitting 9a:
+   * `/model/new` answers `500` *"Model create was saved to the database, but … not live"*, and the
+   * row is absent from `/model/info` until it is deleted by its id.
+   */
+  live: boolean
+  /** A config entry's own price; a DB deployment's comes from `price()` or the fake's map. */
+  inputCostPerToken?: number
+}
+
 interface FakeKey {
   key: string
   alias: string
@@ -200,6 +222,39 @@ export interface FakeLiteLlm extends LiteLlmClient {
   use(key: string, model: string): { status: number; type?: string }
   /** Moves the fake's clock, in milliseconds. */
   advance(ms: number): void
+  /** Every deployment the gateway holds, served or not, by id. */
+  readonly deployments: ReadonlyMap<string, FakeDeployment>
+  /**
+   * What LiteLLM's price map answers for a provider's model string, in USD a token. Unset, an
+   * `openai/*` model is priced at `1e-07` unless its name begins `openai/unpriced` — which reads `0`,
+   * as `openai/gpt-6-terra` did at sitting 9a (neither of LiteLLM's maps knows it).
+   */
+  price(model: string, inputUsdPerToken: number): void
+}
+
+/** The providers the fake can serve; any other prefix is saved and never served, as 1.98.0 does. */
+const FAKE_PROVIDERS = new Set(['openai', 'azure', 'anthropic', 'ollama', 'ollama_chat'])
+
+/** `infra/litellm/config.yaml`'s entries, as a gateway loaded from it lists them. */
+function configDeployments(): FakeDeployment[] {
+  const declared = parse(readFileSync(LITELLM_CONFIG, 'utf8')) as {
+    model_list: {
+      model_name: string
+      litellm_params: { model: string; input_cost_per_token?: number }
+      model_info?: Record<string, unknown>
+    }[]
+  }
+  return declared.model_list.map((m, i) => ({
+    id: `config-${i}-${m.model_name}`,
+    modelName: m.model_name,
+    model: m.litellm_params.model,
+    modelInfo: { ...(m.model_info ?? {}) },
+    dbModel: false,
+    live: true,
+    ...(m.litellm_params.input_cost_per_token === undefined
+      ? {}
+      : { inputCostPerToken: m.litellm_params.input_cost_per_token }),
+  }))
 }
 
 export function fakeLiteLlm(): FakeLiteLlm {
@@ -214,6 +269,14 @@ export function fakeLiteLlm(): FakeLiteLlm {
   }
   let clock = Date.now()
   let minted = 0
+  const deployments = new Map<string, FakeDeployment>(
+    configDeployments().map((d) => [d.id, d]),
+  )
+  const prices = new Map<string, number>()
+  const costOf = (d: FakeDeployment): number =>
+    d.inputCostPerToken ??
+    prices.get(d.model) ??
+    (d.model.startsWith('openai/') && !d.model.startsWith('openai/unpriced') ? 1e-7 : 0)
 
   const refuse = (status: number, type = 'internal_server_error'): never => {
     throw mapLiteLlmError(status, { error: { type, message: 'fake' } })
@@ -280,6 +343,36 @@ export function fakeLiteLlm(): FakeLiteLlm {
         })
         return { key, key_alias: alias } as T
       }
+      case '/model/new': {
+        const info = { ...((body.model_info ?? {}) as Record<string, unknown>) }
+        const id = typeof info.id === 'string' ? info.id : `fake-model-${++minted}`
+        const model = String(
+          (body.litellm_params as { model?: unknown } | undefined)?.model,
+        )
+        const live = FAKE_PROVIDERS.has(model.split('/')[0] ?? '')
+        deployments.set(id, {
+          id,
+          modelName: String(body.model_name),
+          model,
+          modelInfo: { ...info, id },
+          dbModel: true,
+          live,
+        })
+        // Measured: an unknown provider's row is SAVED and then refused as not live.
+        if (!live) refuse(500)
+        return {
+          model_id: id,
+          model_name: body.model_name,
+          model_info: { ...info, id },
+        } as T
+      }
+      case '/model/delete': {
+        const d = deployments.get(String(body.id))
+        // Measured: an id the database does not hold — gone, or a config entry — is `400`.
+        if (d === undefined || !d.dbModel) refuse(400, 'auth_error')
+        deployments.delete(d!.id)
+        return { message: `Model: ${d!.id} deleted successfully` } as T
+      }
       case '/key/delete': {
         const aliases = (body.key_aliases as string[] | undefined) ?? []
         const values = (body.keys as string[] | undefined) ?? []
@@ -298,6 +391,22 @@ export function fakeLiteLlm(): FakeLiteLlm {
   async function get<T>(path: string, query?: Record<string, string>): Promise<T> {
     calls.push({ method: 'GET', path, ...(query === undefined ? {} : { query }) })
     failIfAsked(path)
+    if (path === '/model/info') {
+      return {
+        data: [...deployments.values()]
+          .filter((d) => d.live)
+          .map((d) => ({
+            model_name: d.modelName,
+            litellm_params: { model: d.model },
+            model_info: {
+              ...d.modelInfo,
+              id: d.id,
+              db_model: d.dbModel,
+              input_cost_per_token: costOf(d),
+            },
+          })),
+      } as T
+    }
     if (path !== '/user/info') return refuse(404, 'not_found_error')
     const id = query?.user_id ?? ''
     const user = users.get(id)
@@ -358,6 +467,10 @@ export function fakeLiteLlm(): FakeLiteLlm {
     },
     advance: (ms) => {
       clock += ms
+    },
+    deployments,
+    price: (model, usd) => {
+      prices.set(model, usd)
     },
   }
 }

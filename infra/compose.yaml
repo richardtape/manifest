@@ -228,6 +228,11 @@ services:
       LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:?set LITELLM_SALT_KEY in .env}
       # The catalogue must be DB-held or every fleet repoint needs a restart (§7).
       STORE_MODEL_IN_DB: "True"
+      # THE CAPABLE MODEL'S PROVIDER KEY (§7, §21, §26 — the front-end enablement plan's Task 12a).
+      # HERE AND NOWHERE ELSE: the control plane registers `default-chat-large` naming no api_key,
+      # and LiteLLM reads the provider's own variable for it. Empty unless .env sets it, and then an
+      # `openai/*` deployment answers LiteLLM's own AuthenticationError. Changing it needs `make up`.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     extra_hosts:
       # Ollama is a HOST application — Metal GPU access is unavailable from a
       # container (§21). This is how the container reaches it (S7, S3).

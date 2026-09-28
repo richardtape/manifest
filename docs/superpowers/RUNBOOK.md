@@ -160,6 +160,42 @@ keypair it signs with is `infra/sp/control-plane.{key,crt}`, minted by `make up`
 gitignored, and — like the IdP keypair and the envelope master key — **not removed by
 `make reset`**.
 
+### The capable model
+
+*Added 2026-09-28 (the front-end enablement plan's Task 12a; §7, §21 and §26 as Spec action 7 amended them).*
+`default-chat-large` is ONE logical name for the agent and app work `qwen3.5:4b` cannot do. Which model answers it
+is a setting, a commercial provider's today, **and it needs the network**. Nothing offline depends on it:
+`default-chat` stays the floor every demo and the offline acceptance run on (C1). It is **unset by default**, and a
+laptop without a provider key registers nothing.
+
+1. **In `.env`, set the two lines `.env.example`'s section 2f documents**: `OPENAI_API_KEY=` (the provider's key —
+   real money; it is yours, and no agent types, reads or prints it) and `MANIFEST_CAPABLE_MODEL=openai/gpt-6-luna`
+   (a LiteLLM model string; Rich's choice on 2026-09-28, with `openai/gpt-6-sol` as the one-line switch if luna is
+   not capable enough).
+2. **`make up`** — LiteLLM reads its environment only when it is created, and `infra/compose.yaml` hands it
+   `OPENAI_API_KEY` and hands the key to nothing else. Check with
+   `docker exec manifest-litellm sh -c '[ -n "$OPENAI_API_KEY" ] && echo set'`, never by printing it. **Do it with
+   the network ON**: `gpt-6-*` is priced only by the list LiteLLM fetches when it starts online, because the list
+   bundled in 1.98.0 stops at gpt-5.6.
+3. **Start (or restart) the control plane** as above. RUNBOOK's `set -a; . ./.env` exports both lines into it. The
+   control plane reads `MANIFEST_CAPABLE_MODEL` and **scrubs `OPENAI_API_KEY` at boot**, before any child process
+   can inherit it. At boot it registers `default-chat-large` at `internal` through LiteLLM's admin API, never as
+   an `infra/litellm/config.yaml` line (a config-file deployment cannot be removed through the admin API).
+   **Read the boot line's `capableModel`**, which is one of:
+   - `registered`, `unchanged`, `removed` or `absent`;
+   - `refused` or `failed`, each with ONE `[boot] the capable model (MANIFEST_CAPABLE_MODEL) …` line. The boot
+     always goes on.
+4. **Check it**: `curl -s http://127.0.0.1:7106/model/info -H "authorization: Bearer $LITELLM_MASTER_KEY"`, then
+   look for `default-chat-large` with `max_classification: internal` and a positive `input_cost_per_token`.
+   `startAgentSession` on an `internal` or `public` project lists it in `session.models`. A `confidential`
+   project's session never does.
+
+**`refused` means LiteLLM cannot price the model.** A model priced at $0 would never bind an agent budget, a session
+cap or the intake month, so the platform will not offer it. The usual cause is a LiteLLM started offline:
+`docker restart manifest-litellm` with the network on, then restart the control plane. **Unsetting the line and
+restarting removes it.** `MANIFEST_INTAKE_MODEL` may name it too, which means the platform pays for intake on it.
+A call with no provider key in LiteLLM is refused inside LiteLLM, as `500 litellm.AuthenticationError`.
+
 ## The four verbs
 
 | | |

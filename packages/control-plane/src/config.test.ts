@@ -247,6 +247,20 @@ describe('configuration', () => {
     expect(config.litellm.masterKey).toBeUndefined()
   })
 
+  // THE CAPABLE MODEL (the front-end enablement plan's Task 12a): unset by default, so a machine with
+  // no provider key registers nothing — and an EMPTY value is unset, because RUNBOOK's export block
+  // and a commented `.env` line both reach this process as ''.
+  it('reads the capable model from its setting, and treats empty as unset', () => {
+    expect(loadConfig({ ...base }).litellm.capableModel).toBeUndefined()
+    expect(
+      loadConfig({ ...base, MANIFEST_CAPABLE_MODEL: '' }).litellm.capableModel,
+    ).toBeUndefined()
+    expect(
+      loadConfig({ ...base, MANIFEST_CAPABLE_MODEL: 'openai/gpt-6-luna' }).litellm
+        .capableModel,
+    ).toBe('openai/gpt-6-luna')
+  })
+
   // Generated in development, and SAID SO — the flag is what lets the boot line
   // warn, because otherwise the only symptom is an existing Mongo refusing a
   // password this process derived differently.

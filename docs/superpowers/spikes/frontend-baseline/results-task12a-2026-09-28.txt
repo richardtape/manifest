@@ -1,0 +1,107 @@
+# Task 12a, Step 1 — 2026-09-28 (sitting 9a). LiteLLM 1.98.0 @sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4
+
+######## t12a-predictions.md
+# Task 12a — Step 1 predictions, written BEFORE the probes (2026-09-28)
+(a) POST /model/new {model_name: probe-capable-a, litellm_params.model openai/gpt-5.6-luna, model_info.max_classification internal} with NO key in the container → 200; the id is in the answer (model_id, or model_info.id).
+(b) GET /model/info → the entry: max_classification 'internal' kept; input_cost_per_token 2e-07 (bundled map) — non-null.
+(b2) the same for openai/gpt-6-luna (Rich's choice; NOT in the bundled map) → input_cost_per_token null/absent UNLESS the proxy fetched a newer remote map at its start (it has no LITELLM_LOCAL_MODEL_COST_MAP set) — predict NULL.
+(c) unpriced/whatever → EITHER /model/new refuses it (LiteLLM cannot resolve the provider — 400) OR it registers with input_cost_per_token null. Predict: registers, null.
+(d) POST /model/delete {id} → 200, gone from /model/info; a second delete of the same id → 400 or 404 (predict 400 "model not found").
+(e) [live] a chat through a probe key limited to probe-capable → 200, key spend > 0.
+(f) [live] OPENAI_API_KEY unset in the container → 401 AuthenticationError from LiteLLM.
+
+######## t12a-step1-offline.log
+=== (a) /model/new probe-capable-openai-gpt-5-6-luna -> openai/gpt-5.6-luna
+{"model_id":"7ebb2cd2-9c08-4b73-8bfa-550e1e104d52","model_name":"probe-capable-openai-gpt-5-6-luna","litellm_params":{"model":"vgw02NHtbrs1vGHdXHF2qUna_VUavN1KI4N2jwz6LyNJ4GGaA7Z_U4PJAZH3EKLlrspNqiSb73YsxCc=","use_xai_oauth":false,"use_litellm_proxy":false,"use_in_pass_through":false,"allow_client_keepalive_override":false,"merge_reasoning_content_in_choices":false},"model_info":{"id":"7ebb2cd2-9c08-4b73-8bfa-550e1e104d52","db_model":false,"max_classification":"internal"},"blocked":false,"created_at":"2026-09-28T14:32:52.404000Z","created_by":"default_user_id","updated_at":"2026-09-28T14:32:52
+HTTP 200
+=== (a) /model/new probe-capable-openai-gpt-6-luna -> openai/gpt-6-luna
+{"model_id":"3e5854eb-6bac-4036-b984-25b49379ceda","model_name":"probe-capable-openai-gpt-6-luna","litellm_params":{"model":"hpTis8hANhXjY9vzTjmLxKqOoBlMoTXZqmCcV1s2KO5xtpTEVMaAereUcXWQL72889pVFfhASdVH","use_xai_oauth":false,"use_litellm_proxy":false,"use_in_pass_through":false,"allow_client_keepalive_override":false,"merge_reasoning_content_in_choices":false},"model_info":{"id":"3e5854eb-6bac-4036-b984-25b49379ceda","db_model":false,"max_classification":"internal"},"blocked":false,"created_at":"2026-09-28T14:32:52.457000Z","created_by":"default_user_id","updated_at":"2026-09-28T14:32:52.45700
+HTTP 200
+=== (a) /model/new probe-capable-openai-gpt-6-terra -> openai/gpt-6-terra
+{"model_id":"1b81f353-5407-4f55-a405-ea30a88fa8a5","model_name":"probe-capable-openai-gpt-6-terra","litellm_params":{"model":"_8lauE0HSuHX-MJ9kIVSxuAkYJg8JxvuHO6TghHTXEROCpJbt_3ErkfAZTgxPekM5XyQAuv7smJj7g==","use_xai_oauth":false,"use_litellm_proxy":false,"use_in_pass_through":false,"allow_client_keepalive_override":false,"merge_reasoning_content_in_choices":false},"model_info":{"id":"1b81f353-5407-4f55-a405-ea30a88fa8a5","db_model":false,"max_classification":"internal"},"blocked":false,"created_at":"2026-09-28T14:32:52.497000Z","created_by":"default_user_id","updated_at":"2026-09-28T14:32:52.
+HTTP 200
+=== (a) /model/new probe-capable-unpriced-whatever -> unpriced/whatever
+{"error":{"message":"Model create was saved to the database, but the model id(s) ['d63d4985-11db-4ec0-8849-4e8f5ba17b97'] are not live in this pod's router after the reload and are not being served by this pod. Other pods reload on their own interval. Check server logs for 'Error upserting deployment' or 'Error creating deployment' for the cause.","type":"internal_server_error","param":null,"code":"500"}}
+HTTP 500
+=== (b)/(c) /model/info
+{"model_name": "probe-capable-openai-gpt-5-6-luna", "litellm_params": {"allow_client_keepalive_override": false, "use_in_pass_through": false, "use_litellm_proxy": false, "use_xai_oauth": false, "merge_reasoning_content_in_choices": false, "model": "openai/gpt-5.6-luna"}, "id": "7ebb2cd2-9c08-4b73-8bfa-550e1e104d52", "max_classification": "internal", "input_cost_per_token": 2e-07, "output_cost_per_token": 1.2e-06, "db_model": true, "key": "gpt-5.6-luna"}
+{"model_name": "probe-capable-openai-gpt-6-luna", "litellm_params": {"allow_client_keepalive_override": false, "use_in_pass_through": false, "use_litellm_proxy": false, "use_xai_oauth": false, "merge_reasoning_content_in_choices": false, "model": "openai/gpt-6-luna"}, "id": "3e5854eb-6bac-4036-b984-25b49379ceda", "max_classification": "internal", "input_cost_per_token": 1e-07, "output_cost_per_token": 5e-07, "db_model": true, "key": "gpt-6-luna"}
+{"model_name": "probe-capable-openai-gpt-6-terra", "litellm_params": {"allow_client_keepalive_override": false, "use_in_pass_through": false, "use_litellm_proxy": false, "use_xai_oauth": false, "merge_reasoning_content_in_choices": false, "model": "openai/gpt-6-terra"}, "id": "1b81f353-5407-4f55-a405-ea30a88fa8a5", "max_classification": "internal", "input_cost_per_token": 0, "output_cost_per_token": 0, "db_model": true, "key": "openai/gpt-6-terra"}
+total entries 8 ['default-chat', 'default-chat-onprem', 'default-chat-reasoning', 'default-chat-onprem-reasoning', 'default-embed', 'probe-capable-openai-gpt-5-6-luna', 'probe-capable-openai-gpt-6-luna', 'probe-capable-openai-gpt-6-terra']
+=== (d) delete each
+delete 7ebb2cd2-9c08-4b73-8bfa-550e1e104d52
+{"message":"Model: 7ebb2cd2-9c08-4b73-8bfa-550e1e104d52 deleted successfully"}
+HTTP 200
+delete 3e5854eb-6bac-4036-b984-25b49379ceda
+{"message":"Model: 3e5854eb-6bac-4036-b984-25b49379ceda deleted successfully"}
+HTTP 200
+delete 1b81f353-5407-4f55-a405-ea30a88fa8a5
+{"message":"Model: 1b81f353-5407-4f55-a405-ea30a88fa8a5 deleted successfully"}
+HTTP 200
+=== (d2) second delete of 7ebb2cd2-9c08-4b73-8bfa-550e1e104d52
+{"error":{"message":"{'error': 'Model with id=7ebb2cd2-9c08-4b73-8bfa-550e1e104d52 not found in db'}","type":"auth_error","param":"None","code":"400"}}
+HTTP 400
+=== after
+total entries 5 ['default-chat', 'default-chat-onprem', 'default-chat-reasoning', 'default-chat-onprem-reasoning', 'default-embed']
+
+######## t12a-step1-id.log
+=== (g) our own model_info.id, a priced model
+{"model_id":"probe-capable-id-1790606037-a","model_name":"probe-capable-g","litellm_params":{"model":"26-qlLpX1BaUb5tQ8pnbghw96bWrhnN5jEihyEaVd0jiKdaOFHxtBmrRwQH0BMe0e2neFnkkPo1B","use_xai_oauth":fals
+HTTP 200
+=== (h) our own model_info.id, an unknown provider
+{"error":{"message":"Model create was saved to the database, but the model id(s) ['probe-capable-id-1790606037-b'] are not live in this pod's router after the reload and are not being served by this p
+HTTP 500
+=== db
+probe-capable-id-1790606037-a|probe-capable-g
+probe-capable-id-1790606037-b|probe-capable-h
+=== /model/info ids
+default-chat f2e384804e7062c6361534efe5abe015215bc8e827b3706511b1f711374e25c7 False
+default-chat-onprem d704ec839b6e1eece409e4f5b010f73f98666f752597366df583dbd29ab5a59a False
+default-chat-reasoning 9b6578509755d8cea74b028dfd8b41b2b90bf6928012cfa687307f500ddda2be False
+default-chat-onprem-reasoning 6d0e91e116e00c70f0d5a636c171dbcf705cc1fc89f5128a75c227b69419df51 False
+default-embed 450e1c8d443011a325aa346f44e23e0748d2ac4272e55a50aabda2a60aff80fa False
+probe-capable-g probe-capable-id-1790606037-a True
+=== delete both by our ids
+{"message":"Model: probe-capable-id-1790606037-a deleted successfully"}
+HTTP 200
+{"message":"Model: probe-capable-id-1790606037-b deleted successfully"}
+HTTP 200
+=== db after
+(end)
+
+######## t12a-step1-f.log
+=== container has OPENAI_API_KEY: no
+=== register probe-capable-f -> openai/gpt-6-luna (id probe-capable-f-1790606137)
+{"model_id":"probe-capable-f-1790606137","model_name":"probe-capable-f","litellm_params":<elided>,"model_info":{"id":"probe-capable-f-1790606137","db_model":false,"max_classification":"internal"},"blo
+user/new HTTP 200
+key minted: yes
+=== chat
+status 500
+error type: None | code: 500 | message: litellm.AuthenticationError: AuthenticationError: OpenAIException - The api_key client option must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable. Received Model Group=probe-capable-f
+Available Model Group Fallbacks=None
+chat took 0 s
+=== key spend (polled up to 120 s)
+key spend: 0.0 (after ~120 s)
+=== cleanup
+key/delete HTTP 200
+user/delete HTTP 200
+model/delete HTTP 200
+models left in the table: 0
+
+######## t12a-step1-e.log
+=== container has OPENAI_API_KEY: yes
+=== register probe-capable-e -> openai/gpt-6-luna (id probe-capable-e-1790606293)
+{"model_id":"probe-capable-e-1790606293","model_name":"probe-capable-e","litellm_params":<elided>,"model_info":{"id":"probe-capable-e-1790606293","db_model":false,"max_classification":"internal"},"blo
+user/new HTTP 200
+key minted: yes
+=== chat
+status 200
+model: probe-capable-e | content: 'ok' | finish: stop | usage: {'completion_tokens': 4, 'prompt_tokens': 13, 'total_tokens': 17, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0, 'cache_write_tokens': 0, 'cache_creation_tokens': 0}}
+chat took 2 s
+=== key spend (polled up to 120 s)
+key spend: 3.3e-06 (after ~10 s)
+=== cleanup
+key/delete HTTP 200
+user/delete HTTP 200
+model/delete HTTP 200
+models left in the table: 0

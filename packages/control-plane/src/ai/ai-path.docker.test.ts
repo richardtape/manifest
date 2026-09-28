@@ -3,6 +3,7 @@ import { LLMModule } from 'ubc-genai-toolkit-llm'
 import { expect, it } from 'vitest'
 import { describeDocker } from '../runtime/testing.js'
 import { parse } from 'yaml'
+import { CAPABLE_MODEL_NAME } from './capable.js'
 import { loadModelCatalogue } from './catalogue.js'
 import { createLiteLlmClient } from './client.js'
 import { AI_CODES, mapLiteLlmError } from './errors.js'
@@ -257,10 +258,18 @@ describeDocker('D17 model catalogue (P4b Task 6)', () => {
     // Every entry P1 ships is classified. One that is not is refused to every app that
     // declares it (§7 as amended 2026-09-14), so it is a regression here.
     expect(unclassified).toEqual([])
-    expect(live.map((m) => m.name).sort()).toEqual(
+    // THE ONE EXTRA ENTRY ALLOWED (the front-end enablement plan's Task 12a): a control plane whose
+    // MANIFEST_CAPABLE_MODEL is set registers `default-chat-large` through the admin API — at
+    // `internal`, and NEVER as a config.yaml line, which the admin API could not remove.
+    expect(declared.model_list.map((m) => m.model_name)).not.toContain(CAPABLE_MODEL_NAME)
+    const capable = live.filter((m) => m.name === CAPABLE_MODEL_NAME)
+    expect(capable.length).toBeLessThanOrEqual(1)
+    for (const entry of capable) expect(entry.maxClassification).toBe('internal')
+    const shipped = live.filter((m) => m.name !== CAPABLE_MODEL_NAME)
+    expect(shipped.map((m) => m.name).sort()).toEqual(
       declared.model_list.map((m) => m.model_name).sort(),
     )
-    for (const entry of live) {
+    for (const entry of shipped) {
       const from = declared.model_list.find((m) => m.model_name === entry.name)!
       expect(entry.maxClassification, entry.name).toBe(
         from.model_info?.max_classification,

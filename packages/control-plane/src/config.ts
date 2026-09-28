@@ -295,6 +295,17 @@ const envSchema = z.object({
   // key carries allowed_routes (Task 7). '0' or '1' only — `false` is a truthy string.
   MANIFEST_AI_ENABLED: z.enum(['0', '1']).default('1'),
   /**
+   * THE CAPABLE MODEL'S PROVIDER AND MODEL (§26's platform settings, as Spec action 7 amended it; the
+   * front-end enablement plan's Task 12a): a LiteLLM model string — `openai/<model>` today — that the
+   * boot registers as `default-chat-large` at `internal`, and removes when this is unset. **Unset by
+   * default**, because the provider's key is Rich's and a laptop without one registers nothing. EMPTY
+   * IS UNSET, as for the master key above: a commented `.env` line reaches the export block as ''.
+   */
+  MANIFEST_CAPABLE_MODEL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(1).optional(),
+  ),
+  /**
    * AN AGENT SESSION'S NUMBERS (the front-end enablement plan's Decision 22; Rich, 2026-09-27, for
    * the laptop — at UBC the numbers are his). The month is a person's, on their own LiteLLM user;
    * the cap is one session's, on its key, and never more than what remains of the month.
@@ -443,6 +454,8 @@ export interface Config {
     masterKey?: string
     /** Whether the catalogue is fetched. Never whether a key is confined. */
     enabled: boolean
+    /** `MANIFEST_CAPABLE_MODEL`: what `default-chat-large` is registered as; absent, none is. */
+    capableModel?: string
   }
   /** An agent session's bounds (Decision 22): a person's month, one session's cap, and where its key is used. */
   agent: { monthlyUsd: number; sessionCapUsd: number; llmUrl: string }
@@ -700,6 +713,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
         ? {}
         : { masterKey: raw.MANIFEST_LITELLM_MASTER_KEY }),
       enabled: raw.MANIFEST_AI_ENABLED === '1',
+      ...(raw.MANIFEST_CAPABLE_MODEL === undefined
+        ? {}
+        : { capableModel: raw.MANIFEST_CAPABLE_MODEL }),
     },
     agent: {
       monthlyUsd: raw.MANIFEST_AGENT_MONTHLY_USD,

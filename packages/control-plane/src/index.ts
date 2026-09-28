@@ -31,6 +31,7 @@ import { createSamlSpFor } from './identity/index.js'
 import { createEventBus } from './observability/index.js'
 import { NullReviewer } from './launch/index.js'
 import {
+  capableModelAtBoot,
   createAiKeyService,
   createCatalogueCache,
   createLiteLlmClient,
@@ -87,6 +88,19 @@ const litellm = config.litellm.enabled
   : undefined
 const catalogue =
   litellm === undefined ? disabledCatalogue() : createCatalogueCache(litellm)
+
+/**
+ * THE CAPABLE MODEL (§7, §21, §26; the front-end enablement plan's Task 12a): LiteLLM's catalogue made
+ * to hold exactly what `MANIFEST_CAPABLE_MODEL` says — `default-chat-large` registered at `internal`,
+ * repointed, or removed when the setting is unset. Here, before anything reads the catalogue, so the
+ * first read (cached 60 s) already sees it. NEVER FATAL: a refusal or a gateway that does not answer is
+ * one operator line and the boot goes on, because `default-chat` still serves (C1). With AI off there
+ * is no client, and nothing is registered or removed.
+ */
+const capableModel =
+  litellm === undefined
+    ? 'disabled'
+    : await capableModelAtBoot(litellm, config.litellm.capableModel)
 
 /**
  * The control plane's own SP keypair, minted by `make up`.
@@ -476,6 +490,9 @@ console.log(
     origins: config.origins,
     // The other fact this file decides. Read back by boot.docker.test.ts.
     ai: catalogue.enabled ? 'enabled' : 'disabled',
+    // Task 12a: what the boot did to `default-chat-large` — registered, unchanged, removed, absent,
+    // refused or failed (each of the last two with its own operator line), or disabled with AI off.
+    capableModel,
     // What the recovery above did, on the one line an operator reads — and the one
     // `boot.docker.test.ts` reads back, because a recovery nobody can see is
     // indistinguishable from one that never ran.

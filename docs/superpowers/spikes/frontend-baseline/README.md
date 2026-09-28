@@ -71,3 +71,37 @@ Each is a block headed `[M<n>] (2026-09-27)` at the head of its task:
 `scripts/snapshot-machine.sh` before and after, diffed (below, in *What executing this plan found*'s sitting 1 entry); no probe
 container, SP row, LiteLLM user or key, Caddy route or scratch repository was left. The twenty-three sample binaries and the
 200,000-file repository lived only in the session's scratchpad.
+
+## Task 12a — the capable model (2026-09-28, sitting 9a)
+
+**Measured against the running LiteLLM 1.98.0** (`ghcr.io/berriai/litellm@sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4`),
+every deployment named `probe-capable-*` and deleted by its own probe; `probes/t12a-*.sh`, and every command's output in
+`results-task12a-2026-09-28.txt`, with the predictions written first. **Rich chose `openai/gpt-6-luna`** (*"what we'll try to start
+with. We may switch to openai/gpt-6-terra if luna is not able"*).
+
+- **(a) `POST /model/new` → `200`**, answering `model_id` (= `model_info.id`) and its `litellm_params` ENCRYPTED (the salt key);
+  `/model/info` answers them decrypted, with `db_model: true` (the five `config.yaml` entries read `db_model: false`).
+  **A `model_info.id` the caller chooses is honoured.**
+- **(b) THE PRICE IS `/model/info`'s `model_info.input_cost_per_token` — AND FOR RICH'S MODEL IT COMES FROM THE NETWORK.**
+  `openai/gpt-5.6-luna` → `2e-07` (LiteLLM's BUNDLED map, which stops at gpt-5.6 and is dated Aug 22); **`openai/gpt-6-luna` →
+  `1e-07` in, `5e-07` out ONLY because LiteLLM fetches a newer map at its own start when the network is on** — in the container,
+  `LITELLM_LOCAL_MODEL_COST_MAP=True python -c 'import litellm; …'` answers `None` for it, the default answers `1e-07` from 4394
+  entries. The fetched map's gpt-6 chat models: `gpt-6-astra` ($10/$50 a million), `gpt-6-luna` ($0.10/$0.50), `gpt-6-sol`
+  ($2/$10). **There is no `gpt-6-terra`.**
+- **(c) "unpriced" is TWO shapes, neither the plan's `null`.** An `openai/*` model neither map knows (`openai/gpt-6-terra`)
+  REGISTERS, with `input_cost_per_token: 0` (and a LiteLLM warning); **an unknown provider (`unpriced/whatever`) answers `500`
+  *"Model create was saved to the database, but the model id(s) […] are not live in this pod's router"* — and the ROW STAYS in
+  `LiteLLM_ProxyModelTable`, absent from `/model/info`** (so nothing reading the catalogue can find it); deleted by its id → `200`.
+- **(d) `POST /model/delete { id }` → `200`**, gone from `/model/info`; a second delete → **`400`** *"Model with id=… not found in
+  db"* (type `auth_error`).
+- **(f) (live, the network on, NO provider key in the container)** a chat through a probe key limited to the probe → **`500`**
+  (not the predicted `401`), *"litellm.AuthenticationError: … The api_key client option must be set either by passing api_key to
+  the client or by setting the OPENAI_API_KEY environment variable"* — refused inside LiteLLM, before any call to the provider; the
+  key's spend `0.0`.
+- **(e) (live, Rich's key, after `make up` recreated LiteLLM with `OPENAI_API_KEY`)** the same chat → **`200`**, `"ok"`, 13 prompt
+  and 4 completion tokens; the key's spend **`3.3e-06`** after ~10 s — exactly 13 × 1e-07 + 4 × 5e-07. **LiteLLM read the provider's
+  own variable for a DB-stored deployment naming no `api_key`.**
+
+**What it changed in Task 12a** (the ledger's rulings): the refusal rule stands (a price that is not a positive number); the operator
+line names the network-fetched map as the cause; the control plane registers under an id it CHOOSES and deletes by it on any failure
+(the not-live row); `unchanged` requires a positive price too; the fake copies both unpriced shapes.
