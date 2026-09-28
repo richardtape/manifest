@@ -26,7 +26,7 @@
     },
     {
       "name": "agents",
-      "description": "Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget."
+      "description": "Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget; and the intake session a person describing a new app is given before it exists, which the platform pays for."
     },
     {
       "name": "blueprints",
@@ -1500,6 +1500,170 @@
           "NOT_FOUND",
           "RATE_LIMITED",
           "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/intake-sessions": {
+      "post": {
+        "operationId": "startIntakeSession",
+        "tags": [
+          "agents"
+        ],
+        "summary": "A model for describing an app, before it exists",
+        "description": "§10: a model key for a person describing an app they have not created yet — understanding what they asked for, proposing names (`checkSlug`), choosing the blueprint and starter. **The platform pays**: never your agent budget. One model, the platform’s (`session.model`), approved for internal data; a key of cents and minutes (never past your signed-in session); a few a person a day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) inside the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). **The key is in this answer and nowhere else**, and a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED` naming the session. Signed-in people only: a delegated token is refused, because intake belongs to no project.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The session, and its key — the only time the key exists outside the gateway.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeSessionStarted"
+                },
+                "example": {
+                  "session": {
+                    "id": "3c0d6b2e-51f4-4a8e-9d7a-2b6f0c1e4a90",
+                    "model": "default-chat",
+                    "capUsd": 0.25,
+                    "expiresAt": "2026-09-28T02:10:00.000Z",
+                    "state": "active",
+                    "endedAt": null,
+                    "createdAt": "2026-09-28T01:40:00.000Z"
+                  },
+                  "key": "sk-example-not-a-real-key",
+                  "baseUrl": "http://127.0.0.1:7106/v1"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTAKE_BUDGET_EXHAUSTED, INTAKE_DAILY_LIMIT_REACHED, INTAKE_MODEL_UNAVAILABLE, INTAKE_SESSION_ALREADY_STARTED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "AI_BACKEND_UNAVAILABLE",
+          "AI_CATALOGUE_DISABLED",
+          "CSRF_ORIGIN_REFUSED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTAKE_BUDGET_EXHAUSTED",
+          "INTAKE_DAILY_LIMIT_REACHED",
+          "INTAKE_MODEL_UNAVAILABLE",
+          "INTAKE_SESSION_ALREADY_STARTED",
+          "INTERNAL",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/intake-sessions/{intakeSessionId}": {
+      "delete": {
+        "operationId": "endIntakeSession",
+        "tags": [
+          "agents"
+        ],
+        "summary": "End an intake session",
+        "description": "Revokes the intake session’s key at the gateway, from the next call onwards. Only the person who started it may end it; anyone else is answered 404 — the answer an id that does not exist gets. Ending twice answers the session as it is.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "intakeSessionId",
+            "in": "path",
+            "description": "The intake session’s id, from `startIntakeSession`.",
+            "required": true,
+            "schema": {
+              "description": "The intake session’s id, from `startIntakeSession`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The session, ended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeSession"
+                },
+                "example": {
+                  "id": "3c0d6b2e-51f4-4a8e-9d7a-2b6f0c1e4a90",
+                  "model": "default-chat",
+                  "capUsd": 0.25,
+                  "expiresAt": "2026-09-28T02:10:00.000Z",
+                  "state": "ended",
+                  "endedAt": "2026-09-28T01:52:00.000Z",
+                  "createdAt": "2026-09-28T01:40:00.000Z"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "AI_BACKEND_UNAVAILABLE",
+          "CSRF_ORIGIN_REFUSED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       }
@@ -8673,6 +8837,10 @@
           "IDEMPOTENCY_KEY_REUSED",
           "INSTANCE_OUTPUT_PRODUCTION",
           "INSTANCE_OUTPUT_UNAVAILABLE",
+          "INTAKE_BUDGET_EXHAUSTED",
+          "INTAKE_DAILY_LIMIT_REACHED",
+          "INTAKE_MODEL_UNAVAILABLE",
+          "INTAKE_SESSION_ALREADY_STARTED",
           "INTERNAL",
           "LAUNCH_RECORD_INVALID",
           "LAUNCH_TRANSITION_INVALID",
@@ -8794,6 +8962,10 @@
           "IDEMPOTENCY_KEY_REUSED": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
           "INSTANCE_OUTPUT_PRODUCTION": "A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.",
           "INSTANCE_OUTPUT_UNAVAILABLE": "The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.",
+          "INTAKE_BUDGET_EXHAUSTED": "The platform’s monthly intake budget is spent (§10), so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.",
+          "INTAKE_DAILY_LIMIT_REACHED": "This person has started the intake sessions a person may start in a day (§10), so describing new apps is paused for them until midnight, Vancouver time.",
+          "INTAKE_MODEL_UNAVAILABLE": "The platform’s intake model is not a catalogue model approved for internal data (D17), so intake is paused rather than sent to another model.",
+          "INTAKE_SESSION_ALREADY_STARTED": "This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.",
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
@@ -13580,6 +13752,95 @@
         ],
         "additionalProperties": false
       },
+      "IntakeSession": {
+        "description": "One intake session: a model key for describing an app, before the app exists.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The intake session — what `endIntakeSession` names.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "model": {
+            "description": "The ONE logical model its key may call — the platform’s intake model, the same for everyone.",
+            "type": "string"
+          },
+          "capUsd": {
+            "description": "The most the key may spend, in US dollars — the platform’s money, not yours.",
+            "type": "number"
+          },
+          "expiresAt": {
+            "description": "When the key stops working, whatever anybody does: 30 minutes by default, and never past your signed-in session.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "state": {
+            "description": "`expired` is read from `expiresAt`: the key stopped working then.",
+            "type": "string",
+            "enum": [
+              "active",
+              "ended",
+              "expired"
+            ]
+          },
+          "endedAt": {
+            "description": "When it was ended; null while it has not been.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "description": "When it was started.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "capUsd",
+          "expiresAt",
+          "state",
+          "endedAt",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "IntakeSessionStarted": {
+        "description": "A started intake session, and its key — the only time the key exists outside the gateway.",
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/IntakeSession"
+          },
+          "key": {
+            "description": "THE MODEL KEY. Shown in this answer and never again — Manifest keeps no copy. Send it as `Authorization: Bearer <key>` to `baseUrl`, naming `session.model`. It calls that model and nothing else, and it is not a Manifest credential.",
+            "type": "string"
+          },
+          "baseUrl": {
+            "description": "Where the key is used: an OpenAI-compatible API (`/chat/completions`, `/embeddings`, `/models`).",
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "session",
+          "key",
+          "baseUrl"
+        ],
+        "additionalProperties": false
+      },
       "KnowledgePack": {
         "description": "D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it.",
         "type": "object",
@@ -16735,6 +16996,26 @@
       "status": 409,
       "summary": "The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.",
       "remedy": "Read the environment’s Incidents (`listIncidents`): a failed instance’s last lines are in its Incident. `listInstances` says which instance is running now."
+    },
+    "INTAKE_BUDGET_EXHAUSTED": {
+      "status": 409,
+      "summary": "The platform’s monthly intake budget is spent (§10), so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.",
+      "remedy": "Wait for the month to reset — the first of the month, 00:00 UTC — or ask a platform administrator to raise the intake budget."
+    },
+    "INTAKE_DAILY_LIMIT_REACHED": {
+      "status": 409,
+      "summary": "This person has started the intake sessions a person may start in a day (§10), so describing new apps is paused for them until midnight, Vancouver time.",
+      "remedy": "Try again tomorrow, or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead."
+    },
+    "INTAKE_MODEL_UNAVAILABLE": {
+      "status": 503,
+      "summary": "The platform’s intake model is not a catalogue model approved for internal data (D17), so intake is paused rather than sent to another model.",
+      "remedy": "A platform administrator names an intake model the catalogue approves for internal data (`MANIFEST_INTAKE_MODEL`)."
+    },
+    "INTAKE_SESSION_ALREADY_STARTED": {
+      "status": 409,
+      "summary": "This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.",
+      "remedy": "Use the key from the first answer. If it was lost, end the session this refusal names (`endIntakeSession`) and start another with a new Idempotency-Key."
     },
     "INTERNAL": {
       "status": 500,

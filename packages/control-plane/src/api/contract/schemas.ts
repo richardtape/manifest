@@ -84,6 +84,9 @@ export const PATH = {
   sessionId: z
     .uuid()
     .describe('The agent session’s id, from `startAgentSession` or `listAgentSessions`.'),
+  intakeSessionId: z
+    .uuid()
+    .describe('The intake session’s id, from `startIntakeSession`.'),
 } as const
 
 /** Never a `Date`: `z.date()` has no JSON Schema (Decision 3). Mappers call `toISOString()`. */

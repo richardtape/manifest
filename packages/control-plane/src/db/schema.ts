@@ -569,6 +569,32 @@ export const agentSessions = pgTable(
   ],
 )
 
+/**
+ * §6's `IntakeSession` (Spec action 5, FE-1): a model key for one person describing an app BEFORE
+ * any project exists, paid for by the platform. No project and no token — only an interactive
+ * session starts one — so there is no project stream to publish on: THIS ROW IS THE RECORD that a
+ * key was issued, and names the person. **No column holds the key**; its alias `mf-intake-<id>` is
+ * derived from the id. No `ON DELETE`: nothing deletes a user.
+ */
+export const intakeSessions = pgTable(
+  'intake_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** The person who started it — who is NEVER charged: the platform pays. */
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    /** The one logical model its key may call — the platform's intake setting when it started. */
+    model: text('model').notNull(),
+    capUsd: numeric('cap_usd', { precision: 12, scale: 6 }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+  },
+  // A person's day is counted over this table (`MANIFEST_INTAKE_DAILY_KEYS`).
+  (t) => [index('intake_sessions_user_created_idx').on(t.userId, t.createdAt)],
+)
+
 /** §9: `draft → submitted → active`, plus `change_requested` and `expired` (D19, D20). */
 export const iamRegistrationState = pgEnum('iam_registration_state', [
   'draft',

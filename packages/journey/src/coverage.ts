@@ -91,6 +91,11 @@ export const JOURNEY: readonly JourneyStep[] = [
     operations: ['listInstances', 'getInstanceOutput'],
   },
   {
+    step: 'Describe an app before it exists, on a model the platform pays for',
+    who: 'person',
+    operations: ['startIntakeSession', 'endIntakeSession'],
+  },
+  {
     step: 'Give an agent model access, charged to you, and see what it has spent',
     who: 'either',
     operations: [

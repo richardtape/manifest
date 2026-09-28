@@ -36,6 +36,11 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
     'the front-end enablement plan’s Task 13 adds the console’s agent sessions screen and removes this',
   getAgentBudget:
     'the front-end enablement plan’s Task 13 adds the console’s agent budget line and removes this',
+  // FE-1 (sitting 7): the intake session. Task 13 adds the console's describe-a-new-app step.
+  startIntakeSession:
+    'the front-end enablement plan’s Task 13 adds the console’s describe-a-new-app step and removes this',
+  endIntakeSession:
+    'the front-end enablement plan’s Task 13 adds the console’s describe-a-new-app step and removes this',
   // **EMPTY AGAIN SINCE THE AUTHORING API PLAN'S TASK 10 (sitting 7, 2026-09-26)**, and that
   // is a measurement: all 51 operations have a caller. That plan's Tasks 5, 6 and 8 parked
   // eight here naming Task 10 as their remover — `getTree`, `getFile`, `listCommits`,

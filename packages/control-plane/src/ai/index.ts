@@ -60,3 +60,10 @@ export type {
   EndedBy,
   EndReason,
 } from './sessions.js'
+export {
+  endIntakeSession,
+  INTAKE_DAY_ZONE,
+  intakeSessionById,
+  startIntakeSession,
+} from './intake.js'
+export type { IntakeDeps, IntakeSessionRow } from './intake.js'

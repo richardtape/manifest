@@ -203,6 +203,8 @@ interface Fixture {
    * is answered the session as it is.
    */
   agentSessionId: string
+  /** An intake session the OWNER started in setup (FE-1) — what the intake end row is aimed at. */
+  intakeSessionId: string
   /** One PENDING question per route and per actor (P5b Task 7); see `request` above. */
   pendingActionId: Record<'confirm' | 'reject', Record<Actor, string>>
   /**
@@ -1468,6 +1470,45 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
+   * INTAKE SESSIONS (Spec action 5, FE-1): a model before a project exists, paid for by the
+   * platform — SESSION ONLY, because a token belongs to one project and there is none yet, so
+   * every token actor is `TOKEN_CREDENTIAL_REFUSED`. Any signed-in person may start one; only the
+   * person who started one may end it — the collaborator, the stranger and the administrator are
+   * all answered the stranger's `404`, as `revokeToken` answers anyone but a token's minter.
+   */
+  {
+    method: 'POST',
+    url: '/v1/intake-sessions',
+    request: () => ({ url: '/v1/intake-sessions' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
+    method: 'DELETE',
+    url: '/v1/intake-sessions/:intakeSessionId',
+    request: (f) => ({ url: `/v1/intake-sessions/${f.intakeSessionId}` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 404,
+      stranger: 404,
+      admin: 404,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  /**
    * AN ENVIRONMENT'S INSTANCES, AND A RUNNING APP'S RECENT OUTPUT (the front-end enablement
    * plan's Task 3; §14). Listing is `project:read`; reading output is `output:read`, which
    * `token-capable` holds because the mint route would give it (`CAPABLE` below); a token
@@ -1971,6 +2012,18 @@ export function describeAuthorizationContract(
           `the fixture's agent session was not started: ${agentSession.body}`,
         )
       }
+      // FE-1: the owner's intake session, which only the owner may end.
+      const intakeSession = await app.inject({
+        method: 'POST',
+        url: '/v1/intake-sessions',
+        cookies: cookies.owner,
+        headers: mutationHeaders(deps),
+      })
+      if (intakeSession.statusCode !== 201) {
+        throw new Error(
+          `the fixture's intake session was not started: ${intakeSession.body}`,
+        )
+      }
 
       /**
        * THE SECOND PROJECT, and the four delegated tokens (P5b Task 11).
@@ -2137,6 +2190,7 @@ export function describeAuthorizationContract(
         removableUserId: removable.id,
         tokenId: token.json().token.id,
         agentSessionId: (agentSession.json() as { session: { id: string } }).session.id,
+        intakeSessionId: (intakeSession.json() as { session: { id: string } }).session.id,
         pendingActionId: {
           confirm: await questions('confirm'),
           reject: await questions('reject'),

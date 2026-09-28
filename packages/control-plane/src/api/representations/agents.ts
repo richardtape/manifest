@@ -1,5 +1,9 @@
 import { z } from 'zod/v4'
-import { sessionState, type AgentSessionRow } from '../../ai/index.js'
+import {
+  sessionState,
+  type AgentSessionRow,
+  type IntakeSessionRow,
+} from '../../ai/index.js'
 import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
 
 /**
@@ -202,6 +206,76 @@ export function toAgentSession(
     endReason: (row.endReason as z.input<typeof AgentSession>['endReason']) ?? null,
     spentUsd: context.spent.usd,
     spentUnavailable: context.spent.unavailable,
+    createdAt: row.createdAt.toISOString(),
+  }
+}
+
+/**
+ * §10's INTAKE session (Spec action 5, FE-1): a model for a person describing an app before any
+ * project exists, paid for by the platform. No project, no token, no spend of the person's —
+ * and, as `AgentSession`, NO `key` field: the key is in `IntakeSessionStarted` alone.
+ */
+export const IntakeSession = representation(
+  'IntakeSession',
+  z
+    .object({
+      id: Uuid.describe('The intake session — what `endIntakeSession` names.'),
+      model: z
+        .string()
+        .describe(
+          'The ONE logical model its key may call — the platform’s intake model, the same for everyone.',
+        ),
+      capUsd: z
+        .number()
+        .describe(
+          'The most the key may spend, in US dollars — the platform’s money, not yours.',
+        ),
+      expiresAt: Timestamp.describe(
+        'When the key stops working, whatever anybody does: 30 minutes by default, and never past your signed-in session.',
+      ),
+      state: z
+        .enum(['active', 'ended', 'expired'])
+        .describe('`expired` is read from `expiresAt`: the key stopped working then.'),
+      endedAt: Timestamp.nullable().describe(
+        'When it was ended; null while it has not been.',
+      ),
+      createdAt: Timestamp.describe('When it was started.'),
+    })
+    .describe(
+      'One intake session: a model key for describing an app, before the app exists.',
+    ),
+)
+
+export const IntakeSessionStarted = representation(
+  'IntakeSessionStarted',
+  z
+    .object({
+      session: IntakeSession,
+      key: z
+        .string()
+        .describe(
+          'THE MODEL KEY. Shown in this answer and never again — Manifest keeps no copy. Send it as `Authorization: Bearer <key>` to `baseUrl`, naming `session.model`. It calls that model and nothing else, and it is not a Manifest credential.',
+        ),
+      baseUrl: z
+        .string()
+        .url()
+        .describe(
+          'Where the key is used: an OpenAI-compatible API (`/chat/completions`, `/embeddings`, `/models`).',
+        ),
+    })
+    .describe(
+      'A started intake session, and its key — the only time the key exists outside the gateway.',
+    ),
+)
+
+export function toIntakeSession(row: IntakeSessionRow): z.input<typeof IntakeSession> {
+  return {
+    id: row.id,
+    model: row.model,
+    capUsd: Number(row.capUsd),
+    expiresAt: row.expiresAt.toISOString(),
+    state: sessionState(row),
+    endedAt: row.endedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   }
 }

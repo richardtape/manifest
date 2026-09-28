@@ -103,6 +103,8 @@ const TABLES = [
   // The front-end enablement plan's Task 10: references `projects`, `users` and `delegated_tokens`
   // with NO cascade, so it must go before all three — named, as `routes` is.
   'agent_sessions',
+  // FE-1 (sitting 7): references `users` with NO cascade — named, and before `users`.
+  'intake_sessions',
   'pending_actions',
   'delegated_tokens',
   'project_members',

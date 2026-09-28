@@ -111,7 +111,7 @@ Answer, `200`:
 
 ## agents
 
-Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget.
+Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget; and the intake session a person describing a new app is given before it exists, which the platform pays for.
 
 ### `getAgentBudget` — Your agent budget this month
 
@@ -191,6 +191,88 @@ Answer, `200`:
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `startIntakeSession` — A model for describing an app, before it exists
+
+`POST /v1/intake-sessions` · a session only — a delegated token is refused
+
+§10: a model key for a person describing an app they have not created yet — understanding what they asked for, proposing names (`checkSlug`), choosing the blueprint and starter. **The platform pays**: never your agent budget. One model, the platform’s (`session.model`), approved for internal data; a key of cents and minutes (never past your signed-in session); a few a person a day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) inside the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). **The key is in this answer and nowhere else**, and a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED` naming the session. Signed-in people only: a delegated token is refused, because intake belongs to no project.
+
+Answer, `201`:
+
+```json
+{
+  "session": {
+    "id": "3c0d6b2e-51f4-4a8e-9d7a-2b6f0c1e4a90",
+    "model": "default-chat",
+    "capUsd": 0.25,
+    "expiresAt": "2026-09-28T02:10:00.000Z",
+    "state": "active",
+    "endedAt": null,
+    "createdAt": "2026-09-28T01:40:00.000Z"
+  },
+  "key": "sk-example-not-a-real-key",
+  "baseUrl": "http://127.0.0.1:7106/v1"
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
+| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTAKE_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset — the first of the month, 00:00 UTC — or ask a platform administrator to raise the intake budget. |
+| `INTAKE_DAILY_LIMIT_REACHED` | 409 | Try again tomorrow, or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead. |
+| `INTAKE_MODEL_UNAVAILABLE` | 503 | A platform administrator names an intake model the catalogue approves for internal data (`MANIFEST_INTAKE_MODEL`). |
+| `INTAKE_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names (`endIntakeSession`) and start another with a new Idempotency-Key. |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `endIntakeSession` — End an intake session
+
+`DELETE /v1/intake-sessions/{intakeSessionId}` · a session only — a delegated token is refused
+
+Revokes the intake session’s key at the gateway, from the next call onwards. Only the person who started it may end it; anyone else is answered 404 — the answer an id that does not exist gets. Ending twice answers the session as it is.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `intakeSessionId` | path | yes | The intake session’s id, from `startIntakeSession`. |
+
+Answer, `200`:
+
+```json
+{
+  "id": "3c0d6b2e-51f4-4a8e-9d7a-2b6f0c1e4a90",
+  "model": "default-chat",
+  "capUsd": 0.25,
+  "expiresAt": "2026-09-28T02:10:00.000Z",
+  "state": "ended",
+  "endedAt": "2026-09-28T01:52:00.000Z",
+  "createdAt": "2026-09-28T01:40:00.000Z"
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
 ### `listAgentSessions` — A project’s agent sessions

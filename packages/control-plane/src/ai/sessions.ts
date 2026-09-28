@@ -27,9 +27,14 @@ export type AgentSessionCode =
   | 'AGENT_SESSION_ALREADY_STARTED'
   | 'AGENT_BUDGET_EXHAUSTED'
   | 'AGENT_NO_MODEL_FOR_CLASSIFICATION'
+  | 'INTAKE_SESSION_ALREADY_STARTED'
+  | 'INTAKE_DAILY_LIMIT_REACHED'
+  | 'INTAKE_BUDGET_EXHAUSTED'
+  | 'INTAKE_MODEL_UNAVAILABLE'
 
 /**
- * A model session's refusals — each raised BEFORE anything is minted (Decisions 22–23). Each code's status is the registry's (`api/error-codes.ts`).
+ * A model session's refusals — agent and intake — each raised BEFORE anything is minted (Decisions
+ * 22–23; Spec action 5's intake bounds). Each code's status is the registry's (`api/error-codes.ts`).
  */
 export class AgentSessionError extends Error {
   constructor(

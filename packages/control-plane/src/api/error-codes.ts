@@ -636,6 +636,42 @@ export const ERROR_CODES = {
       'Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release.',
   },
 
+  // ai/intake.ts — an INTAKE session's start (Spec action 5, FE-1): the platform pays, so each
+  // bound is the platform's. A person's day and the platform's month are TWO codes (sitting 7's
+  // ruling): only the first is "paused for today".
+  INTAKE_SESSION_ALREADY_STARTED: {
+    status: 409,
+    families: ['AgentSessionError'],
+    summary:
+      'This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.',
+    remedy:
+      'Use the key from the first answer. If it was lost, end the session this refusal names (`endIntakeSession`) and start another with a new Idempotency-Key.',
+  },
+  INTAKE_DAILY_LIMIT_REACHED: {
+    status: 409,
+    families: ['AgentSessionError'],
+    summary:
+      'This person has started the intake sessions a person may start in a day (§10), so describing new apps is paused for them until midnight, Vancouver time.',
+    remedy:
+      'Try again tomorrow, or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead.',
+  },
+  INTAKE_BUDGET_EXHAUSTED: {
+    status: 409,
+    families: ['AgentSessionError'],
+    summary:
+      'The platform’s monthly intake budget is spent (§10), so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.',
+    remedy:
+      'Wait for the month to reset — the first of the month, 00:00 UTC — or ask a platform administrator to raise the intake budget.',
+  },
+  INTAKE_MODEL_UNAVAILABLE: {
+    status: 503,
+    families: ['AgentSessionError'],
+    summary:
+      'The platform’s intake model is not a catalogue model approved for internal data (D17), so intake is paused rather than sent to another model.',
+    remedy:
+      'A platform administrator names an intake model the catalogue approves for internal data (`MANIFEST_INTAKE_MODEL`).',
+  },
+
   // config.ts — mapped by toErrorResponse, raised at boot
   CONFIG_INVALID: config('A setting failed validation.'),
   CONFIG_GITHUB_INSECURE_URL: config(
