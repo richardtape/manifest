@@ -14,9 +14,11 @@ import { sessionActor } from './testing.js'
 /**
  * §20: *"Re-authentication (step-up) for approving a release, reading a secret, changing
  * a quota, changing project membership"* — *"plus setting the value of a production secret"*
- * (Spec action 2 of the authoring API plan, applied 2026-09-26).
+ * (Spec action 2 of the authoring API plan, applied 2026-09-26) — *"plus archiving or deleting a
+ * project, which take an app away from its students (§11)"* (Spec action 3 of the front-end
+ * enablement plan, applied 2026-09-27; `project:delete` is both routes' capability).
  *
- * The six are named here as LITERALS, exactly as `privileged.test.ts` names D24's four
+ * The seven are named here as LITERALS, exactly as `privileged.test.ts` names D24's four
  * and for the same reason: deriving them from the constant under test would make this
  * file agree with itself no matter what the constant said.
  */
@@ -27,6 +29,7 @@ const STEP_UP_SET: readonly PrivilegedCapability[] = [
   'release:promote',
   'secret:read',
   'secret:write',
+  'project:delete',
 ]
 
 const NOW = 1_700_000_000_000
@@ -51,7 +54,7 @@ function tokenActor(grant?: PrivilegedCapability): Actor {
 }
 
 describe('§20’s step-up guard (P6a Task 9)', () => {
-  it('is exactly D24’s four plus release:approve and secret:write, and nothing has been quietly added', () => {
+  it('is exactly D24’s four plus release:approve, secret:write and project:delete, and nothing has been quietly added', () => {
     expect([...STEP_UP_GUARDED].sort()).toEqual([...STEP_UP_SET].sort())
   })
 
@@ -84,14 +87,14 @@ describe('§20’s step-up guard (P6a Task 9)', () => {
   it('is a strict superset of D24’s privileged four', () => {
     for (const capability of PRIVILEGED)
       expect(STEP_UP_GUARDED.has(capability)).toBe(true)
-    expect(STEP_UP_GUARDED.size).toBe(PRIVILEGED.size + 2)
+    expect(STEP_UP_GUARDED.size).toBe(PRIVILEGED.size + 3)
   })
 
   /**
    * THE POSITIVE CONTROL. Without it this file is a set of refusals that a function
    * throwing for everything would satisfy (P5c sitting 9, F16).
    */
-  it('lets a stepped-up session through — every one of the six', () => {
+  it('lets a stepped-up session through — every one of the seven', () => {
     for (const capability of STEP_UP_SET)
       expect(() => assertStepUp(steppedUp, capability, NOW)).not.toThrow()
   })

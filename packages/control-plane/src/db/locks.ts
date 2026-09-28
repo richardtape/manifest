@@ -24,7 +24,26 @@ export async function withEnvironmentLock<T>(
   environmentId: string,
   fn: () => Promise<T>,
 ): Promise<T> {
-  const key = `manifest:environment:${environmentId}`
+  return withAdvisoryLock(`manifest:environment:${environmentId}`, fn)
+}
+
+/**
+ * One archive, restore or delete per PROJECT at a time (§11's *Ending an app*; the front-end
+ * enablement plan's Task 11) — `withEnvironmentLock`'s shape exactly, under its own key, so a
+ * project and an environment that happened to share an id could never wait on each other.
+ *
+ * **LOCK ORDER IS ALWAYS PROJECT, THEN ENVIRONMENT.** An archive takes this, then each
+ * environment's lock in turn; a deploy takes only the environment's. Nothing takes them the other
+ * way round, so the two cannot deadlock.
+ */
+export async function withProjectLock<T>(
+  projectId: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  return withAdvisoryLock(`manifest:project:${projectId}`, fn)
+}
+
+async function withAdvisoryLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
   const client = await pool.connect()
   try {
     await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [key])

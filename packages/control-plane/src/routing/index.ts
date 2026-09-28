@@ -5,11 +5,13 @@ export { listenerFor, routeIdFor } from './hostnames.js'
 export type { RouteSpec, RoutingDeps, ServingRoute } from './routes.js'
 export {
   applyRoute,
+  applySwitchedOffRoute,
   inFlightTo,
   instanceIdOf,
   removeRoute,
   restoreRouteTo,
   servingRoute,
+  SWITCHED_OFF_PAGE,
   upstreamOf,
   upstreamsInUse,
 } from './routes.js'

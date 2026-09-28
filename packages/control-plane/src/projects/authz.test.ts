@@ -1,8 +1,9 @@
+import { eq } from 'drizzle-orm'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { AuthorizationError, assertCapability, capabilitiesFor } from './authz.js'
 import { createProject } from './repository.js'
 import { resetDatabase, withRollback } from '../db/testing.js'
-import { users } from '../db/index.js'
+import { projectMembers, projects, users } from '../db/index.js'
 import { loadConfig } from '../config.js'
 import { sessionActor, testAudience, testReservedLabels } from './testing.js'
 
@@ -144,6 +145,119 @@ describe('assertCapability', () => {
           'project:read',
         ),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    })
+  })
+
+  /**
+   * §11's *Ending an app* (the front-end enablement plan's Task 11, Decision 27): an archived project
+   * can be READ and ARCHIVED again (a retry finishing its teardown) — and later restored or deleted,
+   * both `project:delete` — and nothing else, for its members and for an administrator alike.
+   */
+  it('refuses every capability but reading and archiving on an archived project, for members and administrators alike', async () => {
+    await withRollback(async (db) => {
+      const { owner, project } = await seed(db)
+      await db
+        .update(projects)
+        .set({ state: 'archived' })
+        .where(eq(projects.id, project.id))
+      const [admin] = await db
+        .insert(users)
+        .values({
+          ubcCwlPuid: 'admin',
+          email: 'a@ubc.ca',
+          displayName: 'A',
+          role: 'admin',
+        })
+        .returning()
+      for (const actor of [
+        sessionActor({ userId: owner.id }),
+        sessionActor({ userId: admin!.id, platformRole: 'admin' }),
+      ]) {
+        for (const capability of [
+          'build:create',
+          'source:write',
+          'release:deploy',
+          'project:write',
+          'members:manage',
+          'agent:session',
+          'secret:write',
+        ] as const) {
+          await expect(
+            assertCapability(db, actor, project.id, capability),
+          ).rejects.toMatchObject({ name: 'ProjectStateError', code: 'PROJECT_ARCHIVED' })
+        }
+        // The positive control, in the same test: the two it may still do.
+        await expect(
+          assertCapability(db, actor, project.id, 'project:read'),
+        ).resolves.toBeUndefined()
+        await expect(
+          assertCapability(db, actor, project.id, 'project:delete'),
+        ).resolves.toBeUndefined()
+      }
+    })
+  })
+
+  it('answers an ACTIVE project as it always has — the state refusal is only the archived one', async () => {
+    await withRollback(async (db) => {
+      const { owner, project } = await seed(db)
+      await expect(
+        assertCapability(
+          db,
+          sessionActor({ userId: owner.id }),
+          project.id,
+          'build:create',
+        ),
+      ).resolves.toBeUndefined()
+    })
+  })
+
+  it('keeps a stranger a stranger on an archived project — NOT_FOUND before any state is told', async () => {
+    await withRollback(async (db) => {
+      const { stranger, project } = await seed(db)
+      await db
+        .update(projects)
+        .set({ state: 'archived' })
+        .where(eq(projects.id, project.id))
+      await expect(
+        assertCapability(
+          db,
+          sessionActor({ userId: stranger.id }),
+          project.id,
+          'build:create',
+        ),
+      ).rejects.toMatchObject({ name: 'AuthorizationError', code: 'NOT_FOUND' })
+    })
+  })
+
+  it('refuses a collaborator archiving before it tells them the state — FORBIDDEN, not PROJECT_ARCHIVED', async () => {
+    await withRollback(async (db) => {
+      const { project } = await seed(db)
+      const [collaborator] = await db
+        .insert(users)
+        .values({
+          ubcCwlPuid: 'collab',
+          email: 'c@ubc.ca',
+          displayName: 'C',
+          role: 'member',
+        })
+        .returning()
+      await db.insert(projectMembers).values({
+        projectId: project.id,
+        userId: collaborator!.id,
+        role: 'collaborator',
+      })
+      await db
+        .update(projects)
+        .set({ state: 'archived' })
+        .where(eq(projects.id, project.id))
+      await expect(
+        assertCapability(
+          db,
+          sessionActor({ userId: collaborator!.id }),
+          project.id,
+          'project:delete',
+        ),
+      ).rejects.toMatchObject({ name: 'AuthorizationError', code: 'FORBIDDEN' })
     })
   })
 })

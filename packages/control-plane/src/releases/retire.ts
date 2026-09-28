@@ -14,6 +14,7 @@ import {
   type Redactor,
 } from '../observability/index.js'
 import { canTransition, nextState, type Driver } from '../runtime/index.js'
+import type { EnvironmentKind } from '../secrets/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
 
 export interface RetirerDeps {
@@ -62,7 +63,6 @@ export async function retireEnvironment(
   if (environment === undefined) {
     return { retired: [], failed: [], skipped: 'no-environment' }
   }
-  const projectSlug = environment.hostname.split('.')[0]!
 
   // UNDER THE LOCK: choosing what to retire, and marking it. A deploy holds the same
   // lock from its instance row to its Route row, so nothing here can select an
@@ -137,81 +137,18 @@ export async function retireEnvironment(
   const failed: string[] = []
   for (const handle of plan.targets) {
     const row = plan.rows.find((candidate) => candidate.handle === handle)
-    // A container with no row is still worth an Event: it is the one a crashed
-    // control plane or a truncated database left, and §14's trail is most valuable
-    // exactly when the thing it describes is gone.
-    const subject = row === undefined ? `container:${handle}` : `instance:${row.id}`
-    const detail = {
-      instanceId: row?.id ?? null,
-      handle,
-      environment: environment.kind,
-      drainMs: deps.drainMs,
-    }
     try {
-      await publishEvent(
-        deps.db,
-        deps.bus,
-        {
-          projectId: environment.projectId,
-          subject,
-          type: 'instance.retiring',
-          machineDetail: detail,
-          humanMessage: `The previous version of ${projectSlug} in ${environment.kind} is finishing its last requests.`,
-        },
+      await retireInstanceRow(deps, {
+        environment,
+        handle,
+        row,
+        marked: row !== undefined && plan.marked.includes(row.id),
         redact,
-      )
-
-      await deps.driver.retireInstance(handle, { drainMs: deps.drainMs })
-
-      // AFTER THE DRAIN, never at the deploy: LiteLLM checks a key when a request
-      // STARTS (measured 2026-09-14), so a key revoked earlier fails a question the
-      // old container has already accepted and is still answering.
-      if (row !== undefined && deps.ai.enabled) {
-        await deps.ai.revokeInstanceKey(deps.db, {
-          projectId: environment.projectId,
-          kind: environment.kind,
-          instanceId: row.id,
-        })
-      }
-      if (row !== undefined && plan.marked.includes(row.id)) {
-        await deps.db
-          .update(instances)
-          .set({ state: nextState('destroying', 'destroyed') })
-          .where(eq(instances.id, row.id))
-      }
-      await publishEvent(
-        deps.db,
-        deps.bus,
-        {
-          projectId: environment.projectId,
-          subject,
-          type: 'instance.retired',
-          machineDetail: detail,
-          humanMessage: `The previous version of ${projectSlug} in ${environment.kind} has been removed.`,
-        },
-        redact,
-      )
+      })
       retired.push(handle)
-    } catch (error) {
+    } catch {
+      // `retireInstanceRow` published `instance.retire_failed` with the code before it threw.
       failed.push(handle)
-      // The CODE, never the message: a driver or gateway message is third-party text
-      // and §14 keeps that out of an Event a faculty member reads. The row stays
-      // `destroying`, which is what says the container is still there.
-      await publishEvent(
-        deps.db,
-        deps.bus,
-        {
-          projectId: environment.projectId,
-          subject,
-          type: 'instance.retire_failed',
-          machineDetail: {
-            ...detail,
-            error: (error as { code?: string }).code ?? (error as Error).name,
-          },
-          humanMessage: `The previous version of ${projectSlug} in ${environment.kind} could not be removed yet; it will be tried again.`,
-        },
-        redact,
-      )
     }
   }
 
@@ -225,6 +162,112 @@ export async function retireEnvironment(
     })
   }
   return { retired, failed }
+}
+
+/**
+ * ONE INSTANCE, RETIRED: the drain, the removal, its key revoked after the drain, its row moved to
+ * `gone` — with `instance.retiring` before and `instance.retired` after, or `instance.retire_failed`
+ * naming the code and THEN a throw. The part `retireEnvironment` runs after its lock is released,
+ * exported for §11's archive (the front-end enablement plan's Task 11) so there is one path, not two.
+ *
+ * **IT TAKES NO LOCK ITSELF, and that is load-bearing**: `pg_advisory_lock` is per CONNECTION and
+ * `withEnvironmentLock` takes a fresh pool client, so a retire that took the lock, called from inside
+ * the archive's own `withEnvironmentLock`, would wait on itself for ever. The caller has already
+ * chosen, under the lock, what to retire — and marked the row `destroying` (`marked`) when it could.
+ */
+export async function retireInstanceRow(
+  deps: RetirerDeps,
+  target: {
+    environment: {
+      id: string
+      projectId: string
+      kind: EnvironmentKind
+      hostname: string
+    }
+    handle: string
+    row: { id: string } | undefined
+    /** Moved to `destroying` under the caller's lock — only such a row becomes `gone`. */
+    marked: boolean
+    redact: Redactor
+  },
+): Promise<void> {
+  const { environment, handle, row, redact } = target
+  const projectSlug = environment.hostname.split('.')[0]!
+  // A container with no row is still worth an Event: it is the one a crashed
+  // control plane or a truncated database left, and §14's trail is most valuable
+  // exactly when the thing it describes is gone.
+  const subject = row === undefined ? `container:${handle}` : `instance:${row.id}`
+  const detail = {
+    instanceId: row?.id ?? null,
+    handle,
+    environment: environment.kind,
+    drainMs: deps.drainMs,
+  }
+  try {
+    await publishEvent(
+      deps.db,
+      deps.bus,
+      {
+        projectId: environment.projectId,
+        subject,
+        type: 'instance.retiring',
+        machineDetail: detail,
+        humanMessage: `The previous version of ${projectSlug} in ${environment.kind} is finishing its last requests.`,
+      },
+      redact,
+    )
+
+    await deps.driver.retireInstance(handle, { drainMs: deps.drainMs })
+
+    // AFTER THE DRAIN, never at the deploy: LiteLLM checks a key when a request
+    // STARTS (measured 2026-09-14), so a key revoked earlier fails a question the
+    // old container has already accepted and is still answering.
+    if (row !== undefined && deps.ai.enabled) {
+      await deps.ai.revokeInstanceKey(deps.db, {
+        projectId: environment.projectId,
+        kind: environment.kind,
+        instanceId: row.id,
+      })
+    }
+    if (row !== undefined && target.marked) {
+      await deps.db
+        .update(instances)
+        .set({ state: nextState('destroying', 'destroyed') })
+        .where(eq(instances.id, row.id))
+    }
+    await publishEvent(
+      deps.db,
+      deps.bus,
+      {
+        projectId: environment.projectId,
+        subject,
+        type: 'instance.retired',
+        machineDetail: detail,
+        humanMessage: `The previous version of ${projectSlug} in ${environment.kind} has been removed.`,
+      },
+      redact,
+    )
+  } catch (error) {
+    // The CODE, never the message: a driver or gateway message is third-party text
+    // and §14 keeps that out of an Event a faculty member reads. The row stays
+    // `destroying`, which is what says the container is still there.
+    await publishEvent(
+      deps.db,
+      deps.bus,
+      {
+        projectId: environment.projectId,
+        subject,
+        type: 'instance.retire_failed',
+        machineDetail: {
+          ...detail,
+          error: (error as { code?: string }).code ?? (error as Error).name,
+        },
+        humanMessage: `The previous version of ${projectSlug} in ${environment.kind} could not be removed yet; it will be tried again.`,
+      },
+      redact,
+    )
+    throw error
+  }
 }
 
 /**

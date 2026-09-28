@@ -7,7 +7,11 @@ import { describeDocker } from '../runtime/testing.js'
 import { putSecret } from '../secrets/index.js'
 import { withSecretScope } from '../secrets/testing.js'
 import { createIdpPool, deleteSpRow, readSpRow } from './metadata-store.js'
-import { createSsoRegistrar, registerServiceProvider } from './registration.js'
+import {
+  createSsoRegistrar,
+  deregisterServiceProvider,
+  registerServiceProvider,
+} from './registration.js'
 import { SpEntityError } from './entity.js'
 import { idpDatabaseUrl, idpSigningCertPath } from './testing.js'
 import { createEventBus, type StreamFrame } from '../observability/index.js'
@@ -288,6 +292,38 @@ describeDocker('registerServiceProvider (§9)', () => {
       // the shape ServiceCredentialResolver already has (Task 5).
       expect(result.entity.entityId).toBe(entityId)
       expect(await readSpRow(pool, entityId)).not.toBeUndefined()
+    })
+  })
+
+  /**
+   * §11's archive (the front-end enablement plan's Task 11, Decision 28's fifth step): the row
+   * the IdP reads, removed — and `sso.deregistered` published ONCE, because a retry of the archive
+   * reaches this again and "the SP was already gone" is not a second removal.
+   */
+  it('deregisters: the row gone, one event, and a second call removes nothing and says so', async () => {
+    await withSecretScope(async (db, { projectId, keys }) => {
+      const entityId = 'https://manifest.internal/sp/reg-archived/staging'
+      entityIds.push(entityId)
+      await registerServiceProvider(db, pool, keys, bus, {
+        ...input('reg-archived'),
+        projectId,
+      })
+      expect(await readSpRow(pool, entityId)).not.toBeUndefined()
+      const scope = {
+        projectId,
+        slug: 'reg-archived',
+        environmentKind: 'staging' as const,
+        entityBase: 'https://manifest.internal',
+      }
+      expect(await deregisterServiceProvider(db, pool, bus, scope)).toBe(true)
+      expect(await readSpRow(pool, entityId)).toBeUndefined()
+      expect(await deregisterServiceProvider(db, pool, bus, scope)).toBe(false)
+      const rows = await eventsFor(db, projectId)
+      expect(rows.map((r) => r.type)).toEqual(['sso.registered', 'sso.deregistered'])
+      expect(rows[1]!.machineDetail).toEqual({ entityId })
+      expect(rows[1]!.humanMessage).toBe(
+        'Single sign-on was removed for reg-archived in staging.',
+      )
     })
   })
 })

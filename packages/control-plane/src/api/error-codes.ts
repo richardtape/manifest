@@ -44,6 +44,7 @@ export type ErrorFamily =
   | 'ProductionGateError'
   | 'OutputError'
   | 'AgentSessionError'
+  | 'ProjectStateError'
 
 interface Entry {
   status: number
@@ -607,6 +608,26 @@ export const ERROR_CODES = {
       'The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.',
     remedy:
       'Read the environment’s Incidents (`listIncidents`): a failed instance’s last lines are in its Incident. `listInstances` says which instance is running now.',
+  },
+
+  // projects/state.ts — §11's *Ending an app* (Spec action 3; the front-end enablement plan's Task
+  // 11, Decisions 27–28). A project's STATE refused the request, not who asked; each code's status
+  // is the registry's.
+  PROJECT_ARCHIVED: {
+    status: 409,
+    families: ['ProjectStateError'],
+    summary:
+      'The project is archived — switched off by its owner (§11) — so it can be read and restored, and nothing else can change.',
+    remedy:
+      'Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore.',
+  },
+  PROJECT_TEARDOWN_INCOMPLETE: {
+    status: 500,
+    families: ['ProjectStateError'],
+    summary:
+      'Switching the project off stopped at a step (named in the message). It is archived — nothing new starts — but something it ran may still be up.',
+    remedy:
+      'Send the same request again: every finished step answers at once, and the rest continue. The control plane’s next boot finishes it too. If it keeps stopping at the same step, tell a platform administrator.',
   },
 
   // ai/sessions.ts — a model session's start (§10; the front-end enablement plan's Task 10, Spec

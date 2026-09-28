@@ -28,6 +28,7 @@ Every step from an idea to a launched app, who takes it, and the operations that
 | Change who the app is for | person | *Not yet — the administrators’ queue (§26):* raising an audience is a request an administrator approves (§24) |
 | Delete a project, or roll back a release | person | *Not yet — not yet scheduled:* neither is built yet |
 | Work on a branch in a sandbox, with exec | agent | *Not yet — Phase 3 (§17):* an agent working inside a platform sandbox is not built before then |
+| Switch the app off when the course ends, and bring it back | person | `archiveProject`, `restoreProject` |
 
 <!-- /journey -->
 

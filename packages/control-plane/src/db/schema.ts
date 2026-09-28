@@ -101,8 +101,27 @@ export const projects = pgTable(
      * is immutable after production launch"* reads, the day a rename exists.
      */
     launchedAt: timestamp('launched_at', { withTimezone: true }),
+    /**
+     * §11's *Ending an app* (Spec action 3, applied 2026-09-27; the front-end enablement plan's
+     * Task 11, Decision 27): `active`, or `archived` — switched off by its owner and restorable.
+     * `assertCapability` refuses every capability but `project:read` and `project:delete` on a
+     * project that is not active. Set to `archived` FIRST, before anything is taken down, so
+     * nothing new starts while the teardown runs; the teardown finishes on retry or at boot.
+     */
+    state: text('state').notNull().default('active'),
+    /** When it was last archived; kept through a restore, so the record says it once was. */
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    /**
+     * WHO archived it last (Task 11) — a person: archiving is person-only (D24). Read by a teardown
+     * the next BOOT finishes, which has no request to say who acted, for the events it publishes;
+     * and it is the start of §26's *"who acted"* for this action (ORIENTATION §8's open question).
+     */
+    archivedBy: uuid('archived_by').references(() => users.id),
   },
-  (t) => [uniqueIndex('projects_slug_key').on(t.slug)],
+  (t) => [
+    uniqueIndex('projects_slug_key').on(t.slug),
+    check('projects_state_known', sql`${t.state} IN ('active', 'archived')`),
+  ],
 )
 
 export const projectMembers = pgTable(
@@ -991,7 +1010,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.ended')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored')`,
     ),
   ],
 )

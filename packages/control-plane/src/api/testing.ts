@@ -29,6 +29,7 @@ import {
 import {
   controlPlaneSpEntity,
   deriveSpEntity,
+  spEntityId,
   describeKeypair,
   mintSpKeypair,
   type SpEntity,
@@ -466,6 +467,21 @@ export function cwlFakes(deps: ServerDeps): Pick<ServerDeps, 'sso' | 'signIn'> {
   const registered = new Map<string, SpEntity>()
   return {
     sso: {
+      // §11's archive: forgets what it registered under the entity id, as the IdP's row goes.
+      deregisterServiceProvider: async (_db, input) => {
+        const entityId = spEntityId(
+          deps.config.idp.spEntityBase,
+          input.slug,
+          input.environmentKind,
+        )
+        for (const [acs, entity] of registered) {
+          if (entity.entityId === entityId) {
+            registered.delete(acs)
+            return true
+          }
+        }
+        return false
+      },
       registerServiceProvider: async (db, input) => {
         const entity = deriveSpEntity({
           ...input,
@@ -851,6 +867,12 @@ export async function testDeps(): Promise<ServerDeps> {
       idpSigningCertificate: () => {
         throw new Error('the API test harness has no IdP signing certificate')
       },
+      /**
+       * §11's archive removes every project's sandbox and staging registrations (Task 11). NOT a
+       * throw, unlike the two above: nothing in this tier ever registered one — `registerService
+       * Provider` refuses — so "there was no row to remove" is the honest answer, not a pretence.
+       */
+      deregisterServiceProvider: () => Promise.resolve(false),
     },
     /**
      * The REAL `createSamlSp`, pointed at an IdP this process holds the key to.

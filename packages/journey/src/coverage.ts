@@ -172,6 +172,11 @@ export const JOURNEY: readonly JourneyStep[] = [
       why: 'an agent working inside a platform sandbox is not built before then',
     },
   },
+  {
+    step: 'Switch the app off when the course ends, and bring it back',
+    who: 'person',
+    operations: ['archiveProject', 'restoreProject'],
+  },
 ]
 
 /** In the document, and deliberately in no faculty step — each with its reason. */

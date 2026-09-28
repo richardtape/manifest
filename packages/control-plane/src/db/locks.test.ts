@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { db } from './client.js'
-import { withEnvironmentLock } from './locks.js'
+import { withEnvironmentLock, withProjectLock } from './locks.js'
 
 /** Resolves on the next turn of the event loop, repeatedly, until `predicate` holds. */
 async function waitUntil(predicate: () => boolean, ms = 5_000): Promise<void> {
@@ -117,5 +117,41 @@ describe('withEnvironmentLock (P4c Task 6)', () => {
     releaseHolder()
     await holder
     expect(await held()).toBe(0)
+  })
+})
+
+/**
+ * §11's archive and delete (the front-end enablement plan's Task 11): one of either at a time per
+ * PROJECT. The environment's lock is what serialises an archive against a deploy; this one
+ * serialises two archives, an archive and a restore, or an archive and a delete.
+ */
+describe('withProjectLock (Task 11)', () => {
+  it('serializes two holders of the SAME project, and never waits on an environment’s lock of the same id', async () => {
+    const id = randomUUID()
+    const order: string[] = []
+    let firstInside = false
+    let releaseFirst = (): void => {}
+    const firstMayFinish = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    const first = withProjectLock(id, async () => {
+      order.push('first in')
+      firstInside = true
+      await firstMayFinish
+      order.push('first out')
+    })
+    await waitUntil(() => firstInside)
+    const second = withProjectLock(id, async () => {
+      order.push('second in')
+    })
+    // A different KEY, whatever the id: the environment lock of the same uuid is not held.
+    await withEnvironmentLock(id, async () => {
+      order.push('environment in')
+    })
+    await sleep(250)
+    expect(order).toEqual(['first in', 'environment in'])
+    releaseFirst()
+    await Promise.all([first, second])
+    expect(order).toEqual(['first in', 'environment in', 'first out', 'second in'])
   })
 })

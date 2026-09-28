@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildRoute, type CaddyClient, type CaddyRoute } from './caddy.js'
 import {
   applyRoute,
+  applySwitchedOffRoute,
   inFlightTo,
   restoreRouteTo,
   servingRoute,
@@ -356,5 +357,64 @@ describe('restoreRouteTo (P4c) — a move that could not be confirmed', () => {
     )
     expect(calls).toEqual(['put'])
     expect(puts[0]).toEqual(existingRoute)
+  })
+})
+
+/**
+ * §11's *Ending an app* (the front-end enablement plan's Task 11, Decision 29): a switched-off
+ * name answers `410 Gone` and a short page from the edge itself, under the hostname's OWN `@id`
+ * — so the next deploy after a restore replaces it in place — and dials nothing.
+ */
+describe('applySwitchedOffRoute (§11, Task 11)', () => {
+  const pageOf = (route: CaddyRoute) =>
+    route.handle.at(-1) as {
+      handler: string
+      status_code: number
+      body: string
+      headers: Record<string, string[]>
+    }
+
+  it('answers 410 and the page under the hostname’s own @id, on the listener its kind belongs to', async () => {
+    const { client, puts, servers } = fakeCaddy({ getRoute: async () => undefined })
+    const deps = { caddy: client, servers: SERVERS }
+    await applySwitchedOffRoute(deps, HOST, 'staging')
+    await applySwitchedOffRoute(deps, PROD_HOST, 'production')
+    expect(servers).toEqual(['srv0', 'srv1'])
+    expect(puts.map((r) => r['@id'])).toEqual([ROUTE_ID, PROD_ROUTE_ID])
+    const page = pageOf(puts[0]!)
+    expect(page.handler).toBe('static_response')
+    expect(page.status_code).toBe(410)
+    expect(page.body).toContain('This app has been switched off by its owner.')
+    expect(page.body).not.toContain('<script')
+    // A restore must bring the app back at once: a 410 is heuristically cacheable.
+    expect(page.headers['Cache-Control']).toEqual(['no-store'])
+    expect(puts[0]!.match).toEqual([{ host: [HOST] }])
+    expect(puts[0]!.terminal).toBe(true)
+  })
+
+  it('replaces a live route IN PLACE — one PATCH, never a delete that would let the wildcard answer', async () => {
+    const { client, calls, patches } = fakeCaddy({
+      getRoute: async () => existingRoute,
+      getRoutes: async (server) => (server === 'srv0' ? [existingRoute] : []),
+    })
+    await applySwitchedOffRoute({ caddy: client, servers: SERVERS }, HOST, 'staging')
+    expect(calls).toEqual([`patch ${ROUTE_ID}`])
+    expect(pageOf(patches[0]!).status_code).toBe(410)
+  })
+
+  it('reaches no instance: nothing serves a switched-off name, and it dials no upstream', async () => {
+    const { client, puts } = fakeCaddy({ getRoute: async () => undefined })
+    await applySwitchedOffRoute({ caddy: client, servers: SERVERS }, HOST, 'staging')
+    const switched = puts[0]!
+    const deps = {
+      caddy: {
+        ...client,
+        getRoute: async () => switched,
+        getRoutes: async () => [switched],
+      },
+      servers: SERVERS,
+    }
+    expect(await servingRoute(deps, HOST)).toBeUndefined()
+    expect(await upstreamsInUse(deps)).toEqual(new Set())
   })
 })

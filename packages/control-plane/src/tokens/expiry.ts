@@ -29,21 +29,30 @@ import { pendingActions, type Db } from '../db/index.js'
  * learns its question died the way D23.7 says it should: by asking again and being handed
  * a new one. The row's own `state` is the record.
  *
- * `scope` narrows it to one token's rows. The rule is stated once, as a parameter — the
- * same shape `pendingActionsFor`'s `tokenId` uses for the same reason (sitting 6's F4):
- * two callers with two filters is two statements of one rule.
+ * `scope` narrows it to one token's rows, or one project's. The rule is stated once, as a
+ * parameter — the same shape `pendingActionsFor`'s `tokenId` uses for the same reason (sitting
+ * 6's F4): two callers with two filters is two statements of one rule.
+ *
+ * **§11's archive passes `EVERY_QUESTION` as `now`** (the front-end enablement plan's Task 11,
+ * Decision 28's third step): a project switched off is the clock running out for every question
+ * about it, whatever expiry each was given — so it is the same rule, with the clock the archive
+ * says it is, rather than a second function that expires without looking at the clock.
  */
 export async function expirePendingActions(
   db: Db,
   now: Date = new Date(),
-  scope?: { tokenId: string },
+  scope?: { tokenId: string } | { projectId: string },
 ): Promise<number> {
   const expirable = and(
     eq(pendingActions.state, 'pending'),
     // `<=`, not `<`: `answerable` refuses a row at exactly `expiresAt`, so a sweep that
     // left that instant `pending` would disagree with the route about the same row.
     lte(pendingActions.expiresAt, now),
-    ...(scope === undefined ? [] : [eq(pendingActions.requestedByToken, scope.tokenId)]),
+    ...(scope === undefined
+      ? []
+      : 'tokenId' in scope
+        ? [eq(pendingActions.requestedByToken, scope.tokenId)]
+        : [eq(pendingActions.projectId, scope.projectId)]),
   )
   const swept = await db
     .update(pendingActions)
@@ -56,3 +65,10 @@ export async function expirePendingActions(
     .returning({ id: pendingActions.id })
   return swept.length
 }
+
+/**
+ * The clock §11's archive expires a project's questions by: past every expiry there is. The last
+ * instant of the year 9999 — NOT JavaScript's own last instant (the year 275760), which
+ * `toISOString` writes as `+275760-…` and Postgres refuses to parse (`22009`, measured).
+ */
+export const EVERY_QUESTION = new Date('9999-12-31T23:59:59.999Z')

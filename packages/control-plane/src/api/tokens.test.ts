@@ -146,9 +146,18 @@ describe('minting a delegated token (D24, Task 4)', () => {
     })
   })
 
-  it('refuses a capability the minter does not hold themselves', async () => {
-    // A collaborator cannot mint a token that deletes if they cannot delete. Otherwise a
-    // token is a privilege-escalation primitive rather than a delegation of one.
+  /**
+   * A collaborator cannot mint a token that archives or deletes if they cannot — and since the
+   * front-end enablement plan's Task 11 the mint route refuses `project:delete` to EVERYONE, as
+   * person-only (§11, D24), before it asks whether the minter holds it. So this answers the
+   * person-only refusal now, not step 3's `FORBIDDEN`.
+   *
+   * **STEP 3 — "no more than the minter holds" — HAS NO CAPABILITY LEFT THAT REACHES IT** (that
+   * sitting's finding): every capability a collaborator lacks is privileged (`members:manage`,
+   * `release:promote`) or person-only (`project:delete`), and the administrator's extra three are
+   * too. It stays, as the rule the next owner-only mintable capability will meet.
+   */
+  it('refuses a collaborator project:delete — the person-only rule, before whether they hold it', async () => {
     await withProjectServer(async (ctx) => {
       const collaborator = await sessionFor(ctx, 'bio_student', 'collaborator')
       const res = await ctx.app.inject({
@@ -162,8 +171,8 @@ describe('minting a delegated token (D24, Task 4)', () => {
           expiresInDays: 30,
         },
       })
-      expect(res.statusCode).toBe(403)
-      expect(res.json().error.code).toBe('FORBIDDEN')
+      expect(res.statusCode).toBe(400)
+      expect(res.json().error.code).toBe('TOKEN_CAPABILITY_FORBIDDEN')
     })
   })
 

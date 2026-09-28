@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { projectMembers, projects } from '../db/index.js'
 import { isSteppedUp } from '../identity/index.js'
+import { archivedRefusal } from './state.js'
 
 export type ProjectRole = 'owner' | 'collaborator'
 
@@ -122,7 +123,9 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
 
 /**
  * D24's PERSON-ONLY actions (Rich, 2026-09-22; §20's step-up bullet and D24's row): approving a
- * release (§13) and recording what UBC IAM or the Privacy Office decided (§9). **Stricter than
+ * release (§13), recording what UBC IAM or the Privacy Office decided (§9) — and, since Spec action
+ * 3 (applied 2026-09-27; the front-end enablement plan's Decision 30), archiving or deleting a
+ * project (§11), whose capability is `project:delete`. **Stricter than
  * the privileged four.** A privileged action a token asks for becomes a question a person
  * answers, and a confirmed retry goes through once. A person-only action cannot, because each is a RECORD
  * THAT A NAMED PERSON DECIDED — and a confirmed retry would let the token make that record.
@@ -135,6 +138,7 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
 export const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
   'release:approve',
   'launch:record',
+  'project:delete',
 ])
 
 export function isPersonOnly(capability: PrivilegedCapability): boolean {
@@ -190,6 +194,11 @@ export const STEP_UP_GUARDED: ReadonlySet<PrivilegedCapability> = new Set([
   // secret"*. The route asks for it for PRODUCTION only — `assertStepUp` is a call site's
   // decision, and sandbox and staging values are a token's to set (D24).
   'secret:write',
+  // §20, since Spec action 3 (the front-end enablement plan's Task 11): *"plus archiving or
+  // deleting a project, which take an app away from its students (§11)"*. `archiveProject` asks
+  // for it; `restoreProject` asserts the same capability and does NOT step up — bringing an app
+  // back takes nothing from anyone (Decision 30).
+  'project:delete',
 ])
 
 /**
@@ -563,8 +572,10 @@ export async function assertCapability(
     return
   }
 
+  // `state` rides on the read the session branch already makes (Decision 27), so a person's
+  // request pays nothing new for §11's refusal below.
   const [project] = await db
-    .select({ id: projects.id })
+    .select({ id: projects.id, state: projects.state })
     .from(projects)
     .where(eq(projects.id, projectId))
   if (!project) {
@@ -584,5 +595,24 @@ export async function assertCapability(
       'FORBIDDEN',
       `role '${projectRole ?? actor.platformRole}' may not '${capability}'`,
     )
+  }
+
+  /**
+   * §11's *Ending an app* (Decision 27): an archived project can be READ, and archived again —
+   * the same request retried, finishing its teardown — restored or deleted, which are all
+   * `project:delete`. Nothing else, for its members and an administrator alike. AFTER the
+   * membership and capability checks, so a stranger is still a stranger (`NOT_FOUND`) and a
+   * collaborator is still refused archiving (`FORBIDDEN`) before either is told the state.
+   *
+   * **A TOKEN never reaches here**: `tokenActor` refuses a token of a project that is not active
+   * (the front-end enablement plan's Task 11), and archiving revokes every token of the project
+   * besides — so the token branch above needs no state read of its own.
+   */
+  if (
+    project.state !== 'active' &&
+    capability !== 'project:read' &&
+    capability !== 'project:delete'
+  ) {
+    throw archivedRefusal(projectId)
   }
 }

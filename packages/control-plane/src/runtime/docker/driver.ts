@@ -12,6 +12,7 @@ import {
 } from '../../build/index.js'
 import {
   applyRoute,
+  applySwitchedOffRoute,
   edgeIdentityProbe,
   inFlightTo,
   removeRoute,
@@ -58,7 +59,7 @@ import {
 } from './containers.js'
 import { createKeyedMutex } from './keyed-mutex.js'
 import { privateProbe } from './probes.js'
-import { ensureEgressProxy } from './egress.js'
+import { destroyEgressProxy, ensureEgressProxy } from './egress.js'
 import { EngineError, registryAuthHeader, type EngineClient } from './engine.js'
 import { containerExec } from './exec.js'
 import { detectHostCapabilities } from './hardening.js'
@@ -70,10 +71,11 @@ import {
   stopInstanceContainer,
 } from './instances.js'
 import { containerLogs } from './logs.js'
-import { appNetwork, instanceAlias } from './names.js'
+import { appNetwork, instanceAlias, serviceContainer } from './names.js'
 import {
   AI_GATEWAY_NEIGHBOUR,
   EDGE_NEIGHBOUR,
+  destroyAppNetwork,
   detachAiGatewayIfUnused,
   ensureAppNetwork,
 } from './networks.js'
@@ -730,6 +732,13 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
       await applyRoute(options.routing, { hostname, upstream, kind, instanceId })
     },
 
+    /**
+     * §11's switched-off page (Task 11), under the hostname's own `@id` on its listener — the
+     * route every other method of this driver reads by that `@id`, so the next `ensureInstance`
+     * replaces it in place and `servingInstance` answers `undefined` meanwhile (it dials nothing).
+     */
+    switchOff: (hostname, kind) => applySwitchedOffRoute(options.routing, hostname, kind),
+
     stopInstance: (id) => stopInstanceContainer(engine, id),
 
     async destroyInstance(id: string): Promise<void> {
@@ -759,6 +768,23 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
     },
 
     destroyService: (id, opts) => destroyServiceContainer(engine, id, opts),
+
+    /**
+     * §11's *Ending an app* (Task 11): the services by the names the caller gives, then the egress
+     * proxy, then the network — the order the network's own "attached containers" check needs
+     * (`[M9]`). Each step answers at once for what is already gone (the engine reads a 404 as
+     * done), so a second call is the first. Under the network's mutex, which `ensureInstance` and
+     * `retireInstance` hold for the same network.
+     */
+    async destroyEnvironment({ slug, kind, services }, { deleteData }): Promise<void> {
+      await perNetwork(appNetwork(slug, kind), async () => {
+        for (const service of services) {
+          await destroyServiceContainer(engine, serviceContainer(service), { deleteData })
+        }
+        await destroyEgressProxy(engine, slug, kind)
+        await destroyAppNetwork(engine, slug, kind)
+      })
+    },
     status: (id) => instanceStatus(engine, id),
     logs: (id, opts: LogOpts): AsyncIterable<RuntimeLogLine> =>
       containerLogs(engine, id, opts),

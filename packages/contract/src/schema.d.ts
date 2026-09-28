@@ -560,6 +560,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{projectId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Switch a project off (archive it)
+         * @description Switches the app off for everyone, and keeps it (§11). The project is marked archived first, so nothing new starts; then its agent sessions end, its delegated tokens are revoked, its pending questions expire, each of its names answers a page saying the app has been switched off by its owner (`410`), every instance is retired after its usual drain, its backing services stop keeping their data, and its sandbox and staging sign-on registrations are removed. Its code, data, secrets and records are kept. Answers once all of that is done — seconds, bounded by the drain. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left archived: retrying the same request continues where it stopped, and so does the control plane’s next boot. Archiving an archived project answers it as it is. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived`.
+         */
+        post: operations["archiveProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/builds": {
         parameters: {
             query?: never;
@@ -870,6 +890,26 @@ export interface paths {
          * @description §13: an immutable release — the build’s digest, the spec that build was made from, and the configuration resolved from it for all three environments, frozen together. The build must be this project’s.
          */
         post: operations["createRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a switched-off project
+         * @description Makes an archived project an ordinary one again (§11) — and starts nothing. Its names keep answering the switched-off page until its next deploy, which brings the app back on its kept data and signs it up for sign-on again. Its delegated tokens stay revoked: mint new ones. Restoring an active project answers it as it is. The owner’s or a platform administrator’s, in their own session; no step-up, because bringing an app back takes nothing from anyone. Publishes `project.restored`.
+         */
+        post: operations["restoreProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1769,6 +1809,13 @@ export interface components {
             createdAt: string;
             /** @description When it first went to production (§13 D9) — null until then; never cleared. */
             launchedAt: string | null;
+            /**
+             * @description §11: `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.
+             * @enum {string}
+             */
+            state: "active" | "archived";
+            /** @description When it was last switched off; null if it never was. Kept through a restore. */
+            archivedAt: string | null;
             repository: components["schemas"]["RepositoryLink"];
             /** @description Its three environments, none deployed yet. */
             environments: components["schemas"]["Environment"][];
@@ -1838,7 +1885,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -3834,6 +3881,131 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "sso.deregistered";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11). */
+            machineDetail: {
+                /** @description The app’s SAML entity id in this environment (§9), now unregistered. */
+                entityId: string;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "project.archived";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored. */
+            machineDetail: {
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
+                via: "session" | "token";
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
+                userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
+                tokenId: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "project.restored";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked. */
+            machineDetail: {
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
+                via: "session" | "token";
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
+                userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
+                tokenId: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
         };
         /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
         Fleet: {
@@ -4681,6 +4853,13 @@ export interface components {
             createdAt: string;
             /** @description When it first went to production (§13 D9) — null until then; never cleared. */
             launchedAt: string | null;
+            /**
+             * @description §11: `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.
+             * @enum {string}
+             */
+            state: "active" | "archived";
+            /** @description When it was last switched off; null if it never was. Kept through a restore. */
+            archivedAt: string | null;
             repository: components["schemas"]["RepositoryLink"];
             /** @description Present with `?expand=environments` (D23.1). */
             environments?: components["schemas"]["Environment"][];
@@ -6615,6 +6794,8 @@ export interface operations {
                      *         },
                      *         "createdAt": "2026-09-26T21:51:48.272Z",
                      *         "launchedAt": null,
+                     *         "state": "active",
+                     *         "archivedAt": null,
                      *         "repository": {
                      *           "provider": "local",
                      *           "fullName": "p-6e200d3a",
@@ -6643,6 +6824,8 @@ export interface operations {
                      *         },
                      *         "createdAt": "2026-09-26T21:51:47.664Z",
                      *         "launchedAt": null,
+                     *         "state": "active",
+                     *         "archivedAt": null,
                      *         "repository": {
                      *           "provider": "local",
                      *           "fullName": "authz-other-f891223a",
@@ -6720,6 +6903,8 @@ export interface operations {
                      *       },
                      *       "createdAt": "2026-09-26T21:47:45.365Z",
                      *       "launchedAt": null,
+                     *       "state": "active",
+                     *       "archivedAt": null,
                      *       "repository": {
                      *         "provider": "local",
                      *         "fullName": "fixture-40adbffa",
@@ -6814,6 +6999,8 @@ export interface operations {
                      *       },
                      *       "createdAt": "2026-09-26T21:49:02.611Z",
                      *       "launchedAt": null,
+                     *       "state": "active",
+                     *       "archivedAt": null,
                      *       "repository": {
                      *         "provider": "local",
                      *         "fullName": "chem-labs",
@@ -6906,6 +7093,8 @@ export interface operations {
                      *       },
                      *       "createdAt": "2026-09-26T21:49:02.611Z",
                      *       "launchedAt": null,
+                     *       "state": "active",
+                     *       "archivedAt": null,
                      *       "repository": {
                      *         "provider": "local",
                      *         "fullName": "chem-labs",
@@ -7092,6 +7281,78 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AGENT_BUDGET_EXHAUSTED, AGENT_NO_MODEL_FOR_CLASSIFICATION, AGENT_SESSION_ALREADY_STARTED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    archiveProject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /** @example {} */
+                "application/json": components["schemas"]["EmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description The project, archived — `state` and `archivedAt`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+                     *       "slug": "chem-labs",
+                     *       "name": "CHEM 121 — Lab notebook",
+                     *       "blueprint": "fixture-node@1",
+                     *       "starter": null,
+                     *       "owner": {
+                     *         "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "audience": {
+                     *         "scale": "class",
+                     *         "burst": "synchronised",
+                     *         "justification": null,
+                     *         "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                     *         "setAt": "2026-09-26T21:49:02.609Z"
+                     *       },
+                     *       "createdAt": "2026-09-26T21:49:02.611Z",
+                     *       "launchedAt": null,
+                     *       "state": "archived",
+                     *       "archivedAt": "2026-12-18T17:02:44.120Z",
+                     *       "repository": {
+                     *         "provider": "local",
+                     *         "fullName": "chem-labs",
+                     *         "webUrl": null,
+                     *         "mainProtected": true,
+                     *         "protectionDetail": null,
+                     *         "visibility": null
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8531,6 +8792,78 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    restoreProject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /** @example {} */
+                "application/json": components["schemas"]["EmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description The project, active again. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+                     *       "slug": "chem-labs",
+                     *       "name": "CHEM 121 — Lab notebook",
+                     *       "blueprint": "fixture-node@1",
+                     *       "starter": null,
+                     *       "owner": {
+                     *         "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "audience": {
+                     *         "scale": "class",
+                     *         "burst": "synchronised",
+                     *         "justification": null,
+                     *         "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                     *         "setAt": "2026-09-26T21:49:02.609Z"
+                     *       },
+                     *       "createdAt": "2026-09-26T21:49:02.611Z",
+                     *       "launchedAt": null,
+                     *       "state": "active",
+                     *       "archivedAt": "2026-12-18T17:02:44.120Z",
+                     *       "repository": {
+                     *         "provider": "local",
+                     *         "fullName": "chem-labs",
+                     *         "webUrl": null,
+                     *         "mainProtected": true,
+                     *         "protectionDetail": null,
+                     *         "visibility": null
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

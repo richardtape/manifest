@@ -23,6 +23,7 @@ export {
 export {
   deriveSpEntity,
   SpEntityError,
+  spEntityId,
   type SpEntity,
   type SpEntityInput,
 } from './entity.js'
@@ -53,8 +54,11 @@ export {
 } from './platform.js'
 export {
   createSsoRegistrar,
+  deregisterServiceProvider,
   registerServiceProvider,
   type SpRegistration,
+  type SpDeregistrationInput,
   type SpRegistrationInput,
+  type SsoDeregistrar,
   type SsoRegistrar,
 } from './registration.js'

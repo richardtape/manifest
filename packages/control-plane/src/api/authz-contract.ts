@@ -221,6 +221,12 @@ interface Fixture {
   /** `main`'s head NOW — read per case by `createCommit`'s row (Task 6). */
   mainHead: () => Promise<string>
   /**
+   * A NEW project, owned by the owner with the collaborator a member — one per case of the
+   * archive and restore rows (the front-end enablement plan's Task 11), so no case's answer is
+   * another's archive.
+   */
+  throwaway: () => Promise<string>
+  /**
    * One instance in SANDBOX and one in production, written directly (the front-end enablement
    * plan's Task 3) — what the output rows are aimed at. Both rows read `failed`, so neither
    * serves, and no other row moves; sandbox's handle is an instance the fake driver is RUNNING,
@@ -644,7 +650,7 @@ const ROUTES: RouteCase[] = [
   /**
    * READING SOURCE (the authoring API plan's Task 5): `project:read`, as every other read of
    * a project is — so the shape of `GET …/spec`'s row. `token-incapable` holds only
-   * `project:delete`, which is what makes its `403` the capability refusal.
+   * `quota:set`, which is what makes its `403` the capability refusal.
    */
   {
     method: 'GET',
@@ -760,6 +766,57 @@ const ROUTES: RouteCase[] = [
       'token-incapable': 403,
       'token-other-project': 404,
       'token-privileged': 'pass',
+    },
+  },
+  /**
+   * §11's ARCHIVE (the front-end enablement plan's Task 11): `project:delete`, person-only (D24)
+   * and step-up-guarded (§20). EACH ACTOR ON ITS OWN THROWAWAY PROJECT: an archive on the shared
+   * fixture would turn every later row's answer into `409 PROJECT_ARCHIVED` — a state refusal
+   * wearing an authorization expectation's clothes. The sessions here are not stepped up, so the
+   * owner and the administrator are `STEP_UP`, and nobody archives anything; the collaborator is
+   * refused the capability before step-up is asked (`FORBIDDEN`, the order every step-up route
+   * keeps); every token is refused its credential class before any project is read.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/archive',
+    request: async (f) => ({
+      url: `/v1/projects/${await f.throwaway()}/archive`,
+      payload: {},
+    }),
+    expect: {
+      owner: STEP_UP,
+      collaborator: 403,
+      stranger: 404,
+      admin: STEP_UP,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  /**
+   * …and RESTORE: the same capability and credential class, and NO step-up (Decision 30) — so the
+   * owner and the administrator pass, restoring a project that is active, which answers it as it is.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/restore',
+    request: async (f) => ({
+      url: `/v1/projects/${await f.throwaway()}/restore`,
+      payload: {},
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   {
@@ -2055,10 +2112,11 @@ export function describeAuthorizationContract(
       })
       const otherProjectId = otherProject.json().id as string
 
+      // NOT `project:delete` since the front-end enablement plan's Task 11: it is PERSON-ONLY now
+      // (§11, D24), so the mint route would not give it — and this set is what the route would mint.
       const CAPABLE: Capability[] = [
         'project:read',
         'project:write',
-        'project:delete',
         'build:create',
         'release:create',
         'release:deploy',
@@ -2104,11 +2162,13 @@ export function describeAuthorizationContract(
         bearers[actor] = plaintext
       }
       await tokenFor('token-capable', body.id, CAPABLE)
-      // `project:delete` is a `Capability` NO route asserts (nothing deletes a project),
-      // which is what makes this actor incapable of every route while still able to
-      // address the project — the `403`-not-`404` distinction the row is for. An empty
-      // set would do the same and is a state the mint route refuses (`min(1)`).
-      await tokenFor('token-incapable', body.id, ['project:delete'])
+      // `quota:set` is a `Capability` NO route asserts, and it is privileged — so the mint route
+      // refuses it and only the store can hold it — which is what makes this actor incapable of
+      // every route while still able to address the project: the `403`-not-`404` distinction the
+      // row is for. It was `project:delete` until the front-end enablement plan's Task 11, whose
+      // archive route is the first to assert that one. An empty set would do the same and is a
+      // state the mint route refuses (`min(1)`).
+      await tokenFor('token-incapable', body.id, ['quota:set'])
       await tokenFor('token-other-project', otherProjectId, CAPABLE)
       await tokenFor('token-privileged', body.id, [
         ...CAPABLE,
@@ -2198,6 +2258,25 @@ export function describeAuthorizationContract(
         commitSha: body.spec.commitSha,
         mainHead: () =>
           deps.source.resolveRef(deps.source.repositoryFor('authz-fixture'), 'main'),
+        throwaway: async () => {
+          const created = await app.inject({
+            method: 'POST',
+            url: '/v1/projects',
+            payload: projectBody(`authz-arch-${randomUUID().slice(0, 8)}`),
+            cookies: cookies.owner!,
+            headers: mutationHeaders(deps),
+          })
+          if (created.statusCode !== 201)
+            throw new Error(`a throwaway project was not created: ${created.body}`)
+          const id = (created.json() as { id: string }).id
+          await addMember(
+            deps.db,
+            id,
+            (await ensureTestUser(deps.db, 'bio_student')).id,
+            'collaborator',
+          )
+          return id
+        },
         buildId: build.json().id,
         releaseId: release.json().id,
         // Set below, once the preview is taken — after the collaborator is made a member.

@@ -681,4 +681,37 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe('An agent session’s key was revoked at the gateway (§10).'),
+  /** The front-end enablement plan's Task 11 — an entity id is public in the SP's own metadata. */
+  'sso.deregistered': z
+    .strictObject({
+      entityId: z
+        .string()
+        .describe('The app’s SAML entity id in this environment (§9), now unregistered.'),
+    })
+    .describe(
+      'The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11).',
+    ),
+  /**
+   * The front-end enablement plan's Task 11. Who, as every event since Task 6 records it — and
+   * archiving is person-only (D24), so `via` is always `session` and `tokenId` null today; the
+   * fields are kept so a reader needs no special case.
+   */
+  'project.archived': z
+    .strictObject({
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe(
+      'The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored.',
+    ),
+  'project.restored': z
+    .strictObject({
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe(
+      'A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.',
+    ),
 } satisfies Record<EventType, z.ZodType>

@@ -145,6 +145,14 @@ export const Project = representation(
       launchedAt: Timestamp.nullable().describe(
         'When it first went to production (§13 D9) — null until then; never cleared.',
       ),
+      state: z
+        .enum(['active', 'archived'])
+        .describe(
+          '§11: `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.',
+        ),
+      archivedAt: Timestamp.nullable().describe(
+        'When it was last switched off; null if it never was. Kept through a restore.',
+      ),
       repository: RepositoryLink,
       environments: z
         .array(Environment)
@@ -271,6 +279,9 @@ export function toProject(
           },
     createdAt: view.project.createdAt.toISOString(),
     launchedAt: view.project.launchedAt?.toISOString() ?? null,
+    // `text` in the database with a CHECK, so the narrowing here is the CHECK's own list.
+    state: view.project.state as 'active' | 'archived',
+    archivedAt: view.project.archivedAt?.toISOString() ?? null,
     repository: view.repository,
     ...(environments === undefined ? {} : { environments }),
   }

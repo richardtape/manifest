@@ -148,5 +148,8 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `member.removed` | A person was taken off the project (§13). Not published for somebody who was not a member. |
 | `agent_session.started` | An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published. |
 | `agent_session.ended` | An agent session’s key was revoked at the gateway (§10). |
+| `sso.deregistered` | The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11). |
+| `project.archived` | The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored. |
+| `project.restored` | A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked. |
 
 <!-- /event-types -->

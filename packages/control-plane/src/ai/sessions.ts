@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { agentSessions, delegatedTokens, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
-import { personName, type Actor } from '../projects/index.js'
+import { holdActiveProject, personName, type Actor } from '../projects/index.js'
 import { tokenById } from '../tokens/index.js'
 import {
   agentKeyAlias,
@@ -210,6 +210,12 @@ export async function startAgentSession(
       // committed a live key for a revoked token. `FOR SHARE` conflicts with the revoke's UPDATE, so
       // either the revoke waits for this commit — and its `endSessionsOf` ends the session — or it
       // committed first and is seen here, and the start is refused as that token is everywhere else.
+      // AND THE PROJECT, FOR THE SAME REASON (the front-end enablement plan's Task 11, carrying I1):
+      // an archive landing during the mint found no committed session to end, and this then
+      // committed a live key for a switched-off project. Held here, the archive's state change
+      // waits for this commit — and its teardown ends the session — or it committed first, and the
+      // start is refused `PROJECT_ARCHIVED`.
+      await holdActiveProject(tx, input.projectId)
       if (tokenId !== null) {
         const [held] = await tx
           .select({
@@ -352,6 +358,14 @@ const endReasonWords: Record<EndReason, string> = {
  * **THE SPEND IS READ BEFORE THE KEY GOES** (FE-23): LiteLLM deletes the key's row with it. A read
  * that fails is recorded as unknown — it must not stop the revocation, which is the control.
  * Idempotent: an ended session is answered as it is.
+ *
+ * **WITH AI SWITCHED OFF, AN EXPIRED SESSION IS STAMPED WITHOUT THE GATEWAY** (the front-end
+ * enablement plan's Task 11 — sitting 7's review's deferred minor 3, decided): its key stopped
+ * working at its own `duration`, which LiteLLM enforces (Task 9's control (a)), so there is nothing
+ * a revocation would stop — and without this an archive, or a token's revoke, of a project that
+ * ever ran a session could never finish while AI is off. What it spent is unknown, and says so. A
+ * session whose key is still live is never stamped without the gateway: that is a live key nobody
+ * could then end.
  */
 export async function endAgentSession(
   deps: { db: Db; bus: EventBus; llm: LiteLlmClient | undefined },
@@ -360,26 +374,28 @@ export async function endAgentSession(
   by: EndedBy,
 ): Promise<AgentSessionRow> {
   if (row.endedAt !== null) return row
-  const llm = gatewayOf(deps)
-  let spent: number | null
-  try {
-    spent =
-      (await personSpend(llm, row.userId)).byAlias.get(agentKeyAlias(row.id)) ?? null
-  } catch (error) {
-    console.error(
-      `agent session ${row.id}: what its key spent could not be read before it ended, so it is recorded as unknown: ${String(error)}`,
-    )
-    spent = null
+  let spent: number | null = null
+  if (deps.llm !== undefined || row.expiresAt.getTime() > Date.now()) {
+    const llm = gatewayOf(deps)
+    try {
+      spent =
+        (await personSpend(llm, row.userId)).byAlias.get(agentKeyAlias(row.id)) ?? null
+    } catch (error) {
+      console.error(
+        `agent session ${row.id}: what its key spent could not be read before it ended, so it is recorded as unknown: ${String(error)}`,
+      )
+      spent = null
+    }
+    try {
+      await revokeAgentKey(llm, row.id)
+    } catch (error) {
+      console.error(
+        `agent session ${row.id}: ${agentKeyAlias(row.id)} could NOT be revoked (${reason}); it stays live until ${row.expiresAt.toISOString()} or a retry ends it`,
+      )
+      throw error
+    }
+    forgetSpend(llm, row.userId)
   }
-  try {
-    await revokeAgentKey(llm, row.id)
-  } catch (error) {
-    console.error(
-      `agent session ${row.id}: ${agentKeyAlias(row.id)} could NOT be revoked (${reason}); it stays live until ${row.expiresAt.toISOString()} or a retry ends it`,
-    )
-    throw error
-  }
-  forgetSpend(llm, row.userId)
   const [ended] = await deps.db
     .update(agentSessions)
     .set({

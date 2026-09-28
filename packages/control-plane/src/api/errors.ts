@@ -1,4 +1,8 @@
-import { AuthorizationError, SlugRefusedError } from '../projects/index.js'
+import {
+  AuthorizationError,
+  ProjectStateError,
+  SlugRefusedError,
+} from '../projects/index.js'
 import { ReleaseError } from '../releases/index.js'
 import { SourceError } from '../source/index.js'
 import { ConfigError } from '../config.js'
@@ -724,6 +728,16 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
   // caller can act on — a spent month, no approved model, a start already answered — and each
   // code's status the registry's, so the two cannot drift apart.
   if (error instanceof AgentSessionError) {
+    return {
+      status: ERROR_CODES[error.code].status,
+      body: { error: { code: error.code, message: error.message } },
+    }
+  }
+
+  // §11's *Ending an app* (the front-end enablement plan's Task 11): a project's STATE refused the
+  // request — `PROJECT_ARCHIVED`, a state its owner resolves by restoring, or an archive that
+  // stopped at a step, which the same request retried finishes. Each code's status the registry's.
+  if (error instanceof ProjectStateError) {
     return {
       status: ERROR_CODES[error.code].status,
       body: { error: { code: error.code, message: error.message } },

@@ -5,9 +5,15 @@ import { makeRedactor, publishEvent, type EventBus } from '../observability/inde
 import { SsoError } from './errors.js'
 import { secretValuesFor } from '../secrets/index.js'
 import type { EnvironmentKind, MasterKeypair } from '../secrets/index.js'
-import { deriveSpEntity, type SpEntity, type SpEntityInput } from './entity.js'
+import {
+  deriveSpEntity,
+  spEntityId,
+  type SpEntity,
+  type SpEntityInput,
+} from './entity.js'
 import { ensureSpKeypair, type SpKeypair } from './keypair.js'
 import {
+  deleteSpRow,
   readSpRow,
   renderSpMetadata,
   upsertSpRow,
@@ -151,6 +157,49 @@ export async function registerServiceProvider(
   return registration
 }
 
+export interface SpDeregistrationInput {
+  projectId: string
+  slug: string
+  environmentKind: EnvironmentKind
+  entityBase: string
+}
+
+/**
+ * §11's archive (the front-end enablement plan's Task 11, Decision 28's fifth step): an app's
+ * registration with the Manifest IdP, REMOVED — addressed by its entity id alone, because an
+ * archive reads no release's auth block. Answers whether a row was there. `sso.deregistered` is
+ * published only when one was — §9 audits every registration and change, and an archive retried
+ * finds the row already gone, which is no second removal. The SP's keypair stays in the store with
+ * every other secret an archive keeps; the next deploy after a restore registers the app again.
+ *
+ * A UBC registration is never Manifest's to remove (Spec action 6): on a laptop both sandbox's
+ * and staging's are the Manifest IdP's, which is what this removes.
+ */
+export async function deregisterServiceProvider(
+  db: Db,
+  pool: pg.Pool,
+  bus: EventBus,
+  input: SpDeregistrationInput,
+): Promise<boolean> {
+  const entityId = spEntityId(input.entityBase, input.slug, input.environmentKind)
+  const removed = await deleteSpRow(pool, entityId)
+  if (!removed) return false
+  // Nothing secret is in it: an entity id is published in the SP's own metadata.
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: input.projectId,
+      subject: `sp:${input.slug}:${input.environmentKind}`,
+      type: 'sso.deregistered',
+      machineDetail: { entityId },
+      humanMessage: `Single sign-on was removed for ${input.slug} in ${input.environmentKind}.`,
+    },
+    makeRedactor([]),
+  )
+  return true
+}
+
 /**
  * `registerServiceProvider` with the platform's own values already bound.
  *
@@ -179,16 +228,31 @@ export interface SsoRegistrar {
   idpSigningCertificate(): Promise<string>
 }
 
+/**
+ * §11's archive: `deregisterServiceProvider`, the entity base bound (the front-end enablement
+ * plan's Task 11). ITS OWN INTERFACE, not a third member of `SsoRegistrar`: a deploy registers and
+ * never removes, so `DeployDeps` keeps asking for exactly what it uses, and the archive's deps ask
+ * for this alone.
+ */
+export interface SsoDeregistrar {
+  deregisterServiceProvider(
+    db: Db,
+    input: Omit<SpDeregistrationInput, 'entityBase'>,
+  ): Promise<boolean>
+}
+
 export function createSsoRegistrar(
   pool: pg.Pool,
   keys: MasterKeypair,
   entityBase: string,
   idpSigningCertPath: string,
   bus: EventBus,
-): SsoRegistrar {
+): SsoRegistrar & SsoDeregistrar {
   return {
     registerServiceProvider: (db, input) =>
       registerServiceProvider(db, pool, keys, bus, { ...input, entityBase }),
+    deregisterServiceProvider: (db, input) =>
+      deregisterServiceProvider(db, pool, bus, { ...input, entityBase }),
     idpSigningCertificate: async () => {
       let pem: string
       try {

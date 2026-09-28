@@ -571,3 +571,37 @@ An agent session’s key was revoked at the gateway (§10).
   "tokenId": null
 }
 ```
+
+## `sso.deregistered`
+
+The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11).
+
+```json
+{
+  "entityId": "https://manifest.internal/sp/chem-labs/staging"
+}
+```
+
+## `project.archived`
+
+The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored.
+
+```json
+{
+  "via": "session",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": null
+}
+```
+
+## `project.restored`
+
+A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.
+
+```json
+{
+  "via": "session",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": null
+}
+```

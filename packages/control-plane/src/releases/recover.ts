@@ -2,6 +2,7 @@ import { eq, inArray, ne } from 'drizzle-orm'
 import { builds, instances, routes, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { canTransition, nextState, type Driver } from '../runtime/index.js'
+import type { TeardownsFinished } from './lifecycle.js'
 import type { Retirer } from './retire.js'
 
 export interface RecoveryReport {
@@ -15,6 +16,8 @@ export interface RecoveryReport {
   interrupted: number
   /** Environments a retire pass was asked for. */
   scheduled: string[]
+  /** §11's archived projects, their teardown run again (the front-end enablement plan's Task 11). */
+  teardowns: TeardownsFinished
 }
 
 /** §11's three states a deploy can be interrupted in, straight from the machine. */
@@ -43,6 +46,13 @@ export async function recoverAtBoot(deps: {
   retirer: Pick<Retirer, 'schedule'>
   /** Pass 0 publishes each interrupted build's end, as the build would have. */
   bus: EventBus
+  /**
+   * §11's archived projects, torn down again (the front-end enablement plan's Task 11): `releases/
+   * lifecycle.ts`'s `finishTeardowns`, bound to its deps by the boot. REQUIRED, so a boot that
+   * forgot it does not compile — an edge restart drops every switched-off page, and without this
+   * an archived app's names answer the wildcard until somebody archives it again.
+   */
+  finishTeardowns: () => Promise<TeardownsFinished>
 }): Promise<RecoveryReport> {
   /**
    * PASS 0 — THE BUILDS this process's predecessor was running when it stopped (P5a Task
@@ -140,6 +150,16 @@ export async function recoverAtBoot(deps: {
   }
 
   /**
+   * PASS 2½ — §11's ARCHIVED PROJECTS (the front-end enablement plan's Task 11, Decision 28).
+   * AFTER pass 1, so the switched-off page is put back once the Route records are — an archive
+   * empties its project's records, so pass 1 never routes a switched-off name to a retired
+   * instance, and this puts the page on every one of its names again — and after pass 2, so a
+   * deploy interrupted on an archived project is already `failed` when its instance is retired.
+   * It never throws for one project: each failure is an operator line and a row in the report.
+   */
+  const teardowns = await deps.finishTeardowns()
+
+  /**
    * PASS 3 — AND IT RUNS LAST, WHICH IS LOAD-BEARING (Decision 20, and sitting 5's
    * correction to it).
    *
@@ -167,5 +187,6 @@ export async function recoverAtBoot(deps: {
     routesFailed,
     interrupted,
     scheduled,
+    teardowns,
   }
 }

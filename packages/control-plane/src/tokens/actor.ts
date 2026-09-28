@@ -1,6 +1,6 @@
 import type { Db } from '../db/index.js'
 import type { Capability, TokenActor } from '../projects/index.js'
-import { tokenById, touchToken } from './repository.js'
+import { tokenForAuthentication, touchToken } from './repository.js'
 import { parseToken, secretMatches } from './token.js'
 
 /**
@@ -24,9 +24,9 @@ export const TOUCH_INTERVAL_MS = 60_000
  * A bearer credential, turned into the actor it stands for — or a refusal.
  *
  * **ONE REFUSAL FOR EVERY FAILURE.** A malformed value, an id that names no row, a wrong
- * secret, a revoked token and an expired one all answer the same way, because a caller
- * who could tell them apart could enumerate which token ids exist and could read the
- * state of a credential they do not hold. `undefined` rather than a throw, so the caller
+ * secret, a revoked token, an expired one and one whose project is archived all answer the
+ * same way, because a caller who could tell them apart could enumerate which token ids
+ * exist and could read the state of a credential they do not hold. `undefined` rather than a throw, so the caller
  * decides what a missing credential means.
  *
  * Its caller is `buildServer`'s one `onRequest` hook, and nothing else: routes never read
@@ -39,11 +39,15 @@ export async function tokenActor(
 ): Promise<TokenActor | undefined> {
   const parsed = parseToken(plaintext)
   if (parsed === undefined) return undefined
-  const row = await tokenById(db, parsed.id)
-  if (row === undefined) return undefined
+  const found = await tokenForAuthentication(db, parsed.id)
+  if (found === undefined) return undefined
+  const row = found.token
   if (!secretMatches(parsed.secret, row.tokenHash)) return undefined
   if (row.revokedAt !== null) return undefined
   if (row.expiresAt.getTime() <= now) return undefined
+  // §11: a token of a project that is not active is no credential at all — the same one answer,
+  // so an agent learns nothing it could not learn from a revoked token (Task 11, Decision 27).
+  if (found.projectState !== 'active') return undefined
 
   // AWAITED, not fire-and-forget: an unawaited promise is a floating promise ESLint
   // refuses, and a write that outlives the request can land after the test that reset the

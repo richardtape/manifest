@@ -278,6 +278,41 @@ export function describeDriverContract(
       await expect(driver.destroyInstance('no-such-instance')).resolves.toBeUndefined()
     })
 
+    /**
+     * §11's *Ending an app* (Task 11): what an environment holds that no instance owns — its
+     * services, its egress proxy, its network. A slug of its OWN, so the teardown reaches nothing of
+     * `chem-labs`'s, which every other case here shares. What `deleteData: false` KEEPS is the Docker
+     * tier's to measure (`releases/lifecycle.docker.test.ts`): no interface method reads a volume.
+     */
+    it('destroyEnvironment removes the named services, and twice is the same as once', async () => {
+      const driver = await factory()
+      const service: ServiceBinding = {
+        ...binding(),
+        name: serviceName('chem-teardown', 'staging', 'db'),
+        projectSlug: 'chem-teardown',
+      }
+      const ref = {
+        slug: 'chem-teardown',
+        kind: 'staging' as const,
+        services: [service.name],
+      }
+      const before = await driver.ensureService(service)
+      await driver.destroyEnvironment(ref, { deleteData: true })
+      await driver.destroyEnvironment(ref, { deleteData: true })
+      // Gone, so ensuring it again creates it again — and on a real driver, starts a container.
+      const after = await driver.ensureService(service)
+      expect(after.name).toBe(before.name)
+      await driver.destroyEnvironment(ref, { deleteData: true })
+    }, 300_000)
+
+    it('destroyEnvironment of an environment that holds nothing answers at once', async () => {
+      const driver = await factory()
+      await driver.destroyEnvironment(
+        { slug: 'chem-nothing', kind: 'sandbox', services: [] },
+        { deleteData: false },
+      )
+    })
+
     it('streams logs as an async iterable', async () => {
       const driver = await factory()
       const handle = await driver.ensureInstance(spec())
@@ -486,6 +521,31 @@ export function describeDriverContract(
         // The old behaviour DELETED it — and it may be the container serving the app.
         expect((await driver.status(first.id)).state).not.toBe('gone')
         expect(await driver.servingInstance(hostname)).toBe(first.id)
+      }, 600_000)
+
+      /**
+       * §11's *Ending an app* (the front-end enablement plan's Task 11, Decision 29): a switched-off
+       * name reaches NO instance — so every instance of it can be retired, which a retire refuses
+       * for one that serves — and the next instance takes it back in place.
+       */
+      it('switchOff: the name reaches no instance, and every instance of it can then be retired', async () => {
+        const driver = await factory()
+        const hostname = host()
+        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
+        await driver.switchOff(hostname, 'staging')
+        expect(await driver.servingInstance(hostname)).toBeUndefined()
+        await driver.retireInstance(first.id, { drainMs: 0 })
+        expect((await driver.status(first.id)).state).toBe('gone')
+      }, 600_000)
+
+      it('switchOff twice is the same as once, and the next instance replaces it', async () => {
+        const driver = await factory()
+        const hostname = host()
+        await driver.switchOff(hostname, 'staging')
+        await driver.switchOff(hostname, 'staging')
+        expect(await driver.servingInstance(hostname)).toBeUndefined()
+        const next = await driver.ensureInstance(beside(hostname, 'release-bbbbbbbb'))
+        expect(await driver.servingInstance(hostname)).toBe(next.id)
       }, 600_000)
 
       it('listInstances names every instance of a hostname — serving or not — and nothing else', async () => {

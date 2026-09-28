@@ -159,9 +159,16 @@ async function deployed(
 /** ONE bus for the file; a test that reads what boot streamed subscribes to its own project. */
 const bus = createEventBus()
 
+/** No archived project in these fixtures: §11's teardowns are `api/lifecycle.test.ts`'s. */
+const noTeardowns = () => Promise.resolve({ finished: [], failed: [] })
+
 const recorder = () => {
   const scheduled: string[] = []
-  return { scheduled, retirer: { schedule: (id: string) => void scheduled.push(id) } }
+  return {
+    scheduled,
+    retirer: { schedule: (id: string) => void scheduled.push(id) },
+    finishTeardowns: noTeardowns,
+  }
 }
 
 describe('recoverAtBoot (P4c Task 9)', () => {
@@ -298,7 +305,13 @@ describe('recoverAtBoot (P4c Task 9)', () => {
       const second = await deployed(db, { driver })
       const { scheduled, retirer } = recorder()
 
-      const report = await recoverAtBoot({ db, driver, bus, retirer })
+      const report = await recoverAtBoot({
+        db,
+        driver,
+        bus,
+        retirer,
+        finishTeardowns: noTeardowns,
+      })
 
       expect(scheduled.sort()).toEqual([first.environmentId, second.environmentId].sort())
       expect(report.scheduled.sort()).toEqual(scheduled.sort())
@@ -321,6 +334,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         db,
         driver,
         bus,
+        finishTeardowns: noTeardowns,
         retirer: { schedule: (id: string) => void scheduled.push(id) },
       })
       expect(scheduled).toEqual([])
@@ -348,6 +362,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         db,
         driver,
         bus,
+        finishTeardowns: noTeardowns,
         retirer: {
           schedule: () => {
             // Synchronous, like the real `schedule`: read what the edge holds now.

@@ -160,6 +160,21 @@ export const EVENT_TYPES = [
   'agent_session.started',
   /** …and ITS KEY WAS REVOKED — ended, its token revoked, or its project switched off or deleted. */
   'agent_session.ended',
+  /**
+   * §9: an SP registration was REMOVED from the Manifest IdP — §11's archive takes an app's sandbox
+   * and staging registrations away (the front-end enablement plan's Task 11). Published only when a
+   * row was there to remove: an archive retried finds it gone, which is no second removal.
+   */
+  'sso.deregistered',
+  /**
+   * §11: A PROJECT WAS SWITCHED OFF by its owner (the front-end enablement plan's Task 11) — every
+   * name answering the switched-off page, every instance retired, its services stopped keeping their
+   * data. Published ONCE per archive, when every step has run: an archive that stopped at a step is
+   * published by the retry or the boot that finishes it.
+   */
+  'project.archived',
+  /** …and RESTORED: an ordinary project again, starting nothing; its next deploy brings it back. */
+  'project.restored',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

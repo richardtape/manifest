@@ -42,9 +42,22 @@ export interface RouteSpec {
  * shadowed — the same defect the delete used to carry, one call earlier.
  */
 export async function applyRoute(deps: RoutingDeps, spec: RouteSpec): Promise<void> {
-  const server = deps.servers[listenerFor(spec.kind)]
   const routeId = routeIdFor(spec.hostname)
-  const route = buildRoute({ ...spec, routeId })
+  await placeRoute(deps, spec.kind, buildRoute({ ...spec, routeId }))
+}
+
+/**
+ * Puts `route` on the listener `kind` belongs to, IN PLACE where the edge already holds one by its
+ * `@id` — `applyRoute`'s placement, shared with the switched-off page below (Task 11), so a
+ * switched-off name is on the right listener and never passes through the wildcard on its way.
+ */
+async function placeRoute(
+  deps: RoutingDeps,
+  kind: EnvironmentKind,
+  route: CaddyRoute,
+): Promise<void> {
+  const server = deps.servers[listenerFor(kind)]
+  const routeId = route['@id']
   const existing = await deps.caddy.getRoute(routeId)
   if (existing === undefined) {
     await deps.caddy.putRoute(server, route)
@@ -64,10 +77,56 @@ export async function applyRoute(deps: RoutingDeps, spec: RouteSpec): Promise<vo
     return
   }
   console.error(
-    `[routing] ${routeId} was not on ${server}, where a ${spec.kind} route belongs — moving it there`,
+    `[routing] ${routeId} was not on ${server}, where a ${kind} route belongs — moving it there`,
   )
   await deps.caddy.deleteRoute(server, routeId)
   await deps.caddy.putRoute(server, route)
+}
+
+/**
+ * §11's switched-off page (the front-end enablement plan's Task 11, Decision 29), as the edge
+ * answers it for a name whose app its owner switched off. No script, no style and no link — a
+ * sentence — and `no-store`, because a `410` is heuristically cacheable and a restored app must
+ * not stay hidden behind a browser's copy of this.
+ */
+export const SWITCHED_OFF_PAGE =
+  '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Switched off</title></head>' +
+  '<body><h1>Switched off</h1><p>This app has been switched off by its owner.</p></body></html>\n'
+
+/**
+ * Points `hostname` at the switched-off page: `410 Gone`, under the hostname's OWN route `@id`, so
+ * the next deploy after a restore replaces it in place (`applyRoute`) and the name never falls
+ * through to the wildcard's `manifest OK` or to another app. It dials NO upstream, so
+ * `servingRoute` answers `undefined` for it and a retire's `INSTANCE_SERVING` guard no longer
+ * holds the instance that served — which is the order an archive relies on.
+ *
+ * Its caller is the Docker driver's `switchOff`.
+ */
+export async function applySwitchedOffRoute(
+  deps: RoutingDeps,
+  hostname: string,
+  kind: EnvironmentKind,
+): Promise<void> {
+  await placeRoute(deps, kind, {
+    '@id': routeIdFor(hostname),
+    match: [{ host: [hostname] }],
+    handle: [
+      {
+        handler: 'static_response',
+        status_code: 410,
+        headers: {
+          'Content-Type': ['text/html; charset=utf-8'],
+          'Cache-Control': ['no-store'],
+          'Strict-Transport-Security': ['max-age=31536000; includeSubDomains'],
+          'X-Content-Type-Options': ['nosniff'],
+          'Referrer-Policy': ['strict-origin-when-cross-origin'],
+          'Content-Security-Policy': ["default-src 'none'; frame-ancestors 'self'"],
+        },
+        body: SWITCHED_OFF_PAGE,
+      },
+    ],
+    terminal: true,
+  })
 }
 
 export async function removeRoute(

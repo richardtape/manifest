@@ -42,6 +42,7 @@ import type { AppSecretResolver } from '../secrets/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { SpRegistration, SsoRegistrar } from '../sso/index.js'
 import type { Config } from '../config.js'
+import { archivedRefusal } from '../projects/index.js'
 import { productionApprovalFor, unsatisfiedReason } from './approval.js'
 import { launchedAt, recordLaunch } from './launched.js'
 import { assertPromotable } from './promotion.js'
@@ -402,6 +403,19 @@ export async function deployRelease(
    * control plane are two processes against one database, and only Postgres sees both.
    */
   return withEnvironmentLock(environment.id, async () => {
+    /**
+     * §11: THE PROJECT'S STATE, READ AGAIN UNDER THE LOCK (the front-end enablement plan's Task 11).
+     * The route authorized before this lock was taken, and an archive takes this same lock for
+     * every step that touches an environment — so a deploy that authorized before an archive and
+     * reached here after it would bring a switched-off app back up behind its owner's back. Read
+     * here, the first thing under the lock, it is refused before anything is started.
+     */
+    const [current] = await db
+      .select({ state: projects.state })
+      .from(projects)
+      .where(eq(projects.id, environment.projectId))
+    if (current?.state !== 'active') throw archivedRefusal(environment.projectId)
+
     const [row] = await db
       .insert(instances)
       .values({

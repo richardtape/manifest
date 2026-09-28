@@ -363,9 +363,34 @@ export interface Driver {
    * not hold.
    */
   restoreRoute(id: string): Promise<void>
+  /**
+   * §11's *Ending an app* (the front-end enablement plan's Task 11, Decision 29): the hostname
+   * answers the platform's switched-off page — `410 Gone`, *"This app has been switched off by its
+   * owner."* — and reaches NO instance, so `servingInstance` answers `undefined` and every instance
+   * of it may be retired. Idempotent; the next `ensureInstance` for the name replaces it in place.
+   * Never a removal: a name with no route falls through to the edge's wildcard, which answers a
+   * student the platform's probe text (ORIENTATION §4 trap 16).
+   */
+  switchOff(hostname: string, kind: 'sandbox' | 'staging' | 'production'): Promise<void>
   stopInstance(id: string): Promise<void>
   destroyInstance(id: string): Promise<void>
   destroyService(id: string, opts: { deleteData: boolean }): Promise<void>
+  /**
+   * Remove what an environment holds that no instance owns — its backing services, its egress
+   * proxy, its network — keeping each service's data volume unless `deleteData` (Task 12's
+   * delete). Idempotent: an environment with nothing left answers at once. SERVICES ARE NAMED BY
+   * THE CALLER, as `serviceName` built them for the releases the environment ran: a slug may
+   * contain `-`, so a name prefix could reach another project's containers (the front-end
+   * enablement plan's Task 11). Call it only once every instance of the environment is retired.
+   */
+  destroyEnvironment(
+    ref: {
+      slug: string
+      kind: 'sandbox' | 'staging' | 'production'
+      services: readonly string[]
+    },
+    opts: { deleteData: boolean },
+  ): Promise<void>
   status(id: string): Promise<InstanceStatus>
   logs(id: string, opts: LogOpts): AsyncIterable<RuntimeLogLine>
   exec(id: string, cmd: string[], opts: ExecOpts): ExecStream

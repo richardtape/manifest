@@ -248,4 +248,9 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     userId: UUID,
     tokenId: null,
   },
+  'sso.deregistered': {
+    entityId: 'https://manifest.internal/sp/chem-labs/staging',
+  },
+  'project.archived': { via: 'session', userId: UUID, tokenId: null },
+  'project.restored': { via: 'session', userId: UUID, tokenId: null },
 }

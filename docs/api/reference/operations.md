@@ -2600,6 +2600,8 @@ Answer, `200`:
     },
     "createdAt": "2026-09-26T21:51:48.272Z",
     "launchedAt": null,
+    "state": "active",
+    "archivedAt": null,
     "repository": {
       "provider": "local",
       "fullName": "p-6e200d3a",
@@ -2628,6 +2630,8 @@ Answer, `200`:
     },
     "createdAt": "2026-09-26T21:51:47.664Z",
     "launchedAt": null,
+    "state": "active",
+    "archivedAt": null,
     "repository": {
       "provider": "local",
       "fullName": "authz-other-f891223a",
@@ -2688,6 +2692,8 @@ Answer, `201`:
   },
   "createdAt": "2026-09-26T21:47:45.365Z",
   "launchedAt": null,
+  "state": "active",
+  "archivedAt": null,
   "repository": {
     "provider": "local",
     "fullName": "fixture-40adbffa",
@@ -2787,6 +2793,8 @@ Answer, `200`:
   },
   "createdAt": "2026-09-26T21:49:02.611Z",
   "launchedAt": null,
+  "state": "active",
+  "archivedAt": null,
   "repository": {
     "provider": "local",
     "fullName": "chem-labs",
@@ -2864,6 +2872,8 @@ Answer, `200`:
   },
   "createdAt": "2026-09-26T21:49:02.611Z",
   "launchedAt": null,
+  "state": "active",
+  "archivedAt": null,
   "repository": {
     "provider": "local",
     "fullName": "chem-labs",
@@ -2887,6 +2897,74 @@ Answer, `200`:
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `archiveProject` — Switch a project off (archive it)
+
+`POST /v1/projects/{projectId}/archive` · a session only — a delegated token is refused
+
+Switches the app off for everyone, and keeps it (§11). The project is marked archived first, so nothing new starts; then its agent sessions end, its delegated tokens are revoked, its pending questions expire, each of its names answers a page saying the app has been switched off by its owner (`410`), every instance is retired after its usual drain, its backing services stop keeping their data, and its sandbox and staging sign-on registrations are removed. Its code, data, secrets and records are kept. Answers once all of that is done — seconds, bounded by the drain. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left archived: retrying the same request continues where it stopped, and so does the control plane’s next boot. Archiving an archived project answers it as it is. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived`.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `projectId` | path | yes | The project’s id, from `listProjects` or `createProject`. |
+
+Request:
+
+```json
+{}
+```
+
+Answer, `200`:
+
+```json
+{
+  "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+  "slug": "chem-labs",
+  "name": "CHEM 121 — Lab notebook",
+  "blueprint": "fixture-node@1",
+  "starter": null,
+  "owner": {
+    "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+    "displayName": "Bio Prof"
+  },
+  "audience": {
+    "scale": "class",
+    "burst": "synchronised",
+    "justification": null,
+    "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+    "setAt": "2026-09-26T21:49:02.609Z"
+  },
+  "createdAt": "2026-09-26T21:49:02.611Z",
+  "launchedAt": null,
+  "state": "archived",
+  "archivedAt": "2026-12-18T17:02:44.120Z",
+  "repository": {
+    "provider": "local",
+    "fullName": "chem-labs",
+    "webUrl": null,
+    "mainProtected": true,
+    "protectionDetail": null,
+    "visibility": null
+  }
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `PROJECT_TEARDOWN_INCOMPLETE` | 500 | Send the same request again: every finished step answers at once, and the rest continue. The control plane’s next boot finishes it too. If it keeps stopping at the same step, tell a platform administrator. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `STEP_UP_REQUIRED` | 403 | Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up. |
+| `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
 ### `listEnvironments` — A project’s environments
@@ -3065,6 +3143,72 @@ Answer, `200`:
 | `STEP_UP_REQUIRED` | 403 | Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up. |
 | `TOKEN_ACTION_PENDING` | 403 | Ask the person who minted the token to confirm `pendingAction` in the console, then retry the identical request — same body, same Idempotency-Key — once. The confirmation grants exactly one retry. |
 | `TOKEN_ACTION_REJECTED` | 403 | Do not retry it. Read `pendingAction.reason`, then ask the person, or ask for something different. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `restoreProject` — Restore a switched-off project
+
+`POST /v1/projects/{projectId}/restore` · a session only — a delegated token is refused
+
+Makes an archived project an ordinary one again (§11) — and starts nothing. Its names keep answering the switched-off page until its next deploy, which brings the app back on its kept data and signs it up for sign-on again. Its delegated tokens stay revoked: mint new ones. Restoring an active project answers it as it is. The owner’s or a platform administrator’s, in their own session; no step-up, because bringing an app back takes nothing from anyone. Publishes `project.restored`.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `projectId` | path | yes | The project’s id, from `listProjects` or `createProject`. |
+
+Request:
+
+```json
+{}
+```
+
+Answer, `200`:
+
+```json
+{
+  "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+  "slug": "chem-labs",
+  "name": "CHEM 121 — Lab notebook",
+  "blueprint": "fixture-node@1",
+  "starter": null,
+  "owner": {
+    "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+    "displayName": "Bio Prof"
+  },
+  "audience": {
+    "scale": "class",
+    "burst": "synchronised",
+    "justification": null,
+    "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+    "setAt": "2026-09-26T21:49:02.609Z"
+  },
+  "createdAt": "2026-09-26T21:49:02.611Z",
+  "launchedAt": null,
+  "state": "active",
+  "archivedAt": "2026-12-18T17:02:44.120Z",
+  "repository": {
+    "provider": "local",
+    "fullName": "chem-labs",
+    "webUrl": null,
+    "mainProtected": true,
+    "protectionDetail": null,
+    "visibility": null
+  }
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
 ### `getSpec` — The project’s newest valid manifest

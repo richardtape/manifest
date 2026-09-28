@@ -2085,6 +2085,8 @@
                     },
                     "createdAt": "2026-09-26T21:51:48.272Z",
                     "launchedAt": null,
+                    "state": "active",
+                    "archivedAt": null,
                     "repository": {
                       "provider": "local",
                       "fullName": "p-6e200d3a",
@@ -2113,6 +2115,8 @@
                     },
                     "createdAt": "2026-09-26T21:51:47.664Z",
                     "launchedAt": null,
+                    "state": "active",
+                    "archivedAt": null,
                     "repository": {
                       "provider": "local",
                       "fullName": "authz-other-f891223a",
@@ -2213,6 +2217,8 @@
                   },
                   "createdAt": "2026-09-26T21:47:45.365Z",
                   "launchedAt": null,
+                  "state": "active",
+                  "archivedAt": null,
                   "repository": {
                     "provider": "local",
                     "fullName": "fixture-40adbffa",
@@ -2352,6 +2358,8 @@
                   },
                   "createdAt": "2026-09-26T21:49:02.611Z",
                   "launchedAt": null,
+                  "state": "active",
+                  "archivedAt": null,
                   "repository": {
                     "provider": "local",
                     "fullName": "chem-labs",
@@ -2472,6 +2480,8 @@
                   },
                   "createdAt": "2026-09-26T21:49:02.611Z",
                   "launchedAt": null,
+                  "state": "active",
+                  "archivedAt": null,
                   "repository": {
                     "provider": "local",
                     "fullName": "chem-labs",
@@ -2736,6 +2746,124 @@
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/archive": {
+      "post": {
+        "operationId": "archiveProject",
+        "tags": [
+          "projects"
+        ],
+        "summary": "Switch a project off (archive it)",
+        "description": "Switches the app off for everyone, and keeps it (§11). The project is marked archived first, so nothing new starts; then its agent sessions end, its delegated tokens are revoked, its pending questions expire, each of its names answers a page saying the app has been switched off by its owner (`410`), every instance is retired after its usual drain, its backing services stop keeping their data, and its sandbox and staging sign-on registrations are removed. Its code, data, secrets and records are kept. Answers once all of that is done — seconds, bounded by the drain. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left archived: retrying the same request continues where it stopped, and so does the control plane’s next boot. Archiving an archived project answers it as it is. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived`.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The project, archived — `state` and `archivedAt`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                },
+                "example": {
+                  "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+                  "slug": "chem-labs",
+                  "name": "CHEM 121 — Lab notebook",
+                  "blueprint": "fixture-node@1",
+                  "starter": null,
+                  "owner": {
+                    "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                    "displayName": "Bio Prof"
+                  },
+                  "audience": {
+                    "scale": "class",
+                    "burst": "synchronised",
+                    "justification": null,
+                    "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                    "setAt": "2026-09-26T21:49:02.609Z"
+                  },
+                  "createdAt": "2026-09-26T21:49:02.611Z",
+                  "launchedAt": null,
+                  "state": "archived",
+                  "archivedAt": "2026-12-18T17:02:44.120Z",
+                  "repository": {
+                    "provider": "local",
+                    "fullName": "chem-labs",
+                    "webUrl": null,
+                    "mainProtected": true,
+                    "protectionDetail": null,
+                    "visibility": null
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "PROJECT_TEARDOWN_INCOMPLETE",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "STEP_UP_REQUIRED",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       }
@@ -3870,6 +3998,31 @@
             "example": {
               "sessionId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
               "reason": "token_revoked",
+              "via": "session",
+              "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "tokenId": null
+            }
+          },
+          {
+            "type": "sso.deregistered",
+            "description": "The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11).",
+            "example": {
+              "entityId": "https://manifest.internal/sp/chem-labs/staging"
+            }
+          },
+          {
+            "type": "project.archived",
+            "description": "The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored.",
+            "example": {
+              "via": "session",
+              "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "tokenId": null
+            }
+          },
+          {
+            "type": "project.restored",
+            "description": "A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.",
+            "example": {
               "via": "session",
               "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "tokenId": null
@@ -5274,6 +5427,122 @@
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/restore": {
+      "post": {
+        "operationId": "restoreProject",
+        "tags": [
+          "projects"
+        ],
+        "summary": "Restore a switched-off project",
+        "description": "Makes an archived project an ordinary one again (§11) — and starts nothing. Its names keep answering the switched-off page until its next deploy, which brings the app back on its kept data and signs it up for sign-on again. Its delegated tokens stay revoked: mint new ones. Restoring an active project answers it as it is. The owner’s or a platform administrator’s, in their own session; no step-up, because bringing an app back takes nothing from anyone. Publishes `project.restored`.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The project, active again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                },
+                "example": {
+                  "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
+                  "slug": "chem-labs",
+                  "name": "CHEM 121 — Lab notebook",
+                  "blueprint": "fixture-node@1",
+                  "starter": null,
+                  "owner": {
+                    "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                    "displayName": "Bio Prof"
+                  },
+                  "audience": {
+                    "scale": "class",
+                    "burst": "synchronised",
+                    "justification": null,
+                    "setBy": "40baf394-7897-4cbb-89d6-7df27e51626d",
+                    "setAt": "2026-09-26T21:49:02.609Z"
+                  },
+                  "createdAt": "2026-09-26T21:49:02.611Z",
+                  "launchedAt": null,
+                  "state": "active",
+                  "archivedAt": "2026-12-18T17:02:44.120Z",
+                  "repository": {
+                    "provider": "local",
+                    "fullName": "chem-labs",
+                    "webUrl": null,
+                    "mainProtected": true,
+                    "protectionDetail": null,
+                    "visibility": null
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       }
@@ -8621,6 +8890,28 @@
               }
             ]
           },
+          "state": {
+            "description": "§11: `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.",
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "archivedAt": {
+            "description": "When it was last switched off; null if it never was. Kept through a restore.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "repository": {
             "$ref": "#/components/schemas/RepositoryLink"
           },
@@ -8645,6 +8936,8 @@
           "audience",
           "createdAt",
           "launchedAt",
+          "state",
+          "archivedAt",
           "repository",
           "environments",
           "spec"
@@ -8848,7 +9141,9 @@
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
           "PENDING_ACTION_RESOLVED",
+          "PROJECT_ARCHIVED",
           "PROJECT_LAST_OWNER",
+          "PROJECT_TEARDOWN_INCOMPLETE",
           "RATE_LIMITED",
           "REHEARSAL_DEPLOY_FAILED",
           "REHEARSAL_LAUNCHED",
@@ -8973,7 +9268,9 @@
           "MEMBER_USER_NOT_FOUND": "Nobody Manifest knows by the PUID, CWL login name or email given has signed in. A CWL login name is known only for a person who has signed in since Manifest began asking CWL for one, so a person who has signed in can still miss by login.",
           "NOT_FOUND": "No such resource — or one the caller has no business knowing exists.",
           "PENDING_ACTION_RESOLVED": "This pending action has already been confirmed or rejected; it cannot be answered twice.",
+          "PROJECT_ARCHIVED": "The project is archived — switched off by its owner (§11) — so it can be read and restored, and nothing else can change.",
           "PROJECT_LAST_OWNER": "A project must always have an owner, so the last one cannot be removed or made a collaborator.",
+          "PROJECT_TEARDOWN_INCOMPLETE": "Switching the project off stopped at a step (named in the message). It is archived — nothing new starts — but something it ran may still be up.",
           "RATE_LIMITED": "Too many requests from this credential; Retry-After says when to try again. A delegated token’s limit is its own, from its row (§20).",
           "REHEARSAL_DEPLOY_FAILED": "The candidate could not be deployed to production, or the deploy registered no Service Provider.",
           "REHEARSAL_LAUNCHED": "The app has launched, so a rehearsal would put an unapproved candidate on its live production listener. A registration change is proved by UBC IAM’s change request.",
@@ -13054,6 +13351,254 @@
               "createdAt"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "sso.deregistered"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11).",
+                "type": "object",
+                "properties": {
+                  "entityId": {
+                    "description": "The app’s SAML entity id in this environment (§9), now unregistered.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "entityId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "project.archived"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored.",
+                "type": "object",
+                "properties": {
+                  "via": {
+                    "description": "How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.",
+                    "type": "string",
+                    "enum": [
+                      "session",
+                      "token"
+                    ]
+                  },
+                  "userId": {
+                    "description": "The person who acted — for a token, the person who minted it. `listMembers` names them.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "description": "The delegated token that acted (`listTokens`); null when the person acted in their own session.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "via",
+                  "userId",
+                  "tokenId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "project.restored"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.",
+                "type": "object",
+                "properties": {
+                  "via": {
+                    "description": "How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.",
+                    "type": "string",
+                    "enum": [
+                      "session",
+                      "token"
+                    ]
+                  },
+                  "userId": {
+                    "description": "The person who acted — for a token, the person who minted it. `listMembers` names them.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "description": "The delegated token that acted (`listTokens`); null when the person acted in their own session.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "via",
+                  "userId",
+                  "tokenId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -15200,6 +15745,28 @@
               }
             ]
           },
+          "state": {
+            "description": "§11: `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.",
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "archivedAt": {
+            "description": "When it was last switched off; null if it never was. Kept through a restore.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "repository": {
             "$ref": "#/components/schemas/RepositoryLink"
           },
@@ -15221,6 +15788,8 @@
           "audience",
           "createdAt",
           "launchedAt",
+          "state",
+          "archivedAt",
           "repository"
         ],
         "additionalProperties": false
@@ -17052,10 +17621,20 @@
       "summary": "This pending action has already been confirmed or rejected; it cannot be answered twice.",
       "remedy": "Read it again (`getPendingAction`): somebody has already answered, and its `state` says how."
     },
+    "PROJECT_ARCHIVED": {
+      "status": 409,
+      "summary": "The project is archived — switched off by its owner (§11) — so it can be read and restored, and nothing else can change.",
+      "remedy": "Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore."
+    },
     "PROJECT_LAST_OWNER": {
       "status": 409,
       "summary": "A project must always have an owner, so the last one cannot be removed or made a collaborator.",
       "remedy": "Make another member an owner first (`addMember` with role `owner`), then remove this one or change their role."
+    },
+    "PROJECT_TEARDOWN_INCOMPLETE": {
+      "status": 500,
+      "summary": "Switching the project off stopped at a step (named in the message). It is archived — nothing new starts — but something it ran may still be up.",
+      "remedy": "Send the same request again: every finished step answers at once, and the rest continue. The control plane’s next boot finishes it too. If it keeps stopping at the same step, tell a platform administrator."
     },
     "RATE_LIMITED": {
       "status": 429,

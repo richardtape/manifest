@@ -130,18 +130,20 @@ const PRIVILEGED_REASON =
   'D24: a delegated token never carries this, however it is minted. An agent that asks is answered with a question a person confirms.'
 
 /**
- * D24's PERSON-ONLY TWO (P6b Task 2) — **RESTATED HERE FOR EXACTLY THE REASON `PRIVILEGED`
- * ABOVE IS, AND THAT IS STILL A FINDING ABOUT THE DOCUMENT, NOT A PREFERENCE.**
+ * D24's PERSON-ONLY THREE (P6b Task 2; `project:delete` — archiving and deleting a project, §11 —
+ * since the front-end enablement plan's Task 11) — **RESTATED HERE FOR EXACTLY THE REASON
+ * `PRIVILEGED` ABOVE IS, AND THAT IS STILL A FINDING ABOUT THE DOCUMENT, NOT A PREFERENCE.**
  * `MintTokenRequest.capabilities` marks neither class; only its prose names them.
  *
  * Stricter than the four: an agent asking for one of these is refused `403
  * TOKEN_PERSON_ONLY` with NO question for anybody to confirm, because each is a record that
- * a named person decided. The mint route refuses both `400 TOKEN_CAPABILITY_FORBIDDEN`;
+ * a named person decided. The mint route refuses all three `400 TOKEN_CAPABILITY_FORBIDDEN`;
  * `disabled` is an explanation, never the control.
  */
 const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
   'release:approve',
   'launch:record',
+  'project:delete',
 ])
 
 const PERSON_ONLY_REASON = 'A person does this — no token and no confirmation can.'

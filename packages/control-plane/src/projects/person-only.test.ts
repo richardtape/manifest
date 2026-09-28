@@ -11,23 +11,30 @@ import {
 
 /**
  * §20 and D24's row (applied 2026-09-22): approving a release, and recording UBC's IAM
- * registration or Privacy Office assessment. LITERALS, so this file cannot agree with the
- * constant whatever it says — `privileged.test.ts`'s rule for D24's four.
+ * registration or Privacy Office assessment — and, since Spec action 3 (applied 2026-09-27; the
+ * front-end enablement plan's Task 11, Decision 30), archiving or deleting a project (§11), whose
+ * capability is `project:delete`. LITERALS, so this file cannot agree with the constant whatever
+ * it says — `privileged.test.ts`'s rule for D24's four.
  */
-const D24_PERSON_ONLY = ['release:approve', 'launch:record'] as const
+const D24_PERSON_ONLY = ['release:approve', 'launch:record', 'project:delete'] as const
 
 const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
   credential: 'token',
   userId: randomUUID(),
   tokenId: randomUUID(),
   projectId: 'p-1',
-  capabilities: new Set(['project:read', 'release:approve', 'launch:record']),
+  capabilities: new Set([
+    'project:read',
+    'release:approve',
+    'launch:record',
+    'project:delete',
+  ]),
   rateLimit: 60,
   ...overrides,
 })
 
 describe('the person-only class (D24, §20)', () => {
-  it('is exactly the two, and nothing has been quietly added', () => {
+  it('is exactly the three, and nothing has been quietly added', () => {
     expect([...PERSON_ONLY].sort()).toEqual([...D24_PERSON_ONLY].sort())
   })
 
@@ -44,6 +51,10 @@ describe('the person-only class (D24, §20)', () => {
     ).rejects.toBeInstanceOf(PersonOnlyRefusedError)
     await expect(
       assertCapability(undefined as never, token(), 'p-1', 'launch:record'),
+    ).rejects.toBeInstanceOf(PersonOnlyRefusedError)
+    // §11: archiving and deleting a project take an app away from its students (Spec action 3).
+    await expect(
+      assertCapability(undefined as never, token(), 'p-1', 'project:delete'),
     ).rejects.toBeInstanceOf(PersonOnlyRefusedError)
   })
 

@@ -161,6 +161,8 @@ export const projectWriteRoutes = [
         },
         createdAt: '2026-09-26T21:47:45.365Z',
         launchedAt: null,
+        state: 'active',
+        archivedAt: null,
         repository: {
           provider: 'local',
           fullName: 'fixture-40adbffa',
@@ -444,6 +446,8 @@ export const projectWriteRoutes = [
         },
         createdAt: '2026-09-26T21:49:02.611Z',
         launchedAt: null,
+        state: 'active',
+        archivedAt: null,
         repository: {
           provider: 'local',
           fullName: 'chem-labs',

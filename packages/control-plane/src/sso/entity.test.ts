@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deriveSpEntity, SpEntityError } from './index.js'
+import { deriveSpEntity, SpEntityError, spEntityId } from './index.js'
 
 const base = {
   slug: 'chem-labs',
@@ -122,5 +122,21 @@ describe('D15 derivation — Manifest supplies every origin (§9)', () => {
     // Two environments of one project must be two SPs, or an assertion minted
     // for sandbox is replayable at staging.
     expect(sandbox.entityId).not.toBe(staging.entityId)
+  })
+})
+
+/**
+ * §11's archive removes an app's sandbox and staging registrations (the front-end enablement
+ * plan's Task 11) — addressed by the entity id alone, because an archive reads no release's auth
+ * block. ONE derivation, which `deriveSpEntity` itself uses, so the two can never disagree.
+ */
+describe('spEntityId — the one derivation of an SP entity id', () => {
+  it('is exactly the entityID deriveSpEntity registers', () => {
+    expect(spEntityId(base.entityBase, base.slug, base.environmentKind)).toBe(
+      deriveSpEntity(base).entityId,
+    )
+    expect(spEntityId('https://manifest.internal', 'chem-labs', 'sandbox')).toBe(
+      'https://manifest.internal/sp/chem-labs/sandbox',
+    )
   })
 })

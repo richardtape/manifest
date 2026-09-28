@@ -198,9 +198,10 @@ describe('the person-only class on a route (D24, §20)', () => {
     })
   })
 
-  it('the mint route refuses release:approve and launch:record: 400 TOKEN_CAPABILITY_FORBIDDEN, and writes no row', async () => {
+  it('the mint route refuses release:approve, launch:record and project:delete: 400 TOKEN_CAPABILITY_FORBIDDEN, and writes no row', async () => {
     await withServer(async (ctx) => {
-      for (const capability of ['release:approve', 'launch:record']) {
+      // `project:delete` since the front-end enablement plan's Task 11 (§11's archive and delete).
+      for (const capability of ['release:approve', 'launch:record', 'project:delete']) {
         const res = await mint(ctx, ['project:read', capability])
         expect(refusal(res)).toEqual({ status: 400, code: 'TOKEN_CAPABILITY_FORBIDDEN' })
         // The message NAMES the capability, so an agent can correct itself (D23.7).

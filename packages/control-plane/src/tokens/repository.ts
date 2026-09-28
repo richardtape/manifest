@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull } from 'drizzle-orm'
-import { delegatedTokens, type Db } from '../db/index.js'
+import { delegatedTokens, projects, type Db } from '../db/index.js'
 
 /** §6's `DelegatedToken`, as stored. The secret is not in it, and never was. */
 export type DelegatedToken = typeof delegatedTokens.$inferSelect
@@ -25,7 +25,9 @@ export interface CreateTokenInput {
 }
 
 export async function createToken(
-  db: Db,
+  // `insert` alone, so the mint route can write the row inside the transaction that holds its
+  // project (the front-end enablement plan's Task 11).
+  db: Pick<Db, 'insert'>,
   input: CreateTokenInput,
 ): Promise<DelegatedToken> {
   const [row] = await db
@@ -49,6 +51,40 @@ export async function createToken(
 export async function tokenById(db: Db, id: string): Promise<DelegatedToken | undefined> {
   const [row] = await db.select().from(delegatedTokens).where(eq(delegatedTokens.id, id))
   return row
+}
+
+/**
+ * A token and its project's STATE, in the one read that authenticates a request (the front-end
+ * enablement plan's Task 11). `tokenActor` refuses a token of a project that is not active, so an
+ * archived project is unreachable by ANY token — not only by the ones its archive revoked — at the
+ * price of a join on a lookup every token request already makes, never a second round trip.
+ */
+export async function tokenForAuthentication(
+  db: Db,
+  id: string,
+): Promise<{ token: DelegatedToken; projectState: string } | undefined> {
+  const [row] = await db
+    .select({ token: delegatedTokens, projectState: projects.state })
+    .from(delegatedTokens)
+    .innerJoin(projects, eq(projects.id, delegatedTokens.projectId))
+    .where(eq(delegatedTokens.id, id))
+  return row
+}
+
+/**
+ * Revokes every live token of a project — §11's archive (the front-end enablement plan's Task 11,
+ * Decision 28's second step). Answers the ids it revoked; a token already revoked keeps the stamp
+ * it had, so a retry revokes nothing twice.
+ */
+export async function revokeTokensOf(db: Db, projectId: string): Promise<string[]> {
+  const revoked = await db
+    .update(delegatedTokens)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(eq(delegatedTokens.projectId, projectId), isNull(delegatedTokens.revokedAt)),
+    )
+    .returning({ id: delegatedTokens.id })
+  return revoked.map((row) => row.id)
 }
 
 /**

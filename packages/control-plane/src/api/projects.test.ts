@@ -98,6 +98,7 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
     })
     expect(Object.keys(created).sort()).toEqual(
       [
+        'archivedAt',
         'audience',
         'blueprint',
         'createdAt',
@@ -110,6 +111,7 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
         'slug',
         'spec',
         'starter',
+        'state',
       ].sort(),
     )
     expect(created.environments.map((e: { kind: string }) => e.kind).sort()).toEqual([
@@ -420,6 +422,7 @@ describe('GET /v1/projects/:id', () => {
  */
 describe('project reads answer representations (P5a Task 8)', () => {
   const PROJECT_KEYS = [
+    'archivedAt',
     'audience',
     'blueprint',
     'createdAt',
@@ -430,6 +433,8 @@ describe('project reads answer representations (P5a Task 8)', () => {
     'repository',
     'slug',
     'starter',
+    // §11's archive (the front-end enablement plan's Task 11).
+    'state',
   ]
 
   async function withCreatedProject(slug: string) {

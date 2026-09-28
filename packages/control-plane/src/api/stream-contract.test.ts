@@ -68,6 +68,12 @@ const PUBLISHED_ELSEWHERE = {
   // driver 1, whose main git itself protects.
   'repository.protection_unavailable':
     'api/repository-link.test.ts — a free organisation (Task 12)',
+  // The front-end enablement plan's Task 11: §11's archive and restore, which this lifecycle —
+  // one app from creation to a deploy — never reaches; and the IdP's row removal, which the unit
+  // tier has no IdP for.
+  'project.archived': 'api/lifecycle.test.ts — archiveProject, every step',
+  'project.restored': 'api/lifecycle.test.ts — restoreProject',
+  'sso.deregistered': 'sso/registration.docker.test.ts — the real IdP',
 } as const
 
 /**

@@ -96,6 +96,8 @@ export const projectReadRoutes = [
           },
           createdAt: '2026-09-26T21:51:48.272Z',
           launchedAt: null,
+          state: 'active',
+          archivedAt: null,
           repository: {
             provider: 'local',
             fullName: 'p-6e200d3a',
@@ -121,6 +123,8 @@ export const projectReadRoutes = [
           },
           createdAt: '2026-09-26T21:51:47.664Z',
           launchedAt: null,
+          state: 'active',
+          archivedAt: null,
           repository: {
             provider: 'local',
             fullName: 'authz-other-f891223a',
@@ -192,6 +196,8 @@ export const projectReadRoutes = [
         },
         createdAt: '2026-09-26T21:49:02.611Z',
         launchedAt: null,
+        state: 'active',
+        archivedAt: null,
         repository: {
           provider: 'local',
           fullName: 'chem-labs',

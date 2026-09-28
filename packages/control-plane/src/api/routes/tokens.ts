@@ -6,6 +6,7 @@ import {
   assertCapability,
   AuthorizationError,
   capabilitiesFor,
+  holdActiveProject,
   isPersonOnly,
   isPrivileged,
   membershipOf,
@@ -175,14 +176,22 @@ export const tokenRoutes = [
       //    credential nothing can present (sitting 2, F7).
       const id = randomUUID()
       const minted = mintToken(id)
-      const row = await createToken(deps.db, {
-        id,
-        userId: actor.userId,
-        projectId: params.projectId,
-        name: body.name,
-        tokenHash: minted.tokenHash,
-        capabilities: [...body.capabilities],
-        expiresAt: new Date(Date.now() + body.expiresInDays * DAY_MS),
+      // THE PROJECT, HELD FOR THE INSERT (the front-end enablement plan's Task 11): an archive that
+      // landed between step 1 and here would revoke every token but this one, which would then
+      // commit — alive again after a restore, when archive's rule is that tokens stay revoked.
+      // Held, the archive's state change waits for this commit and its teardown revokes the
+      // token; or it committed first, and the mint is refused `PROJECT_ARCHIVED`.
+      const row = await deps.db.transaction(async (tx) => {
+        await holdActiveProject(tx, params.projectId)
+        return createToken(tx, {
+          id,
+          userId: actor.userId,
+          projectId: params.projectId,
+          name: body.name,
+          tokenHash: minted.tokenHash,
+          capabilities: [...body.capabilities],
+          expiresAt: new Date(Date.now() + body.expiresInDays * DAY_MS),
+        })
       })
 
       // 5. §14: the event names the token and its holder, and carries NEITHER the secret

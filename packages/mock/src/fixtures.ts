@@ -132,6 +132,9 @@ export const PROJECT: Schemas['Project'] = {
   audience: AUDIENCE,
   createdAt: ISO,
   launchedAt: null,
+  // §11: an ordinary project, never switched off (the front-end enablement plan's Task 11).
+  state: 'active',
+  archivedAt: null,
   // D5's DRIVER 2, on a FREE organisation (the D5 plan's Task 12): GitHub would not protect a
   // private repository's main there, so the console's warning is what a front-end developer
   // sees against the mock — the case that must never be hidden.

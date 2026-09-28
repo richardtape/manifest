@@ -50,8 +50,17 @@ export type FakeDriver = Driver & {
   instanceCount(): number
   /** Holds one request in flight to whatever serves `hostname` for `ms`. */
   holdRequest(hostname: string, ms: number): Promise<{ ok: boolean }>
-  /** Forgets every route, as restarting the edge does. */
+  /** Forgets every route, as restarting the edge does — a switched-off page's included. */
   dropRoutes(): void
+  /** Whether `hostname` answers the switched-off page (Task 11). On the fake alone. */
+  isSwitchedOff(hostname: string): boolean
+  /** Every `destroyEnvironment` call, in order (Task 11). On the fake alone. */
+  destroyedEnvironments(): ReadonlyArray<{
+    slug: string
+    kind: string
+    services: readonly string[]
+    deleteData: boolean
+  }>
   /**
    * Test affordance: the instance prints these lines, after whatever it printed before —
    * a string is a stdout line printed now. On the fake alone, never on `Driver`.
@@ -86,9 +95,20 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
    * disagreed about the route and no contract test could see it (P4b finding 73).
    */
   const routes = new Map<string, string>()
+  /** Names answering the switched-off page — a route to no instance (Task 11). */
+  const switchedOff = new Set<string>()
+  const environmentsDestroyed: {
+    slug: string
+    kind: string
+    services: readonly string[]
+    deleteData: boolean
+  }[] = []
   // NOT `instances.size + 1`: a retire removes entries, and a reused id would make two
   // instances share one name in the tests that retire and redeploy.
   let created = 0
+  // …and the same for services, since an archive removes them (Task 11): `services.size + 1`
+  // handed a new service the id of one still held once an earlier one had gone.
+  let servicesCreated = 0
 
   const digestOf = (input: string) =>
     `sha256:${createHash('sha256').update(input).digest('hex')}`
@@ -140,7 +160,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
     async ensureService(binding: ServiceBinding): Promise<ServiceHandle> {
       const existingId = byName.get(`service:${binding.name}`)
       if (existingId) return services.get(existingId)!.handle
-      const id = `svc-${services.size + 1}`
+      const id = `svc-${++servicesCreated}`
       const handle: ServiceHandle = {
         id,
         name: binding.name,
@@ -171,7 +191,10 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
         }
         existing.spec = spec
         if (existing.state === 'hibernated') existing.state = 'healthy'
-        if (existing.state === 'healthy') routes.set(spec.hostname, existingId)
+        if (existing.state === 'healthy') {
+          routes.set(spec.hostname, existingId)
+          switchedOff.delete(spec.hostname)
+        }
         return handleOf(existingId, spec)
       }
       const id = `inst-${++created}`
@@ -214,7 +237,9 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
         )
       }
       // THE MOVE, AFTER READINESS. The other order is the ~1 s of 502s the brief measured.
+      // It replaces a switched-off page as it replaces an instance: one route per name.
       routes.set(spec.hostname, id)
+      switchedOff.delete(spec.hostname)
       return handle
     },
 
@@ -258,6 +283,12 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
         )
       }
       routes.set(instance.spec.hostname, id)
+      switchedOff.delete(instance.spec.hostname)
+    },
+
+    async switchOff(hostname: string): Promise<void> {
+      routes.delete(hostname)
+      switchedOff.add(hostname)
     },
 
     async stopInstance(id: string): Promise<void> {
@@ -280,6 +311,19 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
       service.dataDeleted = opts.deleteData
       byName.delete(`service:${service.binding.name}`)
       services.delete(id)
+    },
+
+    async destroyEnvironment(ref, opts): Promise<void> {
+      environmentsDestroyed.push({ ...ref, services: [...ref.services], ...opts })
+      // By the NAMES the caller gives, as the real driver removes them — never by a prefix.
+      for (const name of ref.services) {
+        const id = byName.get(`service:${name}`)
+        const service = id === undefined ? undefined : services.get(id)
+        if (id === undefined || service === undefined) continue
+        service.dataDeleted = opts.deleteData
+        byName.delete(`service:${name}`)
+        services.delete(id)
+      }
     },
 
     async status(id: string): Promise<InstanceStatus> {
@@ -354,7 +398,12 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
 
     dropRoutes(): void {
       routes.clear()
+      switchedOff.clear()
     },
+
+    isSwitchedOff: (hostname) => switchedOff.has(hostname),
+
+    destroyedEnvironments: () => environmentsDestroyed,
 
     markHealthy(id: string) {
       const instance = instances.get(id)

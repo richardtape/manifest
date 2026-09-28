@@ -17,7 +17,12 @@ import {
   createSerialQueue,
   loadAppKey,
 } from './source/index.js'
-import { createBuildRunner, createRetirer, recoverAtBoot } from './releases/index.js'
+import {
+  createBuildRunner,
+  createRetirer,
+  finishTeardowns,
+  recoverAtBoot,
+} from './releases/index.js'
 import { createSourceObserver, loadReservedLabels } from './projects/index.js'
 import { expirePendingActions } from './tokens/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
@@ -394,7 +399,25 @@ const app = await buildServer({
  * An app is reachable again before this process accepts the first request that might
  * deploy over it, and no single broken app stops the boot.
  */
-const recovery = await recoverAtBoot({ db, driver, retirer, bus })
+const recovery = await recoverAtBoot({
+  db,
+  driver,
+  retirer,
+  bus,
+  // §11's archived projects, torn down again: an edge restart drops every switched-off page,
+  // and a crash mid-archive leaves containers running (the front-end enablement plan's Task 11).
+  finishTeardowns: () =>
+    finishTeardowns({
+      db,
+      bus,
+      driver,
+      llm,
+      sso,
+      ai,
+      appSecrets,
+      drainMs: config.drainTimeoutMs,
+    }),
+})
 
 /**
  * §6'S FOURTH `PendingAction` STATE, APPLIED (P5b Task 10) — and this line is the caller
@@ -461,6 +484,10 @@ console.log(
     routesRestored: recovery.routesRestored,
     routesFailed: recovery.routesFailed.length,
     interrupted: recovery.interrupted,
+    // §11's archived projects whose teardown this boot ran again, and those it could not
+    // (the front-end enablement plan's Task 11) — each also has its own operator line.
+    teardownsFinished: recovery.teardowns.finished.length,
+    teardownsFailed: recovery.teardowns.failed.length,
     // Task 10: how many questions nobody answered in time. A sweep nobody can see is
     // indistinguishable from one that never ran, which is what the line above says
     // about the recovery and is why this is beside it.

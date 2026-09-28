@@ -119,9 +119,22 @@ export function deriveSpEntity(input: SpEntityInput): SpEntity {
   }
 
   return {
-    entityId: `${input.entityBase}/sp/${input.slug}/${input.environmentKind}`,
+    entityId: spEntityId(input.entityBase, input.slug, input.environmentKind),
     acsUrl: `https://${input.hostname}${auth.callback}`,
     sloUrl: `https://${input.hostname}${auth.logout}`,
     attributes: [...auth.attributes],
   }
+}
+
+/**
+ * An app's SP entity id — §9's `{platform-domain}/sp/{slug}/{environment}` — and the ONE place it
+ * is spelled: `deriveSpEntity` registers under it, and §11's archive removes the registration by it
+ * without reading any release's auth block (the front-end enablement plan's Task 11).
+ */
+export function spEntityId(
+  entityBase: string,
+  slug: string,
+  environmentKind: EnvironmentKind,
+): string {
+  return `${entityBase}/sp/${slug}/${environmentKind}`
 }
