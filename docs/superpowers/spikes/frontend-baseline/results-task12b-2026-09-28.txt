@@ -55,3 +55,27 @@ model/delete probe-fallback-c-1790622812 200
   router_settings: {"fallbacks": []}
   default-chat-large: openai/gpt-6-luna pinned 1e-07 internal
   model rows: default-chat-large|1
+
+=== sitting 9b, the whole-branch review's two questions (probes/t12b-review.sh), 2026-09-28
+user/new 200
+=== Q1 a key holding ONLY default-chat-onprem asks for default-chat
+  chat 403 | error: key_model_access_denied key not allowed to access model. This key can only access models=['default-chat-onprem']. Tried to access default-chat
+=== Q2 the same key, a REQUEST-SIDE fallback to default-chat, forced
+  chat 403 | error: key_model_access_denied key not allowed to access model. This key can only access models=['default-chat-onprem']. Tried to access default-chat
+=== Q3 a key holding BOTH, the same request
+  chat 400 | error: None Mock testing request params are disabled on this proxy: mock_testing_fallbacks. An admin can enable them by setting `general_settings.dangerously_allow_mock_testing_request_params: true` in config.yaml. This setting cann
+=== Q4 router fallbacks chain: A → B → default-chat, a key holding ONLY A
+model/new probe-chain-a 200
+model/new probe-chain-b 200
+fallback A→B 200
+fallback B→default-chat 200
+  chat 200 | model=ollama_chat/qwen3.5:4b
+    x-litellm-model-group: default-chat
+    x-litellm-attempted-fallbacks: 1
+=== cleanup
+fallback/delete probe-chain-a 200
+model/delete probe-chain-a 200
+fallback/delete probe-chain-b 200
+model/delete probe-chain-b 200
+user/delete 200
+  router_settings: {"fallbacks": [], "context_window_fallbacks": []}

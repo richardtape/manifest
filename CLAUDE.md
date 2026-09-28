@@ -23,7 +23,7 @@ four of its spec actions — APPLIED to the spec the same day — and the two it
 message (5, the intake key; 6, staging is UBC's real staging), APPLIED in its sitting 7** — and at its sitting 8's close
 **added a thirteenth sitting, 9a: the capable model, OpenAI for now at `internal`, behind a setting** (Spec action 7 APPLIED,
 `959af7f`; his key in `.env`) — DONE 2026-09-28 (`openai/gpt-6-luna`) — **and at 9a a fourteenth, 9b: its fallback, the on-premise
-model** (Spec action 8 APPLIED, `e6c272d`) — ORIENTATION §7e says what is next. Each plan's
+model** (Spec action 8 APPLIED, `e6c272d`) — DONE 2026-09-28 — ORIENTATION §7e says what is next. Each plan's
 *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |

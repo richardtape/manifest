@@ -130,7 +130,7 @@ Each carries its exact wording, its options and a recommendation in [the plan's 
    answers the capable model's name with the fallback when the provider fails (the network off included), charges the same key at
    the fallback's price, and does NOT check the key's model list first, so the platform enforces the fallback's classification.
    *Options:* (a) `default-chat-onprem` by default (recommended), (a′) `default-chat`, (b) no fallback. ✅ **Approved by Rich as
-   drafted, option (a), at 9a's close, and APPLIED the same day** — sitting 9b (Task 12b) builds it. Shared page:
+   drafted, option (a), at 9a's close, and APPLIED the same day** — BUILT by sitting 9b (Task 12b, `28d76da`, 2026-09-28). Shared page:
    `manifest-schematic.html`'s *What a laptop cannot prove* (the on-premise model answers the capable model's name offline).
 
 **Shared pages swept:** `manifest-decisions.html` D2, D8 and D24 (the build loop gains the model session; the person-only sentence two → three); `manifest-phases.html` stage 2; `manifest-schematic.html` *The other way in* (the few actions that always need a person, switching an app off or deleting one among them); `manifest-stories.html` checked and unchanged. `docs/external-track.md` (Manifest's own registration: a second assertion-consumer URL, and `uid`) is the plan's Task 8's sweep.
@@ -1187,6 +1187,21 @@ serves a marker on 7105 that `make doctor` asks. The contract did not move. **Ri
 (Pickerel at UBC, Ollama here), named by a catalogue entry — **Spec action 8, drafted from 9a's measurements of LiteLLM's
 `/fallback`, was approved as drafted — option (a), `default-chat-onprem` — and applied at 9a's close; sitting 9b builds it.**
 
+**SITTING 9b — Task 12b, the capable model's fallback — DONE 2026-09-28** (`28d76da`, `2ab13ca`; the count is in the defect-rate
+table). **`default-chat-large` is answered by the on-premise model when its provider fails, the network off included**:
+`MANIFEST_CAPABLE_MODEL_FALLBACK` names a CATALOGUE entry — `default-chat-onprem` by default, EMPTY none — which the control plane
+sets straight after the capable model with LiteLLM's own `POST /fallback` (measured: DB-held, an in-place update, surviving a LiteLLM
+restart and a repoint), **removes by `DELETE` whenever the capable model is absent** (measured: the entry is keyed by name and
+outlives its primary, so it would re-attach to the next registration), and **refuses unless every deployment of the name is a
+classified chat entry ranked at least the capable model's** — because the gateway falls back without consulting a key's list of
+models (measured again). A call the fallback answers is charged to the same key at the fallback's price — proved in the Docker tier
+through a key holding only `default-chat-large`, its primary at an address nothing listens on (no network, no money). **The
+review's one Important was the tests' own**: run alone on this machine, the new Docker cases would have chatted on a name that can
+hold the owner's real OpenAI model — they now clear the name, asserted, first. **Measured for the review**: a request's OWN
+`fallbacks` cannot reach a model outside the key's list (`403`), and 1.98.0 refuses `mock_testing_fallbacks` itself; the router does
+follow a fallback's own fallbacks (a hand-set chain — deferred, a master-key holder's). The contract did not move. **And the faculty
+front-end's second message** — FE-26 to FE-32, relayed as Rich's decisions of 2026-09-28 — is placed below.
+
 ### The faculty front-end's message — RICH'S DECISIONS OF 2026-09-27, AND WHAT FOLLOWS THE FRONT-END ENABLEMENT PLAN
 
 The faculty front-end is its own project, `~/Developer/manifest-app` (§5), begun 2026-09-27; it designed the faculty
@@ -1195,6 +1210,23 @@ session, and the front-end enablement plan's sitting 6 recorded**: FE-2, FE-1, F
 sentence go INTO the current plan (its *Decided by Rich*, and `[S6]` blocks at Tasks 9, 10, 11, 13 and 14); FE-1 and FE-24
 need **Spec actions 5 and 6** (above); and the rest is placed here.
 
+- **THE FRONT-END'S SECOND MESSAGE — FE-26 TO FE-32, RELAYED 2026-09-28** (from its session, *"for your plan, not for 9b"*; recorded
+  in `manifest-app/docs/api-findings.md`, *Carried 2026-09-28, at Rich's word*, as **"Decided by Rich (2026-09-28), each its option
+  (a)"** — relayed, so the next PLANNING session confirms it with him): **before faculty use it for real**, FE-28 (the session cookie
+  becomes `__Host-manifest_session`, so no app on a sibling `<slug>.manifest.internal` can plant one — the front-end has done its
+  half: it refuses two `manifest_session` cookies), FE-31 (`listBlueprints` offers only blueprints meant for people; the fixtures,
+  `fixture-node@1` with `auth_providers: [none]`, only to tests, by a setting — a faculty project was once made from one), and FE-30
+  (a request id on every answer, as a header and as `error.requestId`, and a log line for every refusal — id, time, operation, code —
+  not only a 5xx); **when the error envelope is next touched** (additive), FE-29 (a refusal's facts as fields: `error.limit { scope,
+  period, resetsAt, amountUsd? }` on `INTAKE_DAILY_LIMIT_REACHED`, `INTAKE_BUDGET_EXHAUSTED` and `AGENT_BUDGET_EXHAUSTED`, and
+  `error.session { id, name }` on the two `*_ALREADY_STARTED` — Rich's case: British Columbia has legislated an end to the clock
+  change while Node's tz data still falls back on 1 November, so a `resetsAt` from the platform leaves one clock to get right);
+  **before a change after launch meets it**, FE-32 (an agent cannot add a dependency — the build runs `npm ci` and nothing an agent
+  can call regenerates `package-lock.json`; recommended, an operation that takes a `package.json` and answers the lock resolved
+  through the mirror); and **the mock's** FE-27 (answers per what is asked, `404` for an unknown id, times from now) and FE-26 (refuses
+  a session it did not issue, and a credential an operation does not list) — which ORIENTATION §7e asks Rich to confirm for the
+  current plan's Task 13. On FE-20, Rich's word relayed: a sign-in limited to a class is coming, through the Academic API or Canvas,
+  both runnable locally as fakes.
 - **AFTER THE FRONT-END ENABLEMENT PLAN, IN RICH'S ORDER: THE LAUNCH PATH FIRST.** **FE-6** — the three clocks (the staging
   registration, the production registration, the privacy assessment): D19's generated drafts, an owner's *"I've sent it"*, a
   state that can say *waiting since*, and the staging registration as a tracked object like `IamRegistration`; **FE-25** — an
@@ -1515,6 +1547,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | Front-end enablement Task 11 (sitting 8, archive and restore — Decision 27's "a token cannot reach an archived project" false in three race windows (a mint, an agent start and a deploy authorized before the archive and committed after), a switch-off the plan wired where no Caddy client exists, the plan's stale "the fake keeps no routes", boot routing every switched-off name back to a retired instance, a boot-finished teardown with nobody to attribute its events to, Postgres refusing JavaScript's last instant, `project.archived` once per request not per archive, the fake's colliding service ids, the mint's third check now unreachable, an archive that could never finish with AI off, a cacheable `410`, a deploy race that could not see the ORDER, a control turning three red where two were predicted, a control that could not fail (answered by a `FOR UPDATE` test) — and the whole-branch review's two Importants: the gateway's step first, so an "archived" app kept serving through a LiteLLM outage and a restore revived its tokens, and a handle-less instance's key live for ever — and, by the close's post-sweep check, Task 12's text naming a `listProjects` that does not exist) | 1 | 17 | 17.0 |
 | Front-end enablement Task 12 (sitting 9, delete — the plan's own `checkSlug` "needs no change" false (a tombstone holds its slug) and its "archive first, whole" a deadlock (the project lock is not re-entrant); driver 2's `destroyRepository` not idempotent; a never-launched project's production SP row (a rehearsal's) that only a delete removes; two lookups by NAME that would have found the tombstone; a deleted project told `PROJECT_ARCHIVED` in the race windows; `[S4]`'s path measured; LiteLLM's `/user/delete` deleting nothing when one listed user is missing; the plan's unnecessary custom migration; a control red for the wrong reason (a `500`'s body) and one that could not fail (GitHub refuses the token first); the registry's gate catching a subclass that hid a code's throw site — and the whole-branch review's four Importants: a launch in flight destroyed by the delete, a boot's false "data kept" event, a queued build's paths in the audit trail, every GitHub `422` read as gone (whose first red did not count); `make verify`'s probe `42P10` against the partial index; and a restore after an interrupted delete, accepted) | 1 | 19 | 19.0 |
 | Front-end enablement Task 12a (sitting 9a, the capable model — the plan's *"bundled price map prices `openai/*` offline"* half true (`gpt-6-*` is priced only by the list LiteLLM downloads at its own start online); "unpriced" `0`, not `null`; an unknown provider a `500` that SAVES an unfindable row; the keyless refusal `500`, not `401`; a relayed *"sol in both price lists"* false; RUNBOOK's `set -a` putting `OPENAI_API_KEY` and `MANIFEST_APP_PASSWORD` in every git/docker child; `api DELETE`'s bodyless `400`; the review's three Importants — an offline LiteLLM restart serving the model at $0, a repoint typo deleting the working model with a wrong diagnosis, a failed boot removing the shared model — and `MANIFEST_REHEARSAL_PASSWORD` unscrubbed; LiteLLM falling back without checking a key's models; a control red one assertion early) | 1 | 13 | 13.0 |
+| Front-end enablement Task 12b (sitting 9b, the capable model's fallback — the plan's interface unable to say whether the capable model exists after a refused repoint, its Files list missing the admin transport's DELETE and the nine test clients it reaches, the fake LiteLLM's status-0 failure not an outage, 9a's Docker count one short and its sweep leaving Spec action 8 "awaiting him", four controls or predictions that misfired first; and the whole-branch review's Important: the new Docker cases able to chat beside the owner's real OpenAI model — plus, measured for it, the router following a fallback's own fallbacks; and two defects in its own §7e caught by the post-sweep check) | 1 | 15 | 15.0 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each

@@ -2174,7 +2174,8 @@ before any call to the provider. LiteLLM reads its environment only when the con
 Only a boot that FAILS before it serves changes nothing — the call runs straight after `listen` since `5df6322` (before it, a second
 control plane dying on `EADDRINUSE` had already removed the running one's model — the review's I3, red first).
 After `pnpm test:docker`, or a control plane started without the line, restart the control plane WITH it to register the model
-again, and read the boot line's `capableModel`.
+again, and read the boot line's `capableModel`. **Since sitting 9b it removes the model's FALLBACK too** (`capableFallback`), and the
+restart sets it again.
 
 **`scripts/lib/api.sh`'s `api DELETE …` IS REFUSED `400 REQUEST_INVALID`** — it sends `content-type: application/json` with no body,
 which the server reads as an empty JSON body before it authenticates (measured at sitting 9a: a session's `DELETE
@@ -2186,3 +2187,28 @@ content type (`curl -X DELETE` with the cookie, the idempotency key and the orig
 `x-litellm-attempted-fallbacks: 1`, `x-litellm-model-group: F`, charged to the same key at `F`'s price). So a fallback's
 classification is the platform's to enforce: a `public`-rank fallback behind an `internal` model would take `internal` data where the
 key was never allowed to send it. `DELETE /fallback/{model}` empties `LiteLLM_Config.router_settings`' list; it leaves the row.
+
+**LITELLM'S FALLBACK IS KEYED BY THE MODEL'S NAME, AND OUTLIVES ITS PRIMARY** (measured at the front-end enablement plan's sitting 9b,
+LiteLLM 1.98.0). `POST /fallback` for a name the router does not hold is `404` *"not found in router"* — but once set, deleting every
+deployment of the name leaves `GET /fallback/{name}` answering `200` with the list, and the entry re-attaches SILENTLY to the next
+deployment registered under that name. `DELETE /fallback/{name}` never consults the router (`200` for an absent name, then `404`
+*"No general fallbacks configured"*). So whatever removes a model must remove its fallback by `DELETE` — `ai/capable.ts` does, for
+`default-chat-large`. It is DB-held (`LiteLLM_Config.router_settings`, merged into the router at start) and survives `docker restart
+manifest-litellm`. A `context_window` or `content_policy` fallback is a separate list the control plane never reads: one set by hand
+stays until `DELETE /fallback/{name}?fallback_type=context_window`. Every `/fallback` refusal is FastAPI's `{"detail": {...}}`, which
+`mapLiteLlmError` reads as `AI_UNMAPPED` with the status — decide on the status.
+
+**THE FAKE LITELLM'S `fail(path, 0)` WAS NOT AN OUTAGE UNTIL SITTING 9b.** It built its error through `mapLiteLlmError(0, …)`, which
+reads status 0 as `AI_UNMAPPED` — while the real client (`ai/client.ts`) throws its OWN `AI_BACKEND_UNAVAILABLE` with status 0 when
+nothing answers. Sitting 9a's status-0 tests asserted only *"did not answer"*, so the divergence hid until a new test asserted the
+code. The fake now throws the client's error. **A fake's failure must be built the way the real transport builds it**, not the way
+the gateway's body would be mapped.
+
+**A NEGATIVE CONTROL THAT ASSIGNS A VALUE CAN REDDEN TESTS FOR ITS OWN REASON** (sitting 9b, control (d)). To stop the boot's early
+return, the break assigned `'absent'` to the capable model's state; two of sitting 9a's boot tests, which read that state, went red
+too — for the value the break invented, not the behaviour under test. Rebuilt keeping `'failed'`, exactly the one predicted test went
+red. When a control must write a value to compile or to continue, write the one the unbroken code would have had.
+
+**ONE DOCKER FILE RUNS FROM THE REPOSITORY ROOT.** `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker
+packages/control-plane/src/ai/capable.docker.test.ts` works from the root (the `docker` project is defined in the root
+`vitest.config.ts`); the same command from `packages/control-plane/` prints `No test files found` and exits 1 (sitting 9b).

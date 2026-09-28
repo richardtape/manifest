@@ -57,8 +57,8 @@
 | 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.state` (`active`/`archived`), `archived_at`, `archived_by`; `assertCapability` refuses an archived project all but `project:read`/`project:delete` (`409 PROJECT_ARCHIVED`), `tokenActor` any token of it; `POST …/archive` (person-only, step-up) and `…/restore` (person-only); the state, tokens and questions in ONE transaction, then `TEARDOWN_STEPS` — every name a `410` page (`Driver.switchOff`), every instance retired, each environment stopped keeping its data (`Driver.destroyEnvironment`), sandbox's and staging's SPs deregistered, agent sessions ended LAST; a failed step `500 PROJECT_TEARDOWN_INCOMPLETE`, finished on retry or at boot (`finishTeardowns`); three archive races closed as I1 was; one fresh whole-branch review, its two Importants fixed red-first |
 | 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `DELETE /v1/projects/{projectId}` (person-only, step-up): refused before anything for a launched project (`409 PROJECT_LAUNCHED_NOT_DELETABLE`) or another driver's repository; switched off KEEPING everything under the one project lock, `launched_at` read again (a launch in flight is refused, left archived), then the data, the Manifest IdP's production row, the names (`Driver.removeName`), the model users, the repository and the secrets destroyed; `project.deleted` once; a tombstone (`state = 'deleted'`, migration `0038`); `projects_slug_key` partial, so the slug is free; a deleted project `404` to everyone and absent from every read; driver 2's `destroyRepository` idempotent; one fresh whole-branch review, its four Importants fixed red-first; `make verify`'s probe repaired for the partial index |
 | 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — applied 2026-09-27 (`959af7f`) | **DONE 2026-09-28** — `ai/capable.ts`: `default-chat-large` → `openai/gpt-6-luna` (Rich's choice) at `internal`, registered straight after `listen` under a chosen id, PINNED at the price LiteLLM itself reported (so an offline restart of LiteLLM cannot make it free), a repoint created before the old one goes, a setting LiteLLM will not serve or cannot price refused with the working model kept; the provider key LiteLLM's alone and scrubbed from the control plane (with `MANIFEST_APP_PASSWORD` and `MANIFEST_REHEARSAL_PASSWORD`); live on Rich's key — an agent session listed it, one chat `200`, `spentUsd` read; F12 closed (the front-end's marker on 7105); one fresh whole-branch review, its three Importants fixed red-first; **Spec action 8 drafted** (the fallback) |
-| 9b | 12b | **The capable model's fallback** (Rich, 2026-09-28): a platform setting naming a CATALOGUE entry — `default-chat-onprem` recommended (Ollama on the laptop, Pickerel at UBC) — that LiteLLM's own fallback (`POST /fallback`, measured) answers `default-chat-large` with when its provider fails, the network off included; the fallback's classification enforced by the platform, because the gateway does not check a key's model list before it falls back (measured) | **Yes** — `ai/` | **Spec action 8** — drafted by sitting 9a; ✅ approved (a) and APPLIED 2026-09-28, at 9a's close | ← next |
-| 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | |
+| 9b | 12b | **The capable model's fallback** (Rich, 2026-09-28): a platform setting naming a CATALOGUE entry — `default-chat-onprem` recommended (Ollama on the laptop, Pickerel at UBC) — that LiteLLM's own fallback (`POST /fallback`, measured) answers `default-chat-large` with when its provider fails, the network off included; the fallback's classification enforced by the platform, because the gateway does not check a key's model list before it falls back (measured) | **Yes** — `ai/` | **Spec action 8** — drafted by sitting 9a; ✅ approved (a) and APPLIED 2026-09-28, at 9a's close | **DONE 2026-09-28** — `ai/capable.ts`'s `ensureCapableFallback`: `MANIFEST_CAPABLE_MODEL_FALLBACK` (`default-chat-onprem` by default, EMPTY none) set as `default-chat-large`'s `general` fallback with LiteLLM's own `POST /fallback` straight after the capable model — measured DB-held, surviving a LiteLLM restart and a repoint — **removed by `DELETE` whenever the capable model is absent** (the entry outlives its primary, measured), and **refused unless every deployment of the name is a classified chat entry ranked at least the capable model's** (the gateway falls back without consulting a key's list, measured again); the boot line's `capableFallback`; the admin transport's `delete`; live in the Docker tier — an unreachable primary answered by the on-premise model through a key holding only `default-chat-large`, at the fallback's price; one fresh whole-branch review, its Important (the Docker cases beside the owner's real model) fixed red-first; the contract unchanged |
+| 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | ← next |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
 
@@ -2025,6 +2025,17 @@ and `config.litellm.capableFallback: string | undefined`.
 
 ## Task 13: The console and the mock — every new operation called, `DELIBERATELY_UNCALLED` empty again, the mock scripting what examples cannot
 
+> **[S9b] — FROM SITTING 9b (2026-09-28).** (1) **TWELVE operations are parked here, not ten**: `DELIBERATELY_UNCALLED` holds
+> `listInstances`, `getInstanceOutput`, `updateProject`, the four agent-session operations, `startIntakeSession`, `endIntakeSession`,
+> `archiveProject`, `restoreProject` and `deleteProject` — the Files line's *"ten … 54 operations become 64"* predates FE-1's two
+> intake operations. The contract has **66**, and 66 is what the console calls when the list is empty. (2) **FE-26 and FE-27 — the
+> MOCK's session check and its answers — reached sitting 9b from the faculty front-end's session as Rich's decisions** (its
+> `docs/api-findings.md`, *Carried 2026-09-28*: *"FE-27 before our F6, and FE-26 with FE-18"*; FE-18 is `[S6]` (3) below). They were
+> RELAYED, not said to a platform session: **ask Rich whether both join this task** before building them. FE-26: the mock refuses a
+> session it did not issue (today any `manifest_session`, even empty, is Instructor One), refuses a credential an operation's
+> security does not list (`startIntakeSession` with only a Bearer answers `201`), and starts without writing into `manifest`. FE-27:
+> it answers from its fixtures per what is asked, `404` for an unknown id, times counted from now.
+
 > **[S7] — FROM SITTING 7 (2026-09-27).** **Six operations are parked for this task** (`packages/console/src/coverage.test.ts`):
 > `startAgentSession`, `listAgentSessions`, `endAgentSession`, `getAgentBudget` (an Agents screen and a budget line — the start's
 > answer shows the key ONCE, with *"Manifest keeps no copy"*, and never stores it in the browser beyond the page) and
@@ -2131,6 +2142,13 @@ and `config.litellm.capableFallback: string | undefined`.
 
 ## Task 14: The guides — *Building a front-end*, and every guide the API's new surface touches; every code block a run example
 
+> **[S9b] — FROM SITTING 9b (Task 12b, the capable model's fallback; 2026-09-28).** **`agents.md` gained the fallback** (`28d76da`,
+> made true by `2ab13ca` — the review's M7): when `default-chat-large`'s provider cannot answer, the network off included, the
+> on-premise model answers in its place, charged to the same key at ITS price; the answer carries `x-litellm-attempted-fallbacks: 1`
+> and its `model` names the on-premise model; with no fallback set, or the on-premise model down too, the call fails like any other.
+> *Building a front-end* says the same — a front-end that records which model answered (the faculty front-end's F3 does) reads that
+> header. The header reads `1` even when a hand-set fallback CHAINS a second hop (measured: `spikes/frontend-baseline/README.md`).
+
 > **[S9a] — FROM SITTING 9a (Task 12a, the capable model; 2026-09-28).** (1) **`agents.md` gained *The models you may call***
 > (`7ad1cce`): read the names from the session's `models`, never assume one; `default-chat-large` is the capable model, listed only
 > where the platform offers one and the classification is `internal` or `public`, needs the network and costs the person real money;
@@ -2235,6 +2253,10 @@ and `config.litellm.capableFallback: string | undefined`.
 ---
 
 ## Task 15: The acceptance — `make demo-frontend`: a front-end's server on the `app` origin drives all of it for a signed-in instructor, and a person clicks it
+
+> **[S9b] — FROM SITTING 9b (2026-09-28).** Offline, `default-chat-large` is answered by `default-chat-onprem` — but only once an
+> ONLINE boot has registered it (a first registration made offline is refused), so `make demo-frontend` still uses `default-chat`
+> (C1). The boot line carries `capableFallback` beside `capableModel`; the Docker tier removes both.
 
 > **[S9a] — FROM SITTING 9a (2026-09-28).** **`make demo-frontend` must not depend on `default-chat-large`**: it needs the network
 > and a provider key, and `demo-frontend` is the offline acceptance's step 15 (C1) — use `default-chat` for every model call, and at
@@ -4554,3 +4576,140 @@ were checked: only the schematic changed (Spec action 8's sentence); WALKTHROUGH
 
 **Next: sitting 9b (Task 12b — the capable model's fallback)**, Spec action 8 applied; no network and no money needed; `pnpm
 test:docker` owed (`ai/`); the contract does not move. §7e carries what Task 12b's text does not say.
+
+### Sitting 9b — 2026-09-28: Task 12b, the capable model's fallback
+
+**Run cold from ORIENTATION §7e** at Rich's *"please read ORIENTATION.md and proceed with the next sitting - 9b"*, with the faculty
+front-end's sessions beside it (`manifest-app-b0` at open; `manifest-app-fa` from mid-sitting, holding its F3 sitting until this
+close). **Messaged first**, as §7e asked: *"nothing of ours is on 7100 … truncate freely"*; 9a's control plane (PID 85028) was stopped
+before any Vitest. Rich was told §7e's three first-message items (none blocking). Inline execution (`superpowers:executing-plans`), on
+`main`; one fresh whole-branch reviewer (Opus, read-only, told never to run a test) beside the owed Docker tier. Commits: `28d76da`
+(Task 12b), `2ab13ca` (the review's fix pass), and the close-out.
+
+**Step 1, measured first** (`spikes/frontend-baseline/README.md`, *Task 12b*; `probes/t12b-fallback.sh`; predictions written first
+from LiteLLM's own source, read in the container): **all eight predictions held** — `POST /fallback` twice is an in-place update;
+**the fallback survives `docker restart manifest-litellm`** and still answers; **the entry OUTLIVES its primary** (keyed by name — `GET`
+`200` after the primary's deletion, `POST` `404`); `DELETE` never consults the router; a repoint keeps it. The primary was a probe name
+at an unreachable `api_base` with a non-key: no network, no money.
+
+**Rulings** (the ledger's `Task 12b: Ruling:` lines, each with its cost if wrong):
+- **Removed by `DELETE` whenever the capable model is absent or the setting empty** — the entry would otherwise re-attach silently to
+  the next registration of the name (measured).
+- **The admin transport gains a REQUIRED `delete`** (no body, no content-type — 9a's F7); nine hand-written test clients gained it.
+- **`ensureCapableFallback(client, setting)` reads the catalogue itself**, not `ensureCapableModel`'s state — a refused repoint KEEPS
+  the working model (9a's I2), so the state cannot say whether the name is served.
+- **A first registration made offline stays refused** — the alternative (the name registered with only the fallback's deployment)
+  would copy the on-prem entry's `litellm_params`, Pickerel's key at UBC among them, through the control plane.
+- **`capableModelAtBoot` answers `{ capableModel, capableFallback }`**; **a failed capable-model step skips the fallback**, one line
+  for both; **a refused setting keeps a working fallback only if it passes the same check now**; **every deployment of the name must
+  pass**, against the capable model's catalogue classification, never below `internal`.
+- **The review's one Important (I1) fixed red-first; M7 and M8 were this sitting's own text, corrected** (as 9a corrected its own
+  RUNBOOK sentence); **M1–M6 deferred**; the reviewer's twelve declined lines stand.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 The fake LiteLLM's `fail(path, 0)` was not an outage** — it built `AI_UNMAPPED` through `mapLiteLlmError`, while the real
+   client throws its own `AI_BACKEND_UNAVAILABLE` for status 0; 9a's status-0 tests asserted only *"did not answer"*, so it hid until a
+   new boot test asserted the code (RED: *"expected … to contain 'AI_BACKEND_UNAVAILABLE'"*). The fake now throws the client's error.
+2. **F2 9a's sweep left ORIENTATION saying Spec action 8 was "drafted … awaiting him"** in two places (§3's reader table and its
+   file map) after `e6c272d` applied it — found opening §3 for this close-out.
+3. **F3 The plan's Files list named neither `ai/client.ts` nor the nine test clients** a new transport method reaches: LiteLLM removes
+   a fallback only by `DELETE`, and the admin transport had GET and POST alone (`pnpm typecheck`: nine `TS2741`/`TS2345`).
+4. **F4 The plan's interface `ensureCapableFallback(client, capableState, setting, catalogue)` could not work as written** — after a
+   refused repoint the state is `refused` whether or not the working model was kept.
+5. **F5 The plan's control (a) prediction — *"the public-fallback test RED (and nothing else)"* — was wrong**: four went red (three unit
+   — the refusal table, the public-rank test, the no-longer-validates test — and the Docker public refusal), as predicted in writing
+   before the run.
+6. **F6 My own prediction for control (c) missed one**: eight unit tests went red where seven were predicted — *keeps a working
+   fallback* too (a `context_window` set leaves no GENERAL fallback to keep). Still red; stronger.
+7. **F7 Control (d)'s first construction reddened two of 9a's tests for its own reason** — the break assigned `'absent'` to the model's
+   state; rebuilt keeping `'failed'`, exactly the one predicted test went red (TRAPS: *ASSIGNS A VALUE*).
+8. **F8 Control (f)'s first construction matched nothing** — Prettier had split the line; the runner's assertion refused to run it
+   (trap 11, working as designed).
+9. **F9 ORIENTATION §6's one-Docker-file command is right only from the repository root** — run from `packages/control-plane/` it
+   printed *No test files found* and exited 1; §6 and TRAPS now say so.
+10. **F10 9a's recorded Docker count was one short** — this sitting's tier read **246** where 245 (243 + 2) was predicted: 9a's fix
+    pass ADDED the I3 boot case (`capable.docker.test.ts` 3 → 4) after its tier had run, so the tree held 244 from `5df6322` while
+    ORIENTATION, RUNBOOK and the record said 243.
+11. **F11 (the review's I1) The two new Docker cases did not clear `default-chat-large` before they started, and their `finally` threw
+    first** — a case that adds a deployment BESIDE whatever the name holds and then chats on it, run alone on this machine, shares a
+    group that can hold the owner's real `openai/gpt-6-luna` (real money); and a `/user/delete` of a user never made (`404`) hid the
+    failed assertion and skipped `leaveNone`. **RED first** against a SEEDED `default-chat-large` — an unreachable stand-in with its
+    fallback set, as a running control plane leaves the name: case 1 `AiError AI_UNMAPPED` (the masking `404`), case 2 *"promise
+    resolved … instead of rejecting"* (a kept fallback) → GREEN: both clear the name and assert it clear first, `leaveNone` attempts
+    both steps, and a cleanup deletes only what its case made. Nothing left behind.
+12. **F12 (the review's M7 and M8 — this sitting's own text)** `agents.md`'s new bullet said the call *succeeds*, unconditionally, and
+    told the agent to *read `model`* with nothing to compare it to; `config.ts` said *"EMPTY IS NONE, unlike the capable model's own
+    setting"* — both read empty as none; ABSENT is what differs. Corrected in `2ab13ca`; the guides' Task 14 has an `[S9b]` block.
+13. **F13 Two of my predictions for the review's questions were wrong** (`probes/t12b-review.sh`): LiteLLM refuses a model outside a
+    key's list `403`, not `401`; and **1.98.0 refuses `mock_testing_fallbacks` itself** (`400` unless an admin sets
+    `dangerously_allow_mock_testing_request_params`), so the positive control for the request-side check could not force a fallback.
+    The check itself held: a request's OWN `fallbacks` naming a model outside the key's list is `403 key_model_access_denied`, naming
+    the fallback.
+14. **F14 (the review's M4, measured) The ROUTER follows a fallback's own fallbacks** — `A` → `B` → `default-chat`, through a key
+    holding only `A`, answered by `default-chat`, with `x-litellm-attempted-fallbacks: 1` (predicted `2`). `ai/capable.ts` checks the
+    first hop only; a second needs a fallback set BY HAND on the on-premise entry, which only a holder of LiteLLM's master key can do.
+    Deferred (the ledger's `Final: minor (deferred): M4`).
+15. **F15 The post-sweep check found two defects in this sitting's own §7e before it was committed** — *"its SIX bracketed blocks"*
+    for Task 13 when this sitting's own `[S9b]` had made seven (found by counting them: `awk` over the task), and *"`manifest-app-b0`
+    and `manifest-app-fa` were live"* when `b0` had ended (found by `ListAgents`). Both were written from what the sitting DID, not
+    from a query at close — §6's lesson, again.
+
+**The negative controls** — every one predicted in writing first (`t12b-predictions-controls.md`), applied by an asserted replace,
+run on `28d76da`, restored by `git checkout`: (a) the rank check skipped → 3 unit + the Docker public refusal RED; (b) no `DELETE` → 5
+unit RED; (c) `fallback_type: 'context_window'` → the Docker unreachable-primary case RED with LiteLLM's own *"500 … Connection error.
+No fallback model group found"* (as the plan predicted) and 8 unit RED — the run left a `context_window` entry in LiteLLM, as
+predicted, deleted by hand; (d) the boot tries the fallback after a failed model step → *does not try the fallback* RED only
+(rebuilt, F7); (e) the served check dropped → 2 unit RED; (f) a refused setting keeps an unchecked fallback → *removes a fallback
+that no longer validates* RED only (rebuilt, F8). **The two new Docker cases were first seen green, then RED under (a) and (c)** — and RED again, for I1, against a seeded name.
+
+**Deferred minors** (the ledger's `Final: minor (deferred)` lines): M1 a refused setting DELETEs only a fallback it could READ; M2
+every `404` from `/fallback` is read as *none configured* (a route-level `404` — an upgrade, or a gateway without `/fallback` — reads
+the same); M3 `context_window` / `content_policy` fallbacks of the name are never read or removed (hand-set only); M4 the second hop
+(F14); M5 tests missing for a two-deployment fallback name, a capable model classified above `internal`, and the refused-repoint-kept
+case; M6 the fake's `use()` answers `200` for an unlisted model (pre-12b) and always reports one attempt.
+
+**The faculty front-end's second message** (2026-09-28, from `manifest-app-b0`, *"for your plan, not for 9b"*): FE-26 to FE-32, each
+recorded in `manifest-app/docs/api-findings.md` as *"Decided by Rich (2026-09-28), each its option (a)"* — FE-28
+(`__Host-manifest_session`), FE-31 (`listBlueprints` offers only blueprints meant for people) and FE-30 (a request id on every answer,
+refusal and log line) before faculty use it for real; FE-29 (a refusal's facts as fields — `error.limit`, `error.session`) when the
+envelope is next touched; FE-32 (an agent cannot add a dependency — nothing regenerates `package-lock.json`) before a change after
+launch meets it; FE-27 (the mock answers per what is asked) before the front-end's F6, and FE-26 (the mock refuses a session it did
+not issue) with FE-18. **Recorded as RELAYED, not as Rich's words to this session**: §7e asks him in sitting 10's first message
+whether FE-26 and FE-27 join Task 13 (the mock is its), and the roadmap's *The faculty front-end's message* places the rest after
+this plan. And, on FE-20, Rich's word relayed: a sign-in limited to a class is coming, through the Academic API or Canvas, both
+runnable locally as fakes.
+
+**Gates at close**: **`pnpm test` 2726 passed in 175 files**, twice on the final code (`2ab13ca`: 830 s and 791 s,
+identical, load ~3–6) — up from 2707 by 19 tests and no file (`ai/capable.test.ts` +17, `config.test.ts` +1, `ai/client.test.ts` +1)
+— **exactly the 2726 in 175 predicted before the runs**. **`pnpm test:docker` 246 in 41 files** — owed (`ai/`), run ONCE on `28d76da`
+beside the reviewer with no Vitest beside it: **green first time**, 1142 s at load ~4–6; +2 tests (`ai/capable.docker.test.ts` 4 → 6),
+one more than predicted (F10). **The fix pass changed only the Docker file whose cases it fixed** (and a comment): `ai/capable.docker.test.ts`
+re-run alone, 6 of 6, and its two new cases red then green against a seeded name — grepped, no other Docker case reaches either change.
+`pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean. **`make doctor` 20 checks, 0 failed, 0 warnings**; **`make verify`
+61/0/0** (`mf- containers=6 networks=2 volumes=4` after the cleanup, 0 runtime routes). **The contract did not move** (`1.4.0`: 66
+operations, 90 schemas, 126 error codes, 46 event types). Migrations **39**.
+
+**The machine at close, queried**:
+- the control database **EMPTY** — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions, 0 intake
+  sessions, **39 migrations** (`psql`) — as it was at open; `launch-app`'s six `mf-launch-app-*` containers running with no rows behind
+  them, untouched, and no other `mf-` container;
+- **THE CONTROL PLANE RUNNING** — PID 6788 on 7100, started DETACHED (`nohup`) from Rich's `.env` by RUNBOOK's block (the plan's
+  git-ignored `.superpowers/sdd/2026-09-27-front-end-enablement/t12b-cp-start.sh`, logging beside it to `close-s9b-cp.log`), boot line
+  **`"capableModel":"registered"`, `"capableFallback":"set"`**, `"secretsScrubbed":14`, its session secret random; **7102 and 7105 are
+  the faculty front-end's** (node 9787 and 13708 — never stop them); nothing on 7104, 7110 or 8765;
+- **LiteLLM** restarted once by this sitting's Step 1 probe (network on — it prices `gpt-6-luna` again), holding `OPENAI_API_KEY`; ONE
+  model row, `default-chat-large` → `openai/gpt-6-luna`, pinned `1e-07` / `5e-07`, `internal`; **`LiteLLM_Config.router_settings` =
+  `{"fallbacks": [{"default-chat-large": ["default-chat-onprem"]}], "context_window_fallbacks": []}`** (the empty `context_window` list is
+  control (c)'s, deleted by hand — inert); 2 LiteLLM users (`launch-app`'s);
+- both Ollama models unloaded (`/api/ps` empty); the GitHub fake absent; the edge restarted by the Docker tier, no runtime route on
+  `srv0` or `srv1`;
+- the three cleanup scripts clean after `--apply` (allowed — run as `bash scripts/<name>.sh`: two are not executable) and bare again
+  after the test runs: nothing dead; `make doctor` **20/0/0**; `make verify` 61/0/0; free disk 56 Gi (59 at open); Docker's build cache
+  25 GB (21 GB reclaimable, no script touches it).
+The snapshot diff shows uptimes, the edge and LiteLLM restarted, HEAD, and 3 GiB less free disk. `docker-simple-saml-saml-idp-1` exited,
+as at open; `docker-simple-saml` clean but its old untracked `cert.zip`. **HEAD did not move under the sitting.** **The four shared HTML
+pages** were checked: none changed — the schematic already says, in present tense, that the on-premise model answers when the provider
+cannot be reached (now true); WALKTHROUGH's LiteLLM row names the fallback.
+
+**Next: sitting 10 (Task 13 — the console and the mock).** §7e carries what Task 13's text does not say.

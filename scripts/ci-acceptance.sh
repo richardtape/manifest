@@ -142,7 +142,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `build/context.test.ts` (1), the fake driver's contract (1), and the matrix's delete row (9).
 # Then its sitting 9a (2026-09-28, the capable model): +18 and one file — `ai/capable.test.ts` (17,
 # new) and `config.test.ts`'s capable-model setting (1); the scrub list grew inside an existing test.
-EXPECT_TESTS=2707
+# Then its sitting 9b (2026-09-28, the capable model's fallback): +19, no new file — `ai/capable.test.ts`
+# (17: the fallback's 12 and the boot's 5), `config.test.ts`'s fallback setting (1) and `ai/client.test.ts`'s
+# DELETE (1).
+EXPECT_TESTS=2726
 EXPECT_FILES=175
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=61

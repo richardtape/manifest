@@ -152,3 +152,19 @@ predictions held.**
 the setting empty (an entry left behind would re-attach silently to the next registration of the name); the admin transport gained
 `delete`; `ensureCapableFallback` reads the catalogue itself; a first registration made offline stays refused.
 
+### Task 12b, after its review — a request's own fallbacks, and a fallback's own fallbacks (2026-09-28, sitting 9b)
+
+Measured for the whole-branch review's two questions (`probes/t12b-review.sh`; predictions first, from `user_api_key_auth.py:1773`'s
+*"1a. If token can call fallback models (if client-side fallbacks given)"* and the router's `fallback_depth`; every target Ollama, every
+failing deployment an address nothing listens on):
+- **A REQUEST's own `fallbacks` cannot reach a model outside the key's list**: a key holding only `default-chat-onprem` asking for it
+  with `fallbacks: ["default-chat"]` is refused `403 key_model_access_denied` — *"… Tried to access default-chat"*, the FALLBACK named —
+  exactly as asking for `default-chat` directly is (predicted `401`: it is `403`). **And 1.98.0 refuses `mock_testing_fallbacks` itself**
+  (`400` *"Mock testing request params are disabled on this proxy"* unless an admin sets
+  `general_settings.dangerously_allow_mock_testing_request_params`), so the positive control could not force a fallback — predicted
+  wrong, and a safer default than predicted.
+- **The ROUTER follows a fallback's own fallbacks**: `A` (unreachable) → `B` (unreachable) → `default-chat`, through a key holding only
+  `A`, answered `200` by the `default-chat` group — with `x-litellm-attempted-fallbacks: 1`, not the `2` predicted. So a general
+  fallback set BY HAND on `default-chat-onprem` would carry `default-chat-large`'s calls a second hop that `ai/capable.ts` never
+  checks (the review's M4, deferred: only a holder of LiteLLM's master key can set one, and that holder can repoint any entry).
+
