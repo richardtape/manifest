@@ -336,6 +336,54 @@ describe('agent sessions (the front-end enablement plan’s Task 10)', () => {
     })
   })
 
+  it('a token revoked WHILE its session is starting never leaves the agent a working key', async () => {
+    // The whole-branch review's I1 (sitting 7): the revoke's `endSessionsOf` saw no committed row
+    // while the start's mint was in flight, and the start then committed a live key for a revoked token.
+    await withAgentServer(async (ctx, lite) => {
+      lite.slow('/key/generate', 150)
+      const token = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['agent:session'],
+      })
+      const starting = start(ctx, { bearer: token.plaintext })
+      for (
+        let i = 0;
+        i < 200 && !lite.calls.some((c) => c.path === '/key/generate');
+        i++
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      }
+      expect(
+        lite.calls.some((c) => c.path === '/key/generate'),
+        'the mint never began',
+      ).toBe(true)
+      const revoked = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/tokens/${token.row.id}`,
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(revoked.statusCode, revoked.body).toBe(200)
+      const res = await starting
+      if (res.statusCode === 201) {
+        const started = res.json() as Started
+        expect(lite.use(started.key, started.session.models[0]!)).toEqual({
+          status: 401,
+          type: 'token_not_found_in_db',
+        })
+      } else {
+        expect(refusal(res)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
+      }
+      // Whichever order the two landed in: no key minted for that token is still live.
+      const live = [...lite.keys.values()].filter(
+        (k) =>
+          (k.metadata as { manifest_token?: string }).manifest_token === token.row.id,
+      )
+      expect(live).toEqual([])
+    })
+  })
+
   it('a revocation that could not end every session is a 500, and the same request retried ends them', async () => {
     await withAgentServer(async (ctx, lite) => {
       const token = await mintTestToken(ctx.db, {

@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull } from 'drizzle-orm'
-import { agentSessions, type Db } from '../db/index.js'
+import { agentSessions, delegatedTokens, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { personName, type Actor } from '../projects/index.js'
 import { tokenById } from '../tokens/index.js'
@@ -204,6 +204,34 @@ export async function startAgentSession(
   let minted: { row: AgentSessionRow; key: string } | undefined
   try {
     await deps.db.transaction(async (tx) => {
+      // THE TOKEN, HELD FOR THE LENGTH OF THE START (the whole-branch review's I1). It was
+      // authenticated when the request arrived, and the mint below takes hundreds of milliseconds:
+      // a `revokeToken` landing in between found no committed session to end, and this then
+      // committed a live key for a revoked token. `FOR SHARE` conflicts with the revoke's UPDATE, so
+      // either the revoke waits for this commit — and its `endSessionsOf` ends the session — or it
+      // committed first and is seen here, and the start is refused as that token is everywhere else.
+      if (tokenId !== null) {
+        const [held] = await tx
+          .select({
+            revokedAt: delegatedTokens.revokedAt,
+            expiresAt: delegatedTokens.expiresAt,
+          })
+          .from(delegatedTokens)
+          .where(eq(delegatedTokens.id, tokenId))
+          .for('share')
+        if (
+          held === undefined ||
+          held.revokedAt !== null ||
+          held.expiresAt.getTime() <= Date.now()
+        ) {
+          throw Object.assign(
+            new Error('the delegated token that asked is no longer valid'),
+            {
+              statusCode: 401,
+            },
+          )
+        }
+      }
       const [row] = await tx
         .insert(agentSessions)
         .values({
