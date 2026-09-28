@@ -121,8 +121,9 @@ Each carries its exact wording, its options and a recommendation in [the plan's 
 6. **D6, D16, D21, §3.5, §5, §8, §9, §11, §13, §14, §15, §16, §19, §20 and §21 — staging is UBC's real staging world** (FE-24; Rich, 2026-09-27). ✅ **DRAFTED by sitting 6 (twenty-two edits and the four shared pages); approved as drafted, option (a), and APPLIED 2026-09-27 (`25e7445`); its code in sitting 10.**
 7. **§7, §21 and §26 — the capable model: one logical name, `default-chat-large`, whose provider is a platform setting** (Rich,
    2026-09-27, at sitting 8's close: *"an option to set the capable model … for now it can use OpenAI's models"*, at `internal`).
-   **DRAFTED at sitting 8's close (three edits); awaiting Rich — needed before sitting 9a** (Task 12a). Options (a), recommended,
-   and (b) — §21 and §26 only.
+   **DRAFTED at sitting 8's close (three edits).** ✅ **Approved by Rich as drafted, option (a), and APPLIED the same evening
+   (`959af7f`)** — with his OpenAI key in his `.env` and a yes, in advance, for Task 12a's live steps. Shared page:
+   `manifest-schematic.html`'s *What a laptop cannot prove*; `manifest-decisions.html` names no models, so D17's card stands.
 
 **Shared pages swept:** `manifest-decisions.html` D2, D8 and D24 (the build loop gains the model session; the person-only sentence two → three); `manifest-phases.html` stage 2; `manifest-schematic.html` *The other way in* (the few actions that always need a person, switching an app off or deleting one among them); `manifest-stories.html` checked and unchanged. `docs/external-track.md` (Manifest's own registration: a second assertion-consumer URL, and `uid`) is the plan's Task 8's sweep.
 

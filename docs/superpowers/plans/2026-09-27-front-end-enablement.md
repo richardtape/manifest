@@ -55,7 +55,7 @@
 | 7 | 9, 10 | **Agent sessions**: a LiteLLM user per person with a monthly agent budget; a key per session — `duration`, `max_budget`, D17's models, an alias; `startAgentSession` (answered once), `listAgentSessions`, `endAgentSession`, `getAgentBudget`; `agent:session`; a revoked token ends its sessions; the orphan script taught. **And, from the front-end's message: `AgentSession.spentUsd` (FE-23) and the platform-paid INTAKE key (FE-1)** (Tasks 9–10's `[S6]`). **If it runs long, stop after Task 9 and sweep — and FE-1 opens the next sitting** | **Yes** — `ai/`, `projects/` | **Spec action 1** — applied 2026-09-27; **Spec action 5** (FE-1) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-27** — `mintCappedKey`, ONE mint for an agent key (`mf-agent-<id>`, on the person's `mf-person-<userId>`) and an intake key (`mf-intake-<id>`, on `mf-platform-intake`): a cap, a life never past the credential that asked (a token's, or the signed-in session's — `SessionActor.expiresAt`), D17's models with production as a floor, never an empty list, never stored; `startAgentSession` (answered once), `listAgentSessions` (FE-23's `spentUsd`, null with a reason, never 0), `endAgentSession`, `getAgentBudget`; a revoked token ends its sessions, on a retry too, and a token revoked WHILE one starts leaves no live key (the review's I1); FE-1's `startIntakeSession` / `endIntakeSession`, session only, a Vancouver day under a per-person lock; the orphan script taught; one fresh whole-branch review, its Important fixed red-first |
 | 8 | 11 | **Archive and restore**: `projects.state`; a teardown that is idempotent and re-run at boot; every hostname answering a platform page; person-only and step-up; `409 PROJECT_ARCHIVED` everywhere a project changes | **Yes** — `runtime/`, `releases/`, `routing/`, `sso/`, `ai/` | **Spec action 3** — applied 2026-09-27 | **DONE 2026-09-27** — `projects.state` (`active`/`archived`), `archived_at`, `archived_by`; `assertCapability` refuses an archived project all but `project:read`/`project:delete` (`409 PROJECT_ARCHIVED`), `tokenActor` any token of it; `POST …/archive` (person-only, step-up) and `…/restore` (person-only); the state, tokens and questions in ONE transaction, then `TEARDOWN_STEPS` — every name a `410` page (`Driver.switchOff`), every instance retired, each environment stopped keeping its data (`Driver.destroyEnvironment`), sandbox's and staging's SPs deregistered, agent sessions ended LAST; a failed step `500 PROJECT_TEARDOWN_INCOMPLETE`, finished on retry or at boot (`finishTeardowns`); three archive races closed as I1 was; one fresh whole-branch review, its two Importants fixed red-first |
 | 9 | 12 | **Delete**: a never-launched project's repository, data volumes, secrets and model users destroyed; a tombstone the audit trail keeps; the slug released; a launched project refused | **Yes** — `runtime/`, `source/`, `services/` | **Spec action 3** — applied 2026-09-27 | ← next |
-| 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — DRAFTED, awaiting Rich | |
+| 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — applied 2026-09-27 (`959af7f`) | |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5) | **No** — unless a step reaches `blueprints/` | — | |
 | 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
@@ -155,7 +155,12 @@
   §7's catalogue already gives `default-chat`, *"may route off-prem"* — and **its own sitting in this plan, straight after
   sitting 9**). So §8's *The capable model's provider* is decided for now; options A (UBC-hosted GPUs) and D (a larger local
   model and an authoring eval) stay the roadmap's tracked item, and `qwen3.5:4b` stays the offline floor. **Task 12a (sitting
-  9a)** builds it; **Spec action 7** carries the words; Rich supplies the OpenAI key (*What Rich does* 9).
+  9a)** builds it; **Spec action 7** carries the words; Rich supplies the OpenAI key (*What Rich does* 9). **And then, the same
+  evening, Rich answered all three of *What Rich does* 9** — *"1. (a) 2. Done 3. should be fine"*: **Spec action 7 approved as
+  drafted, option (a), and APPLIED (`959af7f`)**; **his OpenAI key is in his `.env`** as `OPENAI_API_KEY` (his word — no agent
+  has read it; Task 12a's Step 1 is the first thing that will use it); and **a yes, in advance, for Task 12a's live steps** — Step
+  1's (e)–(f) and Step 5, the network and real money on his key. He changed neither budget default: $10 a month a person and $2 a
+  session stand, now in real dollars on the capable model.
 - **Carried from earlier plans, still binding:** D24's privileged four and the person-only class; step-up for a production
   deploy, an approval, member management and a production secret; the stored preview an approval binds; `SENSITIVE_FIELDS`
   as §7's list; every platform model call whose answer is read or shown is STRUCTURED OUTPUT (the D5 plan's Decision 22 —
@@ -199,7 +204,9 @@
    in ORIENTATION §8 *Open* and the roadmap; it is not this plan's scope. **— Decided at sitting 8's close: OpenAI for now, at
    `internal`, built by this plan's Task 12a (item 9).**
 
-9. **Added at sitting 8's close (2026-09-27): the capable model.** Before sitting 9a: **decide Spec action 7**, and **put an OpenAI
+9. ~~**Added at sitting 8's close (2026-09-27): the capable model.**~~ **DONE 2026-09-27, the same evening** — Spec action 7 (a),
+   applied (`959af7f`); the key in `.env`; the live steps approved in advance (*Decided by Rich*, the capable-model bullet). *As
+   written:* Before sitting 9a: **decide Spec action 7**, and **put an OpenAI
    API key in `.env`** as `OPENAI_API_KEY=` (the line Task 12a adds to `.env.example`, commented) — the key is his; no agent
    types, reads or prints it. During sitting 9a: **a yes for Task 12a's live steps** (Step 1's (e)–(f) and Step 5 — the network,
    and real money on his key).
@@ -1818,9 +1825,11 @@ docs/superpowers/spikes/frontend-baseline/   NEW (T1) the measurements' record
 > own documents cite them. §8's *The capable model's provider* is DECIDED by this; options A (UBC GPUs) and D (a larger local
 > model and an eval) stay the roadmap's tracked item for later, and `qwen3.5:4b` stays the offline floor (C1).
 
-**SPEC ACTION 7 MUST BE DECIDED BEFORE THIS TASK STARTS** (*Spec actions*, below): §7's catalogue gains the name, §21's local
-topology the network model, §26's *Platform settings* the setting. **And Rich supplies an OpenAI API key** (*What Rich does* 9),
-which goes in his `.env` and never in a file this repository tracks, a row, an event, a log or a test.
+**SPEC ACTION 7 IS DECIDED AND APPLIED** (option (a), `959af7f`, 2026-09-27): §7's catalogue has the name, §21's LiteLLM row the
+network model, §26's *Platform settings* the setting. **Rich's OpenAI API key is in his `.env`** (*What Rich does* 9 — his word;
+it goes in no file this repository tracks, no row, event, log or test), **and he has said yes, in advance, to this task's live
+steps** (Step 1's (e)–(f) and Step 5: the network, and real money on his key) — *"should be fine"*. Still say before each one
+that it is starting.
 
 **Decisions (made while writing it; each with its cost if wrong):**
 - **ONE logical name, `default-chat-large`**, never a repoint of `default-chat` — `default-chat` is the offline floor every
@@ -2903,7 +2912,7 @@ applied:
 
 ---
 
-### 7. §7, §21 and §26 — the capable model: one logical name whose provider is a platform setting (before sitting 9a) — DRAFTED 2026-09-27 BY SITTING 8'S CLOSE, FROM RICH'S DECISION
+### 7. §7, §21 and §26 — the capable model: one logical name whose provider is a platform setting (before sitting 9a) — DRAFTED 2026-09-27 BY SITTING 8'S CLOSE, FROM RICH'S DECISION; ✅ APPROVED AS DRAFTED, OPTION (a), AND APPLIED THE SAME EVENING (`959af7f`)
 
 **Why.** Rich, 2026-09-27: *"We'll need an option to set the capable model. But for now it can use OpenAI's models"* — at
 `internal`, built as this plan's sitting 9a (Task 12a). `qwen3.5:4b` is very likely too small to write a working app through tool

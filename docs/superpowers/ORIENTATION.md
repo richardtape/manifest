@@ -8,7 +8,7 @@ the gates read; it deliberately states no job and no sitting's story (Rich, 2026
 executed** (§2's table): an application goes from a bare repository to a production launch, authenticated with CWL,
 on one laptop, offline — its code can live in a GitHub organisation instead (D5's driver 2) — and **an agent can now
 CREATE it through the API alone**, from the API's own served documentation (the authoring API, the newest). **The front-end enablement plan's
-execution is under way — Rich has approved it and its six spec actions are applied (the last two, from the faculty front-end's message, in `25e7445`), an app's recent output is readable through the API, an agent can commit an image, a PDF or a font, no line a client can make long is read quadratically, a project has a name people read and a colleague is added by CWL login name or email, Manifest signs a person in on the faculty front-end's own origin, an agent outside Manifest is given a model key charged to the person it works for and a person describing a new app one the platform pays for, an owner can switch an app off and bring it back, and §7e says what is next.** The roadmap's ledger outranks every document on status.
+execution is under way — Rich has approved it and its seven spec actions are applied (5 and 6, from the faculty front-end's message, in `25e7445`; 7, the capable model, in `959af7f`), an app's recent output is readable through the API, an agent can commit an image, a PDF or a font, no line a client can make long is read quadratically, a project has a name people read and a colleague is added by CWL login name or email, Manifest signs a person in on the faculty front-end's own origin, an agent outside Manifest is given a model key charged to the person it works for and a person describing a new app one the platform pays for, an owner can switch an app off and bring it back, and §7e says what is next.** The roadmap's ledger outranks every document on status.
 
 *Last verified 2026-09-27, at the close of the front-end enablement plan's sitting 8 (Task 11 — archive and restore; one
 whole-branch review's fix pass). TWO NUMBERS MOVED: `pnpm test` **2661 passed, 0 skipped, in 174 files** (twice on the final tree,
@@ -144,7 +144,10 @@ each sitting left them, dated, and they deliberately do not move.
 - **§8's open questions.**
 
 **The spec is current, with no open follow-up.** Every spec change has been applied only after Rich approved it —
-**most recently the front-end enablement plan's Spec actions 5 and 6** (drafted by its sitting 6 from the faculty front-end's
+**most recently the front-end enablement plan's Spec action 7** (drafted at its sitting 8's close from Rich's decision; approved
+as drafted, option (a), and applied 2026-09-27, `959af7f`): the capable model — `default-chat-large` in §7's catalogue at
+`internal`, a platform setting naming its provider (§26), and §21's note that it needs the network and nothing offline depends on
+it. Before it **the same plan's Spec actions 5 and 6** (drafted by its sitting 6 from the faculty front-end's
 message; approved as drafted, option (a), in its sitting 7's first message; applied 2026-09-27, `25e7445`): an intake key before
 a project exists, paid by the platform, and staging as UBC's real staging world. Before them **the same plan's FOUR, applied
 2026-09-27 (`1d1afd7`), each as option (a)**: agent model
@@ -215,7 +218,7 @@ docs/superpowers/
 │   ├── 2026-09-22-p6b-subsequent-releases.md      P6b — executed 2026-09-23; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
-│   ├── 2026-09-27-front-end-enablement.md         BEING EXECUTED — approved by Rich 2026-09-27; 16 tasks in 13 sittings (Task 12a, sitting 9a, added at sitting 8's close: the capable model); 6 spec actions APPLIED, a 7th drafted; its sittings table says how far
+│   ├── 2026-09-27-front-end-enablement.md         BEING EXECUTED — approved by Rich 2026-09-27; 16 tasks in 13 sittings (Task 12a, sitting 9a, added at sitting 8's close: the capable model); 7 spec actions APPLIED; its sittings table says how far
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1642,7 +1645,7 @@ named in the row below.*
 
 **Sittings 1 to 8 are DONE** (2026-09-27). [The plan](plans/2026-09-27-front-end-enablement.md) — sixteen tasks in thirteen
 sittings (Task 12a, **sitting 9a — the capable model — added by Rich at sitting 8's close**, between 9 and 10), approved by Rich,
-**six of its spec actions APPLIED** (1–4 in `1d1afd7`; 5 and 6 in `25e7445`) and **Spec action 7 DRAFTED** (for sitting 9a) — is what the
+**all seven of its spec actions APPLIED** (1–4 in `1d1afd7`; 5 and 6 in `25e7445`; 7, the capable model, in `959af7f`) — is what the
 faculty front-end at `app.manifest.internal` needs from Manifest: recent output, binary files, what the authoring API handed
 over, a project's name, people by CWL login name or email, the `app` origin, agent model keys charged to the person, the intake
 key, archive and restore (all done), **delete (this sitting)**, the console and mock, the guides, and `make demo-frontend`. The
@@ -1670,11 +1673,9 @@ platform keeps true* has the bullet (*an owner switches an app off, and gets it 
     archived project answers `401 UNAUTHENTICATED` everywhere, and stays revoked after a restore — mint a new one.
 
 **ASK RICH IN THE FIRST MESSAGE:**
-1. **Spec action 7 and his OpenAI key — for sitting 9a, not this one** (Rich decided at sitting 8's close: *"an option to set the
-   capable model … for now it can use OpenAI's models"*, at `internal`, in its own sitting straight after this one — §8
-   *Decided*). Spec action 7 (the plan's *Spec actions*, its last) adds `default-chat-large` to §7's catalogue, the network model
-   to §21's LiteLLM row and the setting to §26 — options (a), recommended, and (b). The key goes in his `.env` as
-   `OPENAI_API_KEY=` (never typed by an agent). Neither blocks this sitting; sitting 9a stops at its Step 1 without both.
+1. **Nothing about the capable model — it is ANSWERED** (sitting 8's close, 2026-09-27: *"1. (a) 2. Done 3. should be fine"*):
+   Spec action 7 applied (`959af7f`), his OpenAI key in his `.env`, and a yes in advance for Task 12a's live steps. Sitting 9a
+   needs nothing more from him but a word before each live step starts.
 2. **`make refresh-vulndb` is due after 2026-10-01** (with the network on — his). **This sitting does not need it**: Task 12's
    launched-project refusal is tested by WRITING `launched_at` on a throwaway project. Sitting 12's `make ci-acceptance` does.
 3. **F12, the faculty front-end's port**: ask Rich to relay a request for a marker the front-end serves on 7105 (a path
@@ -1847,8 +1848,9 @@ reasoning is recorded.**
 - **THE CAPABLE MODEL: AN OPTION TO SET IT, AND OPENAI'S MODELS FOR NOW, AT `internal`** (Rich, 2026-09-27, at the front-end
   enablement plan's sitting 8 close: *"We'll need an option to set the capable model. But for now it can use OpenAI's
   models."*; then, asked, `internal` and its own sitting in this plan). One logical name, `default-chat-large`, whose provider is
-  a setting (`MANIFEST_CAPABLE_MODEL`); built by **Task 12a, sitting 9a**, after Spec action 7 (drafted, awaiting him) and his
-  key. Options A (UBC-hosted GPUs) and D (a larger local model and an eval) stay the roadmap's tracked item; `qwen3.5:4b` stays
+  a setting (`MANIFEST_CAPABLE_MODEL`); built by **Task 12a, sitting 9a**. **Then, the same evening: Spec action 7 approved (a)
+  and applied (`959af7f`); his OpenAI key in his `.env`; the live steps approved in advance** (*"1. (a) 2. Done 3. should be
+  fine"*); the budget defaults unchanged. Options A (UBC-hosted GPUs) and D (a larger local model and an eval) stay the roadmap's tracked item; `qwen3.5:4b` stays
   the offline floor. The plan's *Decided by Rich* and Task 12a have the reasoning.
 - **AFTER THIS PLAN, THE FRONT-END'S LAUNCH PATH FIRST (FE-6, FE-25), THEN THE VULNERABILITY DATABASE IN THE CONSOLE** (Rich,
   2026-09-27, the front-end enablement plan's sitting 7, first message: *"Launch path first"* — the recommendation). The
