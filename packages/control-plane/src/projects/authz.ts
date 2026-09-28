@@ -48,6 +48,15 @@ export const CAPABILITIES = [
    * is refused by its own code whatever the credential holds.
    */
   'output:read',
+  /**
+   * STARTING AN AGENT SESSION — a model key for an agent working outside Manifest, charged to the
+   * person the credential acts for (§10, Spec action 1; the front-end enablement plan's Task 10,
+   * Decision 24). Its OWN capability: a token minted before agent sessions existed must not gain
+   * the power to spend its minter's money with nothing about the token changing. Owner,
+   * collaborator and administrator hold it; mintable, neither privileged nor person-only. Ending a
+   * session asks it too — a token only for the sessions it started.
+   */
+  'agent:session',
   'members:manage',
   'build:create',
   'release:create',
@@ -299,6 +308,14 @@ export interface SessionActor {
    * line a refusal rather than a question.
    */
   steppedUpAt: number | null
+  /**
+   * When this session stops being accepted — the cookie's own `expiresAt`, in epoch ms (the front-end
+   * enablement plan's Task 10). A model key a session asks for never outlives it (Spec action 1's §6:
+   * *"a session outlives neither its `expires_at` nor the credential that started it"*; Spec action
+   * 5's intake key, *"never past the expiry of the interactive session that started it"*). A Phase 1
+   * session cannot be revoked before this (§20), so its expiry is the bound that can be enforced.
+   */
+  expiresAt: number
 }
 
 /** An agent, holding a delegated token (D24). */
@@ -337,6 +354,7 @@ const OWNER: readonly Capability[] = [
   'source:write',
   'secret:write',
   'output:read',
+  'agent:session',
   'members:manage',
   'build:create',
   'release:create',

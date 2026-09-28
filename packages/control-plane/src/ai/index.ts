@@ -42,3 +42,21 @@ export {
 } from './agent-keys.js'
 export type { BudgetSpend, CappedKeyInput } from './agent-keys.js'
 export { agentModelsFor, classificationFloor } from './models.js'
+export {
+  AgentSessionError,
+  agentSessionById,
+  agentSessionsOf,
+  cachedPersonSpend,
+  endAgentSession,
+  endSessionsOf,
+  gatewayOf,
+  sessionState,
+  startAgentSession,
+} from './sessions.js'
+export type {
+  AgentSessionCode,
+  AgentSessionDeps,
+  AgentSessionRow,
+  EndedBy,
+  EndReason,
+} from './sessions.js'

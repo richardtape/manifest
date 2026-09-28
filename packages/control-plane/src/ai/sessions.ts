@@ -1,0 +1,427 @@
+import { and, desc, eq, isNull } from 'drizzle-orm'
+import { agentSessions, type Db } from '../db/index.js'
+import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import { personName, type Actor } from '../projects/index.js'
+import { tokenById } from '../tokens/index.js'
+import {
+  agentKeyAlias,
+  ensurePersonBudget,
+  mintAgentKey,
+  personSpend,
+  revokeAgentKey,
+  type BudgetSpend,
+} from './agent-keys.js'
+import { CATALOGUE_CODES, CatalogueError, type ModelCatalogue } from './catalogue.js'
+import type { LiteLlmClient } from './client.js'
+import { agentModelsFor, classificationFloor } from './models.js'
+
+/**
+ * §10's agent sessions outside a sandbox (Spec action 1; the front-end enablement plan's Task 10,
+ * Decisions 20–25): a row per session, a key per row — named by the row's id and never stored —
+ * charged to the person the agent works for, capped, D17-routed, and ended with its session, its
+ * token or its project. `api/routes/agents.ts` is the caller; Task 11's archive calls
+ * `endSessionsOf` too.
+ */
+
+export type AgentSessionCode =
+  | 'AGENT_SESSION_ALREADY_STARTED'
+  | 'AGENT_BUDGET_EXHAUSTED'
+  | 'AGENT_NO_MODEL_FOR_CLASSIFICATION'
+
+/**
+ * A model session's refusals — each raised BEFORE anything is minted (Decisions 22–23). Each code's status is the registry's (`api/error-codes.ts`).
+ */
+export class AgentSessionError extends Error {
+  constructor(
+    readonly code: AgentSessionCode,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'AgentSessionError'
+  }
+}
+
+export type AgentSessionRow = typeof agentSessions.$inferSelect
+
+/** Decision 25's written ends. The fourth — running out — is READ from `expires_at`, never written. */
+export type EndReason = 'ended' | 'token_revoked' | 'project_archived' | 'project_deleted'
+
+/** `expired` is derived at read time: LiteLLM stops the key at its `duration`, and no timer runs here. */
+export function sessionState(
+  row: { endedAt: Date | null; expiresAt: Date },
+  now: number = Date.now(),
+): 'active' | 'ended' | 'expired' {
+  if (row.endedAt !== null) return 'ended'
+  return row.expiresAt.getTime() <= now ? 'expired' : 'active'
+}
+
+export interface AgentSessionDeps {
+  db: Db
+  bus: EventBus
+  /** `undefined` under `MANIFEST_AI_ENABLED=0` — and the catalogue, read first, refuses then. */
+  llm: LiteLlmClient | undefined
+  catalogue: ModelCatalogue
+  agent: { monthlyUsd: number; sessionCapUsd: number }
+}
+
+/** Who ended a session, for the event: the acting triple every event since Task 6 carries. */
+export interface EndedBy {
+  userId: string
+  tokenId: string | null
+}
+
+/** The gateway, or the refusal a platform with AI switched off answers everywhere else. */
+export function gatewayOf(deps: { llm: LiteLlmClient | undefined }): LiteLlmClient {
+  if (deps.llm === undefined) {
+    throw new CatalogueError(
+      CATALOGUE_CODES.DISABLED,
+      'AI is switched off on this control plane',
+      'MANIFEST_AI_ENABLED=0: no model key can be issued or ended until it is switched back on.',
+    )
+  }
+  return deps.llm
+}
+
+// ---------------------------------------------------------------- the month, read
+
+/**
+ * DECISION 24'S TEN SECONDS: one person's spend, cached per gateway client, so a list of fifty
+ * sessions is one `/user/info` a person rather than fifty. A failure is NEVER cached — the next
+ * read asks again — and a start or an end forgets the person, because each changes what the
+ * gateway holds. `[M8]` measured spend landing 3–6 s after a call, so a read may lag a call by that.
+ */
+const SPEND_TTL_MS = 10_000
+const spendCaches = new WeakMap<
+  LiteLlmClient,
+  Map<string, { at: number; value: BudgetSpend }>
+>()
+
+export async function cachedPersonSpend(
+  llm: LiteLlmClient,
+  userId: string,
+): Promise<BudgetSpend> {
+  let cache = spendCaches.get(llm)
+  if (cache === undefined) {
+    cache = new Map()
+    spendCaches.set(llm, cache)
+  }
+  const hit = cache.get(userId)
+  if (hit !== undefined && Date.now() - hit.at < SPEND_TTL_MS) return hit.value
+  const value = await personSpend(llm, userId)
+  cache.set(userId, { at: Date.now(), value })
+  return value
+}
+
+function forgetSpend(llm: LiteLlmClient, userId: string): void {
+  spendCaches.get(llm)?.delete(userId)
+}
+
+/**
+ * Dollars to the cap column's SIX places, DOWN — a cap is never more than what remains. Six, not
+ * four: a cap under a hundredth of a cent is a real request (the plan's own Docker case asks for
+ * $0.00002), and four places floored it to $0 — refused as a spent month (sitting 7's finding).
+ */
+const toCap = (usd: number): number => Math.floor(usd * 1_000_000 + 1e-6) / 1_000_000
+
+// ---------------------------------------------------------------- start
+
+/** The credential's own end: a token's `expires_at`, or the signed-in session's (Spec actions 1 and 5). */
+async function credentialExpiry(db: Db, actor: Actor): Promise<number> {
+  if (actor.credential === 'session') return actor.expiresAt
+  const token = await tokenById(db, actor.tokenId)
+  // The credential hook authenticated this token a moment ago; a row gone since is the store's defect.
+  if (token === undefined)
+    throw new Error(`the token '${actor.tokenId}' that asked has no row`)
+  return token.expiresAt.getTime()
+}
+
+/**
+ * Starts one session: its models, its cap, its life, its row and its key — in that order, each
+ * refusal BEFORE anything is minted, and the row and the key in ONE transaction so a failed mint
+ * leaves no session and a session never exists without the key its alias names.
+ */
+export async function startAgentSession(
+  deps: AgentSessionDeps,
+  input: {
+    actor: Actor
+    projectId: string
+    name: string
+    capUsd?: number | undefined
+    durationMinutes?: number | undefined
+  },
+): Promise<{ row: AgentSessionRow; key: string }> {
+  // 1. D17, from the catalogue — read FIRST, so a platform with AI switched off, or a project no
+  //    model may serve, is refused before the gateway is asked anything (Decision 23).
+  const snapshot = await deps.catalogue.get()
+  const llm = gatewayOf(deps)
+  const floor = await classificationFloor(deps.db, input.projectId)
+  const models = agentModelsFor(snapshot, floor)
+  if (models.length === 0) {
+    // An empty list would be EVERY model to LiteLLM (`[M7]`): refused, never minted.
+    throw new AgentSessionError(
+      'AGENT_NO_MODEL_FOR_CLASSIFICATION',
+      `no model in the platform's catalogue is approved for ${floor} data, so no agent key can be issued for this project (D17)`,
+    )
+  }
+
+  // 2. The month — the PERSON's (a token acts for its minter, D24), read FRESH: a start must not
+  //    mint against spend a cached read had not seen yet.
+  const person = input.actor.userId
+  const monthly = deps.agent.monthlyUsd
+  const { spentUsd } = await personSpend(llm, person)
+  const remaining = toCap(monthly - spentUsd)
+  // Decided on what REMAINS, never on the cap asked for: a small cap is not a spent month.
+  if (remaining <= 0) {
+    throw new AgentSessionError(
+      'AGENT_BUDGET_EXHAUSTED',
+      `this month's agent budget of $${monthly} is spent ($${spentUsd.toFixed(2)} so far)`,
+    )
+  }
+  const capUsd = toCap(
+    Math.min(
+      input.capUsd ?? deps.agent.sessionCapUsd,
+      deps.agent.sessionCapUsd,
+      remaining,
+    ),
+  )
+
+  // 3. The life — never past the credential that asks (Decision 22; Spec action 1's §6).
+  const now = Date.now()
+  const until = await credentialExpiry(deps.db, input.actor)
+  const seconds = Math.min(
+    (input.durationMinutes ?? 60) * 60,
+    Math.floor((until - now) / 1000),
+  )
+  const tokenId = input.actor.credential === 'token' ? input.actor.tokenId : null
+
+  // 4. The row and the key together. `minted` is set only once the key exists, so a transaction
+  //    that fails AFTER the mint — its commit — is a live key with no row: revoked by its alias.
+  let minted: { row: AgentSessionRow; key: string } | undefined
+  try {
+    await deps.db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(agentSessions)
+        .values({
+          projectId: input.projectId,
+          userId: person,
+          requestedByToken: tokenId,
+          name: input.name,
+          models,
+          capUsd: String(capUsd),
+          expiresAt: new Date(now + seconds * 1000),
+        })
+        .returning()
+      await ensurePersonBudget(llm, { userId: person, monthlyUsd: monthly })
+      const key = await mintAgentKey(llm, {
+        sessionId: row!.id,
+        userId: person,
+        projectId: input.projectId,
+        tokenId,
+        models,
+        capUsd,
+        seconds,
+      })
+      minted = { row: row!, key }
+    })
+  } catch (error) {
+    if (minted !== undefined) {
+      const alias = agentKeyAlias(minted.row.id)
+      console.error(
+        `agent session ${minted.row.id}: its row did not commit after its key was minted — revoking ${alias}`,
+      )
+      await revokeAgentKey(llm, minted.row.id).catch((revokeError: unknown) => {
+        // Named, never swallowed: the one outcome worse than a refusal is a live key nobody can end.
+        console.error(
+          `agent session ${minted!.row.id}: ${alias} could NOT be revoked and stays live until ${new Date(now + seconds * 1000).toISOString()}: ${String(revokeError)}`,
+        )
+      })
+    }
+    throw error
+  }
+  if (minted === undefined)
+    throw new Error('an agent session’s transaction ended without a key')
+  forgetSpend(llm, person)
+
+  // 5. Published AFTER the commit — an event naming a session that does not exist is worse than none.
+  const tokenName =
+    tokenId === null ? null : ((await tokenById(deps.db, tokenId))?.name ?? null)
+  const who = await personName(deps.db, person)
+  await publishEvent(
+    deps.db,
+    deps.bus,
+    {
+      projectId: input.projectId,
+      subject: `agent_session:${minted.row.id}`,
+      type: 'agent_session.started',
+      machineDetail: {
+        sessionId: minted.row.id,
+        models,
+        capUsd,
+        expiresAt: minted.row.expiresAt.toISOString(),
+        via: tokenId === null ? 'session' : 'token',
+        userId: person,
+        tokenId,
+      },
+      humanMessage:
+        `${who} started an agent session, '${input.name}', charged to them: up to $${capUsd} ` +
+        `until ${minted.row.expiresAt.toISOString().slice(0, 16).replace('T', ' ')} UTC` +
+        (tokenName === null ? '.' : `, asked for by the delegated token '${tokenName}'.`),
+    },
+    makeRedactor([]),
+  )
+  return minted
+}
+
+// ---------------------------------------------------------------- read
+
+export async function agentSessionById(
+  db: Db,
+  sessionId: string,
+): Promise<AgentSessionRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(agentSessions)
+    .where(eq(agentSessions.id, sessionId))
+  return row
+}
+
+/** A project's sessions, newest first — at most `limit`, and whether there were more. */
+export async function agentSessionsOf(
+  db: Db,
+  projectId: string,
+  limit: number,
+): Promise<{ rows: AgentSessionRow[]; truncated: boolean }> {
+  const rows = await db
+    .select()
+    .from(agentSessions)
+    .where(eq(agentSessions.projectId, projectId))
+    .orderBy(desc(agentSessions.createdAt), desc(agentSessions.id))
+    .limit(limit + 1)
+  return { rows: rows.slice(0, limit), truncated: rows.length > limit }
+}
+
+// ---------------------------------------------------------------- end
+
+const endReasonWords: Record<EndReason, string> = {
+  ended: 'ended',
+  token_revoked: 'ended because the delegated token that started it was revoked',
+  project_archived: 'ended because the project was switched off',
+  project_deleted: 'ended because the project was deleted',
+}
+
+/**
+ * Ends ONE session: its spend read, its key revoked by alias, its row stamped — in that order.
+ *
+ * **THE REVOCATION COMES BEFORE THE ROW.** A revocation that fails leaves the row active, so a
+ * retry finds it; stamping first and failing at the gateway would be a live key nothing points
+ * at. It is an operator line and the gateway's refusal, never a swallowed catch (Decision 25).
+ *
+ * **THE SPEND IS READ BEFORE THE KEY GOES** (FE-23): LiteLLM deletes the key's row with it. A read
+ * that fails is recorded as unknown — it must not stop the revocation, which is the control.
+ * Idempotent: an ended session is answered as it is.
+ */
+export async function endAgentSession(
+  deps: { db: Db; bus: EventBus; llm: LiteLlmClient | undefined },
+  row: AgentSessionRow,
+  reason: EndReason,
+  by: EndedBy,
+): Promise<AgentSessionRow> {
+  if (row.endedAt !== null) return row
+  const llm = gatewayOf(deps)
+  let spent: number | null
+  try {
+    spent =
+      (await personSpend(llm, row.userId)).byAlias.get(agentKeyAlias(row.id)) ?? null
+  } catch (error) {
+    console.error(
+      `agent session ${row.id}: what its key spent could not be read before it ended, so it is recorded as unknown: ${String(error)}`,
+    )
+    spent = null
+  }
+  try {
+    await revokeAgentKey(llm, row.id)
+  } catch (error) {
+    console.error(
+      `agent session ${row.id}: ${agentKeyAlias(row.id)} could NOT be revoked (${reason}); it stays live until ${row.expiresAt.toISOString()} or a retry ends it`,
+    )
+    throw error
+  }
+  forgetSpend(llm, row.userId)
+  const [ended] = await deps.db
+    .update(agentSessions)
+    .set({
+      endedAt: new Date(),
+      endReason: reason,
+      spentUsd: spent === null ? null : String(spent),
+    })
+    .where(and(eq(agentSessions.id, row.id), isNull(agentSessions.endedAt)))
+    .returning()
+  // Another request ended it between the read and the write: answered as it is, published once.
+  if (ended === undefined) return (await agentSessionById(deps.db, row.id)) ?? row
+  await publishEvent(
+    deps.db,
+    deps.bus,
+    {
+      projectId: row.projectId,
+      subject: `agent_session:${row.id}`,
+      type: 'agent_session.ended',
+      machineDetail: {
+        sessionId: row.id,
+        reason,
+        via: by.tokenId === null ? 'session' : 'token',
+        userId: by.userId,
+        tokenId: by.tokenId,
+      },
+      humanMessage: `${await personName(deps.db, row.userId)}'s agent session '${row.name}' was ${endReasonWords[reason]}.`,
+    },
+    makeRedactor([]),
+  )
+  return ended
+}
+
+/**
+ * Ends EVERY live session of a token or a project (Decision 25: a revoked token, an archived or a
+ * deleted project). Each is tried; the ones that could not be ended are named in ONE operator line
+ * and the call fails, so the request that asked is a `500` and its retry — which reaches here even
+ * when the token is already revoked — ends what remains. Answers the ids it ended.
+ */
+export async function endSessionsOf(
+  deps: { db: Db; bus: EventBus; llm: LiteLlmClient | undefined },
+  target: { projectId: string } | { tokenId: string },
+  reason: EndReason,
+  by: EndedBy,
+): Promise<string[]> {
+  const live = await deps.db
+    .select()
+    .from(agentSessions)
+    .where(
+      and(
+        'tokenId' in target
+          ? eq(agentSessions.requestedByToken, target.tokenId)
+          : eq(agentSessions.projectId, target.projectId),
+        isNull(agentSessions.endedAt),
+      ),
+    )
+  const ended: string[] = []
+  const failed: string[] = []
+  for (const row of live) {
+    try {
+      await endAgentSession(deps, row, reason, by)
+      ended.push(row.id)
+    } catch {
+      // Each failure already wrote its own operator line in endAgentSession.
+      failed.push(row.id)
+    }
+  }
+  if (failed.length > 0) {
+    const scope =
+      'tokenId' in target ? `token ${target.tokenId}` : `project ${target.projectId}`
+    console.error(
+      `${failed.length} agent session(s) of ${scope} are STILL LIVE after '${reason}': ${failed.join(', ')} — retry the request to end them`,
+    )
+    throw new Error(
+      `${failed.length} agent session(s) could not be ended, and their keys stay live until they expire or this is retried`,
+    )
+  }
+  return ended
+}

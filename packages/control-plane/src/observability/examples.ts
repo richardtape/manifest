@@ -232,4 +232,20 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     userId: UUID,
     tokenId: null,
   },
+  'agent_session.started': {
+    sessionId: OTHER_UUID,
+    models: ['default-chat', 'default-embed'],
+    capUsd: 2,
+    expiresAt: '2026-09-27T23:15:00.000Z',
+    via: 'token',
+    userId: UUID,
+    tokenId: OTHER_UUID,
+  },
+  'agent_session.ended': {
+    sessionId: OTHER_UUID,
+    reason: 'token_revoked',
+    via: 'session',
+    userId: UUID,
+    tokenId: null,
+  },
 }

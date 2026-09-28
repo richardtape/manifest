@@ -7,7 +7,7 @@ import { ZodError } from 'zod'
 import type { ManifestError } from '../errors/index.js'
 import { IdempotencyConflictError } from './idempotency.js'
 import { CsrfRefusedError } from './csrf.js'
-import { AiError, CatalogueError } from '../ai/index.js'
+import { AgentSessionError, AiError, CatalogueError } from '../ai/index.js'
 import { OutputError } from '../observability/index.js'
 import { ERROR_CODES } from './error-codes.js'
 import { RequestValidationError } from './contract/route.js'
@@ -714,6 +714,16 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
   // production (403) and a state conflict for an instance that no longer runs (409) — each
   // code's status is the registry's, so the two cannot drift apart.
   if (error instanceof OutputError) {
+    return {
+      status: ERROR_CODES[error.code].status,
+      body: { error: { code: error.code, message: error.message } },
+    }
+  }
+
+  // A model session's refusals (§10; the front-end enablement plan's Task 10): each a state the
+  // caller can act on — a spent month, no approved model, a start already answered — and each
+  // code's status the registry's, so the two cannot drift apart.
+  if (error instanceof AgentSessionError) {
     return {
       status: ERROR_CODES[error.code].status,
       body: { error: { code: error.code, message: error.message } },

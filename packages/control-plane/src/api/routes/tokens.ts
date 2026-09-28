@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod/v4'
+import { endSessionsOf } from '../../ai/index.js'
 import { makeRedactor, publishEvent } from '../../observability/index.js'
 import {
   assertCapability,
@@ -270,7 +271,7 @@ export const tokenRoutes = [
     tag: 'tokens',
     summary: 'Revoke a delegated token',
     description:
-      'Stops the token authenticating, from the next request onwards. Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.',
+      'Stops the token authenticating, from the next request onwards, and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.',
     params: TokenParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -279,7 +280,7 @@ export const tokenRoutes = [
       description: 'The token, with its revocation stamped.',
       schema: Token,
     },
-    errors: ['NOT_FOUND', 'TOKEN_CREDENTIAL_REFUSED'],
+    errors: ['NOT_FOUND', 'TOKEN_CREDENTIAL_REFUSED', 'AI_CATALOGUE_DISABLED'],
     examples: {
       response: {
         id: 'd526fd4f-2528-45d9-9e45-c374393d8cec',
@@ -310,6 +311,15 @@ export const tokenRoutes = [
         throw new AuthorizationError('NOT_FOUND', `no token '${params.tokenId}'`)
       }
       await revokeToken(deps.db, params.tokenId, actor.userId)
+      // THEN EVERY AGENT SESSION IT STARTED (the front-end enablement plan's Task 10, Decision 25):
+      // a model key never outlives the credential that asked for it. REACHED ON A RETRY TOO — the
+      // token is already revoked then, and this is how the sessions a failed first attempt could
+      // not end get ended: `endSessionsOf` answers a 500 naming what is still live, never a
+      // swallowed catch, and ends only what is still live on the next call.
+      await endSessionsOf(deps, { tokenId: params.tokenId }, 'token_revoked', {
+        userId: actor.userId,
+        tokenId: null,
+      })
       const revoked = await tokenById(deps.db, params.tokenId)
       if (revoked === undefined) {
         throw new AuthorizationError('NOT_FOUND', `no token '${params.tokenId}'`)

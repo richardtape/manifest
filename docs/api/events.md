@@ -146,5 +146,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `project.renamed` | The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not. |
 | `member.added` | A person was added to the project, or their role on it changed (§13). Not published when nothing changed. |
 | `member.removed` | A person was taken off the project (§13). Not published for somebody who was not a member. |
+| `agent_session.started` | An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published. |
+| `agent_session.ended` | An agent session’s key was revoked at the gateway (§10). |
 
 <!-- /event-types -->

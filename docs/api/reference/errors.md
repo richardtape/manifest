@@ -7,6 +7,9 @@ Every code the API answers in its error envelope, with the status it always come
 
 | Code | Status | What it means | What to do |
 |---|---|---|---|
+| `AGENT_BUDGET_EXHAUSTED` | 409 | The monthly agent budget of the person this credential acts for is spent, so no key was issued (§10). | Wait for the month to reset (`getAgentBudget` says when), or ask a platform administrator to raise this person’s agent budget. |
+| `AGENT_NO_MODEL_FOR_CLASSIFICATION` | 409 | No model in the platform’s catalogue is approved for this project’s data classification, so no key was issued (D17). An empty model list would be every model to the gateway. | Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release. |
+| `AGENT_SESSION_ALREADY_STARTED` | 409 | This request — its Idempotency-Key — already started an agent session, and its key was answered then. A key is shown once and never again. | Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | The gateway could not be reached. | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_DISABLED` | 503 | AI is switched off on this control plane. | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
 | `AI_CATALOGUE_EMPTY` | 503 | The gateway returned an empty model catalogue. | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |

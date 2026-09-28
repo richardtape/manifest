@@ -152,6 +152,14 @@ export const EVENT_TYPES = [
   'member.added',
   /** …and TAKEN OFF it. Not published for somebody who was not a member: removal is idempotent. */
   'member.removed',
+  /**
+   * AN AGENT WAS GIVEN A MODEL KEY (the front-end enablement plan's Task 10; §10's agent session
+   * outside a sandbox) — for this project, charged to the person named, with its models, its cap and
+   * its end. NEVER the key: it is in the start's answer and nowhere else.
+   */
+  'agent_session.started',
+  /** …and ITS KEY WAS REVOKED — ended, its token revoked, or its project switched off or deleted. */
+  'agent_session.ended',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

@@ -197,6 +197,12 @@ interface Fixture {
   commitSha: string
   /** A delegated token the OWNER minted (P5b Task 4) — what the revoke row is aimed at. */
   tokenId: string
+  /**
+   * An agent session the OWNER started in setup (the front-end enablement plan's Task 10) — what
+   * the end row is aimed at. Ending is idempotent, so every actor after the first that may end it
+   * is answered the session as it is.
+   */
+  agentSessionId: string
   /** One PENDING question per route and per actor (P5b Task 7); see `request` above. */
   pendingActionId: Record<'confirm' | 'reject', Record<Actor, string>>
   /**
@@ -1386,6 +1392,82 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
+   * AGENT SESSIONS (the front-end enablement plan's Task 10; §10). Starting and ending assert
+   * `agent:session` — mintable, so `token-capable` holds it (`CAPABLE` below) and starts its own.
+   * **Ending is the one row where `token-capable` is refused while HOLDING the capability**: the
+   * fixture's session was started by the owner, and a token ends only what it started (Decision
+   * 25) — `403 FORBIDDEN` for a different reason than `token-incapable`'s, which is why
+   * `api/agents.test.ts` holds the positive half (a token ending its own). The budget is any
+   * credential's own, so every signed-in actor and every token passes — none is project-scoped.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/agent-sessions',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/agent-sessions`,
+      payload: { name: 'authz' },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/projects/:projectId/agent-sessions',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/agent-sessions` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'DELETE',
+    url: '/v1/agent-sessions/:sessionId',
+    request: (f) => ({ url: `/v1/agent-sessions/${f.agentSessionId}` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': { status: 403, code: 'FORBIDDEN' },
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': { status: 403, code: 'FORBIDDEN' },
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/agent-budget',
+    request: () => ({ url: '/v1/agent-budget' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
+    },
+  },
+  /**
    * AN ENVIRONMENT'S INSTANCES, AND A RUNNING APP'S RECENT OUTPUT (the front-end enablement
    * plan's Task 3; §14). Listing is `project:read`; reading output is `output:read`, which
    * `token-capable` holds because the mint route would give it (`CAPABLE` below); a token
@@ -1874,6 +1956,21 @@ export function describeAuthorizationContract(
         cookies: cookies.owner,
         headers: mutationHeaders(deps),
       })
+      // Task 10: the session the end row is aimed at — started by the owner, on the fake gateway
+      // this suite's factory supplies (`authz-contract.test.ts`), and ASSERTED, because a row
+      // aimed at a session that was never started would read 404 for every actor.
+      const agentSession = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${body.id}/agent-sessions`,
+        payload: { name: 'authz-fixture' },
+        cookies: cookies.owner,
+        headers: mutationHeaders(deps),
+      })
+      if (agentSession.statusCode !== 201) {
+        throw new Error(
+          `the fixture's agent session was not started: ${agentSession.body}`,
+        )
+      }
 
       /**
        * THE SECOND PROJECT, and the four delegated tokens (P5b Task 11).
@@ -1935,6 +2032,9 @@ export function describeAuthorizationContract(
         // `token-incapable` holds neither; the `project:read`-alone token Decision 5 is about
         // is `api/instances.test.ts`'s, since this actor cannot tell the two apart.
         'output:read',
+        // Task 10: `startAgentSession` and `endAgentSession` assert `agent:session`, which the mint
+        // route gives an owner's token (neither privileged nor person-only).
+        'agent:session',
       ]
       const tokenFor = async (
         actor: TokenActor,
@@ -2036,6 +2136,7 @@ export function describeAuthorizationContract(
         otherProjectId,
         removableUserId: removable.id,
         tokenId: token.json().token.id,
+        agentSessionId: (agentSession.json() as { session: { id: string } }).session.id,
         pendingActionId: {
           confirm: await questions('confirm'),
           reject: await questions('reject'),

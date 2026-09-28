@@ -302,6 +302,9 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
       // 8). Freshness is not decided here: `assertStepUp` asks at the moment of use,
       // because a Phase 1 session cannot be revoked before its own expiry (§20).
       steppedUpAt: session.steppedUpAt,
+      // The cookie's own end, which `verifySession` checked — what a model key it asks for is
+      // bounded by (the front-end enablement plan's Task 10).
+      expiresAt: session.expiresAt,
     }
   })
 

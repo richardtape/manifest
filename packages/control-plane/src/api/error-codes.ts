@@ -43,6 +43,7 @@ export type ErrorFamily =
   | 'RehearsalError'
   | 'ProductionGateError'
   | 'OutputError'
+  | 'AgentSessionError'
 
 interface Entry {
   status: number
@@ -606,6 +607,33 @@ export const ERROR_CODES = {
       'The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.',
     remedy:
       'Read the environment’s Incidents (`listIncidents`): a failed instance’s last lines are in its Incident. `listInstances` says which instance is running now.',
+  },
+
+  // ai/sessions.ts — a model session's start (§10; the front-end enablement plan's Task 10, Spec
+  // actions 1 and 5). Each refused BEFORE anything is minted; the statuses are the registry's.
+  AGENT_SESSION_ALREADY_STARTED: {
+    status: 409,
+    families: ['AgentSessionError'],
+    summary:
+      'This request — its Idempotency-Key — already started an agent session, and its key was answered then. A key is shown once and never again.',
+    remedy:
+      'Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key.',
+  },
+  AGENT_BUDGET_EXHAUSTED: {
+    status: 409,
+    families: ['AgentSessionError'],
+    summary:
+      'The monthly agent budget of the person this credential acts for is spent, so no key was issued (§10).',
+    remedy:
+      'Wait for the month to reset (`getAgentBudget` says when), or ask a platform administrator to raise this person’s agent budget.',
+  },
+  AGENT_NO_MODEL_FOR_CLASSIFICATION: {
+    status: 409,
+    families: ['AgentSessionError'],
+    summary:
+      'No model in the platform’s catalogue is approved for this project’s data classification, so no key was issued (D17). An empty model list would be every model to the gateway.',
+    remedy:
+      'Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release.',
   },
 
   // config.ts — mapped by toErrorResponse, raised at boot

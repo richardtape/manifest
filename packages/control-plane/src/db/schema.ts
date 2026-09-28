@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgSchema,
   pgTable,
@@ -513,6 +514,61 @@ export const pendingActions = pgTable(
   ],
 )
 
+/**
+ * §6's `AgentSession` for an agent OUTSIDE a sandbox (Spec action 1; the front-end enablement plan's
+ * Task 10, Decision 20): one person's agent, on one project, given a model key charged to that person.
+ *
+ * **NO COLUMN HOLDS THE KEY.** It is answered once, in `startAgentSession`'s response, and never
+ * stored; LiteLLM names it by its alias `mf-agent-<id>`, DERIVED from this row's id
+ * (`agentKeyAlias`) rather than stored beside it, so the two cannot disagree.
+ *
+ * **NO `ON DELETE` ON ANY OF THE THREE REFERENCES** — nothing deletes a project, a user or a token
+ * (the plan's *Read this first* 7), and a cascade would be a deletion path nobody reviewed.
+ *
+ * `spent_usd` is written ONCE, when the session ends (FE-23): LiteLLM deletes the key's row on
+ * revocation, so what the key spent is read just before and kept here. Null for a live session
+ * (its spend is read from the gateway) and for an end whose spend could not be read.
+ */
+export const agentSessions = pgTable(
+  'agent_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id),
+    /** The person charged — a token's minter when a token started it (D24). */
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    /** Null when a person started it in their own session. */
+    requestedByToken: uuid('requested_by_token').references(() => delegatedTokens.id),
+    /** A person's label for the task the agent is on. */
+    name: text('name').notNull(),
+    /** The logical models D17 allowed when it started (Decision 23). */
+    models: jsonb('models').notNull().$type<string[]>(),
+    capUsd: numeric('cap_usd', { precision: 12, scale: 6 }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    endReason: text('end_reason'),
+    spentUsd: numeric('spent_usd', { precision: 12, scale: 6 }),
+  },
+  (t) => [
+    index('agent_sessions_project_idx').on(t.projectId),
+    index('agent_sessions_token_idx').on(t.requestedByToken),
+    // Decision 25's ends — the fourth, running out, is READ from `expires_at` and never written.
+    check(
+      'agent_sessions_end_reason_known',
+      sql`${t.endReason} IS NULL OR ${t.endReason} IN ('ended', 'token_revoked', 'project_archived', 'project_deleted')`,
+    ),
+    // An end has a reason, and a reason has an end.
+    check(
+      'agent_sessions_ended_with_reason',
+      sql`(${t.endedAt} IS NULL) = (${t.endReason} IS NULL)`,
+    ),
+  ],
+)
+
 /** §9: `draft → submitted → active`, plus `change_requested` and `expired` (D19, D20). */
 export const iamRegistrationState = pgEnum('iam_registration_state', [
   'draft',
@@ -909,7 +965,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.ended')`,
     ),
   ],
 )

@@ -26,6 +26,16 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   // Its Task 6 (sitting 5): a project's name, changed. Task 13 adds the Project screen's rename.
   updateProject:
     'the front-end enablement plan’s Task 13 adds the Project screen’s rename and removes this',
+  // Its Task 10 (sitting 7): agent sessions. Task 13 adds the Agents screen — start, list, end —
+  // and the budget line, and removes all four parks in one commit.
+  startAgentSession:
+    'the front-end enablement plan’s Task 13 adds the console’s agent sessions screen and removes this',
+  listAgentSessions:
+    'the front-end enablement plan’s Task 13 adds the console’s agent sessions screen and removes this',
+  endAgentSession:
+    'the front-end enablement plan’s Task 13 adds the console’s agent sessions screen and removes this',
+  getAgentBudget:
+    'the front-end enablement plan’s Task 13 adds the console’s agent budget line and removes this',
   // **EMPTY AGAIN SINCE THE AUTHORING API PLAN'S TASK 10 (sitting 7, 2026-09-26)**, and that
   // is a measurement: all 51 operations have a caller. That plan's Tasks 5, 6 and 8 parked
   // eight here naming Task 10 as their remover — `getTree`, `getFile`, `listCommits`,

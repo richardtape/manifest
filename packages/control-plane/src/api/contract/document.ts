@@ -63,6 +63,8 @@ type JsonSchema = Record<string, unknown>
  * and `docs.test.ts` refuses a tag without a sentence here — a new tag is a new line.
  */
 const TAG_DESCRIPTIONS: Record<string, string> = {
+  agents:
+    'Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget.',
   administration:
     'Operations for the platform’s administrators — today, every project on the platform at a glance (§26).',
   blueprints:

@@ -109,6 +109,247 @@ Answer, `200`:
 | `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
+## agents
+
+Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget.
+
+### `getAgentBudget` — Your agent budget this month
+
+`GET /v1/agent-budget` · a session or a delegated token
+
+The monthly agent budget of the person the credential acts for — yours, or a delegated token’s minter’s — what their agents have spent across every project, and what remains. `spentUsd` is null with a reason when the model gateway does not answer: never 0 for unknown. Spend lands a few seconds after a call.
+
+Answer, `200`:
+
+```json
+{
+  "monthlyUsd": 10,
+  "spentUsd": 0.65,
+  "remainingUsd": 9.35,
+  "resetsAt": "2026-10-01T00:00:00.000Z",
+  "unavailable": null
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `endAgentSession` — End an agent session
+
+`DELETE /v1/agent-sessions/{sessionId}` · a session or a delegated token
+
+Revokes the session’s key at the gateway, from the next call onwards, and records what it spent. A person may end any session on their project; a delegated token only the ones it started. Ending twice answers the session as it is.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `sessionId` | path | yes | The agent session’s id, from `startAgentSession` or `listAgentSessions`. |
+
+Answer, `200`:
+
+```json
+{
+  "id": "7e3c8584-9d4f-45ca-a800-3de96167d7e0",
+  "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+  "name": "Fix the sign-in page",
+  "person": {
+    "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+    "name": "Bio Prof"
+  },
+  "via": null,
+  "models": [
+    "default-chat",
+    "default-chat-onprem",
+    "default-chat-reasoning",
+    "default-chat-onprem-reasoning",
+    "default-embed"
+  ],
+  "capUsd": 2,
+  "expiresAt": "2026-09-28T02:27:48.280Z",
+  "state": "ended",
+  "endedAt": "2026-09-28T01:27:48.287Z",
+  "endReason": "ended",
+  "spentUsd": 0.25,
+  "spentUnavailable": null,
+  "createdAt": "2026-09-28T01:27:48.279Z"
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `listAgentSessions` — A project’s agent sessions
+
+`GET /v1/projects/{projectId}/agent-sessions` · a session or a delegated token
+
+Every agent session on this project, newest first, at most 50 — ended and expired ones included — each with what its key has spent (`spentUsd`, null with a reason when the gateway cannot say, never 0 for unknown). No key is in it.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `projectId` | path | yes | The project’s id, from `listProjects` or `createProject`. |
+
+Answer, `200`:
+
+```json
+{
+  "sessions": [
+    {
+      "id": "7e3c8584-9d4f-45ca-a800-3de96167d7e0",
+      "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+      "name": "Fix the sign-in page",
+      "person": {
+        "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+        "name": "Bio Prof"
+      },
+      "via": null,
+      "models": [
+        "default-chat",
+        "default-chat-onprem",
+        "default-chat-reasoning",
+        "default-chat-onprem-reasoning",
+        "default-embed"
+      ],
+      "capUsd": 2,
+      "expiresAt": "2026-09-28T02:27:48.280Z",
+      "state": "ended",
+      "endedAt": "2026-09-28T01:27:48.287Z",
+      "endReason": "ended",
+      "spentUsd": 0.25,
+      "spentUnavailable": null,
+      "createdAt": "2026-09-28T01:27:48.279Z"
+    },
+    {
+      "id": "860e32ca-5a3e-4698-8bd0-0510a63517f4",
+      "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+      "name": "Build the bulletin board",
+      "person": {
+        "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+        "name": "Bio Prof"
+      },
+      "via": {
+        "tokenId": "927eda69-f9bf-465f-8c16-5d6f4602a5c2",
+        "tokenName": "conversation-42"
+      },
+      "models": [
+        "default-chat",
+        "default-chat-onprem",
+        "default-chat-reasoning",
+        "default-chat-onprem-reasoning",
+        "default-embed"
+      ],
+      "capUsd": 2,
+      "expiresAt": "2026-09-28T02:27:48.266Z",
+      "state": "active",
+      "endedAt": null,
+      "endReason": null,
+      "spentUsd": 0.4,
+      "spentUnavailable": null,
+      "createdAt": "2026-09-28T01:27:48.266Z"
+    }
+  ],
+  "truncated": false
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `startAgentSession` — Give an agent a model key, charged to you
+
+`POST /v1/projects/{projectId}/agent-sessions` · a session or a delegated token
+
+§10: a model key for one agent working on this project — on the models the project’s data classification allows (D17), capped (`capUsd`, never more than the platform’s session cap or what remains of your month), and short-lived (`durationMinutes`, never past the credential that asks). **The key is in this answer and nowhere else**: Manifest keeps no copy, and a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session rather than the key — end it and start another if the first answer was lost. Its spend is YOURS — a delegated token’s minter’s — against your monthly agent budget (`getAgentBudget`). The key calls models and nothing else; it is not a Manifest credential.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `projectId` | path | yes | The project’s id, from `listProjects` or `createProject`. |
+
+Request:
+
+```json
+{
+  "name": "Build the bulletin board",
+  "capUsd": 2,
+  "durationMinutes": 60
+}
+```
+
+Answer, `201`:
+
+```json
+{
+  "session": {
+    "id": "860e32ca-5a3e-4698-8bd0-0510a63517f4",
+    "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+    "name": "Build the bulletin board",
+    "person": {
+      "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+      "name": "Bio Prof"
+    },
+    "via": {
+      "tokenId": "927eda69-f9bf-465f-8c16-5d6f4602a5c2",
+      "tokenName": "conversation-42"
+    },
+    "models": [
+      "default-chat",
+      "default-chat-onprem",
+      "default-chat-reasoning",
+      "default-chat-onprem-reasoning",
+      "default-embed"
+    ],
+    "capUsd": 2,
+    "expiresAt": "2026-09-28T02:27:48.266Z",
+    "state": "active",
+    "endedAt": null,
+    "endReason": null,
+    "spentUsd": 0,
+    "spentUnavailable": null,
+    "createdAt": "2026-09-28T01:27:48.266Z"
+  },
+  "key": "sk-example-not-a-real-key",
+  "baseUrl": "http://127.0.0.1:7106/v1"
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `AGENT_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset (`getAgentBudget` says when), or ask a platform administrator to raise this person’s agent budget. |
+| `AGENT_NO_MODEL_FOR_CLASSIFICATION` | 409 | Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release. |
+| `AGENT_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key. |
+| `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
+| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
 ## blueprints
 
 The blueprints an app is built from (§25): what each provides, its starters, and the knowledge pack an agent reads before writing code.
@@ -3491,7 +3732,7 @@ Answer, `201`:
 
 `DELETE /v1/tokens/{tokenId}` · a session only — a delegated token is refused
 
-Stops the token authenticating, from the next request onwards. Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.
+Stops the token authenticating, from the next request onwards, and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3518,6 +3759,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |

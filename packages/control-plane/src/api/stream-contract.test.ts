@@ -20,6 +20,7 @@ import { SAMPLE_SECRETS } from '../build/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { buildServer } from './server.js'
+import { fakeLiteLlm } from '../ai/testing.js'
 import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
 
 beforeEach(resetDatabase)
@@ -94,7 +95,9 @@ const NO_PUBLISHER_YET = {} as const
  */
 describe('the stream in the contract (D23.2)', () => {
   it('every published and every replayed frame is a StreamFrame', async () => {
-    const deps = await testDeps()
+    // A RECORDING GATEWAY (the front-end enablement plan's Task 10), so an agent session starts and
+    // ends here and `agent_session.started` / `.ended` are REACHED — the harness has no LiteLLM.
+    const deps = { ...(await testDeps()), llm: fakeLiteLlm() }
     const app = await buildServer(deps)
     const cookies = await loginAs(deps, 'bio_prof')
     const published: BusFrame[] = []
@@ -254,6 +257,19 @@ describe('the stream in the contract (D23.2)', () => {
       headers: mutationHeaders(deps),
     })
     expect(removed.statusCode, removed.body).toBe(200)
+
+    // AN AGENT SESSION (the front-end enablement plan's Task 10): started and ended, so
+    // `agent_session.started` and `agent_session.ended` are REACHED and parsed here too.
+    const session = await post(`/v1/projects/${project.id}/agent-sessions`, {
+      name: 'stream-contract',
+    })
+    const ended = await app.inject({
+      method: 'DELETE',
+      url: `/v1/agent-sessions/${session.session.id}`,
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(ended.statusCode, ended.body).toBe(200)
 
     // The unit tier's whole lifecycle, as `delivery.test.ts` drives it, plus a redeploy so
     // the retirer publishes too: a build that fails, one that succeeds, a release, a

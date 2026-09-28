@@ -25,6 +25,10 @@
       "description": "Operations for the platform’s administrators — today, every project on the platform at a glance (§26)."
     },
     {
+      "name": "agents",
+      "description": "Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget."
+    },
+    {
       "name": "blueprints",
       "description": "The blueprints an app is built from (§25): what each provides, its starters, and the knowledge pack an agent reads before writing code."
     },
@@ -70,6 +74,147 @@
     }
   ],
   "paths": {
+    "/v1/agent-budget": {
+      "get": {
+        "operationId": "getAgentBudget",
+        "tags": [
+          "agents"
+        ],
+        "summary": "Your agent budget this month",
+        "description": "The monthly agent budget of the person the credential acts for — yours, or a delegated token’s minter’s — what their agents have spent across every project, and what remains. `spentUsd` is null with a reason when the model gateway does not answer: never 0 for unknown. Spend lands a few seconds after a call.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentBudget"
+                },
+                "example": {
+                  "monthlyUsd": 10,
+                  "spentUsd": 0.65,
+                  "remainingUsd": 9.35,
+                  "resetsAt": "2026-10-01T00:00:00.000Z",
+                  "unavailable": null
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/agent-sessions/{sessionId}": {
+      "delete": {
+        "operationId": "endAgentSession",
+        "tags": [
+          "agents"
+        ],
+        "summary": "End an agent session",
+        "description": "Revokes the session’s key at the gateway, from the next call onwards, and records what it spent. A person may end any session on their project; a delegated token only the ones it started. Ending twice answers the session as it is.",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "The agent session’s id, from `startAgentSession` or `listAgentSessions`.",
+            "required": true,
+            "schema": {
+              "description": "The agent session’s id, from `startAgentSession` or `listAgentSessions`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The session, ended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSession"
+                },
+                "example": {
+                  "id": "7e3c8584-9d4f-45ca-a800-3de96167d7e0",
+                  "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+                  "name": "Fix the sign-in page",
+                  "person": {
+                    "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+                    "name": "Bio Prof"
+                  },
+                  "via": null,
+                  "models": [
+                    "default-chat",
+                    "default-chat-onprem",
+                    "default-chat-reasoning",
+                    "default-chat-onprem-reasoning",
+                    "default-embed"
+                  ],
+                  "capUsd": 2,
+                  "expiresAt": "2026-09-28T02:27:48.280Z",
+                  "state": "ended",
+                  "endedAt": "2026-09-28T01:27:48.287Z",
+                  "endReason": "ended",
+                  "spentUsd": 0.25,
+                  "spentUnavailable": null,
+                  "createdAt": "2026-09-28T01:27:48.279Z"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "AI_BACKEND_UNAVAILABLE",
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/blueprints": {
       "get": {
         "operationId": "listBlueprints",
@@ -2201,6 +2346,236 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/agent-sessions": {
+      "get": {
+        "operationId": "listAgentSessions",
+        "tags": [
+          "agents"
+        ],
+        "summary": "A project’s agent sessions",
+        "description": "Every agent session on this project, newest first, at most 50 — ended and expired ones included — each with what its key has spent (`spentUsd`, null with a reason when the gateway cannot say, never 0 for unknown). No key is in it.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sessions, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionList"
+                },
+                "example": {
+                  "sessions": [
+                    {
+                      "id": "7e3c8584-9d4f-45ca-a800-3de96167d7e0",
+                      "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+                      "name": "Fix the sign-in page",
+                      "person": {
+                        "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+                        "name": "Bio Prof"
+                      },
+                      "via": null,
+                      "models": [
+                        "default-chat",
+                        "default-chat-onprem",
+                        "default-chat-reasoning",
+                        "default-chat-onprem-reasoning",
+                        "default-embed"
+                      ],
+                      "capUsd": 2,
+                      "expiresAt": "2026-09-28T02:27:48.280Z",
+                      "state": "ended",
+                      "endedAt": "2026-09-28T01:27:48.287Z",
+                      "endReason": "ended",
+                      "spentUsd": 0.25,
+                      "spentUnavailable": null,
+                      "createdAt": "2026-09-28T01:27:48.279Z"
+                    },
+                    {
+                      "id": "860e32ca-5a3e-4698-8bd0-0510a63517f4",
+                      "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+                      "name": "Build the bulletin board",
+                      "person": {
+                        "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+                        "name": "Bio Prof"
+                      },
+                      "via": {
+                        "tokenId": "927eda69-f9bf-465f-8c16-5d6f4602a5c2",
+                        "tokenName": "conversation-42"
+                      },
+                      "models": [
+                        "default-chat",
+                        "default-chat-onprem",
+                        "default-chat-reasoning",
+                        "default-chat-onprem-reasoning",
+                        "default-embed"
+                      ],
+                      "capUsd": 2,
+                      "expiresAt": "2026-09-28T02:27:48.266Z",
+                      "state": "active",
+                      "endedAt": null,
+                      "endReason": null,
+                      "spentUsd": 0.4,
+                      "spentUnavailable": null,
+                      "createdAt": "2026-09-28T01:27:48.266Z"
+                    }
+                  ],
+                  "truncated": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      },
+      "post": {
+        "operationId": "startAgentSession",
+        "tags": [
+          "agents"
+        ],
+        "summary": "Give an agent a model key, charged to you",
+        "description": "§10: a model key for one agent working on this project — on the models the project’s data classification allows (D17), capped (`capUsd`, never more than the platform’s session cap or what remains of your month), and short-lived (`durationMinutes`, never past the credential that asks). **The key is in this answer and nowhere else**: Manifest keeps no copy, and a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session rather than the key — end it and start another if the first answer was lost. Its spend is YOURS — a delegated token’s minter’s — against your monthly agent budget (`getAgentBudget`). The key calls models and nothing else; it is not a Manifest credential.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartAgentSessionRequest"
+              },
+              "example": {
+                "name": "Build the bulletin board",
+                "capUsd": 2,
+                "durationMinutes": 60
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The session, and its key — the only time the key exists outside the gateway.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionStarted"
+                },
+                "example": {
+                  "session": {
+                    "id": "860e32ca-5a3e-4698-8bd0-0510a63517f4",
+                    "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+                    "name": "Build the bulletin board",
+                    "person": {
+                      "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+                      "name": "Bio Prof"
+                    },
+                    "via": {
+                      "tokenId": "927eda69-f9bf-465f-8c16-5d6f4602a5c2",
+                      "tokenName": "conversation-42"
+                    },
+                    "models": [
+                      "default-chat",
+                      "default-chat-onprem",
+                      "default-chat-reasoning",
+                      "default-chat-onprem-reasoning",
+                      "default-embed"
+                    ],
+                    "capUsd": 2,
+                    "expiresAt": "2026-09-28T02:27:48.266Z",
+                    "state": "active",
+                    "endedAt": null,
+                    "endReason": null,
+                    "spentUsd": 0,
+                    "spentUnavailable": null,
+                    "createdAt": "2026-09-28T01:27:48.266Z"
+                  },
+                  "key": "sk-example-not-a-real-key",
+                  "baseUrl": "http://127.0.0.1:7106/v1"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AGENT_BUDGET_EXHAUSTED, AGENT_NO_MODEL_FOR_CLASSIFICATION, AGENT_SESSION_ALREADY_STARTED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "AGENT_BUDGET_EXHAUSTED",
+          "AGENT_NO_MODEL_FOR_CLASSIFICATION",
+          "AGENT_SESSION_ALREADY_STARTED",
+          "AI_BACKEND_UNAVAILABLE",
+          "AI_CATALOGUE_DISABLED",
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/builds": {
       "get": {
         "operationId": "listBuilds",
@@ -3304,6 +3679,33 @@
             "description": "A person was taken off the project (§13). Not published for somebody who was not a member.",
             "example": {
               "memberId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+              "via": "session",
+              "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "tokenId": null
+            }
+          },
+          {
+            "type": "agent_session.started",
+            "description": "An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published.",
+            "example": {
+              "sessionId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+              "models": [
+                "default-chat",
+                "default-embed"
+              ],
+              "capUsd": 2,
+              "expiresAt": "2026-09-27T23:15:00.000Z",
+              "via": "token",
+              "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "tokenId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57"
+            }
+          },
+          {
+            "type": "agent_session.ended",
+            "description": "An agent session’s key was revoked at the gateway (§10).",
+            "example": {
+              "sessionId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+              "reason": "token_revoked",
               "via": "session",
               "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "tokenId": null
@@ -6064,7 +6466,7 @@
           "tokens"
         ],
         "summary": "Revoke a delegated token",
-        "description": "Stops the token authenticating, from the next request onwards. Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.",
+        "description": "Stops the token authenticating, from the next request onwards, and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.",
         "security": [
           {
             "session": []
@@ -6120,7 +6522,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6131,6 +6533,7 @@
           }
         },
         "x-manifest-error-codes": [
+          "AI_CATALOGUE_DISABLED",
           "CSRF_ORIGIN_REFUSED",
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
@@ -6196,6 +6599,290 @@
         },
         "required": [
           "role"
+        ],
+        "additionalProperties": false
+      },
+      "AgentBudget": {
+        "description": "The agent budget of the person a credential acts for — a delegated token’s minter.",
+        "type": "object",
+        "properties": {
+          "monthlyUsd": {
+            "description": "Your monthly budget for agent sessions, in US dollars, across every project.",
+            "type": "number"
+          },
+          "spentUsd": {
+            "description": "This month’s spend across every session of yours, or null when the model gateway did not answer — never 0 for \"unknown\".",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "remainingUsd": {
+            "description": "What is left this month; null when `spentUsd` is.",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resetsAt": {
+            "description": "When the month resets — the first of the next month, 00:00 UTC — or null before your first session.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unavailable": {
+            "description": "Why `spentUsd` is null, when it is.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "monthlyUsd",
+          "spentUsd",
+          "remainingUsd",
+          "resetsAt",
+          "unavailable"
+        ],
+        "additionalProperties": false
+      },
+      "AgentSession": {
+        "description": "One agent’s model session: its key’s bounds, and what it has spent.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The session — what `endAgentSession` names.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "description": "The one project its agent works on.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "name": {
+            "description": "The label it was started with.",
+            "type": "string"
+          },
+          "person": {
+            "description": "Who the session works for, and is charged to.",
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "Their user id.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "name": {
+                "description": "Their display name.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "via": {
+            "description": "The delegated token that started it; null when a person started it in their session.",
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "tokenId": {
+                    "description": "The token — `listTokens` names it.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenName": {
+                    "description": "The label its minter gave it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "tokenId",
+                  "tokenName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "models": {
+            "description": "The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capUsd": {
+            "description": "The most the key may spend, in US dollars. The gateway refuses it past this.",
+            "type": "number"
+          },
+          "expiresAt": {
+            "description": "When the key stops working, whatever anybody does — the gateway enforces it.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "state": {
+            "description": "`expired` is read from `expiresAt`: the key stopped working then, whether or not anybody ended it.",
+            "type": "string",
+            "enum": [
+              "active",
+              "ended",
+              "expired"
+            ]
+          },
+          "endedAt": {
+            "description": "When it was ended; null while it has not been.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endReason": {
+            "description": "Why it ended: `endAgentSession`, the token that started it revoked, or its project switched off or deleted. Null while it has not been ended.",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ended",
+                  "token_revoked",
+                  "project_archived",
+                  "project_deleted"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spentUsd": {
+            "description": "What this session’s key has spent, in US dollars — for an ended session, what the gateway had recorded when it ended (a call in its last seconds may not be counted). Null, never 0, when it is not known: `spentUnavailable` says why.",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spentUnavailable": {
+            "description": "Why `spentUsd` is null, when it is.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "description": "When it was started.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "name",
+          "person",
+          "via",
+          "models",
+          "capUsd",
+          "expiresAt",
+          "state",
+          "endedAt",
+          "endReason",
+          "spentUsd",
+          "spentUnavailable",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "AgentSessionList": {
+        "description": "A project’s agent sessions.",
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "description": "The project’s agent sessions, newest first — ended and expired ones included; at most 50.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSession"
+            }
+          },
+          "truncated": {
+            "description": "Whether there were more than the 50 answered.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sessions",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "AgentSessionStarted": {
+        "description": "A started session, and its key — the only time the key exists outside the gateway.",
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/AgentSession"
+          },
+          "key": {
+            "description": "THE MODEL KEY. Shown in this answer and never again — Manifest keeps no copy. Send it as `Authorization: Bearer <key>` to `baseUrl`. It calls models, and nothing else: it is not a Manifest credential.",
+            "type": "string"
+          },
+          "baseUrl": {
+            "description": "Where the key is used: an OpenAI-compatible API (`/chat/completions`, `/embeddings`, `/models`).",
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "session",
+          "key",
+          "baseUrl"
         ],
         "additionalProperties": false
       },
@@ -7950,6 +8637,9 @@
         "description": "Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.",
         "type": "string",
         "enum": [
+          "AGENT_BUDGET_EXHAUSTED",
+          "AGENT_NO_MODEL_FOR_CLASSIFICATION",
+          "AGENT_SESSION_ALREADY_STARTED",
           "AI_BACKEND_UNAVAILABLE",
           "AI_CATALOGUE_DISABLED",
           "AI_CATALOGUE_EMPTY",
@@ -8068,6 +8758,9 @@
           "WEBHOOK_SIGNATURE_MISSING"
         ],
         "x-enumDescriptions": {
+          "AGENT_BUDGET_EXHAUSTED": "The monthly agent budget of the person this credential acts for is spent, so no key was issued (§10).",
+          "AGENT_NO_MODEL_FOR_CLASSIFICATION": "No model in the platform’s catalogue is approved for this project’s data classification, so no key was issued (D17). An empty model list would be every model to the gateway.",
+          "AGENT_SESSION_ALREADY_STARTED": "This request — its Idempotency-Key — already started an agent session, and its key was answered then. A key is shown once and never again.",
           "AI_BACKEND_UNAVAILABLE": "The gateway could not be reached.",
           "AI_CATALOGUE_DISABLED": "AI is switched off on this control plane.",
           "AI_CATALOGUE_EMPTY": "The gateway returned an empty model catalogue.",
@@ -11962,6 +12655,233 @@
               "createdAt"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "agent_session.started"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published.",
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "description": "The session — `listAgentSessions` names it.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "models": {
+                    "description": "The logical models its key may call — what D17 allows for the project’s data.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "capUsd": {
+                    "description": "The most its key may spend, in US dollars.",
+                    "type": "number"
+                  },
+                  "expiresAt": {
+                    "description": "When its key stops working, whatever anybody does.",
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                  },
+                  "via": {
+                    "description": "How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.",
+                    "type": "string",
+                    "enum": [
+                      "session",
+                      "token"
+                    ]
+                  },
+                  "userId": {
+                    "description": "The person who acted — for a token, the person who minted it. `listMembers` names them.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "description": "The delegated token that acted (`listTokens`); null when the person acted in their own session.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "sessionId",
+                  "models",
+                  "capUsd",
+                  "expiresAt",
+                  "via",
+                  "userId",
+                  "tokenId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "agent_session.ended"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "An agent session’s key was revoked at the gateway (§10).",
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "description": "The session that ended.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "reason": {
+                    "description": "Why: `endAgentSession`, the token that started it revoked, or its project switched off or deleted.",
+                    "type": "string",
+                    "enum": [
+                      "ended",
+                      "token_revoked",
+                      "project_archived",
+                      "project_deleted"
+                    ]
+                  },
+                  "via": {
+                    "description": "How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.",
+                    "type": "string",
+                    "enum": [
+                      "session",
+                      "token"
+                    ]
+                  },
+                  "userId": {
+                    "description": "The person who acted — for a token, the person who minted it. `listMembers` names them.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "description": "The delegated token that acted (`listTokens`); null when the person acted in their own session.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "sessionId",
+                  "reason",
+                  "via",
+                  "userId",
+                  "tokenId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -13683,6 +14603,7 @@
                 "source:write",
                 "secret:write",
                 "output:read",
+                "agent:session",
                 "members:manage",
                 "build:create",
                 "release:create",
@@ -15388,6 +16309,34 @@
         ],
         "additionalProperties": false
       },
+      "StartAgentSessionRequest": {
+        "description": "What an agent session is for, and — optionally — less than the platform’s cap or life.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "A label a person reads in the list of sessions — the task the agent is on.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "capUsd": {
+            "description": "The most this session may spend, in US dollars: the platform’s session cap when absent — and never more than it, nor than what remains of your month.",
+            "type": "number",
+            "minimum": 0.000001,
+            "maximum": 1000
+          },
+          "durationMinutes": {
+            "description": "How long the key lives: 60 minutes by default, at most 480 — and never past the expiry of the credential that asks (a delegated token, or your signed-in session).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 480
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
       "StartBuildRequest": {
         "description": "Which commit to build.",
         "type": "object",
@@ -15607,6 +16556,21 @@
     }
   ],
   "x-manifest-errors": {
+    "AGENT_BUDGET_EXHAUSTED": {
+      "status": 409,
+      "summary": "The monthly agent budget of the person this credential acts for is spent, so no key was issued (§10).",
+      "remedy": "Wait for the month to reset (`getAgentBudget` says when), or ask a platform administrator to raise this person’s agent budget."
+    },
+    "AGENT_NO_MODEL_FOR_CLASSIFICATION": {
+      "status": 409,
+      "summary": "No model in the platform’s catalogue is approved for this project’s data classification, so no key was issued (D17). An empty model list would be every model to the gateway.",
+      "remedy": "Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release."
+    },
+    "AGENT_SESSION_ALREADY_STARTED": {
+      "status": 409,
+      "summary": "This request — its Idempotency-Key — already started an agent session, and its key was answered then. A key is shown once and never again.",
+      "remedy": "Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key."
+    },
     "AI_BACKEND_UNAVAILABLE": {
       "status": 503,
       "summary": "The gateway could not be reached.",

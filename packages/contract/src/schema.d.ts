@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/v1/agent-budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your agent budget this month
+         * @description The monthly agent budget of the person the credential acts for — yours, or a delegated token’s minter’s — what their agents have spent across every project, and what remains. `spentUsd` is null with a reason when the model gateway does not answer: never 0 for unknown. Spend lands a few seconds after a call.
+         */
+        get: operations["getAgentBudget"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agent-sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * End an agent session
+         * @description Revokes the session’s key at the gateway, from the next call onwards, and records what it spent. A person may end any session on their project; a delegated token only the ones it started. Ending twice answers the session as it is.
+         */
+        delete: operations["endAgentSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/blueprints": {
         parameters: {
             query?: never;
@@ -454,6 +494,30 @@ export interface paths {
          * @description Changes what people call the project — `name`, any text of 1 to 80 characters on one line — and nothing else: the slug, and so every hostname and the repository, never changes (§23, D26). Publishes `project.renamed` naming who did it; renaming a project to the name it already has answers the project and publishes nothing.
          */
         patch: operations["updateProject"];
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/agent-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A project’s agent sessions
+         * @description Every agent session on this project, newest first, at most 50 — ended and expired ones included — each with what its key has spent (`spentUsd`, null with a reason when the gateway cannot say, never 0 for unknown). No key is in it.
+         */
+        get: operations["listAgentSessions"];
+        put?: never;
+        /**
+         * Give an agent a model key, charged to you
+         * @description §10: a model key for one agent working on this project — on the models the project’s data classification allows (D17), capped (`capUsd`, never more than the platform’s session cap or what remains of your month), and short-lived (`durationMinutes`, never past the credential that asks). **The key is in this answer and nowhere else**: Manifest keeps no copy, and a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session rather than the key — end it and start another if the first answer was lost. Its spend is YOURS — a delegated token’s minter’s — against your monthly agent budget (`getAgentBudget`). The key calls models and nothing else; it is not a Manifest credential.
+         */
+        post: operations["startAgentSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/projects/{projectId}/builds": {
@@ -992,7 +1056,7 @@ export interface paths {
         post?: never;
         /**
          * Revoke a delegated token
-         * @description Stops the token authenticating, from the next request onwards. Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.
+         * @description Stops the token authenticating, from the next request onwards, and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.
          */
         delete: operations["revokeToken"];
         options?: never;
@@ -1020,6 +1084,99 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "collaborator";
+        };
+        /** @description The agent budget of the person a credential acts for — a delegated token’s minter. */
+        AgentBudget: {
+            /** @description Your monthly budget for agent sessions, in US dollars, across every project. */
+            monthlyUsd: number;
+            /** @description This month’s spend across every session of yours, or null when the model gateway did not answer — never 0 for "unknown". */
+            spentUsd: number | null;
+            /** @description What is left this month; null when `spentUsd` is. */
+            remainingUsd: number | null;
+            /** @description When the month resets — the first of the next month, 00:00 UTC — or null before your first session. */
+            resetsAt: string | null;
+            /** @description Why `spentUsd` is null, when it is. */
+            unavailable: string | null;
+        };
+        /** @description One agent’s model session: its key’s bounds, and what it has spent. */
+        AgentSession: {
+            /**
+             * Format: uuid
+             * @description The session — what `endAgentSession` names.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The one project its agent works on.
+             */
+            projectId: string;
+            /** @description The label it was started with. */
+            name: string;
+            /** @description Who the session works for, and is charged to. */
+            person: {
+                /**
+                 * Format: uuid
+                 * @description Their user id.
+                 */
+                id: string;
+                /** @description Their display name. */
+                name: string;
+            };
+            /** @description The delegated token that started it; null when a person started it in their session. */
+            via: {
+                /**
+                 * Format: uuid
+                 * @description The token — `listTokens` names it.
+                 */
+                tokenId: string;
+                /** @description The label its minter gave it. */
+                tokenName: string;
+            } | null;
+            /** @description The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has. */
+            models: string[];
+            /** @description The most the key may spend, in US dollars. The gateway refuses it past this. */
+            capUsd: number;
+            /**
+             * Format: date-time
+             * @description When the key stops working, whatever anybody does — the gateway enforces it.
+             */
+            expiresAt: string;
+            /**
+             * @description `expired` is read from `expiresAt`: the key stopped working then, whether or not anybody ended it.
+             * @enum {string}
+             */
+            state: "active" | "ended" | "expired";
+            /** @description When it was ended; null while it has not been. */
+            endedAt: string | null;
+            /** @description Why it ended: `endAgentSession`, the token that started it revoked, or its project switched off or deleted. Null while it has not been ended. */
+            endReason: ("ended" | "token_revoked" | "project_archived" | "project_deleted") | null;
+            /** @description What this session’s key has spent, in US dollars — for an ended session, what the gateway had recorded when it ended (a call in its last seconds may not be counted). Null, never 0, when it is not known: `spentUnavailable` says why. */
+            spentUsd: number | null;
+            /** @description Why `spentUsd` is null, when it is. */
+            spentUnavailable: string | null;
+            /**
+             * Format: date-time
+             * @description When it was started.
+             */
+            createdAt: string;
+        };
+        /** @description A project’s agent sessions. */
+        AgentSessionList: {
+            /** @description The project’s agent sessions, newest first — ended and expired ones included; at most 50. */
+            sessions: components["schemas"]["AgentSession"][];
+            /** @description Whether there were more than the 50 answered. */
+            truncated: boolean;
+        };
+        /** @description A started session, and its key — the only time the key exists outside the gateway. */
+        AgentSessionStarted: {
+            session: components["schemas"]["AgentSession"];
+            /** @description THE MODEL KEY. Shown in this answer and never again — Manifest keeps no copy. Send it as `Authorization: Bearer <key>` to `baseUrl`. It calls models, and nothing else: it is not a Manifest credential. */
+            key: string;
+            /**
+             * Format: uri
+             * @description Where the key is used: an OpenAI-compatible API (`/chat/completions`, `/embeddings`, `/models`).
+             */
+            baseUrl: string;
         };
         /** @description An environment’s app secrets, by name: which are declared and which are set. */
         AppSecretList: {
@@ -1641,7 +1798,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -3523,6 +3680,120 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "agent_session.started";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published. */
+            machineDetail: {
+                /**
+                 * Format: uuid
+                 * @description The session — `listAgentSessions` names it.
+                 */
+                sessionId: string;
+                /** @description The logical models its key may call — what D17 allows for the project’s data. */
+                models: string[];
+                /** @description The most its key may spend, in US dollars. */
+                capUsd: number;
+                /**
+                 * Format: date-time
+                 * @description When its key stops working, whatever anybody does.
+                 */
+                expiresAt: string;
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
+                via: "session" | "token";
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
+                userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
+                tokenId: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "agent_session.ended";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description An agent session’s key was revoked at the gateway (§10). */
+            machineDetail: {
+                /**
+                 * Format: uuid
+                 * @description The session that ended.
+                 */
+                sessionId: string;
+                /**
+                 * @description Why: `endAgentSession`, the token that started it revoked, or its project switched off or deleted.
+                 * @enum {string}
+                 */
+                reason: "ended" | "token_revoked" | "project_archived" | "project_deleted";
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
+                via: "session" | "token";
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
+                userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
+                tokenId: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
         };
         /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
         Fleet: {
@@ -4209,7 +4480,7 @@ export interface components {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
             /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve or launch:record, which are person-only and refused outright. */
-            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "quota:set" | "secret:read")[];
+            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "agent:session" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "quota:set" | "secret:read")[];
             /** @description How long the token lives, in days. D24: a token has an expiry, and at most 365 days of one. */
             expiresInDays: number;
         };
@@ -4797,6 +5068,15 @@ export interface components {
             warnings: components["schemas"]["ManifestError"][];
             sensitiveDiff: components["schemas"]["SensitiveDiff"];
         };
+        /** @description What an agent session is for, and — optionally — less than the platform’s cap or life. */
+        StartAgentSessionRequest: {
+            /** @description A label a person reads in the list of sessions — the task the agent is on. */
+            name: string;
+            /** @description The most this session may spend, in US dollars: the platform’s session cap when absent — and never more than it, nor than what remains of your month. */
+            capUsd?: number;
+            /** @description How long the key lives: 60 minutes by default, at most 480 — and never past the expiry of the credential that asks (a delegated token, or your signed-in session). */
+            durationMinutes?: number;
+        };
         /** @description Which commit to build. */
         StartBuildRequest: {
             /** @description The full id of the commit to build. Without it, the commit of the project’s newest recorded validation — which need not be `main`’s head: name the commit you mean. */
@@ -4870,6 +5150,106 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getAgentBudget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The budget. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "monthlyUsd": 10,
+                     *       "spentUsd": 0.65,
+                     *       "remainingUsd": 9.35,
+                     *       "resetsAt": "2026-10-01T00:00:00.000Z",
+                     *       "unavailable": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AgentBudget"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    endAgentSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The agent session’s id, from `startAgentSession` or `listAgentSessions`. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session, ended. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "7e3c8584-9d4f-45ca-a800-3de96167d7e0",
+                     *       "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+                     *       "name": "Fix the sign-in page",
+                     *       "person": {
+                     *         "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+                     *         "name": "Bio Prof"
+                     *       },
+                     *       "via": null,
+                     *       "models": [
+                     *         "default-chat",
+                     *         "default-chat-onprem",
+                     *         "default-chat-reasoning",
+                     *         "default-chat-onprem-reasoning",
+                     *         "default-embed"
+                     *       ],
+                     *       "capUsd": 2,
+                     *       "expiresAt": "2026-09-28T02:27:48.280Z",
+                     *       "state": "ended",
+                     *       "endedAt": "2026-09-28T01:27:48.287Z",
+                     *       "endReason": "ended",
+                     *       "spentUsd": 0.25,
+                     *       "spentUnavailable": null,
+                     *       "createdAt": "2026-09-28T01:27:48.279Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AgentSession"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     listBlueprints: {
         parameters: {
             query?: never;
@@ -6367,6 +6747,178 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAgentSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sessions, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "sessions": [
+                     *         {
+                     *           "id": "7e3c8584-9d4f-45ca-a800-3de96167d7e0",
+                     *           "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+                     *           "name": "Fix the sign-in page",
+                     *           "person": {
+                     *             "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+                     *             "name": "Bio Prof"
+                     *           },
+                     *           "via": null,
+                     *           "models": [
+                     *             "default-chat",
+                     *             "default-chat-onprem",
+                     *             "default-chat-reasoning",
+                     *             "default-chat-onprem-reasoning",
+                     *             "default-embed"
+                     *           ],
+                     *           "capUsd": 2,
+                     *           "expiresAt": "2026-09-28T02:27:48.280Z",
+                     *           "state": "ended",
+                     *           "endedAt": "2026-09-28T01:27:48.287Z",
+                     *           "endReason": "ended",
+                     *           "spentUsd": 0.25,
+                     *           "spentUnavailable": null,
+                     *           "createdAt": "2026-09-28T01:27:48.279Z"
+                     *         },
+                     *         {
+                     *           "id": "860e32ca-5a3e-4698-8bd0-0510a63517f4",
+                     *           "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+                     *           "name": "Build the bulletin board",
+                     *           "person": {
+                     *             "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+                     *             "name": "Bio Prof"
+                     *           },
+                     *           "via": {
+                     *             "tokenId": "927eda69-f9bf-465f-8c16-5d6f4602a5c2",
+                     *             "tokenName": "conversation-42"
+                     *           },
+                     *           "models": [
+                     *             "default-chat",
+                     *             "default-chat-onprem",
+                     *             "default-chat-reasoning",
+                     *             "default-chat-onprem-reasoning",
+                     *             "default-embed"
+                     *           ],
+                     *           "capUsd": 2,
+                     *           "expiresAt": "2026-09-28T02:27:48.266Z",
+                     *           "state": "active",
+                     *           "endedAt": null,
+                     *           "endReason": null,
+                     *           "spentUsd": 0.4,
+                     *           "spentUnavailable": null,
+                     *           "createdAt": "2026-09-28T01:27:48.266Z"
+                     *         }
+                     *       ],
+                     *       "truncated": false
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AgentSessionList"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    startAgentSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "name": "Build the bulletin board",
+                 *       "capUsd": 2,
+                 *       "durationMinutes": 60
+                 *     }
+                 */
+                "application/json": components["schemas"]["StartAgentSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description The session, and its key — the only time the key exists outside the gateway. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "session": {
+                     *         "id": "860e32ca-5a3e-4698-8bd0-0510a63517f4",
+                     *         "projectId": "c58a9190-1c1b-42e0-a0a2-a79397d85bf5",
+                     *         "name": "Build the bulletin board",
+                     *         "person": {
+                     *           "id": "faa3ced2-b2a9-4e6e-bc81-3f1b9aeec390",
+                     *           "name": "Bio Prof"
+                     *         },
+                     *         "via": {
+                     *           "tokenId": "927eda69-f9bf-465f-8c16-5d6f4602a5c2",
+                     *           "tokenName": "conversation-42"
+                     *         },
+                     *         "models": [
+                     *           "default-chat",
+                     *           "default-chat-onprem",
+                     *           "default-chat-reasoning",
+                     *           "default-chat-onprem-reasoning",
+                     *           "default-embed"
+                     *         ],
+                     *         "capUsd": 2,
+                     *         "expiresAt": "2026-09-28T02:27:48.266Z",
+                     *         "state": "active",
+                     *         "endedAt": null,
+                     *         "endReason": null,
+                     *         "spentUsd": 0,
+                     *         "spentUnavailable": null,
+                     *         "createdAt": "2026-09-28T01:27:48.266Z"
+                     *       },
+                     *       "key": "sk-example-not-a-real-key",
+                     *       "baseUrl": "http://127.0.0.1:7106/v1"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AgentSessionStarted"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AGENT_BUDGET_EXHAUSTED, AGENT_NO_MODEL_FOR_CLASSIFICATION, AGENT_SESSION_ALREADY_STARTED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8813,7 +9365,7 @@ export interface operations {
                     "application/json": components["schemas"]["Token"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

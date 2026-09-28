@@ -118,8 +118,13 @@ export async function ensureTestUser(
  * wants `{ manifest_session: <value> }` and an HTTP client wants a `Cookie`
  * header, and neither is worth a second signing path.
  */
-export function testSessionToken(user: SessionUser, secret: string): string {
-  return signSession(issueSession(user), secret)
+export function testSessionToken(
+  user: SessionUser,
+  secret: string,
+  /** When the session was signed in — earlier than now for one close to its expiry (Task 10). */
+  issuedAt: number = Date.now(),
+): string {
+  return signSession(issueSession(user, issuedAt), secret)
 }
 
 /** The `Cookie` header form, for anything driving real HTTP. */
@@ -142,8 +147,9 @@ export function testSessionCookie(user: SessionUser, secret: string): string {
 export function testSessionCookies(
   user: SessionUser,
   secret: string,
+  issuedAt?: number,
 ): Record<typeof SESSION_COOKIE, string> {
-  return { [SESSION_COOKIE]: testSessionToken(user, secret) }
+  return { [SESSION_COOKIE]: testSessionToken(user, secret, issuedAt) }
 }
 
 /* ------------------------------------------------------------------------- *

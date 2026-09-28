@@ -645,4 +645,40 @@ export const EVENT_DETAIL_SCHEMAS = {
     .describe(
       'A person was taken off the project (§13). Not published for somebody who was not a member.',
     ),
+  /**
+   * The front-end enablement plan's Task 10. `userId` is who started it — the person charged, a
+   * token's minter when a token did — beside `via` and `tokenId`, as every event since Task 6.
+   */
+  'agent_session.started': z
+    .strictObject({
+      sessionId: Uuid.describe('The session — `listAgentSessions` names it.'),
+      models: z
+        .array(z.string())
+        .describe(
+          'The logical models its key may call — what D17 allows for the project’s data.',
+        ),
+      capUsd: z.number().describe('The most its key may spend, in US dollars.'),
+      expiresAt: z.iso
+        .datetime()
+        .describe('When its key stops working, whatever anybody does.'),
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe(
+      'An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published.',
+    ),
+  'agent_session.ended': z
+    .strictObject({
+      sessionId: Uuid.describe('The session that ended.'),
+      reason: z
+        .enum(['ended', 'token_revoked', 'project_archived', 'project_deleted'])
+        .describe(
+          'Why: `endAgentSession`, the token that started it revoked, or its project switched off or deleted.',
+        ),
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe('An agent session’s key was revoked at the gateway (§10).'),
 } satisfies Record<EventType, z.ZodType>

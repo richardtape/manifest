@@ -91,6 +91,16 @@ export const JOURNEY: readonly JourneyStep[] = [
     operations: ['listInstances', 'getInstanceOutput'],
   },
   {
+    step: 'Give an agent model access, charged to you, and see what it has spent',
+    who: 'either',
+    operations: [
+      'startAgentSession',
+      'listAgentSessions',
+      'endAgentSession',
+      'getAgentBudget',
+    ],
+  },
+  {
     step: 'Ask for a privileged action and wait for a person',
     who: 'agent',
     operations: ['listPendingActions', 'getPendingAction'],

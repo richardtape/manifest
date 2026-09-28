@@ -47,6 +47,7 @@ export function sessionActor(input: {
   platformRole?: 'admin' | 'member'
   puid?: string
   steppedUpAt?: number | null
+  expiresAt?: number
 }): SessionActor {
   return {
     credential: 'session',
@@ -54,5 +55,7 @@ export function sessionActor(input: {
     platformRole: input.platformRole ?? 'member',
     puid: input.puid ?? 'puid-test',
     steppedUpAt: input.steppedUpAt ?? null,
+    // A session signed in now: SESSION_TTL_MS (12 h) from the moment the actor is made.
+    expiresAt: input.expiresAt ?? Date.now() + 12 * 60 * 60 * 1000,
   }
 }

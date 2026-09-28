@@ -981,9 +981,14 @@ export interface TestProject {
 
 export async function withProjectServer(
   fn: (ctx: TestProject) => Promise<void>,
+  /**
+   * Dependencies to lay over `testDeps()`'s — `{ llm: fakeLiteLlm() }` for a route that talks to
+   * the model gateway (the front-end enablement plan's Task 10), which the harness has none of.
+   */
+  overrides: Partial<ServerDeps> = {},
 ): Promise<void> {
   await resetDatabase()
-  const deps = await testDeps()
+  const deps = { ...(await testDeps()), ...overrides }
   const app = await buildServer(deps)
   try {
     const ownerCookies = await loginAs(deps, 'bio_prof')

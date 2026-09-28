@@ -18,6 +18,7 @@ Every step from an idea to a launched app, who takes it, and the operations that
 | Build it and read the log | either | `startBuild`, `getBuild`, `getBuildLog`, `listBuilds`, `streamProjectEvents` |
 | Release it and deploy it to staging | either | `createRelease`, `getRelease`, `listReleases`, `deploy`, `listEnvironments`, `getEnvironment`, `listIncidents` |
 | Read a running app’s recent output to debug it | either | `listInstances`, `getInstanceOutput` |
+| Give an agent model access, charged to you, and see what it has spent | either | `startAgentSession`, `listAgentSessions`, `endAgentSession`, `getAgentBudget` |
 | Ask for a privileged action and wait for a person | agent | `listPendingActions`, `getPendingAction` |
 | Answer an agent’s question | person | `confirmPendingAction`, `rejectPendingAction` |
 | See what a first launch needs, rehearse, and record UBC’s answers | either | `getLaunchReadiness`, `getLaunchRecords`, `runRehearsal`, `recordIamRegistration`, `recordPrivacyAssessment` |

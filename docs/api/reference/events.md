@@ -538,3 +538,36 @@ A person was taken off the project (§13). Not published for somebody who was no
   "tokenId": null
 }
 ```
+
+## `agent_session.started`
+
+An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published.
+
+```json
+{
+  "sessionId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+  "models": [
+    "default-chat",
+    "default-embed"
+  ],
+  "capUsd": 2,
+  "expiresAt": "2026-09-27T23:15:00.000Z",
+  "via": "token",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57"
+}
+```
+
+## `agent_session.ended`
+
+An agent session’s key was revoked at the gateway (§10).
+
+```json
+{
+  "sessionId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+  "reason": "token_revoked",
+  "via": "session",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": null
+}
+```

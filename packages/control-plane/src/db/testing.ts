@@ -100,6 +100,9 @@ const TABLES = [
   // the other; it does not, and cannot, so this is here only so the reset does not depend
   // on a foreign key staying as it is. `pending_actions` is named first of the two anyway,
   // being the referencing side, for a reader who arrives when that is no longer free.
+  // The front-end enablement plan's Task 10: references `projects`, `users` and `delegated_tokens`
+  // with NO cascade, so it must go before all three — named, as `routes` is.
+  'agent_sessions',
   'pending_actions',
   'delegated_tokens',
   'project_members',

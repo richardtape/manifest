@@ -75,6 +75,12 @@ const CAPABILITIES = everyCapability([
    * can be in what an app prints, so a read-only dashboard token does not carry it by default.
    */
   'output:read',
+  /**
+   * Giving the agent a model key, charged to the person who minted the token (§10; the front-end
+   * enablement plan's Task 10). Mintable — the agent's spend is its minter's, capped per session
+   * and by their monthly agent budget, and a token ends only the sessions it started.
+   */
+  'agent:session',
   'members:manage',
   'build:create',
   'release:create',
