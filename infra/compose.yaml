@@ -65,7 +65,7 @@ services:
       #
       # §12's TWO LISTENERS, made real on the host (P6a, R3). The zones are NESTED and
       # PRODUCTION IS THE PARENT — `manifest.internal` contains `staging.` and `sandbox.`
-      # AND `console.` AND `idp.` AND `edge.` — so the parent rule below would move the
+      # AND `console.` AND `idp.` AND `edge.` AND `app.` — so the parent rule below would move the
       # console, the IdP and the edge probe onto the public address if the more-specific
       # rules did not pin them back. A plan that says "point the production zone at the
       # new alias" takes the console down; measured on a throwaway resolver before this
@@ -78,6 +78,11 @@ services:
       - --address=/console.manifest.internal/127.0.0.2
       - --address=/idp.manifest.internal/127.0.0.2
       - --address=/edge.manifest.internal/127.0.0.2
+      # THE FACULTY FRONT-END'S ORIGIN (§21 as Spec action 2 amended it; the front-end enablement
+      # plan's Task 8): a platform surface in the bare production zone exactly as `console.` is,
+      # so the parent rule above would send it to the PUBLIC listener's wildcard (`manifest OK …
+      # listener=public`, measured by that plan's `[M4]`) — pinned back, beside `console.`.
+      - --address=/app.manifest.internal/127.0.0.2
 
   caddy:
     build: { context: ./caddy }

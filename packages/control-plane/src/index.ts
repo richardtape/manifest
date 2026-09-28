@@ -22,7 +22,7 @@ import { createSourceObserver, loadReservedLabels } from './projects/index.js'
 import { expirePendingActions } from './tokens/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
-import { createSamlSp } from './identity/index.js'
+import { createSamlSpFor } from './identity/index.js'
 import { createEventBus } from './observability/index.js'
 import { NullReviewer } from './launch/index.js'
 import {
@@ -258,7 +258,9 @@ const sso = createSsoRegistrar(
  */
 const spEntity = controlPlaneSpEntity({
   entityBase: config.idp.spEntityBase,
-  origin: config.sp.origin,
+  // EVERY ORIGIN a person signs in on, the console's first (the front-end enablement plan's
+  // Task 8): one entity, one assertion-consumer URL per origin, one row.
+  origins: config.origins,
 })
 // `describeKeypair`, not two fields and a hand-stripped certData: the armour
 // stripping is the detail S2 Evidence 8 measured a failure on, and the
@@ -368,7 +370,8 @@ const app = await buildServer({
     slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }),
     tokens: createKeyedRateLimiter({ windowMs: TOKEN_RATE_WINDOW_MS }),
   },
-  samlSp: createSamlSp({
+  // One SAML client per origin (Task 8, Decision 17) — each names its own origin's ACS.
+  samlSpFor: createSamlSpFor({
     entity: spEntity,
     idpBaseUrl: config.idp.baseUrl,
     idpEntityId: config.idp.entityId,
@@ -445,6 +448,9 @@ console.log(
     // demo reads this before it signs in, because a control plane booted at another
     // origin registers an ACS the IdP will post to instead.
     origin: config.sp.origin,
+    // Every origin a person signs in on (the front-end enablement plan's Task 8) — the console's
+    // first, then the faculty front-end's unless MANIFEST_FRONTEND_ORIGIN is empty.
+    origins: config.origins,
     // The other fact this file decides. Read back by boot.docker.test.ts.
     ai: catalogue.enabled ? 'enabled' : 'disabled',
     // What the recovery above did, on the one line an operator reads — and the one

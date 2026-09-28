@@ -9,6 +9,7 @@ import {
   type StreamFrame,
 } from '../../observability/index.js'
 import { assertSameOrigin } from '../csrf.js'
+import { originOf } from '../origins.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
 /** A refusal AFTER the upgrade: "you may not", distinct from 1011's "I broke". */
@@ -73,7 +74,7 @@ export async function registerEventRoutes(
       // suite's 426 — is not an upgrade and reads nothing. First, so a refused origin
       // learns nothing about the project either.
       if (isUpgrade(request)) {
-        assertSameOrigin(request, deps.config.sp.origin)
+        assertSameOrigin(request, originOf(request, deps.config.origins))
       }
       await authorizeStream(deps, request)
     },
@@ -92,7 +93,7 @@ export async function registerEventRoutes(
     wsHandler: async (socket, request) => {
       // The origin, read a second time for the same reason authorization is below.
       try {
-        assertSameOrigin(request, deps.config.sp.origin)
+        assertSameOrigin(request, originOf(request, deps.config.origins))
       } catch {
         socket.close(CLOSE_FORBIDDEN, 'forbidden')
         return

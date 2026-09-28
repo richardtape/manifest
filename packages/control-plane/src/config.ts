@@ -108,6 +108,16 @@ const envSchema = z.object({
     .min(1)
     .default('https://console.manifest.internal'),
   /**
+   * THE FACULTY FRONT-END'S ORIGIN (§21 as Spec action 2 amended it, 2026-09-27; the front-end
+   * enablement plan's Task 8, Decision 16) — the SECOND origin a person signs in on, after the
+   * console's. `app.manifest.internal` on the laptop, `app.<production zone>` at UBC. **Empty
+   * disables it**, and then the control plane serves the console's origin alone, as it did
+   * before. The edge serves `/v1/*` and `/auth/*` on it exactly as on the console's (Decision
+   * 19); the control plane judges each request against the origin it ARRIVED on
+   * (`api/origins.ts`), and its one SP registration carries an ACS for each (Decision 17).
+   */
+  MANIFEST_FRONTEND_ORIGIN: z.string().default('https://app.manifest.internal'),
+  /**
    * The control plane's OWN Service Provider keypair — the one that signs its
    * AuthnRequests and whose certificate its `saml20_sp_remote` row pins.
    *
@@ -335,9 +345,20 @@ export interface Config {
   }
   port: number
   sessionSecret: string
+  /**
+   * EVERY ORIGIN A PERSON SIGNS IN ON — the console's FIRST (it is `sp.origin`), then the faculty
+   * front-end's when `MANIFEST_FRONTEND_ORIGIN` is set (the front-end enablement plan's Task 8).
+   * No two share a host, so a request's `Host` names exactly one; `api/origins.ts`'s `originOf`
+   * picks it, and CSRF, the sign-in, the step-up and the sign-out all read THAT one.
+   */
+  origins: readonly string[]
   /** §9: Manifest is its own SP. Everything that registration is built from. */
   sp: {
-    /** A bare origin — the one thing the platform's own ACS URL is derived from. */
+    /**
+     * A bare origin — the FIRST of `origins`, the console's. The platform's first ACS URL and
+     * its one SLO URL are derived from it (Decision 17), and a request whose host names no
+     * configured origin is judged against it.
+     */
     origin: string
     /** Absolute. */
     privateKeyPath: string
@@ -441,16 +462,53 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
    * checked: behind a reverse proxy the public port is legitimately not ours.
    */
   const spOrigin = raw.MANIFEST_CONTROL_PLANE_ORIGIN
-  const loopback = /^https?:\/\/(127\.0\.0\.1|\[::1\]|localhost)(?::(\d+))?$/.exec(
+  // APPLIED TO EVERY ORIGIN (the front-end enablement plan's Task 8): the front-end's is an ACS
+  // the IdP posts to exactly as the console's is, and the Docker tier boots it at loopback too.
+  const checkLoopbackPort = (setting: string, origin: string, code: string) => {
+    const loopback = /^https?:\/\/(127\.0\.0\.1|\[::1\]|localhost)(?::(\d+))?$/.exec(
+      origin,
+    )
+    if (loopback && Number(loopback[2] ?? '80') !== raw.MANIFEST_PORT) {
+      throw new ConfigError(
+        code,
+        `${setting} is '${origin}' but MANIFEST_PORT is ` +
+          `${raw.MANIFEST_PORT}. The origin is what the IdP posts a person's assertion ` +
+          'back to, so a loopback origin naming a different port registers a callback ' +
+          'nothing is listening on.',
+      )
+    }
+  }
+  checkLoopbackPort(
+    'MANIFEST_CONTROL_PLANE_ORIGIN',
     spOrigin,
+    'CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH',
   )
-  if (loopback && Number(loopback[2] ?? '80') !== raw.MANIFEST_PORT) {
+  const frontendOrigin = raw.MANIFEST_FRONTEND_ORIGIN
+  if (frontendOrigin !== '') {
+    checkLoopbackPort(
+      'MANIFEST_FRONTEND_ORIGIN',
+      frontendOrigin,
+      'CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH',
+    )
+  }
+  const origins = [spOrigin, ...(frontendOrigin === '' ? [] : [frontendOrigin])]
+  // A request names its origin by its HOST (`api/origins.ts`), so two origins on one host would
+  // be one origin with two answers — refused here rather than resolved silently to the first.
+  // The FORMAT of each (a bare origin) is `controlPlaneSpEntity`'s check, at boot.
+  const hostOf = (origin: string) => {
+    try {
+      return new URL(origin).host.toLowerCase()
+    } catch {
+      return origin.toLowerCase()
+    }
+  }
+  if (origins.length > 1 && hostOf(origins[0]!) === hostOf(origins[1]!)) {
     throw new ConfigError(
-      'CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH',
-      `MANIFEST_CONTROL_PLANE_ORIGIN is '${spOrigin}' but MANIFEST_PORT is ` +
-        `${raw.MANIFEST_PORT}. The origin is what the IdP posts a person's assertion ` +
-        'back to, so a loopback origin naming a different port registers a callback ' +
-        'nothing is listening on.',
+      'CONFIG_ORIGINS_SHARE_A_HOST',
+      `MANIFEST_CONTROL_PLANE_ORIGIN '${origins[0]}' and MANIFEST_FRONTEND_ORIGIN ` +
+        `'${origins[1]}' are on one host. A request says which origin it arrived on by its ` +
+        'Host, so each origin needs a host of its own — or set MANIFEST_FRONTEND_ORIGIN to ' +
+        'the empty string to serve the console’s origin alone.',
     )
   }
 
@@ -564,6 +622,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     port: raw.MANIFEST_PORT,
     sessionSecret: raw.MANIFEST_SESSION_SECRET,
+    origins,
     sp: {
       origin: spOrigin,
       privateKeyPath: fromRepoRoot(raw.MANIFEST_SP_PRIVATE_KEY),

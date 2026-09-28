@@ -48,6 +48,7 @@ export {
   CONTROL_PLANE_ATTRIBUTES,
   CONTROL_PLANE_ENVIRONMENT,
   CONTROL_PLANE_SLUG,
+  type ControlPlaneEndpoint,
   type ControlPlaneSpInput,
 } from './platform.js'
 export {

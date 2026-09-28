@@ -290,14 +290,18 @@ check "both loopback aliases exist"  check_aliases
 # `split-probe` is a name no Caddyfile site and no app owns, so it reads the zone's
 # parent rule rather than anything's configuration.
 check_zone_split() {
-  local app internal
+  local app internal frontend
   app="$(dig +short "split-probe.$ZONE" @127.0.0.1 -p "$PORT_DNS" | head -1)"
   internal="$(dig +short "$CONSOLE_HOST" @127.0.0.1 -p "$PORT_DNS" | head -1)"
+  # The faculty front-end's origin is pinned back beside the console's (the front-end enablement
+  # plan's Task 8): unpinned, it answers the PUBLIC wildcard's `manifest OK` (its `[M4]`).
+  frontend="$(dig +short "$APP_HOST" @127.0.0.1 -p "$PORT_DNS" | head -1)"
   [ "$app" = "$PUBLIC_EDGE_IP" ] || { echo "a production name answers ${app:-<nothing>}, want $PUBLIC_EDGE_IP"; return 1; }
   [ "$internal" = "$EDGE_IP" ] || { echo "$CONSOLE_HOST answers ${internal:-<nothing>}, want $EDGE_IP — the console is on the PUBLIC address"; return 1; }
-  echo "production=$app  console=$internal  (nested zones, pinned back)"
+  [ "$frontend" = "$EDGE_IP" ] || { echo "$APP_HOST answers ${frontend:-<nothing>}, want $EDGE_IP — the front-end's origin is on the PUBLIC address"; return 1; }
+  echo "production=$app  console=$internal  app=$frontend  (nested zones, pinned back)"
 }
-check "the production zone answers the public address, and the console does not"  check_zone_split
+check "the production zone answers the public address, and the console and app do not"  check_zone_split
 
 check_ca_keychain() {
   local n

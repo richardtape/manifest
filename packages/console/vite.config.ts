@@ -16,6 +16,22 @@ import { defineConfig, type Plugin } from 'vite'
 const MOCK = process.env.MANIFEST_MOCK === undefined ? undefined : 'http://127.0.0.1:7102'
 
 /**
+ * THE TWO ORIGINS THE EDGE SERVES THIS CONSOLE ON (the front-end enablement plan's Task 8,
+ * Decision 19): the console's own, and the faculty front-end's — `app.manifest.internal`, whose
+ * non-API paths go to 7105. Nothing in this repository serves 7105 except THIS console, for a
+ * clicked half of an acceptance, because it is the one client here that signs a person in
+ * through a browser (RUNBOOK, *Serving the reference console on the front-end's origin*):
+ *
+ *   MANIFEST_CONSOLE_HOST=app.manifest.internal pnpm --filter @manifest/console preview --port 7105 --strictPort
+ *
+ * `MANIFEST_CONSOLE_HOST` names where the PAGE is reached, which is what HMR's socket must be
+ * told; the page reads `window.location.origin` for every call (`src/app.tsx`, `src/stream.ts`),
+ * so it needs nothing else to call the API on the origin it was served from.
+ */
+const ALLOWED_HOSTS = ['console.manifest.internal', 'app.manifest.internal']
+const CONSOLE_HOST = process.env.MANIFEST_CONSOLE_HOST ?? 'console.manifest.internal'
+
+/**
  * THE HTML REFERENCE'S RENDERER, SERVED FROM THE PINNED PACKAGE (the authoring API plan's Task
  * 11, Decision 17 and `[M9]`'s first correction). What was measured offline is Scalar's
  * STANDALONE bundle — one file, no build step — not its ESM entry bundled by Vite, which is a
@@ -74,7 +90,7 @@ export default defineConfig({
     // console.manifest.internal` rather than rewriting it to the upstream (F7). Without
     // this line the console is a blank page and the reason is in Vite's terminal, not the
     // browser's.
-    allowedHosts: ['console.manifest.internal'],
+    allowedHosts: ALLOWED_HOSTS,
     // Task 1's M3 measured that a WebSocket upgrade DOES survive the edge hop to a host
     // process on 7104, from a Node client and from a real browser, with `Host` and path
     // intact (F13) — so the plan's `hmr: false` fallback branch is not taken. HMR's socket
@@ -82,7 +98,7 @@ export default defineConfig({
     // 7104/ws.
     hmr:
       MOCK === undefined
-        ? { protocol: 'wss', host: 'console.manifest.internal', clientPort: 443 }
+        ? { protocol: 'wss', host: CONSOLE_HOST, clientPort: 443 }
         : { protocol: 'ws', host: '127.0.0.1', clientPort: 7104 },
     // `ws: true` on both, because the project's event stream is an upgrade and a proxy that
     // forwards only HTTP leaves the console at `connecting` for ever.
@@ -94,7 +110,7 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 7104,
     strictPort: true,
-    allowedHosts: ['console.manifest.internal'],
+    allowedHosts: ALLOWED_HOSTS,
   },
   // TWO PAGES (the authoring API plan's Task 11, Decision 17): the console, and the HTML reference
   // outside `src/`, whose boundary is its own (`src/boundary.test.ts`).

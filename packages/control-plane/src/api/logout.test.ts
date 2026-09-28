@@ -364,6 +364,146 @@ describe('the console’s sign-out ends the IdP session (P6b F10)', () => {
  * file" before it ever looks at the signature, so single logout failed against the
  * real IdP while every test firing garbage at the route passed.
  */
+/**
+ * THE SIGN-OUT'S WAY HOME ON THE FACULTY FRONT-END'S ORIGIN (the front-end enablement plan's
+ * Task 8, Decision 18). `POST /auth/logout` on `app` clears app's cookie and sends the IdP a
+ * LogoutRequest carrying `RelayState` = app's origin. SimpleSAMLphp answers at the FIRST
+ * SingleLogoutService — the console's `/auth/logout` (`[M5]`) — with `RelayState` unchanged and
+ * SIGNED, and that route validates the answer with the client of the origin it names (whose cache
+ * holds the request) and sends the browser there. Anything else it names lands on `/`.
+ */
+describe('a sign-out begun on the front-end’s origin ends there (Task 8)', () => {
+  const APP_HOST = 'app.manifest.internal'
+  const APP_ORIGIN = 'https://app.manifest.internal'
+
+  async function signInOn(app: App, idp: TestIdp, host: string): Promise<string> {
+    const login = await app.inject({
+      method: 'GET',
+      url: '/auth/login',
+      headers: { host },
+    })
+    expect(login.statusCode).toBe(302)
+    const location = login.headers.location as string
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/saml/callback',
+      headers: { host },
+      payload: {
+        SAMLResponse: idp.sign({
+          audience: SP_ENTITY,
+          destination: `https://${host}/auth/saml/callback`,
+          inResponseTo: authnRequestId(location),
+          attributes: INSTRUCTOR,
+          sessionIndex: '_sess-app',
+        }),
+        RelayState: new URL(location).searchParams.get('RelayState') ?? '',
+      },
+      cookies: {
+        manifest_login: login.cookies.find((c) => c.name === 'manifest_login')!.value,
+      },
+    })
+    expect(res.statusCode, res.body).toBe(302)
+    return res.cookies.find((c) => c.name === 'manifest_session')!.value
+  }
+
+  const signOutOn = (app: App, session: string, host: string, origin: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/auth/logout',
+      headers: { host, origin },
+      cookies: { manifest_session: session },
+    })
+
+  const requestIdOf = (redirectTo: string) =>
+    /\bID="([^"]+)"/.exec(logoutRequestXml(redirectTo))?.[1]
+
+  it('a sign-out begun on app names app as its RelayState, and the IdP’s answer at the console’s SLO sends the browser back to app', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signInOn(app, idp, APP_HOST)
+
+    const res = await signOutOn(app, session, APP_HOST, APP_ORIGIN)
+    expect(res.statusCode, res.body).toBe(200)
+    expect(sessionSet(res)).toBe('')
+    const to = new URL(res.json<{ redirectTo: string }>().redirectTo)
+    expect(`${to.origin}${to.pathname}`).toBe(IDP_SLO)
+    expect(to.searchParams.get('RelayState')).toBe(APP_ORIGIN)
+
+    // The IdP answers at the FIRST SingleLogoutService — the console's — echoing RelayState.
+    const done = await app.inject({
+      method: 'GET',
+      url: `/auth/logout?${idp.redirect({ kind: 'LogoutResponse', destination: SLO, inResponseTo: requestIdOf(to.toString())!, relayState: APP_ORIGIN })}`,
+      headers: { host: 'console.manifest.internal' },
+    })
+    expect(done.statusCode, done.body).toBe(302)
+    expect(done.headers.location).toBe(`${APP_ORIGIN}/`)
+    await app.close()
+  })
+
+  it('a sign-out begun on the console names the console, and its answer lands on /', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signInOn(app, idp, 'console.manifest.internal')
+    const res = await signOutOn(app, session, 'console.manifest.internal', ORIGIN)
+    const redirectTo = res.json<{ redirectTo: string }>().redirectTo
+    expect(new URL(redirectTo).searchParams.get('RelayState')).toBe(ORIGIN)
+    const done = await app.inject({
+      method: 'GET',
+      url: `/auth/logout?${idp.redirect({ kind: 'LogoutResponse', destination: SLO, inResponseTo: requestIdOf(redirectTo)!, relayState: ORIGIN })}`,
+      headers: { host: 'console.manifest.internal' },
+    })
+    expect(done.statusCode, done.body).toBe(302)
+    expect(done.headers.location).toBe('/')
+    await app.close()
+  })
+
+  it('a RelayState naming anything but one of Manifest’s origins ends on /', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signInOn(app, idp, 'console.manifest.internal')
+    const res = await signOutOn(app, session, 'console.manifest.internal', ORIGIN)
+    const requestId = requestIdOf(res.json<{ redirectTo: string }>().redirectTo)!
+    for (const relayState of [
+      'https://evil.example',
+      `${APP_ORIGIN}/somewhere`,
+      'https://app.manifest.internal.evil.example',
+    ]) {
+      const done = await app.inject({
+        method: 'GET',
+        url: `/auth/logout?${idp.redirect({ kind: 'LogoutResponse', destination: SLO, inResponseTo: requestId, relayState })}`,
+        headers: { host: 'console.manifest.internal' },
+      })
+      // Validated by the console's client (the arrival origin's), which asked — so it is
+      // accepted, and the RelayState is not an address to go to.
+      expect(done.statusCode, `${relayState}: ${done.body}`).toBe(302)
+      expect(done.headers.location).toBe('/')
+    }
+    await app.close()
+  })
+
+  it('refuses an answer whose RelayState names the origin that did NOT ask — the client it names never sent the request', async () => {
+    // The console asked; an answer claiming app's RelayState is validated by app's client, whose
+    // cache never held the request — refused, not sent to app.
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signInOn(app, idp, 'console.manifest.internal')
+    const res = await signOutOn(app, session, 'console.manifest.internal', ORIGIN)
+    const requestId = requestIdOf(res.json<{ redirectTo: string }>().redirectTo)!
+    const done = await app.inject({
+      method: 'GET',
+      url: `/auth/logout?${idp.redirect({ kind: 'LogoutResponse', destination: SLO, inResponseTo: requestId, relayState: APP_ORIGIN })}`,
+      headers: { host: 'console.manifest.internal' },
+    })
+    expect(done.statusCode, done.body).toBe(400)
+    expect(code(done)).toBe('SAML_LOGOUT_REJECTED')
+    await app.close()
+  })
+})
+
 describe('the redirect binding’s values are URI components, not form fields (F16)', () => {
   it('keeps a literal + in the SAMLRequest, where a form decoder would make it a space', () => {
     const query = 'SAMLRequest=ab+cd%2Bef&RelayState=xyz'

@@ -229,6 +229,29 @@ acceptance under `preview`**, which holds no socket. Either way **stop it by por
 `lsof -nP -iTCP:7104 -sTCP:LISTEN -t | xargs kill` — because each shell is its own and
 `kill %1` has no job table to read.
 
+### Serving the reference console on the front-end's origin
+
+*Added by the front-end enablement plan's sitting 6, 2026-09-27 (Task 8, Decision 19).* The edge serves
+**`https://app.manifest.internal`** — the faculty front-end's origin (§21) — exactly as it serves the console's:
+`/v1/*` and `/auth/*` to the control plane on 7100, everything else to **7105**. The faculty front-end is a
+SEPARATE project (`~/Developer/manifest-app`, §5); nothing in this repository serves 7105 except this console,
+for a clicked half of an acceptance, because it is the one client here that signs a person in through a browser:
+
+```bash
+pnpm --filter @manifest/contract build && pnpm --filter @manifest/console build
+MANIFEST_CONSOLE_HOST=app.manifest.internal pnpm --filter @manifest/console preview --port 7105 --strictPort
+open https://app.manifest.internal/
+```
+
+The control plane judges each request against the origin it ARRIVED on, so a sign-in begun here names app's
+assertion-consumer URL, comes back here, and sets a cookie on `app.` only — **a session on one origin is not a
+session on the other**, and signing out of one leaves the other signed in (the plan's *What this plan does not
+build*). The platform's SP row lists both ACS URLs and ONE single-logout URL, the console's; a sign-out begun here
+is answered there by the IdP and sent back here by its `RelayState`. **A `502` at `/` means nothing listens on
+7105**; `manifest OK host=app.manifest.internal … listener=public` means dnsmasq's `app.` pin is missing (the name
+reached the PUBLIC wildcard). **Stop it by port when you are done**:
+`lsof -nP -iTCP:7105 -sTCP:LISTEN -t | xargs kill`.
+
 ### The documentation, and the HTML reference
 
 *Added by the authoring API plan's sitting 8, 2026-09-26 (Task 11).* The console's header has **Docs**: the pages

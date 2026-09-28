@@ -192,6 +192,9 @@ function cookieJar() {
 describeDocker('Manifest’s own CWL login, against the real IdP', () => {
   const PORT = 7189
   const ORIGIN = `http://127.0.0.1:${PORT}`
+  /** Task 8's second origin: one port, another host — what `localhost` sends as its Host. */
+  const SECOND_ORIGIN = `http://localhost:${PORT}`
+  const SECOND_HOST = `localhost:${PORT}`
   const IDP = 'https://idp.manifest.internal'
   let child: ChildProcess | undefined
 
@@ -228,6 +231,10 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
         // port is not the one it listens on, and the ACS this registers is what
         // the IdP will POST the assertion to.
         MANIFEST_CONTROL_PLANE_ORIGIN: ORIGIN,
+        // THE SECOND ORIGIN (the front-end enablement plan's Task 8): another loopback HOST on
+        // the same port, so its row lists two assertion-consumer URLs and the IdP must post a
+        // sign-in begun on the second to the second.
+        MANIFEST_FRONTEND_ORIGIN: SECOND_ORIGIN,
         // Its own SP scope — see TEST_ENTITY_BASE. Without it this run rewrites
         // the row a developer's control plane on 7100 is using.
         MANIFEST_SP_ENTITY_BASE: TEST_ENTITY_BASE,
@@ -370,6 +377,78 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     } finally {
       await control.end()
     }
+  }, 300_000)
+
+  /**
+   * TWO ORIGINS, ONE SP, AGAINST THE REAL IdP (the front-end enablement plan's Task 8, Decision
+   * 17; Review Focus 3). The unit tier proves the AuthnRequest NAMES the second origin's ACS;
+   * only the real IdP, reading the row this control plane registered with two, can say it POSTS
+   * there — `[M3]` measured SimpleSAMLphp honouring index 1, and posting to index 0 (the
+   * console's) for a URL its row does not list. So the assertion is the ACS the IdP's
+   * auto-submitting form names: `idp_login`'s `expect_acs`, in TypeScript.
+   *
+   * Every hop to the control plane CONNECTS to 127.0.0.1 and names `localhost` as its Host —
+   * exactly what a browser at `http://localhost:7189` sends, without asking the resolver which
+   * of `::1` and `127.0.0.1` it answers first.
+   */
+  it('a real sign-in begun on the second origin completes on the second (Task 8)', async () => {
+    const idpJar = cookieJar()
+    const appJar = cookieJar()
+    const onSecond = { host: SECOND_HOST }
+
+    const login = await request(`${ORIGIN}/auth/login`, { headers: onSecond })
+    expect(login.status).toBe(302)
+    appJar.take(login)
+    expect(appJar.get('manifest_login')).toBeTruthy()
+
+    const form = await follow(login.location!, idpJar)
+    expect(
+      form.body,
+      `the IdP served no login form (status ${form.status}):\n${form.body.slice(0, 1500)}`,
+    ).toMatch(/name="username"/)
+    const authState = unescape(attr(form.body, 'AuthState') ?? '')
+    const action = unescape(/<form[^>]*action="([^"]*)"/.exec(form.body)?.[1] ?? '')
+    const autosubmit = await follow(
+      action.startsWith('http') ? action : `${IDP}${action}`,
+      idpJar,
+      {
+        method: 'POST',
+        form: { username: 'student', password: 'student', AuthState: authState },
+      },
+    )
+    const samlResponse = unescape(attr(autosubmit.body, 'SAMLResponse') ?? '')
+    expect(
+      samlResponse,
+      `no SAMLResponse in:\n${autosubmit.body.slice(0, 2000)}`,
+    ).toBeTruthy()
+
+    // THE ACS THE IdP POSTED TO: the second origin's — never the console's default (index 0),
+    // which is where it would post had the row not listed this one (`[M3]`).
+    const acs = unescape(/<form[^>]*action="([^"]*)"/.exec(autosubmit.body)?.[1] ?? '')
+    expect(acs).toBe(`${SECOND_ORIGIN}/auth/saml/callback`)
+    expect(acs).not.toBe(`${ORIGIN}/auth/saml/callback`)
+
+    const callback = await request(`${ORIGIN}/auth/saml/callback`, {
+      method: 'POST',
+      headers: onSecond,
+      cookie: `manifest_login=${appJar.get('manifest_login')}`,
+      form: {
+        SAMLResponse: samlResponse,
+        RelayState: unescape(attr(autosubmit.body, 'RelayState') ?? ''),
+      },
+    })
+    expect(callback.status, callback.body).toBe(302)
+    expect(callback.location).toBe('/')
+    appJar.take(callback)
+
+    // THE SHAPE OF THE ANSWER: a session on the second origin for the person the IdP
+    // authenticated — `stu000001` is `student`'s PUID in the IdP's own auth source.
+    const me = await request(`${ORIGIN}/v1/me`, {
+      headers: onSecond,
+      cookie: `manifest_session=${appJar.get('manifest_session')}`,
+    })
+    expect(me.status, me.body).toBe(200)
+    expect(JSON.parse(me.body)).toMatchObject({ puid: 'stu000001' })
   }, 300_000)
 
   /**

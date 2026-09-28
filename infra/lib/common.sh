@@ -22,6 +22,10 @@ IDP_HOST="idp.${ZONE}"
 
 # §21 (P5a Task 3): the reference console and the API share ONE origin, through the edge.
 CONSOLE_HOST="console.${ZONE}"
+# THE FACULTY FRONT-END'S ORIGIN (§21 as Spec action 2 amended it; the front-end enablement plan's
+# Task 8): served by the edge exactly as the console's is — /v1/* and /auth/* to the control plane,
+# the rest to 7105 — pinned to the internal listener, and refusing every source but the host.
+APP_HOST="app.${ZONE}"
 # The one source that origin accepts: the platform network's GATEWAY, which is where the
 # host's requests reach the edge from (measured 2026-09-16, P5a Task 1 M2). App networks
 # are subnets Docker chooses, so the site allows this address rather than refusing theirs.

@@ -22,7 +22,7 @@ describe('the control plane’s own Service Provider (§9)', () => {
   it('derives §9’s entityID shape from the platform domain', () => {
     const entity = controlPlaneSpEntity({
       entityBase: base,
-      origin: 'http://127.0.0.1:7100',
+      origins: ['http://127.0.0.1:7100'],
     })
     // https://{platform-domain}/sp/{slug}/{env}. `platform` is deliberately not
     // one of §7's three environment kinds: there is one control plane, and
@@ -36,7 +36,7 @@ describe('the control plane’s own Service Provider (§9)', () => {
   it('builds every URL from the origin, and only from the origin', () => {
     const local = controlPlaneSpEntity({
       entityBase: base,
-      origin: 'http://127.0.0.1:7100',
+      origins: ['http://127.0.0.1:7100'],
     })
     expect(local.acsUrl).toBe('http://127.0.0.1:7100/auth/saml/callback')
     expect(local.sloUrl).toBe('http://127.0.0.1:7100/auth/logout')
@@ -46,7 +46,7 @@ describe('the control plane’s own Service Provider (§9)', () => {
     // re-registered with UBC IAM every time it moved.
     const ubc = controlPlaneSpEntity({
       entityBase: base,
-      origin: 'https://manifest.ubc.ca',
+      origins: ['https://manifest.ubc.ca'],
     })
     expect(ubc.acsUrl).toBe('https://manifest.ubc.ca/auth/saml/callback')
     expect(ubc.entityId).toBe(local.entityId)
@@ -64,7 +64,16 @@ describe('the control plane’s own Service Provider (§9)', () => {
       '127.0.0.1:7100',
       'ftp://127.0.0.1:7100',
     ]) {
-      expect(() => controlPlaneSpEntity({ entityBase: base, origin })).toThrow(SsoError)
+      expect(() => controlPlaneSpEntity({ entityBase: base, origins: [origin] })).toThrow(
+        SsoError,
+      )
+      // The SECOND origin is checked exactly as the first (the front-end enablement plan's Task 8).
+      expect(() =>
+        controlPlaneSpEntity({
+          entityBase: base,
+          origins: ['https://console.manifest.internal', origin],
+        }),
+      ).toThrow(SsoError)
     }
   })
 
@@ -88,13 +97,77 @@ describe('the control plane’s own Service Provider (§9)', () => {
     expect(CONTROL_PLANE_ATTRIBUTES).not.toContain('eduPersonAffiliation')
   })
 
+  /**
+   * ONE SP ENTITY, ONE ASSERTION-CONSUMER URL PER ORIGIN (§9 and §21 as Spec action 2 amended
+   * them; the front-end enablement plan's Task 8, Decision 17). The console's first, so every
+   * reader of `acsUrl` and `sloUrl` is unchanged; ONE SingleLogoutService, the first's, because
+   * SimpleSAMLphp answers a logout at the first of a binding (`[M5]`).
+   */
+  it('lists one ACS per origin in the platform’s row, the console’s first, and one SLO', async () => {
+    const entity = controlPlaneSpEntity({
+      entityBase: base,
+      origins: ['https://console.manifest.internal', 'https://app.manifest.internal'],
+    })
+    expect(entity.entityId).toBe(
+      'https://manifest.internal/sp/manifest-control-plane/platform',
+    )
+    expect(entity.acsUrl).toBe('https://console.manifest.internal/auth/saml/callback')
+    expect(entity.sloUrl).toBe('https://console.manifest.internal/auth/logout')
+    expect(entity.additionalAcsUrls).toEqual([
+      'https://app.manifest.internal/auth/saml/callback',
+    ])
+    expect(entity.endpoints).toEqual([
+      {
+        origin: 'https://console.manifest.internal',
+        acsUrl: 'https://console.manifest.internal/auth/saml/callback',
+        sloUrl: 'https://console.manifest.internal/auth/logout',
+      },
+      {
+        origin: 'https://app.manifest.internal',
+        acsUrl: 'https://app.manifest.internal/auth/saml/callback',
+        sloUrl: 'https://app.manifest.internal/auth/logout',
+      },
+    ])
+    const keypair = await mintSpKeypair({
+      projectId: '00000000-0000-0000-0000-000000000000',
+      environmentKind: 'staging',
+      slug: 'manifest-control-plane',
+      entityId: entity.entityId,
+    })
+    const row = renderSpMetadata(entity, keypair)
+    expect(row.AssertionConsumerService).toEqual([
+      {
+        index: 0,
+        Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
+        Location: 'https://console.manifest.internal/auth/saml/callback',
+      },
+      {
+        index: 1,
+        Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
+        Location: 'https://app.manifest.internal/auth/saml/callback',
+      },
+    ])
+    expect(row.SingleLogoutService).toEqual([
+      {
+        Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+        Location: 'https://console.manifest.internal/auth/logout',
+      },
+    ])
+  }, 30_000)
+
+  it('refuses no origins at all — the platform is reached somewhere', () => {
+    expect(() => controlPlaneSpEntity({ entityBase: base, origins: [] })).toThrow(
+      SsoError,
+    )
+  })
+
   it('renders through the SAME renderer every app’s row goes through', async () => {
     // The point of the whole file it lives in: the platform's row is not a
     // second `entity_data` document written by hand somewhere else. A second
     // producer of this shape is defect 49, and it cost a session.
     const entity = controlPlaneSpEntity({
       entityBase: base,
-      origin: 'http://127.0.0.1:7100',
+      origins: ['http://127.0.0.1:7100'],
     })
     const keypair = await mintSpKeypair({
       projectId: '00000000-0000-0000-0000-000000000000',

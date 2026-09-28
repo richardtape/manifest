@@ -4,7 +4,12 @@ import { and, eq, ne } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { users } from '../db/index.js'
 import { MANIFEST_IDP_PATHS } from '../spec/index.js'
-import { ATTRIBUTE_OIDS, SP_NAME_ID_FORMAT, type SpEntity } from '../sso/index.js'
+import {
+  ATTRIBUTE_OIDS,
+  SP_NAME_ID_FORMAT,
+  type ControlPlaneEndpoint,
+  type SpEntity,
+} from '../sso/index.js'
 import type { IdpSessionHandle } from './session.js'
 
 /**
@@ -157,7 +162,7 @@ export interface SamlSp {
    * The IdP ends its session — and every other SP's in it — and answers at this SP's
    * SLO URL with a LogoutResponse, which `completeSpLogout` checks.
    */
-  logoutUrl(session: IdpSessionHandle): Promise<string>
+  logoutUrl(session: IdpSessionHandle, relayState?: string): Promise<string>
   /**
    * The IdP's LogoutResponse to a request `logoutUrl` made. Throws unless it is SIGNED,
    * answers a request THIS process sent, and reports success. Nothing ends here — the
@@ -403,7 +408,7 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
       const relayState = typeof query.RelayState === 'string' ? query.RelayState : ''
       return saml.getLogoutResponseUrlAsync(profile, relayState, {}, true)
     },
-    logoutUrl: (session: IdpSessionHandle) =>
+    logoutUrl: (session: IdpSessionHandle, relayState = '') =>
       // SIGNED, because `privateKey` is set — the same `_requestToUrlAsync` that signs the
       // AuthnRequest — and §9's `validate.logout: true` makes the IdP refuse it otherwise.
       // The request's ID goes into this instance's InResponseTo cache, which is how
@@ -423,7 +428,11 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
             ? {}
             : { spNameQualifier: session.spNameQualifier }),
         },
-        '',
+        // The ORIGIN the sign-out began on (Decision 18): the IdP echoes it on its
+        // LogoutResponse, SIGNED — the redirect binding signs RelayState with the message
+        // (node-saml 5.1.0, `lib/saml.js:668`) — and `GET /auth/logout` sends the browser home
+        // by it, validating with THIS client, whose cache holds the request.
+        relayState,
         {},
       ),
     completeSpLogout: async (
@@ -458,6 +467,41 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
     validate: (samlResponse: string) => validateWith(saml, samlResponse),
     validateStepUp: (samlResponse: string) => validateWith(stepUpSaml, samlResponse),
   }
+}
+
+/**
+ * ONE SAML CLIENT PER ORIGIN (the front-end enablement plan's Task 8, Decision 17), built from
+ * `controlPlaneSpEntity`'s `endpoints` — the console's first — and answered by the origin a
+ * request arrived on (`api/origins.ts`), the FIRST for one it does not know.
+ *
+ * **A client per origin, not one with several callbacks**: `callbackUrl` is a constructor
+ * option in node-saml 5.1.0, and it is the `AssertionConsumerServiceURL` the AuthnRequest names
+ * — so the IdP, whose row lists every origin's, posts each sign-in back to the origin it began
+ * on. And each client's InResponseTo cache holds ITS OWN requests only, so an assertion answering
+ * one origin's request is refused on the other (`auth.test.ts`) — a wall behind the host-only
+ * login cookie. Every other option is the entity's, shared: one entityID, one keypair, one
+ * registration.
+ *
+ * Built HERE, for both callers (`index.ts` and the test harness), for `createSamlSp`'s own
+ * reason: the same configuration written at two construction sites is the shape this project
+ * keeps paying for.
+ */
+export function createSamlSpFor(
+  config: Omit<SamlSpConfig, 'entity'> & {
+    entity: SpEntity & { endpoints: readonly ControlPlaneEndpoint[] }
+  },
+): (origin: string) => SamlSp {
+  const clients = new Map(
+    config.entity.endpoints.map((endpoint) => [
+      endpoint.origin,
+      createSamlSp({
+        ...config,
+        entity: { ...config.entity, acsUrl: endpoint.acsUrl, sloUrl: endpoint.sloUrl },
+      }),
+    ]),
+  )
+  const first = clients.get(config.entity.endpoints[0]!.origin)!
+  return (origin: string) => clients.get(origin) ?? first
 }
 
 /** First value only: a SAML attribute is multi-valued and this wants a scalar. */

@@ -44,6 +44,13 @@ export interface SpEntity {
   entityId: string
   acsUrl: string
   sloUrl: string
+  /**
+   * FURTHER assertion-consumer URLs, after `acsUrl` — rendered as `AssertionConsumerService`
+   * index 1, 2… (the front-end enablement plan's Task 8, Decision 17). ONLY the platform's own
+   * entity has any: one per origin a person signs in on beyond the console's. **An app's entity
+   * has none, so every app's row is byte-for-byte what it was** — `deriveSpEntity` never sets it.
+   */
+  additionalAcsUrls?: readonly string[]
   attributes: string[]
 }
 

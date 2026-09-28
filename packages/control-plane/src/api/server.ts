@@ -27,6 +27,7 @@ import {
   type RateLimiter,
 } from './rate-limit.js'
 import { assertSameOrigin } from './csrf.js'
+import { originOf } from './origins.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore, type WithholdOnReplay } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
@@ -63,8 +64,13 @@ export interface ServerDeps {
    * §9's other half: Manifest's own Service Provider, with its entity, its
    * keypair and the IdP's certificate already bound. `/auth/login` and
    * `/auth/saml/callback` hold no key material and build no URLs.
+   *
+   * ONE CLIENT PER ORIGIN (the front-end enablement plan's Task 8): `routes/auth.ts` asks for
+   * the one of the origin a request arrived on — `samlSpFor(originOf(request, config.origins))`
+   * — and an origin it does not know answers the first's (`identity/saml.ts`'s
+   * `createSamlSpFor`).
    */
-  samlSp: SamlSp
+  samlSpFor(origin: string): SamlSp
   /**
    * D17's catalogue, read from LiteLLM and cached (P4b Task 6). `enabled` is false
    * under `MANIFEST_AI_ENABLED=0`, and then it is never read — see `src/index.ts`.
@@ -312,7 +318,8 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
     // `/auth/logout` carries and this check must not inherit. The stream's upgrade is a
     // GET and is checked in its own route hook (`routes/events.ts`).
     if (request.routeOptions.config?.csrf !== 'exempt') {
-      assertSameOrigin(request, deps.config.sp.origin)
+      // The origin the request ARRIVED on (the front-end enablement plan's Task 8, Decision 16).
+      assertSameOrigin(request, originOf(request, deps.config.origins))
     }
     if (request.routeOptions.config?.idempotency === 'exempt') return
     const key = request.headers['idempotency-key']

@@ -67,11 +67,20 @@ export interface ControlPlaneSpInput {
   /** §9's `{platform-domain}` — `config.idp.spEntityBase`. */
   entityBase: string
   /**
-   * Where the control plane is reached. `https://console.manifest.internal` locally,
-   * through the edge (P5a Task 3), and the console's production origin at UBC. The
-   * Docker tier uses loopback origins. A bare origin: scheme, host, no path.
+   * EVERY ORIGIN A PERSON SIGNS IN ON — `config.origins`, the console's first (the front-end
+   * enablement plan's Task 8). `https://console.manifest.internal` and
+   * `https://app.manifest.internal` locally, through the edge; the console's and the faculty
+   * front-end's production origins at UBC. The Docker tier uses loopback origins. Each a bare
+   * origin: scheme, host, no path.
    */
+  origins: readonly string[]
+}
+
+/** One origin's two URLs — the SAML client for that origin is built from them (`index.ts`). */
+export interface ControlPlaneEndpoint {
   origin: string
+  acsUrl: string
+  sloUrl: string
 }
 
 /**
@@ -81,21 +90,49 @@ export interface ControlPlaneSpInput {
  * audience, and `acsUrl` as its callback; `registerControlPlaneSp` writes both
  * into the row. One function, so the AuthnRequest the control plane sends and
  * the row the IdP reads cannot describe two different Service Providers.
+ *
+ * **ONE ENTITY, ONE ASSERTION-CONSUMER URL PER ORIGIN** (§9 and §21 as Spec action 2 amended
+ * them, 2026-09-27; Decision 17). `acsUrl` and `sloUrl` are the FIRST origin's, so every reader
+ * of an `SpEntity` is unchanged; `additionalAcsUrls` lists the rest, which the row renders as
+ * index 1…; and `endpoints` gives each origin's pair, from which `index.ts` builds one SAML
+ * client per origin. **One SingleLogoutService, the first's**: SimpleSAMLphp answers a logout at
+ * the first of a binding (`[M5]`), so a second would be registered and never used. *Rejected:*
+ * two SP entities — two UBC IAM registrations and two keypairs for one platform.
  */
-export function controlPlaneSpEntity(input: ControlPlaneSpInput): SpEntity {
-  if (!ORIGIN.test(input.origin)) {
+export function controlPlaneSpEntity(
+  input: ControlPlaneSpInput,
+): SpEntity & { endpoints: ControlPlaneEndpoint[] } {
+  if (input.origins.length === 0) {
     throw new SsoError(
       'SSO_CONTROL_PLANE_ORIGIN_INVALID',
-      `'${input.origin}' is not a bare origin (MANIFEST_CONTROL_PLANE_ORIGIN, e.g. ` +
-        'https://console.manifest.internal — scheme and host, no path and no trailing slash). ' +
-        'Every URL the IdP is told to send a person to is built from this one.',
+      'the control plane was given no origin to be reached at (MANIFEST_CONTROL_PLANE_ORIGIN). ' +
+        'Every URL the IdP is told to send a person to is built from one.',
     )
   }
+  for (const origin of input.origins) {
+    if (!ORIGIN.test(origin)) {
+      throw new SsoError(
+        'SSO_CONTROL_PLANE_ORIGIN_INVALID',
+        `'${origin}' is not a bare origin (MANIFEST_CONTROL_PLANE_ORIGIN or ` +
+          'MANIFEST_FRONTEND_ORIGIN, e.g. https://console.manifest.internal — scheme and host, ' +
+          'no path and no trailing slash). Every URL the IdP is told to send a person to is ' +
+          'built from one of these.',
+      )
+    }
+  }
+  const endpoints = input.origins.map((origin) => ({
+    origin,
+    acsUrl: `${origin}/auth/saml/callback`,
+    sloUrl: `${origin}/auth/logout`,
+  }))
+  const [first, ...rest] = endpoints
   return {
     entityId: `${input.entityBase}/sp/${CONTROL_PLANE_SLUG}/${CONTROL_PLANE_ENVIRONMENT}`,
-    acsUrl: `${input.origin}/auth/saml/callback`,
-    sloUrl: `${input.origin}/auth/logout`,
+    acsUrl: first!.acsUrl,
+    sloUrl: first!.sloUrl,
+    ...(rest.length === 0 ? {} : { additionalAcsUrls: rest.map((e) => e.acsUrl) }),
     attributes: [...CONTROL_PLANE_ATTRIBUTES],
+    endpoints,
   }
 }
 

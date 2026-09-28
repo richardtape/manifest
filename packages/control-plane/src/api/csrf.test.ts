@@ -112,6 +112,58 @@ describe('CSRF by Origin (§20, P5a Task 4)', () => {
     await app.close()
   })
 
+  /**
+   * TWO ORIGINS, EACH AS SAME-ORIGIN AS THE CONSOLE ALONE WAS (the front-end enablement plan's
+   * Task 8, Decision 16; Review Focus 3). A request is judged against the origin it ARRIVED on —
+   * its `Host`, which the edge preserves — never against "one of the list": a page on one of
+   * Manifest's origins cannot post to the other's API with the other's cookie.
+   */
+  describe('on the faculty front-end’s origin (Task 8)', () => {
+    const CONSOLE = 'https://console.manifest.internal'
+    const FRONTEND = 'https://app.manifest.internal'
+
+    it('serves two origins by default, the console’s first', async () => {
+      const { deps, app } = await server()
+      expect(deps.config.origins).toEqual([CONSOLE, FRONTEND])
+      await app.close()
+    })
+
+    it('accepts a mutation on app whose Origin is app', async () => {
+      const { app, create } = await server()
+      const res = await create({ host: 'app.manifest.internal', origin: FRONTEND })
+      expect(res.statusCode).toBe(201)
+      await app.close()
+    })
+
+    it('refuses a mutation on app whose Origin is the console — and one on the console whose Origin is app', async () => {
+      const { app, cookies, create } = await server()
+      const onApp = await create({ host: 'app.manifest.internal', origin: CONSOLE })
+      expect(onApp.statusCode).toBe(403)
+      expect(onApp.json()).toMatchObject({ error: { code: 'CSRF_ORIGIN_REFUSED' } })
+      const onConsole = await create({
+        host: 'console.manifest.internal',
+        origin: FRONTEND,
+      })
+      expect(onConsole.statusCode).toBe(403)
+      expect(onConsole.json()).toMatchObject({ error: { code: 'CSRF_ORIGIN_REFUSED' } })
+      // Nothing was created by either — and the positive control on each origin is beside
+      // this test, so the refusals are the origin's and not the route's.
+      const list = await app.inject({ method: 'GET', url: '/v1/projects', cookies })
+      expect(list.json()).toEqual([])
+      const own = await create({ host: 'console.manifest.internal', origin: CONSOLE })
+      expect(own.statusCode).toBe(201)
+      await app.close()
+    })
+
+    it('judges a request on a host it does not know against the console’s origin — never the request’s own', async () => {
+      const { app, create } = await server()
+      const res = await create({ host: 'evil.example', origin: 'https://evil.example' })
+      expect(res.statusCode).toBe(403)
+      expect(res.json()).toMatchObject({ error: { code: 'CSRF_ORIGIN_REFUSED' } })
+      await app.close()
+    })
+  })
+
   it('does not ask the SAML callback for an origin — its credential is the assertion', async () => {
     const { app, cookies } = await server()
     const res = await app.inject({

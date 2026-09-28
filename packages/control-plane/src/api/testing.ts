@@ -14,7 +14,7 @@ import { createServiceCredentials } from '../services/index.js'
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import {
   SESSION_COOKIE,
-  createSamlSp,
+  createSamlSpFor,
   issueSession,
   signSession,
   stepUpSession,
@@ -862,12 +862,13 @@ export async function testDeps(): Promise<ServerDeps> {
      * too, so the audience the SP checks is the one `registerControlPlaneSp`
      * would have written into the IdP's row.
      */
-    samlSp: createSamlSp({
+    samlSpFor: createSamlSpFor({
       entity: controlPlaneSpEntity({
         entityBase: 'https://manifest.internal',
-        // THE CONFIGURED ORIGIN, not a second statement of it (P5a Task 3): the ACS this
-        // SP checks must be the one the running control plane registers.
-        origin: config.sp.origin,
+        // THE CONFIGURED ORIGINS, not a second statement of them (P5a Task 3; the front-end
+        // enablement plan's Task 8): the ACS each client names is the one the running control
+        // plane registers for that origin.
+        origins: config.origins,
       }),
       idpBaseUrl: 'https://idp.test.manifest.internal',
       idpEntityId: idp.entityId,

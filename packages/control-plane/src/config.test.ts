@@ -307,6 +307,75 @@ describe('configuration', () => {
     expect(config.sp.origin).toBe('https://manifest.ubc.ca')
   })
 
+  /**
+   * THE FACULTY FRONT-END'S ORIGIN (§21 as Spec action 2 amended it; the front-end enablement
+   * plan's Task 8, Decision 16). A list, the console's FIRST — every reader of `sp.origin` keeps
+   * reading the first — and a request is judged against the one it ARRIVED on (`api/origins.ts`).
+   */
+  describe('the origins a person signs in on (Task 8)', () => {
+    it('names the console’s origin first and the front-end’s second, by default', () => {
+      const config = loadConfig({ ...base })
+      expect(config.origins).toEqual([
+        'https://console.manifest.internal',
+        'https://app.manifest.internal',
+      ])
+      expect(config.sp.origin).toBe(config.origins[0])
+    })
+
+    it('takes the front-end’s origin from its own setting, and drops it when that is empty', () => {
+      expect(
+        loadConfig({ ...base, MANIFEST_FRONTEND_ORIGIN: 'https://app.manifest.ubc.ca' })
+          .origins,
+      ).toEqual(['https://console.manifest.internal', 'https://app.manifest.ubc.ca'])
+      expect(loadConfig({ ...base, MANIFEST_FRONTEND_ORIGIN: '' }).origins).toEqual([
+        'https://console.manifest.internal',
+      ])
+    })
+
+    it('refuses two origins on one host, naming both — a request could not say which it arrived on', () => {
+      const load = () =>
+        loadConfig({
+          ...base,
+          MANIFEST_CONTROL_PLANE_ORIGIN: 'https://console.manifest.internal',
+          MANIFEST_FRONTEND_ORIGIN: 'http://CONSOLE.manifest.internal',
+        })
+      expect(load).toThrow(ConfigError)
+      try {
+        load()
+      } catch (error) {
+        expect((error as ConfigError).code).toBe('CONFIG_ORIGINS_SHARE_A_HOST')
+        expect((error as Error).message).toContain('https://console.manifest.internal')
+        expect((error as Error).message).toContain('http://CONSOLE.manifest.internal')
+      }
+    })
+
+    it('accepts two loopback hosts on the port it listens on — the Docker tier’s two origins', () => {
+      const config = loadConfig({
+        ...base,
+        MANIFEST_PORT: '7188',
+        MANIFEST_CONTROL_PLANE_ORIGIN: 'http://127.0.0.1:7188',
+        MANIFEST_FRONTEND_ORIGIN: 'http://localhost:7188',
+      })
+      expect(config.origins).toEqual(['http://127.0.0.1:7188', 'http://localhost:7188'])
+    })
+
+    it('refuses a loopback front-end origin whose port is not the one it listens on', () => {
+      const load = () =>
+        loadConfig({
+          ...base,
+          MANIFEST_PORT: '7188',
+          MANIFEST_CONTROL_PLANE_ORIGIN: 'http://127.0.0.1:7188',
+          MANIFEST_FRONTEND_ORIGIN: 'http://localhost:7189',
+        })
+      expect(load).toThrow(ConfigError)
+      try {
+        load()
+      } catch (error) {
+        expect((error as ConfigError).code).toBe('CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH')
+      }
+    })
+  })
+
   it('refuses a session secret shorter than 32 characters', () => {
     expect(() =>
       loadConfig({

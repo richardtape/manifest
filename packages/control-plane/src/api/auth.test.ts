@@ -142,6 +142,8 @@ describe('Manifest is its own SP (§9)', () => {
   async function pendingLogin(
     app: App,
     returnTo?: string,
+    /** The `Host` it ARRIVES on — one of the configured origins' (Task 8). */
+    host?: string,
   ): Promise<{
     location: string
     requestId: string
@@ -154,6 +156,7 @@ describe('Manifest is its own SP (§9)', () => {
         returnTo === undefined
           ? '/auth/login'
           : `/auth/login?returnTo=${encodeURIComponent(returnTo)}`,
+      ...(host === undefined ? {} : { headers: { host } }),
     })
     expect(res.statusCode).toBe(302)
     const location = res.headers.location as string
@@ -198,11 +201,12 @@ describe('Manifest is its own SP (§9)', () => {
   const post = (
     app: App,
     SAMLResponse: string,
-    binding: { relayState?: string; loginCookie?: string } = {},
+    binding: { relayState?: string; loginCookie?: string; host?: string } = {},
   ) =>
     app.inject({
       method: 'POST',
       url: '/auth/saml/callback',
+      ...(binding.host === undefined ? {} : { headers: { host: binding.host } }),
       payload: {
         SAMLResponse,
         ...(binding.relayState === undefined ? {} : { RelayState: binding.relayState }),
@@ -361,6 +365,9 @@ describe('Manifest is its own SP (§9)', () => {
       config: {
         ...deps.config,
         sp: { ...deps.config.sp, origin: 'http://127.0.0.1:7100' },
+        // The configured LIST is what a request is judged against since Task 8 (the front-end
+        // enablement plan) — `sp.origin` is its first — so a loopback control plane's is both.
+        origins: ['http://127.0.0.1:7100'],
       },
     }
     const app = await buildServer(loopback)
@@ -654,9 +661,12 @@ describe('Manifest is its own SP (§9)', () => {
    * ----------------------------------------------------------------------- */
 
   /** A browser that has really signed in — the cookie the callback minted, not a signed fixture. */
-  async function signedIn(app: App, idp: TestIdp): Promise<string> {
-    const login = await pendingLogin(app)
-    const res = await post(app, assertion(idp, login.requestId), login)
+  async function signedIn(app: App, idp: TestIdp, host?: string): Promise<string> {
+    const login = await pendingLogin(app, undefined, host)
+    const res = await post(app, assertion(idp, login.requestId), {
+      ...login,
+      ...(host === undefined ? {} : { host }),
+    })
     expect(res.statusCode).toBe(302)
     return res.cookies.find((c) => c.name === 'manifest_session')!.value
   }
@@ -666,6 +676,7 @@ describe('Manifest is its own SP (§9)', () => {
     app: App,
     session: string,
     returnTo?: string,
+    host?: string,
   ): Promise<{
     location: string
     requestId: string
@@ -686,6 +697,7 @@ describe('Manifest is its own SP (§9)', () => {
           ? '/auth/step-up'
           : `/auth/step-up?returnTo=${encodeURIComponent(returnTo)}`,
       cookies: { manifest_session: session },
+      ...(host === undefined ? {} : { headers: { host } }),
     })
     expect(res.statusCode).toBe(302)
     const location = res.headers.location as string
@@ -704,11 +716,17 @@ describe('Manifest is its own SP (§9)', () => {
   const postStepUp = (
     app: App,
     SAMLResponse: string,
-    binding: { relayState?: string; stepUpCookie?: string; session?: string },
+    binding: {
+      relayState?: string
+      stepUpCookie?: string
+      session?: string
+      host?: string
+    },
   ) =>
     app.inject({
       method: 'POST',
       url: '/auth/saml/callback',
+      ...(binding.host === undefined ? {} : { headers: { host: binding.host } }),
       payload: {
         SAMLResponse,
         ...(binding.relayState === undefined ? {} : { RelayState: binding.relayState }),
@@ -922,5 +940,138 @@ describe('Manifest is its own SP (§9)', () => {
     const res = await app.inject({ method: 'GET', url: '/auth/step-up' })
     expect(refusal(res)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
     await app.close()
+  })
+  /* ----------------------------------------------------------------------- *
+   * THE FACULTY FRONT-END'S ORIGIN (the front-end enablement plan's Task 8, Decisions 16–17;
+   * Review Focus 3). One SP entity with one assertion-consumer URL per origin, and one SAML
+   * client per origin: a sign-in begun on `app` names `app`'s ACS, is posted there by the IdP,
+   * and is validated by `app`'s client — whose InResponseTo cache holds only `app`'s requests.
+   * ----------------------------------------------------------------------- */
+  describe('on the faculty front-end’s origin (Task 8)', () => {
+    const APP_HOST = 'app.manifest.internal'
+    const APP_ACS = 'https://app.manifest.internal/auth/saml/callback'
+    const acsOf = (location: string) =>
+      /AssertionConsumerServiceURL="([^"]+)"/.exec(authnRequestXml(location))?.[1]
+
+    it('a sign-in begun on app completes on app, with app’s cookie', async () => {
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+
+      const login = await pendingLogin(app, '/projects', APP_HOST)
+      // The AuthnRequest names APP's ACS — so the IdP, which lists both, posts it there.
+      expect(acsOf(login.location)).toBe(APP_ACS)
+      // ...and the positive control on the same server: a sign-in begun on the console names
+      // the console's, so the answer above is the arrival origin's and not a constant.
+      expect(
+        acsOf((await pendingLogin(app, undefined, 'console.manifest.internal')).location),
+      ).toBe(ACS)
+
+      const res = await post(app, assertion(idp, login.requestId), {
+        ...login,
+        host: APP_HOST,
+      })
+      expect(res.statusCode, res.body).toBe(302)
+      // A PATH, so the browser stays on the origin it signed in on.
+      expect(res.headers.location).toBe('/projects')
+      const session = res.cookies.find((c) => c.name === 'manifest_session')
+      expect(verifySession(session!.value, deps.config.sessionSecret)?.puid).toBe(
+        'ins000001',
+      )
+      // Host-only (no Domain), so it is app's cookie and nobody else's; Secure because app's
+      // origin is https.
+      expect(session!.domain).toBeUndefined()
+      expect(session!.secure).toBe(true)
+      await app.close()
+    })
+
+    it('a callback on the console carrying app’s sign-in is refused, as a sign-in this browser did not start', async () => {
+      // The browser's `manifest_login` is HOST-ONLY on app, so it never reaches the console.
+      const app = await buildServer(await testDeps())
+      const idp = await testSamlIdp()
+      const login = await pendingLogin(app, undefined, APP_HOST)
+      const res = await post(app, assertion(idp, login.requestId), {
+        relayState: login.relayState,
+        host: 'console.manifest.internal',
+      })
+      expect(refusal(res)).toEqual({ status: 401, code: 'SAML_LOGIN_NOT_BOUND' })
+      await app.close()
+    })
+
+    it('refuses on the console an assertion answering app’s request even when bound — each origin validates only its own', async () => {
+      // A browser cannot carry app's login cookie to the console; this is the next wall, for a
+      // client that could. The console's SAML client never issued app's request, so its
+      // InResponseTo cache refuses the answer. With ONE client for both origins it would pass.
+      const app = await buildServer(await testDeps())
+      const idp = await testSamlIdp()
+      const login = await pendingLogin(app, undefined, APP_HOST)
+      const res = await post(app, assertion(idp, login.requestId), {
+        ...login,
+        host: 'console.manifest.internal',
+      })
+      expect(refusal(res)).toEqual({ status: 401, code: 'SAML_ASSERTION_REJECTED' })
+      // The positive control: the same answer on app, where it was asked, signs in.
+      const ok = await post(app, assertion(idp, login.requestId), {
+        ...login,
+        host: APP_HOST,
+      })
+      expect(ok.statusCode, ok.body).toBe(302)
+      await app.close()
+    })
+
+    it('a step-up begun on app returns to app', async () => {
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      const session = await signedIn(app, idp, APP_HOST)
+
+      const stepUp = await pendingStepUp(app, session, '/deploy', APP_HOST)
+      expect(acsOf(stepUp.location)).toBe(APP_ACS)
+      expect(authnRequestXml(stepUp.location)).toContain('ForceAuthn="true"')
+      const res = await postStepUp(app, assertion(idp, stepUp.requestId), {
+        relayState: stepUp.relayState,
+        stepUpCookie: stepUp.stepUpCookie,
+        session,
+        host: APP_HOST,
+      })
+      expect(res.statusCode, res.body).toBe(302)
+      expect(res.headers.location).toBe('/deploy')
+      const stamped = res.cookies.find((c) => c.name === 'manifest_session')!.value
+      expect(
+        isSteppedUp(verifySession(stamped, deps.config.sessionSecret)!.steppedUpAt),
+      ).toBe(true)
+      await app.close()
+    })
+
+    it('sets Secure and SameSite by the origin a request ARRIVED on', async () => {
+      // A loopback http origin beside an https one — the Docker tier's shape is two loopback
+      // hosts, and this is the mixed case: each cookie follows its own origin's scheme.
+      const deps = await testDeps()
+      const mixed = {
+        ...deps,
+        config: {
+          ...deps.config,
+          origins: ['https://console.manifest.internal', 'http://localhost:7100'],
+        },
+      }
+      const app = await buildServer(mixed)
+      const onHttp = await app.inject({
+        method: 'GET',
+        url: '/auth/login',
+        headers: { host: 'localhost:7100' },
+      })
+      const loginCookie = onHttp.cookies.find((c) => c.name === 'manifest_login')
+      expect(loginCookie?.secure).toBeFalsy()
+      expect(String(loginCookie?.sameSite).toLowerCase()).toBe('lax')
+      const onHttps = await app.inject({
+        method: 'GET',
+        url: '/auth/login',
+        headers: { host: 'console.manifest.internal' },
+      })
+      const httpsCookie = onHttps.cookies.find((c) => c.name === 'manifest_login')
+      expect(httpsCookie?.secure).toBe(true)
+      expect(String(httpsCookie?.sameSite).toLowerCase()).toBe('none')
+      await app.close()
+    })
   })
 })

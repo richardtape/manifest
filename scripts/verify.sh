@@ -980,6 +980,54 @@ console_allows_only_the_gateway() {
 }
 check "the console's one allowed source is the platform network's gateway" console_allows_only_the_gateway
 
+# THE FACULTY FRONT-END'S ORIGIN (§21 as Spec action 2 amended it; the front-end enablement plan's
+# Task 8, Decision 19): the same three questions as the console's, for the same reasons — and the
+# first reads the BODY, because an unpinned `app.` reaches the public wildcard, which answers any
+# path (`manifest OK host=… listener=public`, that plan's `[M4]`). It probes /v1/me, which the site
+# forwards to the control plane, so its answers are:
+#
+#   [502]                                       the site matched and forwarded; nothing on 7100. PASS
+#   [401] + UNAUTHENTICATED                     the control plane answered through app's site. PASS
+#   "manifest: the control plane…"              @outside REFUSED the host — the failure this is for
+#   "manifest OK host=…"                        the WILDCARD answered; the site or the pin is missing
+app_serves_the_api() {
+  local out
+  out=$(curl -sS -w ' [%{http_code}]' "https://$APP_HOST/v1/me" 2>&1)
+  echo "$out"
+  case "$out" in
+    *"manifest OK host="*) return 1 ;;
+    *"the control plane is not reachable"*) return 1 ;;
+    *'[502]') return 0 ;;
+    *'"UNAUTHENTICATED"'*'[401]') return 0 ;;
+  esac
+  return 1
+}
+check "the host reaches the API on https://$APP_HOST and is not refused" app_serves_the_api
+
+app_refuses_platform_container() {
+  require_ca || return 1
+  local out
+  out=$(docker run --rm --network "$NET" --dns "$DNS_C_IP" \
+        -v "$PWD/$CA_FILE":/ca.crt:ro curlimages/curl:8.11.1 \
+        --cacert /ca.crt -sS -w ' [%{http_code}]' "https://$APP_HOST/v1/me" 2>&1)
+  echo "$out"
+  [ "$out" = "manifest: the control plane is not reachable from this network [403]" ]
+}
+check "a container on $NET is refused by https://$APP_HOST (§12)" app_refuses_platform_container
+
+# The `not remote_ip` of app's OWN site block — not the first in the file, which is the console's.
+app_allows_only_the_gateway() {
+  local gw allowed
+  gw=$(docker network inspect "$NET" --format '{{(index .IPAM.Config 0).Gateway}}')
+  allowed=$(awk -v site="$APP_HOST {" '$0 == site { on = 1; next }
+    on && /^}/ { exit }
+    on && /not remote_ip/ { sub(/.*not remote_ip /, ""); sub(/\/32.*/, ""); print; exit }' \
+    infra/caddy/Caddyfile)
+  echo "platform gateway=$gw app's site allows=${allowed:-<nothing>} common.sh HOST_SOURCE_IP=$HOST_SOURCE_IP"
+  [ -n "$gw" ] && [ "$gw" = "$allowed" ] && [ "$gw" = "$HOST_SOURCE_IP" ]
+}
+check "app's one allowed source is the platform network's gateway" app_allows_only_the_gateway
+
 # All three of §23's zones, one wildcard certificate each.
 zones_serve() {
   local n host

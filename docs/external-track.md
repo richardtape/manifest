@@ -99,8 +99,17 @@ ASKED FOR AND NEVER REQUIRED: a person whose assertion lacks it still signs in, 
 adding them to a project by login name stops working. **`eduPersonAffiliation` is NOT
 among them** — this line named it until 2026-09-27, wrongly: a platform role is
 Manifest's to decide (§9), so the control plane never asks for one. *(Corrected by the
-front-end enablement plan's sitting 5. The same registration gains a second
-assertion-consumer URL, `app`'s, with that plan's Task 8.)* The one-name lookup `uid` and
+front-end enablement plan's sitting 5.)* **Since 2026-09-27 the registration names TWO
+assertion-consumer URLs under its ONE entity** — the reference console's origin and the
+faculty front-end's, `app` (§9 and §21 as Spec action 2 amended them; the front-end
+enablement plan's Task 8): at UBC, `https://<console origin>/auth/saml/callback` at index 0
+and `https://app.<production zone>/auth/saml/callback` at index 1, with ONE
+SingleLogoutService, the console origin's `/auth/logout`. A person signs in on the origin
+they are using, and no session crosses between them. Measured against SimpleSAMLphp before it
+was built (that plan's `[M3]`): an AuthnRequest naming index 1 is answered at index 1, and one
+naming a URL the row does NOT list is answered at index 0 — **so a UBC registration missing
+`app`'s URL fails closed**, as a sign-in on `app` that the platform refuses as not bound to the
+browser (`SAML_LOGIN_NOT_BOUND`), never as an assertion sent somewhere unlisted. The one-name lookup `uid` and
 `mail` make possible — an owner adding a colleague — also lets anyone who creates a project
 learn whether a given login or address has signed in to Manifest (Decision 14 accepted it);
 **the platform PIA should say so.**

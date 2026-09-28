@@ -56,13 +56,17 @@ export const SP_NAME_ID_FORMAT = 'urn:oasis:names:tc:SAML:2.0:nameid-format:tran
  */
 export function renderSpMetadata(entity: SpEntity, keypair: SpKeypair): SpMetadataRow {
   return {
-    AssertionConsumerService: [
-      {
-        index: 0,
+    // One per assertion-consumer URL, `acsUrl` at index 0 — the DEFAULT the IdP posts to when a
+    // request names a URL this row does not list (`[M3]`, measured 2026-09-27). Only the
+    // platform's entity carries `additionalAcsUrls` (one per further origin, Task 8); an app's
+    // row has exactly the one entry it always had.
+    AssertionConsumerService: [entity.acsUrl, ...(entity.additionalAcsUrls ?? [])].map(
+      (Location, index) => ({
+        index,
         Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
-        Location: entity.acsUrl,
-      },
-    ],
+        Location,
+      }),
+    ),
     SingleLogoutService: [
       {
         Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',

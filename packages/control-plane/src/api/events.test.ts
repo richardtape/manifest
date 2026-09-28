@@ -66,12 +66,15 @@ async function streamServer() {
     puid: TestUserPuid | 'anonymous',
     id = projectId,
     origin: string | null = deps.config.sp.origin,
+    /** The `Host` the handshake ARRIVES on (the front-end enablement plan's Task 8). */
+    host?: string,
   ) => {
     const headers = {
       ...(puid === 'anonymous'
         ? {}
         : { cookie: `${SESSION_COOKIE}=${(await loginAs(deps, puid))[SESSION_COOKIE]}` }),
       ...(origin === null ? {} : { origin }),
+      ...(host === undefined ? {} : { host }),
     }
     const socket = new WebSocket(urlFor(id), { headers })
     // `ws` emits 'error' for a refused upgrade, and an 'error' with no listener is an
@@ -211,6 +214,32 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
     const own = await connect('bio_prof')
     const frames = recorder(own)
     await waitUntil(() => frames.some(isReady), 'the ready frame from the console origin')
+  })
+
+  it('refuses an UPGRADE on app whose Origin is the console, and streams one whose Origin is app (Task 8)', async () => {
+    // The front-end enablement plan's Task 8, Decision 16: each origin's stream is exactly as
+    // same-origin as the console's alone was. The handshake's Host is the origin it arrived on.
+    const { deps, projectId, connect } = await streamServer()
+    const crossed = await connect(
+      'bio_prof',
+      projectId,
+      'https://console.manifest.internal',
+      'app.manifest.internal',
+    )
+    const crossedFrames = recorder(crossed)
+    expect(await outcomeOf(crossed)).toEqual({ status: 403 })
+    expect(crossedFrames).toEqual([])
+    expect(deps.bus.listenerCount(projectId)).toBe(0)
+
+    // THE POSITIVE CONTROL: the same member on app, from app, gets the stream.
+    const own = await connect(
+      'bio_prof',
+      projectId,
+      'https://app.manifest.internal',
+      'app.manifest.internal',
+    )
+    const frames = recorder(own)
+    await waitUntil(() => frames.some(isReady), 'the ready frame on the app origin')
   })
 
   it('replays what was recorded, marks the boundary, then streams live — to a collaborator too', async () => {

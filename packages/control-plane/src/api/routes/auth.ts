@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import {
   LOGIN_COOKIE,
@@ -20,6 +20,7 @@ import {
   verifySession,
 } from '../../identity/index.js'
 import { requireSession } from '../actor.js'
+import { originOf } from '../origins.js'
 import type { ServerDeps } from '../server.js'
 
 /**
@@ -69,16 +70,29 @@ export async function registerAuthRoutes(
    * `Secure` (P6a Task 8). `maxAge` is the caller's, and that difference is the point:
    * a step-up must not extend a session's life.
    */
-  const sessionCookie = (maxAgeSeconds: number) => ({
+  const sessionCookie = (maxAgeSeconds: number, origin: string) => ({
     httpOnly: true,
     sameSite: 'lax' as const,
     // From the ORIGIN, not from MANIFEST_ENV (P5a Task 3): the console's origin is
     // https in development too, and a cookie without Secure on an https origin is
     // one a network position can read the day anything is served over plain http.
-    secure: deps.config.sp.origin.startsWith('https://'),
+    // THE ORIGIN THE REQUEST ARRIVED ON (the front-end enablement plan's Task 8): each of
+    // Manifest's origins sets its own HOST-ONLY cookie, by its own scheme.
+    secure: origin.startsWith('https://'),
     path: '/',
     maxAge: maxAgeSeconds,
   })
+
+  /**
+   * WHICH OF MANIFEST'S ORIGINS A REQUEST ARRIVED ON, and that origin's SAML client (the
+   * front-end enablement plan's Task 8, Decisions 16–18). A sign-in begun on `app` names `app`'s
+   * ACS, is posted back to `app` by the IdP, sets `app`'s cookie and is validated by `app`'s
+   * client — so each origin signs a person in on itself, and no session crosses between them.
+   */
+  const arrival = (request: FastifyRequest) => {
+    const origin = originOf(request, deps.config.origins)
+    return { origin, sp: deps.samlSpFor(origin), https: origin.startsWith('https://') }
+  }
 
   /**
    * §9: *"Manifest itself is an SP."* This is where a person starts.
@@ -98,7 +112,7 @@ export async function registerAuthRoutes(
     // nonce goes to the IdP as RelayState and into a cookie only this browser holds, and
     // the callback refuses an assertion whose RelayState is not the cookie's.
     const nonce = newLoginNonce()
-    const https = deps.config.sp.origin.startsWith('https://')
+    const { sp, https } = arrival(request)
     reply.setCookie(LOGIN_COOKIE, encodeLoginCookie(nonce, safeReturnTo(returnTo)), {
       httpOnly: true,
       path: '/auth',
@@ -109,7 +123,7 @@ export async function registerAuthRoutes(
       // which a loopback http origin cannot give — the Docker tier's case, same-site.
       sameSite: https ? 'none' : 'lax',
     })
-    return reply.redirect(await deps.samlSp.loginUrl(nonce), 302)
+    return reply.redirect(await sp.loginUrl(nonce), 302)
   })
 
   /**
@@ -130,7 +144,7 @@ export async function registerAuthRoutes(
     const actor = requireSession(request)
     const { returnTo } = loginQuery.parse(request.query ?? {})
     const nonce = newLoginNonce()
-    const https = deps.config.sp.origin.startsWith('https://')
+    const { sp, https } = arrival(request)
     reply.setCookie(STEP_UP_COOKIE, encodeLoginCookie(nonce, safeReturnTo(returnTo)), {
       httpOnly: true,
       path: '/auth',
@@ -142,7 +156,7 @@ export async function registerAuthRoutes(
     // §14: the puid and nothing else — no assertion, no cookie, no secret. A step-up that
     // leaves no operator line hides the next one (ORIENTATION §4).
     console.error(`[auth] step-up started for ${actor.puid}`)
-    return reply.redirect(await deps.samlSp.stepUpUrl(nonce), 302)
+    return reply.redirect(await sp.stepUpUrl(nonce), 302)
   })
 
   app.post(
@@ -154,6 +168,9 @@ export async function registerAuthRoutes(
     { config: { idempotency: 'exempt', csrf: 'exempt' } },
     async (request, reply) => {
       const { SAMLResponse, RelayState } = callbackBody.parse(request.body)
+      // Validated by the client of the origin the IdP posted to — which it did only because
+      // that origin's AuthnRequest named its ACS (Decision 17).
+      const { origin, sp } = arrival(request)
 
       /**
        * §20's STEP-UP, told apart from an ordinary sign-in BY ITS OWN COOKIE (Decision
@@ -190,7 +207,7 @@ export async function registerAuthRoutes(
         // as unsolicited — a refusal that would have read as a broken assertion.
         let identity
         try {
-          identity = await deps.samlSp.validateStepUp(SAMLResponse)
+          identity = await sp.validateStepUp(SAMLResponse)
         } catch (error) {
           console.error(
             JSON.stringify({
@@ -225,7 +242,10 @@ export async function registerAuthRoutes(
           // through unchanged, so a browser cookie that outlived it would simply be
           // refused by `verifySession` — and a step-up that LOOKED like it extended a
           // session would be the more expensive kind of wrong.
-          sessionCookie(Math.max(0, Math.floor((current.expiresAt - Date.now()) / 1000))),
+          sessionCookie(
+            Math.max(0, Math.floor((current.expiresAt - Date.now()) / 1000)),
+            origin,
+          ),
         )
         // Spent, exactly as the login cookie is: it cannot bind a second assertion.
         reply.clearCookie(STEP_UP_COOKIE, { path: '/auth' })
@@ -262,7 +282,7 @@ export async function registerAuthRoutes(
       // call and writes nothing (measured — Session 4).
       let identity
       try {
-        identity = await deps.samlSp.validate(SAMLResponse)
+        identity = await sp.validate(SAMLResponse)
       } catch (error) {
         console.error(
           JSON.stringify({
@@ -281,7 +301,7 @@ export async function registerAuthRoutes(
           issueSession(user, Date.now(), identity.idpSession),
           deps.config.sessionSecret,
         ),
-        sessionCookie(SESSION_TTL_MS / 1000),
+        sessionCookie(SESSION_TTL_MS / 1000, origin),
       )
       // The login cookie is spent: a second assertion cannot be bound with it.
       reply.clearCookie(LOGIN_COOKIE, { path: '/auth' })
@@ -339,13 +359,30 @@ export async function registerAuthRoutes(
           : `[auth] single logout: LogoutRequest ${typeof query.SAMLRequest === 'string' ? `arrived (${query.SAMLRequest.length} chars)` : 'ABSENT'}`,
       )
 
-      // THE IdP ANSWERING A CONSOLE SIGN-OUT (P6b F10). Manifest's session was cleared when
-      // the sign-out began, so nothing ends here: a verified answer lands on the console's
-      // home, and `/` is fixed rather than read from RelayState, so this is no redirector.
+      // THE IdP ANSWERING A SIGN-OUT (P6b F10). Manifest's session was cleared when the
+      // sign-out began, so nothing ends here: a verified answer lands on a home page.
+      //
+      // WHICH HOME, AND WHICH CLIENT CHECKS IT (the front-end enablement plan's Task 8, Decision
+      // 18). SimpleSAMLphp answers every sign-out HERE, at the first origin's SLO (`[M5]`) —
+      // including one begun on `app`, whose request is in `app`'s client's InResponseTo cache and
+      // no other. That sign-out sent its origin as RelayState, which the IdP echoes and SIGNS
+      // with the message (the redirect binding signs RelayState too). So: a RelayState that is
+      // EXACTLY one of Manifest's configured origins names the client that validates the answer
+      // and the origin the browser goes back to; anything else is validated by this origin's
+      // client and lands on `/`. A RelayState names nothing but one of Manifest's own origins,
+      // so this is no redirector.
       if (isResponse) {
+        const here = originOf(request, deps.config.origins)
+        const named =
+          typeof query.RelayState === 'string' &&
+          deps.config.origins.includes(query.RelayState)
+            ? query.RelayState
+            : here
         try {
           const originalQuery = (request.raw.url ?? '').split('?')[1] ?? ''
-          await deps.samlSp.completeSpLogout(rawQueryValues(originalQuery), originalQuery)
+          await deps
+            .samlSpFor(named)
+            .completeSpLogout(rawQueryValues(originalQuery), originalQuery)
         } catch (cause) {
           console.error(
             `[auth] single logout refused: ${cause instanceof Error ? cause.message : String(cause)}`,
@@ -354,8 +391,10 @@ export async function registerAuthRoutes(
             'The IdP’s answer could not be verified. Manifest’s own session had already ended; the control plane’s log has the reason.',
           )
         }
-        console.error('[auth] single logout: the IdP confirmed the console sign-out')
-        return reply.redirect('/', 302)
+        console.error(
+          `[auth] single logout: the IdP confirmed the sign-out begun on ${named}`,
+        )
+        return reply.redirect(named === here ? '/' : `${named}/`, 302)
       }
 
       if (typeof query.SAMLRequest !== 'string' || query.SAMLRequest.length === 0) {
@@ -377,10 +416,12 @@ export async function registerAuthRoutes(
         // reaches the signature. Measured against the real Manifest IdP, and again
         // offline: the same bytes sent `%2B`-encoded inflate; sent as a literal `+`
         // they do not (P5c sitting 9, F16).
-        redirectTo = await deps.samlSp.completeIdpLogout(
-          rawQueryValues(originalQuery),
-          originalQuery,
-        )
+        // The IdP's OWN LogoutRequest arrives only at the first origin's SLO (`[M5]`), so it ends
+        // the session on THAT origin; a session on another origin outlives it until it expires
+        // (the plan's *What this plan does not build*: signing out of both origins at once).
+        redirectTo = await deps
+          .samlSpFor(originOf(request, deps.config.origins))
+          .completeIdpLogout(rawQueryValues(originalQuery), originalQuery)
       } catch (cause) {
         // `request.log` writes nothing here (§4), and a refusal that leaves no
         // operator line hides the next one. Never with a secret in it.
@@ -428,12 +469,16 @@ export async function registerAuthRoutes(
         }
         return reply.status(200).send({ redirectTo: '/' })
       }
+      // THE ORIGIN IT BEGAN ON, as RelayState (Decision 18): the IdP answers at the first
+      // origin's SLO, which sends the browser back here by it — and validates the answer with
+      // this origin's client, the one that holds the request.
+      const origin = originOf(request, deps.config.origins)
       console.error(
-        `[auth] console sign-out for ${session.puid}: single logout sent to the IdP`,
+        `[auth] sign-out on ${origin} for ${session.puid}: single logout sent to the IdP`,
       )
       return reply
         .status(200)
-        .send({ redirectTo: await deps.samlSp.logoutUrl(session.idp) })
+        .send({ redirectTo: await deps.samlSpFor(origin).logoutUrl(session.idp, origin) })
     },
   )
 }
