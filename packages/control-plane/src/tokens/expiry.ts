@@ -39,7 +39,8 @@ import { pendingActions, type Db } from '../db/index.js'
  * says it is, rather than a second function that expires without looking at the clock.
  */
 export async function expirePendingActions(
-  db: Db,
+  // `update` alone, so the archive can expire inside the transaction that archives (sitting 8).
+  db: Pick<Db, 'update'>,
   now: Date = new Date(),
   scope?: { tokenId: string } | { projectId: string },
 ): Promise<number> {

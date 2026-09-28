@@ -11,6 +11,7 @@ import {
   routes,
   withEnvironmentLock,
 } from '../db/index.js'
+import type { AiKeyService } from '../ai/index.js'
 import { fakeLiteLlm, type FakeLiteLlm } from '../ai/testing.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
 import {
@@ -663,6 +664,88 @@ describe('archive and restore (§11, Task 11)', () => {
       })
     })
   })
+
+  /**
+   * THE WHOLE-BRANCH REVIEW'S I1: the one step that needs the model gateway stood FIRST, and a run
+   * stops at its first failure — so with LiteLLM down and one live agent session, an "archived" app
+   * kept serving its students, its tokens were never revoked, and a restore revived them. Now the
+   * tokens and questions go in the state's own transaction, and the gateway's step runs LAST.
+   */
+  it('an archive whose agent sessions cannot be ended still switches the app off and revokes its tokens — and a restore does not revive them', async () => {
+    await withLifecycleServer(async (ctx, lite) => {
+      const deployed = await deployWithDatabase(ctx)
+      const driver = ctx.deps.driver as FakeDriver
+      expect((await startSession(ctx)).statusCode).toBe(201)
+      const minted = await mutate(ctx, `/v1/projects/${ctx.projectId}/tokens`, {
+        name: 'agent',
+        capabilities: ['project:read'],
+        expiresInDays: 1,
+      })
+      const { secret } = minted.json() as { secret: string }
+      // The gateway cannot revoke anything.
+      lite.fail('/key/delete', 503, 100)
+      expect(refusal(await archive(ctx, ctx.ownerSteppedUp))).toEqual({
+        status: 500,
+        code: 'PROJECT_TEARDOWN_INCOMPLETE',
+      })
+      // What students meet is off, whatever the gateway says…
+      expect(driver.isSwitchedOff(deployed.hostname)).toBe(true)
+      expect((await driver.status(deployed.handle)).state).toBe('gone')
+      // …and a restore does not bring the token back.
+      expect((await restore(ctx, ctx.ownerCookies)).statusCode).toBe(200)
+      const asToken = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}`,
+        headers: { authorization: `Bearer ${secret}` },
+      })
+      expect(refusal(asToken)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
+    })
+  }, 30_000)
+
+  /**
+   * THE WHOLE-BRANCH REVIEW'S I2 (and its minor 6, that nothing measured this): an AI app's deploy
+   * stores the instance's model key BEFORE its container is ready and its handle recorded, so a
+   * control plane killed in between leaves a row with no handle and a key live at the gateway. An
+   * archive revokes every instance key it retires — that row's included.
+   */
+  it('revokes the model key of every instance an archive retires — one whose deploy never recorded its handle included', async () => {
+    const revoked: string[] = []
+    const ai: AiKeyService = {
+      enabled: true,
+      mintAppKey: () => {
+        throw new Error('nothing in this test mints an app key')
+      },
+      discardAppKey: () => {
+        throw new Error('nothing in this test discards an app key')
+      },
+      storeInstanceKey: () => {
+        throw new Error('nothing in this test stores an app key')
+      },
+      revokeInstanceKey: (_db, input) => {
+        revoked.push(input.instanceId)
+        return Promise.resolve(true)
+      },
+      revokeLegacyAppKey: () => Promise.resolve(false),
+    }
+    await withLifecycleServer(
+      async (ctx) => {
+        const deployed = await deployWithDatabase(ctx)
+        const [interrupted] = await ctx.db
+          .insert(instances)
+          .values({
+            environmentId: ctx.stagingEnvironmentId,
+            releaseId: deployed.releaseId,
+            driver: 'fake',
+            kind: 'web',
+            state: 'failed',
+          })
+          .returning()
+        expect((await archive(ctx, ctx.ownerSteppedUp)).statusCode).toBe(200)
+        expect(revoked.sort()).toEqual([deployed.instanceId, interrupted!.id].sort())
+      },
+      { ai },
+    )
+  }, 30_000)
 
   /** The boot, as `index.ts` calls it: its retire passes recorded rather than run. */
   const boot = (ctx: TestProject) =>

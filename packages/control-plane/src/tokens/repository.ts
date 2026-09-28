@@ -76,7 +76,11 @@ export async function tokenForAuthentication(
  * Decision 28's second step). Answers the ids it revoked; a token already revoked keeps the stamp
  * it had, so a retry revokes nothing twice.
  */
-export async function revokeTokensOf(db: Db, projectId: string): Promise<string[]> {
+export async function revokeTokensOf(
+  // `update` alone, so the archive can revoke inside the transaction that archives (sitting 8).
+  db: Pick<Db, 'update'>,
+  projectId: string,
+): Promise<string[]> {
   const revoked = await db
     .update(delegatedTokens)
     .set({ revokedAt: new Date() })

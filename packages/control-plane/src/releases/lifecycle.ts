@@ -51,11 +51,17 @@ export interface LifecycleDeps {
  * revoked token, an expired question, a replaced route, a gone instance, a missing container, a
  * missing SP row each answer at once — so a retry, or the next boot, runs them all again from the
  * first and the finished ones cost a read.
+ *
+ * **THE ONE STEP THAT NEEDS THE MODEL GATEWAY RUNS LAST** (the whole-branch review's I1, sitting 8):
+ * Decision 28 listed it first, and a run stops at its first failure — so with LiteLLM down and one
+ * live agent session, an "archived" app kept serving its students and its tokens stayed live. No step
+ * depends on the sessions being ended, and an agent key is a gateway credential, not a way into the
+ * app; so everything a student or a token meets is taken down first, and a gateway outage leaves
+ * only the sessions for the retry, or the boot, to end.
  */
 export const TEARDOWN_STEPS = [
-  // Keys revoked by alias at the gateway BEFORE their rows are stamped (`endSessionsOf`).
-  'end-agent-sessions',
-  // Every token of the project, `revoked_at` now. `tokenActor` refuses them anyway (Decision 27).
+  // Every token of the project, `revoked_at` now — also inside the archive's state change, so a
+  // project is never archived with a live token (`archiveProject`). `tokenActor` refuses them anyway.
   'revoke-tokens',
   // Every pending question of the project, whatever its expiry: nobody can answer one now.
   'expire-pending-actions',
@@ -67,6 +73,8 @@ export const TEARDOWN_STEPS = [
   'stop-environments',
   // Sandbox's and staging's registrations with the Manifest IdP (§11, as Spec action 6 wrote it).
   'deregister-sps',
+  // Keys revoked by alias at the gateway BEFORE their rows are stamped (`endSessionsOf`). LAST.
+  'end-agent-sessions',
 ] as const
 
 export type TeardownStep = (typeof TEARDOWN_STEPS)[number]
@@ -140,8 +148,19 @@ const STEP: Record<TeardownStep, (t: Teardown) => Promise<unknown>> = {
               .where(eq(instances.id, row.id))
           }
           if (row.handle === null) {
-            // The driver never created it (a deploy interrupted before its container): nothing to
-            // drain or remove, so the row goes straight to where the retire would have left it.
+            // The driver never recorded it (a deploy interrupted before its handle was written):
+            // nothing to drain through a handle — a container it did start is swept below, by the
+            // driver's own list — so the row goes straight to where the retire would have left it.
+            // BUT ITS MODEL KEY FIRST (the whole-branch review's I2): a deploy stores the instance's
+            // key BEFORE its container is ready, and nothing else would ever revoke it once the row
+            // is `gone`. Idempotent — `false` for an instance that never had one.
+            if (t.deps.ai.enabled) {
+              await t.deps.ai.revokeInstanceKey(t.deps.db, {
+                projectId: t.projectId,
+                kind: environment.kind,
+                instanceId: row.id,
+              })
+            }
             await t.deps.db
               .update(instances)
               .set({ state: nextState('destroying', 'destroyed') })
@@ -319,10 +338,22 @@ export async function archiveProject(
 ): Promise<void> {
   const by: EndedBy = { userId: input.actor.userId, tokenId: null }
   await withProjectLock(input.projectId, async () => {
-    await deps.db
-      .update(projects)
-      .set({ state: 'archived', archivedAt: sql`now()`, archivedBy: input.actor.userId })
-      .where(and(eq(projects.id, input.projectId), eq(projects.state, 'active')))
+    // THE STATE, THE TOKENS AND THE QUESTIONS IN ONE TRANSACTION (the whole-branch review's I1): all
+    // three are the database's alone, so no failure after this — the gateway's included — can leave
+    // an archived project with a live token that a restore would revive. The steps below revoke and
+    // expire again, idempotently, for a boot finishing an archive.
+    await deps.db.transaction(async (tx) => {
+      await tx
+        .update(projects)
+        .set({
+          state: 'archived',
+          archivedAt: sql`now()`,
+          archivedBy: input.actor.userId,
+        })
+        .where(and(eq(projects.id, input.projectId), eq(projects.state, 'active')))
+      await revokeTokensOf(tx, input.projectId)
+      await expirePendingActions(tx, EVERY_QUESTION, { projectId: input.projectId })
+    })
     await runTeardown(deps, { projectId: input.projectId, by }, { deleteData: false })
     await publishArchivedOnce(deps, input.projectId, by)
   })
