@@ -1073,5 +1073,29 @@ describe('Manifest is its own SP (§9)', () => {
       expect(String(httpsCookie?.sameSite).toLowerCase()).toBe('none')
       await app.close()
     })
+
+    it('sets the SESSION cookie’s Secure by the origin the sign-in completed on (the review, M1)', async () => {
+      // The session cookie is the one that matters: `Secure` on an https origin, and absent on an http one — each by the
+      // origin the callback ARRIVED on, not by the console's (`config.sp.origin`, which is https here in both cases).
+      const deps = await testDeps()
+      const mixed = {
+        ...deps,
+        config: {
+          ...deps.config,
+          origins: ['https://console.manifest.internal', 'http://localhost:7100'],
+        },
+      }
+      const app = await buildServer(mixed)
+      const idp = await testSamlIdp()
+      const sessionOn = async (host: string) => {
+        const login = await pendingLogin(app, undefined, host)
+        const res = await post(app, assertion(idp, login.requestId), { ...login, host })
+        expect(res.statusCode, res.body).toBe(302)
+        return res.cookies.find((c) => c.name === 'manifest_session')
+      }
+      expect((await sessionOn('localhost:7100'))?.secure).toBeFalsy()
+      expect((await sessionOn('console.manifest.internal'))?.secure).toBe(true)
+      await app.close()
+    })
   })
 })

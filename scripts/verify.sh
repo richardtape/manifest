@@ -990,19 +990,51 @@ check "the console's one allowed source is the platform network's gateway" conso
 #   [401] + UNAUTHENTICATED                     the control plane answered through app's site. PASS
 #   "manifest: the control plane…"              @outside REFUSED the host — the failure this is for
 #   "manifest OK host=…"                        the WILDCARD answered; the site or the pin is missing
+#
+# A `[502]` PASSES ONLY WHILE NOTHING LISTENS ON 7100 (the sitting's review, I1): with the control plane up, `/v1/me` must be
+# its `401`. Otherwise a 502 could be /v1/* forwarded to 7105 — nothing listens there either — and pass for the wrong reason.
 app_serves_the_api() {
-  local out
+  local out cp
   out=$(curl -sS -w ' [%{http_code}]' "https://$APP_HOST/v1/me" 2>&1)
-  echo "$out"
+  cp=down; lsof -nP -iTCP:7100 -sTCP:LISTEN >/dev/null 2>&1 && cp=up
+  echo "$out  (control plane on 7100: $cp)"
   case "$out" in
     *"manifest OK host="*) return 1 ;;
     *"the control plane is not reachable"*) return 1 ;;
-    *'[502]') return 0 ;;
+    *'[502]') [ "$cp" = down ] && return 0; return 1 ;;
     *'"UNAUTHENTICATED"'*'[401]') return 0 ;;
   esac
   return 1
 }
 check "the host reaches the API on https://$APP_HOST and is not refused" app_serves_the_api
+
+# WHAT THE LIVE CHECK ABOVE CANNOT SEE WHILE THE CONTROL PLANE IS DOWN (the review's I1): WHERE app's site sends /v1/* and
+# /auth/*. So it is held STATICALLY: app's site is the console's changed in EXACTLY TWO places — its address and the non-API
+# upstream, 7105 (the front-end enablement plan's Task 8, Decision 19). Comments are stripped; every directive is compared.
+app_site_is_the_consoles() {
+  local body
+  body=$(awk -v a="$CONSOLE_HOST {" -v b="$APP_HOST {" '
+    function strip(line) { sub(/^[ \t]+/, "", line); return line }
+    $0 == a { site = "c"; next }
+    $0 == b { site = "a"; next }
+    site != "" && /^}/ { site = ""; next }
+    site != "" { l = strip($0); if (l == "" || l ~ /^#/) next; n[site]++; line[site, n[site]] = l }
+    END {
+      if (n["c"] == 0 || n["a"] == 0) { print "a site block is missing (console " n["c"] ", app " n["a"] " directives)"; exit 1 }
+      if (n["c"] != n["a"]) { print "console has " n["c"] " directives, app " n["a"]; exit 1 }
+      d = 0
+      for (i = 1; i <= n["c"]; i++) if (line["c", i] != line["a", i]) {
+        d++
+        if (!(line["c", i] ~ /7104 \{$/ && line["a", i] ~ /7105 \{$/)) { print "differs: [" line["c", i] "] vs [" line["a", i] "]"; exit 1 }
+      }
+      if (d != 1) { print d " directive lines differ, want exactly the upstream"; exit 1 }
+      print n["a"] " directives; only the non-API upstream differs (7104 -> 7105)"
+    }' infra/caddy/Caddyfile)
+  local rc=$?
+  echo "$body"
+  return $rc
+}
+check "app's site is the console's with only its address and 7105 changed (Decision 19)" app_site_is_the_consoles
 
 app_refuses_platform_container() {
   require_ca || return 1

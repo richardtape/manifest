@@ -25,7 +25,7 @@ const MOCK = process.env.MANIFEST_MOCK === undefined ? undefined : 'http://127.0
  *   MANIFEST_CONSOLE_HOST=app.manifest.internal pnpm --filter @manifest/console preview --port 7105 --strictPort
  *
  * `MANIFEST_CONSOLE_HOST` names where the PAGE is reached, which is what HMR's socket must be
- * told; the page reads `window.location.origin` for every call (`src/app.tsx`, `src/stream.ts`),
+ * told under `vite dev` — `preview` has no HMR, so there it does nothing; the page reads `window.location.origin` for every call (`src/app.tsx`, `src/stream.ts`),
  * so it needs nothing else to call the API on the origin it was served from.
  */
 const ALLOWED_HOSTS = ['console.manifest.internal', 'app.manifest.internal']
