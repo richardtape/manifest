@@ -278,7 +278,11 @@ export const EVENT_DETAIL_SCHEMAS = {
   ),
   'project.created': z
     .strictObject({
-      slug: z.string().describe('The project’s name (§23).'),
+      slug: z
+        .string()
+        .describe(
+          'The project’s slug (§23) — what its hostnames and repository are made from, and never changes.',
+        ),
       blueprint: z.string().describe('Its blueprint, `name@major` (§25).'),
       starter: z
         .string()

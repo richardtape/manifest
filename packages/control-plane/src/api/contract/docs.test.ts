@@ -146,6 +146,29 @@ describe('the published reference is complete (Decision 14)', () => {
     expect(hits).toEqual([])
   })
 
+  /**
+   * A PROJECT'S `name` IS WHAT PEOPLE READ, AND ITS SLUG IS WHAT EVERY HOSTNAME IS MADE FROM (§6) —
+   * so published text calling the slug "the project's name" tells a reader that a rename moves a
+   * hostname. And since Manifest signs a person in on two origins (§21), a session's `Origin` is the
+   * origin the request arrived on: no text may say it must be the console's.
+   */
+  it('calls the slug a slug, and never says a session must come from the console’s origin', () => {
+    const STALE =
+      /\bproject name\b|\bproject names\b|project[’']s name \(§23\)|^Its name \(§23\)|console[’']s origin/i
+    const hits: string[] = []
+    const walk = (value: unknown, at: string): void => {
+      if (typeof value === 'string') {
+        if (STALE.test(value)) hits.push(`${at}: ${value}`)
+      } else if (Array.isArray(value)) {
+        value.forEach((v, i) => walk(v, `${at}[${i}]`))
+      } else if (value !== null && typeof value === 'object') {
+        for (const [k, v] of Object.entries(value)) walk(v, `${at}.${k}`)
+      }
+    }
+    walk(doc, '')
+    expect(hits).toEqual([])
+  })
+
   it('has every example PARSE through its own schema', () => {
     for (const route of ROUTE_DEFINITIONS) {
       const response = route.success.schema.safeParse(route.examples.response)

@@ -9,7 +9,7 @@ export const Fleet = representation(
     .array(
       z.object({
         id: Uuid.describe('The project.'),
-        slug: z.string().describe('Its name (§23).'),
+        slug: z.string().describe('Its slug (§23), which its hostnames are made from.'),
         blueprint: z.string().describe('Its blueprint, `name@major`.'),
         starter: z
           .string()

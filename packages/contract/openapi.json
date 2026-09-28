@@ -6929,16 +6929,16 @@
         "tags": [
           "projects"
         ],
-        "summary": "Would this project name work?",
-        "description": "§23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the name, and a 4xx would make \"taken\" indistinguishable from \"not allowed to ask\". Says nothing about a holder. 60 a minute per person.",
+        "summary": "Would this slug work?",
+        "description": "§23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the slug, and a 4xx would make \"taken\" indistinguishable from \"not allowed to ask\". Says nothing about a holder. 60 a minute per person.",
         "parameters": [
           {
             "name": "slug",
             "in": "path",
-            "description": "The name to check, as it would be given to `createProject`.",
+            "description": "The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique.",
             "required": true,
             "schema": {
-              "description": "The name to check, as it would be given to `createProject`.",
+              "description": "The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique.",
               "type": "string",
               "minLength": 1
             }
@@ -9378,7 +9378,7 @@
           "CONFIG_MASTER_SECRET_REQUIRED": "MANIFEST_MASTER_SECRET is required outside development.",
           "CONFIG_ORIGINS_SHARE_A_HOST": "MANIFEST_CONTROL_PLANE_ORIGIN and MANIFEST_FRONTEND_ORIGIN are on one host, so a request could not say which it arrived on.",
           "CREDENTIAL_AMBIGUOUS": "The request carried both a session cookie and a delegated token; it carries one or the other.",
-          "CSRF_ORIGIN_REFUSED": "A request carrying a session did not come from the console’s origin.",
+          "CSRF_ORIGIN_REFUSED": "A request carrying a session did not come from the origin it was sent to. Each of Manifest’s origins — the console’s, and the faculty front-end’s — takes a session’s request only from itself.",
           "DOC_NOT_FOUND": "No page of the API’s documentation has this slug.",
           "EVENTS_UPGRADE_REQUIRED": "The event stream is a WebSocket; a plain GET cannot read it.",
           "FORBIDDEN": "A member of the project whose role does not hold this capability.",
@@ -10905,7 +10905,7 @@
                 "type": "object",
                 "properties": {
                   "slug": {
-                    "description": "The project’s name (§23).",
+                    "description": "The project’s slug (§23) — what its hostnames and repository are made from, and never changes.",
                     "type": "string"
                   },
                   "blueprint": {
@@ -13837,7 +13837,7 @@
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
             },
             "slug": {
-              "description": "Its name (§23).",
+              "description": "Its slug (§23), which its hostnames are made from.",
               "type": "string"
             },
             "blueprint": {
@@ -17750,8 +17750,8 @@
     },
     "CSRF_ORIGIN_REFUSED": {
       "status": 403,
-      "summary": "A request carrying a session did not come from the console’s origin.",
-      "remedy": "Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin."
+      "summary": "A request carrying a session did not come from the origin it was sent to. Each of Manifest’s origins — the console’s, and the faculty front-end’s — takes a session’s request only from itself.",
+      "remedy": "Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin."
     },
     "DOC_NOT_FOUND": {
       "status": 404,
@@ -18101,7 +18101,7 @@
     "SOURCE_INVALID_SLUG": {
       "status": 409,
       "summary": "The slug cannot name a repository.",
-      "remedy": "Choose a project name that follows §23’s rule; `checkSlug` checks one."
+      "remedy": "Choose a slug that follows §23’s rule; `checkSlug` checks one."
     },
     "SOURCE_NOTHING_TO_COMMIT": {
       "status": 409,
@@ -18141,7 +18141,7 @@
     "SOURCE_REPOSITORY_EXISTS": {
       "status": 409,
       "summary": "A repository of that name already exists — on GitHub, or as a mirror on this machine — and Manifest never adopts one it did not create.",
-      "remedy": "Choose another project name. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over."
+      "remedy": "Choose another slug. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over."
     },
     "SOURCE_REPOSITORY_NOT_PRIVATE": {
       "status": 409,

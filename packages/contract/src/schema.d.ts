@@ -1116,8 +1116,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Would this project name work?
-         * @description §23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the name, and a 4xx would make "taken" indistinguishable from "not allowed to ask". Says nothing about a holder. 60 a minute per person.
+         * Would this slug work?
+         * @description §23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the slug, and a 4xx would make "taken" indistinguishable from "not allowed to ask". Says nothing about a holder. 60 a minute per person.
          */
         get: operations["checkSlug"];
         put?: never;
@@ -2627,7 +2627,7 @@ export interface components {
             humanMessage: string;
             /** @description A project and its three environments were created (§22). `repository.seeded` and `spec.validated` follow. */
             machineDetail: {
-                /** @description The project’s name (§23). */
+                /** @description The project’s slug (§23) — what its hostnames and repository are made from, and never changes. */
                 slug: string;
                 /** @description Its blueprint, `name@major` (§25). */
                 blueprint: string;
@@ -4083,7 +4083,7 @@ export interface components {
              * @description The project.
              */
             id: string;
-            /** @description Its name (§23). */
+            /** @description Its slug (§23), which its hostnames are made from. */
             slug: string;
             /** @description Its blueprint, `name@major`. */
             blueprint: string;
@@ -9903,7 +9903,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The name to check, as it would be given to `createProject`. */
+                /** @description The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique. */
                 slug: string;
             };
             cookie?: never;

@@ -32,8 +32,8 @@ export function slugTaken(slug: string): SlugReason {
   // NOTHING ABOUT THE HOLDER (§23): no owner, no id, no environment.
   return {
     code: SLUG_CODES.TAKEN,
-    message: `'${slug}' is already a project's name.`,
-    hint: 'Project names are unique across the platform, because each becomes a hostname (§23). Choose another.',
+    message: `'${slug}' is already a project's slug.`,
+    hint: 'Slugs are unique across the platform, because each becomes a hostname (§23). Choose another; the name people read is separate, and need not be unique.',
   }
 }
 
@@ -49,7 +49,7 @@ export async function checkSlug(
       reasons: [
         {
           code: SLUG_CODES.INVALID,
-          message: `'${slug.slice(0, 64)}' cannot be a project name`,
+          message: `'${slug.slice(0, 64)}' cannot be a project's slug`,
           hint: 'Lower-case letters, digits and hyphens, 3–39 characters, starting with a letter (§7).',
         },
       ],

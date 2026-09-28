@@ -182,8 +182,8 @@ export const ERROR_CODES = {
   ),
   CSRF_ORIGIN_REFUSED: api(
     403,
-    'A request carrying a session did not come from the console’s origin.',
-    'Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin.',
+    'A request carrying a session did not come from the origin it was sent to. Each of Manifest’s origins — the console’s, and the faculty front-end’s — takes a session’s request only from itself.',
+    'Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin.',
   ),
   RATE_LIMITED: api(
     429,
@@ -535,7 +535,7 @@ export const ERROR_CODES = {
   ),
   SOURCE_INVALID_SLUG: source(
     'The slug cannot name a repository.',
-    'Choose a project name that follows §23’s rule; `checkSlug` checks one.',
+    'Choose a slug that follows §23’s rule; `checkSlug` checks one.',
   ),
   SOURCE_NOTHING_TO_COMMIT: source(
     'Every change leaves its file as it is in the base commit, so there is nothing to commit.',
@@ -567,7 +567,7 @@ export const ERROR_CODES = {
   ),
   SOURCE_REPOSITORY_EXISTS: source(
     'A repository of that name already exists — on GitHub, or as a mirror on this machine — and Manifest never adopts one it did not create.',
-    'Choose another project name. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over.',
+    'Choose another slug. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over.',
   ),
   SOURCE_REPOSITORY_NOT_PRIVATE: source(
     'GitHub did not create the repository private, so it was deleted.',

@@ -181,7 +181,7 @@ Answer, `200`:
 | Error | Status | What to do |
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -221,7 +221,7 @@ Answer, `201`:
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTAKE_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset — the first of the month, 00:00 UTC — or ask a platform administrator to raise the intake budget. |
@@ -263,7 +263,7 @@ Answer, `200`:
 | Error | Status | What to do |
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
@@ -420,7 +420,7 @@ Answer, `201`:
 | `AGENT_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -694,7 +694,7 @@ Answer, `200`:
 | Error | Status | What to do |
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -987,7 +987,7 @@ Answer, `202`:
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
 | `BLUEPRINT_NOT_FOUND` | 400 | Choose one from `listBlueprints` and name it `name@major`. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -1347,7 +1347,7 @@ Answer, `201`:
 | Error | Status | What to do |
 |---|---|---|
 | `BLUEPRINT_NOT_FOUND` | 400 | Choose one from `listBlueprints` and name it `name@major`. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -1613,7 +1613,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -1772,7 +1772,7 @@ Answer, `201`:
 | `APPROVAL_PREVIEW_EXPIRED` | 409 | Take a new preview (`createApprovalPreview`), read it, and decide naming the new one. |
 | `APPROVAL_PREVIEW_REQUIRED` | 400 | Take a preview (`createApprovalPreview`), read it, and send the decision again naming its `previewId`. |
 | `APPROVAL_PREVIEW_STALE` | 409 | Take a new preview (`createApprovalPreview`), read what changed, and decide naming the new one. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -1867,7 +1867,7 @@ Answer, `201`:
 | `APPROVAL_PREVIEW_EXPIRED` | 409 | Take a new preview (`createApprovalPreview`), read it, and decide naming the new one. |
 | `APPROVAL_PREVIEW_REQUIRED` | 400 | Take a preview (`createApprovalPreview`), read it, and send the decision again naming its `previewId`. |
 | `APPROVAL_PREVIEW_STALE` | 409 | Take a new preview (`createApprovalPreview`), read what changed, and decide naming the new one. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -1988,7 +1988,7 @@ Upgrade to a WebSocket. Builds, their log lines, instance state transitions, inc
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `EVENTS_UPGRADE_REQUIRED` | 426 | Open the same URL as a WebSocket (`wss://`), with the same credential. |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
@@ -2192,7 +2192,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2243,7 +2243,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2298,7 +2298,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2400,7 +2400,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2457,7 +2457,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2740,7 +2740,7 @@ Answer, `201`:
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
 | `BLUEPRINT_NOT_FOUND` | 400 | Choose one from `listBlueprints` and name it `name@major`. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
@@ -2753,7 +2753,7 @@ Answer, `201`:
 | `SLUG_TAKEN` | 409 | Choose another name. `checkSlug` says whether one is free. |
 | `SOURCE_GITHUB_REFUSED` | 409 | Read GitHub’s message: a limit passes with time, and a permission is the GitHub App installation’s to grant. Retry once it is resolved. |
 | `SOURCE_GIT_FAILED` | 409 | Retry once; if it recurs, report the time and the operation the message names to the platform’s operator. |
-| `SOURCE_REPOSITORY_EXISTS` | 409 | Choose another project name. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over. |
+| `SOURCE_REPOSITORY_EXISTS` | 409 | Choose another slug. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over. |
 | `SOURCE_REPOSITORY_NOT_PRIVATE` | 409 | Create the project again. If it recurs, the GitHub organisation’s settings forbid private repositories, and its administrator changes them. |
 | `SOURCE_SECRET_DETECTED` | 409 | Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again. In a file written with `encoding: base64`, the line counts runs of printable text, not lines. |
 | `SOURCE_UNREACHABLE` | 503 | Retry when the git host answers. Meanwhile a commit already mirrored still builds, releases and deploys. |
@@ -2888,7 +2888,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2923,7 +2923,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2993,7 +2993,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3124,7 +3124,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3170,7 +3170,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3239,7 +3239,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3368,7 +3368,7 @@ Answer, `201`:
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3384,15 +3384,15 @@ Answer, `201`:
 | `SOURCE_UNREACHABLE` | 503 | Retry when the git host answers. Meanwhile a commit already mirrored still builds, releases and deploys. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
-### `checkSlug` — Would this project name work?
+### `checkSlug` — Would this slug work?
 
 `GET /v1/slugs/{slug}` · a session or a delegated token
 
-§23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the name, and a 4xx would make "taken" indistinguishable from "not allowed to ask". Says nothing about a holder. 60 a minute per person.
+§23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the slug, and a 4xx would make "taken" indistinguishable from "not allowed to ask". Says nothing about a holder. 60 a minute per person.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
-| `slug` | path | yes | The name to check, as it would be given to `createProject`. |
+| `slug` | path | yes | The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique. |
 
 Answer, `200`:
 
@@ -3495,7 +3495,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3534,7 +3534,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3684,7 +3684,7 @@ Answer, `201`:
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3980,7 +3980,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -4027,7 +4027,7 @@ Answer, `200`:
 | Error | Status | What to do |
 |---|---|---|
 | `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
-| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the console’s origin — a browser does this itself, and `hint` names it. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |

@@ -294,8 +294,8 @@ export const SLUG_TAKEN: Schemas['SlugCheck'] = {
   reasons: [
     {
       code: 'SLUG_TAKEN',
-      message: 'a project already has this name',
-      hint: 'Pick another name, or ask its owner to add you.',
+      message: 'a project already has this slug',
+      hint: 'Pick another slug, or ask its owner to add you.',
     },
   ],
 }

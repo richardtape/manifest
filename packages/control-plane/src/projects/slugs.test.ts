@@ -65,6 +65,23 @@ describe('one function answers the slug check and creation (§23, P5a Task 9)', 
     })
   })
 
+  it('calls the slug a slug — a project’s name is what people read, and never reaches a hostname (§6)', async () => {
+    await withProject(async (tx, { projectId }) => {
+      const [held] = await tx
+        .select({ slug: projects.slug })
+        .from(projects)
+        .where(eq(projects.id, projectId))
+      for (const asked of ['Chem_Labs', held!.slug]) {
+        const verdict = await checkSlug(tx, reserved, asked)
+        const [reason] = verdict.available === false ? verdict.reasons : []
+        expect(`${reason!.message} ${reason!.hint}`).toMatch(/\bslug/)
+        expect(`${reason!.message} ${reason!.hint}`).not.toMatch(
+          /project[’']s name|project names?\b/i,
+        )
+      }
+    })
+  })
+
   it('an available name is available, with no reasons at all', async () => {
     await withProject(async (tx) => {
       expect(await checkSlug(tx, reserved, 'journey-app')).toEqual({
