@@ -14,6 +14,11 @@ import { AI_CODES, AiError, mapLiteLlmError } from './errors.js'
 export interface LiteLlmClient {
   get<T>(path: string, query?: Record<string, string>): Promise<T>
   post<T>(path: string, body: unknown): Promise<T>
+  /**
+   * The front-end enablement plan's Task 12b: LiteLLM removes a fallback only by `DELETE /fallback/{model}`.
+   * Sent with NO body, and so no content-type (sitting 9a's F7).
+   */
+  delete<T>(path: string, query?: Record<string, string>): Promise<T>
 }
 
 export class AiConfigError extends Error {
@@ -50,7 +55,7 @@ export function createLiteLlmClient(opts: {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
   async function request<T>(
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST' | 'DELETE',
     path: string,
     query: Record<string, string> | undefined,
     body: unknown,
@@ -102,5 +107,7 @@ export function createLiteLlmClient(opts: {
     get: <T>(path: string, query?: Record<string, string>) =>
       request<T>('GET', path, query, undefined),
     post: <T>(path: string, body: unknown) => request<T>('POST', path, undefined, body),
+    delete: <T>(path: string, query?: Record<string, string>) =>
+      request<T>('DELETE', path, query, undefined),
   }
 }

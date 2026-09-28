@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { parse } from 'yaml'
 import { createCatalogueCache, type ModelCatalogue } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
-import { mapLiteLlmError } from './errors.js'
+import { AI_CODES, AiError, mapLiteLlmError } from './errors.js'
 
 /**
  * Probe keys for §16's AI-path tier (P4b Task 3). NOT `ai/keys.ts` — that is Task 7,
@@ -159,7 +159,7 @@ export async function deleteProbeKeyByAlias(alias: string): Promise<void> {
  * model outside its list. `testAiKeyService` stays for the tests that want no gateway at all.
  */
 export interface FakeLiteLlmCall {
-  method: 'GET' | 'POST'
+  method: 'GET' | 'POST' | 'DELETE'
   path: string
   body?: Record<string, unknown>
   query?: Record<string, string>
@@ -188,6 +188,8 @@ export interface FakeDeployment {
    * row is absent from `/model/info` until it is deleted by its id.
    */
   live: boolean
+  /** False once `unreachable(modelName)` is called: listed, and never answering. */
+  reachable?: boolean
   /**
    * A PINNED price — a config entry's own, or one `/model/new` was sent in `litellm_params` (measured at sitting
    * 9a: a pinned price overrides both of LiteLLM's maps and charges spend exactly); else `price()` or the fake's map.
@@ -213,17 +215,39 @@ export interface FakeLiteLlm extends LiteLlmClient {
   readonly keys: ReadonlyMap<string, FakeKey>
   /** Sets a user's month spent, in USD. */
   spend(litellmUserId: string, usd: number): void
+  /**
+   * `default-chat-large`'s fallbacks and every other model's, as LiteLLM's router holds them (the front-end
+   * enablement plan's Task 12b): a model NAME to the names that answer for it, by `fallback_type`. Keyed by
+   * name, never by deployment — measured at sitting 9b: an entry outlives its primary's deletion.
+   */
+  readonly fallbacks: ReadonlyMap<string, ReadonlyMap<string, string[]>>
+  /**
+   * Every deployment named `modelName` stops answering — its provider down, or the network off (sitting 9b
+   * measured it with an `api_base` nothing listens on).
+   */
+  unreachable(modelName: string): void
   /** Charges one key (and its user) as a model call would. */
   charge(alias: string, usd: number): void
-  /** The next `n` calls to `path` fail with `status`, as the real gateway's would. */
+  /**
+   * The next `n` calls to `path` fail with `status`, as the real gateway's would — and status `0` as
+   * the real client's outage does (nothing answered).
+   */
   fail(path: string, status: number, n?: number): void
   /**
    * Every call to `path` answers after `ms` — the real gateway's `/key/generate` writes to Postgres
    * and takes about 100 ms, and a race that window opens is invisible to a fake answering at once.
    */
   slow(path: string, ms: number): void
-  /** The model route: what calling it with `key` for `model` answers. */
-  use(key: string, model: string): { status: number; type?: string }
+  /**
+   * The model route: what calling it with `key` for `model` answers. When `model` cannot answer and a
+   * `general` fallback is set, the fallback answers — naming ITS provider's model, with LiteLLM's
+   * `x-litellm-attempted-fallbacks` — WITHOUT consulting the key's list of models (measured at sitting 9a
+   * and again at 9b: a key holding only the primary is answered by the fallback).
+   */
+  use(
+    key: string,
+    model: string,
+  ): { status: number; type?: string; model?: string; attemptedFallbacks?: number }
   /** Moves the fake's clock, in milliseconds. */
   advance(ms: number): void
   /** Every deployment the gateway holds, served or not, by id. */
@@ -277,6 +301,19 @@ export function fakeLiteLlm(): FakeLiteLlm {
     configDeployments().map((d) => [d.id, d]),
   )
   const prices = new Map<string, number>()
+  const fallbacks = new Map<string, Map<string, string[]>>([
+    ['general', new Map()],
+    ['context_window', new Map()],
+    ['content_policy', new Map()],
+  ])
+  /** The router's model names: every LIVE deployment's (`llm_router.model_names`). */
+  const routerNames = (): Set<string> =>
+    new Set([...deployments.values()].filter((d) => d.live).map((d) => d.modelName))
+  const fallbackType = (value: unknown): string => {
+    const type = value === undefined ? 'general' : String(value)
+    if (!fallbacks.has(type)) refuseDetail(422)
+    return type
+  }
   const mapPrices = (model: string): boolean =>
     model.startsWith('openai/') && !model.startsWith('openai/unpriced')
   const costOf = (d: FakeDeployment): number =>
@@ -288,10 +325,22 @@ export function fakeLiteLlm(): FakeLiteLlm {
   const refuse = (status: number, type = 'internal_server_error'): never => {
     throw mapLiteLlmError(status, { error: { type, message: 'fake' } })
   }
+  /** FastAPI's own envelope, `{"detail": {...}}` — how 1.98.0's `/fallback` refuses (measured at sitting 9b). */
+  const refuseDetail = (status: number): never => {
+    throw mapLiteLlmError(status, { detail: { error: 'fake' } })
+  }
   const failIfAsked = (path: string) => {
     const f = failures.get(path)
     if (f === undefined || f.n <= 0) return
     f.n -= 1
+    // Status 0 is NOTHING answering, which the real client (`ai/client.ts`) throws as its own
+    // AI_BACKEND_UNAVAILABLE — never a mapped body (sitting 9b: mapped, it read AI_UNMAPPED).
+    if (f.status === 0) {
+      throw new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {
+        status: 0,
+        reason: 'unreachable',
+      })
+    }
     refuse(f.status)
   }
   const seconds = (duration: unknown): number => {
@@ -389,6 +438,23 @@ export function fakeLiteLlm(): FakeLiteLlm {
         deployments.delete(d!.id)
         return { message: `Model: ${d!.id} deleted successfully` } as T
       }
+      case '/fallback': {
+        // As 1.98.0's fallback_management_endpoints.py answers, in its order (read at sitting 9b).
+        const model = String(body.model)
+        const names = routerNames()
+        if (!names.has(model)) refuseDetail(404)
+        const list = (body.fallback_models as string[] | undefined) ?? []
+        if (list.some((m) => !names.has(m)) || list.includes(model)) refuseDetail(400)
+        const byType = fallbacks.get(fallbackType(body.fallback_type))!
+        const updated = byType.has(model)
+        byType.set(model, [...list])
+        return {
+          model,
+          fallback_models: list,
+          fallback_type: body.fallback_type ?? 'general',
+          message: `Fallback configuration ${updated ? 'updated' : 'created'} successfully`,
+        } as T
+      }
       case '/key/delete': {
         const aliases = (body.key_aliases as string[] | undefined) ?? []
         const values = (body.keys as string[] | undefined) ?? []
@@ -404,9 +470,23 @@ export function fakeLiteLlm(): FakeLiteLlm {
     }
   }
 
+  /** `/fallback/{model}` — the model named in the path, as LiteLLM routes it. */
+  const fallbackPath = (path: string): string | undefined =>
+    path.startsWith('/fallback/')
+      ? decodeURIComponent(path.slice('/fallback/'.length))
+      : undefined
+
   async function get<T>(path: string, query?: Record<string, string>): Promise<T> {
     calls.push({ method: 'GET', path, ...(query === undefined ? {} : { query }) })
     failIfAsked(path)
+    const fallbackOf = fallbackPath(path)
+    if (fallbackOf !== undefined) {
+      const type = fallbackType(query?.fallback_type)
+      const list = fallbacks.get(type)!.get(fallbackOf)
+      // Measured: none set (or an empty list) is `404` "No general fallbacks configured".
+      if (list === undefined || list.length === 0) refuseDetail(404)
+      return { model: fallbackOf, fallback_models: [...list!], fallback_type: type } as T
+    }
     if (path === '/model/info') {
       return {
         data: [...deployments.values()]
@@ -459,12 +539,39 @@ export function fakeLiteLlm(): FakeLiteLlm {
     } as T
   }
 
+  async function del<T>(path: string, query?: Record<string, string>): Promise<T> {
+    calls.push({ method: 'DELETE', path, ...(query === undefined ? {} : { query }) })
+    failIfAsked(path)
+    const model = fallbackPath(path)
+    if (model === undefined) return refuse(404, 'not_found_error')
+    const type = fallbackType(query?.fallback_type)
+    // Measured: DELETE never consults the router — an entry whose model is gone is still removed.
+    if (!fallbacks.get(type)!.delete(model)) refuseDetail(404)
+    return {
+      model,
+      fallback_type: type,
+      message: 'Fallback configuration deleted successfully',
+    } as T
+  }
+
+  /** The deployments that would answer `name`, as the router picks them. */
+  const answering = (name: string): FakeDeployment | undefined =>
+    [...deployments.values()].find(
+      (d) => d.live && d.modelName === name && d.reachable !== false,
+    )
+
   return {
     calls,
     users,
     keys,
     get,
     post,
+    delete: del,
+    fallbacks,
+    unreachable: (modelName) => {
+      for (const d of deployments.values())
+        if (d.modelName === modelName) d.reachable = false
+    },
     spend: (id, usd) => {
       const user = users.get(id)
       if (user === undefined) throw new Error(`fakeLiteLlm: no user '${id}'`)
@@ -488,7 +595,18 @@ export function fakeLiteLlm(): FakeLiteLlm {
       if (k.spend >= k.maxBudget || user.spend >= user.maxBudget) {
         return { status: 429, type: 'budget_exceeded' }
       }
-      return { status: 200 }
+      const listed = [...deployments.values()].some(
+        (d) => d.live && d.modelName === model,
+      )
+      if (!listed || answering(model) !== undefined) return { status: 200 }
+      // The primary cannot answer: the router tries its general fallbacks, in order, and never asks
+      // whether the key may call them (measured).
+      for (const name of fallbacks.get('general')!.get(model) ?? []) {
+        const d = answering(name)
+        if (d !== undefined) return { status: 200, model: d.model, attemptedFallbacks: 1 }
+      }
+      // Measured at sitting 9a: `500` "Connection error. No fallback model group found".
+      return { status: 500 }
     },
     advance: (ms) => {
       clock += ms

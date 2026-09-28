@@ -1,4 +1,5 @@
 import { execFile, spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { promisify } from 'node:util'
@@ -8,7 +9,11 @@ import { parse } from 'yaml'
 import { describeDocker, REPO_ROOT } from '../runtime/testing.js'
 import { deleteSpRow } from '../sso/index.js'
 import { idpDatabaseUrl } from '../sso/testing.js'
-import { CAPABLE_MODEL_NAME, ensureCapableModel } from './capable.js'
+import {
+  CAPABLE_MODEL_NAME,
+  ensureCapableFallback,
+  ensureCapableModel,
+} from './capable.js'
 import { loadModelCatalogue } from './catalogue.js'
 import { createLiteLlmClient, type LiteLlmClient } from './client.js'
 import { agentModelsFor } from './models.js'
@@ -73,7 +78,54 @@ async function listedCapable(
 
 /** Whatever this file left, removed — so a machine is never left holding a capable model it registered. */
 async function leaveNone(client: LiteLlmClient): Promise<void> {
+  await ensureCapableFallback(client, undefined)
   await ensureCapableModel(client, undefined)
+}
+
+/**
+ * `default-chat-large` whose provider CANNOT BE REACHED — the network-off case, as sittings 9a and 9b
+ * measured it: an address nothing listens on, and a key that is not a key, so nothing leaves LiteLLM's
+ * container — no network, no money. Registered directly, pinned, as the boot would leave a real one.
+ */
+async function unreachableCapable(client: LiteLlmClient): Promise<void> {
+  await client.post('/model/new', {
+    model_name: CAPABLE_MODEL_NAME,
+    litellm_params: {
+      model: 'openai/gpt-6-luna',
+      api_base: 'http://127.0.0.1:9/v1',
+      api_key: 'sk-probe-not-a-key',
+      input_cost_per_token: 1e-7,
+      output_cost_per_token: 5e-7,
+    },
+    model_info: {
+      id: `manifest-capable-probe-${randomUUID()}`,
+      max_classification: 'internal',
+    },
+  })
+}
+
+/** One chat on `default-chat-large` with `key`, as an agent sends it. */
+async function chat(key: string): Promise<Response> {
+  return fetch(`${litellmUrl()}/v1/chat/completions`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: CAPABLE_MODEL_NAME,
+      max_tokens: 8,
+      messages: [{ role: 'user', content: 'Answer with the single word ok.' }],
+    }),
+  })
+}
+
+/** A key's spend once LiteLLM has written it — about ten seconds after the call (measured at sitting 9a). */
+async function spendOf(client: LiteLlmClient, key: string): Promise<number> {
+  for (let i = 0; i < 30; i += 1) {
+    const body = await client.get<{ info?: { spend?: number } }>('/key/info', { key })
+    const spend = body.info?.spend ?? 0
+    if (spend > 0) return spend
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+  }
+  return 0
 }
 
 describeDocker('the capable model against the running LiteLLM (Task 12a)', () => {
@@ -149,6 +201,86 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       await leaveNone(client)
     }
     expect(await rowsNamedCapable()).toBe(0)
+  })
+
+  it('answers default-chat-large from the on-premise model when its provider cannot be reached — through a key holding ONLY default-chat-large, at the fallback’s price (Task 12b)', async () => {
+    const user = `probe-capable-fallback-${Date.now()}`
+    try {
+      await unreachableCapable(client)
+      expect(await ensureCapableFallback(client, 'default-chat-onprem')).toEqual({
+        state: 'set',
+        fallback: 'default-chat-onprem',
+      })
+      await client.post('/user/new', {
+        user_id: user,
+        max_budget: 1,
+        auto_create_key: false,
+      })
+      const { key } = await client.post<{ key: string }>('/key/generate', {
+        user_id: user,
+        key_alias: `${user}-key`,
+        // ONLY the capable model: the gateway falls back without consulting this list (measured) —
+        // which is why the fallback's classification is the platform's to enforce.
+        models: [CAPABLE_MODEL_NAME],
+        allowed_routes: ['/v1/chat/completions'],
+        duration: '600s',
+        max_budget: 0.5,
+      })
+
+      const res = await chat(key)
+      const body = (await res.json()) as {
+        model?: string
+        usage?: { prompt_tokens: number; completion_tokens: number }
+      }
+      expect(res.status, JSON.stringify(body).slice(0, 300)).toBe(200)
+      // The answer names the FALLBACK's provider string, so an agent can tell who answered.
+      expect(body.model).toBe('ollama_chat/qwen3.5:4b')
+      expect(res.headers.get('x-litellm-attempted-fallbacks')).toBe('1')
+      expect(res.headers.get('x-litellm-model-group')).toBe('default-chat-onprem')
+      // Charged to the SAME key at the FALLBACK's price — config.yaml's $1 / $3 a million, never the
+      // primary's pinned $0.10 / $0.50 — so every budget binds unchanged.
+      const { prompt_tokens, completion_tokens } = body.usage!
+      expect(await spendOf(client, key)).toBeCloseTo(
+        prompt_tokens * 1e-6 + completion_tokens * 3e-6,
+        12,
+      )
+
+      // A positive control: without the fallback, the same call is LiteLLM's own failure.
+      expect(await ensureCapableFallback(client, undefined)).toEqual({ state: 'removed' })
+      expect((await chat(key)).status).toBe(500)
+    } finally {
+      // Deleting the user deletes its keys (measured at sitting 9).
+      await client.post('/user/delete', { user_ids: [user] })
+      await leaveNone(client)
+    }
+    expect(await rowsNamedCapable()).toBe(0)
+  }, 180_000)
+
+  it('refuses a fallback below the capable model’s classification and sets nothing — a confidential one it sets (Task 12b)', async () => {
+    const probe = `manifest-probe-public-${randomUUID()}`
+    try {
+      await unreachableCapable(client)
+      await client.post('/model/new', {
+        model_name: 'probe-public-chat',
+        litellm_params: {
+          model: 'ollama_chat/qwen3.5:4b',
+          api_base: 'http://127.0.0.1:9',
+        },
+        model_info: { id: probe, max_classification: 'public' },
+      })
+      const result = await ensureCapableFallback(client, 'probe-public-chat')
+      expect(result.state).toBe('refused')
+      expect(result.reason).toContain("classified 'public'")
+      await expect(
+        client.get(`/fallback/${CAPABLE_MODEL_NAME}`, { fallback_type: 'general' }),
+      ).rejects.toMatchObject({ status: 404 })
+      expect((await ensureCapableFallback(client, 'default-chat-onprem')).state).toBe(
+        'set',
+      )
+    } finally {
+      await client.post('/model/delete', { id: probe })
+      await leaveNone(client)
+    }
   })
 
   it('a boot that fails before it serves leaves the capable model as it was (the review’s I3)', async () => {

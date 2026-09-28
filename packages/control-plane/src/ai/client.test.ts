@@ -38,6 +38,26 @@ describe('the LiteLLM admin transport', () => {
     expect(fetchMock.mock.calls[0]![1].method).toBe('GET')
   })
 
+  // The front-end enablement plan's Task 12b: LiteLLM removes a fallback only by DELETE. No body, so no
+  // content-type — sitting 9a's F7 measured a bodyless request carrying one refused before it was read.
+  it('sends a DELETE with no body and no content-type, its query in the URL', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init: RequestInit) =>
+        new Response(JSON.stringify({ ok: 1 }), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(
+      client().delete('/fallback/default-chat-large', { fallback_type: 'general' }),
+    ).resolves.toEqual({ ok: 1 })
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(url).toBe(
+      'http://litellm.test/fallback/default-chat-large?fallback_type=general',
+    )
+    expect(init.method).toBe('DELETE')
+    expect(init.body).toBeUndefined()
+    expect(init.headers).toEqual({ authorization: 'Bearer sk-master' })
+  })
+
   it('turns a non-2xx into an AiError and never into the raw body', async () => {
     // The whole reason this module exists rather than a bare fetch at each site.
     vi.stubGlobal(

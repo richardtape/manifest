@@ -48,6 +48,7 @@ function countingModel() {
     state,
     llm: {
       get: () => Promise.reject(new Error('never')),
+      delete: () => Promise.reject(new Error('never')),
       post: <T>(_path: string, body: unknown) => {
         state.calls += 1
         const paths = (

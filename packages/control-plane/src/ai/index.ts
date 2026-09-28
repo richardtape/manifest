@@ -44,12 +44,18 @@ export {
 export type { BudgetSpend, CappedKeyInput } from './agent-keys.js'
 export { agentModelsFor, classificationFloor } from './models.js'
 export {
+  CAPABLE_FALLBACK_SETTING,
   CAPABLE_MODEL_NAME,
   CAPABLE_MODEL_SETTING,
   capableModelAtBoot,
+  ensureCapableFallback,
   ensureCapableModel,
 } from './capable.js'
-export type { CapableModelResult } from './capable.js'
+export type {
+  CapableAtBoot,
+  CapableFallbackResult,
+  CapableModelResult,
+} from './capable.js'
 export {
   AgentSessionError,
   agentSessionById,

@@ -99,6 +99,7 @@ function answering(content: string): { client: LiteLlmClient; asked: unknown[] }
     asked,
     client: {
       get: () => Promise.reject(new Error('the summary never reads')),
+      delete: () => Promise.reject(new Error('the summary never removes')),
       post: <T>(_path: string, body: unknown) => {
         asked.push(body)
         return Promise.resolve({
@@ -393,6 +394,7 @@ describe('§13’s change summary — absent rather than blocking (P6a Task 11, 
      */
     const client: LiteLlmClient = {
       get: () => Promise.reject(new Error('never')),
+      delete: () => Promise.reject(new Error('never')),
       post: () =>
         Promise.reject(
           new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {

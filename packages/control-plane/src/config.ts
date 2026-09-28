@@ -306,6 +306,17 @@ const envSchema = z.object({
     z.string().min(1).optional(),
   ),
   /**
+   * THE CAPABLE MODEL'S FALLBACK (§7, §21, §26 as Spec action 8 amended them; the front-end enablement
+   * plan's Task 12b): a CATALOGUE name — never a provider string, because an on-premise deployment needs its
+   * address and key beside the string, which its catalogue entry carries — that LiteLLM answers
+   * `default-chat-large` with whenever its provider fails, the network off included. **`default-chat-onprem`
+   * by default**: Ollama on a laptop, UBC's on-premise inference at UBC. **EMPTY IS NONE**, unlike the
+   * capable model's own setting: RUNBOOK's `set -a; . ./.env` never exports a commented or absent line, so
+   * that takes the default, and a line written empty has said *no fallback*. Checked against D17's
+   * catalogue at every boot (`ai/capable.ts`), never here: the catalogue is LiteLLM's.
+   */
+  MANIFEST_CAPABLE_MODEL_FALLBACK: z.string().default('default-chat-onprem'),
+  /**
    * AN AGENT SESSION'S NUMBERS (the front-end enablement plan's Decision 22; Rich, 2026-09-27, for
    * the laptop — at UBC the numbers are his). The month is a person's, on their own LiteLLM user;
    * the cap is one session's, on its key, and never more than what remains of the month.
@@ -456,6 +467,8 @@ export interface Config {
     enabled: boolean
     /** `MANIFEST_CAPABLE_MODEL`: what `default-chat-large` is registered as; absent, none is. */
     capableModel?: string
+    /** `MANIFEST_CAPABLE_MODEL_FALLBACK`: the catalogue entry that answers for it; absent, none does. */
+    capableFallback?: string
   }
   /** An agent session's bounds (Decision 22): a person's month, one session's cap, and where its key is used. */
   agent: { monthlyUsd: number; sessionCapUsd: number; llmUrl: string }
@@ -716,6 +729,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       ...(raw.MANIFEST_CAPABLE_MODEL === undefined
         ? {}
         : { capableModel: raw.MANIFEST_CAPABLE_MODEL }),
+      ...(raw.MANIFEST_CAPABLE_MODEL_FALLBACK === ''
+        ? {}
+        : { capableFallback: raw.MANIFEST_CAPABLE_MODEL_FALLBACK }),
     },
     agent: {
       monthlyUsd: raw.MANIFEST_AGENT_MONTHLY_USD,

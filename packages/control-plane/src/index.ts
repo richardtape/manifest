@@ -452,7 +452,9 @@ await app.listen({ port: config.port, host: '127.0.0.1' })
 /**
  * THE CAPABLE MODEL (§7, §21, §26; the front-end enablement plan's Task 12a): LiteLLM's catalogue made
  * to hold exactly what `MANIFEST_CAPABLE_MODEL` says — `default-chat-large` registered at `internal` and
- * pinned at LiteLLM's own price, repointed, or removed when the setting is unset. **Straight AFTER
+ * pinned at LiteLLM's own price, repointed, or removed when the setting is unset — AND ITS FALLBACK
+ * (Task 12b, Spec action 8): the catalogue entry `MANIFEST_CAPABLE_MODEL_FALLBACK` names, the on-premise
+ * model by default, set with LiteLLM's own `/fallback` once the name exists, and removed with it. **Straight AFTER
  * `listen`** (sitting 9a's review, I3): LiteLLM is SHARED, so a boot that fails anywhere before it serves
  * — a port already held, a keypair missing — must change nothing in it; before this line moved, a second
  * control plane dying on 7100 had already removed the model the running one registered. A request in the
@@ -460,10 +462,14 @@ await app.listen({ port: config.port, host: '127.0.0.1' })
  * a refusal or a gateway that does not answer is one operator line and the boot goes on, because
  * `default-chat` still serves (C1). With AI off there is no client, and nothing is registered or removed.
  */
-const capableModel =
+const capable =
   litellm === undefined
-    ? 'disabled'
-    : await capableModelAtBoot(litellm, config.litellm.capableModel)
+    ? { capableModel: 'disabled', capableFallback: 'disabled' }
+    : await capableModelAtBoot(
+        litellm,
+        config.litellm.capableModel,
+        config.litellm.capableFallback,
+      )
 
 // Which driver actually booted is the one fact this file decides, and every
 // acceptance in P3 is meaningless if it is 'fake'. Printed once, so the answer is
@@ -495,7 +501,10 @@ console.log(
     ai: catalogue.enabled ? 'enabled' : 'disabled',
     // Task 12a: what the boot did to `default-chat-large` — registered, unchanged, removed, absent,
     // refused or failed (each of the last two with its own operator line), or disabled with AI off.
-    capableModel,
+    capableModel: capable.capableModel,
+    // Task 12b: what it did to that name's fallback — set, unchanged, removed, absent, refused or failed
+    // (refused with its own line; failed with one, or under the capable model's when that step failed).
+    capableFallback: capable.capableFallback,
     // What the recovery above did, on the one line an operator reads — and the one
     // `boot.docker.test.ts` reads back, because a recovery nobody can see is
     // indistinguishable from one that never ran.

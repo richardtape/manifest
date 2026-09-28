@@ -166,7 +166,10 @@ gitignored, and — like the IdP keypair and the envelope master key — **not r
 amended them).* `default-chat-large` is ONE logical name for the agent and app work `qwen3.5:4b` cannot do. Which model answers it
 is a setting, a commercial provider's today, **and it needs the network**. Nothing offline depends on it: `default-chat` stays the
 floor every demo and the offline acceptance run on (C1). It is **unset by default**, and a laptop without a provider key registers
-nothing. *(Its fallback to the on-premise model, when the provider fails, is Spec action 8's and sitting 9b's — not built yet.)*
+nothing. **When its provider fails — the network off included — the on-premise model answers it** (§7, §21 and §26 as Spec
+action 8 amended them; the front-end enablement plan's Task 12b): `MANIFEST_CAPABLE_MODEL_FALLBACK` names a CATALOGUE entry,
+`default-chat-onprem` by default — Ollama here, UBC's on-premise inference at UBC — and the boot sets it as `default-chat-large`'s
+fallback.
 
 1. **In `.env`, set the two lines `.env.example`'s section 2f documents**: `OPENAI_API_KEY=` (the provider's key — real money; it
    is yours, and no agent types, reads or prints it) and `MANIFEST_CAPABLE_MODEL=openai/gpt-6-luna` (a LiteLLM model string;
@@ -182,10 +185,16 @@ nothing. *(Its fallback to the on-premise model, when the provider fails, is Spe
    `infra/litellm/config.yaml` line, which the admin API could not remove — **pinned at the price LiteLLM itself reported**, so a
    later LiteLLM restart without the network cannot make it free. **Read the boot line's `capableModel`**: `registered`,
    `unchanged`, `removed`, `absent`, `disabled` (AI off), or `refused` / `failed`, each of the last two with ONE `[boot] the
-   capable model (MANIFEST_CAPABLE_MODEL) …` line. The boot always goes on.
+   capable model (MANIFEST_CAPABLE_MODEL) …` line. **Then it sets the fallback** with LiteLLM's own `POST /fallback` — held in
+   LiteLLM's database, measured to survive `docker restart manifest-litellm` and a repoint — and **the boot line's
+   `capableFallback`** reads `set`, `unchanged`, `removed`, `absent`, `disabled`, or `refused` (with ONE `[boot] the capable
+   model's fallback (MANIFEST_CAPABLE_MODEL_FALLBACK) …` line) or `failed` (with one, or under the capable model's own line when
+   that step failed — the fallback is then not tried). The boot always goes on.
 4. **Check it**: `curl -s http://127.0.0.1:7106/model/info -H "authorization: Bearer $LITELLM_MASTER_KEY"` — `default-chat-large`
    with `max_classification: internal` and a positive `input_cost_per_token` in BOTH `litellm_params` (pinned) and `model_info`.
    `startAgentSession` on an `internal` or `public` project lists it in `session.models`; a `confidential` project's never does.
+   `curl -s 'http://127.0.0.1:7106/fallback/default-chat-large?fallback_type=general' -H "authorization: Bearer
+   $LITELLM_MASTER_KEY"` answers `"fallback_models":["default-chat-onprem"]`.
 
 **`refused` says why, in its `[boot]` line.** *Cannot price*: LiteLLM has no price for the model — a model priced at $0 would never
 bind an agent budget, a session cap or the intake month, so the platform will not offer it; the usual cause is a LiteLLM started
@@ -194,7 +203,17 @@ the registration with an error — check the provider prefix (`openai/<model>`),
 REPOINT keeps the model that was working** (the line says which), unless that one is itself unpriced. `failed` means LiteLLM did
 not answer, or refused a change it was asked for; the line says which.
 
-**Every control plane that boots WITHOUT the line removes `default-chat-large` from the shared LiteLLM** — the Docker tier's own
+**The fallback is refused** — and a working one KEPT only if it still passes the same check — when the setting names an entry the
+catalogue lacks, one with no valid `max_classification`, an embedding model, `default-chat-large` itself, or one classified BELOW
+`internal`: LiteLLM falls back WITHOUT consulting a key's list of models (measured at sittings 9a and 9b — a key holding only
+`default-chat-large` was answered by its fallback), so a `public` fallback would carry `internal` data where no key was allowed to
+send it. **A call the fallback answers is charged to the same key at the FALLBACK's price** (measured: `$1 / $3` a million, never
+the provider's), and its answer's `model` names the fallback's provider string — `ollama_chat/qwen3.5:4b` — with
+`x-litellm-attempted-fallbacks: 1`. `MANIFEST_CAPABLE_MODEL_FALLBACK=` written EMPTY means none; absent or commented takes the
+default. **A FIRST registration made offline is still refused**: LiteLLM cannot price the provider's model, so there is no
+`default-chat-large` to fall back FROM — after one online boot the price is pinned, and offline the fallback answers.
+
+**Every control plane that boots WITHOUT the line removes `default-chat-large` from the shared LiteLLM — and its fallback with it** — the Docker tier's own
 control planes and `ai/capable.docker.test.ts` included (only a boot that fails before it serves changes nothing). So after `pnpm
 test:docker`, or a control plane started without the line, restart it WITH the line. **Unsetting the line and restarting removes
 it** — and an app whose manifest declares `default-chat-large` is then refused `SPEC_MODEL_UNKNOWN`, and a launched one's redeploy

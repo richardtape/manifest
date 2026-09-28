@@ -177,6 +177,7 @@ function structuredModel(sentence: (path: string) => string) {
   return {
     asked,
     get: () => Promise.reject(new Error('never')),
+    delete: () => Promise.reject(new Error('never')),
     post: <T>(_path: string, body: unknown) => {
       asked.push(body)
       const paths = (
@@ -692,6 +693,7 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
       ...ctx.deps,
       llm: {
         get: () => Promise.reject(new Error('never')),
+        delete: () => Promise.reject(new Error('never')),
         post: () =>
           Promise.reject(
             new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {
@@ -1216,6 +1218,7 @@ describe('R4(d) — the snapshot’s security dimension (P6b Task 8)', () => {
       reviewer,
       llm: {
         get: model.get,
+        delete: model.delete,
         post: <T>(path: string, body: unknown) => {
           order.push('model')
           return model.post<T>(path, body)
@@ -1268,6 +1271,7 @@ describe('R4(d) — the snapshot’s security dimension (P6b Task 8)', () => {
       ...ctx.deps,
       llm: {
         get: () => Promise.reject(new Error('never')),
+        delete: () => Promise.reject(new Error('never')),
         post: () =>
           Promise.reject(
             new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {

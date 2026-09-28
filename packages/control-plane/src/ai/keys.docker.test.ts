@@ -288,6 +288,7 @@ describeDocker('app keys against the running gateway (P4b Tasks 7 and 9)', () =>
         const brokenGateway = createAiKeyService(
           {
             get: (path, query) => client.get(path, query as Record<string, string>),
+            delete: (path, query) => client.delete(path, query as Record<string, string>),
             post: (path, body) => {
               if (path === '/key/delete') throw new Error('the gateway is down')
               return client.post(path, body)

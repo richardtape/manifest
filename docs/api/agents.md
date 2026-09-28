@@ -19,6 +19,7 @@ Your first calls:
 A model key comes from `startAgentSession`, answered once, beside the `baseUrl` it is used at. It is charged to the person, within their month and the session's cap. **The session's `models` lists every model the key may call. Read the names from there and never assume one**: the list follows the project's data classification, and a `confidential` project's key reaches on-premise models only.
 
 - **`default-chat-large` is the capable model**, for work a small model cannot do well, such as writing an app. Use it when it is listed. It is listed only where the platform offers one and the project's data may leave on-premise hardware (`internal` or `public`). It needs the network, and every call costs the person real money.
+- **When its provider cannot answer — the network off included — the platform's on-premise model answers `default-chat-large` in its place.** The call succeeds, charged to the same key at the on-premise model's price, and the answer's `model` names the model that actually answered rather than the capable one. Expect a smaller model's work then: read `model` before you rely on the answer's quality.
 - When it is not listed, use the others in `models`. `default-chat` is small, and it answers offline.
 
 ## The loop

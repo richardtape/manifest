@@ -1,4 +1,10 @@
 import { randomUUID } from 'node:crypto'
+import { CLASSIFICATION_RANK, type Classification } from '../spec/index.js'
+import {
+  CatalogueError,
+  loadModelCatalogue,
+  type CatalogueSnapshot,
+} from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
 
@@ -14,11 +20,14 @@ export const CAPABLE_MODEL_NAME = 'default-chat-large'
 /** The setting, named in every refusal an operator reads. */
 export const CAPABLE_MODEL_SETTING = 'MANIFEST_CAPABLE_MODEL'
 
+/** Its fallback's setting (Spec action 8; Task 12b), named in every refusal an operator reads. */
+export const CAPABLE_FALLBACK_SETTING = 'MANIFEST_CAPABLE_MODEL_FALLBACK'
+
 /**
  * Rich, 2026-09-27: `internal` — the classification §7's catalogue already gives `default-chat`
  * (*"may route off-prem"*). `confidential` never leaves on-premise hardware.
  */
-const CAPABLE_CLASSIFICATION = 'internal'
+const CAPABLE_CLASSIFICATION: Classification = 'internal'
 
 export interface CapableModelResult {
   state: 'registered' | 'unchanged' | 'removed' | 'absent' | 'refused'
@@ -236,34 +245,222 @@ export async function ensureCapableModel(
   return { state: 'registered', model: setting }
 }
 
+export interface CapableFallbackResult {
+  state: 'set' | 'unchanged' | 'removed' | 'absent' | 'refused'
+  fallback?: string
+  reason?: string
+}
+
+/** LiteLLM's own fallback endpoint for the capable model — only `general` fallbacks are ever set. */
+const FALLBACK_PATH = `/fallback/${CAPABLE_MODEL_NAME}`
+const GENERAL = { fallback_type: 'general' }
+
+/** What the router answers the capable model with now; `[]` for none, which 1.98.0 answers `404` (measured). */
+async function currentFallback(client: LiteLlmClient): Promise<string[]> {
+  try {
+    const body = await client.get<{ fallback_models?: unknown }>(FALLBACK_PATH, GENERAL)
+    return Array.isArray(body.fallback_models)
+      ? body.fallback_models.filter((m): m is string => typeof m === 'string')
+      : []
+  } catch (error) {
+    if (error instanceof AiError && error.status === 404) return []
+    throw error
+  }
+}
+
+/** True when one was removed; `404` is *none configured* (measured), which is what removing wants. */
+async function removeFallback(client: LiteLlmClient): Promise<boolean> {
+  try {
+    await client.delete(FALLBACK_PATH, GENERAL)
+    return true
+  } catch (error) {
+    if (error instanceof AiError && error.status === 404) return false
+    throw error
+  }
+}
+
+const rank = (c: Classification): number => CLASSIFICATION_RANK[c]
+
+/**
+ * The most sensitive data a call to the capable model may carry: its own classification as the catalogue
+ * lists it, and never less than the one this module registers.
+ */
+function capableFloor(snapshot: CatalogueSnapshot): Classification {
+  return snapshot.models
+    .filter((m) => m.name === CAPABLE_MODEL_NAME)
+    .map((m) => m.maxClassification)
+    .reduce((a, b) => (rank(b) > rank(a) ? b : a), CAPABLE_CLASSIFICATION)
+}
+
+/**
+ * Why `name` may not answer for the capable model, or `undefined` when it may. **THE CLASSIFICATION IS THE
+ * PLATFORM'S TO ENFORCE** (Spec action 8): LiteLLM falls back WITHOUT consulting a key's list of models —
+ * measured at sittings 9a and 9b, a key holding only the primary was answered by the fallback — so a
+ * fallback ranked below the capable model would carry its data where no key was allowed to send it. Every
+ * deployment of the name must pass, because the router may pick any of them.
+ */
+function unfit(snapshot: CatalogueSnapshot, name: string): string | undefined {
+  if (name === CAPABLE_MODEL_NAME) {
+    return 'the capable model itself, which cannot fall back to itself'
+  }
+  if (snapshot.unclassified.includes(name)) {
+    return 'which has no valid max_classification in the catalogue, so D17 refuses it to everyone'
+  }
+  const entries = snapshot.models.filter((m) => m.name === name)
+  if (entries.length === 0) {
+    return (
+      'which is not in the model catalogue — name an entry of `infra/litellm/config.yaml` ' +
+      "(`default-chat-onprem`, the on-premise model, is the default), or one LiteLLM's /model/info lists"
+    )
+  }
+  if (entries.some((m) => m.kind === 'embedding')) {
+    return 'an embedding model, which a chat cannot fall back to'
+  }
+  const floor = capableFloor(snapshot)
+  const low = entries.find((m) => rank(m.maxClassification) < rank(floor))
+  if (low !== undefined) {
+    return (
+      `classified '${low.maxClassification}' — below '${floor}', the capable model's. The gateway falls ` +
+      "back without consulting a key's list of models, so it would carry " +
+      `${floor} data where no key was allowed to send it`
+    )
+  }
+  return undefined
+}
+
+/**
+ * Makes LiteLLM answer `default-chat-large` with what `MANIFEST_CAPABLE_MODEL_FALLBACK` names whenever its
+ * provider fails — the network off included (§7, §21, §26 as Spec action 8 amended them; the front-end
+ * enablement plan's Task 12b). Called at every boot, straight AFTER `ensureCapableModel`, because LiteLLM
+ * refuses a fallback for a model its router does not hold (`404`, measured).
+ *
+ * **With LiteLLM's own `POST /fallback`**, a `general` fallback held in its database — measured at sitting
+ * 9b to survive `docker restart manifest-litellm`, to update in place, and to survive a repoint of the
+ * primary, because it is keyed by NAME. **Never a `config.yaml` line**, for the capable model's own
+ * reason. `context_window` and `content_policy` fallbacks are never set.
+ *
+ * **Removed whenever the setting is empty or the capable model is absent**, by `DELETE`: the entry
+ * OUTLIVES its primary (measured), so a fallback left behind would re-attach silently to the next
+ * registration of the name.
+ *
+ * **Reads the catalogue itself** rather than trusting `ensureCapableModel`'s state: a refused repoint
+ * KEEPS the working model (sitting 9a's I2), so only the catalogue can say whether the name is served.
+ * A setting that may not answer for it is refused and the working fallback KEPT if it still passes the
+ * same check — never one that does not, which is removed, so the call fails rather than leaks. A
+ * gateway that does not answer is THROWN.
+ */
+export async function ensureCapableFallback(
+  client: LiteLlmClient,
+  setting: string | undefined,
+): Promise<CapableFallbackResult> {
+  const snapshot = await loadModelCatalogue(client)
+  const served =
+    snapshot.models.some((m) => m.name === CAPABLE_MODEL_NAME) ||
+    snapshot.unclassified.includes(CAPABLE_MODEL_NAME)
+  if (setting === undefined || !served) {
+    return (await removeFallback(client)) ? { state: 'removed' } : { state: 'absent' }
+  }
+
+  const current = await currentFallback(client)
+  const refuse = async (why: string): Promise<CapableFallbackResult> => {
+    const keep =
+      current.length > 0 && current.every((m) => unfit(snapshot, m) === undefined)
+    if (!keep && current.length > 0) await removeFallback(client)
+    return {
+      state: 'refused',
+      fallback: setting,
+      reason:
+        `${CAPABLE_FALLBACK_SETTING} names '${setting}', ${why}.` +
+        (keep
+          ? ` '${current.join("', '")}' is kept as ${CAPABLE_MODEL_NAME}'s fallback until the setting names ` +
+            'an entry that may answer for it.'
+          : ` ${CAPABLE_MODEL_NAME} has no fallback meanwhile: when its provider fails, the call fails.`),
+    }
+  }
+
+  const why = unfit(snapshot, setting)
+  if (why !== undefined) return refuse(why)
+  if (current.length === 1 && current[0] === setting) {
+    return { state: 'unchanged', fallback: setting }
+  }
+  try {
+    await client.post('/fallback', {
+      model: CAPABLE_MODEL_NAME,
+      fallback_models: [setting],
+      fallback_type: 'general',
+    })
+  } catch (error) {
+    if (!answered(error)) throw error
+    return refuse(
+      `which LiteLLM would not set as ${CAPABLE_MODEL_NAME}'s fallback (it answered HTTP ${error.status}) — ` +
+        '`docker logs manifest-litellm` says why',
+    )
+  }
+  return { state: 'set', fallback: setting }
+}
+
+/** What the boot did to the capable model and to its fallback — both on the boot line. */
+export interface CapableAtBoot {
+  capableModel: CapableModelResult['state'] | 'failed'
+  capableFallback: CapableFallbackResult['state'] | 'failed'
+}
+
+/**
+ * The code alone, and who failed to answer: an AiError's fields never carry the gateway's body (§14), and
+ * anything else is named by its class rather than a message that might quote one.
+ */
+function failure(error: unknown): string {
+  if (error instanceof CatalogueError) {
+    return `${error.code}; LiteLLM listed no models — \`make doctor\` says whether it is up`
+  }
+  const code = error instanceof AiError ? error.code : (error as Error).name
+  const heard = answered(error)
+    ? `LiteLLM answered HTTP ${error.status} — \`docker logs manifest-litellm\` says why`
+    : 'LiteLLM did not answer — `make doctor` says whether it is up'
+  return `${code}; ${heard}`
+}
+
 /**
  * The boot's call (`index.ts`, straight AFTER `listen` — a boot that fails anywhere before it serves
- * changes nothing in the shared gateway; the review's I3): the capable model is OPTIONAL, so nothing
- * here stops the platform — `default-chat` still serves (Decision: *an unpriced capable model must not
- * take the platform down*). But a refusal or a gateway that did not answer is ONE operator line naming
- * the setting, because a model nobody can see missing is indistinguishable from one never asked for. The
- * state is the boot line's `capableModel`. `console.error`: this server runs `logger: false`.
+ * changes nothing in the shared gateway; the review's I3): the capable model, then its fallback. Both are
+ * OPTIONAL, so nothing here stops the platform — `default-chat` still serves (Decision: *an unpriced
+ * capable model must not take the platform down*). But a refusal or a gateway that did not answer is ONE
+ * operator line naming the setting, because a model nobody can see missing is indistinguishable from one
+ * never asked for. **When the capable model's own step fails, its fallback is not tried** — the gateway
+ * that did not answer one will not answer the other — and the one line says both may be as they were.
+ * The states are the boot line's `capableModel` and `capableFallback`. `console.error`: this server runs
+ * `logger: false`.
  */
 export async function capableModelAtBoot(
   client: LiteLlmClient,
   setting: string | undefined,
-): Promise<CapableModelResult['state'] | 'failed'> {
+  fallbackSetting: string | undefined,
+): Promise<CapableAtBoot> {
   const said = `[boot] the capable model (${CAPABLE_MODEL_SETTING})`
+  let capableModel: CapableModelResult['state']
   try {
     const result = await ensureCapableModel(client, setting)
     if (result.state === 'refused') console.error(`${said} was refused: ${result.reason}`)
-    return result.state
+    capableModel = result.state
   } catch (error) {
-    // The code alone: an AiError's fields never carry the gateway's body (§14), and anything else
-    // is named by its class rather than a message that might quote one.
-    const code = error instanceof AiError ? error.code : (error as Error).name
-    const heard = answered(error)
-      ? `LiteLLM answered HTTP ${error.status} — \`docker logs manifest-litellm\` says why`
-      : 'LiteLLM did not answer — `make doctor` says whether it is up'
     console.error(
-      `${said} could not be set to '${setting ?? '(unset)'}': ${code}; ${heard}. ` +
-        `${CAPABLE_MODEL_NAME} may still be as it was before this boot, and the next boot tries again.`,
+      `${said} could not be set to '${setting ?? '(unset)'}': ${failure(error)}. ` +
+        `${CAPABLE_MODEL_NAME} and its fallback may still be as they were before this boot, and the next ` +
+        'boot tries again.',
     )
-    return 'failed'
+    return { capableModel: 'failed', capableFallback: 'failed' }
+  }
+
+  const fell = `[boot] the capable model's fallback (${CAPABLE_FALLBACK_SETTING})`
+  try {
+    const result = await ensureCapableFallback(client, fallbackSetting)
+    if (result.state === 'refused') console.error(`${fell} was refused: ${result.reason}`)
+    return { capableModel, capableFallback: result.state }
+  } catch (error) {
+    console.error(
+      `${fell} could not be set to '${fallbackSetting ?? '(none)'}': ${failure(error)}. ` +
+        `${CAPABLE_MODEL_NAME}'s fallback may still be as it was before this boot, and the next boot tries again.`,
+    )
+    return { capableModel, capableFallback: 'failed' }
   }
 }

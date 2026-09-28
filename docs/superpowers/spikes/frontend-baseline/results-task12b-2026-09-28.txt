@@ -1,0 +1,57 @@
+=== before
+  router_settings: {"fallbacks": []}
+  default-chat-large: openai/gpt-6-luna pinned 1e-07 internal
+model/new probe-fallback-a-1790622812 200
+=== P1 POST
+{"model":"probe-fallback-primary","fallback_models":["default-chat-onprem"],"fallback_type":"general","message":"Fallback configuration created successfully"} HTTP 200
+  router_settings: {"fallbacks": [{"probe-fallback-primary": ["default-chat-onprem"]}]}
+=== P2 the same POST again
+{"model":"probe-fallback-primary","fallback_models":["default-chat-onprem"],"fallback_type":"general","message":"Fallback configuration updated successfully"} HTTP 200
+  router_settings: {"fallbacks": [{"probe-fallback-primary": ["default-chat-onprem"]}]}
+=== P2b a different list, then back
+{"model":"probe-fallback-primary","fallback_models":["default-chat"],"fallback_type":"general","message":"Fallback configuration updated successfully"} HTTP 200
+  router_settings: {"fallbacks": [{"probe-fallback-primary": ["default-chat"]}]}
+=== P3 GET
+{"model":"probe-fallback-primary","fallback_models":["default-chat-onprem"],"fallback_type":"general"} HTTP 200
+user/new 200
+=== P4 a key holding ONLY the primary
+  chat 200 | model=ollama_chat/qwen3.5:4b usage=19+2
+    x-litellm-model-group: default-chat-onprem
+    x-litellm-attempted-fallbacks: 1
+=== P5 docker restart manifest-litellm
+  live after ~12 s
+{"model":"probe-fallback-primary","fallback_models":["default-chat-onprem"],"fallback_type":"general"} HTTP 200
+  router_settings: {"fallbacks": [{"probe-fallback-primary": ["default-chat-onprem"]}]}
+  chat 200 | model=ollama_chat/qwen3.5:4b usage=19+2
+    x-litellm-model-group: default-chat-onprem
+    x-litellm-attempted-fallbacks: 1
+  default-chat-large: openai/gpt-6-luna pinned 1e-07 internal
+=== P6 the primary deleted
+model/delete probe-fallback-a-1790622812 200
+{"model":"probe-fallback-primary","fallback_models":["default-chat-onprem"],"fallback_type":"general"} HTTP 200
+  POST while absent:
+{"detail":{"error":"Model 'probe-fallback-primary' not found in router","available_models":["default-chat-onprem","default-embed","default-chat-onprem-reasoning","default-chat-large","default-chat","default-chat-reasoning"]}} HTTP 404
+=== P7 DELETE while absent from the router
+{"model":"probe-fallback-primary","fallback_type":"general","message":"Fallback configuration deleted successfully"} HTTP 200
+  again:
+{"detail":{"error":"No general fallbacks configured for model 'probe-fallback-primary'"}} HTTP 404
+  GET:
+{"detail":{"error":"No general fallbacks configured for model 'probe-fallback-primary'"}} HTTP 404
+  router_settings: {"fallbacks": []}
+=== P8 a repoint keeps the name
+model/new probe-fallback-b-1790622812 200
+{"model":"probe-fallback-primary","fallback_models":["default-chat-onprem"],"fallback_type":"general","message":"Fallback configuration created successfully"} HTTP 200
+model/delete probe-fallback-b-1790622812 200
+model/new probe-fallback-c-1790622812 200
+{"model":"probe-fallback-primary","fallback_models":["default-chat-onprem"],"fallback_type":"general"} HTTP 200
+  chat 200 | model=ollama_chat/qwen3.5:4b usage=19+2
+    x-litellm-model-group: default-chat-onprem
+    x-litellm-attempted-fallbacks: 1
+=== cleanup
+{"model":"probe-fallback-primary","fallback_type":"general","message":"Fallback configuration deleted successfully"} HTTP 200
+key/delete 200
+user/delete 200
+model/delete probe-fallback-c-1790622812 200
+  router_settings: {"fallbacks": []}
+  default-chat-large: openai/gpt-6-luna pinned 1e-07 internal
+  model rows: default-chat-large|1

@@ -145,6 +145,8 @@ describe('configuration', () => {
       url: 'http://127.0.0.1:7106',
       internalUrl: 'http://manifest-litellm:4000/v1',
       enabled: true,
+      // Task 12b: the capable model's fallback defaults to the on-premise model (Spec action 8).
+      capableFallback: 'default-chat-onprem',
     })
     expect(config.litellm.masterKey).toBeUndefined()
   })
@@ -259,6 +261,21 @@ describe('configuration', () => {
       loadConfig({ ...base, MANIFEST_CAPABLE_MODEL: 'openai/gpt-6-luna' }).litellm
         .capableModel,
     ).toBe('openai/gpt-6-luna')
+  })
+
+  // THE CAPABLE MODEL'S FALLBACK (the front-end enablement plan's Task 12b, Spec action 8): a CATALOGUE name,
+  // the on-premise model by default — and EMPTY is NONE, not the default, because an operator who writes
+  // the line empty has said so; a commented or absent line is the default.
+  it('reads the fallback from its setting: default-chat-onprem by default, and empty is none', () => {
+    expect(loadConfig({ ...base }).litellm.capableFallback).toBe('default-chat-onprem')
+    expect(
+      loadConfig({ ...base, MANIFEST_CAPABLE_MODEL_FALLBACK: '' }).litellm
+        .capableFallback,
+    ).toBeUndefined()
+    expect(
+      loadConfig({ ...base, MANIFEST_CAPABLE_MODEL_FALLBACK: 'default-chat' }).litellm
+        .capableFallback,
+    ).toBe('default-chat')
   })
 
   // Generated in development, and SAID SO — the flag is what lets the boot line

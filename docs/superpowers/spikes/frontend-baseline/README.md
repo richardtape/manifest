@@ -122,3 +122,33 @@ row, user and key deleted):
   **A key holding ONLY the primary was answered by the fallback too** (predicted refused) — the gateway does not check a key's model
   list before falling back. Left behind: `LiteLLM_Config` now holds `router_settings = {"fallbacks": []}` (the DELETE empties the
   list, it does not remove the row) — inert.
+
+## Task 12b — the capable model's fallback (2026-09-28, sitting 9b)
+
+**Measured against the running LiteLLM 1.98.0** (`@sha256:20b5044b…`, as above), the primary a PROBE name
+(`probe-fallback-primary`) at `api_base` `http://127.0.0.1:9/v1` with a key that is not a key — nothing left the container, no
+money. `probes/t12b-fallback.sh`; every line of its output in `results-task12b-2026-09-28.txt`; the predictions written first, from
+the source read in the container (`proxy/management_endpoints/fallback_management_endpoints.py`, 357 lines, `get_all_fallbacks`, and
+`_add_router_settings_from_db_config`, which merges the database's `router_settings` into the router at start). **All eight
+predictions held.**
+
+- **`POST /fallback` twice is an update, in place**: the second answers *"Fallback configuration updated successfully"* and
+  `LiteLLM_Config.router_settings` still holds ONE entry for the model; a different list replaces it in place.
+- **`GET /fallback/{model}?fallback_type=general`** answers `{"model", "fallback_models", "fallback_type"}`.
+- **It survives `docker restart manifest-litellm`** (live again in ~12 s): the same `GET`, the same row, and a chat through a key
+  holding ONLY the primary answered `200` by `default-chat-onprem` (`model` `ollama_chat/qwen3.5:4b`, `x-litellm-model-group:
+  default-chat-onprem`, `x-litellm-attempted-fallbacks: 1`) — before the restart and after it. `default-chat-large` (the running
+  control plane's, `openai/gpt-6-luna`) came back pinned at `1e-07`, as sitting 9a's fix intends.
+- **The entry OUTLIVES its primary**: after `/model/delete` of the primary's only deployment, `GET` still answers `200` with the
+  list (the router's list is keyed by NAME, and nothing prunes it); `POST` for the absent name is `404` *"Model '…' not found in
+  router"*. **`DELETE` never consults the router**: `200` for the absent name, then `404` *"No general fallbacks configured"*, and
+  `GET` `404`.
+- **A repoint keeps it**: the primary deleted and re-created under a new id → `GET` `200`, the same list, and the chat answered by
+  the fallback.
+- **Every refusal is FastAPI's `{"detail": {...}}`**, which the control plane's error map reads as `AI_UNMAPPED` with the status —
+  so the code decides on the status (`404` none, anything else answered).
+
+**What it changed in Task 12b** (the ledger's rulings): the fallback is removed by `DELETE` whenever the capable model is absent or
+the setting empty (an entry left behind would re-attach silently to the next registration of the name); the admin transport gained
+`delete`; `ensureCapableFallback` reads the catalogue itself; a first registration made offline stays refused.
+
