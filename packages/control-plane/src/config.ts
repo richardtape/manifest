@@ -310,9 +310,10 @@ const envSchema = z.object({
    * plan's Task 12b): a CATALOGUE name — never a provider string, because an on-premise deployment needs its
    * address and key beside the string, which its catalogue entry carries — that LiteLLM answers
    * `default-chat-large` with whenever its provider fails, the network off included. **`default-chat-onprem`
-   * by default**: Ollama on a laptop, UBC's on-premise inference at UBC. **EMPTY IS NONE**, unlike the
-   * capable model's own setting: RUNBOOK's `set -a; . ./.env` never exports a commented or absent line, so
-   * that takes the default, and a line written empty has said *no fallback*. Checked against D17's
+   * by default**: Ollama on a laptop, UBC's on-premise inference at UBC. **EMPTY IS NONE, as for the capable
+   * model's own setting — but ABSENT is the default here, where absent is none there**: RUNBOOK's `set -a;
+   * . ./.env` never exports a commented or absent line, so that takes the default, and a line written empty has
+   * said *no fallback*. Checked against D17's
    * catalogue at every boot (`ai/capable.ts`), never here: the catalogue is LiteLLM's.
    */
   MANIFEST_CAPABLE_MODEL_FALLBACK: z.string().default('default-chat-onprem'),

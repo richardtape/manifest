@@ -16,6 +16,7 @@ import {
 } from './capable.js'
 import { loadModelCatalogue } from './catalogue.js'
 import { createLiteLlmClient, type LiteLlmClient } from './client.js'
+import { AiError } from './errors.js'
 import { agentModelsFor } from './models.js'
 import { LITELLM_CONFIG, litellmMasterKey, litellmUrl } from './testing.js'
 
@@ -23,7 +24,9 @@ import { LITELLM_CONFIG, litellmMasterKey, litellmUrl } from './testing.js'
  * A model the BUNDLED price map prices (sitting 9a, Step 1 (b)), so this tier passes whether LiteLLM
  * last started with the network on or off. Rich's own choice, `openai/gpt-6-luna`, is priced only by
  * the map LiteLLM fetches at its start online — Step 5 is where that one is proved. Registering it
- * needs no provider key and no network: only a CALL to it does, and nothing here calls it.
+ * needs no provider key and no network: only a CALL to it does, and nothing here calls it. The one case that
+ * CHATS on `default-chat-large` (Task 12b's fallback) first clears the name — asserted — and registers its own primary at an
+ * address nothing listens on, with a key that is not a key.
  */
 const PRICED = 'openai/gpt-5.6-luna'
 
@@ -76,10 +79,29 @@ async function listedCapable(
     }))
 }
 
-/** Whatever this file left, removed — so a machine is never left holding a capable model it registered. */
+/**
+ * Whatever this file left, removed — so a machine is never left holding a capable model it registered. BOTH steps
+ * are attempted whatever the first does (the review's I1): a fallback step that throws must not leave the model.
+ */
 async function leaveNone(client: LiteLlmClient): Promise<void> {
-  await ensureCapableFallback(client, undefined)
-  await ensureCapableModel(client, undefined)
+  try {
+    await ensureCapableFallback(client, undefined)
+  } finally {
+    await ensureCapableModel(client, undefined)
+  }
+}
+
+/**
+ * THE NAME CLEARED BEFORE A CASE REGISTERS ITS OWN (the review's I1): the shared LiteLLM may hold the running
+ * control plane's REAL capable model — the owner's `openai/gpt-6-luna`, on a key that costs money — and a case that
+ * adds a deployment beside it and then CHATS on the name could be routed there. Asserted, not assumed.
+ */
+async function startingClear(client: LiteLlmClient): Promise<void> {
+  await leaveNone(client)
+  expect(await listedCapable(client)).toEqual([])
+  await expect(
+    client.get(`/fallback/${CAPABLE_MODEL_NAME}`, { fallback_type: 'general' }),
+  ).rejects.toMatchObject({ status: 404 })
 }
 
 /**
@@ -205,6 +227,8 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
 
   it('answers default-chat-large from the on-premise model when its provider cannot be reached — through a key holding ONLY default-chat-large, at the fallback’s price (Task 12b)', async () => {
     const user = `probe-capable-fallback-${Date.now()}`
+    let userMade = false
+    await startingClear(client)
     try {
       await unreachableCapable(client)
       expect(await ensureCapableFallback(client, 'default-chat-onprem')).toEqual({
@@ -216,6 +240,7 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
         max_budget: 1,
         auto_create_key: false,
       })
+      userMade = true
       const { key } = await client.post<{ key: string }>('/key/generate', {
         user_id: user,
         key_alias: `${user}-key`,
@@ -249,17 +274,24 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       expect(await ensureCapableFallback(client, undefined)).toEqual({ state: 'removed' })
       expect((await chat(key)).status).toBe(500)
     } finally {
-      // Deleting the user deletes its keys (measured at sitting 9).
-      await client.post('/user/delete', { user_ids: [user] })
-      await leaveNone(client)
+      try {
+        await leaveNone(client)
+      } finally {
+        // Deleting the user deletes its keys (measured at sitting 9) — only one this case made: LiteLLM
+        // answers 404 for any other, which would hide the assertion that failed.
+        if (userMade) await client.post('/user/delete', { user_ids: [user] })
+      }
     }
     expect(await rowsNamedCapable()).toBe(0)
   }, 180_000)
 
   it('refuses a fallback below the capable model’s classification and sets nothing — a confidential one it sets (Task 12b)', async () => {
     const probe = `manifest-probe-public-${randomUUID()}`
+    let probeMade = false
+    await startingClear(client)
     try {
       await unreachableCapable(client)
+      probeMade = true
       await client.post('/model/new', {
         model_name: 'probe-public-chat',
         litellm_params: {
@@ -278,8 +310,15 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
         'set',
       )
     } finally {
-      await client.post('/model/delete', { id: probe })
-      await leaveNone(client)
+      try {
+        await leaveNone(client)
+      } finally {
+        // A 400 for a probe never registered would hide the assertion that failed.
+        if (probeMade)
+          await client.post('/model/delete', { id: probe }).catch((error: unknown) => {
+            if (!(error instanceof AiError && error.status === 400)) throw error
+          })
+      }
     }
   })
 
