@@ -52,6 +52,9 @@ describe('the process.env scrub (§12)', () => {
       // The capable model's PROVIDER key (Task 12a): LiteLLM's alone, by infra/compose.yaml — and
       // the same `set -a` exports it into this process too, where no line of the control plane reads it.
       'OPENAI_API_KEY',
+      // D21's rehearsal sign-in's password (P6a), read into the config at boot and never again — under
+      // Spec action 6 possibly a real staging account's. Sitting 9a's review (M9, re-graded up).
+      'MANIFEST_REHEARSAL_PASSWORD',
     ]) {
       expect(SECRET_ENV_NAMES).toContain(name)
     }

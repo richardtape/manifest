@@ -188,8 +188,12 @@ export interface FakeDeployment {
    * row is absent from `/model/info` until it is deleted by its id.
    */
   live: boolean
-  /** A config entry's own price; a DB deployment's comes from `price()` or the fake's map. */
+  /**
+   * A PINNED price — a config entry's own, or one `/model/new` was sent in `litellm_params` (measured at sitting
+   * 9a: a pinned price overrides both of LiteLLM's maps and charges spend exactly); else `price()` or the fake's map.
+   */
   inputCostPerToken?: number
+  outputCostPerToken?: number
 }
 
 interface FakeKey {
@@ -244,7 +248,7 @@ function configDeployments(): FakeDeployment[] {
       model_info?: Record<string, unknown>
     }[]
   }
-  return declared.model_list.map((m, i) => ({
+  return declared.model_list.map((m, i): FakeDeployment => ({
     id: `config-${i}-${m.model_name}`,
     modelName: m.model_name,
     model: m.litellm_params.model,
@@ -273,10 +277,13 @@ export function fakeLiteLlm(): FakeLiteLlm {
     configDeployments().map((d) => [d.id, d]),
   )
   const prices = new Map<string, number>()
+  const mapPrices = (model: string): boolean =>
+    model.startsWith('openai/') && !model.startsWith('openai/unpriced')
   const costOf = (d: FakeDeployment): number =>
-    d.inputCostPerToken ??
-    prices.get(d.model) ??
-    (d.model.startsWith('openai/') && !d.model.startsWith('openai/unpriced') ? 1e-7 : 0)
+    d.inputCostPerToken ?? prices.get(d.model) ?? (mapPrices(d.model) ? 1e-7 : 0)
+  const outputCostOf = (d: FakeDeployment): number =>
+    d.outputCostPerToken ??
+    (prices.has(d.model) ? prices.get(d.model)! * 5 : mapPrices(d.model) ? 5e-7 : 0)
 
   const refuse = (status: number, type = 'internal_server_error'): never => {
     throw mapLiteLlmError(status, { error: { type, message: 'fake' } })
@@ -346,9 +353,12 @@ export function fakeLiteLlm(): FakeLiteLlm {
       case '/model/new': {
         const info = { ...((body.model_info ?? {}) as Record<string, unknown>) }
         const id = typeof info.id === 'string' ? info.id : `fake-model-${++minted}`
-        const model = String(
-          (body.litellm_params as { model?: unknown } | undefined)?.model,
-        )
+        const params = (body.litellm_params ?? {}) as {
+          model?: unknown
+          input_cost_per_token?: unknown
+          output_cost_per_token?: unknown
+        }
+        const model = String(params.model)
         const live = FAKE_PROVIDERS.has(model.split('/')[0] ?? '')
         deployments.set(id, {
           id,
@@ -357,6 +367,12 @@ export function fakeLiteLlm(): FakeLiteLlm {
           modelInfo: { ...info, id },
           dbModel: true,
           live,
+          ...(typeof params.input_cost_per_token === 'number'
+            ? { inputCostPerToken: params.input_cost_per_token }
+            : {}),
+          ...(typeof params.output_cost_per_token === 'number'
+            ? { outputCostPerToken: params.output_cost_per_token }
+            : {}),
         })
         // Measured: an unknown provider's row is SAVED and then refused as not live.
         if (!live) refuse(500)
@@ -397,12 +413,21 @@ export function fakeLiteLlm(): FakeLiteLlm {
           .filter((d) => d.live)
           .map((d) => ({
             model_name: d.modelName,
-            litellm_params: { model: d.model },
+            litellm_params: {
+              model: d.model,
+              ...(d.dbModel && d.inputCostPerToken !== undefined
+                ? { input_cost_per_token: d.inputCostPerToken }
+                : {}),
+              ...(d.dbModel && d.outputCostPerToken !== undefined
+                ? { output_cost_per_token: d.outputCostPerToken }
+                : {}),
+            },
             model_info: {
               ...d.modelInfo,
               id: d.id,
               db_model: d.dbModel,
               input_cost_per_token: costOf(d),
+              output_cost_per_token: outputCostOf(d),
             },
           })),
       } as T

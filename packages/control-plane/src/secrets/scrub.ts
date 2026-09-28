@@ -24,6 +24,9 @@ export const SECRET_ENV_NAMES = [
   // key, which is LiteLLM's alone (infra/compose.yaml) and read by no line of this process.
   'MANIFEST_APP_PASSWORD',
   'OPENAI_API_KEY',
+  // D21's rehearsal sign-in's password (P6a), read into the config above the scrub and never again —
+  // under Spec action 6 possibly a real staging account's (sitting 9a's review, M9).
+  'MANIFEST_REHEARSAL_PASSWORD',
 ] as const
 
 /** Returns the names actually removed, so the boot line can say how many. */
