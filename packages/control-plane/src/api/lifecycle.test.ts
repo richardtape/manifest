@@ -1007,6 +1007,7 @@ describe('delete (§11, Task 12)', () => {
         url: '/v1/projects',
         cookies: ctx.ownerCookies,
       })
+      expect(list.statusCode, list.body).toBe(200)
       const listed = list.json() as { id: string; slug: string }[]
       expect(listed.filter((p) => p.slug === slug).map((p) => p.id)).toEqual([fresh.id])
       // …and the fleet the same.
