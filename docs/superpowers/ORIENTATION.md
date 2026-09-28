@@ -1693,13 +1693,17 @@ in the contract** (a model name is catalogue data).
    the front-end serves on 7105 (a path answering its own name), then add `frontend_is_ours` beside `mock_is_ours` in
    `scripts/doctor.sh`. Until then a red doctor naming 7105 is the front-end's server, not a defect.
 
-**THE FRONT-END'S SESSION MAY BE USING THE PLATFORM WHEN YOU OPEN** — at sitting 9's close it was told the window for its F2
-acceptance was open (the control plane on 7100 started BY IT, per RUNBOOK, with Rich's agreement; its own projects in the database).
-**Before you run `pnpm test`, `pnpm test:docker`, `make reset`, `make demo*`, `pnpm contract:write` or a cleanup script, check**:
-`lsof -nP -iTCP:7100 -sTCP:LISTEN` and `docker exec manifest-postgres psql -U manifest -d manifest_control -Atc 'select slug, created_at
-from projects'` — and if it is running or holds rows, MESSAGE it (ListAgents; the memory *a peer may open the next sitting*) and
-agree a moment rather than truncating its window. Sitting 9a's Step 5 needs the control plane with `MANIFEST_CAPABLE_MODEL` set: its
-restart is the front-end's to agree to while it is running.
+**THE FRONT-END'S SESSION LEFT THE CONTROL PLANE RUNNING — AND SAID 9a NEED NOT WAIT FOR IT.** Minutes after sitting 9's close
+it started the control plane itself (23:50, per RUNBOOK's *Running the control plane* word for word, with Rich's agreement — its
+words; logging to ITS scratchpad; queried 23:56: PID 83687 on 7100, one project and one user of its own in the database) for its F2
+walk, signed in as the IdP's test user `instructor`, and **plans to leave it running so Rich can click its moments 3–5 in the
+morning.** Its message, for this sitting: *its session secret is random, so a restart signs everyone out, and nothing created on it
+needs to survive — so 9a may stop and restart it with `MANIFEST_CAPABLE_MODEL` set, or run anything that truncates, with no need to
+wait.* **Its two asks: TELL RICH what he will find** (in your first message — a restart signs him out of whatever he clicked, and
+`pnpm test` erases the front-end's projects), **and if a `manifest-app` session is live then, MESSAGE IT FIRST** (`ListAgents`; the
+memory *a peer may open the next sitting*). So at open: `lsof -nP -iTCP:7100 -sTCP:LISTEN` and `docker exec manifest-postgres psql
+-U manifest -d manifest_control -Atc 'select slug, created_at from projects'`, then stop THAT process (never 7102 or 7105 — the
+front-end's own) before your first Vitest run, and start it again yourself for Step 5.
 
 **Read, in this order:** Task 12a in full (`## Task 12a:` — its decisions, Files, Interfaces, seven steps), Spec action 7 (applied:
 §7's catalogue, §21's LiteLLM row, §26's *Platform settings*; the plan's `### 7.`), the plan's *Sitting 9* record, then §4's traps 7,
@@ -1733,10 +1737,9 @@ told never to run a test, then the close-out (§6). **Its live steps cost Rich m
 - the control database **EMPTY** — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions, 0 intake sessions, **39
   migrations** (`0038`, this sitting's) (`psql`);
 - `launch-app`'s six `mf-launch-app-*` containers running with no rows behind them, untouched, and no other `mf-` container;
-- **the control plane is not running** (nothing on 7100, 7104, 7110 or 8765) — **but 7102 and 7105 are held by the faculty
-  front-end's session** (never stop them), which is why **`make doctor` reads 1 failed** (F12) — and **the front-end's session was
-  told at this close that its F2 window is open**, so by the time you read this it may have started the control plane on 7100 and
-  written projects (the block above says what to do);
+- at the close nothing of this platform's ran on 7100, 7104, 7110 or 8765 — **and minutes later the front-end's session started
+  the control plane on 7100 and left it running** (the block above); **7102 and 7105 are held by the faculty front-end's session**
+  (never stop them), which is why **`make doctor` reads 1 failed** (F12);
 - the GitHub fake absent; both models unloaded (`/api/ps` lists none); the edge restarted by the Docker tier, with no runtime route
   applied on `srv0` or `srv1`;
 - the three cleanup scripts clean after `--apply` (allowed); `make verify` 61/0/0 with `containers=6 networks=2 volumes=4`;
