@@ -191,6 +191,11 @@ export interface FakeLiteLlm extends LiteLlmClient {
   charge(alias: string, usd: number): void
   /** The next `n` calls to `path` fail with `status`, as the real gateway's would. */
   fail(path: string, status: number, n?: number): void
+  /**
+   * Every call to `path` answers after `ms` — the real gateway's `/key/generate` writes to Postgres
+   * and takes about 100 ms, and a race that window opens is invisible to a fake answering at once.
+   */
+  slow(path: string, ms: number): void
   /** The model route: what calling it with `key` for `model` answers. */
   use(key: string, model: string): { status: number; type?: string }
   /** Moves the fake's clock, in milliseconds. */
@@ -202,6 +207,11 @@ export function fakeLiteLlm(): FakeLiteLlm {
   const users = new Map<string, FakeUser>()
   const keys = new Map<string, FakeKey>()
   const failures = new Map<string, { status: number; n: number }>()
+  const delays = new Map<string, number>()
+  const wait = async (path: string) => {
+    const ms = delays.get(path)
+    if (ms !== undefined) await new Promise((resolve) => setTimeout(resolve, ms))
+  }
   let clock = Date.now()
   let minted = 0
 
@@ -223,6 +233,7 @@ export function fakeLiteLlm(): FakeLiteLlm {
   async function post<T>(path: string, raw: unknown): Promise<T> {
     const body = (raw ?? {}) as Record<string, unknown>
     calls.push({ method: 'POST', path, body })
+    await wait(path)
     failIfAsked(path)
     switch (path) {
       case '/user/new': {
@@ -320,6 +331,7 @@ export function fakeLiteLlm(): FakeLiteLlm {
       users.get(k.userId)!.spend += usd
     },
     fail: (path, status, n = 1) => failures.set(path, { status, n }),
+    slow: (path, ms) => delays.set(path, ms),
     use: (key, model) => {
       const k = keys.get(key)
       if (k === undefined) return { status: 401, type: 'token_not_found_in_db' }

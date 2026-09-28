@@ -178,6 +178,23 @@ describe('intake sessions (Spec action 5, FE-1)', () => {
     })
   })
 
+  it('lets two starts at once past a one-key day exactly once — the count and the row under one lock', async () => {
+    await withIntakeServer(async (ctx, lite) => {
+      ctx.deps.config.intake.dailyKeys = 1
+      // The real gateway's mint takes ~100 ms, holding the first transaction open while the others
+      // count — measured (sitting 7): with an instant fake the three ran one after another and the
+      // lock's absence could not be seen.
+      lite.slow('/key/generate', 100)
+      const answers = await Promise.all([
+        start(ctx, ctx.ownerCookies),
+        start(ctx, ctx.ownerCookies),
+        start(ctx, ctx.ownerCookies),
+      ])
+      expect(answers.map((a) => a.statusCode).sort()).toEqual([201, 409, 409])
+      expect(mints(lite)).toHaveLength(1)
+    })
+  })
+
   it('caps a key at what remains of the platform’s month, and refuses a spent month', async () => {
     await withIntakeServer(async (ctx, lite) => {
       expect((await start(ctx, ctx.ownerCookies)).statusCode).toBe(201)
