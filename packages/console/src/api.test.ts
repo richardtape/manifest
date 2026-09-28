@@ -429,6 +429,65 @@ describe('the console’s data layer against manifest-mock', () => {
    * the OpenAPI document — whose `info.version` the screen shows. Against the mock, a page is
    * answered for its own slug alone, so the one the index names first is the one read here.
    */
+  /**
+   * EVERY OPERATION THE FRONT-END ENABLEMENT PLAN ADDS, CALLED THROUGH `api.ts` (its Task 13): the
+   * instances and a sandbox instance's output, a name changed, agent sessions and their budget,
+   * the intake key, archive, restore and delete — each answer read for the field its screen shows.
+   */
+  it('calls every operation the front-end enablement plan adds', async () => {
+    await withMock(async (origin) => {
+      const a = api(origin)
+      const listed = await a.listInstances(fixtures.SANDBOX_ID)
+      expect(listed.instances.find((i) => i.serving)?.id).toBe(
+        fixtures.SANDBOX_INSTANCE_ID,
+      )
+      const output = await a.getInstanceOutput(fixtures.SANDBOX_INSTANCE_ID, 50)
+      expect(output.environmentKind).toBe('sandbox')
+      expect(output.lines.length).toBeGreaterThan(0)
+
+      const renamed = await a.updateProject(
+        PROJECT_ID,
+        { name: 'Lab notebook' },
+        a.newKey(),
+      )
+      expect(renamed.name).toBe('Lab notebook')
+      expect((await a.archiveProject(PROJECT_ID, a.newKey())).state).toBe('archived')
+      expect((await a.restoreProject(PROJECT_ID, a.newKey())).state).toBe('active')
+      expect((await a.deleteProject(PROJECT_ID, a.newKey())).state).toBe('deleted')
+
+      const started = await a.startAgentSession(
+        PROJECT_ID,
+        { name: 'Tidy the CSS' },
+        a.newKey(),
+      )
+      expect(started.key).toBe('sk-mock-not-a-real-key')
+      expect(started.session.name).toBe('Tidy the CSS')
+      const sessions = await a.listAgentSessions(PROJECT_ID)
+      expect(sessions.sessions.length).toBeGreaterThan(0)
+      const ended = await a.endAgentSession(fixtures.AGENT_SESSION_ID, a.newKey())
+      expect(ended.state).toBe('ended')
+      const budget = await a.getAgentBudget()
+      expect(budget.monthlyUsd).toBe(10)
+
+      const intake = await a.startIntakeSession(a.newKey())
+      expect(intake.key).toBe('sk-mock-not-a-real-key')
+      expect((await a.endIntakeSession(intake.session.id, a.newKey())).state).toBe(
+        'ended',
+      )
+
+      // The three whose requests changed: a member by CWL login name, a file read as bytes.
+      const member = await a.addMember(
+        PROJECT_ID,
+        { cwlLogin: 'student', role: 'collaborator' },
+        a.newKey(),
+      )
+      expect(member.cwlLogin).toBe('student')
+      const tree = await a.getTree(PROJECT_ID)
+      const bytes = await a.getFile(PROJECT_ID, 'src/app.js', tree.commitSha, 'base64')
+      expect(bytes.encoding).toBe('base64')
+    })
+  })
+
   it('reads the documentation: the index, a page, and the OpenAPI document', async () => {
     await withMock(async (origin) => {
       const a = api(origin)

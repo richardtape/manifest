@@ -17,40 +17,13 @@ import { describe, expect, it } from 'vitest'
  * and the list is where that claim is recorded.
  */
 const DELIBERATELY_UNCALLED: Record<string, string> = {
-  // The front-end enablement plan's Task 3 (sitting 2): §14's bounded read. Its screen is the
-  // plan's Task 13, which adds the callers and removes both parks in one commit.
-  listInstances:
-    'the front-end enablement plan’s Task 13 adds the console’s instances list and removes this',
-  getInstanceOutput:
-    'the front-end enablement plan’s Task 13 adds the console’s recent-output view and removes this',
-  // Its Task 6 (sitting 5): a project's name, changed. Task 13 adds the Project screen's rename.
-  updateProject:
-    'the front-end enablement plan’s Task 13 adds the Project screen’s rename and removes this',
-  // Its Task 10 (sitting 7): agent sessions. Task 13 adds the Agents screen — start, list, end —
-  // and the budget line, and removes all four parks in one commit.
-  startAgentSession:
-    'the front-end enablement plan’s Task 13 adds the console’s agent sessions screen and removes this',
-  listAgentSessions:
-    'the front-end enablement plan’s Task 13 adds the console’s agent sessions screen and removes this',
-  endAgentSession:
-    'the front-end enablement plan’s Task 13 adds the console’s agent sessions screen and removes this',
-  getAgentBudget:
-    'the front-end enablement plan’s Task 13 adds the console’s agent budget line and removes this',
-  // FE-1 (sitting 7): the intake session. Task 13 adds the console's describe-a-new-app step.
-  startIntakeSession:
-    'the front-end enablement plan’s Task 13 adds the console’s describe-a-new-app step and removes this',
-  endIntakeSession:
-    'the front-end enablement plan’s Task 13 adds the console’s describe-a-new-app step and removes this',
-  // Its Task 11 (sitting 8): §11's archive and restore. Task 13 adds the Project screen's switch-off
-  // and restore — step-up for the first — and removes both parks in one commit.
-  archiveProject:
-    'the front-end enablement plan’s Task 13 adds the Project screen’s switch-off and removes this',
-  restoreProject:
-    'the front-end enablement plan’s Task 13 adds the Project screen’s restore and removes this',
-  // Its Task 12 (sitting 9): §11's delete — a never-launched project, step-up. Task 13 adds the
-  // Project screen's delete and removes this park with the two above.
-  deleteProject:
-    'the front-end enablement plan’s Task 13 adds the Project screen’s delete and removes this',
+  // **EMPTY AGAIN SINCE THE FRONT-END ENABLEMENT PLAN'S TASK 13 (sitting 10, 2026-09-28)**, and
+  // that is a measurement: all 66 operations have a caller. That plan parked TWELVE here naming
+  // Task 13 as their remover — `listInstances` and `getInstanceOutput` (Task 3), `updateProject`
+  // (Task 6), the four agent-session operations and FE-1's two intake operations (Task 10),
+  // `archiveProject` and `restoreProject` (Task 11) and `deleteProject` (Task 12) — and Task 13
+  // added their callers and removed the twelve parks in one commit (the stale-park check below).
+  //
   // **EMPTY AGAIN SINCE THE AUTHORING API PLAN'S TASK 10 (sitting 7, 2026-09-26)**, and that
   // is a measurement: all 51 operations have a caller. That plan's Tasks 5, 6 and 8 parked
   // eight here naming Task 10 as their remover — `getTree`, `getFile`, `listCommits`,

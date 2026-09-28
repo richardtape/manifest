@@ -493,3 +493,20 @@ pre.doc {
   font-size: 0.9rem;
   line-height: 1.45;
 }
+
+/* The front-end enablement plan's Task 13: an image previewed from its bytes, and an instance's
+   recent output — both bounded so a large one never pushes the page sideways. */
+img.preview {
+  display: block;
+  max-width: 100%;
+  max-height: 20rem;
+  margin: 0.5rem 0;
+  border: 1px solid #ddd;
+}
+
+.output pre {
+  max-height: 24rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import type { Schemas } from '@manifest/contract'
+import { ManifestApiError, type Schemas } from '@manifest/contract'
 import type { Api } from '../api'
-import { href, type Route } from '../router'
+import { href, navigate, type Route } from '../router'
 import { useProjectStream } from '../stream'
 import { Instant, Field, Panel, Pill, Refusal, useAsync, Warnings } from '../ui'
 import { Builds } from './builds'
@@ -36,11 +36,20 @@ export function Project({
    */
   isAdmin: boolean
 }) {
-  const project = useAsync(() => api.getProject(projectId), [projectId])
   // ONE SOCKET FOR THE WHOLE SCREEN (D23.2), AND IT SPANS THE TABS. The hook lives here
   // rather than in a tab, so moving between Overview and Tokens does not tear the socket
   // down and re-open it — the replay would run again and every panel would flicker.
   const stream = useProjectStream(projectId)
+  // RE-READ WHEN A FRAME SAYS THE PROJECT CHANGED (D23.2): a rename, a switch-off or a restore
+  // made by another person or tab reaches this screen without a reload.
+  const changed = stream.frames.filter(
+    (f) =>
+      f.kind === 'event' &&
+      (f.type === 'project.renamed' ||
+        f.type === 'project.archived' ||
+        f.type === 'project.restored'),
+  ).length
+  const project = useAsync(() => api.getProject(projectId), [projectId, changed])
   // THE ONE FACT THE STREAM CANNOT CARRY. `createRelease` publishes no event, so the Deploy
   // panel would not know a release exists until the page was reloaded; the Builds panel
   // bumps this instead. Everything else these panels share, they share through the socket.
@@ -60,7 +69,12 @@ export function Project({
         <Queue api={api} projectId={projectId} frames={stream.frames} />
       ) : (
         <>
-          <Overview project={project.value} error={project.error} />
+          <Overview
+            api={api}
+            project={project.value}
+            error={project.error}
+            onChanged={project.reload}
+          />
           <Activity stream={stream} />
           <Builds
             api={api}
@@ -88,6 +102,7 @@ export function Project({
           />
           <SpecPanel api={api} projectId={projectId} />
           <Members api={api} projectId={projectId} />
+          <Ending api={api} project={project.value} onChanged={project.reload} />
         </>
       )}
     </>
@@ -140,20 +155,39 @@ function Tabs({
 }
 
 function Overview({
+  api,
   project,
   error,
+  onChanged,
 }: {
+  api: Api
   project: Schemas['Project'] | undefined
   error: unknown
+  onChanged: () => void
 }) {
   return (
     <Panel title="Project">
       <Refusal error={error} />
       {project !== undefined && (
         <>
+          {/*
+            WHAT PEOPLE CALL IT, AND ITS PERMANENT ADDRESS (the front-end enablement plan's Task
+            6): the name changes, the slug never does (§23, D26) — so they are two fields, and
+            only the name has a Rename.
+          */}
           <Field label="Name">
+            {project.name} <Rename api={api} project={project} onRenamed={onChanged} />
+          </Field>
+          <Field label="Slug">
             <code>{project.slug}</code>
           </Field>
+          {project.state === 'archived' && (
+            <Field label="State">
+              <Pill tone="bad">switched off</Pill>{' '}
+              {project.archivedAt !== null && <Instant at={project.archivedAt} />} — it
+              can be read and restored, and nothing else (§11)
+            </Field>
+          )}
           <Field label="Blueprint">{project.blueprint}</Field>
           <Field label="Starter">{project.starter ?? 'the skeleton alone'}</Field>
           <Field label="Owner">{project.owner.displayName}</Field>
@@ -293,6 +327,193 @@ function Activity({ stream }: { stream: ReturnType<typeof useProjectStream> }) {
 }
 
 /**
+ * `updateProject` — the API's first PATCH (the front-end enablement plan's Task 6). A name is 1 to
+ * 80 characters on one line; the platform's own words refuse anything else (`400
+ * REQUEST_INVALID`), so this form holds no rule of its own beyond the length the input allows.
+ */
+function Rename({
+  api,
+  project,
+  onRenamed,
+}: {
+  api: Api
+  project: Schemas['Project']
+  onRenamed: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(project.name)
+  const [error, setError] = useState<unknown>(undefined)
+  const [busy, setBusy] = useState(false)
+  // ONE KEY PER RENAME (D23.6): made when the form opens, reused if Save is pressed again.
+  const [idempotency, setIdempotency] = useState(() => api.newKey())
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError(undefined)
+    try {
+      await api.updateProject(project.id, { name }, idempotency)
+      setEditing(false)
+      setIdempotency(api.newKey())
+      onRenamed()
+    } catch (e) {
+      setError(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!editing)
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setName(project.name)
+          setEditing(true)
+        }}
+      >
+        Rename
+      </button>
+    )
+  return (
+    <form onSubmit={save}>
+      <input
+        value={name}
+        maxLength={80}
+        onChange={(e) => setName(e.target.value)}
+        required
+      />{' '}
+      <button disabled={busy}>Save</button>{' '}
+      <button type="button" onClick={() => setEditing(false)}>
+        Cancel
+      </button>
+      <Refusal error={error} />
+    </form>
+  )
+}
+
+/**
+ * §11'S ENDING AN APP (the front-end enablement plan's Tasks 11–12): SWITCH IT OFF, BRING IT BACK,
+ * or DELETE it — each consequence stated BEFORE the click, because two of the three cannot be
+ * taken back by the person who clicks. All three are a person's alone; archive and delete need a
+ * fresh sign-in, which `<Refusal>` offers from `STEP_UP_REQUIRED`'s hint and which returns here.
+ *
+ * DELETE IS OFFERED ONLY WHILE THE APP HAS NEVER LAUNCHED (Decision 31) — and its refusal is still
+ * shown by its code, because a launch can complete while a delete starts: the platform then leaves
+ * the project SWITCHED OFF and says so, and restore is the way back. A deleted project answers
+ * `404` to every route, so this screen LEAVES rather than reading it back (`DeletedProject`).
+ */
+function Ending({
+  api,
+  project,
+  onChanged,
+}: {
+  api: Api
+  project: Schemas['Project'] | undefined
+  onChanged: () => void
+}) {
+  const [error, setError] = useState<unknown>(undefined)
+  const [busy, setBusy] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState('')
+  // ONE KEY PER ACTION (D23.6), kept across a step-up's round trip only within this page — a
+  // retry after `PROJECT_TEARDOWN_INCOMPLETE` is the SAME request, which the platform finishes.
+  const [keys, setKeys] = useState(() => ({
+    archive: api.newKey(),
+    restore: api.newKey(),
+    delete: api.newKey(),
+  }))
+  if (project === undefined) return null
+
+  async function act(which: 'archive' | 'restore' | 'delete') {
+    if (project === undefined) return
+    setBusy(true)
+    setError(undefined)
+    try {
+      if (which === 'delete') {
+        await api.deleteProject(project.id, keys.delete)
+        navigate('/')
+        return
+      }
+      if (which === 'archive') await api.archiveProject(project.id, keys.archive)
+      else await api.restoreProject(project.id, keys.restore)
+      setKeys((k) => ({ ...k, [which]: api.newKey() }))
+      onChanged()
+    } catch (e) {
+      setError(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const archived = project.state === 'archived'
+  return (
+    <Panel title="Ending this app">
+      {archived ? (
+        <>
+          <p>
+            <strong>Restore</strong> brings it back as it was when it was switched off:
+            its code, data and secrets were kept. It is not redeployed — deploy it again
+            to serve.
+          </p>
+          <button type="button" disabled={busy} onClick={() => void act('restore')}>
+            Restore
+          </button>
+        </>
+      ) : (
+        <>
+          <p>
+            <strong>Switch it off</strong> (archive) stops it for everyone: every address
+            it has answers a page saying so, every running instance stops, and its agents’
+            keys end. Its code, data and secrets are kept, and it can be restored. You
+            will be asked to sign in again first.
+          </p>
+          <button type="button" disabled={busy} onClick={() => void act('archive')}>
+            Switch it off
+          </button>
+        </>
+      )}
+      {project.launchedAt === null ? (
+        <>
+          <p>
+            <strong>Delete</strong> destroys its repository, every data volume, every
+            secret and its model budgets, and frees <code>{project.slug}</code> for
+            another project. It cannot be undone. Only an app that has never launched can
+            be deleted. You will be asked to sign in again first.
+          </p>
+          <label>
+            Type <code>{project.slug}</code> to delete it:{' '}
+            <input
+              value={confirmDelete}
+              onChange={(e) => setConfirmDelete(e.target.value)}
+            />
+          </label>{' '}
+          <button
+            type="button"
+            disabled={busy || confirmDelete !== project.slug}
+            onClick={() => void act('delete')}
+          >
+            Delete
+          </button>
+        </>
+      ) : (
+        <p className="hint">
+          It has been to production, so it cannot be deleted: its data is disposed of
+          under its retention period and UBC’s sunset procedure. Switch it off instead.
+        </p>
+      )}
+      <Refusal error={error} />
+      {error instanceof ManifestApiError &&
+        error.code === 'PROJECT_LAUNCHED_NOT_DELETABLE' && (
+          <p className="hint">
+            If it launched while the delete was starting, it is now switched off with
+            everything kept — reload this page, and restore it to bring it back.
+          </p>
+        )}
+    </Panel>
+  )
+}
+
+/**
  * §7's manifest as the platform parsed it, and the Re-validate button that re-reads it at
  * the repository's HEAD. A real affordance — it is how a person sees whether a
  * `manifest.yaml` they have just edited is valid — and `validateSpec`'s caller.
@@ -367,7 +588,11 @@ function SpecPanel({ api, projectId }: { api: Api; projectId: string }) {
  */
 function Members({ api, projectId }: { api: Api; projectId: string }) {
   const members = useAsync(() => api.listMembers(projectId), [projectId])
-  const [puid, setPuid] = useState('')
+  const [who, setWho] = useState('')
+  // EXACTLY ONE of the three keys (the front-end enablement plan's Task 7). The platform's rule
+  // is a refinement the generated types cannot state (`[S5]` (5)), so the form holds it: one box,
+  // and a choice of what it holds — never two keys sent at once.
+  const [by, setBy] = useState<'cwlLogin' | 'email' | 'puid'>('cwlLogin')
   const [role, setRole] = useState<Schemas['AddMemberRequest']['role']>('collaborator')
   const [error, setError] = useState<unknown>(undefined)
   const [busy, setBusy] = useState(false)
@@ -377,8 +602,8 @@ function Members({ api, projectId }: { api: Api; projectId: string }) {
     setBusy(true)
     setError(undefined)
     try {
-      await api.addMember(projectId, { puid, role }, api.newKey())
-      setPuid('')
+      await api.addMember(projectId, { [by]: who.trim(), role }, api.newKey())
+      setWho('')
       members.reload()
     } catch (e) {
       setError(e)
@@ -403,7 +628,8 @@ function Members({ api, projectId }: { api: Api; projectId: string }) {
       <ul>
         {(members.value ?? []).map((m) => (
           <li key={m.userId}>
-            {m.displayName} <code>{m.puid}</code> <Pill tone="plain">{m.role}</Pill>{' '}
+            {m.displayName} {m.cwlLogin !== null && <code>{m.cwlLogin}</code>}{' '}
+            <code>{m.puid}</code> <Pill tone="plain">{m.role}</Pill>{' '}
             <button type="button" onClick={() => void remove(m.userId)}>
               Remove
             </button>
@@ -411,8 +637,13 @@ function Members({ api, projectId }: { api: Api; projectId: string }) {
         ))}
       </ul>
       <form onSubmit={add}>
-        <Field label="Add by CWL PUID">
-          <input value={puid} onChange={(e) => setPuid(e.target.value)} required />{' '}
+        <Field label="Add a person by">
+          <select value={by} onChange={(e) => setBy(e.target.value as typeof by)}>
+            <option value="cwlLogin">CWL login name</option>
+            <option value="email">email</option>
+            <option value="puid">PUID</option>
+          </select>{' '}
+          <input value={who} onChange={(e) => setWho(e.target.value)} required />{' '}
           <select value={role} onChange={(e) => setRole(e.target.value as typeof role)}>
             <option value="collaborator">collaborator</option>
             <option value="owner">owner</option>
@@ -420,6 +651,11 @@ function Members({ api, projectId }: { api: Api; projectId: string }) {
           <button disabled={busy}>Add</button>
         </Field>
       </form>
+      <p className="hint">
+        They must have signed in to Manifest once. A CWL login name is known only for
+        someone who has signed in since Manifest began asking CWL for it — if one is not
+        found, use their email or PUID.
+      </p>
       <Refusal error={error} />
     </Panel>
   )

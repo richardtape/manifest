@@ -228,7 +228,298 @@ export function Tokens({
           ))}
         </ul>
       </Panel>
+      <AgentSessions api={api} projectId={projectId} frames={frames} />
     </>
+  )
+}
+
+/**
+ * AGENT SESSIONS (the front-end enablement plan's Tasks 9–10; Spec action 1): a model key for an
+ * agent working OUTSIDE Manifest — Claude Code on a laptop, the faculty front-end's own agent —
+ * charged to the person it works for, capped per session and by the person's month, short-lived,
+ * and limited to the models D17 allows the project's data. Beside the tokens because it is the
+ * same kind of thing: a credential a person hands an agent, shown once.
+ *
+ * RE-READ ON `agent_session.started` / `agent_session.ended` (D23.2) — a session a token started,
+ * or one its token's revocation ended, reaches this list without a reload.
+ */
+function AgentSessions({
+  api,
+  projectId,
+  frames,
+}: {
+  api: Api
+  projectId: string
+  frames: StreamFrame[]
+}) {
+  const changed = frames.filter(
+    (f) =>
+      f.kind === 'event' &&
+      (f.type === 'agent_session.started' || f.type === 'agent_session.ended'),
+  ).length
+  const sessions = useAsync(() => api.listAgentSessions(projectId), [projectId, changed])
+  const budget = useAsync(() => api.getAgentBudget(), [changed])
+  const [started, setStarted] = useState<Schemas['AgentSessionStarted'] | undefined>(
+    undefined,
+  )
+  const [error, setError] = useState<unknown>(undefined)
+
+  return (
+    <>
+      <Panel title="Agent sessions — a model key for an agent">
+        <Budget budget={budget.value} error={budget.error} />
+        <StartSession
+          api={api}
+          projectId={projectId}
+          onStarted={(s) => {
+            setStarted(s)
+            sessions.reload()
+            budget.reload()
+          }}
+        />
+      </Panel>
+      {started !== undefined && (
+        <KeyOnce started={started} onDismiss={() => setStarted(undefined)} />
+      )}
+      <Panel title="This project’s agent sessions">
+        <Refusal error={sessions.error} />
+        <Refusal error={error} />
+        {sessions.value?.sessions.length === 0 && (
+          <p>No agent sessions on this project.</p>
+        )}
+        <ul className="tokens">
+          {(sessions.value?.sessions ?? []).map((session) => (
+            <SessionRow
+              key={session.id}
+              session={session}
+              onEnd={async () => {
+                setError(undefined)
+                try {
+                  await api.endAgentSession(session.id, api.newKey())
+                  sessions.reload()
+                } catch (e) {
+                  setError(e)
+                }
+              }}
+            />
+          ))}
+        </ul>
+        {sessions.value?.truncated === true && (
+          <p className="hint">Only the 50 newest are listed.</p>
+        )}
+      </Panel>
+    </>
+  )
+}
+
+/** The person's month across EVERY project — `spentUsd` null with its reason, never shown as 0. */
+function Budget({
+  budget,
+  error,
+}: {
+  budget: Schemas['AgentBudget'] | undefined
+  error: unknown
+}) {
+  if (error !== undefined) return <Refusal error={error} />
+  if (budget === undefined) return null
+  return (
+    <Field label="Your month">
+      {budget.spentUsd === null ? (
+        <>
+          ${budget.monthlyUsd.toFixed(2)} a month; what is spent is not known right now —{' '}
+          <span className="hint">{budget.unavailable}</span>
+        </>
+      ) : (
+        <>
+          ${budget.spentUsd.toFixed(2)} of ${budget.monthlyUsd.toFixed(2)} spent across
+          every project, ${budget.remainingUsd?.toFixed(2)} left
+          {budget.resetsAt !== null && (
+            <>
+              {' '}
+              — resets <Instant at={budget.resetsAt} />
+            </>
+          )}
+        </>
+      )}
+    </Field>
+  )
+}
+
+function StartSession({
+  api,
+  projectId,
+  onStarted,
+}: {
+  api: Api
+  projectId: string
+  onStarted: (started: Schemas['AgentSessionStarted']) => void
+}) {
+  const [name, setName] = useState('')
+  const [cap, setCap] = useState('')
+  const [minutes, setMinutes] = useState(60)
+  const [error, setError] = useState<unknown>(undefined)
+  const [busy, setBusy] = useState(false)
+  // ONE KEY PER START (D23.6), reused if Start is pressed again: a retry is `409
+  // AGENT_SESSION_ALREADY_STARTED`, never a second key — and never the first key twice.
+  const [idempotency, setIdempotency] = useState(() => api.newKey())
+
+  async function start(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError(undefined)
+    try {
+      onStarted(
+        await api.startAgentSession(
+          projectId,
+          {
+            name,
+            durationMinutes: minutes,
+            ...(cap.trim() === '' ? {} : { capUsd: Number(cap) }),
+          },
+          idempotency,
+        ),
+      )
+      setName('')
+      setIdempotency(api.newKey())
+    } catch (e) {
+      setError(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={start}>
+      <p className="hint">
+        The key is shown <strong>once</strong>, on the next panel. Manifest keeps no copy
+        — copy it then, or start another. What it spends is charged to you.
+      </p>
+      <Field label="What the agent is doing">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          maxLength={64}
+          placeholder="Build the bulletin board"
+        />
+      </Field>
+      <Field label="At most">
+        $
+        <input
+          type="number"
+          min={0.01}
+          max={1000}
+          step={0.01}
+          value={cap}
+          onChange={(e) => setCap(e.target.value)}
+          placeholder="the platform’s cap"
+        />{' '}
+        — never more than what is left of your month
+      </Field>
+      <Field label="For">
+        <input
+          type="number"
+          min={1}
+          max={480}
+          value={minutes}
+          onChange={(e) => setMinutes(Number(e.target.value))}
+          required
+        />{' '}
+        minutes — at most 480, and never past your sign-in
+      </Field>
+      <button disabled={busy}>{busy ? 'starting…' : 'Start a session'}</button>
+      <Refusal error={error} />
+    </form>
+  )
+}
+
+/**
+ * THE SESSION'S KEY, SHOWN ONCE AND THEN GONE — exactly as a token's secret is (`Secret` above):
+ * `onDismiss` clears the caller's state, and nothing else holds it, so a reload of this screen
+ * shows no key (Task 13's Step 2 checks that by reloading).
+ */
+function KeyOnce({
+  started,
+  onDismiss,
+}: {
+  started: Schemas['AgentSessionStarted']
+  onDismiss: () => void
+}) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <Panel title="The agent’s key — copy it now">
+      <p className="hint">
+        This is the only time it is shown; Manifest keeps no copy. Give the agent the key
+        and this address, and it can call {started.session.models.join(', ')} until{' '}
+        <Instant at={started.session.expiresAt} /> or ${started.session.capUsd.toFixed(2)}{' '}
+        is spent.
+      </p>
+      <pre className="secret">{started.key}</pre>
+      <Field label="Address">
+        <code>{started.baseUrl}</code>
+      </Field>
+      <button
+        type="button"
+        onClick={() => {
+          void navigator.clipboard.writeText(started.key).then(() => setCopied(true))
+        }}
+      >
+        {copied ? 'copied' : 'Copy'}
+      </button>{' '}
+      <button type="button" onClick={onDismiss}>
+        I have it — hide this
+      </button>
+    </Panel>
+  )
+}
+
+function SessionRow({
+  session,
+  onEnd,
+}: {
+  session: Schemas['AgentSession']
+  onEnd: () => Promise<void>
+}) {
+  return (
+    <li>
+      <Field label={session.name}>
+        <Pill tone={session.state === 'active' ? 'good' : 'plain'}>{session.state}</Pill>{' '}
+        <code>{session.id.slice(0, 8)}</code>{' '}
+        <button
+          type="button"
+          onClick={() => void onEnd()}
+          disabled={session.state !== 'active'}
+        >
+          End
+        </button>
+      </Field>
+      <div className="hint">
+        for {session.person.name}
+        {session.via !== null && (
+          <> · started by the token “{session.via.tokenName}”</>
+        )} · {session.models.join(', ')}
+      </div>
+      <div className="hint">
+        {session.spentUsd === null ? (
+          <>spent: not known — {session.spentUnavailable}</>
+        ) : (
+          <>
+            ${session.spentUsd.toFixed(2)} of ${session.capUsd.toFixed(2)} spent
+          </>
+        )}{' '}
+        ·{' '}
+        {session.endedAt === null ? (
+          <>
+            expires <Instant at={session.expiresAt} />
+          </>
+        ) : (
+          <>
+            ended <Instant at={session.endedAt} />
+            {session.endReason !== null && ` (${session.endReason.replace('_', ' ')})`}
+          </>
+        )}
+      </div>
+    </li>
   )
 }
 

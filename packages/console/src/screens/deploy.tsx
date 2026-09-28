@@ -187,6 +187,7 @@ export function Deploy({
           slug={slug}
           releaseId={chosen}
           frames={frames}
+          instanceFrames={instanceFrames}
           onDeployed={environments.reload}
         />
       ))}
@@ -200,6 +201,7 @@ function EnvironmentPanel({
   slug,
   releaseId,
   frames,
+  instanceFrames,
   onDeployed,
 }: {
   api: Api
@@ -207,6 +209,8 @@ function EnvironmentPanel({
   slug: string | undefined
   releaseId: string
   frames: StreamFrame[]
+  /** Re-reads the instance list when a deploy frame says it changed (D23.2), never on a timer. */
+  instanceFrames: number
   onDeployed: () => void
 }) {
   const [instance, setInstance] = useState<Schemas['Instance'] | undefined>(undefined)
@@ -305,7 +309,128 @@ function EnvironmentPanel({
           ))}
         </ul>
       )}
+      <Instances api={api} env={env} tick={instanceFrames} />
       <Incidents incidents={incidents.value} error={incidents.error} />
+    </div>
+  )
+}
+
+/**
+ * §11'S INSTANCES AND §14'S BOUNDED READ (the front-end enablement plan's Task 3): the
+ * environment's instances, newest first, the one its hostname reaches marked — a failed one stays
+ * listed after it is replaced, which is how a person finds its Incident. **Output is offered in the
+ * sandbox alone** (FE-24's code): staging and production serve real people, and each refuses the
+ * read by its own code — said here before the click rather than learnt from a refusal.
+ */
+function Instances({
+  api,
+  env,
+  tick,
+}: {
+  api: Api
+  env: Schemas['Environment']
+  tick: number
+}) {
+  const list = useAsync(() => api.listInstances(env.id), [env.id, tick])
+  const [reading, setReading] = useState<string | undefined>(undefined)
+  const rows = list.value?.instances ?? []
+  if (rows.length === 0) return <Refusal error={list.error} />
+  return (
+    <div className="instances">
+      <Refusal error={list.error} />
+      <Field label="Instances">
+        <ul>
+          {rows.map((i) => (
+            <li key={i.id}>
+              <code>{i.id.slice(0, 8)}</code>{' '}
+              <Pill tone={stateTone(i.state)}>{i.state}</Pill>
+              {i.serving && (
+                <>
+                  {' '}
+                  <Pill tone="good">serving</Pill>
+                </>
+              )}{' '}
+              release <code>{i.releaseId.slice(0, 8)}</code>
+              {i.lastSeenAt !== null && (
+                <>
+                  {' '}
+                  · seen <Instant at={i.lastSeenAt} />
+                </>
+              )}
+              {env.kind === 'sandbox' && (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    onClick={() => setReading(reading === i.id ? undefined : i.id)}
+                  >
+                    {reading === i.id ? 'Hide output' : 'Recent output'}
+                  </button>
+                </>
+              )}
+              {reading === i.id && <Output api={api} instanceId={i.id} />}
+            </li>
+          ))}
+        </ul>
+        {list.value?.truncated === true && (
+          <p className="hint">Only the 50 seen most recently are listed.</p>
+        )}
+      </Field>
+      {env.kind !== 'sandbox' && (
+        <p className="hint">
+          What a {env.kind} instance prints is not readable: {env.kind} serves real
+          people. A failed instance’s last lines are in its Incident, below.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * ONE READ, ON REQUEST — never streamed and never kept (§14). `lines` is the platform's bound
+ * (200 by default, at most 1000); a line past 4 KiB arrives cut, ending `…[cut: N bytes]`, and a
+ * secret arrives `[REDACTED]` — both the platform's words, rendered as they came.
+ */
+function Output({ api, instanceId }: { api: Api; instanceId: string }) {
+  const [lines, setLines] = useState(200)
+  const [tick, setTick] = useState(0)
+  const output = useAsync(
+    () => api.getInstanceOutput(instanceId, lines),
+    [instanceId, tick],
+  )
+  return (
+    <div className="output">
+      <Field label="Last">
+        <input
+          type="number"
+          min={1}
+          max={1000}
+          value={lines}
+          onChange={(e) => setLines(Number(e.target.value))}
+        />{' '}
+        lines{' '}
+        <button type="button" onClick={() => setTick((t) => t + 1)}>
+          Read again
+        </button>
+      </Field>
+      <Refusal error={output.error} />
+      {output.value !== undefined && (
+        <>
+          <pre>
+            {output.value.lines.map(
+              (l) =>
+                `${l.at}${l.stamped ? '' : '*'} ${l.stream === 'stderr' ? '!' : ' '} ${l.text}\n`,
+            )}
+          </pre>
+          <p className="hint">
+            read <Instant at={output.value.readAt} />
+            {output.value.truncated.lines && ' · older lines were left out'}
+            {output.value.truncated.bytes && ' · cut at 256 KiB in all'}
+            {output.value.failure !== null && ` · ${output.value.failure}`} · ! is stderr;
+            * is when Manifest read a line the runtime did not stamp
+          </p>
+        </>
+      )}
     </div>
   )
 }

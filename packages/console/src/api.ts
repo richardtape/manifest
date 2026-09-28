@@ -195,16 +195,25 @@ export function createApi(options: ApiOptions) {
      * binary or non-UTF-8 file is `409 SOURCE_FILE_NOT_TEXT`, and one past 1 MiB `409
      * SOURCE_FILE_TOO_LARGE`; `<Refusal>` renders both.
      */
+    /**
+     * `encoding: 'base64'` reads the file's BYTES (the front-end enablement plan's Task 4) — how
+     * the Code screen previews an image; text is the default read.
+     */
     async getFile(
       projectId: string,
       path: string,
       ref?: string,
+      encoding?: 'utf8' | 'base64',
     ): Promise<Schemas['SourceFile']> {
       return unwrap(
         await client.GET('/v1/projects/{projectId}/file', {
           params: {
             path: { projectId },
-            query: { path, ...(ref === undefined ? {} : { ref }) },
+            query: {
+              path,
+              ...(ref === undefined ? {} : { ref }),
+              ...(encoding === undefined ? {} : { encoding }),
+            },
           },
         }),
         'getFile',
@@ -264,6 +273,70 @@ export function createApi(options: ApiOptions) {
           body,
         }),
         'createCommit',
+      )
+    },
+
+    /**
+     * A PROJECT'S NAME, CHANGED (the front-end enablement plan's Task 6) — the API's first PATCH.
+     * Only the name: the slug never changes (§23, D26).
+     */
+    async updateProject(
+      projectId: string,
+      body: Schemas['UpdateProjectRequest'],
+      idempotency: string,
+    ): Promise<Schemas['Project']> {
+      return unwrap(
+        await client.PATCH('/v1/projects/{projectId}', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'updateProject',
+      )
+    },
+
+    /**
+     * §11'S ENDING AN APP (the front-end enablement plan's Tasks 11–12): switch it off, bring it
+     * back, or — only while it has never launched — delete it. All three are a person's alone
+     * (the document names the session alone), and archive and delete need step-up
+     * (`403 STEP_UP_REQUIRED`, whose hint names `/auth/step-up`). Delete answers the TOMBSTONE,
+     * `DeletedProject`, not a `Project`: every route answers the project `404` afterwards, so a
+     * screen leaves rather than reading it back.
+     */
+    async archiveProject(
+      projectId: string,
+      idempotency: string,
+    ): Promise<Schemas['Project']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/archive', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body: {},
+        }),
+        'archiveProject',
+      )
+    },
+
+    async restoreProject(
+      projectId: string,
+      idempotency: string,
+    ): Promise<Schemas['Project']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/restore', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body: {},
+        }),
+        'restoreProject',
+      )
+    },
+
+    async deleteProject(
+      projectId: string,
+      idempotency: string,
+    ): Promise<Schemas['DeletedProject']> {
+      return unwrap(
+        await client.DELETE('/v1/projects/{projectId}', {
+          params: { path: { projectId }, ...key(idempotency) },
+        }),
+        'deleteProject',
       )
     },
 
@@ -430,6 +503,36 @@ export function createApi(options: ApiOptions) {
     },
 
     /** §14's Incident, shaped as a repair prompt: why it exited, which check failed, the diff since the last healthy release and the log tail. */
+    /**
+     * §14'S BOUNDED READ (the front-end enablement plan's Task 3): an environment's instances,
+     * the serving one marked, and a SANDBOX instance's last lines — staging's and production's
+     * are refused by their own codes (`INSTANCE_OUTPUT_STAGING`, `INSTANCE_OUTPUT_PRODUCTION`),
+     * and a failed one's are in its Incident.
+     */
+    async listInstances(environmentId: string): Promise<Schemas['InstanceList']> {
+      return unwrap(
+        await client.GET('/v1/environments/{environmentId}/instances', {
+          params: { path: { environmentId } },
+        }),
+        'listInstances',
+      )
+    },
+
+    async getInstanceOutput(
+      instanceId: string,
+      lines?: number,
+    ): Promise<Schemas['InstanceOutput']> {
+      return unwrap(
+        await client.GET('/v1/instances/{instanceId}/output', {
+          params: {
+            path: { instanceId },
+            query: lines === undefined ? {} : { lines },
+          },
+        }),
+        'getInstanceOutput',
+      )
+    },
+
     async listIncidents(environmentId: string): Promise<Schemas['IncidentList']> {
       return unwrap(
         await client.GET('/v1/environments/{environmentId}/incidents', {
@@ -741,6 +844,80 @@ export function createApi(options: ApiOptions) {
      * this call always returns the project's whole queue. Newest first
      * (`orderBy(desc(createdAt))`), every state and not only `pending`.
      */
+    /**
+     * AGENT SESSIONS (the front-end enablement plan's Task 10; Spec action 1): a model key for an
+     * agent working outside Manifest, charged to the person, capped and short-lived. **The key is
+     * answered ONCE** — Manifest keeps no copy — so a screen shows it exactly as it shows a
+     * token's secret and never keeps it past the page; a retry with the same key is `409
+     * AGENT_SESSION_ALREADY_STARTED`, never the key again.
+     */
+    async startAgentSession(
+      projectId: string,
+      body: Schemas['StartAgentSessionRequest'],
+      idempotency: string,
+    ): Promise<Schemas['AgentSessionStarted']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/agent-sessions', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'startAgentSession',
+      )
+    },
+
+    async listAgentSessions(projectId: string): Promise<Schemas['AgentSessionList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/agent-sessions', {
+          params: { path: { projectId } },
+        }),
+        'listAgentSessions',
+      )
+    },
+
+    async endAgentSession(
+      sessionId: string,
+      idempotency: string,
+    ): Promise<Schemas['AgentSession']> {
+      return unwrap(
+        await client.DELETE('/v1/agent-sessions/{sessionId}', {
+          params: { path: { sessionId }, ...key(idempotency) },
+        }),
+        'endAgentSession',
+      )
+    },
+
+    /** The signed-in person's month across every project — `spentUsd` null with a reason, never 0. */
+    async getAgentBudget(): Promise<Schemas['AgentBudget']> {
+      return unwrap(await client.GET('/v1/agent-budget'), 'getAgentBudget')
+    },
+
+    /**
+     * THE INTAKE KEY (FE-1; Spec action 5): a model key for describing a NEW app, before any
+     * project exists — the platform's money, a person's session only, answered once. Paused for a
+     * person at the day's limit (`INTAKE_DAILY_LIMIT_REACHED`) and for everyone when the
+     * platform's month is spent (`INTAKE_BUDGET_EXHAUSTED`).
+     */
+    async startIntakeSession(
+      idempotency: string,
+    ): Promise<Schemas['IntakeSessionStarted']> {
+      return unwrap(
+        await client.POST('/v1/intake-sessions', { params: key(idempotency) }),
+        'startIntakeSession',
+      )
+    },
+
+    async endIntakeSession(
+      intakeSessionId: string,
+      idempotency: string,
+    ): Promise<Schemas['IntakeSession']> {
+      return unwrap(
+        await client.DELETE('/v1/intake-sessions/{intakeSessionId}', {
+          params: { path: { intakeSessionId }, ...key(idempotency) },
+        }),
+        'endIntakeSession',
+      )
+    },
+
     async listPendingActions(projectId: string): Promise<Schemas['PendingActionList']> {
       return unwrap(
         await client.GET('/v1/projects/{projectId}/pending-actions', {

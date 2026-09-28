@@ -22,8 +22,11 @@ export const MAX_FILE_BYTES = 1024 * 1024
 
 /**
  * WHETHER THE SCREEN OFFERS TO EDIT AN ENTRY, and when it will not, the sentence it shows
- * instead. v1 reads and writes regular text files only (Rich, *text files only in v1*); a
- * file the platform did not classify as text (`binary` not `false`) is not guessed to be one.
+ * instead. It EDITS regular text files only; a binary file (`binary: true`) is SHOWN — an image
+ * previewed, anything else offered as a download — and replaced by an upload, since the front-end
+ * enablement plan's Task 4 let a commit carry bytes (`[S3]` (2): the old words said Manifest
+ * wrote text alone, which stopped being true). A file the platform did not classify as text
+ * (`binary` not `false`) is not guessed to be one.
  * A file that is not valid UTF-8 is marked nowhere in the tree — `getFile` refuses it `409
  * SOURCE_FILE_NOT_TEXT`, and the screen renders that refusal.
  */
@@ -34,7 +37,7 @@ export function editable(entry: SourceEntry): { ok: true } | { ok: false; why: s
     case 'symlink':
       return {
         ok: false,
-        why: 'a symlink — Manifest reads and writes regular text files only',
+        why: 'a symlink — Manifest reads and writes regular files only',
       }
     case 'submodule':
       return {
@@ -45,7 +48,7 @@ export function editable(entry: SourceEntry): { ok: true } | { ok: false; why: s
       if (entry.binary !== false)
         return {
           ok: false,
-          why: 'a binary file — Manifest reads and writes text files only',
+          why: 'a binary file — shown here, not edited; replace it with Upload a file',
         }
       if ((entry.size ?? 0) > MAX_FILE_BYTES)
         return {
@@ -62,7 +65,14 @@ export function editable(entry: SourceEntry): { ok: true } | { ok: false; why: s
  * below remembers which paths this session created, so a keystroke need not re-state it.
  */
 export type Edit =
-  | { op: 'write'; path: string; content: string; isNew: boolean }
+  | {
+      op: 'write'
+      path: string
+      content: string
+      isNew: boolean
+      /** An UPLOAD: `content` is the file's bytes as canonical base64 (Task 4). */
+      encoding?: 'base64'
+    }
   | { op: 'delete'; path: string }
 
 /** Where each path the person touched stands now — what the screen marks beside it. */
@@ -71,8 +81,9 @@ export interface Pending {
   op: 'write' | 'delete'
   /** The file did not exist at the base commit: this session created it. */
   isNew: boolean
-  /** The whole new text, for a write. */
+  /** The whole new text, for a write — or the bytes as base64, for an upload. */
   content?: string
+  encoding?: 'base64'
 }
 
 /**
@@ -92,6 +103,7 @@ export function pending(edits: readonly Edit[]): Pending[] {
         op: 'write',
         isNew: created.has(edit.path),
         content: edit.content,
+        ...(edit.encoding === undefined ? {} : { encoding: edit.encoding }),
       })
     } else if (created.has(edit.path)) {
       created.delete(edit.path)
@@ -109,9 +121,101 @@ export function pending(edits: readonly Edit[]): Pending[] {
 export function changesFrom(edits: readonly Edit[]): Change[] {
   return pending(edits).map((p) =>
     p.op === 'write'
-      ? { op: 'write', path: p.path, content: p.content ?? '' }
+      ? {
+          op: 'write',
+          path: p.path,
+          content: p.content ?? '',
+          ...(p.encoding === undefined ? {} : { encoding: p.encoding }),
+        }
       : { op: 'delete', path: p.path },
   )
+}
+
+/**
+ * THE PLATFORM'S RULES FOR A FILE WRITTEN AS BYTES, RESTATED (the front-end enablement plan's Task
+ * 4; `source/binary.ts` and `api/representations/source.ts`, which this package cannot import):
+ * at most 2 MiB, at a path ending in one of the ten kinds' extensions. Restated so a person is told
+ * BEFORE the upload is sent, in the platform's own words; the platform's refusal stays the
+ * control — it also checks the bytes are one of the ten kinds, which only it does.
+ */
+export const BINARY_FILE_BYTES = 2 * 1024 * 1024
+export const BINARY_EXTENSIONS: readonly string[] = [
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.ico',
+  '.pdf',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.otf',
+]
+
+/** What an upload breaks, in the platform's words — or undefined when nothing does. */
+export function uploadProblem(path: string, bytes: Uint8Array): string | undefined {
+  if (bytes.length > BINARY_FILE_BYTES)
+    return `'${path}': content decodes to ${bytes.length} bytes; a binary file is at most 2 MiB`
+  const lower = path.toLowerCase()
+  if (!BINARY_EXTENSIONS.some((ext) => lower.endsWith(ext)))
+    return `'${path}' is not named as a file the API writes as bytes — its name must end in ${BINARY_EXTENSIONS.join(', ')}`
+  return undefined
+}
+
+/** Bytes as CANONICAL base64 — the standard alphabet with its padding — which the platform requires. */
+export function toBase64(bytes: Uint8Array): string {
+  let binary = ''
+  // In chunks: `String.fromCharCode(...bytes)` over 2 MiB overflows the argument limit.
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return btoa(binary)
+}
+
+const MEDIA_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.pdf': 'application/pdf',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+}
+
+/**
+ * HOW THE SCREEN SHOWS A BINARY FILE: an image previewed from its bytes (`getFile?encoding=base64`
+ * as a `data:` URL), anything else offered as a download. By its NAME, because a preview is a
+ * convenience — the browser decides what the bytes are, and a wrong guess shows a broken image.
+ */
+export function binaryView(path: string): {
+  kind: 'image' | 'download'
+  mediaType: string
+} {
+  const lower = path.toLowerCase()
+  const ext = Object.keys(MEDIA_TYPES).find((e) => lower.endsWith(e))
+  const mediaType = ext === undefined ? 'application/octet-stream' : MEDIA_TYPES[ext]!
+  return { kind: mediaType.startsWith('image/') ? 'image' : 'download', mediaType }
+}
+
+/**
+ * WHAT A COMMIT MESSAGE BREAKS (`[S4]` (2)), restated from `api/representations/source.ts`'s
+ * `messageProblems` in its words: the platform refuses it `400 REQUEST_INVALID` without naming
+ * the character or where, and an escape or a C1 character pasted into a text box is invisible —
+ * so the screen says so before it sends.
+ */
+export function messageProblems(message: string): string[] {
+  const problems: string[] = []
+  if (/\p{Surrogate}/u.test(message))
+    problems.push('the message is not well-formed Unicode (a lone surrogate)')
+  if (/(?![\n\t])\p{Cc}/u.test(message))
+    problems.push(
+      'the message contains a control character — only a line break (\\n) and a tab are allowed; no NUL, carriage return or escape',
+    )
+  return problems
 }
 
 /**

@@ -2,8 +2,12 @@ import { useRef, useState, type FormEvent } from 'react'
 import { ManifestApiError, type Schemas, type StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
 import {
+  binaryView,
   changesFrom,
   editable,
+  messageProblems,
+  toBase64,
+  uploadProblem,
   commitOrigin,
   madeThroughSentence,
   pending,
@@ -316,6 +320,17 @@ function Editor({
           <button disabled={newPath.trim() === ''}>Create</button>
         </Field>
       </form>
+      <Upload
+        exists={(path) => byPath.has(path) || pendingOf.has(path)}
+        onUpload={(path, content, isNew) => {
+          touched()
+          setEdits((es) => [
+            ...es,
+            { op: 'write', path, content, isNew, encoding: 'base64' },
+          ])
+          setOpen(path)
+        }}
+      />
 
       {open !== undefined && (
         <div className="open-file">
@@ -323,7 +338,17 @@ function Editor({
             <code>{open}</code>
           </h3>
           <Refusal error={openReadError} />
-          {openEntry !== undefined && !editable(openEntry).ok ? (
+          {openPending?.encoding === 'base64' ? (
+            <p>
+              Uploaded, {Math.round(((openPending.content ?? '').length * 3) / 4 / 1024)}{' '}
+              KiB — committing writes it.{' '}
+              <button type="button" onClick={() => undo(open)}>
+                Undo
+              </button>
+            </p>
+          ) : openEntry?.type === 'file' && openEntry.binary === true ? (
+            <Binary api={api} projectId={projectId} base={base} path={open} />
+          ) : openEntry !== undefined && !editable(openEntry).ok ? (
             <p className="hint">{(editable(openEntry) as { why: string }).why}</p>
           ) : openPending?.op === 'delete' ? (
             <p>
@@ -382,6 +407,11 @@ function Editor({
             placeholder="What this change does"
           />
         </Field>
+        {messageProblems(message).map((problem) => (
+          <p key={problem} className="refusal">
+            {problem}
+          </p>
+        ))}
         <p>
           {/*
             CHECK IS THE COMMIT WITH `dryRun: true`: every check the commit would make —
@@ -391,14 +421,24 @@ function Editor({
           <button
             type="button"
             onClick={() => void send(true)}
-            disabled={busy !== undefined || changes.length === 0 || message === ''}
+            disabled={
+              busy !== undefined ||
+              changes.length === 0 ||
+              message === '' ||
+              messageProblems(message).length > 0
+            }
           >
             {busy === 'check' ? 'checking…' : 'Check'}
           </button>{' '}
           <button
             type="button"
             onClick={() => void send(false)}
-            disabled={busy !== undefined || changes.length === 0 || message === ''}
+            disabled={
+              busy !== undefined ||
+              changes.length === 0 ||
+              message === '' ||
+              messageProblems(message).length > 0
+            }
           >
             {busy === 'commit' ? 'committing…' : 'Commit'}
           </button>
@@ -564,6 +604,92 @@ function MadeBy({ commit }: { commit: Schemas['CommitSummary'] }) {
   )
 }
 
+/**
+ * A BINARY FILE, SHOWN (`[S3]` (2)): read as its BYTES at the base (`getFile?encoding=base64`) — an
+ * image previewed from a `data:` URL, anything else offered as a download of the same bytes.
+ */
+function Binary({
+  api,
+  projectId,
+  base,
+  path,
+}: {
+  api: Api
+  projectId: string
+  base: string
+  path: string
+}) {
+  const file = useAsync(() => api.getFile(projectId, path, base, 'base64'), [path, base])
+  const view = binaryView(path)
+  if (file.error !== undefined) return <Refusal error={file.error} />
+  if (file.value === undefined) return <p className="hint">reading…</p>
+  const url = `data:${view.mediaType};base64,${file.value.content}`
+  const name = path.slice(path.lastIndexOf('/') + 1)
+  return (
+    <>
+      {view.kind === 'image' && <img className="preview" src={url} alt={path} />}
+      <p className="hint">
+        a binary file, {Math.round(file.value.size / 1024)} KiB —{' '}
+        <a href={url} download={name}>
+          download
+        </a>
+        ; replace it with Upload a file, at the same path
+      </p>
+    </>
+  )
+}
+
+/**
+ * UPLOAD A FILE (the front-end enablement plan's Task 4): an image, a PDF or a font, written as its
+ * bytes. The two rules this console can check — 2 MiB and the name — are checked before anything
+ * is sent, in the platform's words (`uploadProblem`); that the bytes ARE one of those kinds only the
+ * platform checks, and its refusal says so at Check or Commit.
+ */
+function Upload({
+  exists,
+  onUpload,
+}: {
+  exists: (path: string) => boolean
+  onUpload: (path: string, content: string, isNew: boolean) => void
+}) {
+  const [path, setPath] = useState('')
+  const [problem, setProblem] = useState<string | undefined>(undefined)
+
+  async function chosen(files: FileList | null) {
+    const picked = files?.[0]
+    if (picked === undefined) return
+    const target = path.trim() === '' ? `public/${picked.name}` : path.trim()
+    const bytes = new Uint8Array(await picked.arrayBuffer())
+    const why = uploadProblem(target, bytes)
+    setProblem(why)
+    if (why !== undefined) return
+    onUpload(target, toBase64(bytes), !exists(target))
+    setPath('')
+  }
+
+  return (
+    <div>
+      <Field label="Upload a file">
+        <input
+          value={path}
+          onChange={(e) => setPath(e.target.value)}
+          placeholder="public/logo.png — or the file’s own name, under public/"
+        />{' '}
+        <input
+          type="file"
+          accept=".png,.jpg,.jpeg,.gif,.webp,.ico,.pdf,.woff,.woff2,.ttf,.otf"
+          onChange={(e) => void chosen(e.target.files)}
+        />
+      </Field>
+      <p className="hint">
+        An image (PNG, JPEG, GIF, WebP, ICO), a PDF or a font (WOFF, WOFF2, TTF, OTF), at
+        most 2 MiB, at a path ending in its kind’s extension.
+      </p>
+      {problem !== undefined && <p className="refusal">{problem}</p>}
+    </div>
+  )
+}
+
 /** ONE COMMIT: its whole message, and every file it changed with its patch. */
 function CommitView({
   api,
@@ -613,6 +739,15 @@ function CommitView({
           {d.patchesTruncated && (
             <p className="hint">
               More changes than can be shown: the rest of the patches are not included.
+            </p>
+          )}
+          {/*
+            `[S4]` (1): a commit's changes stop at 1000, the first by path (`CommitDetail.truncated`,
+            published in the front-end enablement plan's sitting 4) — said, never implied.
+          */}
+          {d.truncated && (
+            <p className="hint">
+              This commit changed more than 1000 files: the first 1000 by path are listed.
             </p>
           )}
         </>

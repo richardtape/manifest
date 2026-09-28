@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  binaryView,
   changesFrom,
   editable,
   commitOrigin,
   madeThroughSentence,
   MAX_FILE_BYTES,
+  messageProblems,
+  toBase64,
+  uploadProblem,
   type SourceEntry,
 } from './code-state.js'
 
@@ -34,7 +38,7 @@ describe('editable — which entries the Code screen offers to edit', () => {
   it('says why it will not edit anything else, in the sentence the screen shows', () => {
     expect(editable(file({ binary: true }))).toEqual({
       ok: false,
-      why: 'a binary file — Manifest reads and writes text files only',
+      why: 'a binary file — shown here, not edited; replace it with Upload a file',
     })
     expect(editable(file({ size: MAX_FILE_BYTES + 1 }))).toEqual({
       ok: false,
@@ -44,7 +48,7 @@ describe('editable — which entries the Code screen offers to edit', () => {
       editable(file({ type: 'symlink', mode: '120000', size: 7, binary: null })),
     ).toEqual({
       ok: false,
-      why: 'a symlink — Manifest reads and writes regular text files only',
+      why: 'a symlink — Manifest reads and writes regular files only',
     })
     expect(
       editable(file({ type: 'submodule', mode: '160000', size: null, binary: null })),
@@ -168,5 +172,74 @@ describe('madeThroughSentence — who made a commit, from the platform’s recor
         parents: [],
       }),
     ).toBe('Ada Lovelace')
+  })
+})
+
+/**
+ * BINARY FILES AND A COMMIT'S MESSAGE (the front-end enablement plan's Task 13, `[S3]` and `[S4]`):
+ * what the Code screen says and checks BEFORE it sends — each rule the platform's, restated, with
+ * the platform's refusal still the control.
+ */
+describe('binary files and the message, before anything is sent', () => {
+  it('says a binary file is shown, not edited, and names an upload as the way to replace it', () => {
+    expect(
+      editable(file({ type: 'file', mode: '100644', size: 10, binary: true })),
+    ).toEqual({
+      ok: false,
+      why: 'a binary file — shown here, not edited; replace it with Upload a file',
+    })
+  })
+
+  it('previews an image by its extension, and offers anything else as a download', () => {
+    expect(binaryView('public/logo.PNG')).toEqual({
+      kind: 'image',
+      mediaType: 'image/png',
+    })
+    expect(binaryView('assets/photo.jpeg')).toEqual({
+      kind: 'image',
+      mediaType: 'image/jpeg',
+    })
+    expect(binaryView('docs/syllabus.pdf')).toEqual({
+      kind: 'download',
+      mediaType: 'application/pdf',
+    })
+    expect(binaryView('fonts/body.woff2').kind).toBe('download')
+  })
+
+  it('refuses an upload the platform would refuse — too large, or not named as a kind it writes', () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+    expect(uploadProblem('public/logo.png', png)).toBeUndefined()
+    expect(uploadProblem('public/logo.svg', png)).toBe(
+      "'public/logo.svg' is not named as a file the API writes as bytes — its name must end in .png, .jpg, .jpeg, .gif, .webp, .ico, .pdf, .woff, .woff2, .ttf, .otf",
+    )
+    const big = new Uint8Array(2 * 1024 * 1024 + 1)
+    expect(uploadProblem('public/big.png', big)).toBe(
+      `'public/big.png': content decodes to ${big.length} bytes; a binary file is at most 2 MiB`,
+    )
+  })
+
+  it('writes an upload as canonical base64, and sends it with its encoding', () => {
+    const bytes = new Uint8Array([0, 1, 2, 250, 251, 252, 253, 254, 255])
+    const content = toBase64(bytes)
+    expect(content).toBe(Buffer.from(bytes).toString('base64'))
+    expect(
+      changesFrom([
+        { op: 'write', path: 'public/a.png', content, isNew: true, encoding: 'base64' },
+      ]),
+    ).toEqual([{ op: 'write', path: 'public/a.png', content, encoding: 'base64' }])
+    // A text write carries no encoding at all — the default.
+    expect(
+      changesFrom([{ op: 'write', path: 'a.js', content: 'x', isNew: true }]),
+    ).toEqual([{ op: 'write', path: 'a.js', content: 'x' }])
+  })
+
+  it('says what is wrong with a message before it is sent, in the platform’s words', () => {
+    expect(messageProblems('Greet the world\n\n\tand the class')).toEqual([])
+    expect(messageProblems('colour \u001b[31mred')).toEqual([
+      'the message contains a control character — only a line break (\\n) and a tab are allowed; no NUL, carriage return or escape',
+    ])
+    expect(messageProblems('half a pair \ud800')).toEqual([
+      'the message is not well-formed Unicode (a lone surrogate)',
+    ])
   })
 })
