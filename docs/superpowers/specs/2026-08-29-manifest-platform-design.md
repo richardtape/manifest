@@ -515,7 +515,14 @@ default-embed                    max_classification: internal
 **The capable model** is one logical name, `default-chat-large`, for the agent and app work a small model cannot do. Which
 model answers it is a platform setting (§26) — a commercial provider's today — so repointing it changes no app, key or manifest.
 Whether data of a given classification may reach a provider outside Canada is the Privacy Office's to say (§9); the name's
-`max_classification` is what the platform enforces meanwhile, and `confidential` never leaves on-premise hardware.
+`max_classification` is what the platform enforces meanwhile, and a `confidential` app's own AI never leaves on-premise hardware.
+
+**The agent that BUILDS an app is governed by a platform setting of its own (§26)**: whether an agent session on a `confidential`
+project may call the capable model as well as the on-premise models — **yes by default**, because writing an app is the work a small
+model cannot do. Set to on-premise only, every such session gets the on-premise models alone, and the sessions already holding more
+are ended. The app's own `ai.models` stays on-premise either way. **While the setting allows it, a delegated token on a
+`confidential` project is refused staging's and production's Incident log tails**, which can carry the input of the people the
+classification protects.
 
 **Its fallback is the on-premise model.** A second platform setting (§26) names a catalogue entry — `default-chat-onprem` by
 default, which is Ollama on a laptop and UBC's on-premise inference at UBC — that the gateway answers `default-chat-large` with
@@ -969,7 +976,8 @@ confined by `allowed_routes` like every other and carries no capability on the c
 plane (§20). **Its models are those D17 allows for the project's `data.classification`**
 — its newest valid manifest's, and never less restrictive than the classification of
 the release serving production, because the agent writes `manifest.yaml` and must not
-lower its own routing by doing so. **Its spend is the person's, not the app's**: a
+lower its own routing by doing so — and, on a `confidential` project while the builder
+setting allows it (§7, §26), the capable model too. **Its spend is the person's, not the app's**: a
 LiteLLM user per person holds a monthly agent budget — a platform default, which an
 administrator may change for one person (§26) — each session carries a hard cap inside
 it, and the person, or a token acting for them, can read what their agents have spent
@@ -2864,7 +2872,8 @@ working and a queue that is stale is not.
 - **Platform settings** — the values §10 leaves to an administrator. They are the
   monthly agent budget's default and any one person's, and the intake model, whose
   change is a change to the model catalogue and takes its step-up (§20), and the capable
-  model's provider and model, and its fallback, whose change is one too. They are
+  model's provider and model, and its fallback, and whether a `confidential` project's
+  building agent may call it (§7), whose change is one too. They are
   also intake's bounds: a key's cap and life, the keys a person may start in a day,
   and the platform's monthly intake budget. Each change is audited with its actor
   (below).
