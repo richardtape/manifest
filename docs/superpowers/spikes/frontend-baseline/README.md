@@ -168,3 +168,38 @@ failing deployment an address nothing listens on):
   fallback set BY HAND on `default-chat-onprem` would carry `default-chat-large`'s calls a second hop that `ai/capable.ts` never
   checks (the review's M4, deferred: only a holder of LiteLLM's master key can set one, and that holder can repoint any entry).
 
+
+## Task 14a — the laptop's on-premise model, `qwen3.8:27b` (2026-09-28, sitting 11a)
+
+**Measured through LiteLLM 1.98.0's own LIBRARY inside `manifest-litellm`** (`probes/t14a-model.py`, run with the container's
+interpreter, so the proxy's mapping code and nothing in its database) against Ollama 0.34.4 on the host; every line in
+`results-task14a-2026-09-28.txt`, with Ollama's own log lines for each load. macOS 26.6.2, 36 GiB, Docker Desktop's VM 7.75 GiB,
+load 5–8 (Rich's other sessions running). `qwen3.8:27b` is `22130167c4c2`, 27.3B, Q4_K_M, a THINKING model.
+
+- **[M16] It answers non-thinking with the same pin as `qwen3.5:4b`** — `ollama_chat/qwen3.8:27b` with `think: false`, streamed:
+  16, 17 and 23 content frames and **0 reasoning frames** in three runs. **The pin is load-bearing for it too** (the negative
+  control): without it, 57 reasoning frames came before the first content at 200 tokens, and at 50 tokens **50 of 50 frames were
+  reasoning and the answer was empty** — §21's *"a thinking model streams no content at all"*, again. So the `-reasoning` names keep
+  their shape (`reasoning_effort: medium`, no pin) and `ai-path.docker.test.ts`'s two cases hold for the 27B unchanged.
+- **[M17] It fits beside Docker, and NOT beside `qwen3.5:4b`.** Resident, it is 17.57 GB, all of it on Metal (`/api/ps`
+  `size_vram` = `size`), at Ollama's context of 32768. **Ollama will not hold both**: loading either EVICTS the other, and its log
+  says why — `"llama-server model predicted to exceed available memory, evicting" predicted="22.4 GiB" … system_free="7.6 GiB"
+  system_limited=true` (the 27B), and `predicted="3.8 GiB" … system_free="2.0 GiB"` (the 4B, while the 27B was resident). The limit
+  is the SYSTEM's free memory, not the GPU's (27.6 GiB available to Metal throughout): 13–17 GiB was free before a load on this
+  machine as it is used (Docker's VM, browsers, other sessions), and **while the 27B is resident the machine reads 14–15% free**
+  (`memory_pressure`), swap 14 of 15 GB used (it was already).
+- **[M18] Latency**: cold, first content at **12.4 s** (the runner started in 11.1 s); warm, **0.49 s** first content and 2.6 s for a
+  17-frame answer. **Every alternation between `default-chat` and an on-premise name reloads**: the 27B again in 8.3 s (first content
+  9.3 s), the 4B in 2.5 s (first content 3.1 s).
+- **[M19] What it costs the Docker tier** (predicted here; measured by the tier itself at the close): three cases load the 27B —
+  `ai-path.docker.test.ts`'s `default-chat-onprem` (thinking off) and `default-chat-onprem-reasoning` (50 tokens), and
+  `capable.docker.test.ts`'s fallback (`default-chat-onprem` answering an unreachable primary) — each evicting the 4B that the next
+  `default-chat` case reloads: about four swaps, ~10 s each way plus ~3 s back. `agent-keys.docker.test.ts`'s two `default-chat-onprem`
+  calls are refused `403` before any model loads. **`capable.docker.test.ts` asserts the fallback's provider string
+  (`ollama_chat/qwen3.5:4b`)** — Step 2 changes it with the mapping.
+
+**Does it break the task?** No: Step 1's STOP condition — *"does not fit this 36 GiB machine beside Docker"* — is not met; it
+loads whole onto the GPU and answers. What it costs is [M17]–[M18]: the on-premise names and `default-chat` cannot be warm at once on
+this machine, so a confidential project's first call after anything else pays ~9–12 s, and the laptop runs at ~15% free memory while
+the 27B is resident. Told to Rich before Step 2 built on it (§7e's item 0). **Restored**: the 27B unloaded (`keep_alive: 0`), the 4B
+re-warmed (30 minutes), the probe removed from the container.
