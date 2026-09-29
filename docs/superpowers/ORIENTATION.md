@@ -1760,8 +1760,8 @@ operations, 127 codes — text only.
 
 **THE FRONT-END'S SESSION — MESSAGE IT FIRST** (`ListAgents`; the memory *a peer may open the next sitting*). At sitting 11's close
 **`manifest-app-bb`** was live — running its F4 plan's sitting 1 (measurements), at Rich's word; its 7105 (pid 33856) and its mock on
-7102 (pid 28239) — leave both. **It was given a ~90-minute window on 7100 and the edge from 22:16** (the machine block, below), and
-said it would message when done with 7100 — ask it whether it is, before any tier. **A session name changes at every handover — `ListAgents` IMMEDIATELY before every promised
+7102 (pid 28239) — leave both. **It had a window on 7100 and the edge from 22:16 and reported DONE at 22:38** — nothing of its on 7100 must
+survive, and it is back in mock mode (7105 → its mock on 7102). Still message it before any tier. **A session name changes at every handover — `ListAgents` IMMEDIATELY before every promised
 message** (sitting 11's F18: a heads-up went to a session that had just handed over, and arrived after the commit).
 
 **Read, in this order (sitting 11a):** Task 14a in full (`## Task 14a:`); Spec action 10 in the plan's *Spec actions* and §7's and
@@ -1796,7 +1796,9 @@ Rich places it.
   credential and the database was empty. **7102 and 7105 are the faculty front-end's** (pids 28239 and
   33856 — never stop them), and **its session `manifest-app-bb` was given a ~90-minute window on 7100 from 22:16**, at Rich's word:
   a project or two as `instructor`, a deploy to the laptop's staging, a missing-secret refusal, a `student` sign-in to a draft,
-  capable-model calls — so expect its rows and containers;
+  capable-model calls. **It reported done at 22:38, leaving**: projects `student-submissions` (`96fdd7f0…`, instances in the
+  sandbox and on the laptop's staging) and `my-reading-response`, and one delegated token (*"F4 sitting 1: measurements"*,
+  `ddb0b793…`, expiring within a day) — all `instructor`'s, none to survive a truncation;
 - **LiteLLM**: six models — `default-chat-large` → `openai/gpt-6-luna` with its fallback `default-chat-onprem`; 7 users;
   `qwen3.5:4b` loaded (warmed for the tier, 30-minute keep-alive);
 - the three cleanup scripts clean after `--apply` (allowed — `bash scripts/<name>.sh`: 7 networks, 1 volume, 2 LiteLLM orphans
