@@ -7,7 +7,7 @@
 > head Tasks 2, 6, 7, 9, 10 and 11. **No task boundary moves**, and Task 6 is Branch G. **Rich's review is next** — the plan, its
 > twelve sittings and its six spec actions (*What Rich does* 1–2) — **and, relayed after the close, FE-39: a thirteenth sitting
 > (5a, Task 8a) and a seventh spec action — FE-39 CONFIRMED by Rich the same evening, its three open choices answered; Spec
-> action 7's words await his read (*What Rich does* 9)**.
+> action 7 APPLIED at his word (Rich, 2026-09-29: *"apply 7"*)**.
 
 > **WRITTEN 2026-09-29, AT RICH'S INSTRUCTION, FROM ORIENTATION §7e** (*"Yes: write the plan, then run its Task 1 (including the
 > real-GitHub run) in the same session"*). **Not yet reviewed by Rich.** Its sitting 1 — Task 1, the measurements and THE FIRST
@@ -74,7 +74,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | |
 | 4 | 6 | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich | **Yes** — `ai/`, `infra/` | **Spec action 6** — needed: Task 1 measured the guard buildable (Branch G, `[M5]`) | |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | |
-| 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — its options decided by Rich (2026-09-29); its words to be read and applied | |
+| 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** | |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** | |
@@ -179,7 +179,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 8. **The contacts a real package names** — §9's *"technical and privacy contacts from the project owner and platform
    admins"*. The platform's half is a setting (`MANIFEST_LAUNCH_CONTACTS`, Decision 15). On the laptop it defaults to the
    first administrator. **At UBC the names are his.**
-9. **FE-39 — CONFIRMED 2026-09-29, and Spec action 7's options DECIDED** (Rich, 2026-09-29, answering Spec action 7's three open choices: *"1. YEs, PUID 2. YEs keep but no new. 3. literally just those with 'faculty' as their affiliation"*). **What is still his:** reading Spec action
+9. ~~**FE-39 — CONFIRMED 2026-09-29, and Spec action 7's options DECIDED**~~ **DONE — and Spec action 7 APPLIED at his word (Rich, 2026-09-29: *"apply 7"*)**. *As written:* **FE-39 — CONFIRMED 2026-09-29, and Spec action 7's options DECIDED** (Rich, 2026-09-29, answering Spec action 7's three open choices: *"1. YEs, PUID 2. YEs keep but no new. 3. literally just those with 'faculty' as their affiliation"*). **What is still his:** reading Spec action
    7's words, which now carry those answers, before they are applied to the spec — before sitting 5a.
 10. **The clicked half of the acceptance — sitting 12.** A person signs in, **and Rich types every password** (ORIENTATION §4
    trap 6). He is the owner who drafts and sends, and then the administrator who sees the queue. Task 15 stages everything first
@@ -1529,7 +1529,7 @@ refuses the withdrawn model, this task does not start — Decision 23, and Rich 
 ---
 ## Task 8a: FE-39 — who may build: faculty, or an administrator named by a setting (Rich's, confirmed 2026-09-29)
 
-**Spec action 7's words applied first** (*What Rich does* 9) — FE-39 and its three choices are Rich's (Decisions 28–30). **Its own sitting, 5a**: it moves every test fixture and demo that builds as someone other than a
+**Spec action 7 is APPLIED** (2026-09-29, at Rich's word) — FE-39 and its three choices are Rich's (Decisions 28–30). **Its own sitting, 5a**: it moves every test fixture and demo that builds as someone other than a
 faculty member, which is the whole unit tier's `withProjectServer` owner.
 
 **Files:**
@@ -2202,7 +2202,7 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Spec actions
 
-**SIX, DRAFTED 2026-09-29 WITH THIS PLAN — AND A SEVENTH, FROM FE-39, DRAFTED AFTER SITTING 1'S CLOSE, ITS OPTIONS DECIDED BY RICH THE SAME EVENING; NONE APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
+**SIX, DRAFTED 2026-09-29 WITH THIS PLAN — AND A SEVENTH, FROM FE-39, DRAFTED AFTER SITTING 1'S CLOSE, ITS OPTIONS DECIDED BY RICH THE SAME EVENING AND APPLIED AT HIS WORD (Rich, 2026-09-29: *"apply 7"*); 1–6 NOT APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
 only after he has read the words. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §6,
 §7, §9, §10, §13, §20, §26 and D24 in plain language, and each action below names the pages it moves.
 
@@ -2363,7 +2363,7 @@ gateway also answers a request the provider refused as malformed**; a client tel
 
 **Shared pages:** none restates the fallback (checked by `grep` on 2026-09-29 — recheck at application).
 
-### 7. §9, §6, §13 and §20 — who may build: faculty, or an administrator named by a setting (FE-39; before sitting 5a) — ✅ FE-39 CONFIRMED AND ITS OPTIONS DECIDED BY RICH, 2026-09-29; THE WORDS BELOW CARRY HIS ANSWERS AND AWAIT HIS READ
+### 7. §9, §6, §13 and §20 — who may build: faculty, or an administrator named by a setting (FE-39; before sitting 5a) — ✅ FE-39 CONFIRMED AND ITS OPTIONS DECIDED BY RICH, 2026-09-29; ✅ **APPLIED AT HIS WORD THE SAME EVENING** (Rich, 2026-09-29: *"apply 7"*), as the four edits below, with one consequential phrase beyond them — §13's *collaborator* was *"invited TA or co-instructor"*, which the drafted *"only a person who may build is added"* made false; it reads *"an invited co-instructor (a TA once* who may build *includes TAs)"*. **Shared pages:** `manifest-schematic.html`'s *Signing in* step gains that Manifest is for faculty, for now; `manifest-decisions.html` (no D-number changed), `manifest-phases.html` and `manifest-stories.html` (their CWL and TA lines describe an APP's users) checked and unchanged
 
 **Why.** FE-39, relayed as Rich's decision and then confirmed by him ((Rich, 2026-09-29, answering Spec action 7's three open choices: *"1. YEs, PUID 2. YEs keep but no new. 3. literally just those with 'faculty' as their affiliation"*)). A student with a CWL can start an app today,
 and spend the platform's model money doing it. §9 has the control plane deliberately not ask for `eduPersonAffiliation`, and §13's

@@ -150,8 +150,12 @@ each sitting left them, dated, and they deliberately do not move.
   access arrives, and no code does.
 - **§8's open questions.**
 
-**The spec is current, with no open follow-up.** Every spec change has been applied only after Rich approved it —
-**most recently the front-end enablement plan's Spec action 10** (drafted at its sitting 11's close from Rich's words on the faculty front-end's FE-35 and FE-36; approved as drafted WITH its safeguard, option (a), and applied 2026-09-28, `d9a1fa1`): the agent that BUILDS an app is governed by a platform setting — the capable model allowed on a `confidential` project by default, the app's own AI on-premise either way, and a `confidential` project's tokens refused staging's and production's Incident log tails while it is (§7, §10, §26). Before it **the same plan's Spec action 9** (drafted by its sitting 11 after the faculty front-end's session fixed FE-37 at Rich's word, `c4e10cc`; approved as drafted, option (a), and applied 2026-09-28, `d82b3a2`): §8's `SAML_PRIVATE_KEY_PATH` row is `all` — every environment's app is given its SP key and every sign-in is signed. Before it **the same plan's Spec action 8** (drafted by its sitting 9a from its measurements of LiteLLM's
+**The spec is current, with no open follow-up** — the launch path plan's Spec actions 1–6 are drafted and wait for Rich, and nothing
+in the spec is out of step while they do. Every spec change has been applied only after Rich approved it —
+**most recently the launch path plan's Spec action 7** (the faculty front-end's FE-39, relayed and then confirmed by Rich with his three
+answers; applied at his *"apply 7"*, 2026-09-29): only a faculty member — `eduPersonAffiliation` exactly `faculty` — or an administrator,
+named by a setting of PUIDs, may start a project or an intake session or be added to one; one who stops being faculty keeps their
+projects and starts nothing new (§9, §6, §13, §20; §13's *collaborator* no longer says *TA*). Before it **the front-end enablement plan's Spec action 10** (drafted at its sitting 11's close from Rich's words on the faculty front-end's FE-35 and FE-36; approved as drafted WITH its safeguard, option (a), and applied 2026-09-28, `d9a1fa1`): the agent that BUILDS an app is governed by a platform setting — the capable model allowed on a `confidential` project by default, the app's own AI on-premise either way, and a `confidential` project's tokens refused staging's and production's Incident log tails while it is (§7, §10, §26). Before it **the same plan's Spec action 9** (drafted by its sitting 11 after the faculty front-end's session fixed FE-37 at Rich's word, `c4e10cc`; approved as drafted, option (a), and applied 2026-09-28, `d82b3a2`): §8's `SAML_PRIVATE_KEY_PATH` row is `all` — every environment's app is given its SP key and every sign-in is signed. Before it **the same plan's Spec action 8** (drafted by its sitting 9a from its measurements of LiteLLM's
 `/fallback`; approved as drafted, option (a), and applied 2026-09-28, `e6c272d`): the capable model's fallback is the on-premise
 model — a platform setting naming a catalogue entry, `default-chat-onprem` by default, answering `default-chat-large` when its
 provider fails, at its own price, its classification the platform's to enforce (§7, §21, §26). Before it **the same plan's Spec action 7** (drafted at its sitting 8's close from Rich's decision; approved
@@ -229,7 +233,7 @@ docs/superpowers/
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
-│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 16 tasks in 13 proposed sittings (8a/5a: FE-39, relayed), seven spec actions drafted (none applied); its sitting 1 (Task 1) ran the same day
+│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 16 tasks in 13 proposed sittings (8a/5a: FE-39, confirmed by Rich), seven spec actions drafted (7 applied, 1–6 not); its sitting 1 (Task 1) ran the same day
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1752,7 +1756,7 @@ named in the row below.*
 
 **The launch path plan is WRITTEN** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md), 2026-09-29): FE-6's three
 clocks with D19's drafts and FE-25's sign-off request feeding §26's queue, plus Rich's additions (real GitHub, the key trim, member
-removal) and FE-33, FE-34, FE-38 and F26 at his word — **16 tasks in 13 PROPOSED sittings, seven spec actions DRAFTED and none applied — Task 8a, sitting 5a and Spec action 7 added after sitting 1's close from FE-39 — relayed, then CONFIRMED by Rich the same evening.****
+removal) and FE-33, FE-34, FE-38 and F26 at his word — **16 tasks in 13 PROPOSED sittings, seven spec actions DRAFTED — 7 APPLIED at Rich's word, 1–6 not — Task 8a, sitting 5a and Spec action 7 added after sitting 1's close from FE-39 — relayed, then CONFIRMED by Rich the same evening.****
 **Its sitting 1 — Task 1 — RAN THE SAME DAY, at his word, before his review**: the measurements, and **the control plane's first run
 against REAL GitHub**, green end to end (the plan's *Sitting 1*; [`spikes/launch-baseline/`](spikes/launch-baseline/README.md)).
 Fourteen plans are executed (§2's table); this one is the fifteenth begun.
@@ -1764,7 +1768,7 @@ real GitHub, lands FIRST and alone**) and Task 3 (F26's drain). The plan's sitti
 1. **The review** — the plan as written, its thirteen sittings or a re-cut, its decisions. *Recommended:* approve; nothing Task 1
    measured moves a boundary.
 2. **The seven spec actions**, each with options and a recommendation. **None is needed before sitting 2**; 1 and 2 before sitting 5, 3
-   before 6, 4 before 7, 5 before 9 — **and 6 before sitting 4, because Task 1 measured that the guard can be built (Branch G)**; **7 (FE-39) before sitting 5a — FE-39 CONFIRMED by him and its options decided (§8 *Decided*); only its words await his read**. He may
+   before 6, 4 before 7, 5 before 9 — **and 6 before sitting 4, because Task 1 measured that the guard can be built (Branch G)**; **7 (FE-39) is APPLIED** (Rich, 2026-09-29: *"apply 7"*). He may
    decide them all at once, as he did the last plan's.
 3. **The rows sitting 2's first Vitest run will TRUNCATE**: the faculty front-end's `my-weekly-thoughts` and `notes-and-answers` (its
    session said *"If you hear nothing, treat them as disposable"*), and `lp-real-a`'s row, whose repository stays on GitHub. Let them
@@ -1955,8 +1959,7 @@ reasoning is recorded.**
   - exactly the affiliation `faculty`, with no setting — so a sessional lecturer marked `staff` does not build unless named an
     administrator.
 
-  The launch path plan's Task 8a (sitting 5a) builds it. **Spec action 7's words carry his answers and await his read** before they
-  are applied.
+  The launch path plan's Task 8a (sitting 5a) builds it. **Spec action 7 is APPLIED** (Rich, 2026-09-29: *"apply 7"*).
 - **THE LAUNCH PATH PLAN: WRITTEN, ITS TASK 1 RUN THE SAME SESSION, FE-33/FE-34/FE-38 AND F26 CARRIED** (Rich, 2026-09-29, the plan's
   first message: *"Yes: write the plan, then run its Task 1 (including the real-GitHub run) in the same session"*; *"The network is
   on; you have my yes to create private repositories in Manifest-local-dev"*; *"Carry FE-33, FE-34 and FE-38, and the F26 test fix, in

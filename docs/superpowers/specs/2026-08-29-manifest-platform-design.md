@@ -312,7 +312,7 @@ admin-ui/       React admin front-end
 
 | Entity | Key fields |
 |---|---|
-| **User** | `id`, `ubc_cwl_puid` (from `ubcEduCwlPuid`), `cwl_login` (from `uid`), `email`, `display_name`, `role` (`admin` \| `member`), `agent_monthly_usd` |
+| **User** | `id`, `ubc_cwl_puid` (from `ubcEduCwlPuid`), `cwl_login` (from `uid`), `affiliations` (from `eduPersonAffiliation`, as of the person's last sign-in), `email`, `display_name`, `role` (`admin` \| `member`), `agent_monthly_usd` |
 | | `agent_monthly_usd` = the person's monthly budget for agent sessions; null is the platform default (§10) |
 | **Project** | `id`, `slug`, `name`, `owner_id`, `blueprint_ref`, `starter`, `quota`, `audience`, `visibility`, `published`, `forked_from`, `state` (`active` \| `archived` \| `deleted`), `archived_at`, `deleted_at` |
 | | `name` = what people call it — free text, changed by anyone who may change the project; never part of a hostname, an identity registration or anything else §23 derives from the slug |
@@ -640,7 +640,10 @@ URL for each, under one entity: a person signs in on the origin they are using, 
 no session is carried from one origin to the other. **It asks UBC to release
 `ubcEduCwlPuid`, `mail`, the person's name (`givenName`, `sn`) and `uid`, the CWL
 login name** — the last so that a person can add a colleague to a project by the name
-the colleague signs in with. The PUID stays the only key a person is identified by.
+the colleague signs in with. **And `eduPersonAffiliation`, read at every sign-in as UBC's current fact about the person**:
+Manifest is for faculty, for now, and only a person whose affiliation is `faculty` — or an administrator — may start a
+project, start an intake session, or be added to a project. Authorization stays Manifest's; the attribute is one fact it
+decides from. The PUID stays the only key a person is identified by.
 Locally it uses the Manifest IdP like everything else.
 
 The other three are the app-facing paths, one per environment (D6):
@@ -1605,10 +1608,13 @@ tolerable in production at all.
 
 ### Roles
 
+- **Who may build** — a faculty member (by CWL affiliation) or a platform admin. Everyone else who signs in is told it is
+  not open to them yet. Only a person who may build is added to a project; one who stops being faculty keeps the projects
+  they are on, and starts nothing new.
 - **platform admin** — approves releases, sets quotas, manages blueprints and the
   model catalogue, sees the whole fleet.
 - **project owner** — the faculty member. Full control of their own project.
-- **collaborator** — invited TA or co-instructor. Same as owner except member
+- **collaborator** — an invited co-instructor (a TA once *who may build* includes TAs). Same as owner except member
   management, archiving and deletion.
 
 ---
@@ -1879,7 +1885,8 @@ nowhere else, and maps everything back to §3.5.
   began, or it is refused, because proving an assertion answers a request the control
   plane made does not prove this browser made it.
 - **Admin bootstrapping is explicit:** the first administrator is created by a
-  documented out-of-band procedure, never by "first user to log in wins". Role
+  documented out-of-band procedure, never by "first user to log in wins" — or named in a platform setting of PUIDs, which is
+  authoritative when it is set, reconciled at every sign-in and audited as a `RoleChange`. Role
   changes are audited, as a `RoleChange` (§6) carrying who made the change and why.
 - **Step-up re-authentication** for the privileged set — promoting a release to
   production, approving a release, reading a secret, changing a quota, changing

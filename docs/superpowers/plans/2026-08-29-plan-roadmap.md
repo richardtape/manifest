@@ -109,6 +109,17 @@ no administrator's reason is required anywhere, and who acted is only half-recor
 newest open question. **The console's design: [`2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md)
 — written 2026-09-27 and drawn as a clickable mockup the same day; no plan, by Rich's choice.**
 
+### Spec actions raised by the launch path plan — SEVEN DRAFTED 2026-09-29; ✅ **7 APPLIED 2026-09-29** at Rich's *"apply 7"*; 1–6 wait for him
+
+The words are the plan's *Spec actions* ([`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md)). **7 — who may build (the faculty
+front-end's FE-39)**: relayed by its session as Rich's decision, then confirmed by him with three answers (*"1. YEs, PUID 2. YEs keep but
+no new. 3. literally just those with 'faculty' as their affiliation"*). Applied as four edits — §9 (the control plane asks for
+`eduPersonAffiliation`; only `faculty`, or an administrator, may start a project or an intake session or be added to one), §6 (`User.
+affiliations`), §13 (*Who may build* heads *Roles*), §20 (administrators may be named by a setting of PUIDs, authoritative when set,
+audited). One consequential phrase is beyond them: §13's *collaborator* no longer says *"TA"*. **Shared pages:** `manifest-schematic.html`'s
+*Signing in* step; the other three checked and unchanged. **1–6** — §7's trim, the member rule, the staging kind and the owner's
+submission, D19's package, the sign-off request, and the fallback's *"fails"* — wait for Rich, each before its sitting.
+
 ### Spec actions raised by the front-end enablement plan — FOUR DRAFTED 2026-09-27, OVERNIGHT; ✅ **ALL FOUR DECIDED (a) AND APPLIED 2026-09-27**, before sitting 2 (`1d1afd7`) — **and 5, 6 and 7 applied the same day; 8, the capable model's fallback, DRAFTED 2026-09-28 by sitting 9a, approved (a) and APPLIED at its close; 9, §8's SP key in every environment (the faculty front-end's FE-37), DRAFTED by sitting 11 and approved (a) and APPLIED the same evening (`d82b3a2`); and 10, the building agent's models as a platform setting (FE-35 and FE-36), DRAFTED at sitting 11's close from Rich's words, approved (a) WITH its safeguard and APPLIED (`d9a1fa1`)**
 
 Each carries its exact wording, its options and a recommendation in [the plan's *Spec actions*](./2026-09-27-front-end-enablement.md); each was needed before the sitting that builds it (4 before sitting 5, 2 before 6, 1 before 7, 3 before 8). **Rich approved all four at once on 2026-09-27, after sitting 1, each explained to him in plain language — *"I am happy to go with all of your recommendations"* — and they were applied the same day in the plan's words**, with two consequential words the plan's *Spec actions* header names (D24's *"either"* → *"any of them"*; §12's one-origin sentence names both):
@@ -1296,7 +1307,7 @@ session"*), carrying FE-6 and FE-25 — which absorbs **P8, launch package gener
 - An owner's sign-off request is its own row, feeding `listQueue`, §26's queue, derived and oldest first.
 - A draft never gates a build.
 
-**Seven spec actions drafted, none applied** (the seventh, FE-39's, added after sitting 1's close with Task 8a in a sitting 5a — relayed, then CONFIRMED by Rich the same evening: administrators by PUID, a person who stops being faculty keeps their projects and starts nothing new, exactly `faculty`): §7's trim; §10/§6/§20's member rule; §9/§6/§13/§19/D24's staging kind and owner
+**Seven spec actions drafted — the seventh APPLIED at Rich's word (Rich, 2026-09-29: *"apply 7"*), 1–6 not** (the seventh, FE-39's, added after sitting 1's close with Task 8a in a sitting 5a — relayed, then CONFIRMED by Rich the same evening: administrators by PUID, a person who stops being faculty keeps their projects and starts nothing new, exactly `faculty`): §7's trim; §10/§6/§20's member rule; §9/§6/§13/§19/D24's staging kind and owner
 submission; §9's package wording; §6/§13/§26's `ApprovalRequest`; and §7's *"fails"*.
 
 **Sitting 1 — Task 1 — ran 2026-09-29, in the same session** ([`spikes/launch-baseline/`](../spikes/launch-baseline/README.md)):
