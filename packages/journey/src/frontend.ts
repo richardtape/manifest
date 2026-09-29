@@ -874,6 +874,14 @@ async function agentPhase(): Promise<void> {
     spent !== null && spent > 0,
     `within ${SPEND_WITHIN_MS / 1000} s`,
   )
+  // THE MINTER'S MONTH, shown by its spend: on a fresh machine the person has no gateway user until
+  // their first session starts, so step 3's first reading compared `resetsAt: null` with itself.
+  // Now the month the TOKEN reads holds what this session spent — someone else's month would not.
+  checks.ok(
+    'and getAgentBudget on the token counts it — the month is the minter’s',
+    spent !== null && month.spentUsd !== null && month.spentUsd >= spent,
+    JSON.stringify(month),
+  )
   done(3)
 
   // ── 4 ──
