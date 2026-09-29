@@ -17,8 +17,15 @@ import { refusal, testDeps, withProjectServer, type TestProject } from './testin
 const LOG_TAIL =
   'Error: cannot read "Ada Lovelace, 12345678" — the student who submitted it'
 
-/** A failed instance's Incident in `environmentId`, written directly — what `listIncidents` reads. */
-async function incidentIn(ctx: TestProject, environmentId: string): Promise<void> {
+/**
+ * A failed instance's Incident in `environmentId`, written directly — what `listIncidents` reads — of
+ * a release whose frozen config says `classification` for every environment (none by default).
+ */
+async function incidentIn(
+  ctx: TestProject,
+  environmentId: string,
+  classification?: 'internal' | 'confidential',
+): Promise<void> {
   const [spec] = await ctx.db
     .select({ id: appSpecs.id })
     .from(appSpecs)
@@ -40,7 +47,15 @@ async function incidentIn(ctx: TestProject, environmentId: string): Promise<void
       projectId: ctx.projectId,
       buildId: build!.id,
       appSpecId: spec!.id,
-      resolvedConfig: {},
+      resolvedConfig:
+        classification === undefined
+          ? {}
+          : Object.fromEntries(
+              ['sandbox', 'staging', 'production'].map((kind) => [
+                kind,
+                { classification },
+              ]),
+            ),
       createdBy: ctx.userId,
     })
     .returning()
@@ -57,16 +72,21 @@ async function incidentIn(ctx: TestProject, environmentId: string): Promise<void
   })
 }
 
-/** A newer VALID manifest saying `confidential` — what `classificationFloor` reads. */
-const confidential = (ctx: TestProject) =>
+/** A newer VALID manifest saying `classification` — what `classificationFloor` reads. */
+const declared = (
+  ctx: TestProject,
+  classification: 'internal' | 'confidential',
+  inMs = 1000,
+) =>
   ctx.db.insert(appSpecs).values({
     projectId: ctx.projectId,
     commitSha: ctx.commitSha,
-    parsed: { data: { classification: 'confidential' } },
+    parsed: { data: { classification } },
     schemaVersion: 1,
     valid: true,
-    createdAt: new Date(Date.now() + 1000),
+    createdAt: new Date(Date.now() + inMs),
   })
+const confidential = (ctx: TestProject) => declared(ctx, 'confidential')
 
 async function withSetting(
   builderModels: BuilderModels,
@@ -151,6 +171,30 @@ describe('listIncidents — a confidential project’s staging and production lo
         status: 403,
         code: 'INCIDENT_LOG_CONFIDENTIAL',
       })
+    })
+  })
+
+  it('refuses a token staging’s Incidents of a confidential release after a commit LOWERS the manifest (the review’s I1)', async () => {
+    await withSetting('capable', async (ctx) => {
+      // The release that failed in staging was built confidential; then a commit — one a building
+      // agent's own token may make, since D9 binds only at a production deploy — says `internal`.
+      await incidentIn(ctx, ctx.stagingEnvironmentId, 'confidential')
+      await declared(ctx, 'confidential', 1000)
+      await declared(ctx, 'internal', 2000)
+      const token = await reader(ctx)
+      expect(
+        refusal(await read(ctx, ctx.stagingEnvironmentId, { bearer: token })),
+      ).toEqual({
+        status: 403,
+        code: 'INCIDENT_LOG_CONFIDENTIAL',
+      })
+      // The positive controls: the person reads it; and an environment whose releases were all
+      // internal is answered to the same token.
+      expect(tailOf(await read(ctx, ctx.stagingEnvironmentId, {}))).toEqual([LOG_TAIL])
+      await incidentIn(ctx, ctx.productionEnvironmentId, 'internal')
+      expect(
+        tailOf(await read(ctx, ctx.productionEnvironmentId, { bearer: token })),
+      ).toEqual([LOG_TAIL])
     })
   })
 })

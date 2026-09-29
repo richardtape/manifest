@@ -182,6 +182,24 @@ describe('the guides (Decisions 16 and 19)', () => {
     expect(missing).toEqual([])
   })
 
+  it('never offer a confidential project’s Incident to a model without saying not to', async () => {
+    // The Incident's `prompt` is shaped to be handed to an agent, and its `logTail` is what an app
+    // printed — a `confidential` project's staging and production ones can carry real people's
+    // input, which is why a token is refused them while the building agent may use the capable
+    // model. A front-end holds the person's session AND the agent: both texts must say where it stops.
+    const document = JSON.parse(await readFile(DOCUMENT, 'utf8')) as {
+      components: {
+        schemas: Record<string, { properties?: Record<string, { description?: string }> }>
+      }
+    }
+    const prompt = Object.values(document.components.schemas)
+      .map((schema) => schema.properties?.prompt?.description)
+      .find((d) => d?.includes('repair request'))
+    expect(prompt).toMatch(/confidential/)
+    const generated = await generateDocs()
+    expect(generated.get('frontend.md')).toMatch(/never hand[^.]*`(logTail|prompt)`/)
+  })
+
   it('name no internal artefact a reader outside the team cannot resolve', async () => {
     const generated = await generateDocs()
     const named = [...generated]

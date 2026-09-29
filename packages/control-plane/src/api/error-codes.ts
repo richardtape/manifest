@@ -621,7 +621,7 @@ export const ERROR_CODES = {
     summary:
       'A confidential project’s staging and production Incidents are not answered to a delegated token while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of the real people the classification protects, and redaction does not remove names or student numbers.',
     remedy:
-      'Read the sandbox’s Incidents instead — its users are test users — or ask the person you work for to read this environment’s Incidents in their own session and tell you what failed.',
+      'Read the sandbox’s Incidents instead — its users are test users — or ask the person you work for to read this environment’s Incidents in their own session and tell you, in their own words, what failed — never to paste its log tail or prompt to you, which is what this protects.',
   },
   INSTANCE_OUTPUT_UNAVAILABLE: {
     status: 409,

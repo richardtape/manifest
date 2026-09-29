@@ -24,7 +24,7 @@ If you need a model, ask for a key with `startAgentSession` — your token must 
 - **When its provider cannot answer — the network off included — the platform's on-premise model answers `default-chat-large` in its place**, wherever the platform sets one (it does by default), charged to the same key at the on-premise model's price. Such an answer carries the response header `x-litellm-attempted-fallbacks: 1`, and its `model` names the on-premise model rather than the capable one: check the header before you rely on the answer's quality, because it is a smaller model's work. If no fallback is set, or it cannot answer either, the call fails like any other: choose another model from `models`.
 - When it is not listed, use the others in `models`. `default-chat` is small, and it answers offline.
 
-**A session never holds more than its project allows.** When a commit raises the project's classification — `data.classification` in `manifest.yaml`, `internal` to `confidential` — or the platform stops letting a `confidential` project's agent use the capable model, every session holding a model the project no longer allows is ended before the commit answers, with the reason `models_withdrawn`, and its key is refused for EVERY model, the on-premise ones included. Start a new session: its `models` are the new list.
+**When the project stops allowing a model your session holds, the session is ended.** A commit that raises the project's classification — `data.classification` in `manifest.yaml`, `internal` to `confidential` — ends every session holding a model the project no longer allows before the commit answers; so does a production deploy of a release classified higher than the project's manifest. When the platform stops letting a `confidential` project's agent use the capable model, its sessions holding it are ended when the platform restarts with that setting. Each is ended with the reason `models_withdrawn`, and its key is refused for EVERY model, the on-premise ones included. Start a new session: its `models` are the new list.
 
 ## The loop
 
@@ -121,7 +121,7 @@ export async function waitForAPerson(
 - `409 AGENT_BUDGET_EXHAUSTED` — the person’s month is spent. No key is issued; tell them when it resets (`getAgentBudget`).
 - `403 INSTANCE_OUTPUT_STAGING` or `INSTANCE_OUTPUT_PRODUCTION` — only a sandbox instance’s output is readable. `409 INSTANCE_OUTPUT_UNAVAILABLE` — the instance no longer runs; its Incident has its last lines.
 - `403 INCIDENT_LOG_CONFIDENTIAL` — the project is `confidential`, and while you may use the capable model a token is not answered its staging or production Incidents: their log tails can carry real people's input. Read the sandbox's Incidents, or ask the person to read that environment's in their own session and tell you what failed.
-- Your model key suddenly refused by the gateway, for every model — its session was ended: read `listAgentSessions`. `models_withdrawn` means the project's classification was raised; start a new session.
+- Your model key suddenly refused by the gateway, for every model — its session was ended: read `listAgentSessions`. `models_withdrawn` means the project no longer allows a model it held — its classification was raised, or the platform now keeps a `confidential` project's agent on-premise; start a new session.
 
 ## Reading what your app printed
 

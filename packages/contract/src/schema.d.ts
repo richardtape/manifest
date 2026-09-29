@@ -4202,7 +4202,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description §14: shaped to be handed straight to an agent as a repair request. */
+            /** @description §14: shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model. */
             prompt: string;
         };
         /** @description One environment’s Incidents, newest first. */

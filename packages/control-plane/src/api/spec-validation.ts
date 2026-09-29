@@ -144,7 +144,8 @@ export async function validateAndRecord(
     },
     makeRedactor([]),
   )
-  if (result.valid) await withdrawWhatItNoLongerAllows(deps, project)
+  if (result.valid)
+    await withdrawWhatItNoLongerAllows(deps, project.id, `${project.slug}'s new manifest`)
   return {
     appSpecId: appSpec!.id,
     commitSha: sha,
@@ -156,10 +157,12 @@ export async function validateAndRecord(
 }
 
 /**
- * **FE-36, AT THE MOMENT A MANIFEST IS RECORDED** (the front-end enablement plan's Task 14a): a valid
- * manifest may have raised the classification an agent session is routed by, so every active session of
- * the project holding a model it no longer allows is ended — before this answers, so the commit's or the
- * push's caller sees it done.
+ * **FE-36, WHENEVER THE CLASSIFICATION MAY HAVE RISEN** (the front-end enablement plan's Task 14a): at the
+ * moment a valid manifest is recorded (above), and after a PRODUCTION deploy (`api/routes/releases.ts`),
+ * because `classificationFloor` never falls below the release production serves — its review's I2: a
+ * launch of a confidential release while `main` says `internal` raised the floor and ended nothing. Every
+ * active session of the project holding a model it no longer allows is ended — before the caller is
+ * answered, so it sees it done.
  *
  * **THE BARRIER FIRST.** A session STARTING now holds the project row `FOR SHARE` while its key is
  * minted, and reads the classification under it (`ai/sessions.ts`); taking the row `FOR UPDATE` —
@@ -170,16 +173,18 @@ export async function validateAndRecord(
  * **NEVER A REFUSAL.** The commit or push has landed and its validation is recorded; a failure here is
  * an operator line naming the project, and the next boot's sweep ends what is left.
  */
-async function withdrawWhatItNoLongerAllows(
+export async function withdrawWhatItNoLongerAllows(
   deps: ServerDeps,
-  project: { id: string; slug: string },
+  projectId: string,
+  /** What may have raised it, for the operator line: a manifest, a production deploy. */
+  after: string,
 ): Promise<void> {
   try {
     await deps.db.transaction(async (tx) => {
       await tx
         .select({ id: projects.id })
         .from(projects)
-        .where(eq(projects.id, project.id))
+        .where(eq(projects.id, projectId))
         .for('update')
     })
     await endSessionsHoldingMore(
@@ -190,11 +195,11 @@ async function withdrawWhatItNoLongerAllows(
         catalogue: deps.catalogue,
         agent: deps.config.agent,
       },
-      { projectId: project.id },
+      { projectId },
     )
   } catch (error) {
     console.error(
-      `[spec] ${project.slug}: its agent sessions could not be checked against the manifest just recorded, so one may still hold a model the project no longer allows until it expires or the next boot ends it:`,
+      `[agent sessions] project ${projectId}: its agent sessions could not be checked after ${after}, so one may still hold a model the project no longer allows until it expires or the next boot ends it:`,
       error,
     )
   }

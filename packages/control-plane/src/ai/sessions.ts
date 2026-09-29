@@ -557,14 +557,19 @@ export async function endSessionsHoldingMore(
         tokenId: null,
       })
       ended.push(row.id)
-    } catch {
-      // endAgentSession wrote its own operator line.
+    } catch (error) {
+      // EACH WITH ITS CAUSE (the review's M3): `endAgentSession` writes a line of its own only when
+      // the REVOCATION fails; a failure after it — the row's stamp, the event — would otherwise be
+      // named here as a live key the gateway had already revoked.
+      console.error(
+        `agent session ${row.id}: its end (models_withdrawn) did not complete — its key may or may not still be live; the next boot tries again: ${String(error)}`,
+      )
       failed.push(row.id)
     }
   }
   if (failed.length > 0) {
     console.error(
-      `${failed.length} agent session(s) STILL hold models their project no longer allows: ${failed.join(', ')} — each stays live until it expires or the next boot ends it`,
+      `${failed.length} agent session(s) hold models their project no longer allows and could not be ended: ${failed.join(', ')} — each line above says why; a key not revoked stays live until it expires or the next boot ends it`,
     )
   }
   return { ended, failed }

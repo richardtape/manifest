@@ -233,7 +233,8 @@ empty value rather than guess. **The app's own `ai.models` is validated by D17 w
 stays on-premise either way. It is a platform setting (§26): put the line in `.env` and restart the control plane.
 
 **A session never holds more than its project now allows** (FE-36). Every valid `manifest.yaml` the platform records — a commit
-through the API, a push, a validation — is followed by a check of the project's ACTIVE agent sessions, and every session whose key
+through the API, a push, a validation — and every PRODUCTION deploy (the release production serves floors the classification; the
+review's I2) is followed by a check of the project's ACTIVE agent sessions, and every session whose key
 names a model the project no longer allows is ended: its key revoked at LiteLLM, `agent_session.ended` published with reason
 **`models_withdrawn`**. Raising a project from `internal` to `confidential` ends the sessions started before it (they hold
 `default-chat`); a later session gets the confidential list. **Every boot** runs the same check over every project — which is how

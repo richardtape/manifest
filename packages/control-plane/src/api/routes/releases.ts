@@ -11,7 +11,7 @@ import {
   type Db,
 } from '../../db/index.js'
 import { assertLaunchable } from '../../launch/index.js'
-import { classificationFloor } from '../../ai/index.js'
+import { environmentFloor } from '../../ai/index.js'
 import { incidentPrompt, listIncidents, OutputError } from '../../observability/index.js'
 import {
   assertCapability,
@@ -36,6 +36,7 @@ import type { ServerDeps } from '../server.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
 import { BadRequestError } from '../errors.js'
+import { withdrawWhatItNoLongerAllows } from '../spec-validation.js'
 import { IncidentList, toIncident } from '../representations/incidents.js'
 import { Instance, toInstance } from '../representations/instances.js'
 import {
@@ -1091,6 +1092,16 @@ export const releaseRoutes = [
         },
         { releaseId: body.releaseId, environmentId: params.environmentId },
       )
+      // FE-36 (the front-end enablement plan's Task 14a, its review's I2): the release production
+      // serves floors the classification an agent session is routed by, so a production deploy may
+      // have RAISED it — end every session holding what the project no longer allows, before this
+      // answers. Never a refusal of the deploy (an operator line); a failed deploy changed nothing.
+      if (environment.kind === 'production')
+        await withdrawWhatItNoLongerAllows(
+          deps,
+          environment.projectId,
+          'a production deploy',
+        )
       return toInstance(instance)
     },
   }),
@@ -1138,12 +1149,14 @@ export const releaseRoutes = [
       // decided BEFORE anything is read: while a confidential project's building agent may call the
       // capable model — which may route off-premise — a delegated token is the agent's credential,
       // and staging's and production's log tails can carry real people's input. By the environment's
-      // KIND, as the output read decides, and by the classification the agent key is routed by.
+      // KIND, as the output read decides, and by `environmentFloor`: the project's classification and
+      // every release that has run HERE — so a commit lowering the manifest does not unlock the
+      // Incidents of the confidential release before it (the review's I1).
       if (
         actor.credential === 'token' &&
         environment.kind !== 'sandbox' &&
         deps.config.agent.builderModels === 'capable' &&
-        (await classificationFloor(deps.db, environment.projectId)) === 'confidential'
+        (await environmentFloor(deps.db, environment)) === 'confidential'
       )
         throw new OutputError(
           'INCIDENT_LOG_CONFIDENTIAL',

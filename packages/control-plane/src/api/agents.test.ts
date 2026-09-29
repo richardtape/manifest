@@ -11,7 +11,11 @@ import {
 } from '../ai/index.js'
 import { ensureTestUser, testSessionCookies } from '../identity/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
+import { resetDatabase } from '../db/testing.js'
+import { writeFiles } from '../source/testing.js'
 import {
+  approvedProject,
+  loginAs,
   mutationHeaders,
   refusal,
   sessionFor,
@@ -735,6 +739,14 @@ async function commitFile(
   return (res.json() as { commitSha: string }).commitSha
 }
 
+/** Waits for `condition`, polling — for a race opened by the fake's `slow()`, never a fixed sleep. */
+async function until(condition: () => boolean, what: string): Promise<void> {
+  for (let waited = 0; !condition(); waited += 10) {
+    if (waited > 10_000) throw new Error(`waited 10 s for ${what}`)
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+}
+
 const sessionsById = async (ctx: TestProject) =>
   new Map(
     (
@@ -926,7 +938,12 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         // must carry what the NEW classification allows: the read under the project is what mints.
         lite.slow('/user/info', 6_000)
         const starting = start(ctx, { cookies: ctx.ownerCookies })
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        // The start is INSIDE its spend read — past its early classification read — once the fake
+        // has recorded the call (it records, then waits): never a sleep, which a loaded machine outruns.
+        await until(
+          () => lite.calls.some((c) => c.path === '/user/info'),
+          'the spend read',
+        )
         await commitFile(
           ctx,
           ctx.commitSha,
@@ -955,7 +972,8 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         // when the manifest is recorded. The barrier waits for it to commit; the sweep then ends it.
         lite.slow('/key/generate', 6_000)
         const starting = start(ctx, { cookies: ctx.ownerCookies })
-        await new Promise((resolve) => setTimeout(resolve, 300))
+        // Inside the mint, so inside the transaction holding the project FOR SHARE (the review's M6).
+        await until(() => keyGenerations(lite).length > 0, 'the mint')
         await commitFile(
           ctx,
           ctx.commitSha,
@@ -1012,5 +1030,138 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         type: 'token_not_found_in_db',
       })
     })
+  })
+
+  it('a session whose key was revoked but whose end could not be recorded is named with its cause — never as still holding its models (the review’s M3)', async () => {
+    await withBuilderServer('capable', async (ctx, lite) => {
+      const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      await ctx.db.insert(appSpecs).values({
+        projectId: ctx.projectId,
+        commitSha: ctx.commitSha,
+        parsed: { data: { classification: 'confidential' } },
+        schemaVersion: 1,
+        valid: true,
+        createdAt: new Date(Date.now() + 1000),
+      })
+      // The gateway revokes the key; the database then refuses the row's stamp.
+      const refusing = new Proxy(ctx.db, {
+        get(target, name) {
+          if (name === 'update')
+            return () => {
+              throw new Error('the database refused the stamp')
+            }
+          const value = Reflect.get(target, name, target) as unknown
+          return typeof value === 'function' ? value.bind(target) : value
+        },
+      })
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        expect(
+          await endSessionsHoldingMore(
+            {
+              db: refusing,
+              bus: ctx.deps.bus,
+              llm: lite,
+              catalogue: ctx.deps.catalogue,
+              agent: ctx.deps.config.agent,
+            },
+            'every',
+          ),
+        ).toEqual({ ended: [], failed: [internal.session.id] })
+        const lines = logged.mock.calls.map((call) => call.map(String).join(' '))
+        // Its own line, with the cause.
+        expect(
+          lines.some(
+            (line) =>
+              line.includes(internal.session.id) &&
+              line.includes('the database refused the stamp'),
+          ),
+          lines.join('\n'),
+        ).toBe(true)
+        // And no line claims a key is still live that the gateway has revoked.
+        expect(lines.join('\n')).not.toMatch(/STILL hold/)
+      } finally {
+        logged.mockRestore()
+      }
+      expect(lite.use(internal.key, 'default-chat')).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
+      })
+    })
+  })
+
+  it('a production deploy that raises the classification ends the sessions it no longer allows, before it answers (the review’s I2)', async () => {
+    await resetDatabase()
+    const lite = fakeLiteLlm()
+    const slug = 'fe36-launch'
+    const ctx = await approvedProject(slug, {
+      classification: 'confidential',
+      overrides: { llm: lite, catalogue: await capableCatalogue() },
+    })
+    try {
+      // `main` LOWERED after the confidential release was built — a commit a building agent's own
+      // token may make (D9 binds only at a production deploy). Production serves nothing yet, so
+      // the project's floor is `internal`, and a session started now holds `default-chat`.
+      await writeFiles(
+        ctx.deps.source,
+        ctx.deps.source.repositoryFor(slug),
+        {
+          'manifest.yaml': [
+            'manifest: 1',
+            `name: ${slug}`,
+            'blueprint: fixture-node@1',
+            'runtime:',
+            '  port: 3000',
+            '  health: /healthz',
+            '',
+          ].join('\n'),
+        },
+        'the data is internal after all',
+      )
+      const lowered = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${ctx.project.id}/spec`,
+        payload: {},
+        cookies: ctx.cookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(lowered.json().valid, lowered.body).toBe(true)
+      const started = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${ctx.project.id}/agent-sessions`,
+        payload: { name: 'before the launch' },
+        cookies: ctx.cookies,
+        headers: { ...mutationHeaders(ctx.deps), 'idempotency-key': randomUUID() },
+      })
+      expect(started.statusCode, started.body).toBe(201)
+      const { session, key } = started.json() as Started
+      expect(session.models).toContain('default-chat')
+      expect(lite.use(key, 'default-chat')).toEqual({ status: 200 })
+
+      // The launch: production now serves the CONFIDENTIAL release, so the floor rises.
+      const launched = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/environments/${ctx.production.id}/deploy`,
+        payload: { releaseId: ctx.release.id },
+        cookies: await loginAs(ctx.deps, 'bio_prof', { steppedUp: true }),
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(launched.statusCode, launched.body).toBe(200)
+      expect(launched.json().state).toBe('healthy')
+
+      expect(lite.use(key, 'default-chat')).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
+      })
+      const [row] = await ctx.deps.db
+        .select()
+        .from(agentSessions)
+        .where(eq(agentSessions.id, session.id))
+      expect(row).toMatchObject({ endReason: 'models_withdrawn' })
+    } finally {
+      await ctx.deps.builds.idle()
+      await ctx.app.close()
+      await resetDatabase()
+    }
   })
 })

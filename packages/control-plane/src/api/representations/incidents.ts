@@ -24,7 +24,9 @@ export const Incident = representation(
       createdAt: Timestamp.describe('When it was recorded.'),
       prompt: z
         .string()
-        .describe('§14: shaped to be handed straight to an agent as a repair request.'),
+        .describe(
+          '§14: shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model.',
+        ),
     })
     .describe(
       'A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked.',

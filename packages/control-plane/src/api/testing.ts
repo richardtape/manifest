@@ -264,8 +264,13 @@ export async function previewThenDecide(
  */
 
 /** A project created through the route by `puid`. */
-export async function projectFor(puid: TestUserPuid, slug = 'chem-labs') {
-  const deps = await testDeps()
+export async function projectFor(
+  puid: TestUserPuid,
+  slug = 'chem-labs',
+  /** Laid over `testDeps()`'s — a model gateway, say (the front-end enablement plan's Task 14a). */
+  overrides: Partial<ServerDeps> = {},
+) {
+  const deps = { ...(await testDeps()), ...overrides }
   const app = await buildServer(deps)
   const cookies = await loginAs(deps, puid)
   const created = await app.inject({
@@ -281,20 +286,32 @@ export async function projectFor(puid: TestUserPuid, slug = 'chem-labs') {
 }
 
 /**
+ * What the fixture chain below (`builtProject` → `releasedProject` → `approvedProject` →
+ * `launchedProject`) may be asked for: `env` and `classification` written into the build's
+ * `manifest.yaml`, and deps laid over the harness's (the front-end enablement plan's Task 14a).
+ */
+export interface FixtureOptions {
+  env?: { name: string; value: string }[]
+  classification?: 'public' | 'internal' | 'confidential'
+  overrides?: Partial<ServerDeps>
+}
+
+/**
  * A project with one SUCCEEDED build (P5a Task 14). `env` is written into its
  * `manifest.yaml` and pushed, so the release below resolves a config with an env var
  * whose VALUE must not travel with it — the property Decision 22 exists for cannot be
- * tested against a manifest that declares none.
+ * tested against a manifest that declares none. `classification` likewise (Task 14a).
  */
-export async function builtProject(
-  slug: string,
-  options: { env?: { name: string; value: string }[] } = {},
-) {
+export async function builtProject(slug: string, options: FixtureOptions = {}) {
   // The slug reaches BOTH halves: the project this creates and the repository the manifest
   // below is committed to. Passing it to only one is a fixture that works for exactly one
   // name and fails confusingly for any other.
-  const { app, deps, cookies, project } = await projectFor('bio_prof', slug)
-  if (options.env !== undefined) {
+  const { app, deps, cookies, project } = await projectFor(
+    'bio_prof',
+    slug,
+    options.overrides,
+  )
+  if (options.env !== undefined || options.classification !== undefined) {
     await writeFiles(
       deps.source,
       deps.source.repositoryFor(slug),
@@ -306,12 +323,19 @@ export async function builtProject(
           'runtime:',
           '  port: 3000',
           '  health: /healthz',
-          'env:',
-          ...options.env.map((e) => `  - { name: ${e.name}, value: ${e.value} }`),
+          ...(options.env === undefined
+            ? []
+            : [
+                'env:',
+                ...options.env.map((e) => `  - { name: ${e.name}, value: ${e.value} }`),
+              ]),
+          ...(options.classification === undefined
+            ? []
+            : ['data:', `  classification: ${options.classification}`]),
           '',
         ].join('\n'),
       },
-      'feat: an env var whose value is the app’s, not the contract’s',
+      'feat: the manifest the fixture was asked for',
     )
     const pushed = await app.inject({
       method: 'POST',
@@ -321,7 +345,7 @@ export async function builtProject(
       headers: mutationHeaders(deps),
     })
     if (pushed.json().valid !== true)
-      throw new Error(`the manifest with env did not validate: ${pushed.body}`)
+      throw new Error(`the fixture's manifest did not validate: ${pushed.body}`)
   }
   const started = await app.inject({
     method: 'POST',
@@ -342,10 +366,7 @@ export async function builtProject(
 }
 
 /** The same, released — and its staging environment, which is what a deploy names. */
-export async function releasedProject(
-  slug: string,
-  options: { env?: { name: string; value: string }[] } = {},
-) {
+export async function releasedProject(slug: string, options: FixtureOptions = {}) {
   const built = await builtProject(slug, options)
   const created = await built.app.inject({
     method: 'POST',
@@ -375,8 +396,8 @@ export async function releasedProject(
  * The app signs nobody in (`fixture-node@1` declares `auth_providers: [none]`), so there
  * is no IAM registration to record and nothing to rehearse — both items say so.
  */
-export async function approvedProject(slug: string) {
-  const released = await releasedProject(slug)
+export async function approvedProject(slug: string, options: FixtureOptions = {}) {
+  const released = await releasedProject(slug, options)
   const { app, deps, cookies, project, release, staging } = released
   // 1. SOMETHING MUST BE SERVING STAGING: production runs exactly what staging ran, so
   //    the checklist has no candidate at all until this deploy (§13).

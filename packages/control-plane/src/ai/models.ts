@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
-import { appSpecs, environments, releases } from '../db/index.js'
+import { appSpecs, environments, instances, releases } from '../db/index.js'
 import { servingInstanceOf } from '../projects/index.js'
 import { CLASSIFICATION_RANK, type Classification } from '../spec/index.js'
 import { CAPABLE_MODEL_NAME } from './capable.js'
@@ -103,4 +103,39 @@ export async function classificationFloor(
   )
   if (frozen === undefined) return declared
   return CLASSIFICATION_RANK[frozen] > CLASSIFICATION_RANK[declared] ? frozen : declared
+}
+
+/**
+ * **THE CLASSIFICATION AN ENVIRONMENT'S RECORDS ARE PROTECTED BY** (the front-end enablement plan's Task
+ * 14a, its review's I1): the most restrictive of the project's floor and of the classification frozen, for
+ * this environment's kind, into EVERY release that has had an instance here. An Incident's log tail is
+ * what a release printed while it ran, so it is as protected as the release that printed it — and the
+ * floor alone would fall on a commit a building agent's own token may make (`data.classification:
+ * internal`; D9 binds only at a production deploy), while staging's Incidents of the confidential
+ * release that came before stay on record. Read metadata only, never a log line.
+ */
+export async function environmentFloor(
+  db: Pick<Db, 'select' | 'selectDistinct'>,
+  environment: {
+    id: string
+    projectId: string
+    kind: 'sandbox' | 'staging' | 'production'
+  },
+): Promise<Classification> {
+  let floor = await classificationFloor(db, environment.projectId)
+  const ran = await db
+    .selectDistinct({ resolvedConfig: releases.resolvedConfig })
+    .from(instances)
+    .innerJoin(releases, eq(instances.releaseId, releases.id))
+    .where(eq(instances.environmentId, environment.id))
+  for (const { resolvedConfig } of ran) {
+    const frozen = asClassification(
+      (resolvedConfig as Record<string, { classification?: unknown }> | undefined)?.[
+        environment.kind
+      ]?.classification,
+    )
+    if (frozen !== undefined && CLASSIFICATION_RANK[frozen] > CLASSIFICATION_RANK[floor])
+      floor = frozen
+  }
+  return floor
 }
