@@ -2451,7 +2451,7 @@ descriptions — still `1.4.0` unless an enum grows, which the task rules on); t
   - a driver-1 `git push` publishes nothing. Driver 1 is the laptop's; production's pushes arrive by webhook and publish.
   - F21–F25 of its acceptance's review — the fixture's `/healthz` answering Mongo's error text, two demo checks reading their own state, the re-use reset's two files, a live token left per run, and one misread transport failure. Each is the demo's, not the platform's.
 - **From this plan's own acceptance and its one whole-branch review (sitting 12) — named, none urgent:**
-  - **A removed member's tokens and agent sessions outlive the removal** (the review's M4) — **Rich's** (ORIENTATION §8 *Open*): it changes D24's token model.
+  - **A removed member's tokens and agent sessions outlive the removal** (the review's M4) — **DECIDED by Rich, 2026-09-29, after the close: removing a member revokes their tokens on the project and ends their agent sessions** (ORIENTATION §8 *Decided*). The next plan builds it, after a spec action for §10's *Agent key* row and the *DelegatedToken* rule.
   - **A restore after a part-way teardown** leaves it half-done and nothing finishes it (M1) — `teardown_finished_at`, and let `endAgentSession` through on an archived project.
   - **The fleet has no `name`, `state` or `archivedAt`** (M3), so an archived project reads as a broken one — additive, §26's admin console.
   - **A non-default capable-model fallback below `confidential`** widens Spec action 10's one-model exception (M5) — the default, `default-chat-onprem`, is safe.

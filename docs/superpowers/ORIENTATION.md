@@ -1766,14 +1766,16 @@ as the newest example — a Task 1 that measures, sittings approved by Rich, spe
 **ASK RICH IN THE FIRST MESSAGE:**
 1. **Is the launch path next?** Or does the faculty front-end's own **real-platform acceptance** (its F4 plan's sitting 7, `manifest-app`
    — it creates a project on 7100 through the edge and waits for his yes) come first, or anything from §8 *Open*?
-2. **§8 *Open*'s newest question — a removed member's tokens and agent sessions outlive the removal** (the front-end enablement plan's
-   whole-branch review, M4): revoking them on `removeMember` changes D24's token model, so it is his.
-3. **FE-33, FE-34 and FE-38** — written in `manifest-app/docs/api-findings.md` and not yet carried (FE-38: `listInstances` cannot say
-   which attempt was last; option (a) a `createdAt` on an instance). His to place.
-4. **`make refresh-vulndb` — next due after 2026-10-06** (network on; ~1–3 minutes; nothing needs to be up or down but Docker Desktop).
+2. **Does the next plan carry FE-33, FE-34 and FE-38?** — written in `manifest-app/docs/api-findings.md`. Sitting 12's close sent the
+   front-end's session its recommendations at Rich's request (FE-33: revoking, archiving, deleting or expiring a token closes its
+   streams, close code `4401` — also the review's M6; FE-34: the capable model's fallback only for an unreachable or failing provider,
+   MEASURED first in LiteLLM 1.98's router, else the guide says read `x-litellm-attempted-fallbacks`; FE-38: `createdAt` on `Instance`
+   and `InstanceSummary`) and recommended to Rich that all three are the next plan's early tasks — **carrying them is his word.**
+3. **`make refresh-vulndb` — next due after 2026-10-06** (network on; ~1–3 minutes; nothing needs to be up or down but Docker Desktop).
 
 **WHAT THE NEXT PLAN INHERITS** (the front-end enablement plan's *What this plan does not build* and its *Sitting 12* deferred list —
-read both): the whole-branch review's M1 (a restore after a part-way teardown: `teardown_finished_at`), M3 (the fleet's `name`,
+read both): **M4, DECIDED by Rich at the close — removing a member revokes their tokens and ends their agent sessions (§8
+*Decided*; a spec action for §10's *Agent key* row and the *DelegatedToken* rule first)**; the whole-branch review's M1 (a restore after a part-way teardown: `teardown_finished_at`), M3 (the fleet's `name`,
 `state`, `archivedAt`), M5 (a non-default capable fallback below `confidential`), M6 (a stream opened before an archive or a revoke
 stays open — the front-end's FE-33); `AI_UNMAPPED` undeclared on the session routes and `revokeToken`'s 503-after-revoke unsaid; a secret driver 1's hook
 catches answering `SOURCE_GIT_FAILED` (its F18); a crashed-at-start app probed for ~2 minutes (F13); the reference console's
@@ -1835,15 +1837,6 @@ reasoning is recorded.**
   envelope is next touched; FE-32 (an agent cannot add a dependency) before a change after launch meets it; FE-27 and FE-26 (the
   MOCK) before the front-end's F6 and with FE-18. **Relayed, not said to a platform session** — so FE-28 to FE-32 are here until he
   confirms them: the roadmap's *The faculty front-end's message* places them after the current plan, for the next planning session.
-- **SHOULD REMOVING A MEMBER END THEIR TOKENS AND AGENT SESSIONS ON THE PROJECT? — RAISED 2026-09-29** by the front-end enablement
-  plan's whole-branch review (M4; the plan's *Sitting 12*). Today `removeMember` touches neither: the token branch of `assertCapability`
-  never re-reads the minter's membership (pre-existing), and this plan widened what such a token does — it can start an agent session
-  (`agent:session`, charged to the removed person, up to 8 hours) and read sandbox output (`output:read`) — while the removed person can
-  no longer END those sessions (`endAgentSession` answers them `404`). **Options:** (a) `removeMember` revokes the member's tokens for
-  the project and ends their sessions — the path `revokeToken` already takes (**recommended**: a key never outliving the credential that
-  asked is Decision 22's own rule); (b) a token re-reads its minter's membership at every use (wider — every route); (c) leave it, and
-  say so in the guides. **(a) and (b) change D24's token model, which is why it is his.** Cost of waiting: a removed collaborator's
-  agent keeps working on the project until its token expires.
 - **SHOULD MANIFEST AT UBC USE UBC'S EXISTING LITELLM, RATHER THAN RUN ITS OWN? — RAISED 2026-09-28 by Rich at sitting 9a.** UBC
   already runs its own LiteLLM in AWS, routing to several providers — Pickerel, UBC's on-premise inference (reachable only from UBC's
   network, or from that LiteLLM, whose address is allowed) among them; **Manifest's LiteLLM on the laptop is a stand-in for it.**
@@ -1948,6 +1941,12 @@ reasoning is recorded.**
 
 ### Decided
 
+- **REMOVING A MEMBER REVOKES THEIR TOKENS ON THE PROJECT AND ENDS THEIR AGENT SESSIONS** (Rich, 2026-09-29, after the front-end
+  enablement plan's close: *"YEs"* to the recommended option (a) — the path `revokeToken` already takes). Raised by that plan's
+  whole-branch review (M4; its *Sitting 12* and *What this plan does not build*). **Not built**: the next platform plan builds it,
+  and drafts a SPEC ACTION for the words first — §10's *Agent key* row lists when a key is revoked (its session ended, its token
+  revoked, the project archived) and names no removal, and the *DelegatedToken* rule (D24, §6) says nothing of the minter's
+  membership. Told to the faculty front-end's session the same day.
 - **FE-35 and FE-36 — the agent that BUILDS an app is a platform setting** (Rich, 2026-09-28, at the front-end enablement plan's
   sitting 11's close, his own words: *"It's okay to use the larger models to BUILD the app, but if the app needs AI, then we should
   switch to use the on-prem model for the AI within the created app … Can we perhaps make this a setting?"*; and *"qwen3.8:27b will be

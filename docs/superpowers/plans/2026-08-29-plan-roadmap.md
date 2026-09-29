@@ -1267,8 +1267,8 @@ after a `make up`, seen only by `make verify`). **Clicked by a person** on `app`
 expired in its 600 s). **The plan's one whole-branch review** (over all 98 commits) found what no sitting's review could: **`409
 PROJECT_ARCHIVED` answered by 23 operations and declared by none of the 66**, and the launch rehearsal skipping FE-36's sweep (sitting
 11a's ruling, reversed) — both fixed red first with a promoted swallowed cause, a stale retirer on a deleted project, and a test that
-would have gone red on 2026-11-01. Contract `1.4.0` (declared lists only). **M4 — a removed member's tokens and sessions — is Rich's**
-(ORIENTATION §8 *Open*). **Next in his order: the faculty front-end's launch path (FE-6, FE-25), unwritten.**
+would have gone red on 2026-11-01. Contract `1.4.0` (declared lists only). **M4 — a removed member's tokens and sessions — DECIDED by Rich
+after the close: removal revokes them** (ORIENTATION §8 *Decided*; a spec action first, in the next plan). **Next in his order: the faculty front-end's launch path (FE-6, FE-25), unwritten.**
 
 ### The faculty front-end's message — RICH'S DECISIONS OF 2026-09-27, AND WHAT FOLLOWS THE FRONT-END ENABLEMENT PLAN
 
