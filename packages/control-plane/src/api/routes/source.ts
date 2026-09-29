@@ -288,6 +288,7 @@ export const sourceRoutes = [
       description: 'The tree, and the commit it is of.',
       schema: SourceTree,
     },
+    capability: 'project:read',
     errors: [...READ_ERRORS, 'SOURCE_REF_NOT_FOUND'],
     examples: {
       response: {
@@ -347,6 +348,7 @@ export const sourceRoutes = [
       description: 'The file, and the commit it was read at.',
       schema: SourceFile,
     },
+    capability: 'project:read',
     errors: [
       ...READ_ERRORS,
       'SOURCE_REF_NOT_FOUND',
@@ -412,6 +414,7 @@ export const sourceRoutes = [
       description: 'A page of the history, newest first.',
       schema: CommitList,
     },
+    capability: 'project:read',
     errors: [...READ_ERRORS, 'SOURCE_REF_NOT_FOUND'],
     examples: {
       response: {
@@ -463,6 +466,7 @@ export const sourceRoutes = [
       description: 'The commit and its changes.',
       schema: CommitDetail,
     },
+    capability: 'project:read',
     errors: READ_ERRORS,
     examples: {
       response: {
@@ -509,6 +513,7 @@ export const sourceRoutes = [
       description: 'The commit, or what it would have been.',
       schema: CommitOutcome,
     },
+    capability: 'source:write',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',

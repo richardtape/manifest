@@ -3,6 +3,7 @@ import { z } from 'zod/v4'
 import {
   CAPABILITIES,
   TokenCapabilityRefusedError,
+  type Capability,
   type TokenActor,
 } from '../../projects/index.js'
 import {
@@ -63,6 +64,19 @@ export interface RouteDefinition<
   success: { status: SuccessStatus; description: string; schema: R }
   /** Codes this operation can answer beyond the ones every route can (document.ts). */
   errors: readonly ErrorCode[]
+  /**
+   * THE CAPABILITY THIS OPERATION ASSERTS on the project it addresses — the one its handler passes
+   * to `assertCapability`, or each of them where the handler chooses (a deploy's `release:deploy`
+   * or, for production, `release:promote`). Absent on an operation that addresses no project.
+   *
+   * **`document.ts` derives `409 PROJECT_ARCHIVED` from it** (the whole-branch review's I1), through
+   * `refusedWhenArchived` — the predicate `assertCapability` itself refuses an archived project by —
+   * so an operation's published codes say what §11's archived state answers it. Stated here because
+   * the handler's call is code the document cannot read; `authz-contract.ts` archives its fixture
+   * and holds what every operation then ANSWERS to what the document DECLARES, so a route that
+   * forgets this line, or names a capability on the wrong side of the rule, is red there.
+   */
+  capability?: Capability | readonly Capability[]
   /**
    * WHAT A CALL LOOKS LIKE (the authoring API plan's Tasks 5 and 9): printed into the document as
    * the request body's and the success response's `example` — a REAL answer, captured from the

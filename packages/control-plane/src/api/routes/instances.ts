@@ -144,6 +144,7 @@ export const instanceRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The instances.', schema: InstanceList },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: { response: EXAMPLE_LIST },
     handler: async ({ deps, actor, params }) => {
@@ -185,6 +186,7 @@ export const instanceRoutes = [
     query: OutputQuery,
     body: NO_BODY,
     success: { status: 200, description: 'The output.', schema: InstanceOutput },
+    capability: 'output:read',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',

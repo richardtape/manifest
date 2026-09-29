@@ -112,7 +112,12 @@ export const intakeRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The session, ended.', schema: IntakeSession },
-    errors: ['NOT_FOUND', 'TOKEN_CREDENTIAL_REFUSED', 'AI_BACKEND_UNAVAILABLE'],
+    errors: [
+      'NOT_FOUND',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'AI_BACKEND_UNAVAILABLE',
+      'AI_CATALOGUE_DISABLED',
+    ],
     examples: {
       response: {
         ...EXAMPLE_INTAKE,

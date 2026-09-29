@@ -178,6 +178,7 @@ export const projectReadRoutes = [
     }),
     body: NO_BODY,
     success: { status: 200, description: 'The project.', schema: Project },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -251,6 +252,7 @@ export const projectReadRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The environments.', schema: EnvironmentList },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: [
@@ -289,6 +291,7 @@ export const projectReadRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The environment.', schema: Environment },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -334,6 +337,7 @@ export const projectReadRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The members.', schema: MemberList },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: [
@@ -372,6 +376,7 @@ export const projectReadRoutes = [
     query: NO_QUERY,
     body: AddMemberRequest,
     success: { status: 201, description: 'The member, as they now are.', schema: Member },
+    capability: 'members:manage',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -499,6 +504,7 @@ export const projectReadRoutes = [
       description: 'The members as they now are.',
       schema: MemberList,
     },
+    capability: 'members:manage',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -560,6 +566,7 @@ export const projectReadRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The spec.', schema: Spec },
+    capability: 'project:read',
     errors: ['NOT_FOUND', 'SPEC_NOT_FOUND', 'SPEC_INVALID'],
     examples: {
       response: {
@@ -640,6 +647,7 @@ export const projectReadRoutes = [
         'The validation, valid or not — an invalid manifest is a recorded answer, not a refusal.',
       schema: SpecValidation,
     },
+    capability: 'project:write',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',

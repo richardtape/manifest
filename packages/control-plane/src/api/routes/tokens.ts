@@ -68,6 +68,7 @@ export const tokenRoutes = [
       description: 'The token, and its secret — the only time the secret exists.',
       schema: MintedToken,
     },
+    capability: 'project:write',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -234,6 +235,7 @@ export const tokenRoutes = [
       description: 'The project’s tokens, newest first.',
       schema: TokenList,
     },
+    capability: 'project:read',
     errors: ['NOT_FOUND', 'TOKEN_CREDENTIAL_REFUSED'],
     examples: {
       response: [

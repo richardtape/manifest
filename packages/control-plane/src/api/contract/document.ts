@@ -1,5 +1,6 @@
 import { z } from 'zod/v4'
 import { zodToJsonSchema } from 'zod-to-json-schema'
+import { refusedWhenArchived, type Capability } from '../../projects/index.js'
 import { manifestSchema } from '../../spec/index.js'
 import {
   ERROR_CODE_LIST,
@@ -111,6 +112,24 @@ const EVERY_MUTATION: readonly ErrorCode[] = [
   'REQUEST_MEDIA_TYPE_UNSUPPORTED',
   'REQUEST_BODY_TOO_LARGE',
 ]
+
+/**
+ * §11's ARCHIVED STATE, DERIVED (the whole-branch review's I1): `409 PROJECT_ARCHIVED` on every
+ * operation asserting a capability an archived project refuses — by `refusedWhenArchived`, the
+ * predicate `assertCapability` refuses by — so no route lists it by hand, and a new route that
+ * declares its `capability` declares this too. `authz-contract.ts` archives its fixture and holds the
+ * operations that answer it to exactly these. (`mintToken` and `startAgentSession` refuse it a second
+ * time under the project row, `holdActiveProject`; each asserts a capability that is refused anyway.)
+ */
+function refusedArchived(route: AnyRoute): readonly ErrorCode[] {
+  const asserted: readonly Capability[] =
+    route.capability === undefined
+      ? []
+      : typeof route.capability === 'string'
+        ? [route.capability]
+        : route.capability
+  return asserted.some(refusedWhenArchived) ? ['PROJECT_ARCHIVED'] : []
+}
 
 /** zod stamps each emitted schema with its own `$schema` and `$id`; a component carries neither. */
 function strip(schema: JsonSchema): JsonSchema {
@@ -296,6 +315,7 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
       ...new Set([
         ...EVERY_ROUTE,
         ...(route.method === 'GET' ? [] : EVERY_MUTATION),
+        ...refusedArchived(route),
         ...route.errors,
       ]),
     ].sort()

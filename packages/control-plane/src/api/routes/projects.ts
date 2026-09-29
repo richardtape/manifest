@@ -427,6 +427,7 @@ export const projectWriteRoutes = [
     query: NO_QUERY,
     body: UpdateProjectRequest,
     success: { status: 200, description: 'The project, as it now is.', schema: Project },
+    capability: 'project:write',
     errors: ['NOT_FOUND', 'FORBIDDEN'],
     examples: {
       request: { name: 'CHEM 121 — Lab notebook' },

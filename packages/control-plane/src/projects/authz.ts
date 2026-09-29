@@ -605,11 +605,19 @@ export async function assertCapability(
    * (the front-end enablement plan's Task 11), and archiving revokes every token of the project
    * besides — so the token branch above needs no state read of its own.
    */
-  if (
-    project.state !== 'active' &&
-    capability !== 'project:read' &&
-    capability !== 'project:delete'
-  ) {
+  if (project.state !== 'active' && refusedWhenArchived(capability)) {
     throw projectStateRefusal(projectId, project.state)
   }
+}
+
+/**
+ * §11's *Ending an app* (Decision 27): whether an ARCHIVED project refuses this capability — every
+ * one but reading it (`project:read`) and archiving, restoring or deleting it (`project:delete`).
+ * ONE PREDICATE, READ TWICE: `assertCapability` above refuses by it, and `api/contract/document.ts`
+ * declares `409 PROJECT_ARCHIVED` by it on every operation whose `capability` it holds for (the
+ * whole-branch review's I1) — so the document and the refusal cannot disagree about which
+ * capabilities are refused, and `authz-contract.ts` holds each route's `capability` to its answer.
+ */
+export function refusedWhenArchived(capability: Capability): boolean {
+  return capability !== 'project:read' && capability !== 'project:delete'
 }

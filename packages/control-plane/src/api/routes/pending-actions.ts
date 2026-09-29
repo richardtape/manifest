@@ -4,6 +4,7 @@ import {
   assertStepUp,
   AuthorizationError,
   CAPABILITIES,
+  isPrivileged,
 } from '../../projects/index.js'
 import { pendingActionsFor, pendingById, resolveAction } from '../../tokens/index.js'
 import { requireActor, requireSession } from '../actor.js'
@@ -21,6 +22,14 @@ import type { ServerDeps } from '../server.js'
 import type { FastifyRequest } from 'fastify'
 
 const PendingActionParams = z.strictObject({ pendingActionId: PATH.pendingActionId })
+
+/**
+ * What answering a question asserts: the question's OWN capability (`answerable` below) — and a
+ * question is only ever recorded for one of D24's privileged capabilities, the refusal
+ * `assertCapability` raises in its privileged branch alone. The routes' `capability`, for the
+ * document (`document.ts`, the whole-branch review's I1).
+ */
+const QUESTION_CAPABILITIES = CAPABILITIES.filter(isPrivileged)
 
 /**
  * D24's loop closing: a person answers the question a refused agent asked (P5b Task 7).
@@ -154,6 +163,7 @@ export const pendingActionReads = [
       description: 'The project’s pending actions, newest first.',
       schema: PendingActionList,
     },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: [
@@ -216,6 +226,7 @@ export const pendingActionReads = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The pending action.', schema: PendingAction },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -280,6 +291,7 @@ export const pendingActionRoutes = [
       description: 'The pending action, confirmed. `consumedAt` is null until the retry.',
       schema: PendingAction,
     },
+    capability: QUESTION_CAPABILITIES,
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -346,6 +358,7 @@ export const pendingActionRoutes = [
       description: 'The pending action, rejected, with the reason it carries.',
       schema: PendingAction,
     },
+    capability: QUESTION_CAPABILITIES,
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',

@@ -60,6 +60,7 @@ export const buildRoutes = [
     query: NO_QUERY,
     body: StartBuildRequest,
     success: { status: 202, description: 'The build, started.', schema: Build },
+    capability: 'build:create',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -195,6 +196,7 @@ export const buildRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The build.', schema: Build },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -232,6 +234,7 @@ export const buildRoutes = [
     }),
     body: NO_BODY,
     success: { status: 200, description: 'The log.', schema: BuildLog },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -268,6 +271,7 @@ export const buildRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The builds.', schema: BuildList },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: [

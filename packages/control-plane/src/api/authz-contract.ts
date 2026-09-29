@@ -15,6 +15,7 @@ import { mintTestToken } from '../tokens/testing.js'
 import { loginAs, mutationHeaders, projectBody } from './testing.js'
 import type { ErrorCode } from './error-codes.js'
 import { fastifyPath } from './contract/route.js'
+import { openApiDocument } from './contract/document.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
 
 /** A person in a browser. Five, because §16 names five. */
@@ -2083,6 +2084,11 @@ export function describeAuthorizationContract(
     const cookies: Partial<Record<Actor, Record<string, string>>> = {}
     /** The four token actors' plaintexts, sent as `Authorization: Bearer`. */
     const bearers: Partial<Record<TokenActor, string>> = {}
+    /**
+     * The capability each route refused `token-incapable` for, read off its `FORBIDDEN` message —
+     * what the route's own `capability` is held to below (the whole-branch review's I1).
+     */
+    const refusedFor = new Map<string, Set<string>>()
 
     beforeAll(async () => {
       // The suite asserts the stranger is a member of nothing, and that only holds
@@ -2570,6 +2576,12 @@ export function describeAuthorizationContract(
               : { cookies: actorCookies }),
           })
 
+          if (actor === 'token-incapable') {
+            const named = /not minted with '([a-z]+:[a-z]+)'/.exec(response.body)?.[1]
+            const key = `${route.method} ${route.url}`
+            if (named !== undefined)
+              refusedFor.set(key, (refusedFor.get(key) ?? new Set()).add(named))
+          }
           if (expected === 'pass') {
             // The body in the message: a `pass` that fails says WHICH refusal it met.
             expect(response.statusCode, response.body).toBeLessThan(400)
@@ -2581,5 +2593,118 @@ export function describeAuthorizationContract(
         })
       }
     }
+
+    /**
+     * EACH ROUTE'S `capability` IS THE ONE IT ASSERTS (the whole-branch review's I1) — `document.ts`
+     * derives `PROJECT_ARCHIVED` from it, so a route that forgot it, or names another, publishes the
+     * wrong codes. Read off what a token holding none of them is told: `assertCapability`'s `FORBIDDEN`
+     * names the capability it asked for. A route a token cannot reach that far (session-only, or a
+     * privileged or person-only capability, which answer by their own codes) is held by the archived
+     * measurement below instead. After the rows, whose `token-incapable` cases fill `refusedFor`.
+     */
+    it('states on each route the capability a token without it is refused for', () => {
+      expect(
+        refusedFor.size,
+        'routes that refused token-incapable by a capability',
+      ).toBeGreaterThan(20)
+      const wrong: string[] = []
+      for (const route of ROUTE_DEFINITIONS) {
+        const named = refusedFor.get(`${route.method} ${fastifyPath(route.path)}`)
+        if (named === undefined) continue
+        const stated: readonly string[] =
+          route.capability === undefined
+            ? []
+            : typeof route.capability === 'string'
+              ? [route.capability]
+              : route.capability
+        for (const capability of named)
+          if (!stated.includes(capability))
+            wrong.push(
+              `${route.operationId} asserts '${capability}', states [${stated.join(', ')}]`,
+            )
+      }
+      expect(wrong).toEqual([])
+    })
+
+    /**
+     * §11'S ARCHIVED STATE, DECLARED EXACTLY WHERE IT IS ANSWERED (the whole-branch review's I1). An
+     * agent reads an operation's `x-manifest-error-codes` as every code it can answer, and for the
+     * whole of the front-end enablement plan none of the operations an archived project refuses
+     * declared `409 PROJECT_ARCHIVED`. `document.ts` now derives it from each route's `capability`
+     * through `refusedWhenArchived` — the predicate `assertCapability` itself refuses by — and THIS is
+     * what holds the derivation to the answers: the fixture project ARCHIVED, every row asked again
+     * as its owner and as an administrator (unstepped: the state is refused before step-up, and the
+     * administrator is who holds `launch:record` and `release:approve`), and the operations that
+     * answered `PROJECT_ARCHIVED` compared with the operations the PUBLISHED DOCUMENT says can.
+     * Declared and never answered would be a document that lies; answered and not declared, one
+     * that says nothing — which is what it did.
+     *
+     * **LAST, AND THE ORDER IS LOAD-BEARING**: it archives the project every row above addresses.
+     */
+    it('declares PROJECT_ARCHIVED on exactly the operations that answer it once the project is archived', async () => {
+      const archived = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${fixture.projectId}/archive`,
+        payload: {},
+        cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
+        headers: mutationHeaders(deps),
+      })
+      expect({ status: archived.statusCode, code: codeOf(archived.body) }).toEqual({
+        status: 200,
+        code: undefined,
+      })
+      const document = openApiDocument(ROUTE_DEFINITIONS) as {
+        paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
+      }
+      const operations = new Map(
+        ROUTE_DEFINITIONS.map((route) => [
+          `${route.method} ${fastifyPath(route.path)}`,
+          {
+            operationId: route.operationId,
+            codes:
+              document.paths[route.path]![route.method.toLowerCase()]![
+                'x-manifest-error-codes'
+              ],
+          },
+        ]),
+      )
+      const answered = new Set<string>()
+      const outsideTheDocument: string[] = []
+      // `/auth/` addresses no project, and asking it again would sign the two actors out or start
+      // their step-ups — the only rows left out.
+      for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
+        for (const actor of ['owner', 'admin'] as const) {
+          const { url, payload } = await route.request(fixture, actor)
+          const response = await app.inject({
+            method: route.method as 'GET',
+            url,
+            headers: mutationHeaders(deps),
+            ...(payload === undefined ? {} : { payload }),
+            cookies: cookies[actor]!,
+          })
+          if (codeOf(response.body) !== 'PROJECT_ARCHIVED') continue
+          const operation = operations.get(`${route.method} ${route.url}`)
+          if (operation === undefined)
+            outsideTheDocument.push(`${route.method} ${route.url}`)
+          else answered.add(operation.operationId)
+        }
+      }
+      const declared = [...operations.values()]
+        .filter((operation) => operation.codes.includes('PROJECT_ARCHIVED'))
+        .map((operation) => operation.operationId)
+        .sort()
+      // A route outside the document answering it would be a refusal no reader can find at all.
+      expect(outsideTheDocument).toEqual([])
+      // The measurement measured something: an archived project refuses every change.
+      expect(answered.size, 'operations answering PROJECT_ARCHIVED').toBeGreaterThan(10)
+      // …and READS still answer (the fixture's own project, as its owner).
+      const read = await app.inject({
+        method: 'GET',
+        url: `/v1/projects/${fixture.projectId}`,
+        cookies: cookies.owner!,
+      })
+      expect(read.statusCode, read.body).toBe(200)
+      expect(declared).toEqual([...answered].sort())
+    }, 60_000)
   })
 }

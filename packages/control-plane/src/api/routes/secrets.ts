@@ -182,6 +182,7 @@ export const secretRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The names.', schema: AppSecretList },
+    capability: 'project:read',
     errors: ['NOT_FOUND', 'FORBIDDEN'],
     examples: {
       response: {
@@ -228,6 +229,7 @@ export const secretRoutes = [
       description: 'The name’s state — never its value.',
       schema: AppSecretStatus,
     },
+    capability: 'secret:write',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -286,6 +288,7 @@ export const secretRoutes = [
       description: 'The name’s state, with no value set.',
       schema: AppSecretStatus,
     },
+    capability: 'secret:write',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',

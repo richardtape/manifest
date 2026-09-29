@@ -6,9 +6,11 @@ import { declaredCatalogue, fakeLiteLlm, type FakeLiteLlm } from '../ai/testing.
 import {
   disabledCatalogue,
   endSessionsHoldingMore,
+  endSessionsOf,
   type BuilderModels,
   type ModelCatalogue,
 } from '../ai/index.js'
+import { ROUTE_DEFINITIONS } from './routes/index.js'
 import { ensureTestUser, testSessionCookies } from '../identity/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { resetDatabase } from '../db/testing.js'
@@ -478,6 +480,146 @@ describe('agent sessions (the front-end enablement plan’s Task 10)', () => {
         status: 401,
         type: 'token_not_found_in_db',
       })
+    })
+  })
+
+  it('names each session a revocation could not end WITH ITS CAUSE — never a key the gateway revoked as still live (the whole-branch review’s M8)', async () => {
+    await withAgentServer(async (ctx, lite) => {
+      const token = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['agent:session'],
+      })
+      const a = (await start(ctx, { bearer: token.plaintext })).json() as Started
+      // The gateway revokes the key; the database then refuses the row's stamp.
+      const refusing = new Proxy(ctx.db, {
+        get(target, name) {
+          if (name === 'update')
+            return () => {
+              throw new Error('the database refused the stamp')
+            }
+          const value = Reflect.get(target, name, target) as unknown
+          return typeof value === 'function' ? value.bind(target) : value
+        },
+      })
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        await expect(
+          endSessionsOf(
+            { db: refusing, bus: ctx.deps.bus, llm: lite },
+            { tokenId: token.row.id },
+            'token_revoked',
+            { userId: ctx.userId, tokenId: null },
+          ),
+        ).rejects.toThrow(/could not be ended/)
+        const lines = logged.mock.calls.map((call) => call.map(String).join(' '))
+        // Its own line, with the cause.
+        expect(
+          lines.some(
+            (line) =>
+              line.includes(a.session.id) &&
+              line.includes('the database refused the stamp'),
+          ),
+          lines.join('\n'),
+        ).toBe(true)
+        // And no line says a key is STILL LIVE that the gateway has revoked.
+        expect(lines.join('\n')).not.toMatch(/STILL LIVE/)
+        // Never the key itself.
+        expect(lines.join('\n')).not.toContain(a.key)
+      } finally {
+        logged.mockRestore()
+      }
+      expect(lite.use(a.key, a.session.models[0]!)).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
+      })
+    })
+  })
+
+  it('a revocation with AI switched off answers AI_CATALOGUE_DISABLED — the code it declares — and the retry once it is back ends the session (the whole-branch review’s I1)', async () => {
+    await withAgentServer(async (ctx, lite) => {
+      const token = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['agent:session'],
+      })
+      const a = (await start(ctx, { bearer: token.plaintext })).json() as Started
+      const revoke = () =>
+        ctx.app.inject({
+          method: 'DELETE',
+          url: `/v1/tokens/${token.row.id}`,
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+        })
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      let off: Awaited<ReturnType<typeof revoke>>
+      try {
+        // The control plane restarted with AI off while the session's key is still live.
+        ctx.deps.llm = undefined
+        off = await revoke()
+      } finally {
+        ctx.deps.llm = lite
+        logged.mockRestore()
+      }
+      expect(refusal(off)).toEqual({ status: 503, code: 'AI_CATALOGUE_DISABLED' })
+      expect(off.body).toContain('1 agent session(s) could not be ended')
+      // The declaration is the answer (`revokeToken`'s `errors:`).
+      expect(
+        ROUTE_DEFINITIONS.find((r) => r.operationId === 'revokeToken')?.errors,
+      ).toContain('AI_CATALOGUE_DISABLED')
+      expect(lite.use(a.key, a.session.models[0]!)).toEqual({ status: 200 })
+
+      // POSITIVE CONTROL: the same request, AI back on, ends it.
+      const retried = await revoke()
+      expect(retried.statusCode, retried.body).toBe(200)
+      expect(lite.use(a.key, a.session.models[0]!)).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
+      })
+    })
+  })
+
+  it('ending an agent or an intake session with AI switched off answers AI_CATALOGUE_DISABLED — and both operations declare it (the whole-branch review’s I1)', async () => {
+    await withAgentServer(async (ctx, lite) => {
+      const agent = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      const intake = await ctx.app.inject({
+        method: 'POST',
+        url: '/v1/intake-sessions',
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(intake.statusCode, intake.body).toBe(201)
+      const intakeId = (intake.json() as { session: { id: string } }).session.id
+      const end = (url: string) =>
+        ctx.app.inject({
+          method: 'DELETE',
+          url,
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+        })
+      const urls = [
+        `/v1/agent-sessions/${agent.session.id}`,
+        `/v1/intake-sessions/${intakeId}`,
+      ]
+      ctx.deps.llm = undefined
+      const off = []
+      try {
+        for (const url of urls) off.push(await end(url))
+      } finally {
+        ctx.deps.llm = lite
+      }
+      for (const answer of off)
+        expect(refusal(answer)).toEqual({ status: 503, code: 'AI_CATALOGUE_DISABLED' })
+      for (const operationId of ['endAgentSession', 'endIntakeSession'])
+        expect(
+          ROUTE_DEFINITIONS.find((r) => r.operationId === operationId)?.errors,
+          operationId,
+        ).toContain('AI_CATALOGUE_DISABLED')
+      // POSITIVE CONTROL: AI back on, each ends.
+      for (const url of urls) {
+        const ended = await end(url)
+        expect(ended.statusCode, ended.body).toBe(200)
+      }
     })
   })
 

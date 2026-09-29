@@ -107,6 +107,7 @@ export const lifecycleRoutes = [
       description: 'The project, archived — `state` and `archivedAt`.',
       schema: Project,
     },
+    capability: 'project:delete',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -140,6 +141,7 @@ export const lifecycleRoutes = [
       description: 'The project, active again.',
       schema: Project,
     },
+    capability: 'project:delete',
     errors: ['NOT_FOUND', 'FORBIDDEN', 'TOKEN_CREDENTIAL_REFUSED'],
     examples: {
       request: {},
@@ -170,6 +172,7 @@ export const lifecycleRoutes = [
         'What remains of the project: its id, its now-free slug, and when it was deleted.',
       schema: DeletedProject,
     },
+    capability: 'project:delete',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',

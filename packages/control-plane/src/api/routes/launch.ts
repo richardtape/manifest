@@ -38,6 +38,7 @@ export const launchRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The checklist.', schema: LaunchReadiness },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -89,6 +90,7 @@ export const launchRoutes = [
       description: 'Both records, either of which may be null.',
       schema: LaunchRecords,
     },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -152,6 +154,7 @@ export const launchRoutes = [
       description: 'The registration as it now stands.',
       schema: IamRegistration,
     },
+    capability: 'launch:record',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -232,6 +235,7 @@ export const launchRoutes = [
       description: 'The assessment as it now stands.',
       schema: PrivacyAssessment,
     },
+    capability: 'launch:record',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -286,6 +290,7 @@ export const launchRoutes = [
         'The rehearsal, passed or failed. A failure is a 200 with `passed: false` and the reason in its evidence — it is a MEASUREMENT, and a measurement that came out badly is not a request error.',
       schema: Rehearsal,
     },
+    capability: 'launch:record',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',

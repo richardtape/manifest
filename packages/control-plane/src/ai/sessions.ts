@@ -448,9 +448,15 @@ export async function endAgentSession(
 
 /**
  * Ends EVERY live session of a token or a project (Decision 25: a revoked token, an archived or a
- * deleted project). Each is tried; the ones that could not be ended are named in ONE operator line
- * and the call fails, so the request that asked is a `500` and its retry — which reaches here even
- * when the token is already revoked — ends what remains. Answers the ids it ended.
+ * deleted project). Each is tried; each that could not be ended is named in a line of its own WITH
+ * ITS CAUSE, then all of them in one summary line, and the call fails — so the request that asked is
+ * answered an error and its retry, which reaches here even when the token is already revoked, ends
+ * what remains. Answers the ids it ended.
+ *
+ * **THE ANSWER IS THE CAUSE WHEN THE CAUSE HAS A CODE** (the whole-branch review's I1): AI switched
+ * off (`gatewayOf`'s `AI_CATALOGUE_DISABLED`) is rethrown as a `CatalogueError` of the same code, so
+ * `revokeToken` answers the code it declares, and an archive's operator line names it; anything else
+ * is a plain `Error`, a `500`.
  */
 export async function endSessionsOf(
   deps: { db: Db; bus: EventBus; llm: LiteLlmClient | undefined },
@@ -471,12 +477,21 @@ export async function endSessionsOf(
     )
   const ended: string[] = []
   const failed: string[] = []
+  let catalogue: CatalogueError | undefined
   for (const row of live) {
     try {
       await endAgentSession(deps, row, reason, by)
       ended.push(row.id)
-    } catch {
-      // Each failure already wrote its own operator line in endAgentSession.
+    } catch (error) {
+      // EACH WITH ITS CAUSE (the whole-branch review's M8, as `endSessionsHoldingMore`'s M3):
+      // `endAgentSession` writes a line of its own only when the REVOCATION fails — a failure
+      // before it (`gatewayOf`, AI switched off) or after it (the row's stamp, the event) would
+      // otherwise be named below as a live key the gateway may already have revoked. `String`
+      // of an `AiError` or a database error carries no key: a key is never in either.
+      console.error(
+        `agent session ${row.id}: its end (${reason}) did not complete — its key may or may not still be live: ${String(error)}`,
+      )
+      if (catalogue === undefined && error instanceof CatalogueError) catalogue = error
       failed.push(row.id)
     }
   }
@@ -484,11 +499,16 @@ export async function endSessionsOf(
     const scope =
       'tokenId' in target ? `token ${target.tokenId}` : `project ${target.projectId}`
     console.error(
-      `${failed.length} agent session(s) of ${scope} are STILL LIVE after '${reason}': ${failed.join(', ')} — retry the request to end them`,
+      `${failed.length} agent session(s) of ${scope} could not be ended after '${reason}': ${failed.join(', ')} — each line above says why; a key not revoked stays live until it expires or the request is retried`,
     )
-    throw new Error(
-      `${failed.length} agent session(s) could not be ended, and their keys stay live until they expire or this is retried`,
-    )
+    const words = `${failed.length} agent session(s) could not be ended, and a key not revoked stays live until it expires or this is retried`
+    if (catalogue !== undefined)
+      throw new CatalogueError(
+        catalogue.code,
+        `${words}: ${catalogue.message}`,
+        catalogue.hint,
+      )
+    throw new Error(words)
   }
   return ended
 }

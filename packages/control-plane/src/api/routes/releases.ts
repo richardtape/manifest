@@ -228,6 +228,7 @@ export const releaseRoutes = [
     query: NO_QUERY,
     body: CreateReleaseRequest,
     success: { status: 201, description: 'The release.', schema: Release },
+    capability: 'release:create',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -368,6 +369,7 @@ export const releaseRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The release.', schema: Release },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -449,6 +451,7 @@ export const releaseRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The releases.', schema: ReleaseList },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: [
@@ -597,6 +600,7 @@ export const releaseRoutes = [
       description: 'The approval, with the diff it was made on.',
       schema: Approval,
     },
+    capability: 'release:approve',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -687,6 +691,7 @@ export const releaseRoutes = [
       description: 'The rejection, with the diff it was made on.',
       schema: Approval,
     },
+    capability: 'release:approve',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -767,6 +772,7 @@ export const releaseRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 201, description: 'The preview.', schema: ApprovalPreview },
+    capability: 'release:approve',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -855,6 +861,7 @@ export const releaseRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The preview.', schema: ApprovalPreview },
+    capability: 'release:approve',
     errors: ['NOT_FOUND', 'FORBIDDEN', 'TOKEN_CREDENTIAL_REFUSED'],
     examples: {
       response: {
@@ -916,6 +923,7 @@ export const releaseRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The latest decision.', schema: Approval },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -988,6 +996,7 @@ export const releaseRoutes = [
       description: 'The instance, healthy or failed.',
       schema: Instance,
     },
+    capability: ['release:deploy', 'release:promote'],
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -1117,6 +1126,7 @@ export const releaseRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The incidents.', schema: IncidentList },
+    capability: 'project:read',
     errors: ['NOT_FOUND', 'INCIDENT_LOG_CONFIDENTIAL'],
     examples: {
       response: {

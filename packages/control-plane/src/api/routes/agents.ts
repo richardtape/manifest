@@ -196,6 +196,7 @@ export const agentRoutes = [
         'The session, and its key — the only time the key exists outside the gateway.',
       schema: AgentSessionStarted,
     },
+    capability: 'agent:session',
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
@@ -273,6 +274,7 @@ export const agentRoutes = [
       description: 'The sessions, newest first.',
       schema: AgentSessionList,
     },
+    capability: 'project:read',
     errors: ['NOT_FOUND'],
     examples: {
       response: {
@@ -302,7 +304,8 @@ export const agentRoutes = [
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The session, ended.', schema: AgentSession },
-    errors: ['NOT_FOUND', 'FORBIDDEN', 'AI_BACKEND_UNAVAILABLE'],
+    capability: 'agent:session',
+    errors: ['NOT_FOUND', 'FORBIDDEN', 'AI_BACKEND_UNAVAILABLE', 'AI_CATALOGUE_DISABLED'],
     examples: {
       response: EXAMPLE_ENDED,
     },
