@@ -102,7 +102,7 @@ An operation that starts something long answers **`202`** with the thing in its 
 
 ## Paging
 
-A list that can be long takes `cursor` and answers `next`: pass `next` as `cursor` for the following page, until `next` is `null`. The history of a project’s commits (`listCommits`) pages this way. **A list that is bounded instead** answers at most its bound and says `truncated: true` when there was more: an environment’s instances (`listInstances`) and a project’s agent sessions (`listAgentSessions`), newest first, at most 50 each; one commit’s changed files (`getCommit`), at most 1000.
+A list that can be long takes `cursor` and answers `next`: pass `next` as `cursor` for the following page, until `next` is `null`. The history of a project’s commits (`listCommits`) pages this way. **A list that is bounded instead** answers at most its bound and says `truncated: true` when there was more: an environment’s instances (`listInstances`, the one seen most recently first) and a project’s agent sessions (`listAgentSessions`, newest first), at most 50 each; one commit’s changed files (`getCommit`), at most 1000.
 
 ## Limits
 

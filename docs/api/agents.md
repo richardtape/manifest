@@ -16,7 +16,7 @@ Your first calls:
 
 ### Your model key, and the models you may call
 
-If you need a model, ask for a key with `startAgentSession` — a name for the task, and optionally a cap (`capUsd`) and a life (`durationMinutes`). **The key is in that answer and nowhere else**, beside the `baseUrl` it is used at: send it as `Authorization: Bearer …` to that OpenAI-compatible API, keep it in memory, and never write it to a file, a commit or a log. It is charged to the person your token acts for, within their month and the session's cap; it never outlives your token; and it calls models and nothing else. A retry with the same `Idempotency-Key` is `409 AGENT_SESSION_ALREADY_STARTED`, naming the session and never the key — end that one and start another. `getAgentBudget` is the person's month and `listAgentSessions` what each session has spent — `null` with a reason, never `0`, when the gateway cannot say. **End the session when the work is done** (`endAgentSession`); it is ended for you if your token is revoked or the project is switched off. *Building a front-end* has the whole of it in code.
+If you need a model, ask for a key with `startAgentSession` — your token must hold `agent:session` — with a name for the task, and optionally a cap (`capUsd`) and a life (`durationMinutes`). **The key is in that answer and nowhere else**, beside the `baseUrl` it is used at: send it as `Authorization: Bearer …` to that OpenAI-compatible API, keep it in memory, and never write it to a file, a commit or a log. It is charged to the person your token acts for, within their month and the session's cap; it never outlives your token; and it calls models and nothing else. A retry with the same `Idempotency-Key` is `409 AGENT_SESSION_ALREADY_STARTED`, naming the session and never the key — end that one and start another. `getAgentBudget` is the person's month and `listAgentSessions` what each session has spent — `null` with a reason, never `0`, when the gateway cannot say. **End the session when the work is done** (`endAgentSession`); it is ended for you if your token is revoked or the project is switched off. *Building a front-end* has the whole of it in code.
 
 **The session's `models` lists every model the key may call. Read the names from there and never assume one**: the list follows the project's data classification, and a `confidential` project's key reaches on-premise models only.
 
@@ -111,18 +111,17 @@ export async function waitForAPerson(
 
 ## When something goes wrong
 
-- `401 UNAUTHENTICATED` — your token expired or was revoked. Ask the person for a new one.
+- `401 UNAUTHENTICATED` — your token expired or was revoked — or the person switched the app off, which revokes every token of it. Ask the person for a new one; if they switched the app off, it has to be brought back first.
 - `403 FORBIDDEN` — your token does not hold the capability. Ask for one that does; do not look for another route.
 - `404 NOT_FOUND` — the id is wrong, or the resource is another project’s. A token sees one project.
 - `429 RATE_LIMITED` — wait the seconds `Retry-After` gives, then retry. Your token’s limit was fixed when it was minted.
 - A `409` from the source family — `SOURCE_CONFLICT`, `SOURCE_PATH_CONFLICT`, `SOURCE_PATH_NOT_FOUND`, `SOURCE_NOTHING_TO_COMMIT` — is about the code as it is now: read it again.
-- `409 PROJECT_ARCHIVED` — the person switched the app off. Nothing about it can change, and your token was revoked with it: stop, and tell them.
 - `409 AGENT_BUDGET_EXHAUSTED` — the person’s month is spent. No key is issued; tell them when it resets (`getAgentBudget`).
 - `403 INSTANCE_OUTPUT_STAGING` or `INSTANCE_OUTPUT_PRODUCTION` — only a sandbox instance’s output is readable. `409 INSTANCE_OUTPUT_UNAVAILABLE` — the instance no longer runs; its Incident has its last lines.
 
 ## Reading what your app printed
 
-To debug an app, deploy it to the **sandbox** and read what it printed: `listInstances` for the sandbox environment says which instance is `serving`, and `getInstanceOutput` answers its last lines, oldest first, redacted. Only a sandbox instance’s output is readable — staging and production serve real people, and each is refused by its own code — so deploy the release you are debugging to the sandbox. You are answered at most the `lines` you asked for (200 by default, at most 1000); a line longer than 4 KiB ends `…[cut: N bytes]`. Nothing is kept: read again to see newer lines, and read a failed instance’s Incident (`listIncidents`) once it no longer runs. Never print a secret to find out whether it arrived: the redaction is a safety net, not a guarantee.
+To debug an app, deploy it to the **sandbox** and read what it printed: `listInstances` for the sandbox environment says which instance is `serving`, and `getInstanceOutput` answers its last lines, oldest first, redacted — your token must hold `output:read`. Only a sandbox instance’s output is readable — staging and production serve real people, and each is refused by its own code — so deploy the release you are debugging to the sandbox. You are answered at most the `lines` you asked for (200 by default, at most 1000); a line longer than 4 KiB ends `…[cut: N bytes]`. Nothing is kept: read again to see newer lines, and read a failed instance’s Incident (`listIncidents`) once it no longer runs. Never print a secret to find out whether it arrived: the redaction is a safety net, not a guarantee.
 
 <!-- example: example-output -->
 

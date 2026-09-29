@@ -14,14 +14,14 @@ Your front-end is served at `app.<zone>` — `https://app.manifest.internal` on 
 ## Two credentials, two places
 
 - **The person’s browser holds the session.** It does what is a person’s: creates a project (`createProject`), mints and revokes delegated tokens, answers an agent’s question (`confirmPendingAction`), signs in again for the most privileged actions, starts a description before a project exists (`startIntakeSession`), and switches an app off, brings it back or deletes it. A token is refused every one of those `403 TOKEN_CREDENTIAL_REFUSED`.
-- **Your server holds a delegated token per project.** The person’s browser mints it (`mintToken`) for one project, with the capabilities the work needs, and hands it to your server over your own channel; your server runs the agent with it. A token sees one project and never does what is a person’s. Revoke it (`revokeToken`) when the work is done.
+- **Your server holds a delegated token per project.** The person’s browser mints it (`mintToken`) for one project, with the capabilities the work needs, and hands it to your server over your own channel; your server runs the agent with it. Besides the build loop’s (`project:read`, `source:write`, `secret:write`, `build:create`, `release:create`, `release:deploy`), an agent that asks for a model key needs `agent:session`, and one that reads what its app printed needs `output:read` — without them each call is `403 FORBIDDEN`. A token sees one project and never does what is a person’s. Revoke it (`revokeToken`) when the work is done.
 - **Your server also receives the person’s session, whether it wants it or not.** The cookie is set for the whole origin, and the edge sends every page request on it to your server — so each one carries the session. **The rule: your server may send that cookie to `GET /v1/me` (`getMe`) to learn whom it is serving, and for nothing else.** Never log it, store it, or use it for any other call. A server can set any `Origin` it likes, so the cross-site check does not stop it: this rule is the control, and keeping it is your front-end’s responsibility.
 
 **Develop against `manifest-mock`**, not only against a platform — *Developing against the mock*, below.
 
 ## Your agent’s model
 
-`startAgentSession` gives your agent a model key for one project, **charged to the person the token acts for**: capped for the session (`capUsd`), inside that person’s monthly agent budget, short-lived (`durationMinutes`, never past the token that asks), and limited to the models the project’s data classification allows. **The key is in that answer and nowhere else.** Keep it in memory for the session; never store or log it. The key calls models and nothing else — it is not a Manifest credential.
+`startAgentSession` gives your agent a model key for one project — its token must hold `agent:session` — **charged to the person the token acts for**: capped for the session (`capUsd`), inside that person’s monthly agent budget, short-lived (`durationMinutes`, never past the token that asks), and limited to the models the project’s data classification allows. **The key is in that answer and nowhere else.** Keep it in memory for the session; never store or log it. The key calls models and nothing else — it is not a Manifest credential.
 
 - **Read the model names from the session’s `models`, and never assume one.** `default-chat-large` is the capable model, for work a small model cannot do well, such as writing an app; it is listed only where the platform offers one and the project’s data may leave on-premise hardware, and every call costs the person real money. `default-chat` is small, and answers offline. A name never changes when the platform moves it to another provider.
 - **When the capable model’s provider cannot answer**, the platform’s on-premise model answers in its place, at its own price. The answer carries the header `x-litellm-attempted-fallbacks: 1` and its `model` names the on-premise model: record which model answered, and do not rely on a smaller model’s work as though it were the capable one’s.
@@ -84,12 +84,27 @@ export async function startAModelSession(
       }),
       'startAgentSession',
     )
-    // Read the names from `models`; never assume one. The capable model when it is listed.
-    const model = ['default-chat-large', 'default-chat'].find((m) =>
-      session.models.includes(m),
+    // Read the names from `models`; never assume one. The capable model when it is listed;
+    // a confidential project's list holds the on-premise models alone.
+    const model = ['default-chat-large', 'default-chat', 'default-chat-onprem'].find(
+      (m) => session.models.includes(m),
     )
-    if (model === undefined)
-      throw new Error(`no chat model among ${session.models.join(', ')}`)
+    if (model === undefined) {
+      // No chat model this key may call: END the session rather than leave a key nobody holds.
+      unwrap(
+        await client.DELETE('/v1/agent-sessions/{sessionId}', {
+          params: {
+            path: { sessionId: session.id },
+            header: { 'Idempotency-Key': idempotencyKey() },
+          },
+        }),
+        'endAgentSession',
+      )
+      return {
+        started: false,
+        why: `This project's key offers no chat model (${session.models.join(', ')}).`,
+      }
+    }
     return {
       started: true,
       sessionId: session.id,
@@ -101,7 +116,8 @@ export async function startAModelSession(
   } catch (error) {
     // Spent between the read and the start — another of the person's agents, most likely.
     if (error instanceof ManifestApiError && error.code === 'AGENT_BUDGET_EXHAUSTED')
-      return { started: false, why: error.message }
+      // The platform's own sentence, for a person — not the client's "… failed with 409 …".
+      return { started: false, why: error.envelope?.error.message ?? error.message }
     throw error
   }
 }
@@ -187,16 +203,16 @@ export async function endTheSession(
 
 ## Describing an app before it exists
 
-Before a project exists there is no token and nothing to charge. `startIntakeSession` gives the person’s own session a key for **the platform’s intake model, which the platform pays for** — never the person’s budget: cents and minutes a key, a few keys a person a day. Use it to understand what the person asked for, to propose slugs (`checkSlug`) and to choose a blueprint; once the project exists, carry on under an agent session. It is a session’s alone — a token is refused `403 TOKEN_CREDENTIAL_REFUSED` — and, like an agent’s key, it is answered once (`409 INTAKE_SESSION_ALREADY_STARTED` on a retry). Describing is paused for one person until midnight in Vancouver (`409 INTAKE_DAILY_LIMIT_REACHED`), or for everyone until the month resets (`409 INTAKE_BUDGET_EXHAUSTED`); `503 INTAKE_MODEL_UNAVAILABLE` means the platform has no approved intake model. End it with `endIntakeSession`.
+Before a project exists there is no token and nothing to charge. `startIntakeSession` gives the person’s own session a key for **the platform’s intake model, which the platform pays for** — never the person’s budget: cents and minutes a key, a few keys a person a day. Use it to understand what the person asked for, to propose slugs (`checkSlug`) and to choose a blueprint; once the project exists, carry on under an agent session. It is a session’s alone — a token is refused `403 TOKEN_CREDENTIAL_REFUSED` — and, like an agent’s key, it is answered once (`409 INTAKE_SESSION_ALREADY_STARTED` on a retry). Describing is paused for one person until midnight in Vancouver (`409 INTAKE_DAILY_LIMIT_REACHED`), or for everyone until the month resets (`409 INTAKE_BUDGET_EXHAUSTED`); `503 INTAKE_MODEL_UNAVAILABLE` means the platform has no approved intake model. End it with `endIntakeSession`. **This is browser code**: it acts as the person, so it runs on your page’s own client (`createManifestClient({ origin: location.origin })`, which holds no credential — the browser sends the cookie and `Origin`), never on your server with the person’s cookie. If your server runs the intake agent, hand it the key over your own channel.
 
 <!-- example: example-intake -->
 
 ```ts
 import {
-  createManifestClient,
   idempotencyKey,
   ManifestApiError,
   unwrap,
+  type ManifestClient,
 } from '@manifest/contract'
 
 export type Describing =
@@ -211,18 +227,18 @@ export type Describing =
 
 /**
  * A person describing an app they have not created yet: a key for the platform's intake model,
- * which the platform pays for — cents and minutes, a few a day — started from the person's own
- * signed-in session, never a token. Use it to understand what they asked for and to propose
- * slugs (`checkSlug`); once the project exists, the work continues under an agent session.
+ * which the platform pays for — cents and minutes, a few a day. BROWSER CODE: it acts as the
+ * person, so it runs in their browser on the page's own client — `createManifestClient({ origin:
+ * location.origin })`, which carries no credential, because the browser sends the person's cookie
+ * and `Origin` itself. Never a token, and never your server replaying the cookie. If your server
+ * runs the intake agent, hand it the key over your own channel, as you hand it a token. Use the
+ * key to understand what the person asked for and to propose slugs (`checkSlug`); once the
+ * project exists, the work continues under an agent session.
  */
-export async function startDescribing(
-  origin: string,
-  session: string,
-): Promise<Describing> {
-  const client = createManifestClient({ origin, session })
+export async function startDescribing(page: ManifestClient): Promise<Describing> {
   try {
     const started = unwrap(
-      await client.POST('/v1/intake-sessions', {
+      await page.POST('/v1/intake-sessions', {
         params: { header: { 'Idempotency-Key': idempotencyKey() } },
       }),
       'startIntakeSession',
@@ -242,20 +258,23 @@ export async function startDescribing(
       (error.code === 'INTAKE_DAILY_LIMIT_REACHED' ||
         error.code === 'INTAKE_BUDGET_EXHAUSTED')
     )
-      return { started: false, code: error.code, why: error.message }
+      // The platform's own sentence, for a person — not the client's "… failed with 409 …".
+      return {
+        started: false,
+        code: error.code,
+        why: error.envelope?.error.message ?? error.message,
+      }
     throw error
   }
 }
 
 /** End it when the description is done; its key stops working from the next call. */
 export async function stopDescribing(
-  origin: string,
-  session: string,
+  page: ManifestClient,
   intakeSessionId: string,
 ): Promise<string> {
-  const client = createManifestClient({ origin, session })
   const ended = unwrap(
-    await client.DELETE('/v1/intake-sessions/{intakeSessionId}', {
+    await page.DELETE('/v1/intake-sessions/{intakeSessionId}', {
       params: {
         path: { intakeSessionId },
         header: { 'Idempotency-Key': idempotencyKey() },
@@ -271,12 +290,12 @@ export async function stopDescribing(
 
 ## Seeing a running app
 
-`listInstances` lists an environment’s instances, newest first, each marked `serving` when the hostname reaches it now; a failed one stays listed after it is replaced. `getInstanceOutput` answers the last lines a **sandbox** instance printed, oldest first — read when you ask, never streamed and never kept.
+`listInstances` lists an environment’s instances, the one seen most recently first, each marked `serving` when the hostname reaches it now — go by `serving`, not by the order; a failed one stays listed after it is replaced. `getInstanceOutput` answers the last lines a **sandbox** instance printed, oldest first — read when you ask, never streamed and never kept. A token needs `output:read` for it.
 
 - **Only a sandbox instance’s output is readable.** Staging and production serve real people, whose input an app’s output can carry, so each is refused by its own code — `403 INSTANCE_OUTPUT_STAGING`, `403 INSTANCE_OUTPUT_PRODUCTION`. To see what a staging release prints, deploy the same release to the sandbox (`deploy`) and read it there. A failed instance’s last lines are in its Incident (`listIncidents`), in every environment.
 - **An instance that no longer runs** is `409 INSTANCE_OUTPUT_UNAVAILABLE`: Manifest keeps no output. Read its Incident.
 - **The bounds.** `lines` — 200 by default, at most 1000 — and at most 256 KiB in all; a line longer than 4 KiB is cut and ends `…[cut: N bytes]`, `N` approximate. You are answered **at most** the lines you asked for: the runtime stores a very long line in pieces, and a piece counts as a line. When the one line asked for was the tail of a long one, it begins `…`. Each line’s `at` is when the runtime recorded it; when `stamped` is false, it is when Manifest read it.
-- **Redacted, and what redaction does not catch.** The app’s own secrets — the values it was given — and anything shaped like a credential (a private key, a token, a password in a URL, a long random string) read `[REDACTED]`, lines joined first, so a key printed over several lines is redacted on every line it covered. It is a safety net, not a guarantee, and it misses: a person’s own data an app prints, such as a name, an email or a student number; a short or hex-only value that is not one of the app’s secrets; a secret the app split up or re-encoded itself; and a multi-line secret whose first line begins more than 8 KiB into a line. Show output to the people who own the app, and to no one else.
+- **Redacted, and what redaction does not catch.** The app’s own secrets — the values it was given — and anything shaped like a credential (a private key, a token, a password in a URL, a long random string) read `[REDACTED]`, lines joined first, so a key printed over several lines is redacted on every line it covered. It is a safety net, not a guarantee, and it misses: a person’s own data an app prints, such as a name, an email or a student number; any of the app’s own secrets shorter than six characters; a short or hex-only value that is not one of the app’s secrets; a secret the app split up or re-encoded itself; and a multi-line secret whose first line begins more than 8 KiB into a line. Show output to the people who own the app, and to no one else.
 
 <!-- example: example-output -->
 
@@ -444,21 +463,23 @@ export async function readBytes(
 
 ## Ending an app
 
-- **Switch it off** (`archiveProject`) — at the end of a course. Every one of its addresses answers a page saying its owner switched it off (`410`), everything it ran stops, its agent sessions end, its delegated tokens are revoked and its questions expire; its code, data, secrets and records are kept. From then on anything that would change it is `409 PROJECT_ARCHIVED`.
+- **Switch it off** (`archiveProject`) — at the end of a course. Every one of its addresses answers a page saying its owner switched it off (`410`), everything it ran stops, its agent sessions end, its delegated tokens are revoked and its questions expire; its code, data, secrets and records are kept. From then on anything a person asks that would change it is `409 PROJECT_ARCHIVED`, and a token of it is no longer a credential at all (`401 UNAUTHENTICATED`).
 - **Bring it back** (`restoreProject`). Nothing starts until its next deploy, which brings it back on its kept data. Its tokens stay revoked: mint new ones.
 - **Delete it for good** (`deleteProject`) — **only an app that never launched**: a trial, or a mistake. Its repository, data, secrets and model budgets are destroyed, every address answers nothing of it, its slug is free for another project, and every route answers it `404`. **A launched app is never deleted by its owner** (`409 PROJECT_LAUNCHED_NOT_DELETABLE`): its data is kept for its retention period. Switch it off instead.
 - **Who may.** The owner or a platform administrator, in their own session — never a token (`403 TOKEN_CREDENTIAL_REFUSED`). Switching off and deleting need the person to have signed in again within ten minutes (`403 STEP_UP_REQUIRED`); bringing back does not, because it takes nothing from anyone. Tell the person plainly what each takes away before they press it.
 - **A step that fails** is `500 PROJECT_TEARDOWN_INCOMPLETE`, with the app left switched off. Send the same request again — the same `Idempotency-Key` — and it continues where it stopped. After a delete that stopped part way, finish the delete: do not restore, because a restored app may have lost its code or data.
 - A delete, like every `DELETE` that takes no body, sends no `Content-Type`.
 
+**This is browser code**, like every action that is the person’s: it runs on your page’s own client, and your server never does it with the person’s cookie.
+
 <!-- example: example-archive -->
 
 ```ts
 import {
-  createManifestClient,
   idempotencyKey,
   ManifestApiError,
   unwrap,
+  type ManifestClient,
 } from '@manifest/contract'
 
 export type Ending =
@@ -474,19 +495,20 @@ const stepUp = (returnTo: string): Ending => ({
 
 /**
  * Switch an app off for everyone, keeping its code, data and secrets — at the end of a course.
- * The owner's or an administrator's, in their own session, signed in again within ten minutes
- * (step-up); never a token's. Its tokens are revoked and its agent sessions end with it.
+ * The owner's or an administrator's, signed in again within ten minutes (step-up); never a
+ * token's. Its tokens are revoked and its agent sessions end with it. BROWSER CODE, like every
+ * function here: `page` is the page's own client — `createManifestClient({ origin:
+ * location.origin })` — which carries no credential, because the person's browser sends their
+ * cookie and `Origin` itself. Your server never does this with the person's cookie.
  */
 export async function switchOff(
-  origin: string,
-  session: string,
+  page: ManifestClient,
   projectId: string,
   returnTo: string,
 ): Promise<Ending> {
-  const client = createManifestClient({ origin, session })
   try {
     const project = unwrap(
-      await client.POST('/v1/projects/{projectId}/archive', {
+      await page.POST('/v1/projects/{projectId}/archive', {
         params: { path: { projectId }, header: { 'Idempotency-Key': idempotencyKey() } },
         body: {},
       }),
@@ -502,13 +524,11 @@ export async function switchOff(
 
 /** Bring it back: nothing starts until its next deploy. No step-up — it takes nothing away. */
 export async function bringBack(
-  origin: string,
-  session: string,
+  page: ManifestClient,
   projectId: string,
 ): Promise<Ending> {
-  const client = createManifestClient({ origin, session })
   const project = unwrap(
-    await client.POST('/v1/projects/{projectId}/restore', {
+    await page.POST('/v1/projects/{projectId}/restore', {
       params: { path: { projectId }, header: { 'Idempotency-Key': idempotencyKey() } },
       body: {},
     }),
@@ -524,18 +544,16 @@ export async function bringBack(
  * same request again — the same Idempotency-Key — and never restored.
  */
 export async function deleteForGood(
-  origin: string,
-  session: string,
+  page: ManifestClient,
   projectId: string,
   returnTo: string,
 ): Promise<Ending> {
-  const client = createManifestClient({ origin, session })
   const key = idempotencyKey()
   for (let attempt = 1; ; attempt++) {
     try {
       const deleted = unwrap(
         // A bodyless DELETE: the generated client sends no Content-Type, as the API requires.
-        await client.DELETE('/v1/projects/{projectId}', {
+        await page.DELETE('/v1/projects/{projectId}', {
           params: { path: { projectId }, header: { 'Idempotency-Key': key } },
         }),
         'deleteProject',
@@ -624,7 +642,7 @@ export function questionAbout(
 
 ## Using the generated client from your own repository
 
-`@manifest/contract` is the typed client every example on these pages uses. From outside Manifest’s repository, build it first — `pnpm --filter @manifest/contract build` — and depend on the package directory: its `dist/` holds the compiled client and its types, and type-checks on its own; its source also compiles under `erasableSyntaxOnly`. In a browser the client sends no cookie and no `Origin` itself — the browser does; on a server, give it a delegated token (`createManifestClient({ origin, token })`). The OpenAPI document it is generated from is `GET /v1/openapi.json`.
+`@manifest/contract` is the typed client every example on these pages uses. From outside Manifest’s repository, build it first — `pnpm --filter @manifest/contract build` — and depend on the package directory: its `dist/` holds the compiled client and its types, and type-checks on its own; its source also compiles under `erasableSyntaxOnly`. In a browser the client sends no cookie and no `Origin` itself — the browser does; on a server, give it a delegated token (`createManifestClient({ origin, token })`). **Never give a token to a client in a browser**: there the client sends no credential of its own, so the token is dropped and the request goes out on the person’s own session, with everything the person may do rather than what the token holds. The OpenAPI document it is generated from is `GET /v1/openapi.json`.
 
 ## Developing against the mock
 

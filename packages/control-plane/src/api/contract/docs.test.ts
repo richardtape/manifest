@@ -170,6 +170,29 @@ describe('the published reference is complete (Decision 14)', () => {
     expect(hits).toEqual([])
   })
 
+  /**
+   * …AND THE SLUG'S OWN REFUSALS SAY SLUG. A front-end shows a person `SLUG_TAKEN`'s words
+   * beside two fields — the slug and the name people read, which need not be unique — so "the
+   * name is taken" sends them to edit the wrong one. The pattern above cannot see a bare "the
+   * name", which is right elsewhere; here it is always the slug.
+   */
+  it('says slug in every slug refusal and in the slug check’s answer — never name', () => {
+    const errors = doc['x-manifest-errors'] as Record<
+      string,
+      { summary: string; remedy: string }
+    >
+    const said = Object.entries(errors)
+      .filter(([code]) => code.startsWith('SLUG_'))
+      .flatMap(([code, e]) => [`${code}: ${e.summary}`, `${code}: ${e.remedy}`])
+    const schemas = (doc.components as Json).schemas as Record<string, Json>
+    const slug = (schemas.SlugCheck!.properties as Record<string, Json>).slug!
+    said.push(`SlugCheck.slug: ${slug.description as string}`)
+    said.push(
+      `checkSlug: ${JSON.stringify((doc.paths as Record<string, Json>)['/v1/slugs/{slug}'])}`,
+    )
+    expect(said.filter((text) => /\b(a|another|the) name\b/i.test(text))).toEqual([])
+  })
+
   it('has every example PARSE through its own schema', () => {
     for (const route of ROUTE_DEFINITIONS) {
       const response = route.success.schema.safeParse(route.examples.response)

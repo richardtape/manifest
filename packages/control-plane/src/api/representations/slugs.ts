@@ -5,7 +5,7 @@ export const SlugCheck = representation(
   'SlugCheck',
   z
     .object({
-      slug: z.string().describe('The name checked, as sent.'),
+      slug: z.string().describe('The slug checked, as sent.'),
       available: z.boolean().describe('Whether `createProject` would accept it now.'),
       reasons: z
         .array(

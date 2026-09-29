@@ -95,9 +95,9 @@ Every code the API answers in its error envelope, with the status it always come
 | `SAML_STEP_UP_WRONG_USER` | 401 | The step-up assertion is for a different person than the session in this browser. | Step up as the person who is signed in — or sign out, sign in as the other person, and step up then. |
 | `SAML_USER_UPSERT_FAILED` | 401 | The user could not be recorded. | Start the sign-in again at /auth/login. If it keeps failing, report the time to the platform’s operator. |
 | `SECRET_NAME_RESERVED` | 400 | That variable is one the platform sets for every app (§8) — the platform’s value always wins — so it cannot be an app secret. Choose another name. | Name the secret something else, in manifest.yaml and here. The platform’s own variables are listed in the blueprint’s knowledge pack (`getKnowledgePack`). |
-| `SLUG_INVALID` | 400 | The name breaks §7’s slug rule. | Choose a name of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything. |
-| `SLUG_RESERVED` | 409 | The name is one of §23’s reserved labels; the message says what it stands for. | Choose another name. `checkSlug` says whether one is free. |
-| `SLUG_TAKEN` | 409 | Another project holds the name. | Choose another name. `checkSlug` says whether one is free. |
+| `SLUG_INVALID` | 400 | The slug breaks §7’s rule for slugs. | Choose a slug of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything. |
+| `SLUG_RESERVED` | 409 | The slug is one of §23’s reserved labels; the message says what it stands for. | Choose another slug. `checkSlug` says whether one is free. |
+| `SLUG_TAKEN` | 409 | Another project holds the slug. | Choose another slug. `checkSlug` says whether one is free. |
 | `SOURCE_COMMIT_NOT_FOUND` | 409 | The repository has no such commit — or what was named is not a full commit id — so there is nothing to build or read from it. | Name the full 40-character id of a commit the repository has; `listCommits` lists them. |
 | `SOURCE_CONFLICT` | 409 | The branch moved after the commit this request was computed from; read it again and retry. | Read the tree again (`getTree`) for its `commitSha`, recompute your changes against it, and commit with that as `baseCommit`. |
 | `SOURCE_FILE_NOT_TEXT` | 409 | The file is binary or not UTF-8, so it is not read as text. | Read it as bytes: `getFile` with `encoding=base64` answers any file up to 2 MiB. `getTree` marks a binary file `binary: true`. |

@@ -2748,9 +2748,9 @@ Answer, `201`:
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
-| `SLUG_INVALID` | 400 | Choose a name of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything. |
-| `SLUG_RESERVED` | 409 | Choose another name. `checkSlug` says whether one is free. |
-| `SLUG_TAKEN` | 409 | Choose another name. `checkSlug` says whether one is free. |
+| `SLUG_INVALID` | 400 | Choose a slug of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything. |
+| `SLUG_RESERVED` | 409 | Choose another slug. `checkSlug` says whether one is free. |
+| `SLUG_TAKEN` | 409 | Choose another slug. `checkSlug` says whether one is free. |
 | `SOURCE_GITHUB_REFUSED` | 409 | Read GitHub’s message: a limit passes with time, and a permission is the GitHub App installation’s to grant. Retry once it is resolved. |
 | `SOURCE_GIT_FAILED` | 409 | Retry once; if it recurs, report the time and the operation the message names to the platform’s operator. |
 | `SOURCE_REPOSITORY_EXISTS` | 409 | Choose another slug. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over. |
@@ -3392,7 +3392,7 @@ Answer, `201`:
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
-| `slug` | path | yes | The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique. |
+| `slug` | path | yes | The slug to check, as it would be given to `createProject` — not what people read, which is the project’s `name`: separate, and need not be unique. |
 
 Answer, `200`:
 
@@ -3404,7 +3404,7 @@ Answer, `200`:
     {
       "code": "SLUG_RESERVED",
       "message": "'chem' is reserved — UBC Okanagan course subject code CHEM (Chemistry); UBC Vancouver course subject code CHEM (Chemistry).",
-      "hint": "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another name."
+      "hint": "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another slug."
     }
   ]
 }

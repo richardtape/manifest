@@ -160,6 +160,28 @@ describe('the guides (Decisions 16 and 19)', () => {
     expect(broken).toEqual([])
   })
 
+  it('never show a front-end’s code handing the person’s session to a client — the page’s own rule', async () => {
+    // *Building a front-end* says a front-end's server may use the person's session for `getMe`
+    // and nothing else, so no code on that page may build a client from the cookie's VALUE: what
+    // acts as the person there is the page's own client, whose cookie the browser sends itself.
+    const page = (await generateDocs()).get('frontend.md')!
+    expect(page).toBeDefined()
+    expect(page.match(/createManifestClient\(\{[^})]*\bsession\b/g) ?? []).toEqual([])
+  })
+
+  it('name the capability a token needs for what they show an agent doing with one', async () => {
+    // `startAgentSession` asserts `agent:session` and `getInstanceOutput` `output:read`, and no
+    // published description names either — so a page showing an agent either must, or a token
+    // minted as it says is refused `403 FORBIDDEN` at the first call.
+    const generated = await generateDocs()
+    const missing = ['frontend.md', 'agents.md'].flatMap((page) =>
+      ['agent:session', 'output:read']
+        .filter((capability) => !generated.get(page)!.includes(`\`${capability}\``))
+        .map((capability) => `${page}: ${capability}`),
+    )
+    expect(missing).toEqual([])
+  })
+
   it('name no internal artefact a reader outside the team cannot resolve', async () => {
     const generated = await generateDocs()
     const named = [...generated]

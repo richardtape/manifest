@@ -20,7 +20,7 @@ export const slugRoutes = [
         .string()
         .min(1)
         .describe(
-          'The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique.',
+          'The slug to check, as it would be given to `createProject` — not what people read, which is the project’s `name`: separate, and need not be unique.',
         ),
     }),
     query: NO_QUERY,
@@ -36,7 +36,7 @@ export const slugRoutes = [
             code: 'SLUG_RESERVED',
             message:
               "'chem' is reserved — UBC Okanagan course subject code CHEM (Chemistry); UBC Vancouver course subject code CHEM (Chemistry).",
-            hint: "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another name.",
+            hint: "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another slug.",
           },
         ],
       },

@@ -61,7 +61,7 @@ export async function checkSlug(
     reasons.push({
       code: SLUG_CODES.RESERVED,
       message: `'${slug}' is reserved — ${label.standsFor}.`,
-      hint: `${label.reason} Choose another name.`,
+      hint: `${label.reason} Choose another slug.`,
     })
   }
   const [holder] = await db

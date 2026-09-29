@@ -5301,7 +5301,7 @@ export interface components {
         };
         /** @description §23: exactly what project creation will answer — advisory, since creation checks again. */
         SlugCheck: {
-            /** @description The name checked, as sent. */
+            /** @description The slug checked, as sent. */
             slug: string;
             /** @description Whether `createProject` would accept it now. */
             available: boolean;
@@ -9903,7 +9903,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique. */
+                /** @description The slug to check, as it would be given to `createProject` — not what people read, which is the project’s `name`: separate, and need not be unique. */
                 slug: string;
             };
             cookie?: never;
@@ -9924,7 +9924,7 @@ export interface operations {
                      *         {
                      *           "code": "SLUG_RESERVED",
                      *           "message": "'chem' is reserved — UBC Okanagan course subject code CHEM (Chemistry); UBC Vancouver course subject code CHEM (Chemistry).",
-                     *           "hint": "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another name."
+                     *           "hint": "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another slug."
                      *         }
                      *       ]
                      *     }

@@ -6935,10 +6935,10 @@
           {
             "name": "slug",
             "in": "path",
-            "description": "The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique.",
+            "description": "The slug to check, as it would be given to `createProject` — not what people read, which is the project’s `name`: separate, and need not be unique.",
             "required": true,
             "schema": {
-              "description": "The slug to check, as it would be given to `createProject` — never the name people read, which is separate and need not be unique.",
+              "description": "The slug to check, as it would be given to `createProject` — not what people read, which is the project’s `name`: separate, and need not be unique.",
               "type": "string",
               "minLength": 1
             }
@@ -6959,7 +6959,7 @@
                     {
                       "code": "SLUG_RESERVED",
                       "message": "'chem' is reserved — UBC Okanagan course subject code CHEM (Chemistry); UBC Vancouver course subject code CHEM (Chemistry).",
-                      "hint": "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another name."
+                      "hint": "A UBC faculty, school, department or course subject — or its abbreviation. A hostname made of one reads as that unit's own official service, whoever built it. Choose another slug."
                     }
                   ]
                 }
@@ -9438,9 +9438,9 @@
           "SAML_STEP_UP_WRONG_USER": "The step-up assertion is for a different person than the session in this browser.",
           "SAML_USER_UPSERT_FAILED": "The user could not be recorded.",
           "SECRET_NAME_RESERVED": "That variable is one the platform sets for every app (§8) — the platform’s value always wins — so it cannot be an app secret. Choose another name.",
-          "SLUG_INVALID": "The name breaks §7’s slug rule.",
-          "SLUG_RESERVED": "The name is one of §23’s reserved labels; the message says what it stands for.",
-          "SLUG_TAKEN": "Another project holds the name.",
+          "SLUG_INVALID": "The slug breaks §7’s rule for slugs.",
+          "SLUG_RESERVED": "The slug is one of §23’s reserved labels; the message says what it stands for.",
+          "SLUG_TAKEN": "Another project holds the slug.",
           "SOURCE_COMMIT_NOT_FOUND": "The repository has no such commit — or what was named is not a full commit id — so there is nothing to build or read from it.",
           "SOURCE_CONFLICT": "The branch moved after the commit this request was computed from; read it again and retry.",
           "SOURCE_FILE_NOT_TEXT": "The file is binary or not UTF-8, so it is not read as text.",
@@ -17091,7 +17091,7 @@
         "type": "object",
         "properties": {
           "slug": {
-            "description": "The name checked, as sent.",
+            "description": "The slug checked, as sent.",
             "type": "string"
           },
           "available": {
@@ -18050,18 +18050,18 @@
     },
     "SLUG_INVALID": {
       "status": 400,
-      "summary": "The name breaks §7’s slug rule.",
-      "remedy": "Choose a name of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything."
+      "summary": "The slug breaks §7’s rule for slugs.",
+      "remedy": "Choose a slug of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything."
     },
     "SLUG_RESERVED": {
       "status": 409,
-      "summary": "The name is one of §23’s reserved labels; the message says what it stands for.",
-      "remedy": "Choose another name. `checkSlug` says whether one is free."
+      "summary": "The slug is one of §23’s reserved labels; the message says what it stands for.",
+      "remedy": "Choose another slug. `checkSlug` says whether one is free."
     },
     "SLUG_TAKEN": {
       "status": 409,
-      "summary": "Another project holds the name.",
-      "remedy": "Choose another name. `checkSlug` says whether one is free."
+      "summary": "Another project holds the slug.",
+      "remedy": "Choose another slug. `checkSlug` says whether one is free."
     },
     "SOURCE_COMMIT_NOT_FOUND": {
       "status": 409,

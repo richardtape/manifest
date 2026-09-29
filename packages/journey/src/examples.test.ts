@@ -1,6 +1,10 @@
 import { readdir } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { ManifestApiError } from '@manifest/contract'
+import {
+  createManifestClient,
+  ManifestApiError,
+  type ManifestClient,
+} from '@manifest/contract'
 /**
  * THE MOCK BY ITS PATH, NOT ITS PACKAGE NAME: naming `@manifest/mock` as this package's
  * devDependency needs a `pnpm install`, and pnpm 11's supply-chain check of the whole lockfile
@@ -122,6 +126,26 @@ async function withStandIn<T>(
 }
 
 const refusal = (code: string, message: string) => ({ error: { code, message } })
+
+/**
+ * A PAGE'S CLIENT, AS A BROWSER HAS IT: `createManifestClient({ origin })` holding no credential,
+ * while the browser adds the person's cookie to every request itself — which a test does here in
+ * `fetch`. The examples that act as the person take this and never the cookie's value, because a
+ * front-end's server may use the person's session for `getMe` alone (*Building a front-end*).
+ */
+function asBrowser(
+  origin: string,
+  cookie = `manifest_session=${SESSION}`,
+): ManifestClient {
+  return createManifestClient({
+    origin,
+    fetch: (input, init) => {
+      const request = new Request(input, init)
+      request.headers.set('cookie', cookie)
+      return fetch(request)
+    },
+  })
+}
 
 /** Which example files a case below ran — held to the directory at the end. */
 const ran = new Set<string>()
@@ -367,21 +391,105 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
     })
   })
 
+  it('example-agent-session: a confidential project’s key reaches on-premise models only — and a key with no chat model is ended, never left live', async () => {
+    const month = {
+      monthlyUsd: 10,
+      spentUsd: 1,
+      remainingUsd: 9,
+      resetsAt: '2026-10-01T00:00:00.000Z',
+      unavailable: null,
+    }
+    const startedWith = (models: string[]) => ({
+      session: fixtures.agentSession(Date.now(), {
+        id: fixtures.AGENT_SESSION_ID,
+        models,
+      }),
+      key: fixtures.MOCK_MODEL_KEY,
+      baseUrl: fixtures.MODEL_BASE_URL,
+    })
+    // D17: a confidential project's models are the on-premise ones alone.
+    await withStandIn(
+      [
+        { status: 200, body: month },
+        {
+          status: 201,
+          body: startedWith(['default-chat-onprem', 'default-chat-onprem-reasoning']),
+        },
+      ],
+      async (platform) => {
+        expect(
+          await startAModelSession(platform, TOKEN, PROJECT_ID, 'Mark the essays'),
+        ).toMatchObject({ started: true, model: 'default-chat-onprem' })
+      },
+    )
+    // A key with no chat model it can use is ENDED before the example gives up.
+    await withStandIn(
+      [
+        { status: 200, body: month },
+        { status: 201, body: startedWith(['default-embed']) },
+        {
+          status: 200,
+          body: fixtures.agentSession(Date.now(), {
+            id: fixtures.AGENT_SESSION_ID,
+            state: 'ended',
+            endedAt: new Date().toISOString(),
+            endReason: 'ended',
+          }),
+        },
+      ],
+      async (platform, heard) => {
+        expect(
+          await startAModelSession(platform, TOKEN, PROJECT_ID, 'Index the notes'),
+        ).toEqual({
+          started: false,
+          why: expect.stringContaining('no chat model'),
+        })
+        expect(heard.map((h) => `${h.method} ${h.url}`)).toEqual([
+          'GET /v1/agent-budget',
+          `POST /v1/projects/${PROJECT_ID}/agent-sessions`,
+          `DELETE /v1/agent-sessions/${fixtures.AGENT_SESSION_ID}`,
+        ])
+      },
+    )
+    // Spent between the read and the start: the platform's own sentence, for a person.
+    await withStandIn(
+      [
+        { status: 200, body: month },
+        {
+          status: 409,
+          body: refusal(
+            'AGENT_BUDGET_EXHAUSTED',
+            "this month's agent budget of $10 is spent",
+          ),
+        },
+      ],
+      async (platform) => {
+        expect(
+          await startAModelSession(platform, TOKEN, PROJECT_ID, 'Fix the form'),
+        ).toEqual({
+          started: false,
+          why: "this month's agent budget of $10 is spent",
+        })
+      },
+    )
+  })
+
   it('example-intake: a person describing an app is given the platform’s model for minutes; a paused day is said plainly', async () => {
     ran.add('example-intake')
-    const started = await startDescribing(origin, SESSION)
+    const started = await startDescribing(asBrowser(origin))
     if (!started.started) throw new Error(`expected a key: ${started.why}`)
     expect(started).toMatchObject({
       key: fixtures.MOCK_MODEL_KEY,
       baseUrl: fixtures.MODEL_BASE_URL,
       model: 'default-chat',
     })
-    expect(await stopDescribing(origin, SESSION, started.intakeSessionId)).toBe('ended')
+    expect(await stopDescribing(asBrowser(origin), started.intakeSessionId)).toBe('ended')
     await withMock({ intake: 'daily-limit' }, async (paused) => {
-      expect(await startDescribing(paused, SESSION)).toEqual({
+      expect(await startDescribing(asBrowser(paused))).toEqual({
         started: false,
         code: 'INTAKE_DAILY_LIMIT_REACHED',
-        why: expect.stringContaining('10 intake sessions'),
+        // The platform's own sentence, for a person — never the client's "… failed with 409 …".
+        why: expect.stringMatching(/^you have started the 10 intake sessions/),
       })
     })
   })
@@ -411,20 +519,20 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
   it('example-archive: switched off, brought back, and a never-launched app deleted — each refusal with what to do next', async () => {
     ran.add('example-archive')
     const here = '/projects/mock-app'
-    expect(await switchOff(origin, SESSION, PROJECT_ID, here)).toEqual({
+    expect(await switchOff(asBrowser(origin), PROJECT_ID, here)).toEqual({
       done: true,
       state: 'archived',
     })
-    expect(await bringBack(origin, SESSION, PROJECT_ID)).toEqual({
+    expect(await bringBack(asBrowser(origin), PROJECT_ID)).toEqual({
       done: true,
       state: 'active',
     })
-    expect(await deleteForGood(origin, SESSION, PROJECT_ID, here)).toEqual({
+    expect(await deleteForGood(asBrowser(origin), PROJECT_ID, here)).toEqual({
       done: true,
       state: 'deleted',
     })
     await withMock({ launched: true }, async (launched) => {
-      expect(await deleteForGood(launched, SESSION, PROJECT_ID, here)).toEqual({
+      expect(await deleteForGood(asBrowser(launched), PROJECT_ID, here)).toEqual({
         done: false,
         refused: 'PROJECT_LAUNCHED_NOT_DELETABLE',
         next: expect.stringContaining('Switch it off instead'),
@@ -434,7 +542,7 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
     await withStandIn(
       [{ status: 403, body: refusal('STEP_UP_REQUIRED', 'sign in again first') }],
       async (platform) => {
-        expect(await switchOff(platform, SESSION, PROJECT_ID, here)).toEqual({
+        expect(await switchOff(asBrowser(platform), PROJECT_ID, here)).toEqual({
           done: false,
           stepUpAt: '/auth/step-up?returnTo=%2Fprojects%2Fmock-app',
         })
@@ -458,7 +566,7 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
         },
       ],
       async (platform, heard) => {
-        expect(await deleteForGood(platform, SESSION, PROJECT_ID, here)).toEqual({
+        expect(await deleteForGood(asBrowser(platform), PROJECT_ID, here)).toEqual({
           done: true,
           state: 'deleted',
         })

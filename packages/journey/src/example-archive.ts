@@ -1,8 +1,8 @@
 import {
-  createManifestClient,
   idempotencyKey,
   ManifestApiError,
   unwrap,
+  type ManifestClient,
 } from '@manifest/contract'
 
 export type Ending =
@@ -18,19 +18,20 @@ const stepUp = (returnTo: string): Ending => ({
 
 /**
  * Switch an app off for everyone, keeping its code, data and secrets — at the end of a course.
- * The owner's or an administrator's, in their own session, signed in again within ten minutes
- * (step-up); never a token's. Its tokens are revoked and its agent sessions end with it.
+ * The owner's or an administrator's, signed in again within ten minutes (step-up); never a
+ * token's. Its tokens are revoked and its agent sessions end with it. BROWSER CODE, like every
+ * function here: `page` is the page's own client — `createManifestClient({ origin:
+ * location.origin })` — which carries no credential, because the person's browser sends their
+ * cookie and `Origin` itself. Your server never does this with the person's cookie.
  */
 export async function switchOff(
-  origin: string,
-  session: string,
+  page: ManifestClient,
   projectId: string,
   returnTo: string,
 ): Promise<Ending> {
-  const client = createManifestClient({ origin, session })
   try {
     const project = unwrap(
-      await client.POST('/v1/projects/{projectId}/archive', {
+      await page.POST('/v1/projects/{projectId}/archive', {
         params: { path: { projectId }, header: { 'Idempotency-Key': idempotencyKey() } },
         body: {},
       }),
@@ -46,13 +47,11 @@ export async function switchOff(
 
 /** Bring it back: nothing starts until its next deploy. No step-up — it takes nothing away. */
 export async function bringBack(
-  origin: string,
-  session: string,
+  page: ManifestClient,
   projectId: string,
 ): Promise<Ending> {
-  const client = createManifestClient({ origin, session })
   const project = unwrap(
-    await client.POST('/v1/projects/{projectId}/restore', {
+    await page.POST('/v1/projects/{projectId}/restore', {
       params: { path: { projectId }, header: { 'Idempotency-Key': idempotencyKey() } },
       body: {},
     }),
@@ -68,18 +67,16 @@ export async function bringBack(
  * same request again — the same Idempotency-Key — and never restored.
  */
 export async function deleteForGood(
-  origin: string,
-  session: string,
+  page: ManifestClient,
   projectId: string,
   returnTo: string,
 ): Promise<Ending> {
-  const client = createManifestClient({ origin, session })
   const key = idempotencyKey()
   for (let attempt = 1; ; attempt++) {
     try {
       const deleted = unwrap(
         // A bodyless DELETE: the generated client sends no Content-Type, as the API requires.
-        await client.DELETE('/v1/projects/{projectId}', {
+        await page.DELETE('/v1/projects/{projectId}', {
           params: { path: { projectId }, header: { 'Idempotency-Key': key } },
         }),
         'deleteProject',

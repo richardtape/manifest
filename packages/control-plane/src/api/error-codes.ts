@@ -372,22 +372,22 @@ export const ERROR_CODES = {
   SLUG_INVALID: {
     status: 400,
     families: ['SlugRefusedError'],
-    summary: 'The name breaks §7’s slug rule.',
+    summary: 'The slug breaks §7’s rule for slugs.',
     remedy:
-      'Choose a name of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything.',
+      'Choose a slug of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything.',
   },
   SLUG_RESERVED: {
     status: 409,
     families: ['SlugRefusedError'],
     summary:
-      'The name is one of §23’s reserved labels; the message says what it stands for.',
-    remedy: 'Choose another name. `checkSlug` says whether one is free.',
+      'The slug is one of §23’s reserved labels; the message says what it stands for.',
+    remedy: 'Choose another slug. `checkSlug` says whether one is free.',
   },
   SLUG_TAKEN: {
     status: 409,
     families: ['SlugRefusedError'],
-    summary: 'Another project holds the name.',
-    remedy: 'Choose another name. `checkSlug` says whether one is free.',
+    summary: 'Another project holds the slug.',
+    remedy: 'Choose another slug. `checkSlug` says whether one is free.',
   },
 
   // releases/ — every one is 409

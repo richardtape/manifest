@@ -65,6 +65,17 @@ describe('one function answers the slug check and creation (§23, P5a Task 9)', 
     })
   })
 
+  it('calls a reserved slug a slug too', async () => {
+    await withProject(async (tx) => {
+      const verdict = await checkSlug(tx, reserved, 'chem')
+      const [reason] = verdict.available === false ? verdict.reasons : []
+      expect(reason!.hint).toMatch(/\bslug/)
+      expect(`${reason!.message} ${reason!.hint}`).not.toMatch(
+        /\b(a|another|the) name\b/i,
+      )
+    })
+  })
+
   it('calls the slug a slug — a project’s name is what people read, and never reaches a hostname (§6)', async () => {
     await withProject(async (tx, { projectId }) => {
       const [held] = await tx

@@ -50,12 +50,27 @@ export async function startAModelSession(
       }),
       'startAgentSession',
     )
-    // Read the names from `models`; never assume one. The capable model when it is listed.
-    const model = ['default-chat-large', 'default-chat'].find((m) =>
-      session.models.includes(m),
+    // Read the names from `models`; never assume one. The capable model when it is listed;
+    // a confidential project's list holds the on-premise models alone.
+    const model = ['default-chat-large', 'default-chat', 'default-chat-onprem'].find(
+      (m) => session.models.includes(m),
     )
-    if (model === undefined)
-      throw new Error(`no chat model among ${session.models.join(', ')}`)
+    if (model === undefined) {
+      // No chat model this key may call: END the session rather than leave a key nobody holds.
+      unwrap(
+        await client.DELETE('/v1/agent-sessions/{sessionId}', {
+          params: {
+            path: { sessionId: session.id },
+            header: { 'Idempotency-Key': idempotencyKey() },
+          },
+        }),
+        'endAgentSession',
+      )
+      return {
+        started: false,
+        why: `This project's key offers no chat model (${session.models.join(', ')}).`,
+      }
+    }
     return {
       started: true,
       sessionId: session.id,
@@ -67,7 +82,8 @@ export async function startAModelSession(
   } catch (error) {
     // Spent between the read and the start — another of the person's agents, most likely.
     if (error instanceof ManifestApiError && error.code === 'AGENT_BUDGET_EXHAUSTED')
-      return { started: false, why: error.message }
+      // The platform's own sentence, for a person — not the client's "… failed with 409 …".
+      return { started: false, why: error.envelope?.error.message ?? error.message }
     throw error
   }
 }

@@ -1,8 +1,8 @@
 import {
-  createManifestClient,
   idempotencyKey,
   ManifestApiError,
   unwrap,
+  type ManifestClient,
 } from '@manifest/contract'
 
 export type Describing =
@@ -17,18 +17,18 @@ export type Describing =
 
 /**
  * A person describing an app they have not created yet: a key for the platform's intake model,
- * which the platform pays for — cents and minutes, a few a day — started from the person's own
- * signed-in session, never a token. Use it to understand what they asked for and to propose
- * slugs (`checkSlug`); once the project exists, the work continues under an agent session.
+ * which the platform pays for — cents and minutes, a few a day. BROWSER CODE: it acts as the
+ * person, so it runs in their browser on the page's own client — `createManifestClient({ origin:
+ * location.origin })`, which carries no credential, because the browser sends the person's cookie
+ * and `Origin` itself. Never a token, and never your server replaying the cookie. If your server
+ * runs the intake agent, hand it the key over your own channel, as you hand it a token. Use the
+ * key to understand what the person asked for and to propose slugs (`checkSlug`); once the
+ * project exists, the work continues under an agent session.
  */
-export async function startDescribing(
-  origin: string,
-  session: string,
-): Promise<Describing> {
-  const client = createManifestClient({ origin, session })
+export async function startDescribing(page: ManifestClient): Promise<Describing> {
   try {
     const started = unwrap(
-      await client.POST('/v1/intake-sessions', {
+      await page.POST('/v1/intake-sessions', {
         params: { header: { 'Idempotency-Key': idempotencyKey() } },
       }),
       'startIntakeSession',
@@ -48,20 +48,23 @@ export async function startDescribing(
       (error.code === 'INTAKE_DAILY_LIMIT_REACHED' ||
         error.code === 'INTAKE_BUDGET_EXHAUSTED')
     )
-      return { started: false, code: error.code, why: error.message }
+      // The platform's own sentence, for a person — not the client's "… failed with 409 …".
+      return {
+        started: false,
+        code: error.code,
+        why: error.envelope?.error.message ?? error.message,
+      }
     throw error
   }
 }
 
 /** End it when the description is done; its key stops working from the next call. */
 export async function stopDescribing(
-  origin: string,
-  session: string,
+  page: ManifestClient,
   intakeSessionId: string,
 ): Promise<string> {
-  const client = createManifestClient({ origin, session })
   const ended = unwrap(
-    await client.DELETE('/v1/intake-sessions/{intakeSessionId}', {
+    await page.DELETE('/v1/intake-sessions/{intakeSessionId}', {
       params: {
         path: { intakeSessionId },
         header: { 'Idempotency-Key': idempotencyKey() },
