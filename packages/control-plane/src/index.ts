@@ -37,6 +37,7 @@ import {
   createLiteLlmClient,
   disabledAiKeyService,
   disabledCatalogue,
+  endSessionsHoldingMore,
 } from './ai/index.js'
 import {
   controlPlaneSpEntity,
@@ -471,6 +472,35 @@ const capable =
         config.litellm.capableFallback,
       )
 
+/**
+ * **FE-36, AT EVERY BOOT** (§7 and §10 as Spec action 10 amended them; the front-end enablement plan's
+ * Task 14a): every active agent session holding a model its project no longer allows is ended,
+ * `models_withdrawn`. It is how `MANIFEST_AGENT_BUILDER_MODELS=on-premise` reaches the sessions a
+ * `capable` platform started — the setting is read at boot, so this is where it changes — and how a raise
+ * whose ending failed at the commit is finished. AFTER the capable model's step, so the catalogue it reads
+ * is the one this process serves. NEVER FATAL: a session that cannot be ended is one operator line (from
+ * the sweep), and a gateway that does not answer is one more. With AI off there is no gateway to end a key
+ * at, and nothing is read.
+ */
+const agentSessionsWithdrawn = await (async (): Promise<
+  { ended: number; failed: number } | 'disabled' | 'failed'
+> => {
+  if (!catalogue.enabled) return 'disabled'
+  try {
+    const { ended, failed } = await endSessionsHoldingMore(
+      { db, bus, llm, catalogue, agent: config.agent },
+      'every',
+    )
+    return { ended: ended.length, failed: failed.length }
+  } catch (error) {
+    console.error(
+      '[boot] the agent sessions could not be checked against what their projects now allow (MANIFEST_AGENT_BUILDER_MODELS, and each project’s classification); the next boot tries again:',
+      error,
+    )
+    return 'failed'
+  }
+})()
+
 // Which driver actually booted is the one fact this file decides, and every
 // acceptance in P3 is meaningless if it is 'fake'. Printed once, so the answer is
 // observable rather than inferred from behaviour.
@@ -505,6 +535,10 @@ console.log(
     // Task 12b: what it did to that name's fallback — set, unchanged, removed, absent, refused or failed
     // (refused with its own line; failed with one, or under the capable model's when that step failed).
     capableFallback: capable.capableFallback,
+    // Task 14a (FE-36): which models a confidential project's building agent may call, and how many active
+    // agent sessions this boot ended because their project no longer allows what they held.
+    agentBuilderModels: config.agent.builderModels,
+    agentSessionsWithdrawn,
     // What the recovery above did, on the one line an operator reads — and the one
     // `boot.docker.test.ts` reads back, because a recovery nobody can see is
     // indistinguishable from one that never ran.

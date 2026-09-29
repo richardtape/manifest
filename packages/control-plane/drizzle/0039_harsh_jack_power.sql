@@ -1,0 +1,2 @@
+ALTER TABLE "agent_sessions" DROP CONSTRAINT "agent_sessions_end_reason_known";--> statement-breakpoint
+ALTER TABLE "agent_sessions" ADD CONSTRAINT "agent_sessions_end_reason_known" CHECK ("agent_sessions"."end_reason" IS NULL OR "agent_sessions"."end_reason" IN ('ended', 'token_revoked', 'project_archived', 'project_deleted', 'models_withdrawn'));

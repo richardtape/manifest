@@ -1,5 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm'
-import { appSpecs, type Db } from '../db/index.js'
+import { endSessionsHoldingMore } from '../ai/index.js'
+import { appSpecs, projects, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent } from '../observability/index.js'
 import { repositoryOf } from '../projects/index.js'
 import {
@@ -143,6 +144,7 @@ export async function validateAndRecord(
     },
     makeRedactor([]),
   )
+  if (result.valid) await withdrawWhatItNoLongerAllows(deps, project)
   return {
     appSpecId: appSpec!.id,
     commitSha: sha,
@@ -150,5 +152,50 @@ export async function validateAndRecord(
     errors: result.valid ? [] : result.errors,
     warnings: result.warnings,
     sensitiveDiff,
+  }
+}
+
+/**
+ * **FE-36, AT THE MOMENT A MANIFEST IS RECORDED** (the front-end enablement plan's Task 14a): a valid
+ * manifest may have raised the classification an agent session is routed by, so every active session of
+ * the project holding a model it no longer allows is ended — before this answers, so the commit's or the
+ * push's caller sees it done.
+ *
+ * **THE BARRIER FIRST.** A session STARTING now holds the project row `FOR SHARE` while its key is
+ * minted, and reads the classification under it (`ai/sessions.ts`); taking the row `FOR UPDATE` —
+ * and letting it go at once — waits for every such start to commit, so the read below sees its row,
+ * and every start after it reads the manifest just recorded. Without it a start that read the old
+ * classification a moment before would commit a key for the old models after this found nothing.
+ *
+ * **NEVER A REFUSAL.** The commit or push has landed and its validation is recorded; a failure here is
+ * an operator line naming the project, and the next boot's sweep ends what is left.
+ */
+async function withdrawWhatItNoLongerAllows(
+  deps: ServerDeps,
+  project: { id: string; slug: string },
+): Promise<void> {
+  try {
+    await deps.db.transaction(async (tx) => {
+      await tx
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.id, project.id))
+        .for('update')
+    })
+    await endSessionsHoldingMore(
+      {
+        db: deps.db,
+        bus: deps.bus,
+        llm: deps.llm,
+        catalogue: deps.catalogue,
+        agent: deps.config.agent,
+      },
+      { projectId: project.id },
+    )
+  } catch (error) {
+    console.error(
+      `[spec] ${project.slug}: its agent sessions could not be checked against the manifest just recorded, so one may still hold a model the project no longer allows until it expires or the next boot ends it:`,
+      error,
+    )
   }
 }

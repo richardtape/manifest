@@ -92,10 +92,16 @@ export const AgentSession = representation(
         'When it was ended; null while it has not been.',
       ),
       endReason: z
-        .enum(['ended', 'token_revoked', 'project_archived', 'project_deleted'])
+        .enum([
+          'ended',
+          'token_revoked',
+          'project_archived',
+          'project_deleted',
+          'models_withdrawn',
+        ])
         .nullable()
         .describe(
-          'Why it ended: `endAgentSession`, the token that started it revoked, or its project switched off or deleted. Null while it has not been ended.',
+          'Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). Null while it has not been ended; a session that ran out of time or money is never ended by that.',
         ),
       spentUsd: z
         .number()

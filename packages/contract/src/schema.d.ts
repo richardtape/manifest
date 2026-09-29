@@ -1232,8 +1232,8 @@ export interface components {
             state: "active" | "ended" | "expired";
             /** @description When it was ended; null while it has not been. */
             endedAt: string | null;
-            /** @description Why it ended: `endAgentSession`, the token that started it revoked, or its project switched off or deleted. Null while it has not been ended. */
-            endReason: ("ended" | "token_revoked" | "project_archived" | "project_deleted") | null;
+            /** @description Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). Null while it has not been ended; a session that ran out of time or money is never ended by that. */
+            endReason: ("ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn") | null;
             /** @description What this session’s key has spent, in US dollars — for an ended session, what the gateway had recorded when it ended (a call in its last seconds may not be counted). Null, never 0, when it is not known: `spentUnavailable` says why. */
             spentUsd: number | null;
             /** @description Why `spentUsd` is null, when it is. */
@@ -3883,10 +3883,10 @@ export interface components {
                  */
                 sessionId: string;
                 /**
-                 * @description Why: `endAgentSession`, the token that started it revoked, or its project switched off or deleted.
+                 * @description Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise).
                  * @enum {string}
                  */
-                reason: "ended" | "token_revoked" | "project_archived" | "project_deleted";
+                reason: "ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn";
                 /**
                  * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
                  * @enum {string}

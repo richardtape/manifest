@@ -296,7 +296,7 @@ export async function listMembers(db: Db, projectId: string): Promise<MemberRow[
  * its next deploy (P4c Decision 20 — there is no backfill).
  */
 export async function servingInstanceOf(
-  db: Db,
+  db: Pick<Db, 'select'>,
   environment: Environment,
 ): Promise<typeof instances.$inferSelect | undefined> {
   const [served] = await db

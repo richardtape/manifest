@@ -676,9 +676,15 @@ export const EVENT_DETAIL_SCHEMAS = {
     .strictObject({
       sessionId: Uuid.describe('The session that ended.'),
       reason: z
-        .enum(['ended', 'token_revoked', 'project_archived', 'project_deleted'])
+        .enum([
+          'ended',
+          'token_revoked',
+          'project_archived',
+          'project_deleted',
+          'models_withdrawn',
+        ])
         .describe(
-          'Why: `endAgentSession`, the token that started it revoked, or its project switched off or deleted.',
+          'Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise).',
         ),
       via: Via,
       userId: ActingUser,

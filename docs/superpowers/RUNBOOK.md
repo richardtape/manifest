@@ -232,6 +232,16 @@ setting"*. **`capable`, the default**: a `confidential` project's agent session 
 empty value rather than guess. **The app's own `ai.models` is validated by D17 whatever this says**, so a `confidential` app's own AI
 stays on-premise either way. It is a platform setting (§26): put the line in `.env` and restart the control plane.
 
+**A session never holds more than its project now allows** (FE-36). Every valid `manifest.yaml` the platform records — a commit
+through the API, a push, a validation — is followed by a check of the project's ACTIVE agent sessions, and every session whose key
+names a model the project no longer allows is ended: its key revoked at LiteLLM, `agent_session.ended` published with reason
+**`models_withdrawn`**. Raising a project from `internal` to `confidential` ends the sessions started before it (they hold
+`default-chat`); a later session gets the confidential list. **Every boot** runs the same check over every project — which is how
+`on-premise` reaches the sessions a `capable` platform started, and how a check that failed at a commit is finished. **Read the boot
+line's `agentBuilderModels`** (the setting in force) **and `agentSessionsWithdrawn`**: `{"ended":n,"failed":m}`, `disabled` (AI off),
+or `failed` (with ONE `[boot] the agent sessions could not be checked …` line). A session that could not be ended is named in an
+operator line and stays live until it expires or the next boot ends it; a commit is never refused for it.
+
 ## The four verbs
 
 | | |

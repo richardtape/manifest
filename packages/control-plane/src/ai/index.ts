@@ -62,6 +62,7 @@ export {
   agentSessionsOf,
   cachedPersonSpend,
   endAgentSession,
+  endSessionsHoldingMore,
   endSessionsOf,
   gatewayOf,
   sessionState,

@@ -154,4 +154,60 @@ describeDocker('agent sessions against the running gateway (Task 10)', () => {
       })
     })
   })
+
+  it(
+    'a commit raising the project to confidential ends its session, and LiteLLM refuses the key (FE-36, Task 14a)',
+    { timeout: 120_000 },
+    async () => {
+      await withGateway(async (ctx) => {
+        const res = await ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/agent-sessions`,
+          payload: { name: 'docker-withdrawn', capUsd: 1 },
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+        })
+        expect(res.statusCode, res.body).toBe(201)
+        const { session, key } = res.json() as Started
+        expect(session.models).toContain('default-chat')
+        expect(await chat(key, 'default-chat')).toEqual({ status: 200 })
+
+        // The raise, through the API's own commit — the manifest it leaves validated and recorded.
+        const file = await ctx.app.inject({
+          method: 'GET',
+          url: `/v1/projects/${ctx.projectId}/file?path=manifest.yaml`,
+          cookies: ctx.ownerCookies,
+        })
+        const committed = await ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/commits`,
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+          payload: {
+            baseCommit: ctx.commitSha,
+            message: 'the data is confidential',
+            changes: [
+              {
+                op: 'write',
+                path: 'manifest.yaml',
+                content: `${(file.json() as { content: string }).content}data:\n  classification: confidential\n`,
+              },
+            ],
+          },
+        })
+        expect(committed.statusCode, committed.body).toBe(201)
+
+        // Refused by the GATEWAY — even for the on-premise model the new classification allows,
+        // because the whole key is gone; a new session is what an agent starts next.
+        expect(await chat(key, 'default-chat-onprem')).toEqual({
+          status: 401,
+          type: 'token_not_found_in_db',
+        })
+        const { rows } = await agentSessionsOf(ctx.db, ctx.projectId, 50)
+        expect(rows.find((r) => r.id === session.id)).toMatchObject({
+          endReason: 'models_withdrawn',
+        })
+      })
+    },
+  )
 })

@@ -1,9 +1,14 @@
 import { randomUUID } from 'node:crypto'
-import { eq } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
-import { agentSessions, appSpecs, idempotencyKeys } from '../db/index.js'
+import { and, eq } from 'drizzle-orm'
+import { describe, expect, it, vi } from 'vitest'
+import { agentSessions, appSpecs, events, idempotencyKeys } from '../db/index.js'
 import { declaredCatalogue, fakeLiteLlm, type FakeLiteLlm } from '../ai/testing.js'
-import { disabledCatalogue } from '../ai/index.js'
+import {
+  disabledCatalogue,
+  endSessionsHoldingMore,
+  type BuilderModels,
+  type ModelCatalogue,
+} from '../ai/index.js'
 import { ensureTestUser, testSessionCookies } from '../identity/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import {
@@ -660,6 +665,312 @@ describe('agent sessions (the front-end enablement plan’s Task 10)', () => {
       expect(refusal(await list(ctx, stranger))).toEqual({
         status: 404,
         code: 'NOT_FOUND',
+      })
+    })
+  })
+})
+
+/** The declared catalogue with `default-chat-large` registered, as the boot registers it (Task 12a). */
+async function capableCatalogue(): Promise<ModelCatalogue> {
+  const declared = await declaredCatalogue().get()
+  const snapshot = {
+    ...declared,
+    models: [
+      ...declared.models,
+      {
+        name: 'default-chat-large',
+        maxClassification: 'internal' as const,
+        kind: 'chat' as const,
+      },
+    ],
+  }
+  return { enabled: true, get: async () => snapshot }
+}
+
+/** A server whose catalogue holds the capable model, under the builder setting given. */
+async function withBuilderServer(
+  builderModels: BuilderModels,
+  fn: (ctx: TestProject, lite: FakeLiteLlm) => Promise<void>,
+): Promise<void> {
+  const lite = fakeLiteLlm()
+  const base = await testDeps()
+  await withProjectServer((ctx) => fn(ctx, lite), {
+    ...base,
+    llm: lite,
+    catalogue: await capableCatalogue(),
+    config: { ...base.config, agent: { ...base.config.agent, builderModels } },
+  })
+}
+
+/** The project's `manifest.yaml` on `main`, with `lines` appended — the fixture declares no `data:`. */
+async function manifestWith(ctx: TestProject, ...lines: string[]): Promise<string> {
+  const res = await ctx.app.inject({
+    method: 'GET',
+    url: `/v1/projects/${ctx.projectId}/file?path=manifest.yaml`,
+    cookies: ctx.ownerCookies,
+  })
+  expect(res.statusCode, res.body).toBe(200)
+  return `${(res.json() as { content: string }).content}${lines.map((l) => `${l}\n`).join('')}`
+}
+
+/** One commit through the API (`createCommit`), which validates the manifest it leaves. */
+async function commitFile(
+  ctx: TestProject,
+  base: string,
+  path: string,
+  content: string,
+): Promise<string> {
+  const res = await ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.projectId}/commits`,
+    cookies: ctx.ownerCookies,
+    headers: mutationHeaders(ctx.deps),
+    payload: {
+      baseCommit: base,
+      message: `write ${path}`,
+      changes: [{ op: 'write', path, content }],
+    },
+  })
+  expect(res.statusCode, res.body).toBe(201)
+  return (res.json() as { commitSha: string }).commitSha
+}
+
+const sessionsById = async (ctx: TestProject) =>
+  new Map(
+    (
+      (await list(ctx, ctx.ownerCookies)).json() as { sessions: Started['session'][] }
+    ).sessions.map((s) => [s.id, s]),
+  )
+
+const endedEvents = (ctx: TestProject) =>
+  ctx.db
+    .select()
+    .from(events)
+    .where(
+      and(eq(events.projectId, ctx.projectId), eq(events.type, 'agent_session.ended')),
+    )
+
+describe('FE-36 — a session never holds more than its project now allows (Spec action 10; Task 14a)', () => {
+  it('a commit that raises the project to confidential ends every session holding a model it no longer allows — models_withdrawn, published, the key refused', async () => {
+    await withBuilderServer('capable', async (ctx, lite) => {
+      const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      expect(internal.session.models).toContain('default-chat')
+      expect(lite.use(internal.key, 'default-chat')).toEqual({ status: 200 })
+
+      await commitFile(
+        ctx,
+        ctx.commitSha,
+        'manifest.yaml',
+        await manifestWith(ctx, 'data:', '  classification: confidential'),
+      )
+
+      // The key is refused at the GATEWAY — revoked by its alias, never only a row stamped.
+      expect(lite.use(internal.key, 'default-chat')).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
+      })
+      expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+        state: 'ended',
+        endReason: 'models_withdrawn',
+      })
+      const [ended] = await endedEvents(ctx)
+      expect(ended?.machineDetail).toMatchObject({
+        sessionId: internal.session.id,
+        reason: 'models_withdrawn',
+      })
+      expect(ended?.humanMessage).toMatch(/no longer allows/)
+    })
+  })
+
+  it('keeps a session its project still allows: one started confidential outlives a later confidential commit, while the internal one beside it ends', async () => {
+    await withBuilderServer('capable', async (ctx, lite) => {
+      // The positive control, in the same test: a session started while the project was internal.
+      const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      const head = await commitFile(
+        ctx,
+        ctx.commitSha,
+        'manifest.yaml',
+        await manifestWith(ctx, 'data:', '  classification: confidential'),
+      )
+      const confidential = (
+        await start(ctx, { cookies: ctx.ownerCookies })
+      ).json() as Started
+      expect(confidential.session.models).toEqual([
+        'default-chat-onprem',
+        'default-chat-onprem-reasoning',
+        'default-chat-large',
+      ])
+      await commitFile(ctx, head, 'notes.md', 'still confidential\n')
+      const byId = await sessionsById(ctx)
+      expect(byId.get(confidential.session.id)).toMatchObject({
+        state: 'active',
+        endReason: null,
+      })
+      expect(byId.get(internal.session.id)).toMatchObject({
+        state: 'ended',
+        endReason: 'models_withdrawn',
+      })
+      expect(lite.use(confidential.key, 'default-chat-large')).toEqual({ status: 200 })
+      expect(
+        (await endedEvents(ctx)).map(
+          (e) => (e.machineDetail as { sessionId: string }).sessionId,
+        ),
+      ).toEqual([internal.session.id])
+    })
+  })
+
+  it('a commit that leaves the classification as it was ends nothing — and the raise that follows does', async () => {
+    await withBuilderServer('capable', async (ctx) => {
+      const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      const head = await commitFile(ctx, ctx.commitSha, 'notes.md', 'no change of data\n')
+      expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+        state: 'active',
+      })
+      // The positive control, in the same test: the same session, the raise.
+      await commitFile(
+        ctx,
+        head,
+        'manifest.yaml',
+        await manifestWith(ctx, 'data:', '  classification: confidential'),
+      )
+      expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+        state: 'ended',
+        endReason: 'models_withdrawn',
+      })
+    })
+  })
+
+  it('the boot’s sweep ends a confidential session holding the capable model once the setting is on-premise — and keeps it under capable', async () => {
+    await withBuilderServer('capable', async (ctx, lite) => {
+      await commitFile(
+        ctx,
+        ctx.commitSha,
+        'manifest.yaml',
+        await manifestWith(ctx, 'data:', '  classification: confidential'),
+      )
+      const held = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      expect(held.session.models).toContain('default-chat-large')
+      const sweep = (builderModels: BuilderModels) =>
+        endSessionsHoldingMore(
+          {
+            db: ctx.db,
+            bus: ctx.deps.bus,
+            llm: lite,
+            catalogue: ctx.deps.catalogue,
+            agent: { ...ctx.deps.config.agent, builderModels },
+          },
+          'every',
+        )
+      // The setting unchanged: nothing is held beyond what it allows.
+      expect(await sweep('capable')).toEqual({ ended: [], failed: [] })
+      expect(lite.use(held.key, 'default-chat-large')).toEqual({ status: 200 })
+      // The setting narrowed, as a restart with MANIFEST_AGENT_BUILDER_MODELS=on-premise does.
+      expect(await sweep('on-premise')).toEqual({ ended: [held.session.id], failed: [] })
+      expect(lite.use(held.key, 'default-chat-onprem')).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
+      })
+      expect((await sessionsById(ctx)).get(held.session.id)).toMatchObject({
+        state: 'ended',
+        endReason: 'models_withdrawn',
+      })
+    })
+  })
+
+  it(
+    'a raise recorded while a session waits to start is the one its key is given',
+    { timeout: 30_000 },
+    async () => {
+      await withBuilderServer('capable', async (ctx, lite) => {
+        // The start reads the classification early, then waits on the gateway for the person's month —
+        // long enough here that the whole commit, validation included, lands in that window. The key
+        // must carry what the NEW classification allows: the read under the project is what mints.
+        lite.slow('/user/info', 6_000)
+        const starting = start(ctx, { cookies: ctx.ownerCookies })
+        await new Promise((resolve) => setTimeout(resolve, 100))
+        await commitFile(
+          ctx,
+          ctx.commitSha,
+          'manifest.yaml',
+          await manifestWith(ctx, 'data:', '  classification: confidential'),
+        )
+        const res = await starting
+        expect(res.statusCode, res.body).toBe(201)
+        const started = res.json() as Started
+        expect(started.session.models).toEqual([
+          'default-chat-onprem',
+          'default-chat-onprem-reasoning',
+          'default-chat-large',
+        ])
+        expect(keyGenerations(lite).at(-1)?.body?.models).toEqual(started.session.models)
+      })
+    },
+  )
+
+  it(
+    'a session whose key is being minted when the raise is recorded is ended by it before the commit answers',
+    { timeout: 30_000 },
+    async () => {
+      await withBuilderServer('capable', async (ctx, lite) => {
+        // The other order: the start is INSIDE its transaction — the project held, the old models read —
+        // when the manifest is recorded. The barrier waits for it to commit; the sweep then ends it.
+        lite.slow('/key/generate', 6_000)
+        const starting = start(ctx, { cookies: ctx.ownerCookies })
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        await commitFile(
+          ctx,
+          ctx.commitSha,
+          'manifest.yaml',
+          await manifestWith(ctx, 'data:', '  classification: confidential'),
+        )
+        const started = (await starting).json() as Started
+        expect(started.session.models).toContain('default-chat')
+        expect((await sessionsById(ctx)).get(started.session.id)).toMatchObject({
+          state: 'ended',
+          endReason: 'models_withdrawn',
+        })
+        expect(lite.use(started.key, 'default-chat')).toEqual({
+          status: 401,
+          type: 'token_not_found_in_db',
+        })
+      })
+    },
+  )
+
+  it('a session the gateway will not end is named in an operator line, the commit still lands, and the boot’s sweep ends it', async () => {
+    await withBuilderServer('capable', async (ctx, lite) => {
+      const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        lite.fail('/key/delete', 500, 1)
+        await commitFile(
+          ctx,
+          ctx.commitSha,
+          'manifest.yaml',
+          await manifestWith(ctx, 'data:', '  classification: confidential'),
+        )
+        expect(logged.mock.calls.flat().join('\n')).toContain(internal.session.id)
+      } finally {
+        logged.mockRestore()
+      }
+      expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+        state: 'active',
+      })
+      expect(
+        await endSessionsHoldingMore(
+          {
+            db: ctx.db,
+            bus: ctx.deps.bus,
+            llm: lite,
+            catalogue: ctx.deps.catalogue,
+            agent: ctx.deps.config.agent,
+          },
+          'every',
+        ),
+      ).toEqual({ ended: [internal.session.id], failed: [] })
+      expect(lite.use(internal.key, 'default-chat')).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
       })
     })
   })

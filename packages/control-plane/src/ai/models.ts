@@ -70,7 +70,7 @@ const asClassification = (value: unknown): Classification | undefined =>
  * the other.
  */
 export async function classificationFloor(
-  db: Db,
+  db: Pick<Db, 'select'>,
   projectId: string,
 ): Promise<Classification> {
   const [newest] = await db

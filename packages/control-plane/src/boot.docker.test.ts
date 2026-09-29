@@ -9,6 +9,7 @@ import { disabledAiKeyService, disabledCatalogue } from './ai/index.js'
 import { loadBlueprints } from './blueprints/index.js'
 import { loadConfig } from './config.js'
 import {
+  agentSessions,
   appSpecs,
   builds,
   db,
@@ -210,6 +211,7 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
     routesFailed: number
     interrupted: number
     pendingActionsExpired: number
+    agentSessionsWithdrawn: unknown
   }
   let serving: { id: string; handle: string }
   let retired: { id: string; handle: string }
@@ -217,6 +219,8 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
   let interruptedBuild: string
   let stalePending: string
   let freshPending: string
+  let withdrawnSession: string
+  let keptSession: string
   let probeAfterBoot: { status: number; body: string; instance: string }
 
   /**
@@ -476,6 +480,39 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
       new Date(Date.now() + 86_400_000),
     )
 
+    /**
+     * AND TWO AGENT SESSIONS ON A PROJECT NOW `confidential` (the front-end enablement plan's Task 14a,
+     * FE-36): one holding `default-chat`, which a confidential project never allows, and one holding
+     * only the on-premise model. The boot ends the first and keeps the second — the kept one is the
+     * discrimination, because "the session ended" is also true of a sweep that ends every session.
+     * Neither key was ever minted: the gateway answers 404 for the alias and for the person, which the
+     * end reads as already revoked and as spend unknown (measured at this sitting).
+     */
+    await db.insert(appSpecs).values({
+      projectId: project.id,
+      commitSha: 'def456',
+      parsed: { data: { classification: 'confidential' } },
+      schemaVersion: 1,
+      valid: true,
+      createdAt: new Date(Date.now() + 1000),
+    })
+    const session = async (models: string[]): Promise<string> =>
+      (
+        await db
+          .insert(agentSessions)
+          .values({
+            projectId: project.id,
+            userId: user!.id,
+            name: 'boot-sweep',
+            models,
+            capUsd: '1',
+            expiresAt: new Date(Date.now() + 3_600_000),
+          })
+          .returning()
+      )[0]!.id
+    withdrawnSession = await session(['default-chat', 'default-chat-onprem'])
+    keptSession = await session(['default-chat-onprem'])
+
     // AND THE EDGE FORGETS THE ROUTE, which is what `docker restart manifest-caddy`
     // does to every runtime route. The hostname now answers the wildcard.
     await removeRoute(routing, HOST, KIND)
@@ -581,6 +618,23 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
       (await db.select().from(pendingActions).where(eq(pendingActions.id, id)))[0]!.state
     expect(await stateOfAsk(stalePending)).toBe('expired')
     expect(await stateOfAsk(freshPending)).toBe('pending')
+  }, 120_000)
+
+  it('ends an agent session holding a model its project no longer allows, and keeps one it allows (Task 14a, FE-36)', async () => {
+    /**
+     * THE UNIT TIER CANNOT SEE THIS EITHER: `endSessionsHoldingMore` has its own tests in
+     * `api/agents.test.ts`, and they stay green with the boot's call deleted. This is the only test
+     * that fails if `src/index.ts` stops calling it — and the only way a narrowed
+     * `MANIFEST_AGENT_BUILDER_MODELS` reaches a session a `capable` platform started.
+     */
+    expect(boot.agentSessionsWithdrawn).toEqual({ ended: 1, failed: 0 })
+    const endOf = async (id: string) =>
+      (await db.select().from(agentSessions).where(eq(agentSessions.id, id)))[0]!
+    expect(await endOf(withdrawnSession)).toMatchObject({
+      endReason: 'models_withdrawn',
+      endedAt: expect.any(Date),
+    })
+    expect(await endOf(keptSession)).toMatchObject({ endReason: null, endedAt: null })
   }, 120_000)
 
   it('finishes a drain a restart cut short', async () => {

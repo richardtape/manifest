@@ -478,6 +478,9 @@ export function fakeLiteLlm(): FakeLiteLlm {
 
   async function get<T>(path: string, query?: Record<string, string>): Promise<T> {
     calls.push({ method: 'GET', path, ...(query === undefined ? {} : { query }) })
+    // `slow()` says EVERY call (the front-end enablement plan's Task 14a found the reads answered at
+    // once, so a race opened on `/user/info` could not be opened at all).
+    await wait(path)
     failIfAsked(path)
     const fallbackOf = fallbackPath(path)
     if (fallbackOf !== undefined) {

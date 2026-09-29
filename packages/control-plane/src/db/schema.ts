@@ -590,10 +590,10 @@ export const agentSessions = pgTable(
   (t) => [
     index('agent_sessions_project_idx').on(t.projectId),
     index('agent_sessions_token_idx').on(t.requestedByToken),
-    // Decision 25's ends — the fourth, running out, is READ from `expires_at` and never written.
+    // Decision 25's ends, and Task 14a's (FE-36) — running out is READ from `expires_at` and never written.
     check(
       'agent_sessions_end_reason_known',
-      sql`${t.endReason} IS NULL OR ${t.endReason} IN ('ended', 'token_revoked', 'project_archived', 'project_deleted')`,
+      sql`${t.endReason} IS NULL OR ${t.endReason} IN ('ended', 'token_revoked', 'project_archived', 'project_deleted', 'models_withdrawn')`,
     ),
     // An end has a reason, and a reason has an end.
     check(

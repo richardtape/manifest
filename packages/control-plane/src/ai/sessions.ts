@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull } from 'drizzle-orm'
 import { agentSessions, delegatedTokens, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { holdActiveProject, personName, type Actor } from '../projects/index.js'
@@ -48,8 +48,12 @@ export class AgentSessionError extends Error {
 
 export type AgentSessionRow = typeof agentSessions.$inferSelect
 
-/** Decision 25's written ends. The fourth — running out — is READ from `expires_at`, never written. */
-export type EndReason = 'ended' | 'token_revoked' | 'project_archived' | 'project_deleted'
+/**
+ * Decision 25's written ends — and `models_withdrawn` (FE-36; the front-end enablement plan's Task 14a):
+ * its project no longer allows a model it held. Running out — of time or of money — is READ, never written.
+ */
+export type EndReason =
+  'ended' | 'token_revoked' | 'project_archived' | 'project_deleted' | 'models_withdrawn'
 
 /** `expired` is derived at read time: LiteLLM stops the key at its `duration`, and no timer runs here. */
 export function sessionState(
@@ -159,15 +163,19 @@ export async function startAgentSession(
   //    model may serve, is refused before the gateway is asked anything (Decision 23).
   const snapshot = await deps.catalogue.get()
   const llm = gatewayOf(deps)
-  const floor = await classificationFloor(deps.db, input.projectId)
-  const models = agentModelsFor(snapshot, floor, deps.agent.builderModels)
-  if (models.length === 0) {
-    // An empty list would be EVERY model to LiteLLM (`[M7]`): refused, never minted.
-    throw new AgentSessionError(
-      'AGENT_NO_MODEL_FOR_CLASSIFICATION',
-      `no model in the platform's catalogue is approved for ${floor} data, so no agent key can be issued for this project (D17)`,
-    )
+  const modelsNow = async (db: Pick<Db, 'select'>): Promise<string[]> => {
+    const floor = await classificationFloor(db, input.projectId)
+    const allowed = agentModelsFor(snapshot, floor, deps.agent.builderModels)
+    if (allowed.length === 0) {
+      // An empty list would be EVERY model to LiteLLM (`[M7]`): refused, never minted.
+      throw new AgentSessionError(
+        'AGENT_NO_MODEL_FOR_CLASSIFICATION',
+        `no model in the platform's catalogue is approved for ${floor} data, so no agent key can be issued for this project (D17)`,
+      )
+    }
+    return allowed
   }
+  let models = await modelsNow(deps.db)
 
   // 2. The month — the PERSON's (a token acts for its minter, D24), read FRESH: a start must not
   //    mint against spend a cached read had not seen yet.
@@ -216,6 +224,14 @@ export async function startAgentSession(
       // waits for this commit — and its teardown ends the session — or it committed first, and the
       // start is refused `PROJECT_ARCHIVED`.
       await holdActiveProject(tx, input.projectId)
+      // THE CLASSIFICATION, READ AGAIN UNDER THE PROJECT (FE-36; the front-end enablement plan's Task
+      // 14a). The read above refuses early; this one is what the key is minted with. A commit raising
+      // the classification while this start waited on the gateway — its spend read takes hundreds of
+      // milliseconds — found no committed session to end, and this would then have minted the OLD
+      // models. `endSessionsHoldingMore`'s barrier takes this row FOR UPDATE after the new manifest
+      // is recorded: it waits for this commit and then ends what it holds — or it went first, and
+      // this read sees the new manifest.
+      models = await modelsNow(tx)
       if (tokenId !== null) {
         const [held] = await tx
           .select({
@@ -346,6 +362,8 @@ const endReasonWords: Record<EndReason, string> = {
   token_revoked: 'ended because the delegated token that started it was revoked',
   project_archived: 'ended because the project was switched off',
   project_deleted: 'ended because the project was deleted',
+  models_withdrawn:
+    'ended because its project no longer allows the models it held — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise',
 }
 
 /**
@@ -473,4 +491,81 @@ export async function endSessionsOf(
     )
   }
   return ended
+}
+
+// ---------------------------------------------------------------- withdrawn
+
+/**
+ * **FE-36 — A SESSION NEVER HOLDS MORE THAN ITS PROJECT NOW ALLOWS** (§7 and §10 as Spec action 10 amended
+ * them; the front-end enablement plan's Task 14a). Ends, `models_withdrawn`, every ACTIVE session — of one
+ * project, or of `every` project — whose key names a model the catalogue still serves and that
+ * `agentModelsFor` no longer allows: its project's classification was raised (a commit, a push), or the
+ * builder setting was narrowed to `on-premise` (a restart). A name the catalogue no longer holds is not
+ * counted: the gateway serves nothing under it. An expired session is not touched — its key stopped at
+ * its own `duration`.
+ *
+ * **Callers**: `api/spec-validation.ts`'s `validateAndRecord`, after every valid manifest it records
+ * (behind `barrier`), and the boot, over every project. Each failure is named in ONE operator line and
+ * answered in `failed` — never thrown, because a commit that raised the classification has already landed —
+ * and the next boot's sweep ends what is left. The person the session is charged to is who it is attributed
+ * to: nobody asked for this end, and they are the one whose key it was.
+ *
+ * Reads nothing from the gateway when no session is active, so a commit to a project nobody is building
+ * with pays one query.
+ */
+export async function endSessionsHoldingMore(
+  deps: {
+    db: Db
+    bus: EventBus
+    llm: LiteLlmClient | undefined
+    catalogue: ModelCatalogue
+    agent: { builderModels: BuilderModels }
+  },
+  scope: { projectId: string } | 'every',
+): Promise<{ ended: string[]; failed: string[] }> {
+  const live = await deps.db
+    .select()
+    .from(agentSessions)
+    .where(
+      and(
+        isNull(agentSessions.endedAt),
+        gt(agentSessions.expiresAt, new Date()),
+        ...(scope === 'every' ? [] : [eq(agentSessions.projectId, scope.projectId)]),
+      ),
+    )
+  if (live.length === 0) return { ended: [], failed: [] }
+  const snapshot = await deps.catalogue.get()
+  const served = new Set([
+    ...snapshot.models.map((m) => m.name),
+    ...snapshot.unclassified,
+  ])
+  const allowedFor = new Map<string, Set<string>>()
+  const ended: string[] = []
+  const failed: string[] = []
+  for (const row of live) {
+    let allowed = allowedFor.get(row.projectId)
+    if (allowed === undefined) {
+      const floor = await classificationFloor(deps.db, row.projectId)
+      allowed = new Set(agentModelsFor(snapshot, floor, deps.agent.builderModels))
+      allowedFor.set(row.projectId, allowed)
+    }
+    const withdrawn = row.models.filter((m) => served.has(m) && !allowed.has(m))
+    if (withdrawn.length === 0) continue
+    try {
+      await endAgentSession(deps, row, 'models_withdrawn', {
+        userId: row.userId,
+        tokenId: null,
+      })
+      ended.push(row.id)
+    } catch {
+      // endAgentSession wrote its own operator line.
+      failed.push(row.id)
+    }
+  }
+  if (failed.length > 0) {
+    console.error(
+      `${failed.length} agent session(s) STILL hold models their project no longer allows: ${failed.join(', ')} — each stays live until it expires or the next boot ends it`,
+    )
+  }
+  return { ended, failed }
 }
