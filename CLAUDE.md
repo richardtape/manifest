@@ -14,17 +14,12 @@ the only two a sitting changes. ORIENTATION §2's box is the only current statem
 numbers, and the roadmap's ledger (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every
 other document on status.*
 
-**The design is approved and complete, five spikes are done, and thirteen plans are executed** — Phase 1c,
-and Phase 2's first four plans, P6a (the first production launch), P6b (subsequent releases), D5's
-GitHub source driver and the authoring API. Every one has an acceptance that passes. **The front-end
-enablement plan is being executed** — it replaced Spec action 1's plan and folds in its recent-output read. It was
-WRITTEN on 2026-09-27, overnight and with recommendations, and **Rich has approved the plan, its twelve sittings and all
-four of its spec actions — APPLIED to the spec the same day — and the two its sitting 6 drafted from the faculty front-end's
-message (5, the intake key; 6, staging is UBC's real staging), APPLIED in its sitting 7** — and at its sitting 8's close
-**added a thirteenth sitting, 9a: the capable model, OpenAI for now at `internal`, behind a setting** (Spec action 7 APPLIED,
-`959af7f`; his key in `.env`) — DONE 2026-09-28 (`openai/gpt-6-luna`) — **and at 9a a fourteenth, 9b: its fallback, the on-premise
-model** (Spec action 8 APPLIED, `e6c272d`) — DONE 2026-09-28 — **and at 11's close a fifteenth, 11a: the building agent's models, a setting** (Spec action 10 APPLIED, `d9a1fa1`) — DONE 2026-09-28/29 (`qwen3.8:27b` the laptop's on-premise model) — ORIENTATION §7e says what is next. Each plan's
-*What executing this plan found* is its record; this file keeps none of it.
+**The design is approved and complete, five spikes are done, and fourteen plans are executed** — Phase 1c,
+and Phase 2's first five plans, P6a (the first production launch), P6b (subsequent releases), D5's
+GitHub source driver, the authoring API and **the front-end enablement plan** (2026-09-29 — what the faculty front-end at
+`app.manifest.internal` needs; eighteen tasks in fifteen sittings, all ten of its spec actions Rich's and applied). Every one has an
+acceptance that passes. **No plan is being executed**; ORIENTATION §7e says what is next (Rich's order: the faculty front-end's
+launch path). Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -41,10 +36,11 @@ model** (Spec action 8 APPLIED, `e6c272d`) — DONE 2026-09-28 — **and at 11's
 | P6b | 2026-09-23 | Subsequent releases: self-serve unless sensitive, re-escalation approved from a stored preview, the egress proxy following its release, §9's IAM change request, the person-only class | `make demo-releases`, **and a person clicking it** |
 | D5 driver 2 | 2026-09-25 | An app's code in a GitHub organisation: private and kept private, pushes by HMAC-verified webhook, every commit scanned for secrets, `main` protected, built offline from a mirror — against a GitHub fake, checked against a real App | `make demo-github` (driver 2), **and a person clicking both drivers** |
 | Authoring API | 2026-09-27 | An app CREATED through the API: files read and committed against the commit read (git plumbing, no worktree, both drivers), history attributed by the platform's own record, app secrets set write-only, a build of exactly the commit written with its own manifest — and the API's documentation served by the API | `make demo-authoring` (either driver), **and a person clicking it** |
+| Front-end enablement | 2026-09-29 | A second origin (`app.`) for the faculty front-end; a project's name, people by CWL login, agent and intake model keys, recent output (sandbox), binary files, archive/restore and delete, the capable model and its on-premise fallback, the building agent's models as a setting | `make demo-frontend` (either driver), **and a person clicking it** |
 
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
-turning the network off from a tool call cuts the agent off too; **it now has FOURTEEN steps**, the
-newest being `make demo-authoring` (step 14), which runs on EITHER driver; `make demo-github` (step 13) needs the control
+turning the network off from a tool call cuts the agent off too; **it now has FIFTEEN steps**, the
+newest being `make demo-frontend` (step 15), which runs on EITHER driver like `make demo-authoring` (step 14); `make demo-github` (step 13) needs the control
 plane on DRIVER 2 while steps 6 to 12 need driver 1 — each step asks which answers and reads SKIPPED on the wrong one; step 12's preview summary may
 legitimately read `unavailable` offline), the second-machine clean clone, starting the UBC external track
 (its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
@@ -53,7 +49,7 @@ access to UBC's staging IdP, is the ONLY part of a first production launch this 
 cannot do for itself** — Manifest runs D21's rehearsal locally and says in the checklist that
 it proves the registration's shape and never UBC's acceptance of it), **refreshing the
 vulnerability database weekly, with the network on** (**`make refresh-vulndb`**, added
-2026-09-24 at Rich's request and run the same day; **next due after 2026-10-01** — past §12's
+2026-09-24 at Rich's request; last run by him 2026-09-29 — nothing up or down but Docker Desktop, ~1–3 minutes; **next due after 2026-10-06** — past §12's
 seven days `make doctor` warns and §13's `scans` item refuses every production launch, so
 `make demo-production` goes red), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
 applied by the agent session itself and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`

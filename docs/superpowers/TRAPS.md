@@ -1408,6 +1408,10 @@ it belongs among the traps the next sitting is most likely to hit.
   **Drain before closing**: `await deps.builds.idle(); await deps.retirer.idle()` — `withProjectServer`
   drains builds, and `api/subsequent-releases.test.ts`'s `closed(ctx)` drains both. The full suite should
   log exactly ONE such line, the deliberate case in `retire.test.ts`.
+  **Measured again by the front-end enablement plan's sitting 12 (F26): 2 of 8 runs of `api/delivery.test.ts`, red in
+  *a release freezes its BUILD's spec* — and with NO extra `[retire]` line, because Postgres chose the `TRUNCATE` as the deadlock
+  victim, so the pass itself succeeded.** The tell is then only `deadlock detected` at `db/testing.ts`'s `resetDatabase`. Most of
+  `delivery.test.ts` calls `app.close()` without draining the retirer; the central fix is the next plan's.
 - **A FIELD LEFT OUT OF A REPRESENTATION IS STRIPPED, SILENTLY, FROM EVERY ANSWER** (P6b sitting 4, F8).
   Representations are plain `z.object`s, and zod strips a key the schema does not name — so the read and
   the `409` both lose it, a byte-identical comparison of the two stays GREEN, and `tsc` is silent, because an
@@ -2254,3 +2258,40 @@ one reloads the 4B. **Warm the one you are about to use**: `curl -s http://127.0
 *name only operations …* flags a backticked camelCase word whose leading lowercase run is a verb some operation starts with — so
 `` `endReason` `` (`end…`, as in `endAgentSession`) is reported as an operation the API lacks. Name the field in words, or quote its
 value (`models_withdrawn`) instead.
+
+## Added by the front-end enablement plan's sitting 12 (2026-09-29, Task 15 — the acceptance)
+
+**THE AUTO-MODE CLASSIFIER REFUSES A NEGATIVE CONTROL THAT WEAKENS A SECURITY CONTROL OR CHANGES DNS — EVEN AFTER RICH'S "GO AHEAD"**
+(sitting 12, F15/F16). It refused a subagent `make github-up` (*"Interfere With Workloads"*) and a demo run; then, to the controller
+itself after Rich had said *"go ahead I give you permission"* in chat, it refused running the control plane with CSRF loosened
+(*[Security Weaken]*) and reading `infra/compose.yaml` to recreate dnsmasq without the `app.` pin (*[DNS / Domain / Cert Changes]*). A
+refusal applies to the OUTCOME: never re-try it another way, and do not hand it to a subagent. **What worked**: one script in the
+scratchpad that breaks each control, restarts the control plane, runs the demo to the noticing step, records the red line and restores
+from git (a trap restoring on an early stop) — **Rich runs it himself** with `! bash <path>`, having read it. Ask him early; the
+controls that do not weaken a control ((f) archive calling `destroyInstance`, (g) the slug index made stricter) were allowed.
+
+**A `make up` OR `make reset` CAN LEAVE THE EDGE'S PUBLIC LISTENER (127.0.0.3) RESETTING THE HOST, AND NOTHING BUT `make verify` SAYS
+SO** (sitting 12, F17 — the D5 plan's sittings 2 and 5 met the same). After three resets and a control's `make up`, a demo through
+`app.` (the INTERNAL listener, 127.0.0.2) stayed green while `curl` to anything on 127.0.0.3 answered `curl: (35) Recv failure:
+Connection reset by peer`, and `make verify` read *61 checks, 3 failed*: *"the public listener answers a production name on
+127.0.0.3"*, *"all three §23 platform zones serve with a trusted certificate"*, *"a name allocated at runtime resolves, routes and gets
+a certificate — on both listeners"*. It made a negative control go red for the WRONG reason. **Run `make verify` after every `make up`
+or `make reset`**; the fix is `docker restart manifest-caddy`, then restart the control plane (the edge's restart drops every runtime
+route).
+
+**macOS's RESOLVER CACHE HOLDS AN OLD ANSWER FOR A FEW SECONDS AFTER DNSMASQ IS RECREATED** (sitting 12). Straight after `make up`
+recreated dnsmasq, `dscacheutil -q host -a name app.manifest.internal` still said `127.0.0.3` (and, after the restore, still
+`127.0.0.3` while `make verify` — which asks dnsmasq directly — passed); seconds later it said `127.0.0.2` and `/v1/me` answered on
+`app.`. Read the resolver twice, a few seconds apart, before believing a DNS change did or did not take.
+
+**THE CHROME EXTENSION'S `form_input` TICKS A CHECKBOX REACT NEVER SEES** (sitting 12, F11). In the reference console's *Mint a
+delegated token* form, `form_input … true` on `output:read` and `agent:session` reported *"Checkbox checked"*, the boxes looked
+ticked, and the token was minted WITHOUT them (the DOM changed; React's state did not). A select through `form_input` did register.
+**Click checkboxes** (`computer left_click` on the ref) and zoom to confirm before submitting; read what was minted back
+(`psql … delegated_tokens` or the token list), never the form.
+
+**A STEP-UP IS BOUND TO ITS BROWSER FOR 600 SECONDS — OPEN IT ONLY WHEN RICH IS AT THE KEYBOARD** (sitting 12, F14). The
+`manifest_stepup` cookie lives `STEP_UP_TTL_SECONDS = 600`; a step-up page opened and then waited on for ten minutes answers the
+refusal page with `SAML_LOGIN_NOT_BOUND` (*"the sign-in was not started by this browser"*). The platform is right; the page's hint
+(*"Start again at /auth/login"*) is wrong for a step-up — open `/auth/step-up?returnTo=…` again. And once stepped up, the WINDOW is
+also ten minutes: stage everything that needs it (a scratch project to delete, the member to add) BEFORE asking for the password.

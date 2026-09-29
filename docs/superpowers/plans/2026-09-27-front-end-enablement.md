@@ -1,5 +1,7 @@
 # The Front-End Enablement Implementation Plan
 
+> **✅ EXECUTED 2026-09-29 — ALL EIGHTEEN TASKS IN FIFTEEN SITTINGS** (1–12, and 9a, 9b and 11a added by Rich), all ten spec actions his and applied. Its acceptance, `make demo-frontend`, is green three times on EACH driver, a step of `make ci-acceptance` and of the offline acceptance (step 15), with seven negative controls seen red and a person clicking it; the plan's one whole-branch review found two Importants no sitting's review could see, both fixed. *What executing this plan found* is the record — its *Sitting 12* first — and *What this plan does not build* with *Sitting 12*'s deferred list is the next plan's input.
+
 > **WRITTEN 2026-09-27, OVERNIGHT, AT RICH'S INSTRUCTION; ITS SITTING 1 (TASK 1, THE MEASUREMENTS, WHICH BUILD NOTHING) RAN THE SAME NIGHT, BEFORE HIS REVIEW. REVIEWED AND APPROVED BY RICH LATER ON 2026-09-27: the plan as written (*"all seems good"*), all thirty-one decisions as recommended, the twelve-sitting split, binary files, and all four spec actions as recommended — APPLIED to the spec the same day (`1d1afd7`).** Rich asked for
 > *"one plan which encompasses all of these"* and, going to bed, for it to be written *"with your recommendations for any
 > items that come up"*, to be reviewed and adjusted in the morning. **He reviewed it and changed nothing** (*Decided by
@@ -62,7 +64,7 @@
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-28** — `DELIBERATELY_UNCALLED` empty again, 66 of 66: the console calls every operation this plan added (instances and sandbox-only output on Deploy; binary files previewed, downloaded and uploaded on Code, with the message checked and a commit's 1000-change stop said; name, rename, archive, restore and delete-never-launched on Project, members by CWL login name, email or PUID; agent sessions with the key shown once and the month's budget on Tokens; the intake key on Projects); **FE-24's code** (`INSTANCE_OUTPUT_STAGING`, a sibling code, decided by kind before the driver); **FE-17** (a browser refused at `/auth/*` sees a page); **FE-18** (`dist/` type-checks alone; `erasableSyntaxOnly`); **FE-26 and FE-27** (confirmed by Rich at the open: the mock trusts only its own session, refuses a Bearer where the security names the session alone, 404s ids it does not hold, answers each environment's instances and times from now, scripts its refusal states as options, starts from source); sitting 6's M2 (the signed `RelayState`); clicked against the mock and on the platform, Rich typing the sign-in and one step-up; one fresh whole-branch review, its two Importants fixed red-first; `pnpm test:docker` 246 in 41, green first run |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5); **and Task 14's `[S10]`** (sandbox-only output, FE-17's page, the mock's rules) | **No** — unless a step reaches `blueprints/` (**owed after all**: the front-end session's `c4e10cc`, FE-37, reached `blueprints/` and `releases/` while this sitting was paused) | — (**Spec action 9**, from `c4e10cc`, drafted and applied in-sitting) | **DONE 2026-09-28** — *Building a front-end* (`frontend.md`): the `app` origin and the refusal page, FE-2's rule, the agent's key, the capable model and its fallback header, the intake key, sandbox-only output and what redaction misses, images, PDFs and fonts, a name and a colleague, ending an app, `bodySha256`'s canonical form (FE-5), the contract from outside the workspace (FE-18), the mock's rules (FE-26/27); *For an AI agent*, *Authoring*, *Authentication*, *Conventions* (four rules the plan needed and no page stated), *Getting started* and the index brought up to the API; SIX new run examples (the person's own actions as BROWSER code — the review's Critical); the slug called a slug in published text, `CSRF_ORIGIN_REFUSED` for two origins, no `FE-n` in public text (each a gate); one fresh whole-branch review, its Critical and three Importants fixed red-first; **Spec action 9 approved and applied** (`d82b3a2`) |
 | 11a | 14a | **The building agent's models, a platform setting** (Rich, 2026-09-28, at sitting 11's close): `default-chat-onprem` and `-reasoning` → `qwen3.8:27b` on the laptop (MEASURED FIRST: 36 GiB beside Docker, non-thinking); a setting — the capable model allowed on a `confidential` project's agent sessions by default, or on-premise only; FE-36 — a session holding more than its project now allows is ended; the safeguard — a `confidential` project's token refused staging's and production's Incident log tails while the setting allows the capable model; the guides | **Yes** — `ai/`, `infra/` | **Spec action 10** — approved (a), with the safeguard, and APPLIED (`d9a1fa1`) | **DONE 2026-09-28/29** — `qwen3.8:27b` MEASURED first (it fits beside Docker, not beside `qwen3.5:4b`: Ollama evicts one for the other; told to Rich) and made the laptop's on-premise model, `default-chat` staying `qwen3.5:4b`; `MANIFEST_AGENT_BUILDER_MODELS` (`capable` default, `on-premise`), a confidential session listing `default-chat-large` under `capable`; FE-36 — every valid manifest, every production deploy and every boot end the active sessions holding a model the project no longer allows (`models_withdrawn`), a start re-reading the classification under the project behind a barrier; the safeguard `403 INCIDENT_LOG_CONFIDENTIAL`, decided by every release that ran in the environment; the guides; the mock's `MANIFEST_MOCK_CONFIDENTIAL`; one fresh whole-branch review, its three Importants and three re-graded minors fixed red-first; `pnpm test:docker` 248 in 41, green first run |
-| 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | ← next |
+| 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | **DONE 2026-09-29 — THE PLAN IS EXECUTED** — `make demo-frontend` on either driver (a front-end's server on `app`, the fixture `confidential`), green three times on EACH driver and in `make ci-acceptance`, the offline acceptance's step 15; seven negative controls seen red (five run by Rich from a script the classifier would not let the agent run); clicked on `app`, Rich typing; the plan's one whole-branch review — `PROJECT_ARCHIVED` declared by none of 66 operations, the rehearsal skipping FE-36's sweep — fixed red-first; `pnpm test:docker` owed by the fix pass |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -210,11 +212,12 @@
    before sitting 2, as recommended, and applied (`1d1afd7`).**
 3. **Nothing in this plan needs the network.** The local model answers agent sessions offline (Ollama on the host), and no
    package is added. If a task comes to believe otherwise, it records a finding and asks.
-4. **`make refresh-vulndb`, with the network on, weekly** — **next due after 2026-10-01**, which this plan's execution will
+4. **`make refresh-vulndb`, with the network on, weekly** — **DONE 2026-09-29 by Rich, at sitting 12's open** (built
+   `2026-09-29T06:32:31Z`; next due after 2026-10-06). *As written:* next due after 2026-10-01, which this plan's execution will
    cross. Past it, §13's `scans` item refuses every production launch, so `make demo-production` and `make demo-releases`
    go red inside `make ci-acceptance` (Task 15), and `demo-frontend`'s refusal to delete a LAUNCHED project needs
    `launch-app` launched.
-5. **The clicked half of the acceptance — sitting 12.** A person signs in at `https://app.manifest.internal`, and **Rich
+5. **The clicked half of the acceptance — sitting 12.** **DONE 2026-09-29** (09:25–09:57; *Sitting 12* has the screens). A person signs in at `https://app.manifest.internal`, and **Rich
    types every password** (ORIENTATION §4 trap 6: the Chrome extension is refused on `idp.manifest.internal`, and a password
    is never an agent's to type). Task 15 stages everything first and asks once.
 6. **The first real SP registration naming two origins is UBC IAM's, not this plan's.** Spec action 2 changes what
@@ -2447,6 +2450,18 @@ descriptions — still `1.4.0` unless an enum grows, which the task rules on); t
 - **From the authoring API, still open:**
   - a driver-1 `git push` publishes nothing. Driver 1 is the laptop's; production's pushes arrive by webhook and publish.
   - F21–F25 of its acceptance's review — the fixture's `/healthz` answering Mongo's error text, two demo checks reading their own state, the re-use reset's two files, a live token left per run, and one misread transport failure. Each is the demo's, not the platform's.
+- **From this plan's own acceptance and its one whole-branch review (sitting 12) — named, none urgent:**
+  - **A removed member's tokens and agent sessions outlive the removal** (the review's M4) — **Rich's** (ORIENTATION §8 *Open*): it changes D24's token model.
+  - **A restore after a part-way teardown** leaves it half-done and nothing finishes it (M1) — `teardown_finished_at`, and let `endAgentSession` through on an archived project.
+  - **The fleet has no `name`, `state` or `archivedAt`** (M3), so an archived project reads as a broken one — additive, §26's admin console.
+  - **A non-default capable-model fallback below `confidential`** widens Spec action 10's one-model exception (M5) — the default, `default-chat-onprem`, is safe.
+  - **An event stream opened before an archive, a delete or a revoke stays open** (M6 — **the faculty front-end's FE-33**, found independently) — no log lines ride it.
+  - **`AI_UNMAPPED` is still undeclared on `startAgentSession`/`endAgentSession`**, a gateway outage during `revokeToken` is still `500`, and `revokeToken`'s description does not say the token is revoked before a `503`.
+  - **A secret driver 1's pre-receive hook catches** (the API's scan having missed it) answers the generic `409 SOURCE_GIT_FAILED`, not `SOURCE_SECRET_DETECTED`, and records no `repository.secret_refused` (sitting 12's F18).
+  - **A deployed app that exits at once is probed for ~2 minutes** before `instance.failed` (F13) — the readiness budget does not watch the container.
+  - **The reference console**: the create field labelled *Name* holds the slug, and *Create* needs a second click after the slug check (F12); the refusal page for an expired step-up says *"Start again at /auth/login"* (F14).
+  - **A deploy's retire pass outlives the unit test that started it** and can deadlock the next test's `TRUNCATE` (sitting 12's F26, P6b's F7 again — 2 of 8 runs of `api/delivery.test.ts`): drain every test-built retirer before each `TRUNCATE`, centrally.
+  - **The whole-branch review's triage of the 85 deferred minors** (the sitting-by-sitting `Deferred minors` above): four were fixed in sitting 12, six were already moot, and the rest wait, grouped by area — agent sessions, archive and delete, the console and mock, the guides.
 
 ---
 
@@ -5339,3 +5354,207 @@ FIRST run on `9c9c500`, alone, 1257 s — +2 as predicted; the fix pass re-ran t
 BUILD a confidential app and never becomes its own AI and that an administrator can confine building to UBC's hardware (swept when
 Spec action 10 was approved); none of the four names the laptop's on-premise model, an Incident's log tail or an agent session's end
 (grepped for `qwen`, `log tail`, `confidential`, `building agent`) — unchanged.
+
+### Sitting 12 — 2026-09-29: Task 15, the acceptance — and the plan's one whole-branch review; THE PLAN IS EXECUTED
+
+**Run from ORIENTATION §7e** at Rich's *"read … ORIENTATION.md and proceed with the next sitting"*, which also asked for an
+introduction to the faculty front-end's session (`manifest-app-f8`, then `-56` and `-9d` across its handovers — messaged at the open,
+before every restart, reset and truncation of 7100, at the one contract commit, and at the close) and what refreshing the vulnerability
+database takes. Subagent-driven (`superpowers:subagent-driven-development`) on `main`: one implementer for Step 1 (Opus) with a task
+review and a fix round; Step 2's driver-2 and reset legs and the controls run from THIS session, because the auto-mode classifier
+refused them to the subagent and Rich's permission had to be visible to it (below); one fresh whole-branch reviewer over the plan's
+whole range (Opus, read-only), one fix pass (Opus), one scoped re-review. Commits: `600ac3c` (the fixture), `2090a00` (the demo's two
+halves), `d55b1f1` (the wiring and docs), `d160010` (F2), `101fbf3` (the task review's fix round), `16c3357` (the whole-branch
+review's I1 and M8 — the contract), `c5f1493` (its I2, M2, M7 and the Vancouver day), `11f2526` (two guide lines), and the close-out.
+
+**Rich, in the first messages:** `make refresh-vulndb` — run by him at 09:01 (`before: 2026-09-24T06:31:52Z` → `after:
+2026-09-29T06:32:31Z`; the archive is 175 MB, ~2.8 GB unpacked; the next refresh is due after **2026-10-06**); the clicked half
+*"now"*; the fixture **`confidential`** (*"2. yes, was the confidential answer"*); **`make reset` may delete the 30 orphaned `mf-`
+containers and their volumes** (*"yes"*); and, when the classifier refused the subagent, *"go ahead I give you permission"* for the
+driver-2 runs, the demo runs, the three resets, the controls and `make ci-acceptance`. **Measured at the open:** Grype v0.118.0's own
+`db status` reads `Status: invalid … max allowed age is 5 days` at 5.1 days — its default; the scan gate sets
+`GRYPE_DB_VALIDATE_AGE=false` and applies §12's seven (`build/scan.ts:457`), so it changes nothing.
+
+**What it built.**
+- **`make demo-frontend`** — `scripts/demo-frontend.sh` (bash: the sign-ins and step-ups ON `app`, the cookie's host, the edge's
+  answers, the app's own pages) and `packages/journey/src/frontend.ts` (every client call through `@manifest/contract`: the
+  instructor's SESSION for the person's actions — browser code on a real front-end, and the file says so — and the front-end server's
+  TOKEN and model KEY for the rest), the split every headless demo keeps. Steps 0–10 as Task 15 lists them, on EITHER driver
+  (`frontend-<driver>`, `frontend-scratch-<driver>`), with `DEMO_FRONTEND_STOP_AFTER=<0–10>`; every check a code or a body. The
+  confidential manifest is committed BEFORE the session starts (`[S11a]`); the chat model is read from `session.models`
+  (`default-chat-onprem`, the 27B, warmed first; `default-chat-large` listed and never called — C1); the token's staging
+  `listIncidents` is `403 INCIDENT_LOG_CONFIDENTIAL`, the person's `200`; the release goes to the SANDBOX too and the sandbox's output is
+  read, `[REDACTED]` in the `mongo` field, staging's refused `INSTANCE_OUTPUT_STAGING`; the PDF with a planted key refused
+  `SOURCE_SECRET_DETECTED` (Step 3(d)'s case, added); step 9 sees the scratch repository THERE, deletes the project, sees it GONE (the
+  fake's `404 Not Found` body on driver 2), and takes the slug AGAIN (`201`, a new id) so control (g) can go red; the `launch-app`
+  refusal (`409 PROJECT_LAUNCHED_NOT_DELETABLE`) is asked only when `launch-app` has launched — inside `make ci-acceptance`, after
+  `make demo-production`.
+- **`fixtures/frontend-app/`** — a CWL app on `node-ts-mongo@1` keeping `express.urlencoded`, a page of reading responses from its own
+  Mongo, `/logo.png` (a 70-byte PNG the demo BUILDS), and one output line per request printing its own `MONGODB_URI` on purpose;
+  `data.classification: confidential`.
+- **Wired in:** the `Makefile` target; `make ci-acceptance`'s step (either driver); **the offline acceptance's step 15**; RUNBOOK's
+  *Running the front-end demo*; WALKTHROUGH's lines.
+
+**Step 2 — green three times on EACH driver** (the machine's platform `make up`; the vulnerability database fresh):
+
+| Driver | Fresh | Re-use | From a `make reset` machine |
+|---|---|---|---|
+| 1 (`frontend-local`) | 258 s, 129 ok | 136 s, 142 s, 167 s (the target), 123 s (the first to delete a RE-CREATED scratch project) | 113 s (R1) |
+| 2 (`frontend-github`) | 170 s, 135 ok (the first run of I1's driver-2 checks) | 127 s, 134 ok | 124 s (R3) |
+
+**Step 4 — the clicked half, 09:25–09:57, Rich typing the sign-in and one step-up** (the reference console's `preview` on 7105, lent
+by the front-end's session and returned after; the screens, in order, are in the ledger): sign-in on `app`; create (`SLUG_INVALID`
+first — F12) and rename (`project.renamed`, live); a token with `agent:session`; an agent session — the key shown once with the
+gateway's address and six models, gone after a reload, then ended; a PNG uploaded, checked, committed (`through Manifest`) and
+previewed from its bytes; the bare skeleton deployed to the sandbox FAILED (no database declared) — `instance.failed`,
+`incident.opened` with its last lines and *What to do*, and the recent-output read `INSTANCE_OUTPUT_UNAVAILABLE` in the platform's
+words; `manifest.yaml` fixed in the Code screen (*"valid — it changes `services` — §7's sensitive fields…"*), rebuilt, redeployed
+healthy, the app opened in a tab and its `listening` line read as recent output; the step-up (the first EXPIRED — F14); `nobody` →
+`MEMBER_USER_NOT_FOUND`, `student` added by CWL login name; **Switch it off** → the app's own tab *"Switched off — This app has been
+switched off by its owner."*, sandbox and staging `410`; Restore; a scratch project deleted by typing its slug — *"week4-scratch is
+available"*; the restored app redeployed and serving on its kept data.
+
+**Step 3 — the negative controls, each seen RED** (on `11f2526` unless named; restored from git each time; never committed):
+- **(a)** dnsmasq's `app.` pin removed → step 0: *"https://app.manifest.internal/v1/me was answered by the edge's WILDCARD: manifest OK
+  host=app.manifest.internal … listener=public"* — Rich's re-run on a healthy edge (F17 is the first run's wrong reason).
+- **(b)** CSRF by list membership → step 1: *"createProject with app.'s cookie and Origin https://console.manifest.internal answered
+  409 SOURCE_CONFLICT, not 403 CSRF_ORIGIN_REFUSED"* (the conflict behind it is F20 of sitting 11's orphan repository — R3's reset left
+  `frontend-local.git` without its row, and the demo clears orphans after this control; `createProject` checks the slug first).
+- **(c)** `withholdOnReplay` not consumed → step 3: *"FAIL the same Idempotency-Key again: 409 AGENT_SESSION_ALREADY_STARTED — 201 (no
+  envelope)"* and *"FAIL and its body holds no sk-"*.
+- **(d)** `writesOf` answering `''` for bytes → step 4: *"409 SOURCE_GIT_FAILED: the repository refused the push; nothing was
+  committed"* — **not as predicted** (the prediction said the PDF lands): driver 1's pre-receive hook caught it (F18).
+- **(e)** the output redaction skipped → step 6: *"FAIL where the app printed its own MONGODB_URI — its "mongo" field — the line reads
+  [REDACTED]"* (the demo printed the credential as `<A CREDENTIAL>`) and *"FAIL and no line of the output holds the URI's password"*.
+- **(f)** archive calling `destroyInstance` before the retire (on `101fbf3`) → step 8: every API check green, then *"https://
+  frontend-local.staging.manifest.internal/ answered 200, not the switched-off page: manifest OK host=… listener=internal"*.
+- **(g)** `projects_slug_key` made unconditional on the EMPTY database after R2 (on `101fbf3`) → step 9: *"FAIL createProject
+  frontend-scratch-local: 201, a NEW project — the delete released the slug — 409 SLUG_TAKEN"*; restored exactly as `0038`, read back
+  identical.
+- **(a)–(e) were run BY RICH** (`! bash <scratchpad>/controls-abcde.sh`, his option 1): the classifier refused them to this session —
+  (a) as *[DNS / Domain / Cert Changes]*, (b) as *[Security Weaken]*, after which (c)–(e), the same class, were not attempted (F16).
+
+**Step 5 — the plan's ONE whole-branch review** (Opus, over `3357cfe^..101fbf3`, 98 commits, source only — 13,027 changed lines (12,341 added, 686
+removed) outside tests, docs, generated files and Task 15's own demo — reading `git show` because the controls broke files in place; with the ledger's 85 deferred minors
+to triage): **0 Critical, 2 Important, 8 Minor**. Its fix pass (`16c3357`, `c5f1493`, `11f2526`), each red first, and one scoped
+re-review — **all addressed**, all 50 declared capabilities checked against their handlers.
+
+**Rulings** (the ledger's, each with its cost if wrong): the fixture is `confidential` (Rich's); Step 2's driver-2 and reset legs run
+from this session once Rich's permission was in its conversation, never handed back to the subagent that was refused; three resets,
+because (g)'s unconditional index can only be built where no slug repeats; the task review's Minors 1–4 and 6 re-graded into its fix
+round (checks that could pass for the wrong reason, which the controls rest on); **sitting 11a's "no sweep after a rehearsal" is
+REVERSED** (the review's I2: the plan's own I2 on the second production caller, one line); `endSessionsOf` RETHROWS the first
+`CatalogueError`, so `revokeToken` answers the `503 AI_CATALOGUE_DISABLED` it declares (the token is revoked first); the whole-branch
+review's M1, M3, M5 and M6 deferred to the next plan; **M4 is Rich's** (ORIENTATION §8 *Open*).
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 LiteLLM 1.98.0 refuses a deleted key `401 token_not_found_in_db`, not `auth_error`** — the implementer's prediction; run 1's
+   intake check went red on it; measured again directly: an `sk-` key that never existed answers the same, a non-`sk-` bearer
+   `auth_error`. The check asserts it exactly, each paired with a `200` for the same key before it.
+2. **F2 The demo's "the token's month is its minter's" compared `resetsAt: null` with itself on a fresh machine** — a person has no
+   `mf-person-` gateway user before their first session; the check now compares spend the token's month COUNTS (`d160010`).
+3. **F3 RUNBOOK's `make ci-acceptance` order never named `make demo-authoring`, and its offline steps read "0 to 13"** — the
+   authoring API plan's Task 13 added the step to the script, not the sentence. Both fixed with this plan's step.
+4. **F4 (the task review's I1) Step 9's "its repository is gone" was a negative claim with no positive control — and a bare `404` on
+   driver 2**, which GitHub also answers for a private repository the caller cannot see. Now THERE before (driver 2: `200` naming it,
+   and the mirror) and GONE after (the `404`'s `Not Found` body) — `101fbf3`.
+5. **F5 (the task review's M1, re-graded) The base64 `server.js` refusal would stay green by the `.js` NAME** if the text rule went
+   (`isText`, then the extension, then the bytes, all `REQUEST_INVALID`) — the message is asserted now.
+6. **F6 (its M2, re-graded) The key-alive check before the archive was a status alone** — it lists the session's model now.
+7. **F7 (its M3, re-graded) Step 10's "no session is active" had no positive control** — the list holds the ended session now.
+8. **F8 (its M4, re-graded) `[REDACTED]` was accepted anywhere in the line** — tied to the `mongo` field.
+9. **F9 (its M6, re-graded) Control (g) could not go red as built** — `checkSlug`'s WHERE is its own copy of the predicate, and step 9
+   never took the slug again; it does now (`201`, a new id), which (g) turned red.
+10. **F10 CLAUDE.md said the offline acceptance "now has FOURTEEN steps"** — fifteen now, `make demo-frontend` step 15 (the close-out).
+11. **F11 The clicked half's `form_input` ticked checkboxes React never saw** — the first token went out with the defaults (four
+    capabilities, no `agent:session`); revoked, re-minted by real clicks. The extension's, not the console's (TRAPS.md).
+12. **F12 The console's create field labelled *Name* is the SLUG** — *"SLUG_INVALID 'Week 4 readings' cannot be a project's slug"*,
+    the platform's own words; and **Create needs a second click after the slug check** (the first ran only the check). Deferred —
+    the reference console's.
+13. **F13 The bare skeleton, deployed, exits at once and the platform probes it for ~2 minutes** — 85 readiness attempts after the
+    process had exited 1 (*"MONGODB_URI is required and was not injected"*) before `instance.failed`. Pre-existing (the readiness
+    budget does not watch the container); deferred.
+14. **F14 The step-up EXPIRED while Rich read the ask** — opened 09:36, his login 09:46:40, `manifest_stepup` lives 600 s; the platform
+    was right (*"the sign-in was not started by this browser"*, FE-17's page with `SAML_LOGIN_NOT_BOUND`), but **the page's hint says
+    "Start again at /auth/login" for a STEP-UP** — deferred wording. Re-opened and asked for at once; the memory now says so.
+15. **F15 The auto-mode classifier refused the implementer's `make github-up`** (*"Interfere With Workloads"*) and then a driver-1
+    demo run — it stopped rather than work around it; the runs were made from this session after Rich's *"go ahead"*.
+16. **F16 The classifier refused negative controls (a) and (b) to THIS session too** — (a) *[DNS / Domain / Cert Changes]*, (b)
+    *[Security Weaken]* — after Rich's permission. Not pursued by any other route; (c)–(e) not attempted; Rich ran all five from a
+    script he could read (option 1 of three). TRAPS.md.
+17. **F17 Control (a)'s first red was for the WRONG REASON** — `curl: (35) Recv failure: Connection reset by peer`, `000`: the edge's
+    PUBLIC listener (127.0.0.3) was broken, the host→edge trap after a `make up`, and `make verify` straight after read **61 checks,
+    3 failed**, all on 127.0.0.3. `docker restart manifest-caddy` and a control-plane restart → 61/0/0; Rich's re-run then went red on
+    the wildcard. **No `make verify` ran between the three resets and the controls**, so when the listener broke is unknown.
+18. **F18 A secret driver 1's pre-receive hook catches answers the generic `409 SOURCE_GIT_FAILED`**, not `SOURCE_SECRET_DETECTED`
+    naming the path, and records no `repository.secret_refused` — control (d): the demo's PDF is uncompressed ASCII, so git gives it a
+    hunk and the hook reads it (*"syllabus.pdf:6 looks like an AWS access key id"*); the key never landed. Reachable only when the API's
+    scan misses; deferred.
+19. **F19 (the whole-branch review's I1) `409 PROJECT_ARCHIVED` was declared by NONE of the 66 operations** while 23 answer it — and
+    `revokeToken` declared an AI code it could never answer (a `500`), `endAgentSession`/`endIntakeSession` answered one they did not
+    declare. A route now states the capability it asserts (`capability`, on 50 routes); `refusedWhenArchived` decides both the refusal
+    and the declaration; two tests hold them equal (control: the line removed from `startBuild` and `getBuild` → both red, naming
+    exactly those) — `16c3357`.
+20. **F20 (its I2) The launch rehearsal deployed to production and never ran FE-36's sweep** — sitting 11a's ruling reversed; the
+    route runs `withdrawWhatItNoLongerAllows` in a `finally`, held by a full test on a confidential CWL app — `c5f1493`.
+21. **F21 (its M8, promoted from the deferred) `endSessionsOf`'s `catch {}` dropped each row's cause**, and its summary called a
+    revoked key *"STILL LIVE"* — each cause logged now — `16c3357`.
+22. **F22 (its M2, with the deferred archive re-read) A stale retirer pass on a DELETED project could retire a new same-slug project's
+    containers**, without its lock — the retirer skips a deleted project's environment, and the archive re-reads its state under the
+    lock — `c5f1493` (proven in the state a race leaves; the timing not driven).
+23. **F23 (the triage) The Vancouver-day test went red on the morning of 2026-11-01** — it took NOW's offset for midnight; midnight's
+    offset now, shown red on the helper at 2026-11-01 and 2027-03-14 — `c5f1493`.
+24. **F24 (its M7) `ai/sessions.ts` said the sweep runs on "a push"** — a driver-1 push is recorded by none of the triggers — `c5f1493`.
+25. **F25 (the post-sweep check) The record and the roadmap said the review covered "93 commits" and "14,532 changed lines"** — both
+    measured when HEAD was `90b8e81`, not over the package's range; re-derived over `3357cfe^..101fbf3`: 98 commits, 13,027 lines.
+26. **F26 `make ci-acceptance`'s `pnpm test` read 1 failed of 2826** — `api/delivery.test.ts` › *a release freezes its BUILD's spec*,
+    `error: deadlock detected` in `resetDatabase`'s `TRUNCATE`: TRAPS.md's P6b-F7 class — the tests before it DEPLOY, the deploy's retire
+    pass is not awaited, and it runs into the next test's `TRUNCATE`; **Postgres chose the `TRUNCATE` as the victim, so no extra
+    `[retire] … failed` line appeared** (the trap's stated tell). The file alone: 1 red in 7 (its lines not captured), so 2 of 8 with
+    the acceptance's — P6b measured 2 of 11; `c5f1493`'s new read of `projects` in the pass shows no clear effect. **Not fixed at the
+    close** (a ruling): the central fix — drain every test-built retirer before each `TRUNCATE`, or `buildServer`'s close waiting for
+    retire passes — is new test infrastructure or a production shutdown change, and owes two more full runs. The next plan's.
+27. **F27 (the post-sweep check) §7e said the front-end's mock was pid 28239** — the open's pid, written from memory; the close's
+    `lsof` read 93237 (its sessions restarted it today). Corrected from the query.
+
+**Deferred** (the ledger's `minor (deferred)` and `parked` lines): the whole-branch review's M1 (a restore after a part-way teardown —
+`teardown_finished_at`), M3 (the fleet's `name`/`state`/`archivedAt`), M5 (a non-default capable fallback below `confidential` widens
+Spec action 10's exception; the default is safe), M6 (a stream opened before an archive or a revoke stays open — the front-end's FE-33, found independently); the re-review's
+`AI_UNMAPPED` still undeclared on the session routes, a gateway outage during `revokeToken` still `500`, and `revokeToken`'s description
+not saying the token is revoked before a `503`; the task review's M7, M9, M11; F12, F13, F14's wording, F18; and the demo's cosmetic
+lines. **The whole-branch review's triage of the 85 deferred minors** (`final-review-report.md`, kept in the git-ignored workspace):
+four were fixed here, six were already moot, the rest wait — grouped by area for the next plan.
+
+**Gates at the close** (the final tree, `11f2526`): `pnpm test` **2826 passed, 0 skipped, in 180 files** (was 2817 — the fix pass's nine) — run 2 ALONE, 782 s at
+load ~5–6, exactly as predicted; run 1, inside `make ci-acceptance` (716 s), read 2825 and ONE red, F26's. `pnpm test:docker` **248 in
+41**, green on its FIRST run, alone, 1309 s at load ~6–8 (owed by the fix pass; +0, as predicted). **`make doctor` 20 checks, 0 failed, 0
+warnings** (the database built `2026-09-29T06:32:31Z`, 0.5 days old); **`make verify` 61 / 0 / 0**. `pnpm typecheck`, `pnpm lint` and
+`pnpm format:check` clean (inside `make ci-acceptance`, and the fix pass's own). **`make ci-acceptance`**, driver 1, 1212 s: every step
+PASS but `pnpm test` — `demo-journey`, `demo-token`, `demo-production` (fresh), `demo-releases`, `demo-authoring`, `demo-frontend`;
+`demo-github` NOT RUN (driver 1). `scripts/ci-acceptance.sh` reads `2826 / 180 / 20 / 61`. **Contract** `1.4.0`, 66 operations, 128 codes.
+
+**The machine at the close** (queried 12:11, 2026-09-29, not remembered):
+- the control database **EMPTY — 0 projects, 0 users, 0 agent sessions, 0 instances, 0 events, 40 migrations** (`psql`) — the tests
+  truncated last;
+- **21 `mf-` containers with no rows behind them** — `make ci-acceptance`'s demos (`launch-app`'s six, three each of `board-local`,
+  `journey-app`, `token-app`, `frontend-local`) and driver 2's `frontend-github`; the open's thirty went with the day's three
+  `make reset`s (Rich's yes); `make verify`'s INFO `mf- containers=21 networks=7 volumes=14`;
+- **THE CONTROL PLANE RUNNING** — PID 63494 on 7100, driver 1, from Rich's `.env` by sitting 11a's start script (`s11a-cp-start.sh`,
+  logging to `close-s12-cp.log`) on `11f2526`: `"source":"local"`, `"capableModel":"unchanged"` (registered at the post-tier boot),
+  `"agentBuilderModels":"capable"`, `"agentSessionsWithdrawn":{"ended":0,"failed":0}`. **7102 and 7105 are the faculty front-end's**
+  (its mock, now pid 93237, and its server in mock mode, pid 6548 — both restarted by its sessions today); its session at the close,
+  **`manifest-app-9d`**, uses nothing on 7100 and will message before it does;
+- **Ollama**: `qwen3.5:4b` and `nomic-embed-text` resident, the 27B unloaded (`keep_alive: 0`) — as at the open; LiteLLM 4 users after
+  the orphan sweep;
+- the three cleanup scripts clean after `--apply` (allowed — `bash scripts/<name>.sh`: 7 networks and 3 volumes, 6 LiteLLM orphans —
+  10 users to 4 — and 49 images) and bare again after: nothing dead. `make doctor` 20/0/0; `make verify` 61/0/0. **The GitHub fake's
+  container removed** (the open had none; its data volume kept). The snapshots' diff: the platform's containers recreated by the
+  resets; **NOT this sitting's — `docker-simple-saml-saml-idp-1` now RUNNING (compose project `docker-simple-saml`, exited three weeks
+  at the open) and `cwl-spike-*` and `openwebui-openwebui-1` containers, all started ~11:00 by another project's session
+  (`openwebui-8e` in `ListAgents`) — left alone**; free disk 111 Gi → 95 Gi (their images, and the build cache).
+
+**The four shared HTML pages, checked**: `manifest-schematic.html`'s *Status* line and `manifest-phases.html`'s current-state sentence gain, in
+plain words, what this plan made true (a faculty front end driving all of it from its own address) — and the phases page's stage-2
+sentence, which still said P6b's plan *"comes next"*, is corrected; `manifest-decisions.html` (no decision changed — no spec action
+this sitting) and `manifest-stories.html` (no hostname rule changed) were checked and are unchanged.
