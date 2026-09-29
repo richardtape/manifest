@@ -1,8 +1,12 @@
 # Models `make seed` pulls. The chat model is qwen3.5:4b (Rich, 2026-09-24; 3.4 GB), a
 # THINKING model run with thinking OFF: infra/litellm/config.yaml pins Ollama's `think: false` on
-# default-chat and default-chat-onprem (a request cannot override it), and serves the same model with
-# thinking ON as default-chat-reasoning and default-chat-onprem-reasoning. With thinking on, it streams reasoning_content deltas the
+# default-chat (a request cannot override it), and serves the same model with thinking ON as
+# default-chat-reasoning. With thinking on, it streams reasoning_content deltas the
 # toolkit discards, so the console receives zero chunks and no error, at any token budget
 # (S3 §Evidence 9, re-measured 2026-09-24). ministral-3 was the chat model until then.
 qwen3.5:4b
+# The ON-PREMISE model (Rich, 2026-09-28; the front-end enablement plan's Task 14a): default-chat-onprem and
+# default-chat-onprem-reasoning, and so default-chat-large's fallback. 17 GB on disk, a thinking model pinned off
+# the same way; qwen3.5:4b stays default-chat, the fast floor every demo and tier runs on.
+qwen3.8:27b
 nomic-embed-text:latest

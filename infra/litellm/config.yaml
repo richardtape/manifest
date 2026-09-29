@@ -28,9 +28,15 @@ model_list:
     model_info:
       max_classification: internal       # D17; survives round-trip via /model/info
 
+  # THE LAPTOP'S ON-PREMISE MODEL IS qwen3.8:27b (Rich, 2026-09-28; the front-end enablement plan's Task 14a):
+  # the stand-in for UBC's on-premise inference, and what answers default-chat-large when its provider fails
+  # (Spec action 8). Also a THINKING model, pinned `think: false` exactly as default-chat is — measured
+  # load-bearing for it too (baseline [M16]: without the pin, 50 of 50 frames were reasoning at 50 tokens
+  # and the answer empty). 17.6 GB on the GPU; Ollama will NOT hold it beside qwen3.5:4b on a 36 GiB laptop,
+  # so alternating with default-chat reloads (~9-12 s to it, ~3 s back) — [M17], [M18].
   - model_name: default-chat-onprem
     litellm_params:
-      model: ollama_chat/qwen3.5:4b
+      model: ollama_chat/qwen3.8:27b
       api_base: http://host.docker.internal:11434
       think: false
       input_cost_per_token: 0.000001
@@ -58,7 +64,7 @@ model_list:
 
   - model_name: default-chat-onprem-reasoning
     litellm_params:
-      model: ollama_chat/qwen3.5:4b
+      model: ollama_chat/qwen3.8:27b
       api_base: http://host.docker.internal:11434
       reasoning_effort: medium
       input_cost_per_token: 0.000001

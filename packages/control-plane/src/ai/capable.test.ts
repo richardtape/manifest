@@ -475,7 +475,8 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
     lite.unreachable(CAPABLE_MODEL_NAME)
     expect(lite.use(key, CAPABLE_MODEL_NAME)).toEqual({
       status: 200,
-      model: 'ollama_chat/qwen3.5:4b',
+      // The on-premise model's provider string, from infra/litellm/config.yaml (Task 14a: qwen3.8:27b).
+      model: 'ollama_chat/qwen3.8:27b',
       attemptedFallbacks: 1,
     })
     // The key may not call the fallback by NAME — only the gateway's fallback reaches it.

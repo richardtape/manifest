@@ -269,7 +269,9 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       }
       expect(res.status, JSON.stringify(body).slice(0, 300)).toBe(200)
       // The answer names the FALLBACK's provider string, so an agent can tell who answered.
-      expect(body.model).toBe('ollama_chat/qwen3.5:4b')
+      // The laptop's on-premise model since Task 14a — so this case loads the 27B model, evicting
+      // qwen3.5:4b, which the next default-chat case reloads (baseline [M17]–[M19]).
+      expect(body.model).toBe('ollama_chat/qwen3.8:27b')
       expect(res.headers.get('x-litellm-attempted-fallbacks')).toBe('1')
       expect(res.headers.get('x-litellm-model-group')).toBe('default-chat-onprem')
       // Charged to the SAME key at the FALLBACK's price — config.yaml's $1 / $3 a million, never the

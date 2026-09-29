@@ -2236,3 +2236,21 @@ own slug first** (`clear_orphan_repository`); a person re-creating a project by 
 faculty front-end's session was `manifest-app-c4`, then `-2b`, then `-bb` within one evening. A heads-up sent to `-2b` in the same tool
 round as the commit it announced failed (*"No agent named 'manifest-app-2b' is reachable"*) while the commit went in, so the commit
 landed before any heads-up. Send the message, read that it was delivered, THEN commit.
+
+## Added by the front-end enablement plan's sitting 11a (2026-09-28, Task 14a — the building agent's models)
+
+**OLLAMA WILL NOT HOLD `qwen3.8:27b` BESIDE `qwen3.5:4b` ON A 36 GiB LAPTOP, SO THE ON-PREMISE NAMES AND `default-chat` EVICT EACH
+OTHER** (baseline [M17]–[M19], measured 2026-09-28). Since Task 14a `default-chat-onprem` and `-reasoning` are `qwen3.8:27b` (17.6 GB,
+all on Metal at a 32768 context) while `default-chat` stays `qwen3.5:4b`. Ollama's scheduler decides by the SYSTEM's free memory, not the
+GPU's — its log says `"llama-server model predicted to exceed available memory, evicting" predicted="22.4 GiB" … system_limited=true`
+with 7.6–15.9 GiB free — so loading either unloads the other: ~9–12 s to load the 27B, ~3 s to load the 4B back. **A cold first call
+to an on-premise name takes ~12 s**, and the machine reads ~15% free memory while the 27B is resident. The Docker tier loads it in
+three cases (`ai-path.docker.test.ts`'s two on-premise names, `capable.docker.test.ts`'s fallback), and every `default-chat` case after
+one reloads the 4B. **Warm the one you are about to use**: `curl -s http://127.0.0.1:11434/api/generate -d
+'{"model":"qwen3.8:27b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` (it evicts the
+4B); **unload it** with `-d '{"model":"qwen3.8:27b","keep_alive":0}'`. `/api/ps` says which is resident.
+
+**A FIELD WHOSE NAME BEGINS WITH AN OPERATION'S VERB READS AS AN OPERATION TO THE GUIDES' GATE** (sitting 11a). `docs.test.ts`'s
+*name only operations …* flags a backticked camelCase word whose leading lowercase run is a verb some operation starts with — so
+`` `endReason` `` (`end…`, as in `endAgentSession`) is reported as an operation the API lacks. Name the field in words, or quote its
+value (`models_withdrawn`) instead.

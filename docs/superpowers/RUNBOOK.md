@@ -168,8 +168,8 @@ is a setting, a commercial provider's today, **and it needs the network**. Nothi
 floor every demo and the offline acceptance run on (C1). It is **unset by default**, and a laptop without a provider key registers
 nothing. **When its provider fails — the network off included — the on-premise model answers it** (§7, §21 and §26 as Spec
 action 8 amended them; the front-end enablement plan's Task 12b): `MANIFEST_CAPABLE_MODEL_FALLBACK` names a CATALOGUE entry,
-`default-chat-onprem` by default — Ollama here, UBC's on-premise inference at UBC — and the boot sets it as `default-chat-large`'s
-fallback.
+`default-chat-onprem` by default — Ollama's `qwen3.8:27b` here (the front-end enablement plan's Task 14a), UBC's on-premise inference
+at UBC — and the boot sets it as `default-chat-large`'s fallback.
 
 1. **In `.env`, set the two lines `.env.example`'s section 2f documents**: `OPENAI_API_KEY=` (the provider's key — real money; it
    is yours, and no agent types, reads or prints it) and `MANIFEST_CAPABLE_MODEL=openai/gpt-6-luna` (a LiteLLM model string;
@@ -209,7 +209,7 @@ catalogue lacks, one with no valid `max_classification`, an embedding model, `de
 `internal`: LiteLLM falls back WITHOUT consulting a key's list of models (measured at sittings 9a and 9b — a key holding only
 `default-chat-large` was answered by its fallback), so a `public` fallback would carry `internal` data where no key was allowed to
 send it. **A call the fallback answers is charged to the same key at the FALLBACK's price** (measured: `$1 / $3` a million, never
-the provider's), and its answer's `model` names the fallback's provider string — `ollama_chat/qwen3.5:4b` — with
+the provider's), and its answer's `model` names the fallback's provider string — `ollama_chat/qwen3.8:27b` since Task 14a — with
 `x-litellm-attempted-fallbacks: 1`. `MANIFEST_CAPABLE_MODEL_FALLBACK=` written EMPTY means none; absent or commented takes the
 default. **A FIRST registration made offline is still refused**: LiteLLM cannot price the provider's model, so there is no
 `default-chat-large` to fall back FROM — after one online boot the price is pinned, and offline the fallback answers.
