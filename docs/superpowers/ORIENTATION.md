@@ -229,7 +229,7 @@ docs/superpowers/
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
-│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 15 tasks in 12 proposed sittings, six spec actions drafted (none applied); its sitting 1 (Task 1) ran the same day
+│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 16 tasks in 13 proposed sittings (8a/5a: FE-39, relayed), seven spec actions drafted (none applied); its sitting 1 (Task 1) ran the same day
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1752,7 +1752,7 @@ named in the row below.*
 
 **The launch path plan is WRITTEN** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md), 2026-09-29): FE-6's three
 clocks with D19's drafts and FE-25's sign-off request feeding §26's queue, plus Rich's additions (real GitHub, the key trim, member
-removal) and FE-33, FE-34, FE-38 and F26 at his word — **15 tasks in 12 PROPOSED sittings, six spec actions DRAFTED and none applied.**
+removal) and FE-33, FE-34, FE-38 and F26 at his word — **16 tasks in 13 PROPOSED sittings, seven spec actions DRAFTED and none applied — Task 8a, sitting 5a and Spec action 7 added after sitting 1's close from FE-39, RELAYED as Rich's and to confirm.****
 **Its sitting 1 — Task 1 — RAN THE SAME DAY, at his word, before his review**: the measurements, and **the control plane's first run
 against REAL GitHub**, green end to end (the plan's *Sitting 1*; [`spikes/launch-baseline/`](spikes/launch-baseline/README.md)).
 Fourteen plans are executed (§2's table); this one is the fifteenth begun.
@@ -1761,10 +1761,10 @@ Fourteen plans are executed (§2's table); this one is the fifteenth begun.
 real GitHub, lands FIRST and alone**) and Task 3 (F26's drain). The plan's sittings table is the other statement of it.
 
 **ASK RICH IN THE FIRST MESSAGE** (the plan's *What Rich does* has 1–4, 6 and 8 in full; 5 is Task 1's F17, and 7 is §8 *Open*):
-1. **The review** — the plan as written, its twelve sittings or a re-cut, its decisions. *Recommended:* approve; nothing Task 1
+1. **The review** — the plan as written, its thirteen sittings or a re-cut, its decisions. *Recommended:* approve; nothing Task 1
    measured moves a boundary.
-2. **The six spec actions**, each with options and a recommendation. **None is needed before sitting 2**; 1 and 2 before sitting 5, 3
-   before 6, 4 before 7, 5 before 9 — **and 6 before sitting 4, because Task 1 measured that the guard can be built (Branch G)**. He may
+2. **The seven spec actions**, each with options and a recommendation. **None is needed before sitting 2**; 1 and 2 before sitting 5, 3
+   before 6, 4 before 7, 5 before 9 — **and 6 before sitting 4, because Task 1 measured that the guard can be built (Branch G)**; **7 (FE-39) before sitting 5a, with his confirmation of FE-39 itself — it was RELAYED by the front-end's session as his decision, not said to this one**. He may
    decide them all at once, as he did the last plan's.
 3. **The rows sitting 2's first Vitest run will TRUNCATE**: the faculty front-end's `my-weekly-thoughts` and `notes-and-answers` (its
    session said *"If you hear nothing, treat them as disposable"*), and `lp-real-a`'s row, whose repository stays on GitHub. Let them
@@ -1830,6 +1830,10 @@ reasoning is recorded.**
 
 ### Open
 
+- **FE-39 — ONLY FACULTY BUILD, PLUS A PRESCRIBED LIST OF ADMINISTRATORS — RELAYED AS RICH'S DECISION, TO CONFIRM (2026-09-29)**, by
+  the faculty front-end's session after the launch path plan's sitting 1 (its FE-39, walk-through D7). Written into that plan as Task
+  8a (sitting 5a) and Spec action 7, PROPOSED until he confirms. The open choices are the list by PUID (recommended) or CWL login; what
+  a person who stops being faculty keeps; and which affiliations count at UBC — a question for UBC IAM.
 - **FE-28 TO FE-32 — RELAYED AS RICH'S DECISIONS, TO CONFIRM (2026-09-28); FE-26 AND FE-27 CONFIRMED BY RICH AT SITTING 10's OPEN
   (*"Both join Task 13"*) AND BUILT THERE (`18f3214`) — *Decided*.** The faculty front-end's session sent them to sitting
   9b as *"Rich's decisions … carried at his word"*, and its `docs/api-findings.md` records each as option (a): FE-28
@@ -1952,7 +1956,7 @@ reasoning is recorded.**
   first message: *"Yes: write the plan, then run its Task 1 (including the real-GitHub run) in the same session"*; *"The network is
   on; you have my yes to create private repositories in Manifest-local-dev"*; *"Carry FE-33, FE-34 and FE-38, and the F26 test fix, in
   the plan."*). Done: [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md), its sitting 1's record, and
-  `spikes/launch-baseline/`. **His review of the plan, its twelve sittings and its six spec actions is still his** (§7e).
+  `spikes/launch-baseline/`. **His review of the plan, its sittings and its spec actions is still his** (§7e).
 - **A SESSION HOLDING A MODEL ITS PROJECT NO LONGER ALLOWS IS TRIMMED IN PLACE, NOT ENDED — the launch path plan's Task 7, after its Spec action 1; `/key/update` by alias MEASURED to work, refused at once (its `[M3]`)** (Rich, 2026-09-29,
   *"yes please"*, after the faculty front-end's click on `notes-and-answers`: the building agent's own commit raised the project to
   `confidential`, and FE-36's sweep ended all three live sessions `models_withdrawn` although the capable model was still allowed —

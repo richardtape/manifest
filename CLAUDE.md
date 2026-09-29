@@ -19,7 +19,7 @@ and Phase 2's first five plans, P6a (the first production launch), P6b (subseque
 GitHub source driver, the authoring API and **the front-end enablement plan** (2026-09-29 — what the faculty front-end at
 `app.manifest.internal` needs; eighteen tasks in fifteen sittings, all ten of its spec actions Rich's and applied). Every one has an
 acceptance that passes. **The launch path plan is WRITTEN** (`docs/superpowers/plans/2026-09-29-launch-path.md`, 2026-09-29 — FE-6,
-FE-25 and Rich's additions; 15 tasks in 12 proposed sittings, six spec actions drafted, none applied) **and its sitting 1 has run** —
+FE-25 and Rich's additions; 16 tasks in 13 proposed sittings — Task 8a and sitting 5a from the faculty front-end's FE-39, relayed as Rich's and to confirm — seven spec actions drafted, none applied) **and its sitting 1 has run** —
 the measurements, and the control plane's FIRST RUN AGAINST REAL GITHUB (`Manifest-local-dev`), green end to end. ORIENTATION §7e says
 what is next. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 

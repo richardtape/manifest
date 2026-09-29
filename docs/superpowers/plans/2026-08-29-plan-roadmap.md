@@ -1272,7 +1272,7 @@ after the close: removal revokes them** (ORIENTATION §8 *Decided*; a spec actio
 close, the GitHub driver run against REAL GitHub (`Manifest-local-dev`) as one of its tasks, and a withdrawn session's key TRIMMED in
 place rather than the session ended (measured first; a spec action for §7's sentence)** (ORIENTATION §8 *Decided*).
 
-### The launch path — WRITTEN 2026-09-29: [`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md), 15 tasks in 12 sittings (proposed) — SITTING 1 (TASK 1, THE MEASUREMENTS AND THE FIRST RUN ON REAL GITHUB) DONE THE SAME DAY, BEFORE RICH'S REVIEW
+### The launch path — WRITTEN 2026-09-29: [`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md), 15 tasks in 12 sittings (proposed; and Task 8a in a sitting 5a, FE-39, relayed after the close) — SITTING 1 (TASK 1, THE MEASUREMENTS AND THE FIRST RUN ON REAL GITHUB) DONE THE SAME DAY, BEFORE RICH'S REVIEW
 
 *Which sitting is next is always the plan's sittings table and ORIENTATION §7e; the findings count is in the defect-rate table.*
 
@@ -1296,7 +1296,7 @@ session"*), carrying FE-6 and FE-25 — which absorbs **P8, launch package gener
 - An owner's sign-off request is its own row, feeding `listQueue`, §26's queue, derived and oldest first.
 - A draft never gates a build.
 
-**Six spec actions drafted, none applied**: §7's trim; §10/§6/§20's member rule; §9/§6/§13/§19/D24's staging kind and owner
+**Seven spec actions drafted, none applied** (the seventh, FE-39's, added after sitting 1's close — relayed as Rich's, to confirm, with Task 8a in a sitting 5a): §7's trim; §10/§6/§20's member rule; §9/§6/§13/§19/D24's staging kind and owner
 submission; §9's package wording; §6/§13/§26's `ApprovalRequest`; and §7's *"fails"*.
 
 **Sitting 1 — Task 1 — ran 2026-09-29, in the same session** ([`spikes/launch-baseline/`](../spikes/launch-baseline/README.md)):
@@ -1309,7 +1309,7 @@ submission; §9's package wording; §6/§13/§26's `ApprovalRequest`; and §7's 
   callback is buildable (**Task 6 is Branch G**).
 - An administrator's draft registration fails a SANDBOX build, measured with its positive control.
 
-**No task boundary moved. Rich's review is next**: the plan, the twelve sittings and the six spec actions.
+**No task boundary moved. Rich's review is next**: the plan, its thirteen sittings and its seven spec actions.
 
 ### The faculty front-end's message — RICH'S DECISIONS OF 2026-09-27, AND WHAT FOLLOWS THE FRONT-END ENABLEMENT PLAN
 

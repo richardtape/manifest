@@ -5,7 +5,8 @@
 > the API; it was built from its mirror and served in the sandbox; and a scratch project was deleted and its repository gone
 > from GitHub. Every measurement is in [`spikes/launch-baseline/`](../spikes/launch-baseline/README.md), and `[M<n>]` blocks
 > head Tasks 2, 6, 7, 9, 10 and 11. **No task boundary moves**, and Task 6 is Branch G. **Rich's review is next** — the plan, its
-> twelve sittings and its six spec actions (*What Rich does* 1–2).
+> twelve sittings and its six spec actions (*What Rich does* 1–2) — **and, relayed after the close, FE-39: a thirteenth sitting
+> (5a, Task 8a) and a seventh spec action, to confirm with him (*What Rich does* 9)**.
 
 > **WRITTEN 2026-09-29, AT RICH'S INSTRUCTION, FROM ORIENTATION §7e** (*"Yes: write the plan, then run its Task 1 (including the
 > real-GitHub run) in the same session"*). **Not yet reviewed by Rich.** Its sitting 1 — Task 1, the measurements and THE FIRST
@@ -53,7 +54,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 
 **One sitting per session, with a check-in at each boundary.** This pattern has carried every plan since P4a. It means a session limit never lands in the middle of a task. This plan commits after every task: a stop *between* tasks is recoverable, a stop *inside* one is not.
 
-> **TWELVE SITTINGS — PROPOSED, NOT YET APPROVED BY RICH.** The order puts the **measured, small and self-contained** work first,
+> **TWELVE SITTINGS — PROPOSED, NOT YET APPROVED BY RICH — AND A THIRTEENTH, 5a (Task 8a, FE-39), PROPOSED AFTER SITTING 1's CLOSE
+> FROM THE FRONT-END'S RELAY, TO CONFIRM.** The order puts the **measured, small and self-contained** work first,
 > so the suite is stable (F26) and real GitHub's fixes land before anything is built on driver 2 again. It then puts **the spec
 > actions as LATE as possible**: sittings 2–4 need none (Spec action 6, the fallback's words, before sitting 4 only if Task 1
 > finds a guard can be built), so Rich can decide Spec actions 1–2 before sitting 5, 3 before sitting 6, 4 before sitting 7 and
@@ -71,6 +73,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | |
 | 4 | 6 | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich | **Yes** — `ai/`, `infra/` | **Spec action 6** — needed: Task 1 measured the guard buildable (Branch G, `[M5]`) | |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | |
+| 5a | 8a | **FE-39 — who may build (RELAYED as Rich's decision, TO CONFIRM)**: faculty by CWL's `eduPersonAffiliation`, refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — and Rich's confirmation of FE-39 itself | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** | |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** | |
@@ -125,14 +128,26 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
   **this plan makes none**: the justifications and the assessment are derived, Decision 13); writes go to `main` only; the
   idempotency fingerprint covers the path parameters; a model key is answered once and never stored.
 
+## Relayed as Rich's decision — TO CONFIRM before it is built
+
+- **FE-39 — ONLY FACULTY BUILD, FOR NOW, PLUS A PRESCRIBED LIST OF ADMINISTRATORS** (relayed 2026-09-29, after sitting 1's close,
+  by the faculty front-end's session `manifest-app-9d` as *"carrying FE-39 at Rich's word"*; its `docs/api-findings.md` FE-39 and
+  walk-through D7, `31a3aa2`). Rich signed in to `app.manifest.internal` as the laptop's `student` and could start an app. The words
+  it quotes as his: *"This should be available to all members of faculty (using the associated CWL role). For everyone else (save
+  for a prescribed list of admins), they should see a screen telling them that it isn't available for them at the moment."* — *"the
+  platform, because this would then also work for agentic use"* — *"Faculty members should be able to add other faculty members for
+  now. Perhaps in the future they should be able to add TAs."* **Relayed, not said to this session**, so it is PROPOSED here as
+  **Task 8a, sitting 5a, and Spec action 7**, and waits for his own word (*What Rich does* 9). It reverses §9's deliberate stance
+  (the control plane does not ask for `eduPersonAffiliation` — *"authorization is Manifest's"*, `sso/platform.ts:44-52`).
+
 ---
 
 ## What Rich does, and when
 
-**Nine things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
+**Ten things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
 
 1. **Review this plan, and approve or re-cut the sittings split** — after sitting 1, which he asked to run first.
-2. **Read and decide the six spec actions** (*Spec actions*, below), each **before the sitting that builds it**: **1 and 2 before
+2. **Read and decide the seven spec actions** (the seventh, FE-39's, relayed — item 9) (*Spec actions*, below), each **before the sitting that builds it**: **1 and 2 before
    sitting 5; 3 before sitting 6; 4 before sitting 7; 5 before sitting 9; 6 before sitting 4, and only if Task 1's `[M5]` finds a
    guard can be built.** Each carries its exact wording, its options and a recommendation, and is applied to the spec only after he
    has read the words. A sitting that finds one undecided stops and asks.
@@ -161,7 +176,12 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 8. **The contacts a real package names** — §9's *"technical and privacy contacts from the project owner and platform
    admins"*. The platform's half is a setting (`MANIFEST_LAUNCH_CONTACTS`, Decision 15). On the laptop it defaults to the
    first administrator. **At UBC the names are his.**
-9. **The clicked half of the acceptance — sitting 12.** A person signs in, **and Rich types every password** (ORIENTATION §4
+9. **FE-39 — confirm it, and decide Spec action 7** (before sitting 5a): only faculty build, plus a prescribed list of
+   administrators. Relayed by the faculty front-end's session as his decision; this session records an approval only from his own
+   words. Spec action 7 carries the choices FE-39 left open: the administrators' list by PUID (recommended) or by CWL login; what a
+   person who stops being faculty keeps; and which affiliations count as *faculty* at UBC — the external track's question for UBC IAM
+   (sessional lecturers may not be `faculty`).
+10. **The clicked half of the acceptance — sitting 12.** A person signs in, **and Rich types every password** (ORIENTATION §4
    trap 6). He is the owner who drafts and sends, and then the administrator who sees the queue. Task 15 stages everything first
    and asks once.
 
@@ -520,6 +540,38 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
     `x-litellm-attempted-fallbacks` means, and the finding goes to Rich with the options (a newer LiteLLM, the setting off,
     accepting it). *Rejected:* `disable_fallbacks` on the key's metadata (it disables the unreachable case too).
 
+### Who may build — FE-39 (Task 8a; RELAYED, TO CONFIRM — each of these waits on Rich's word too)
+
+26. **ONE PREDICATE, `mayBuild(user)`, DECIDED BY THE PLATFORM AND ANSWERED ON `getMe`** (`Me.mayBuild: boolean`) — true for an
+    administrator, and for a person whose last sign-in carried an `eduPersonAffiliation` in `MANIFEST_BUILDER_AFFILIATIONS`
+    (default `faculty`). **No client re-derives it.** FE-39 names the three operations that refuse anyone else:
+    `createProject`, `startIntakeSession` and `addMember`'s TARGET. `createProject` and `startIntakeSession` answer
+    `403 BUILDING_NOT_OPEN`; `addMember` answers `409 MEMBER_MAY_NOT_BUILD` naming the target. Each is session-only already, so no
+    token path exists to guard. *TAs later* are a change to this one function.
+27. **THE AFFILIATION IS UBC'S CURRENT FACT, REFRESHED AT EVERY SIGN-IN — AND AN ASSERTION WITHOUT IT MEANS "NOT FACULTY".**
+    `users.affiliations jsonb` and `affiliations_seen_at` are written by `upsertUserFromAssertion` every time. Unlike `cwl_login` —
+    never overwritten with null — an absent attribute writes `[]`, because §9's release is enforced against the list, and an
+    attribute UBC did not send is UBC saying nothing.
+28. **THE ADMINISTRATORS' LIST IS A SETTING OF PUIDS — `MANIFEST_ADMIN_PUIDS` — RECOMMENDED OVER CWL LOGINS** (Spec action 7
+    offers both). A CWL login can be reassigned by UBC — ORIENTATION §3: the login is *"held by whoever signed in with it last"* —
+    so a list of logins can hand the platform's highest role to a stranger. A PUID is never reassigned, and it is the one key §9
+    identifies a person by. **When the setting is set, it is authoritative**: at every sign-in the person's role is reconciled to
+    it, each change a `RoleChange` with actor `setting:MANIFEST_ADMIN_PUIDS` (§20's audit). **When it is empty, today's
+    `scripts/admin-grant.sh` stays the procedure.** *Rejected:* both at once, where a person granted by the script and absent
+    from the list would flip at every sign-in.
+29. **A PERSON WHO STOPS BEING FACULTY CANNOT START ANYTHING NEW, AND KEEPS WHAT THEY HAVE** — recommended, and Rich's to decide
+    (Spec action 7's option (b) is the front-end's recommendation). `mayBuild` becomes false at their next sign-in. Their
+    memberships and the tokens they minted are unchanged, as FE-39's *"Unchanged"* says for tokens, so a course app mid-term keeps
+    its owner. An administrator archives it if it must stop. *The alternative (b):* they lose their projects' access too — a
+    removal from every project, with Task 8's revocations.
+30. **WHICH AFFILIATION IS "FACULTY" AT UBC IS NOT KNOWN — IT IS A SETTING, AND A QUESTION FOR UBC IAM.** The eduPerson standard's
+    `faculty` may not cover a sessional lecturer or an instructor employed as `staff`. The default is `faculty`, the list is
+    `MANIFEST_BUILDER_AFFILIATIONS`, and the question goes to `docs/external-track.md`. Locally the IdP already releases
+    `instructor: [faculty]`, `student: [student]` and `operator: [staff]` (`infra/idp/config/authsources.php`).
+31. **A SECOND FACULTY TEST USER, `colleague`**, is added to the laptop IdP, because a demo that adds a colleague must now add a
+    faculty member. `demo-frontend`'s step 7 adds `student` by login name today, and becomes: `student` refused
+    `MEMBER_MAY_NOT_BUILD`, then `colleague` added.
+
 ---
 ## Global Constraints
 
@@ -572,7 +624,8 @@ Every task's requirements implicitly include this section. Values are copied ver
   - **`409 LAUNCH_DRAFT_REQUIRED`**, **`409 LAUNCH_RECORD_SUBMITTED`** and **`400 LAUNCH_SENT_AT_INVALID`** (family
     `LaunchRecordError`, beside `LAUNCH_RECORD_INVALID` and `LAUNCH_TRANSITION_INVALID`; Tasks 9–10);
   - **`409 LAUNCH_NOT_CWL`** — a draft for an app that registers nothing (Task 10);
-  - **`409 APPROVAL_NOT_NEEDED`** (Task 12; it reuses `RELEASE_NOT_STAGED`).
+  - **`409 APPROVAL_NOT_NEEDED`** (Task 12; it reuses `RELEASE_NOT_STAGED`);
+  - **`403 BUILDING_NOT_OPEN`** and **`409 MEMBER_MAY_NOT_BUILD`** (Task 8a — relayed, to confirm).
 
   **Every new code is thrown as a literal and needs its meaning and remedy** in `api/error-codes.ts`. A new family is four edits:
   its class, its registry entries, `WIRE_CLASSES` in `api/error-codes.test.ts`, and its branch in `api/errors.ts`.
@@ -596,7 +649,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Tests that run `git` set their own identity and ignore the machine's config**: `-c user.name=… -c user.email=… -c
   commit.gpgsign=false`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=/dev/null`.
 - **Nothing in this plan installs an external package.** A task that believes it needs one records a finding and raises it.
-- **Ask before `sudo`.** No task needs it. **Never edit the spec** — the six spec actions go to Rich. **Never touch Laravel
+- **Ask before `sudo`.** No task needs it. **Never edit the spec** — the seven spec actions go to Rich. **Never touch Laravel
   Valet.** These four containers must survive: `docker-simple-saml-saml-idp-1`, `qdrant-local-dev`, `mongodb`, `mongo-express`.
   **`caddy-data` must never be destroyed.** **`docker-simple-saml`, `ubc-genai-toolkit` and `saml-metadata-generator` are
   read-only** — Task 1 runs the tool's `generateMetadata` from a COPY in `$SCRATCH`, never in place.
@@ -686,6 +739,7 @@ packages/control-plane/src/observability/
 packages/control-plane/src/ai/
   agent-keys.ts               MOD (T7) narrowAgentKey — /key/update on the alias
   sessions.ts                 MOD (T7, T8) trimOrEnd; endSessionsOf gains { projectId, userId }
+packages/control-plane/src/identity/, sso/   MOD (T8a) eduPersonAffiliation asked for and kept; mayBuild; the admin setting
 packages/control-plane/src/tokens/
   repository.ts               MOD (T8) revokeTokensOfMember
 packages/control-plane/src/projects/
@@ -1471,6 +1525,85 @@ refuses the withdrawn model, this task does not start — Decision 23, and Rich 
       half.
 
 ---
+## Task 8a: FE-39 — who may build: faculty, or an administrator named by a setting (RELAYED — TO CONFIRM)
+
+**Rich's own confirmation of FE-39, and Spec action 7, first** (*What Rich does* 9). Decisions 26–31 are this task's; each is
+PROPOSED until he has said so. **Its own sitting, 5a**: it moves every test fixture and demo that builds as someone other than a
+faculty member, which is the whole unit tier's `withProjectServer` owner.
+
+**Files:**
+- Modify: `packages/control-plane/src/sso/platform.ts:44-62` — `CONTROL_PLANE_ATTRIBUTES` gains `eduPersonAffiliation` (six names).
+  The comment explaining its omission is rewritten, as Spec action 7 rewrites §9.
+- Modify: `packages/control-plane/src/identity/saml.ts` — `toIdentity` reads the attribute's values; `upsertUserFromAssertion`
+  (`:584`) writes `affiliations` and `affiliations_seen_at` every time, and reconciles the role to `MANIFEST_ADMIN_PUIDS` when it is
+  set (a `RoleChange` per change)
+- Create: `packages/control-plane/src/identity/builders.ts` — `mayBuild(user, config): boolean`, the ONE predicate
+- Modify: `packages/control-plane/src/config.ts` — `MANIFEST_BUILDER_AFFILIATIONS` (default `faculty`) and `MANIFEST_ADMIN_PUIDS`
+  (default empty); `.env.example` the commented lines
+- Modify: `packages/control-plane/src/db/schema.ts` + migration — `users.affiliations jsonb NOT NULL DEFAULT '[]'`,
+  `users.affiliations_seen_at timestamptz`
+- Modify: `packages/control-plane/src/api/routes/me.ts` (or wherever `getMe` lives) and `api/representations/` — `Me.mayBuild`
+- Modify: `packages/control-plane/src/api/routes/projects.ts` (`createProject`), `api/routes/intake.ts` (`startIntakeSession`),
+  `api/routes/project-reads.ts` (`addMember`'s target) — the refusals
+- Modify: `packages/control-plane/src/identity/testing.ts` — the test people carry affiliations: `bio_prof` faculty;
+  `bio_student` and `unrelated_user` as their roles say
+- Modify: `infra/idp/config/authsources.php` — `colleague` (faculty), a second faculty test user (Decision 31). A single-file bind
+  mount: edit in place, restart the IdP, read it back.
+- Modify: `packages/journey/src/frontend.ts`, `packages/journey/src/token.ts`, `scripts/demo-frontend.sh` — adding a member adds
+  `colleague`; `student` is shown refused `MEMBER_MAY_NOT_BUILD`
+- Modify: `packages/mock/src/server.ts`, `fixtures.ts` — `mayBuild: true`, and `MANIFEST_MOCK_MAY_BUILD=0` answering `false` and
+  refusing the three operations (FE-39's ask 6)
+- Modify: `docs/api/frontend.md`, `docs/api/authentication.md` — who may build, and the codes
+- Test: `src/identity/builders.test.ts`, `src/identity/saml.test.ts`, `src/api/projects.test.ts`, `src/api/intake.test.ts`,
+  `src/api/members.test.ts`, `src/sso/platform.test.ts` (six names), `src/boot.docker.test.ts` (the release list),
+  `src/identity/saml.docker.test.ts` (a real sign-in carries the affiliation)
+
+**Interfaces:**
+- Produces: `mayBuild(user: { role: 'admin' | 'member'; affiliations: readonly string[] }, config: { builderAffiliations:
+  readonly string[] }): boolean`; `Me.mayBuild: boolean`; `403 BUILDING_NOT_OPEN` (family `BuildingError`, new) and
+  `409 MEMBER_MAY_NOT_BUILD`.
+- Consumes: Task 8's `removeMember` (unchanged), and the front-enablement plan's `cwl_login` rule.
+
+- [ ] **Step 1: The failing tests.**
+  ```ts
+  it('a faculty member may build; a student may not, and is told so by code', async () => {
+    const student = await signIn(deps, { puid: 'stu000001', affiliations: ['student'] })
+    expect((await get(ctx, '/v1/me', student)).json().mayBuild).toBe(false)
+    expect(refusal(await createProject(ctx, student, 'st-app')).code).toBe('BUILDING_NOT_OPEN')
+    expect(refusal(await startIntake(ctx, student)).code).toBe('BUILDING_NOT_OPEN')
+    const prof = await signIn(deps, { puid: 'ins000001', affiliations: ['faculty'] })
+    expect((await get(ctx, '/v1/me', prof)).json().mayBuild).toBe(true)
+    expect((await createProject(ctx, prof, 'prof-app')).statusCode).toBe(201)     // the positive control
+  })
+  it('the affiliation is refreshed at every sign-in — faculty last time, not this time, may not build', …)
+  it('an assertion without eduPersonAffiliation signs the person in, and they may not build', …)
+  it('an administrator named by MANIFEST_ADMIN_PUIDS may build, whatever their affiliation, and the role change is audited', …)
+  it('with MANIFEST_ADMIN_PUIDS set, an administrator absent from it is reconciled to member at sign-in, audited', …)
+  it('with MANIFEST_ADMIN_PUIDS empty, admin-grant.sh’s grant stands (today’s procedure)', …)
+  it('a faculty owner adding a student is refused MEMBER_MAY_NOT_BUILD, naming them; adding a faculty colleague works', …)
+  it('a person who stops being faculty keeps their memberships and their tokens, and cannot start anything new', …)  // Decision 29 — as Rich decides
+  it('a token a faculty member minted keeps working after their session is gone', …)
+  ```
+- [ ] **Step 2: Run — predict red**, and **predict the WIDE red** before running the whole unit tier: every test whose project owner
+  is built without an affiliation. Count them first with `grep -rn "sessionFor\|loginAs\|withProjectServer" src | wc -l`, and
+  record the count against the red.
+- [ ] **Step 3: Implement** — the predicate, the sign-in writer, the refusals, the fixtures' affiliations, and the migration.
+- [ ] **Step 4: The demos** — `demo-frontend` step 7 and `demo-token` add `colleague`, and show `student` refused. Run both on
+  driver 1 once (**the control plane restarted on driver 1 for it, and back to what Rich chose after**).
+- [ ] **Step 5: The contract, the mock, the guides; tell the front-end's live session** (it waits on `mayBuild`); commit.
+  ```bash
+  git add <each path in Files, by name> packages/control-plane/drizzle/<the migration> packages/control-plane/drizzle/meta/_journal.json packages/control-plane/drizzle/meta/<its snapshot> packages/contract/openapi.json packages/contract/src/schema.d.ts docs/api/reference/<each regenerated page> docs/api/llms.txt
+  git commit -m "feat(identity): FE-39 — only faculty build, and administrators named by a setting; mayBuild on getMe (Spec action 7)"
+  ```
+- [ ] **Step 6: Negative controls.**
+  (a) `mayBuild` returning true. **Predict red**: the first test, at `BUILDING_NOT_OPEN` — its positive control stays green.
+  (b) The sign-in writer keeping the old affiliations when the attribute is absent. **Predict red**: *an assertion without
+      eduPersonAffiliation … may not build*.
+  (c) The admin list read by CWL login instead of PUID. **Predict red**: a case where a login is reassigned (the cwl_login rule's
+      own test shape) — write it in Step 1.
+
+---
+
 ## Task 9: The three clocks' records — the staging registration, "I've sent it", and *waiting since*
 
 > **`[M8]` (Task 1, 2026-09-29 — F13, F14, F15):**
@@ -2047,6 +2180,7 @@ lands, the submission routes have no client that can meet their precondition** �
   §23, `LaunchReadiness` overrides).
 - **An owner revoking any token on their project, and `Token` naming its minter** — FE-11's option (b). Rich chose (a) (Task 8).
 - **FE-28 to FE-32** — relayed as Rich's decisions and not confirmed (*What Rich does* 6).
+- **TAs building, or being added** — FE-39's *"Perhaps in the future"*: a change to Task 8a's one predicate, when Rich says so.
 - **From the front-end enablement plan, still open:**
   - M1 — a restore after a part-way teardown (`teardown_finished_at`);
   - M5 — a non-default capable fallback below `confidential`;
@@ -2066,7 +2200,7 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Spec actions
 
-**SIX, DRAFTED 2026-09-29 WITH THIS PLAN; NONE APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
+**SIX, DRAFTED 2026-09-29 WITH THIS PLAN — AND A SEVENTH, FROM FE-39, DRAFTED AFTER SITTING 1'S CLOSE (relayed, to confirm); NONE APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
 only after he has read the words. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §6,
 §7, §9, §10, §13, §20, §26 and D24 in plain language, and each action below names the pages it moves.
 
@@ -2227,6 +2361,39 @@ gateway also answers a request the provider refused as malformed**; a client tel
 
 **Shared pages:** none restates the fallback (checked by `grep` on 2026-09-29 — recheck at application).
 
+### 7. §9, §6, §13, §20 and §26 — who may build: faculty, or an administrator named by a setting (FE-39; before sitting 5a — RELAYED, TO CONFIRM)
+
+**Why.** FE-39, relayed as Rich's decision (*Relayed as Rich's decision — to confirm*). A student with a CWL can start an app today,
+and spend the platform's model money doing it. §9 has the control plane deliberately not ask for `eduPersonAffiliation`, and §13's
+roles know nothing of faculty.
+
+**Proposed**, five edits:
+- **§9**, after *"…and `uid`, the CWL login name — the last so that a person can add a colleague to a project by the name the
+  colleague signs in with."*: *"**And `eduPersonAffiliation`, read at every sign-in as UBC's current fact about the person**:
+  Manifest is for faculty, for now, and only a person whose affiliation is one the platform names (a setting, `faculty` by
+  default) — or an administrator — may start a project, an intake session, or be added to a project. Authorization stays
+  Manifest's; the attribute is one fact it decides from."*
+- **§6, `User`**, gains *`affiliations` (from `eduPersonAffiliation`, as of the person's last sign-in)*.
+- **§13, *Roles***, gains a first line: *"**Who may build** — a faculty member (by CWL affiliation) or a platform admin. Everyone
+  else who signs in is told it is not open to them yet. A project's members are people who may build."*
+- **§20**, *Admin bootstrapping*: *"…the first administrator is created by a documented out-of-band procedure…"* gains *"— or
+  named in a platform setting of PUIDs, which is authoritative when it is set, reconciled at every sign-in and audited as a
+  `RoleChange`."*
+- **§26**, *Platform settings*, gains *"who may build: the affiliations that count, and the administrators"*.
+
+*Options, for the parts FE-39 left open:*
+- **The list — (a) PUIDs** (recommended: a PUID is never reassigned) **or (b) CWL logins** (friendlier to write, and a reassigned
+  login inherits the role).
+- **A person who stops being faculty — (a) keeps their memberships and tokens, and starts nothing new** (recommended; a course app
+  mid-term keeps its owner) **or (b) loses their projects' access too** (the front-end's recommendation; a removal from every
+  project).
+- **Which affiliations count** — `faculty` by default, a setting, and a question for UBC IAM on the external track.
+- **Or decline** — building stays open to every CWL holder, and FE-39's screen is the front-end's alone (FE-39's option (b), which
+  Rich rejected, as relayed).
+
+**Shared pages:** `manifest-decisions.html` — a sentence on who may build; `manifest-schematic.html`, where it describes who signs
+in; check the others.
+
 ---
 
 ## What the self-review caught
@@ -2350,3 +2517,13 @@ operations, 128 codes, 46 event types; **40 migrations**.
   is BUILT — this sitting ran a measurement, not a feature;
 - no spec action was applied, so `manifest-decisions.html` does not move;
 - `manifest-stories.html` names no GitHub or hostname rule this sitting touched.
+
+### After sitting 1's close — 2026-09-29: FE-39, relayed as Rich's decision, written in as Task 8a (sitting 5a) and Spec action 7
+
+The faculty front-end's session (`manifest-app-9d`) sent FE-39 *"at Rich's word"*: only faculty build, for now, plus a prescribed
+list of administrators, decided by the platform so it holds for agents too. Rich found it by signing in as the laptop's `student`
+and starting an app. **Relayed, so PROPOSED**: *Relayed as Rich's decision — to confirm*, *What Rich does* 9, Decisions 26–31, Task 8a
+in its own sitting 5a, and Spec action 7. Its open choices are the administrators' list by PUID (recommended — a CWL login can be
+reassigned) or by login; what a person who stops being faculty keeps; and which affiliations count at UBC. Writing it found that
+**`demo-frontend` and `demo-token` add `student` as a member**, which the rule refuses; so a second faculty test user, `colleague`,
+is proposed. The laptop IdP already releases `eduPersonAffiliation` for all three test users.
