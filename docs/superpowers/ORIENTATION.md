@@ -1752,7 +1752,7 @@ named in the row below.*
 
 **The launch path plan is WRITTEN** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md), 2026-09-29): FE-6's three
 clocks with D19's drafts and FE-25's sign-off request feeding §26's queue, plus Rich's additions (real GitHub, the key trim, member
-removal) and FE-33, FE-34, FE-38 and F26 at his word — **16 tasks in 13 PROPOSED sittings, seven spec actions DRAFTED and none applied — Task 8a, sitting 5a and Spec action 7 added after sitting 1's close from FE-39, RELAYED as Rich's and to confirm.****
+removal) and FE-33, FE-34, FE-38 and F26 at his word — **16 tasks in 13 PROPOSED sittings, seven spec actions DRAFTED and none applied — Task 8a, sitting 5a and Spec action 7 added after sitting 1's close from FE-39 — relayed, then CONFIRMED by Rich the same evening.****
 **Its sitting 1 — Task 1 — RAN THE SAME DAY, at his word, before his review**: the measurements, and **the control plane's first run
 against REAL GitHub**, green end to end (the plan's *Sitting 1*; [`spikes/launch-baseline/`](spikes/launch-baseline/README.md)).
 Fourteen plans are executed (§2's table); this one is the fifteenth begun.
@@ -1764,7 +1764,7 @@ real GitHub, lands FIRST and alone**) and Task 3 (F26's drain). The plan's sitti
 1. **The review** — the plan as written, its thirteen sittings or a re-cut, its decisions. *Recommended:* approve; nothing Task 1
    measured moves a boundary.
 2. **The seven spec actions**, each with options and a recommendation. **None is needed before sitting 2**; 1 and 2 before sitting 5, 3
-   before 6, 4 before 7, 5 before 9 — **and 6 before sitting 4, because Task 1 measured that the guard can be built (Branch G)**; **7 (FE-39) before sitting 5a, with his confirmation of FE-39 itself — it was RELAYED by the front-end's session as his decision, not said to this one**. He may
+   before 6, 4 before 7, 5 before 9 — **and 6 before sitting 4, because Task 1 measured that the guard can be built (Branch G)**; **7 (FE-39) before sitting 5a — FE-39 CONFIRMED by him and its options decided (§8 *Decided*); only its words await his read**. He may
    decide them all at once, as he did the last plan's.
 3. **The rows sitting 2's first Vitest run will TRUNCATE**: the faculty front-end's `my-weekly-thoughts` and `notes-and-answers` (its
    session said *"If you hear nothing, treat them as disposable"*), and `lp-real-a`'s row, whose repository stays on GitHub. Let them
@@ -1830,10 +1830,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **FE-39 — ONLY FACULTY BUILD, PLUS A PRESCRIBED LIST OF ADMINISTRATORS — RELAYED AS RICH'S DECISION, TO CONFIRM (2026-09-29)**, by
-  the faculty front-end's session after the launch path plan's sitting 1 (its FE-39, walk-through D7). Written into that plan as Task
-  8a (sitting 5a) and Spec action 7, PROPOSED until he confirms. The open choices are the list by PUID (recommended) or CWL login; what
-  a person who stops being faculty keeps; and which affiliations count at UBC — a question for UBC IAM.
 - **FE-28 TO FE-32 — RELAYED AS RICH'S DECISIONS, TO CONFIRM (2026-09-28); FE-26 AND FE-27 CONFIRMED BY RICH AT SITTING 10's OPEN
   (*"Both join Task 13"*) AND BUILT THERE (`18f3214`) — *Decided*.** The faculty front-end's session sent them to sitting
   9b as *"Rich's decisions … carried at his word"*, and its `docs/api-findings.md` records each as option (a): FE-28
@@ -1952,6 +1948,15 @@ reasoning is recorded.**
 
 ### Decided
 
+- **FE-39 — ONLY FACULTY BUILD, PLUS ADMINISTRATORS NAMED BY PUID** (relayed by the faculty front-end's session after the launch path
+  plan's sitting 1, then CONFIRMED by Rich in that session the same evening, answering its three open choices: *"1. YEs, PUID 2. YEs keep but no new. 3. literally just those with 'faculty' as their affiliation"*). So:
+  - the administrators' list is `MANIFEST_ADMIN_PUIDS`, not CWL logins;
+  - a person who stops being faculty keeps their projects and tokens, and starts nothing new;
+  - exactly the affiliation `faculty`, with no setting — so a sessional lecturer marked `staff` does not build unless named an
+    administrator.
+
+  The launch path plan's Task 8a (sitting 5a) builds it. **Spec action 7's words carry his answers and await his read** before they
+  are applied.
 - **THE LAUNCH PATH PLAN: WRITTEN, ITS TASK 1 RUN THE SAME SESSION, FE-33/FE-34/FE-38 AND F26 CARRIED** (Rich, 2026-09-29, the plan's
   first message: *"Yes: write the plan, then run its Task 1 (including the real-GitHub run) in the same session"*; *"The network is
   on; you have my yes to create private repositories in Manifest-local-dev"*; *"Carry FE-33, FE-34 and FE-38, and the F26 test fix, in
