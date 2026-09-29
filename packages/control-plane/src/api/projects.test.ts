@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { startFake, type StartedFake } from '@manifest/github-fake/testing'
 import { appSpecs, events, projects } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { SourceError } from '../source/index.js'
 import { buildServer } from './server.js'
 import {
+  githubTestDeps,
   loginAs,
   mutationHeaders,
   projectBody,
@@ -46,6 +50,14 @@ const create = (slug: string) => ({
   url: '/v1/projects',
   payload: projectBody(slug),
 })
+
+/** What the GitHub fake answers a PERSON (`faculty-dev`, with admin) reading the repository. */
+async function asPerson(fake: StartedFake, slug: string): Promise<number> {
+  const res = await fetch(`${fake.apiUrl}/repos/${fake.org}/${slug}`, {
+    headers: { authorization: `token ${fake.developerToken}` },
+  })
+  return res.status
+}
 
 async function signedIn(puid: TestUserPuid = 'bio_prof') {
   const deps = await testDeps()
@@ -242,6 +254,106 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
     expect(await failing.db.select().from(projects)).toEqual([])
     expect(await failing.db.select().from(events)).toEqual([])
     await app.close()
+  })
+
+  /**
+   * A CREATE THAT FAILS AFTER THE DRIVER MADE THE REPOSITORY (the launch path plan's Task 2,
+   * *Read this first* 13): the route records the row and reads the seed back AFTER
+   * `createRepository` returned, and a failure there used to delete only the project row — the
+   * repository stayed on GitHub, the mirror stayed here, and the slug was refused
+   * `SOURCE_REPOSITORY_EXISTS` for ever. On driver 2, against the in-process fake: the read after
+   * the create fails ONCE, as a GitHub that stopped answering would make it.
+   */
+  it('a create that fails after the driver made the repository destroys it, and frees the slug', async () => {
+    const fake = await startFake()
+    try {
+      const base = await githubTestDeps(fake)
+      let failures = 1
+      const failing = {
+        ...base,
+        source: {
+          ...base.source,
+          headCommit: (repo: Parameters<typeof base.source.headCommit>[0]) =>
+            failures-- > 0
+              ? Promise.reject(
+                  new SourceError(
+                    'SOURCE_GIT_FAILED',
+                    'the read after the create failed',
+                  ),
+                )
+              : base.source.headCommit(repo),
+        },
+      }
+      const app = await buildServer(failing)
+      try {
+        const cookies = await loginAs(failing, 'bio_prof')
+        const post = () =>
+          app.inject({
+            ...create('lp-fail-after'),
+            cookies,
+            headers: mutationHeaders(failing),
+          })
+        const res = await post()
+        // The ORIGINAL failure, answered as it maps — not the cleanup's.
+        expect(refusal(res)).toEqual({ status: 409, code: 'SOURCE_GIT_FAILED' })
+        expect(await asPerson(fake, 'lp-fail-after')).toBe(404) // gone on "GitHub"
+        expect(existsSync(join(failing.config.reposRoot, 'lp-fail-after.git'))).toBe(
+          false,
+        )
+        expect(await failing.db.select().from(projects)).toEqual([])
+        // THE POSITIVE CONTROL: the same slug creates — nothing of the failed one is in its way.
+        const again = await post()
+        expect(again.statusCode, again.body).toBe(201)
+        expect(await asPerson(fake, 'lp-fail-after')).toBe(200)
+      } finally {
+        await failing.sourceSync.idle()
+        await app.close()
+      }
+    } finally {
+      await fake.stop()
+    }
+  })
+
+  /**
+   * AND A CLEANUP THAT FAILS TOO IS SAID, NEVER SWALLOWED — and never answered in place of the
+   * failure that caused it. Driver 1, both steps failing by injection: the operator line names
+   * the slug and the provider, and the client is told the ORIGINAL code.
+   */
+  it('a cleanup that fails after a failed create is an operator line naming the slug and provider, and the original error is answered', async () => {
+    const base = await testDeps()
+    const failing = {
+      ...base,
+      source: {
+        ...base.source,
+        headCommit: () =>
+          Promise.reject(
+            new SourceError('SOURCE_GIT_FAILED', 'the read after the create failed'),
+          ),
+        destroyRepository: () =>
+          Promise.reject(new SourceError('SOURCE_PATH_ESCAPE', 'the destroy failed too')),
+      },
+    }
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const app = await buildServer(failing)
+    try {
+      const cookies = await loginAs(failing, 'bio_prof')
+      const res = await app.inject({
+        ...create('lp-cleanup-fails'),
+        cookies,
+        headers: mutationHeaders(failing),
+      })
+      expect(refusal(res)).toEqual({ status: 409, code: 'SOURCE_GIT_FAILED' })
+      const lines = said.mock.calls.map((c) => c.map(String).join(' '))
+      expect(lines).toContainEqual(expect.stringContaining('lp-cleanup-fails'))
+      const line = lines.find((l) => l.includes('lp-cleanup-fails'))!
+      expect(line).toContain('local')
+      expect(line).toContain('the destroy failed too')
+      // The project row goes whatever the repository did: the slug is not held by a ghost.
+      expect(await failing.db.select().from(projects)).toEqual([])
+    } finally {
+      said.mockRestore()
+      await app.close()
+    }
   })
 
   it('publishes project.created, repository.seeded and spec.validated, in that order, once the repository exists', async () => {

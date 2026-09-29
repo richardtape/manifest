@@ -3,7 +3,9 @@
 # offline — an application whose code is on GitHub, private, on `github-app`.
 #
 #   0  WHICH DRIVER: an unsigned delivery. Driver 1 answers `404 WEBHOOKS_NOT_CONFIGURED`,
-#      and this stops, CREATING NOTHING (Decision 17) — no route deletes a project.
+#      and this stops, CREATING NOTHING (Decision 17) — no route deletes a project. A `.env`
+#      set to REAL GitHub stops it first, by name (`require_fake_github`, the launch path
+#      plan's Task 2): every step below is the fake's.
 #   1  the instructor signs in with CWL
 #   2  an orphan `github-app` — left by `pnpm test` or `make reset` — is cleared
 #   3  `github-app`, created or re-used: its repository on GitHub, private, `main` protected
@@ -144,6 +146,10 @@ case "$UP" in
   *) fail "no control plane behind $API (got: ${UP:0:120}).
 docs/superpowers/RUNBOOK.md's 'The control plane on driver 2' has the exact commands." ;;
 esac
+
+# The FAKE's demo, never real GitHub's (the launch path plan's Task 2): asked before the probe,
+# which reads the fake's health, and before anything is created.
+require_fake_github
 
 run_phase probe
 if grep -q '"driver": "local"' "$STATE"; then

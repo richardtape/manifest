@@ -16,6 +16,8 @@ import {
 import { db, projects, sourceRepositories } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
+import type { RepositoryLink, SourceProvider } from '../source/index.js'
+import { recordRepository, repositoryOf } from './source-repositories.js'
 
 /**
  * EVERY PROJECT RECORDS ITS PROVIDER, AND A MISMATCH IS REFUSED (the D5 plan's Decision 3,
@@ -50,6 +52,15 @@ async function rowOf(projectId: string) {
   return row
 }
 
+/** Which GitHub the row says made the project's repository (the launch path plan's Task 2). */
+async function apiHostOf(projectId: string) {
+  const [row] = await db
+    .select({ apiHost: sourceRepositories.apiHost })
+    .from(sourceRepositories)
+    .where(eq(sourceRepositories.projectId, projectId))
+  return row?.apiHost
+}
+
 describe('the provider on every project (Decision 3)', () => {
   let fake: StartedFake
   beforeEach(async () => {
@@ -69,6 +80,7 @@ describe('the provider on every project (Decision 3)', () => {
         fullName: 'chem-labs',
         webUrl: null,
       })
+      expect(await apiHostOf(res.json().id)).toBeNull() // on no GitHub
     } finally {
       await app.close()
     }
@@ -83,8 +95,54 @@ describe('the provider on every project (Decision 3)', () => {
         fullName: 'manifest-apps/chem-labs',
         webUrl: `${fake.url}/manifest-apps/chem-labs`,
       })
+      // WHICH GitHub (the launch path plan's Task 2): the API's host — and never on the wire.
+      expect(await apiHostOf(res.json().id)).toBe(new URL(fake.apiUrl).host)
+      expect(res.json().repository).not.toHaveProperty('apiHost')
     } finally {
       await app.close()
+    }
+  })
+
+  /**
+   * A PROJECT ANOTHER GITHUB MADE (the launch path plan's Task 2, *Read this first* 14): both are
+   * provider `github`, so before `api_host` a project made against the fake raised no mismatch on
+   * a control plane restarted onto the real App — and its delete removed the mirror and left the
+   * fake's repository. Two fakes, one database: the laptop that switched GitHubs.
+   */
+  it('refuses a project another GitHub made — naming both hosts — and answers its own', async () => {
+    const other = await startFake()
+    try {
+      const theirs = await create(await githubTestDeps(other), 'chem-labs')
+      await theirs.app.close()
+      expect(theirs.res.statusCode, theirs.res.body).toBe(201)
+      const github = await githubTestDeps(fake)
+      const mine = await create(github, 'bio-labs')
+      try {
+        expect(mine.res.statusCode, mine.res.body).toBe(201)
+        const validate = (id: string) =>
+          mine.app.inject({
+            method: 'POST',
+            url: `/v1/projects/${id}/spec`,
+            payload: {},
+            cookies: mine.cookies,
+            headers: mutationHeaders(github),
+          })
+        const refused = await validate((theirs.res.json() as { id: string }).id)
+        expect(refusal(refused)).toEqual({
+          status: 409,
+          code: 'SOURCE_PROVIDER_MISMATCH',
+        })
+        expect(refused.json().error.message).toContain(new URL(other.apiUrl).host)
+        expect(refused.json().error.message).toContain(new URL(fake.apiUrl).host)
+        // THE POSITIVE CONTROL: the same server, its own project, the same call.
+        const own = await validate((mine.res.json() as { id: string }).id)
+        expect(own.statusCode, own.body).toBe(201)
+      } finally {
+        await github.sourceSync.idle()
+        await mine.app.close()
+      }
+    } finally {
+      await other.stop()
     }
   })
 
@@ -154,6 +212,89 @@ describe('the provider on every project (Decision 3)', () => {
     // Idempotent: a second run is ON CONFLICT DO NOTHING, never a failed migration.
     await db.execute(sql.raw(backfillStatement()))
     expect(await rowOf(project!.id)).toMatchObject({ provider: 'local' })
+  })
+})
+
+/**
+ * THE GITHUB A PROJECT LIVES ON (the launch path plan's Task 2, Decision 4): `repositoryOf`
+ * compares the row's `api_host` with the running driver's, and only when BOTH are known. A row
+ * written before migration 0040 has none, and is answered by any GitHub — refusing it would strand
+ * every driver-2 project made before the column existed.
+ */
+describe('repositoryOf and the GitHub a project lives on (the launch path plan’s Task 2)', () => {
+  let projectId: string
+  beforeEach(async () => {
+    await resetDatabase()
+    const owner = await ensureTestUser(db, 'bio_prof')
+    const [project] = await db
+      .insert(projects)
+      .values({
+        slug: 'lp-hosts',
+        name: 'lp-hosts',
+        ownerId: owner.id,
+        blueprintRef: 'fixture-node@1',
+      })
+      .returning()
+    projectId = project!.id
+  })
+
+  const link = (apiHost: string | null): RepositoryLink => ({
+    provider: 'github',
+    fullName: 'manifest-apps/lp-hosts',
+    webUrl: 'http://127.0.0.1:7110/manifest-apps/lp-hosts',
+    mainProtected: false,
+    protectionDetail: null,
+    apiHost,
+  })
+
+  /** A running driver that names itself and counts every time it is asked for the reference. */
+  function running(name: SourceProvider, apiHost: string | null) {
+    const asked: string[] = []
+    return {
+      asked,
+      source: {
+        name,
+        identity: () => ({ name, apiHost }),
+        repositoryFor: (projectSlug: string) => {
+          asked.push(projectSlug)
+          return { projectSlug, provider: name }
+        },
+      },
+    }
+  }
+
+  it('refuses a project made on another GitHub before GitHub is asked, naming both hosts', async () => {
+    await recordRepository(db, projectId, link('127.0.0.1:7110'))
+    const real = running('github', 'api.github.com')
+    const refused = repositoryOf(
+      { db, source: real.source },
+      { id: projectId, slug: 'lp-hosts' },
+    )
+    await expect(refused).rejects.toMatchObject({ code: 'SOURCE_PROVIDER_MISMATCH' })
+    const message = await refused.catch((e: Error) => e.message)
+    expect(message).toContain('127.0.0.1:7110')
+    expect(message).toContain('api.github.com')
+    expect(real.asked).toEqual([]) // no reference was made — nothing downstream could reach GitHub
+    // THE POSITIVE CONTROL: the GitHub that made it is answered.
+    const same = running('github', '127.0.0.1:7110')
+    await expect(
+      repositoryOf({ db, source: same.source }, { id: projectId, slug: 'lp-hosts' }),
+    ).resolves.toEqual({ projectSlug: 'lp-hosts', provider: 'github' })
+  })
+
+  it('a row with no host (made before api_host existed) is answered by any host of the same provider', async () => {
+    await recordRepository(db, projectId, link(null))
+    for (const host of ['api.github.com', '127.0.0.1:7110']) {
+      const any = running('github', host)
+      await expect(
+        repositoryOf({ db, source: any.source }, { id: projectId, slug: 'lp-hosts' }),
+      ).resolves.toEqual({ projectSlug: 'lp-hosts', provider: 'github' })
+    }
+    // The provider is still checked: a host that is unknown is not a provider that is unknown.
+    const local = running('local', null)
+    await expect(
+      repositoryOf({ db, source: local.source }, { id: projectId, slug: 'lp-hosts' }),
+    ).rejects.toMatchObject({ code: 'SOURCE_PROVIDER_MISMATCH' })
   })
 })
 

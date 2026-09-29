@@ -207,6 +207,10 @@ export function createLocalSourceDriver(root: string): SourceDriver {
   return {
     name: 'local',
 
+    identity() {
+      return { name: 'local', apiHost: null }
+    },
+
     repositoryFor(projectSlug: string): RepoRef {
       pathFor(projectSlug)
       return { projectSlug, provider: 'local' }
@@ -253,6 +257,8 @@ export function createLocalSourceDriver(root: string): SourceDriver {
           webUrl: null,
           mainProtected: true,
           protectionDetail: null,
+          // On no GitHub (the launch path plan's Task 2).
+          apiHost: null,
         },
       }
     },

@@ -184,6 +184,7 @@ describeDocker('delete against the real platform (Task 12)', () => {
       webUrl: null,
       mainProtected: true,
       protectionDetail: null,
+      apiHost: null,
     })
     const stagingId = environments.find((e) => e.kind === 'staging')!.id
     const [appSpec] = await db

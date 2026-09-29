@@ -29,7 +29,18 @@ export interface RepositoryLink {
   mainProtected: boolean
   /** The host's own words when it would not protect `main`; null when it did. */
   protectionDetail: string | null
+  /**
+   * WHICH GitHub made it (the launch path plan's Task 2): the API's `host` — `api.github.com`, or
+   * the fake's `127.0.0.1:7110` — as `SourceDriver.identity()` names it. Driver 1: null. A project
+   * made against the fake is provider `github` too, and after a restart onto the real App nothing
+   * else told the two apart (*Read this first* 14). **Recorded, never published**: `linkOf` leaves
+   * it out, so `Project.repository` cannot carry it.
+   */
+  apiHost: string | null
 }
+
+/** The link as a CLIENT is told it (`Project.repository`) — all of it but `apiHost`. */
+export type PublishedRepositoryLink = Omit<RepositoryLink, 'apiHost'>
 
 /** A repository's visibility where it is hosted, as Manifest last READ it (the D5 plan's Task 10). */
 export type RepositoryVisibility = 'private' | 'public'
@@ -251,6 +262,12 @@ export class SourceError extends Error {
  */
 export interface SourceDriver {
   readonly name: SourceProvider
+  /**
+   * WHO THIS DRIVER IS (the launch path plan's Task 2): its provider, and the GitHub it talks to —
+   * the API's `host`, which every link it makes records as `apiHost`. Driver 1: null. What
+   * `repositoryOf` compares a project's row with, before anything reaches a repository.
+   */
+  identity(): { name: SourceProvider; apiHost: string | null }
   /**
    * A NEW repository, seeded, with `main` protected where the host allows it (Task 12) — and
    * the link that says where it lives and whether it was, which `POST /v1/projects` records.

@@ -2301,7 +2301,7 @@ also ten minutes: stage everything that needs it (a scratch project to delete, t
 **`scripts/lib/api.sh`'s `api DELETE …` IS REFUSED `400 REQUEST_INVALID`** (the launch path plan's sitting 1, F4). `api` sends
 `content-type: application/json` on every call, and the platform refuses a BODYLESS request so marked (P5b's rule — the platform
 is right). A demo that deletes through `api` never deletes: send the `DELETE` with `curl` and no `content-type` (as the
-TypeScript client does), until Task 2 makes `api` send the header only with a body.
+TypeScript client does), until Task 2 makes `api` send the header only with a body — **it has: the last entry below**.
 
 **NODE'S STRIP-ONLY TYPESCRIPT CANNOT IMPORT MOST OF THE CONTROL PLANE'S `src/`** (sitting 1). A probe importing
 `source/github/client.ts` reached `secrets/envelope.ts`'s parameter property (`constructor(readonly code: string, …)`) and died with
@@ -2327,3 +2327,9 @@ whatever the database says; after `pnpm test` it is a repository no project owns
 plan's Task 2) lists them against their rows. And while `.env` carries the real-App lines, **run the test tiers from a shell with
 `MANIFEST_SOURCE_DRIVER` and every `MANIFEST_GITHUB_*` unset** — a Docker tier booted from a shell that sourced `.env` would create
 repositories on the real App (Task 2's Step 0 makes the tiers refuse it).
+
+**`api` SENDS `content-type` ONLY WITH A BODY, SINCE TASK 2** (the launch path plan's Task 2, `[M1]`; sitting 1's F4, above).
+`scripts/lib/api.sh`'s `api DELETE /v1/projects/<id>` reaches the route now (which still wants a step-up): the header rides with
+`-d` and nowhere else, so a bodyless request is no longer marked JSON and refused `400 REQUEST_INVALID` first. **Any other bodyless call a demo writes by hand with `curl`
+must do the same** — the platform's refusal is right (P5b's rule), and it reads like a missing route or a CSRF refusal until the
+code is read. Every demo's mutation sent a body at the time of the change, so none of them moved.

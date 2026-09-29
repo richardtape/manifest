@@ -122,6 +122,8 @@ case "$DRIVER" in
   local) SLUG=board-local ;;
   github)
     SLUG=board-github
+    # The FAKE's demo, never real GitHub's (the launch path plan's Task 2) — asked before its health.
+    require_fake_github
     [ "$(curl -sS -m 2 "$FAKE/_fake/health" 2>/dev/null)" = ok ] \
       || fail "the control plane runs driver 2 and the GitHub fake does not answer at $FAKE — make github-up"
     [ -r "$DEVELOPER_TOKEN_FILE" ] || fail "$DEVELOPER_TOKEN_FILE is missing — \`make up\` mints it"

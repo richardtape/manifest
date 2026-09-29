@@ -110,6 +110,9 @@ describe('Project.repository — where the code lives, and whether main is prote
       protectionDetail: null,
       visibility: 'private',
     })
+    // WHICH GitHub is the platform's own bookkeeping (the launch path plan's Task 2), never
+    // published: `toEqual` above would already refuse it, and this names why.
+    expect(read.repository).not.toHaveProperty('apiHost')
     expect((await typesOf(read.id)).map((e) => e.type)).not.toContain(
       'repository.protection_unavailable',
     )

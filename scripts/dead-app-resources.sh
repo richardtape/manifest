@@ -32,6 +32,15 @@
 # container leaves that container unable to start (ORIENTATION §4), so the container check
 # reads `docker ps -a`, not `docker ps`.
 #
+# AND IT NAMES THE DRIVER-2 MIRRORS NO PROJECT HOLDS — NAMES ONLY, NEVER REMOVES, --apply or not
+# (the launch path plan's Task 2, `[M1]`: Task 1's F1). A mirror is a `.manifest/repos/<slug>.git`
+# carrying the `manifest.fullName` and `manifest.webUrl` its creation wrote. `pnpm test` truncates
+# `source_repositories` and leaves the mirror, and the real App's first boot found two of the
+# FAKE's that way and prepared them as its own. One held by no live project's row — none at all,
+# or only a deleted project's — is named with the GitHub its `webUrl` names. Removing one is a
+# person's call: its repository on GitHub is separate (`scripts/github-real-repos.sh` lists the
+# real App's), and a mirror's history is what a release names.
+#
 # macOS ships bash 3.2 and a BSD userland: no associative arrays, no `mapfile`, no `xargs -r`.
 set -euo pipefail
 
@@ -101,8 +110,55 @@ for v in $(docker volume ls -q --filter 'name=^mf-' || true); do
 done
 [ -n "$DEAD_VOLS" ] || echo "  none dead"
 
+say "Driver-2 mirrors no project holds — named only; this script never removes one"
+REPOS="${MANIFEST_REPOS_ROOT:-$ROOT/.manifest/repos}"
+ORPHAN_MIRRORS=0
+# Every GitHub row, LOWERCASED (GitHub keeps an organisation's capitals, `Manifest-local-dev`),
+# with its project's state. Unreadable is SAID, and nothing is named rather than guessed at.
+if ! ROWS="$(docker exec manifest-postgres psql -U manifest -d manifest_control -At -F '|' -c \
+  "select lower(sr.full_name), p.state from source_repositories sr join projects p on p.id = sr.project_id where sr.provider = 'github'" 2>&1)"; then
+  echo "  could not read source_repositories (${ROWS:0:160}) — no mirror is named"
+  ROWS=""
+  MIRRORS_READ=no
+else
+  MIRRORS_READ=yes
+fi
+if [ "$MIRRORS_READ" = yes ]; then
+  for dir in "$REPOS"/*.git; do
+    [ -d "$dir" ] || continue
+    full="$(git --git-dir "$dir" config --local --get manifest.fullName 2>/dev/null || true)"
+    web="$(git --git-dir "$dir" config --local --get manifest.webUrl 2>/dev/null || true)"
+    # Neither key: driver 1's own bare repository, which is not a mirror.
+    [ -n "$full" ] && [ -n "$web" ] || continue
+    host="$(printf '%s' "$web" | sed -E 's#^[A-Za-z]+://([^/]+).*#\1#')"
+    held="$(printf '%s\n' "$ROWS" | awk -F'|' -v n="$(printf '%s' "$full" | tr 'A-Z' 'a-z')" \
+      '$1 == n && $2 != "deleted" { print "live"; found = 1; exit }
+       $1 == n { tomb = 1 }
+       END { if (!found && tomb) print "deleted" }')"
+    case "$held" in
+      live) echo "  KEEP   $dir — $full, a live project's (on $host)" ;;
+      deleted)
+        echo "  ORPHAN $dir — $full on $host; the project that held it was deleted"
+        ORPHAN_MIRRORS=$((ORPHAN_MIRRORS + 1))
+        ;;
+      *)
+        echo "  ORPHAN $dir — $full on $host; no source_repositories row names it"
+        ORPHAN_MIRRORS=$((ORPHAN_MIRRORS + 1))
+        ;;
+    esac
+  done
+  [ "$ORPHAN_MIRRORS" != 0 ] || echo "  none orphaned"
+fi
+
 NET_COUNT=$(printf '%s' "$DEAD_NETS" | wc -w | tr -d ' ')
 VOL_COUNT=$(printf '%s' "$DEAD_VOLS" | wc -w | tr -d ' ')
+
+if [ "$ORPHAN_MIRRORS" != 0 ]; then
+  say "$ORPHAN_MIRRORS mirror(s) no project holds — named, not removed, by either mode."
+  echo "  Remove one by hand (rm -rf <dir>) once you are sure; a new project of that slug is refused"
+  echo "  SOURCE_REPOSITORY_EXISTS until you do. Its repository on GitHub is separate:"
+  echo "  bash scripts/github-real-repos.sh lists the real App's."
+fi
 
 if [ "$APPLY" != yes ]; then
   say "Nothing was changed. $NET_COUNT network(s) and $VOL_COUNT volume(s) are dead."

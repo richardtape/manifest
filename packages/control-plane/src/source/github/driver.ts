@@ -126,6 +126,14 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
   })
   const tokens = createTokenCache({ client, installationId: o.installationId, now })
   const remote = (slug: string) => `${o.gitUrl}/${o.org}/${slug}.git`
+  /**
+   * WHICH GitHub (the launch path plan's Task 2): the API's host names this driver, and every link
+   * it makes records it; the git host is what a mirror's `manifest.webUrl` — GitHub's own
+   * `html_url` — is compared with at boot (`prepare`). `URL.host` lowercases the name and drops a
+   * default port, so `https://api.github.com` and `https://api.github.com:443` are one GitHub.
+   */
+  const apiHost = new URL(o.apiUrl).host
+  const gitHost = new URL(o.gitUrl).host
   /** Local git on the mirror — no token, no network. */
   const local = (mirror: string, args: readonly string[]) =>
     gitWithToken(args, { cwd: mirror })
@@ -582,6 +590,40 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     await local(mirror, ['config', 'manifest.webUrl', named.webUrl])
   }
 
+  /**
+   * THE GITHUB THAT MADE A MIRROR (the launch path plan's Task 2): the host of its
+   * `manifest.webUrl`, which `makeMirror` wrote from GitHub's own answer. `null` when the key is not
+   * set; `undefined` when it cannot be read or is not a URL — then the mirror cannot be told apart,
+   * so it is left alone, with an operator line, as `ownRepositories` leaves a directory it cannot
+   * read.
+   */
+  async function mirrorHost(mirror: string): Promise<string | null | undefined> {
+    let webUrl: string
+    try {
+      // `--get` exits 1 for a key that is not set, and only that is "no host".
+      webUrl = (
+        await gitWithToken(['config', '--local', '--get', 'manifest.webUrl'], {
+          cwd: mirror,
+          acceptExit: [1],
+        })
+      ).trim()
+    } catch (error) {
+      console.error(
+        `github driver: ${mirror}'s manifest.webUrl could not be read (${String(error)}); it is left as it is`,
+      )
+      return undefined
+    }
+    if (webUrl === '') return null
+    try {
+      return new URL(webUrl).host
+    } catch {
+      console.error(
+        `github driver: ${mirror}'s manifest.webUrl is not a URL, so the GitHub that made it is unknown; it is left as it is`,
+      )
+      return undefined
+    }
+  }
+
   /** The mirror's hook: it refuses EVERY push. Written at creation and at every boot. */
   async function writeMirrorHook(mirror: string, slug: string): Promise<void> {
     const hook = join(mirror, 'hooks', 'pre-receive')
@@ -676,6 +718,10 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
   const driver: SourceDriver = {
     name: 'github',
 
+    identity() {
+      return { name: 'github', apiHost }
+    },
+
     repositoryFor(projectSlug) {
       pathFor(projectSlug)
       return { projectSlug, provider: 'github' }
@@ -755,6 +801,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
           fullName: body.full_name,
           webUrl: body.html_url,
           ...(await protectMain(projectSlug)),
+          apiHost,
         }
         await makeMirror(mirror, projectSlug, {
           fullName: body.full_name,
@@ -946,10 +993,23 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
      * Every MIRROR under the root gets its refusing hook again (Task 11) — and a driver-1
      * repository in the same root is left exactly as it is (Decision 3): replacing its
      * secret-scanning hook with a mirror's would refuse every push its owner makes.
+     *
+     * **And a mirror ANOTHER GitHub made is left as it is too** (the launch path plan's Task 2,
+     * `[M1]`): the real App's first boot rewrote the FAKE's two orphaned mirrors as its own (Task
+     * 1's F1). A mirror with no `manifest.webUrl` at all — `makeMirror` has written one since the
+     * driver's first commit, so none is known — is prepared as before: unknown is not foreign.
      */
     async prepare() {
       let repositories = 0
       for (const dir of await ownRepositories(root, true)) {
+        const madeBy = await mirrorHost(dir)
+        if (madeBy === undefined) continue
+        if (madeBy !== null && madeBy !== gitHost) {
+          console.error(
+            `github driver: ${dir} is a mirror of the GitHub at ${madeBy}, and this control plane runs against ${gitHost}; it is left as it is (scripts/dead-app-resources.sh names a mirror no project holds)`,
+          )
+          continue
+        }
         await writeMirrorHook(dir, basename(dir, '.git'))
         repositories += 1
       }

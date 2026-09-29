@@ -2,6 +2,7 @@ import { and, eq, ne } from 'drizzle-orm'
 import { projects, sourceRepositories, type Db } from '../db/index.js'
 import {
   SourceError,
+  type PublishedRepositoryLink,
   type RepoRef,
   type RepositoryLink,
   type SourceDriver,
@@ -29,11 +30,19 @@ export async function recordRepository(
     webUrl: link.webUrl,
     mainProtected: link.mainProtected,
     protectionDetail: link.protectionDetail,
+    // Which GitHub (the launch path plan's Task 2) — null for driver 1.
+    apiHost: link.apiHost,
   })
 }
 
-/** The link as a client reads it — from the row, which the CHECK holds to the two providers. */
-export function linkOf(row: typeof sourceRepositories.$inferSelect): RepositoryLink {
+/**
+ * The link as a client reads it — from the row, which the CHECK holds to the two providers.
+ * **`api_host` is not in it** (the launch path plan's Task 2): which GitHub is the platform's own
+ * bookkeeping, and `Project.repository` is built from this.
+ */
+export function linkOf(
+  row: typeof sourceRepositories.$inferSelect,
+): PublishedRepositoryLink {
   return {
     provider: row.provider as SourceProvider,
     fullName: row.fullName,
@@ -44,20 +53,49 @@ export function linkOf(row: typeof sourceRepositories.$inferSelect): RepositoryL
 }
 
 /**
+ * WHY THE RUNNING DRIVER DID NOT MAKE THIS REPOSITORY, or null when it did — the ONE statement of
+ * the rule, read by `repositoryOf` (which refuses with it) and `projectViews` (which then reads no
+ * visibility). The provider first (Decision 3); then, when BOTH hosts are known, the GitHub (the
+ * launch path plan's Task 2): a row older than `api_host` is answered by any GitHub, as before.
+ */
+export function notMadeByRunning(
+  row: { provider: string; apiHost: string | null },
+  running: { name: SourceProvider; apiHost: string | null },
+): string | null {
+  if (row.provider !== running.name) {
+    return `was made by the ${row.provider} driver, and this control plane runs the ${running.name} driver; restart it on the ${row.provider} driver to work on this project`
+  }
+  if (
+    row.apiHost !== null &&
+    running.apiHost !== null &&
+    row.apiHost !== running.apiHost
+  ) {
+    return `is on the GitHub at ${row.apiHost}, and this control plane runs against the GitHub at ${running.apiHost}; restart it with MANIFEST_GITHUB_API_URL naming ${row.apiHost} to work on this project`
+  }
+  return null
+}
+
+/**
  * The project's repository, IF the running driver made it (Decision 3) — the ONE way the API
  * and the approval path name a project's repository. A GitHub-mode control plane must never
  * treat a driver-1 bare repository as a mirror: it would push a laptop repository's history to
- * GitHub, or fetch over it.
+ * GitHub, or fetch over it. **Nor a project another GitHub made** (the launch path plan's Task 2):
+ * after a restart onto the real App, a fake-made project's token mint would answer `422`, which a
+ * delete reads as GONE — removing the mirror and leaving the fake's repository (*Read this first*
+ * 14, read from the code). Refused here, before any reference is made.
  *
  * **No row is a platform defect**, not a client's: a plain `Error`, a `500` and an operator
  * line naming the project.
  */
 export async function repositoryOf(
-  deps: { db: Db; source: Pick<SourceDriver, 'name' | 'repositoryFor'> },
+  deps: { db: Db; source: Pick<SourceDriver, 'identity' | 'repositoryFor'> },
   project: { id: string; slug: string },
 ): Promise<RepoRef> {
   const [row] = await deps.db
-    .select({ provider: sourceRepositories.provider })
+    .select({
+      provider: sourceRepositories.provider,
+      apiHost: sourceRepositories.apiHost,
+    })
     .from(sourceRepositories)
     .where(eq(sourceRepositories.projectId, project.id))
   if (row === undefined) {
@@ -65,10 +103,11 @@ export async function repositoryOf(
       `project '${project.slug}' (${project.id}) has no source_repositories row; every project has one since migration 0024`,
     )
   }
-  if (row.provider !== deps.source.name) {
+  const why = notMadeByRunning(row, deps.source.identity())
+  if (why !== null) {
     throw new SourceError(
       'SOURCE_PROVIDER_MISMATCH',
-      `${project.slug}'s repository was made by the ${row.provider} driver, and this control plane runs the ${deps.source.name} driver; restart it on the ${row.provider} driver to work on this project`,
+      `${project.slug}'s repository ${why}`,
     )
   }
   return deps.source.repositoryFor(project.slug)

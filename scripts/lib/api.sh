@@ -31,11 +31,16 @@ key() { uuidgen | tr 'A-Z' 'a-z'; }
 # Idempotency-Key (D23.6): replaying one returns the FIRST response. And §20's Origin
 # (P5a Task 4): a mutation carrying a session from anywhere else is `403
 # CSRF_ORIGIN_REFUSED`, which is what a browser gets from a page on an app's origin.
+#
+# `content-type: application/json` ONLY WITH A BODY (the launch path plan's Task 2, `[M1]`): the
+# platform refuses a BODYLESS request so marked `400 REQUEST_INVALID` (P5b's rule — it is right),
+# so until then `api DELETE …` could never delete anything. Measured in Task 1 (F4), when a probe's
+# first two deletes were refused; TRAPS.md has it.
 api() {
   local method="$1" path="$2" body="${3:-}"
-  local args=(-sS -b "$CP_JAR" -c "$CP_JAR" -X "$method" -H 'content-type: application/json')
+  local args=(-sS -b "$CP_JAR" -c "$CP_JAR" -X "$method")
   if [ "$method" != GET ]; then args+=(-H "idempotency-key: $(key)" -H "origin: $ORIGIN"); fi
-  if [ -n "$body" ]; then args+=(-d "$body"); fi
+  if [ -n "$body" ]; then args+=(-H 'content-type: application/json' -d "$body"); fi
   curl "${args[@]}" "$API$path"
 }
 
@@ -90,6 +95,31 @@ control plane on driver 2':
   pnpm --filter @manifest/control-plane dev" >&2
   fi
   exit 1
+}
+
+# THE DRIVER-2 DEMOS DRIVE THE GITHUB FAKE, AND REFUSE REAL GITHUB BY NAME (the launch path plan's
+# Task 2, *Read this first* 15). Each one depends on the fake — its `/_fake/*` endpoints, its
+# `manifest-apps` organisation, a person pushing through it — so against the real App it would
+# create a REAL repository and then fail part-way, leaving it behind. `.env`'s
+# `MANIFEST_GITHUB_API_URL` is read by `grep -c` through a pipe, never into a variable or onto the
+# terminal: its LAST assignment — the one a shell that sources `.env` keeps — refuses unless it is
+# empty or a loopback URL. No line at all is the config's default, which is the fake. Called in
+# step 0, BEFORE the fake's own health check — so the refusal names the real cause — and before
+# anything is created. The caller sets ROOT.
+require_fake_github() {
+  local env_file="${ROOT:?}/.env" assignment='^(export[[:space:]]+)?MANIFEST_GITHUB_API_URL='
+  [ -r "$env_file" ] || return 0
+  [ "$(grep -c -E "$assignment" "$env_file" || true)" != 0 ] || return 0
+  # Empty — `MANIFEST_GITHUB_API_URL=` or `=""` — is the default too.
+  [ "$(grep -E "$assignment" "$env_file" | tail -1 \
+    | grep -c -E "${assignment}[\"']?[^\"'[:space:]]" || true)" != 0 ] || return 0
+  if [ "$(grep -E "$assignment" "$env_file" | tail -1 \
+    | grep -c -E "${assignment}[\"']?https?://(127\.[0-9]+\.[0-9]+\.[0-9]+|localhost|\[::1\])([:/\"'[:space:]]|\$)" \
+    || true)" = 0 ]; then
+    printf '\n\033[31m%s\033[0m\n' "FAIL this demo drives the GitHub FAKE (make github-up); the control plane is set to real GitHub (.env's
+     MANIFEST_GITHUB_API_URL). Run it with the real-App lines unset, or see RUNBOOK's \"On the real App\"." >&2
+    exit 1
+  fi
 }
 
 field() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const v=process.argv[1].split(".").reduce((a,k)=>a?.[k],j);if(v===undefined){console.error(s);process.exit(1)}console.log(typeof v==="object"?JSON.stringify(v):v)})' "$1"; }

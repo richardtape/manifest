@@ -14,7 +14,7 @@ import {
   recordRepository,
   renameProject,
 } from '../../projects/index.js'
-import type { RepositoryLink } from '../../source/index.js'
+import type { RepoRef, RepositoryLink } from '../../source/index.js'
 import { declaresModels, validateSpec } from '../../spec/index.js'
 import type { ValidationContext } from '../../spec/index.js'
 import { requireSession } from '../actor.js'
@@ -277,9 +277,18 @@ export const projectWriteRoutes = [
       let commitSha: string
       let yamlText: string
       let link: RepositoryLink
+      /**
+       * SET ONCE `createRepository` RETURNED (the launch path plan's Task 2, *Read this first* 13):
+       * from then on the repository exists — on GitHub, for driver 2 — and a failure below must
+       * destroy it, or it stays there with its mirror here and the slug is refused
+       * `SOURCE_REPOSITORY_EXISTS` for ever. A failure INSIDE `createRepository` leaves this unset:
+       * the driver undoes its own steps.
+       */
+      let made: RepoRef | undefined
       try {
         const created = await deps.source.createRepository(body.slug, seed)
         const repo = created.ref
+        made = repo
         link = created.link
         // Which driver made it, what its host calls it and whether `main` is protected there
         // (the D5 plan's Decision 3, Task 12): every later source operation checks the
@@ -288,6 +297,18 @@ export const projectWriteRoutes = [
         commitSha = await deps.source.headCommit(repo)
         yamlText = (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
       } catch (error) {
+        if (made !== undefined) {
+          const repo = made
+          // Never swallowed, and never answered in place of the failure that caused it: a
+          // repository left behind is an operator line naming what to remove.
+          await deps.source.destroyRepository(repo).catch((cleanup: unknown) => {
+            console.error(
+              `POST /v1/projects: ${body.slug}'s repository was made by the ${repo.provider} driver and could not be destroyed after the create failed; it is still there (${cleanup instanceof Error ? cleanup.message : String(cleanup)})`,
+            )
+          })
+        }
+        // The row goes whatever the repository did (its `source_repositories` row with it,
+        // ON DELETE CASCADE): the slug is not held by a project that never finished.
         await deleteProject(deps.db, project.id)
         throw error
       }

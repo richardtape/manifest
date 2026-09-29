@@ -114,6 +114,23 @@ export function describeSourceDriver(
             : expect.stringMatching(/^https?:\/\/.+chem-labs$/),
         mainProtected: true,
         protectionDetail: null,
+        // WHICH GitHub (the launch path plan's Task 2): the API's host, `host:port` — the fake's
+        // here. Driver 1 has none: a repository on this machine is on no GitHub.
+        apiHost:
+          h.driver.name === 'local' ? null : expect.stringMatching(/^127\.0\.0\.1:\d+$/),
+      })
+    })
+
+    /**
+     * WHO THE RUNNING DRIVER IS (the launch path plan's Task 2): its provider and the GitHub it
+     * talks to — the same host every link it makes records, so a project another GitHub made is
+     * told apart before GitHub is asked (`projects/source-repositories.ts`'s `repositoryOf`).
+     */
+    it('names itself: its provider, and the host its links record (the launch path plan’s Task 2)', async () => {
+      const created = await h.driver.createRepository('chem-labs', SEED)
+      expect(h.driver.identity()).toEqual({
+        name: h.driver.name,
+        apiHost: created.link.apiHost,
       })
     })
 

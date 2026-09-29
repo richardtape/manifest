@@ -513,7 +513,7 @@ export async function finishTeardowns(deps: LifecycleDeps): Promise<TeardownsFin
 
 /** What a delete needs beyond an archive: the source driver that holds the repository. */
 export interface DeleteDeps extends LifecycleDeps {
-  source: Pick<SourceDriver, 'name' | 'repositoryFor' | 'destroyRepository'>
+  source: Pick<SourceDriver, 'name' | 'identity' | 'repositoryFor' | 'destroyRepository'>
 }
 
 /**

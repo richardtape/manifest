@@ -436,7 +436,7 @@ export interface SnapshotDeps {
    * BUILD's commit, present locally, from the driver (the D5 plan's Task 2), never a path
    * read off a reference.
    */
-  source: Pick<SourceDriver, 'name' | 'repositoryFor' | 'localGitDir'>
+  source: Pick<SourceDriver, 'name' | 'identity' | 'repositoryFor' | 'localGitDir'>
   /**
    * R4's seam (D33, §15). `NullReviewer` at boot, whose verdict is an honest
    * `not_performed`; a real one is a one-line change where `ServerDeps` is built.

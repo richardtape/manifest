@@ -281,6 +281,13 @@
       "when": 1790661294989,
       "tag": "0039_harsh_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790721689169,
+      "tag": "0040_keen_northstar",
+      "breakpoints": true
     }
   ]
 }

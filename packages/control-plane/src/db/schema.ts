@@ -181,6 +181,15 @@ export const sourceRepositories = pgTable(
     mainProtected: boolean('main_protected').notNull().default(false),
     /** GitHub's own words when it would not protect `main`; null otherwise. */
     protectionDetail: text('protection_detail'),
+    /**
+     * WHICH GitHub made it (the launch path plan's Task 2, Decision 4): the API's host —
+     * `api.github.com`, or the fake's `127.0.0.1:7110` — so a project made against the fake is
+     * refused `SOURCE_PROVIDER_MISMATCH` on a control plane running the real App, naming both,
+     * rather than taken for its own. NULL for driver 1, and for every row written before
+     * migration 0040 — which is answered by any GitHub, as it was before the column existed.
+     * Never published: `linkOf` leaves it out.
+     */
+    apiHost: text('api_host'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

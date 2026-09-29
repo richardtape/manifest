@@ -613,6 +613,55 @@ re-set at every boot by `prepare()` (the boot line's `sourceRepositoriesPrepared
 person pushing a secret-shaped value to one is refused *"Manifest refused this push (§20): …"*; a
 force-push is refused `non-fast-forward`. An edit to the hook does not survive the next boot.
 
+#### On the real App
+
+*Added by the launch path plan's Task 2, 2026-09-29, from Task 1's record — the control plane's first
+run against REAL GitHub (`docs/superpowers/spikes/launch-baseline/README.md`, `[M1]`), with `Manifest
+(local dev)` on the free organisation `Manifest-local-dev`.* **It creates real repositories, needs the
+network, and every project made on it lives on github.com whatever the database says.**
+
+- **Switching.** `.env.example`'s section 2a has the block: uncomment all of it, set the three ids, and
+  restart with *Running the control plane*'s block. **Read the boot line**: it must say
+  `"source":"github","github":"api.github.com","githubOrg":"Manifest-local-dev"`, with no credential in the
+  log. `sourceRepositoriesPrepared` counts only the mirrors of THIS GitHub: a mirror another GitHub made —
+  the fake's, say — is left exactly as it is, with an operator line *"… is a mirror of the GitHub at
+  127.0.0.1:7110, and this control plane runs against github.com; it is left as it is"* (Task 1 measured
+  the boot rewriting two of the fake's orphaned mirrors as its own; since Task 2 it does not). To go back,
+  comment the block out and restart.
+- **A project keeps the GitHub it was made on.** `source_repositories.api_host` records the API's host
+  (never published); on a control plane running another GitHub, every source operation — a read, a
+  build, a delete — answers **`409 SOURCE_PROVIDER_MISMATCH`**, naming both hosts and the restart that
+  fixes it. A row older than migration 0040 has no host and is answered by any GitHub, as before — so
+  never reuse a project name across the fake and a real App.
+- **`main` is not protected on the free organisation**: `Project.repository` says `mainProtected: false`
+  with GitHub's own words (*"Upgrade to GitHub Pro or make this repository public to enable this
+  feature."*), and `repository.protection_unavailable` is on the stream. The mirror still refuses a
+  rewrite of the history a release names.
+- **No webhooks: GitHub cannot reach a laptop**, so a person's push to github.com is seen at the NEXT
+  READ — a tree, a file, the history or a commit, or the console's *Re-validate* — and **NOT at a build
+  of `{}`**, which builds the newest VALIDATED commit already in the mirror and fetches nothing. *That is
+  read from the code (`api/routes/builds.ts`), not measured end to end: no push was made on github.com at
+  sitting 2's open, 2026-09-29.*
+- **Deleting a never-launched project DELETES ITS REPOSITORY ON GITHUB** (measured: `lp-real-scratch`,
+  GitHub `404` afterwards and the mirror gone). A create that fails after GitHub made the repository
+  destroys it too, since Task 2; if even that fails, the operator line *"POST /v1/projects: <slug>'s
+  repository was made by the github driver and could not be destroyed …"* names what to remove.
+- **Any Vitest run truncates the rows and leaves the repositories.** `bash scripts/github-real-repos.sh`
+  lists every repository in `.env`'s organisation beside its owner — `live <project id>`, `deleted` or
+  `NONE` — and `--delete <name>` deletes ONE whose line reads `NONE`, after `yes` on stdin; it never
+  deletes one a project row names, and says `SKIPPED` with the network off. `scripts/dead-app-resources.sh`
+  names the mirrors no project holds. **While `.env` carries the real-App lines, run `pnpm test` and
+  `pnpm test:docker` from a shell with `MANIFEST_SOURCE_DRIVER` and every `MANIFEST_GITHUB_*` unset** — the
+  tiers refuse to start otherwise (*"refusing to run: MANIFEST_GITHUB_API_URL points at a real GitHub
+  (api.github.com). The test tiers use the GitHub fake."*), before they truncate anything.
+- **The demos refuse it.** `make demo-github`, and the driver-2 branch of `make demo-authoring` and `make
+  demo-frontend`, stop at step 0 — before the fake's health and before anything is created — with *"FAIL
+  this demo drives the GitHub FAKE (make github-up); the control plane is set to real GitHub (.env's
+  MANIFEST_GITHUB_API_URL)"*: each is the fake's end to end, and against github.com would leave a real
+  repository behind when it failed part-way. Every driver-1 demo stops too (`require_driver local`).
+- **What GitHub took** (Task 1, 2026-09-29): token mints 313–448 ms; REST reads 350–1101 ms; a create 8–9 s;
+  a commit through the authoring API 5 s; a delete 1 s.
+
 ## The conformance run — the fake against REAL GitHub
 
 *Added by the D5 plan's sitting 3, 2026-09-24 (Task 6). **Opt-in, with the network on, and

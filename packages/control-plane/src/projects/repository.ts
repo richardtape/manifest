@@ -10,7 +10,7 @@ import {
   users,
 } from '../db/index.js'
 import type {
-  RepositoryLink,
+  PublishedRepositoryLink,
   RepositoryVisibility,
   SourceDriver,
 } from '../source/index.js'
@@ -18,7 +18,7 @@ import { type Config, hostnameFor } from '../config.js'
 import type { Actor, ProjectRole } from './authz.js'
 import type { ReservedLabels } from './reserved-labels.js'
 import { assertSlugAvailable, SlugRefusedError, slugTaken } from './slugs.js'
-import { linkOf } from './source-repositories.js'
+import { linkOf, notMadeByRunning } from './source-repositories.js'
 
 export type Project = typeof projects.$inferSelect
 export type Environment = typeof environments.$inferSelect
@@ -176,7 +176,7 @@ export interface ProjectView {
    * Where its code lives, and whether `main` is protected there (the D5 plan's Task 12) — and
    * what Manifest last read of its visibility there (the authoring API plan's Task 12).
    */
-  repository: RepositoryLink & { visibility: RepositoryVisibility | null }
+  repository: PublishedRepositoryLink & { visibility: RepositoryVisibility | null }
 }
 
 /**
@@ -190,7 +190,7 @@ export interface ProjectView {
 export async function projectViews(
   deps: {
     db: Db
-    source: Pick<SourceDriver, 'name' | 'repositoryFor' | 'lastVisibility'>
+    source: Pick<SourceDriver, 'identity' | 'repositoryFor' | 'lastVisibility'>
   },
   projectIds: readonly string[],
 ): Promise<ProjectView[]> {
@@ -223,11 +223,12 @@ export async function projectViews(
             project: r.project,
             owner: { id: r.ownerId, displayName: r.ownerName },
             // The running driver's last read, from this machine — never the network. A project
-            // ANOTHER driver made is not this driver's to read (Decision 3): `null`.
+            // ANOTHER driver made is not this driver's to read (Decision 3): `null` — nor one
+            // another GitHub made, whose mirror is not this GitHub's (the launch path plan's Task 2).
             repository: {
               ...link,
               visibility:
-                link.provider === source.name
+                notMadeByRunning(r.repository, source.identity()) === null
                   ? await source.lastVisibility(source.repositoryFor(r.project.slug))
                   : null,
             },

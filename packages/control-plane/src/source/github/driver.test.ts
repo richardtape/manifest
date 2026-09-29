@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { startFake, type StartedFake } from '@manifest/github-fake/testing'
 import { assembleContext, runMandatoryGates } from '../../build/index.js'
 import { SAMPLE_SECRETS } from '../../build/testing.js'
@@ -301,6 +301,7 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
         mainProtected: false,
         protectionDetail:
           'Upgrade to GitHub Pro or make this repository public to enable this feature.',
+        apiHost: new URL(h.fake.apiUrl).host,
       })
       const first = await h.driver.headCommit(created.ref)
       const forced = await tryForcePushMainAsPerson(h.fake, 'chem-labs')
@@ -970,6 +971,50 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
         '#!/bin/sh\nexit 0\n',
       )
     } finally {
+      await h.cleanup()
+    }
+  })
+
+  /**
+   * A MIRROR OF ANOTHER GITHUB IS LEFT ALONE AT BOOT (the launch path plan's Task 2, `[M1]`: Task
+   * 1's F1). The real App's first boot counted the FAKE's two orphaned mirrors
+   * (`frontend-github.git`, `manifest.webUrl` `http://127.0.0.1:7110/…`) and rewrote their hooks as
+   * its own: nothing on disk told a fake-made mirror from a real one. A mirror's `manifest.webUrl`
+   * is what GitHub answered at creation, so its host is the GitHub that made it.
+   */
+  it('prepare() leaves a mirror of ANOTHER GitHub alone — and still prepares its own', async () => {
+    const h = await harness()
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await h.driver.createRepository('chem-labs', SEED)
+      await h.driver.createRepository('bio-labs', SEED)
+      const hookOf = (slug: string) =>
+        join(h.mirrorRoot, `${slug}.git`, 'hooks', 'pre-receive')
+      const refusing = await readFile(hookOf('chem-labs'), 'utf8')
+      // `bio-labs` becomes a mirror some OTHER GitHub made — the fake's, seen from a real App.
+      await run('git', [
+        '--git-dir',
+        join(h.mirrorRoot, 'bio-labs.git'),
+        'config',
+        'manifest.webUrl',
+        'http://127.0.0.1:1/manifest-apps/bio-labs',
+      ])
+      const foreign = '#!/bin/sh\necho "another GitHub\'s mirror" >&2\nexit 1\n'
+      await writeFile(hookOf('bio-labs'), foreign, { mode: 0o755 })
+      await rm(hookOf('chem-labs'))
+
+      expect(await h.driver.prepare()).toEqual({ repositories: 1 })
+      expect(await readFile(hookOf('bio-labs'), 'utf8')).toBe(foreign) // left alone
+      expect(await readFile(hookOf('chem-labs'), 'utf8')).toBe(refusing) // the positive control
+      // Said, naming the directory and both hosts — a skip nobody can see is indistinguishable
+      // from a boot that never looked.
+      const line = said.mock.calls
+        .map((c) => c.map(String).join(' '))
+        .find((l) => l.includes('bio-labs.git'))
+      expect(line).toContain('127.0.0.1:1')
+      expect(line).toContain(new URL(h.fake.gitUrl).host)
+    } finally {
+      said.mockRestore()
       await h.cleanup()
     }
   })
