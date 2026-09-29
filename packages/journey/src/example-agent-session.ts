@@ -50,8 +50,9 @@ export async function startAModelSession(
       }),
       'startAgentSession',
     )
-    // Read the names from `models`; never assume one. The capable model when it is listed;
-    // a confidential project's list holds the on-premise models alone.
+    // Read the names from `models`; never assume one. The capable model when it is listed — on a
+    // confidential project too, while the platform lets the agent that builds an app use it; else
+    // the small model, else the on-premise one.
     const model = ['default-chat-large', 'default-chat', 'default-chat-onprem'].find(
       (m) => session.models.includes(m),
     )

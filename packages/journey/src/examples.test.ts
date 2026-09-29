@@ -391,7 +391,7 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
     })
   })
 
-  it('example-agent-session: a confidential project’s key reaches on-premise models only — and a key with no chat model is ended, never left live', async () => {
+  it('example-agent-session: a confidential project’s key reaches the capable model while the platform allows it, and on-premise models otherwise — and a key with no chat model is ended, never left live', async () => {
     const month = {
       monthlyUsd: 10,
       spentUsd: 1,
@@ -407,7 +407,27 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
       key: fixtures.MOCK_MODEL_KEY,
       baseUrl: fixtures.MODEL_BASE_URL,
     })
-    // D17: a confidential project's models are the on-premise ones alone.
+    // Spec action 10: while the platform lets the agent that BUILDS an app use the capable model (the
+    // default), a confidential project's list holds it after the on-premise ones — and it is chosen.
+    await withStandIn(
+      [
+        { status: 200, body: month },
+        {
+          status: 201,
+          body: startedWith([
+            'default-chat-onprem',
+            'default-chat-onprem-reasoning',
+            'default-chat-large',
+          ]),
+        },
+      ],
+      async (platform) => {
+        expect(
+          await startAModelSession(platform, TOKEN, PROJECT_ID, 'Build the marking app'),
+        ).toMatchObject({ started: true, model: 'default-chat-large' })
+      },
+    )
+    // D17 alone — the setting `on-premise`, or no capable model registered: the on-premise ones.
     await withStandIn(
       [
         { status: 200, body: month },
