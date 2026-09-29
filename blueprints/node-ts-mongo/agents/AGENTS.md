@@ -110,7 +110,7 @@ Manifest injects these; you read them and never default them. The full table is
 | `MANIFEST_ENV`, `MANIFEST_APP_URL`, `MANIFEST_PROJECT_SLUG`, `PORT`, `SESSION_SECRET` | yes |
 | `MONGODB_URI`, `MONGODB_DB_NAME` | when you declare a `mongo` service |
 | `SAML_ENVIRONMENT`, `SAML_ISSUER`, `SAML_CALLBACK_URL`, `SAML_ENTRY_POINT`, `SAML_LOGOUT_URL`, `SAML_IDP_METADATA_URL`, `SAML_IDP_CERT_PATH` | when `auth.provider: cwl` |
-| `SAML_PRIVATE_KEY_PATH` | `cwl`, in staging and production only |
+| `SAML_PRIVATE_KEY_PATH` | when `auth.provider: cwl`, in every environment: sign-in requests are signed |
 | `LLM_PROVIDER`, `LLM_ENDPOINT`, `LLM_API_KEY` | when you declare `ai.models` |
 | `LLM_DEFAULT_MODEL` | when `ai.models` includes a chat model |
 | `EMBEDDINGS_PROVIDER`, `EMBEDDINGS_MODEL` | when `ai.models` includes an embedding model |

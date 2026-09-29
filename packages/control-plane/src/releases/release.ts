@@ -572,15 +572,15 @@ export async function deployRelease(
         contents: idpCertificatePem,
         mode: 0o444,
       })
-      if (environment.kind !== 'sandbox') {
-        files.push({
-          path: INJECTED_FILE_PATHS.spPrivateKey,
-          contents: registration.keypair.privateKeyPem,
-          mode: 0o440,
-          uid: 0,
-          gid: runAsUid,
-        })
-      }
+      // Every environment, sandbox too (FE-37): the IdP requires every app's AuthnRequest
+      // signed, and `SAML_PRIVATE_KEY_PATH` now names this file everywhere.
+      files.push({
+        path: INJECTED_FILE_PATHS.spPrivateKey,
+        contents: registration.keypair.privateKeyPem,
+        mode: 0o440,
+        uid: 0,
+        gid: runAsUid,
+      })
     }
 
     /**

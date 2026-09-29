@@ -33,11 +33,10 @@ const RAW = {
   SAML_LOGOUT_URL: process.env.SAML_LOGOUT_URL,
   SAML_IDP_METADATA_URL: process.env.SAML_IDP_METADATA_URL,
   SAML_IDP_CERT_PATH: process.env.SAML_IDP_CERT_PATH,
-  // §8's "Required in" column: staging and production only. The Manifest IdP
-  // requires a signed AuthnRequest outside sandbox (§9) and real UBC encrypts
-  // assertions; in sandbox the platform places no key and an unsigned request is
-  // accepted. So this one is READ AND ALLOWED TO BE ABSENT, and it is the only
-  // §8 variable this file treats that way.
+  // Placed in every environment since 2026-09-28 (FE-37): the Manifest IdP requires
+  // every app's AuthnRequest signed, the sandbox's included, and real UBC encrypts
+  // assertions. It is still READ AND ALLOWED TO BE ABSENT, the only §8 variable this
+  // file treats that way, so an app deployed before the key was placed still starts.
   SAML_PRIVATE_KEY_PATH: process.env.SAML_PRIVATE_KEY_PATH,
 }
 

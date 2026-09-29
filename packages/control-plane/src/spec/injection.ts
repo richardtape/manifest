@@ -86,7 +86,10 @@ export const INJECTION_VARIABLES: readonly InjectionVariable[] = [
   },
   {
     name: 'SAML_PRIVATE_KEY_PATH',
-    requiredIn: 'staging+production',
+    // `all` since the front-end's FE-37 (2026-09-28): every app's IdP row requires a signed
+    // AuthnRequest, sandbox's included (`renderSpMetadata`), so a sandbox app given no key
+    // could never sign in.
+    requiredIn: 'all',
     when: 'auth.provider=cwl',
   },
   { name: 'MONGODB_URI', requiredIn: 'if-service', when: 'services.mongo' },
@@ -473,12 +476,12 @@ export function renderInjection(ctx: InjectionContext): Record<string, string> {
       ? UBC_PRODUCTION.metadataUrl
       : `${ctx.idp.baseUrl}${MANIFEST_IDP_PATHS.metadata}`
     env.SAML_IDP_CERT_PATH = INJECTED_FILE_PATHS.idpCertificate
-    // §8's "Required in" column, which is not decoration: the Manifest IdP
-    // requires signed AuthnRequests in staging (§9) and real UBC encrypts
-    // assertions. Optional in sandbox, where an unsigned request is accepted.
-    if (ctx.environmentKind !== 'sandbox') {
-      env.SAML_PRIVATE_KEY_PATH = INJECTED_FILE_PATHS.spPrivateKey
-    }
+    // EVERY environment, sandbox too (the front-end's FE-37, measured 2026-09-28): every
+    // app's IdP row requires a signed AuthnRequest (`renderSpMetadata`'s
+    // `validate.authnrequest: true`), so a sandbox app given no key sent an unsigned one and
+    // the IdP refused every sign-in ("no signature found on message"). The keypair is
+    // minted for every environment anyway, and real UBC encrypts assertions outside it.
+    env.SAML_PRIVATE_KEY_PATH = INJECTED_FILE_PATHS.spPrivateKey
   }
 
   for (const service of ctx.services) {

@@ -295,19 +295,15 @@ describe('§8 injection contract', () => {
     expect(none.MONGODB_DB_NAME).toBe('chem_labs')
   })
 
-  it('requires SAML_PRIVATE_KEY_PATH in staging and production, not in sandbox', () => {
-    // §8's "Required in" column, which is not decoration: the Manifest IdP
-    // requires signed AuthnRequests in staging (§9) and real UBC encrypts
-    // assertions.
-    expect(renderInjection(ctx()).SAML_PRIVATE_KEY_PATH).toBe(
-      INJECTED_FILE_PATHS.spPrivateKey,
-    )
-    expect(renderInjection(ctx({ kind: 'production' }))).toHaveProperty(
-      'SAML_PRIVATE_KEY_PATH',
-    )
-    expect(renderInjection(ctx({ kind: 'sandbox' }))).not.toHaveProperty(
-      'SAML_PRIVATE_KEY_PATH',
-    )
+  it('requires SAML_PRIVATE_KEY_PATH in every environment, sandbox too (FE-37)', () => {
+    // Every app's IdP row requires a signed AuthnRequest (`renderSpMetadata`'s
+    // `validate.authnrequest: true`), sandbox's included, so a sandbox app given no key
+    // sent an unsigned one and the IdP refused every sign-in (the front-end's FE-37,
+    // measured 2026-09-28). Real UBC encrypts assertions outside it too.
+    for (const kind of ['sandbox', 'staging', 'production'] as const)
+      expect(renderInjection(ctx({ kind })).SAML_PRIVATE_KEY_PATH).toBe(
+        INJECTED_FILE_PATHS.spPrivateKey,
+      )
   })
 
   it('takes SAML_ISSUER from the registered entityID', () => {

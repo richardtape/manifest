@@ -154,8 +154,8 @@ ai:
  * A CWL app with a mongo service AND a model of each kind, in STAGING.
  *
  * Staging deliberately: it is the kind where every row §8 marks required is
- * present. Sandbox omits `SAML_PRIVATE_KEY_PATH`, which §8 itself marks optional
- * there, so rendering sandbox would report that row as drift.
+ * present. (Sandbox omitted `SAML_PRIVATE_KEY_PATH` until the front-end's FE-37, 2026-09-28;
+ * every environment renders it now.)
  *
  * Both model kinds, for the same reason (P4b Task 10). `LLM_DEFAULT_MODEL` is
  * rendered only for a chat model and the two `EMBEDDINGS_*` rows only for an
@@ -298,19 +298,15 @@ describe('injection-contract drift (§16)', () => {
     expect(required.filter((n) => !read.has(n) && !PLATFORM_ONLY.has(n))).toEqual([])
   })
 
-  it('reads the staging-and-production row too, and allows it to be absent', async () => {
-    // `SAML_PRIVATE_KEY_PATH` is the one §8 row that is required outside sandbox
-    // and optional inside it, so neither direction above covers it: the first
-    // would not notice its absence and the second does not ask for it. The
-    // blueprint must read it, and must not require it.
+  it('reads the SP key row, which every environment now renders, sandbox too (FE-37)', async () => {
+    // `SAML_PRIVATE_KEY_PATH` was the one §8 row required outside sandbox and optional
+    // inside it, until the front-end's FE-37 (2026-09-28): every app's IdP row requires a
+    // signed AuthnRequest, so a sandbox app with no key could never sign in. The
+    // blueprint reads it, and still allows it to be absent (a defence, not the rule).
     const read = await variablesReadBy(SKELETON)
     expect(read.has('SAML_PRIVATE_KEY_PATH')).toBe(true)
-    expect(renderInjection(fullContext('staging'))).toHaveProperty(
-      'SAML_PRIVATE_KEY_PATH',
-    )
-    expect(renderInjection(fullContext('sandbox'))).not.toHaveProperty(
-      'SAML_PRIVATE_KEY_PATH',
-    )
+    for (const kind of ['sandbox', 'staging', 'production'] as const)
+      expect(renderInjection(fullContext(kind))).toHaveProperty('SAML_PRIVATE_KEY_PATH')
   })
 
   it('SAML_ENVIRONMENT is never absent, in any environment kind', () => {

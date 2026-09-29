@@ -20,6 +20,26 @@ refresh-vulndb`); **`make verify` 61**. `pnpm typecheck`, `pnpm lint` and `pnpm 
 **This line states only the latest sitting** — each sitting's numbers are in its plan's *What executing this plan found*, dated,
 where they cannot drift.*
 
+> **A CHANGE MADE HERE BY THE FRONT-END SESSION, AT RICH'S WORD (2026-09-28, `manifest-app`'s F3 sitting 7), once.** Read
+> before anything else in this file; it is not a sitting of this plan.
+> - **What was wrong (the front-end's FE-37):** no app on a draft address could sign in. Every app's IdP row requires a
+>   signed AuthnRequest (`sso/metadata-store.ts`, `renderSpMetadata`, `'validate.authnrequest': true`, in every
+>   environment), but a sandbox app was given no key (`spec/injection.ts`, and `releases/release.ts` placed no key file),
+>   so the blueprint's `auth/ubcshib.js` sent an unsigned request and the IdP answered `500` *"Validation of received
+>   messages enabled, but no signature found on message."* Measured on three sandbox apps. Found by Rich's click.
+> - **What changed:** `spec/injection.ts` renders `SAML_PRIVATE_KEY_PATH` in every environment (its §8 row is now `all`);
+>   `releases/release.ts` places the key file in every environment; `injection.test.ts` and `injection-drift.test.ts`
+>   follow; `blueprints/node-ts-mongo/agents/AGENTS.md`'s row and `skeleton/auth/ubcshib.js`'s comment say so.
+> - **What was verified:** `renderInjection` gives every kind the key (a direct check, red before and green after);
+>   `tsc --noEmit` and Prettier on the changed files. **NOT run: `pnpm test` and `pnpm test:docker`**, since
+>   `vitest.global-setup.ts` truncates the shared database. `deploy-sso.docker.test.ts` asserts the key file on a deploy,
+>   and no Docker test was re-read for a sandbox that expects none. **Owed by this session:** both tiers, on the next
+>   sitting's first run.
+> - **Not changed, for this session to align at Rich's word:** the spec's §8 table (never edited from outside). Its row for
+>   `SAML_PRIVATE_KEY_PATH` still reads *staging and production*.
+> - **The running control plane** must be rebuilt and restarted to take it; an app already deployed takes it by deploying
+>   its release again.
+
 **Short of context? Read §7e, §2's numbers box, §6 and §4's curated traps, in that order.** The full trap catalogue
 is [`TRAPS.md`](TRAPS.md), meant to be searched, not read through.
 
