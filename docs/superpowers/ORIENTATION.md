@@ -8,7 +8,7 @@ the gates read; it deliberately states no job and no sitting's story (Rich, 2026
 executed** (§2's table): an application goes from a bare repository to a production launch, authenticated with CWL,
 on one laptop, offline — its code can live in a GitHub organisation instead (D5's driver 2) — and **an agent can now
 CREATE it through the API alone**, from the API's own served documentation (the authoring API, the newest). **The front-end enablement plan's
-execution is under way — Rich has approved it and its nine spec actions are applied (5 and 6, from the faculty front-end's message, in `25e7445`; 7, the capable model, in `959af7f`; 8, its fallback, in `e6c272d`; 9, the SP key in every environment, in `d82b3a2`), an app's recent output is readable through the API — the sandbox's only — an agent can commit an image, a PDF or a font, no line a client can make long is read quadratically, a project has a name people read and a colleague is added by CWL login name or email, Manifest signs a person in on the faculty front-end's own origin, an agent outside Manifest is given a model key charged to the person it works for and a person describing a new app one the platform pays for, an owner can switch an app off and bring it back, and delete one that never launched, the capable model — `default-chat-large`, OpenAI's `gpt-6-luna` on Rich's key — is registered from a setting at LiteLLM's own price and offered where D17 allows, and when its provider fails the on-premise model answers in its place; the reference console calls every one of those operations, `manifest-mock` trusts only the session it issued and answers only for the ids it holds, and a browser refused while signing in sees a page, not raw JSON; the API's guides say all of it — *Building a front-end* among them — with every code block run against the mock, and an app on a draft address can sign in (the faculty front-end's FE-37) — and §7e says what is next.** The roadmap's ledger outranks every document on status.
+execution is under way — Rich has approved it and its ten spec actions are applied (5 and 6, from the faculty front-end's message, in `25e7445`; 7, the capable model, in `959af7f`; 8, its fallback, in `e6c272d`; 9, the SP key in every environment, in `d82b3a2`; 10, the building agent's models as a setting, in `d9a1fa1`), an app's recent output is readable through the API — the sandbox's only — an agent can commit an image, a PDF or a font, no line a client can make long is read quadratically, a project has a name people read and a colleague is added by CWL login name or email, Manifest signs a person in on the faculty front-end's own origin, an agent outside Manifest is given a model key charged to the person it works for and a person describing a new app one the platform pays for, an owner can switch an app off and bring it back, and delete one that never launched, the capable model — `default-chat-large`, OpenAI's `gpt-6-luna` on Rich's key — is registered from a setting at LiteLLM's own price and offered where D17 allows, and when its provider fails the on-premise model answers in its place; the reference console calls every one of those operations, `manifest-mock` trusts only the session it issued and answers only for the ids it holds, and a browser refused while signing in sees a page, not raw JSON; the API's guides say all of it — *Building a front-end* among them — with every code block run against the mock, and an app on a draft address can sign in (the faculty front-end's FE-37) — and §7e says what is next.** The roadmap's ledger outranks every document on status.
 
 *Last verified 2026-09-28, at the close of the front-end enablement plan's sitting 11 (Task 14 — the guides — with Spec action 9, from
 the faculty front-end's FE-37; one whole-branch review's fix pass). ONE NUMBER MOVED: `pnpm test` **2786 passed, 0 skipped, in 179
@@ -144,7 +144,7 @@ each sitting left them, dated, and they deliberately do not move.
 - **§8's open questions.**
 
 **The spec is current, with no open follow-up.** Every spec change has been applied only after Rich approved it —
-**most recently the front-end enablement plan's Spec action 9** (drafted by its sitting 11 after the faculty front-end's session fixed FE-37 at Rich's word, `c4e10cc`; approved as drafted, option (a), and applied 2026-09-28, `d82b3a2`): §8's `SAML_PRIVATE_KEY_PATH` row is `all` — every environment's app is given its SP key and every sign-in is signed. Before it **the same plan's Spec action 8** (drafted by its sitting 9a from its measurements of LiteLLM's
+**most recently the front-end enablement plan's Spec action 10** (drafted at its sitting 11's close from Rich's words on the faculty front-end's FE-35 and FE-36; approved as drafted WITH its safeguard, option (a), and applied 2026-09-28, `d9a1fa1`): the agent that BUILDS an app is governed by a platform setting — the capable model allowed on a `confidential` project by default, the app's own AI on-premise either way, and a `confidential` project's tokens refused staging's and production's Incident log tails while it is (§7, §10, §26). Before it **the same plan's Spec action 9** (drafted by its sitting 11 after the faculty front-end's session fixed FE-37 at Rich's word, `c4e10cc`; approved as drafted, option (a), and applied 2026-09-28, `d82b3a2`): §8's `SAML_PRIVATE_KEY_PATH` row is `all` — every environment's app is given its SP key and every sign-in is signed. Before it **the same plan's Spec action 8** (drafted by its sitting 9a from its measurements of LiteLLM's
 `/fallback`; approved as drafted, option (a), and applied 2026-09-28, `e6c272d`): the capable model's fallback is the on-premise
 model — a platform setting naming a catalogue entry, `default-chat-onprem` by default, answering `default-chat-large` when its
 provider fails, at its own price, its classification the platform's to enforce (§7, §21, §26). Before it **the same plan's Spec action 7** (drafted at its sitting 8's close from Rich's decision; approved
@@ -178,7 +178,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
-| **executing a plan** | **[The front-end enablement plan](plans/2026-09-27-front-end-enablement.md)** — approved by Rich, its fourteen sittings (9a and 9b added by him) and ALL NINE of its spec actions (applied — 1–4 in `1d1afd7`, 5 and 6, from the faculty front-end's message, in `25e7445`, 7 in `959af7f`, 8, the capable model's fallback, in `e6c272d`, 9, the SP key in every environment, in `d82b3a2`); **its sittings table says which is next, and §7e how to run it**. The authoring API's was EXECUTED on 2026-09-27. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **executing a plan** | **[The front-end enablement plan](plans/2026-09-27-front-end-enablement.md)** — approved by Rich, its fifteen sittings (9a, 9b and 11a added by him) and ALL TEN of its spec actions (applied — 1–4 in `1d1afd7`, 5 and 6, from the faculty front-end's message, in `25e7445`, 7 in `959af7f`, 8, the capable model's fallback, in `e6c272d`, 9, the SP key in every environment, in `d82b3a2`, 10, the building agent's models, in `d9a1fa1`); **its sittings table says which is next, and §7e how to run it**. The authoring API's was EXECUTED on 2026-09-27. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
 | **writing a plan** | **None is due.** The front-end enablement plan (2026-09-27) replaced *Spec action 1's plan* and is written; the vulnerability database in the console comes after it (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
@@ -221,7 +221,7 @@ docs/superpowers/
 │   ├── 2026-09-22-p6b-subsequent-releases.md      P6b — executed 2026-09-23; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
-│   ├── 2026-09-27-front-end-enablement.md         BEING EXECUTED — approved by Rich 2026-09-27; 17 tasks in 14 sittings (Task 12a, sitting 9a, added at sitting 8's close: the capable model — DONE 2026-09-28; Task 12b, sitting 9b, added at 9a: its fallback — DONE 2026-09-28); all 9 spec actions APPLIED; its sittings table says how far
+│   ├── 2026-09-27-front-end-enablement.md         BEING EXECUTED — approved by Rich 2026-09-27; 18 tasks in 15 sittings (Task 12a, sitting 9a, added at sitting 8's close: the capable model — DONE 2026-09-28; Task 12b, sitting 9b, added at 9a: its fallback — DONE 2026-09-28; Task 14a, sitting 11a, added at 11's close: the building agent's models); all 10 spec actions APPLIED; its sittings table says how far
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1711,13 +1711,18 @@ named in the row below.*
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
 | **D5 driver 2** | [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — **EXECUTED 2026-09-25**, all eight sittings | `make demo-github` (driver 2) — green fresh, re-use and from a `make reset` machine; step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1; **clicked by a person on both drivers**; the real conformance leg 17 of 17 | **Sitting 8's F11 and F12 are the ones to read**, found by the plan's one fresh whole-branch review: a path into a worktree's own `.git` could be written on both drivers (`core.fsmonitor` is code execution — latent until the authoring API supplies paths), and a push a read synced first was never validated. **Sitting 8's F15/F16**: `make demo` and `make demo-token` were red for five days after P6a's step-up because nothing ran them. **Sitting 1's F6**: one rewrite of GitHub's `main` froze a non-forced mirror's `main` for ever — the two-refspec mirror is its fix. **Sitting 4's F6**: without `repositoryOf`, a GitHub-mode control plane BUILT a driver-1 project. |
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
-### 7e. Execute the front-end enablement plan's sitting 12 — Task 15, the acceptance, ALONE AND LAST ← **START HERE**
+### 7e. Execute the front-end enablement plan's sitting 11a — Task 14a, the building agent's models ← **START HERE**
 
-**Sittings 1 to 11, 9a and 9b are DONE** (2026-09-27/28). [The plan](plans/2026-09-27-front-end-enablement.md) — seventeen tasks in
-fourteen sittings, approved by Rich, **all NINE of its spec actions APPLIED** (9, from the faculty front-end's FE-37, at sitting 11) — is
-what the faculty front-end at `app.manifest.internal` needs from Manifest. **Sitting 12 (Task 15) is this one, and the plan's last**:
-`make demo-frontend`, green three times on EACH driver and inside `make ci-acceptance`, the offline acceptance's step 15, its negative
-controls, **a clicked half (Rich types every password)**, then the plan's ONE whole-branch review and the close-out for a plan EXECUTED.
+**Sittings 1 to 11, 9a and 9b are DONE** (2026-09-27/28). [The plan](plans/2026-09-27-front-end-enablement.md) — eighteen tasks in
+fifteen sittings, approved by Rich, **all TEN of its spec actions APPLIED** (9, from the faculty front-end's FE-37, and 10, the building
+agent's models, at sitting 11's close) — is what the faculty front-end at `app.manifest.internal` needs from Manifest. **Sitting 11a
+(Task 14a) is this one — ADDED BY RICH AT SITTING 11's CLOSE** (the plan's *Decided by Rich*, its building-agent bullet): the laptop's
+on-premise names → `qwen3.8:27b` (**measured first — Step 1 STOPS and tells Rich if it does not fit this 36 GiB machine beside
+Docker**), a platform setting letting a `confidential` project's building agent use the capable model (the default) or on-premise only,
+FE-36 (a session never holds more than its project now allows), and the Incident safeguard. **Then sitting 12 (Task 15), the plan's
+last**: `make demo-frontend`, green three times on EACH driver and inside `make ci-acceptance`, the offline acceptance's step 15, its
+negative controls, **a clicked half (Rich types every password)**, then the plan's ONE whole-branch review and the close-out for a plan
+EXECUTED — everything below headed *for sitting 12* is its.
 The faculty front-end is `~/Developer/manifest-app`, other sessions' repository (§3's map; never edit it).
 
 **WHAT SITTING 11 BUILT** — its record is the plan's *Sitting 11*: *Building a front-end* (`docs/api/frontend.md`) and every guide the
@@ -1728,17 +1733,17 @@ was paused: every environment's app is given its SP key, so an app on a draft ad
 operations, 127 codes — text only.
 
 **ASK RICH IN THE FIRST MESSAGE:**
-1. **`make refresh-vulndb` (network on — his) — due after 2026-10-01; Rich said at sitting 11's close he will run it before then —
-   CONFIRM it ran** (`make doctor`'s staleness line names the build date), because Task 15 NEEDS it fresh: `make ci-acceptance`'s
+0. **Nothing blocks sitting 11a** — Spec action 10 is applied and its three choices are his (*Decided by Rich*). Tell him the model
+   measurement's answer before building on it.
+1. **(For sitting 12) `make refresh-vulndb` (network on — his) — due after 2026-10-01; Rich said at sitting 11's close he will run it
+   before then — CONFIRM it ran** (`make doctor`'s staleness line names the build date), because Task 15 NEEDS it fresh: `make ci-acceptance`'s
    `make demo-production` and `make demo-releases`, and step 9's `launch-app` refusal (a delete refused because it launched). Past the
    date, §13's `scans` item refuses every production launch.
-2. **The clicked half's time** (Step 4) — he types every password; stage everything first and ask once (the memory *clicked-half
+2. **(For sitting 12) The clicked half's time** (Step 4) — he types every password; stage everything first and ask once (the memory *clicked-half
    passwords are Rich's*).
-3. **FE-35 and FE-36** (§8 *Open*) — **Rich answered in his own words at sitting 11's close**: larger models may BUILD a
-   `confidential` app; the app's own AI must be on-prem. Whether that is (A), (B) or (C) there — and the spec action (A) needs — may
-   still be awaited: read §8's entry, and ask only what it leaves open. Neither is Task 15's.
+3. **FE-35 and FE-36 are DECIDED** (§8 *Decided*) — they are sitting 11a's.
 
-**WHAT TASK 15's TEXT DOES NOT SAY** (each opened at sitting 11's close — re-verify before relying on it):
+**WHAT TASK 15's TEXT DOES NOT SAY — for sitting 12** (each opened at sitting 11's close — re-verify before relying on it):
 - **Recent output is SANDBOX-ONLY since sitting 10 (FE-24's code)** — Task 15's step 5–6 and Step 4's clicked half read a STAGING
   instance's output, which is now `403 INSTANCE_OUTPUT_STAGING`. **Deploy the release to the sandbox too and read the sandbox
   instance** (step 6's `[REDACTED]` `MONGODB_URI` control included); the staging deploy stays for the student's sign-in.
@@ -1759,10 +1764,17 @@ operations, 127 codes — text only.
 said it would message when done with 7100 — ask it whether it is, before any tier. **A session name changes at every handover — `ListAgents` IMMEDIATELY before every promised
 message** (sitting 11's F18: a heads-up went to a session that had just handed over, and arrived after the commit).
 
-**Read, in this order:** Task 15 in full (`## Task 15:` — its `[S9b]`, `[S9a]`, `[S9]` and `[S7]` blocks first); the plan's *Sitting 10*
-and *Sitting 11* records; RUNBOOK's *Running the control plane* and every `make demo-*` section (the new demo copies their split);
+**Read, in this order (sitting 11a):** Task 14a in full (`## Task 14a:`); Spec action 10 in the plan's *Spec actions* and §7's and
+§10's text it changed; `ai/models.ts`, `ai/sessions.ts`, `ai/capable.ts`; `infra/litellm/config.yaml`; the plan's *Sitting 9a*, *9b* and
+*11* records; §4's traps 7 and 8. **(Sitting 12)** Task 15 in full (`## Task 15:` — its `[S9b]`, `[S9a]`, `[S9]` and `[S7]` blocks
+first); the plan's *Sitting 10* and *Sitting 11* records; RUNBOOK's *Running the control plane* and every `make demo-*` section (the new demo copies their split);
 `scripts/demo-authoring.sh` and `packages/journey/src/authoring.ts` (the newest demo, the shape to copy); `infra/lib/idp-login.sh`; §4's
 traps 6, 7, 8 and 11.
+
+**WHERE SITTING 11a STOPS, AND HOW IT ENDS.** Task 14a alone — **the next sitting is 12**. `pnpm test:docker` is owed (`ai/`,
+`infra/`). One fresh whole-branch reviewer told never to run a test; the LEAN budget; `make doctor` and `make verify`; the cleanup
+scripts; the close-out (§6) — and message the faculty front-end's session at every contract or mock commit and when it lands (its F4
+plan reads `session.models`).
 
 **WHERE SITTING 12 STOPS, AND HOW IT ENDS.** Task 15 alone — and it ends the plan: **the plan's one fresh whole-branch review over its
 whole range** (Task 15 Step 5), its Importants fixed red first, then the close-out for a plan EXECUTED (§6; CLAUDE.md's *State*, §2's
@@ -1813,30 +1825,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **FE-35 AND FE-36 — RELAYED FROM THE FACULTY FRONT-END'S SESSION, 2026-09-28 (at sitting 11), FOR RICH TO PLACE.** From its F3
-  sitting 7's walks (manifest-app's `docs/api-findings.md`). **FE-36 — a session keeps `default-chat-large` after a commit raises the
-  project's classification to `confidential`**: an agent session's `models` are fixed when it starts (D17 read then), so a
-  `confidential` project's data can still reach the capable model — OpenAI's, outside Canada — until that session ends. A D17
-  enforcement gap, not a preference: *recommended* — end (or re-key) a project's agent sessions when a validated manifest raises its
-  classification, in the next plan, or in sitting 12 if Rich wants it before the acceptance. **FE-35 — a `confidential` project's later
-  sessions get only the small on-premise model, which could not write the app** (measured on 7100: eleven answers, nothing committed
-  in ten moves; most course apps keep students' names, so most are `confidential`). D17 is working as specified; the cost is
-  capability. **RELAYED AS RICH'S DECISION, TO CONFIRM (the front-end's session, 2026-09-28, late): option (a) — a model able to write
-  an app, approved for `confidential` data, at `max_classification: confidential`**; on the laptop `qwen3.6:35b-a3b` (22.6 GB) or
-  `qwen3.8:27b` (17.7 GB), both already in its Ollama. *Undesigned — the platform's to design once confirmed*: which model; whether it
-  is `default-chat-onprem` itself or a new on-premise name beside it (Spec action 8's fallback rule names `default-chat-onprem`); the
-  laptop's memory and C1's offline floor; whether a spec action is needed (§7's catalogue). The front-end reads `session.models` and
-  carries on on whatever is listed until it lands. FE-37 is FIXED (`c4e10cc`, Spec action 9).
-  **RICH, TO THE PLATFORM SESSION, 2026-09-28 at sitting 11's close — his own words:** *"when it becomes confidential we need to
-  switch to the on-prem models. It's okay to use the larger models to BUILD the app, but if the app needs AI, then we should switch to
-  use the on-prem model for the AI within the created app."* Read as: the BUILDING agent may use the capable (off-prem) model on a
-  `confidential` project, and the app's OWN AI (`ai.models`) must be on-prem — which validation and deploy already enforce. That would
-  settle FE-35 without an on-prem capable model and make FE-36 no gap for the builder, but it changes Spec action 1's *"on the models
-  the project's data classification allows (D17)"* for agent keys — **a spec action**. Put to him as (A) his words, (B) the relayed
-  on-prem capable model, (C) A now and B when UBC hosts one; **his answer is awaited**. The risk named with (A): an off-prem builder
-  can read staging and production Incident log tails (redaction misses names and student numbers) — *recommended*, refuse those to a
-  `confidential` project's off-prem agent session.
-
 - **FE-28 TO FE-32 — RELAYED AS RICH'S DECISIONS, TO CONFIRM (2026-09-28); FE-26 AND FE-27 CONFIRMED BY RICH AT SITTING 10's OPEN
   (*"Both join Task 13"*) AND BUILT THERE (`18f3214`) — *Decided*.** The faculty front-end's session sent them to sitting
   9b as *"Rich's decisions … carried at his word"*, and its `docs/api-findings.md` records each as option (a): FE-28
@@ -1868,7 +1856,10 @@ reasoning is recorded.**
   capable-model decision (*Decided*, below): the capable model is OpenAI's for now, at `internal`, as §7's catalogue already
   allows `default-chat` to *"route off-prem"*. The platform enforces the name's `max_classification`, and `confidential` never
   leaves on-premise hardware; whether a US-hosted provider suits `internal` course data is FIPPA's question, and the Privacy
-  Office's, not the platform's. *For the external track* (`docs/external-track.md`), beside FE-24's questions.
+  Office's, not the platform's. *For the external track* (`docs/external-track.md`), beside FE-24's questions. **Since Spec action
+  10 (2026-09-28) it reaches `confidential` projects too**: by default the agent BUILDING one may call the capable model, so the
+  code and the person's description of the app go to that provider (the app's own AI, and staging's and production's Incident logs,
+  do not) — the Privacy Office may want the setting at *on-premise only*.
 - **AN IdP-BEGUN SIGN-OUT DOES NOT REACH THE `app` ORIGIN — a concrete reason the server-side session store is owed? RAISED
   2026-09-27 by the front-end enablement plan's sitting 6 (its review's M5).** Signing out of a deployed app makes the IdP send
   a LogoutRequest to Manifest's ONE SingleLogoutService, the console origin's; it ends the console's session and an `app`
@@ -1945,6 +1936,12 @@ reasoning is recorded.**
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **FE-35 and FE-36 — the agent that BUILDS an app is a platform setting** (Rich, 2026-09-28, at the front-end enablement plan's
+  sitting 11's close, his own words: *"It's okay to use the larger models to BUILD the app, but if the app needs AI, then we should
+  switch to use the on-prem model for the AI within the created app … Can we perhaps make this a setting?"*; and *"qwen3.8:27b will be
+  the default on prem model and one to use locally"*). Spec action 10, with its safeguard, applied (`d9a1fa1`); built by sitting 11a
+  (Task 14a). The relayed FE-35 — a capable ON-PREMISE model for building — is superseded. Recorded in the plan's *Decided by Rich*.
 
 - **FE-26 and FE-27 join Task 13** (Rich, 2026-09-28, sitting 10's first exchange: *"Both join Task 13"*) — built in `18f3214`; the
   plan's *Sitting 10* record.

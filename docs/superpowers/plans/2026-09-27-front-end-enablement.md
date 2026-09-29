@@ -31,7 +31,8 @@
 > **TWELVE SITTINGS — APPROVED BY RICH ON 2026-09-27** (*"12 sittings is fine"*) — **AND A THIRTEENTH, SITTING 9a (Task 12a, the
 > capable model), ADDED BY RICH AT SITTING 8'S CLOSE**, between sittings 9 and 10, **AND A FOURTEENTH, SITTING 9b (Task 12b, the
 > capable model's fallback), ADDED BY RICH AT SITTING 9a** (2026-09-28, after Spec action 8); every other number stands, because the
-> faculty front-end's documents cite them. 1 the measurements; 2 recent output, end to end; 3 binary
+> faculty front-end's documents cite them. **And a fifteenth, SITTING 11a (Task 14a, the building agent's models), ADDED BY RICH AT SITTING
+> 11's CLOSE** (2026-09-28, after Spec action 10). 1 the measurements; 2 recent output, end to end; 3 binary
 > files; 4 what the authoring API hands over; 5 a project's name and people by CWL login; 6 the `app` origin; 7 agent
 > sessions; 8 archive and restore; 9 delete; 10 the console and the mock; 11 the guides; 12 the acceptance. **The order
 > is chosen so the spec actions are needed as LATE as possible**: sittings 2–4 build nothing a spec action changes (§14's
@@ -60,7 +61,8 @@
 | 9b | 12b | **The capable model's fallback** (Rich, 2026-09-28): a platform setting naming a CATALOGUE entry — `default-chat-onprem` recommended (Ollama on the laptop, Pickerel at UBC) — that LiteLLM's own fallback (`POST /fallback`, measured) answers `default-chat-large` with when its provider fails, the network off included; the fallback's classification enforced by the platform, because the gateway does not check a key's model list before it falls back (measured) | **Yes** — `ai/` | **Spec action 8** — drafted by sitting 9a; ✅ approved (a) and APPLIED 2026-09-28, at 9a's close | **DONE 2026-09-28** — `ai/capable.ts`'s `ensureCapableFallback`: `MANIFEST_CAPABLE_MODEL_FALLBACK` (`default-chat-onprem` by default, EMPTY none) set as `default-chat-large`'s `general` fallback with LiteLLM's own `POST /fallback` straight after the capable model — measured DB-held, surviving a LiteLLM restart and a repoint — **removed by `DELETE` whenever the capable model is absent** (the entry outlives its primary, measured), and **refused unless every deployment of the name is a classified chat entry ranked at least the capable model's** (the gateway falls back without consulting a key's list, measured again); the boot line's `capableFallback`; the admin transport's `delete`; live in the Docker tier — an unreachable primary answered by the on-premise model through a key holding only `default-chat-large`, at the fallback's price; one fresh whole-branch review, its Important (the Docker cases beside the owner's real model) fixed red-first; the contract unchanged |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-28** — `DELIBERATELY_UNCALLED` empty again, 66 of 66: the console calls every operation this plan added (instances and sandbox-only output on Deploy; binary files previewed, downloaded and uploaded on Code, with the message checked and a commit's 1000-change stop said; name, rename, archive, restore and delete-never-launched on Project, members by CWL login name, email or PUID; agent sessions with the key shown once and the month's budget on Tokens; the intake key on Projects); **FE-24's code** (`INSTANCE_OUTPUT_STAGING`, a sibling code, decided by kind before the driver); **FE-17** (a browser refused at `/auth/*` sees a page); **FE-18** (`dist/` type-checks alone; `erasableSyntaxOnly`); **FE-26 and FE-27** (confirmed by Rich at the open: the mock trusts only its own session, refuses a Bearer where the security names the session alone, 404s ids it does not hold, answers each environment's instances and times from now, scripts its refusal states as options, starts from source); sitting 6's M2 (the signed `RelayState`); clicked against the mock and on the platform, Rich typing the sign-in and one step-up; one fresh whole-branch review, its two Importants fixed red-first; `pnpm test:docker` 246 in 41, green first run |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5); **and Task 14's `[S10]`** (sandbox-only output, FE-17's page, the mock's rules) | **No** — unless a step reaches `blueprints/` (**owed after all**: the front-end session's `c4e10cc`, FE-37, reached `blueprints/` and `releases/` while this sitting was paused) | — (**Spec action 9**, from `c4e10cc`, drafted and applied in-sitting) | **DONE 2026-09-28** — *Building a front-end* (`frontend.md`): the `app` origin and the refusal page, FE-2's rule, the agent's key, the capable model and its fallback header, the intake key, sandbox-only output and what redaction misses, images, PDFs and fonts, a name and a colleague, ending an app, `bodySha256`'s canonical form (FE-5), the contract from outside the workspace (FE-18), the mock's rules (FE-26/27); *For an AI agent*, *Authoring*, *Authentication*, *Conventions* (four rules the plan needed and no page stated), *Getting started* and the index brought up to the API; SIX new run examples (the person's own actions as BROWSER code — the review's Critical); the slug called a slug in published text, `CSRF_ORIGIN_REFUSED` for two origins, no `FE-n` in public text (each a gate); one fresh whole-branch review, its Critical and three Importants fixed red-first; **Spec action 9 approved and applied** (`d82b3a2`) |
-| 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | ← next |
+| 11a | 14a | **The building agent's models, a platform setting** (Rich, 2026-09-28, at sitting 11's close): `default-chat-onprem` and `-reasoning` → `qwen3.8:27b` on the laptop (MEASURED FIRST: 36 GiB beside Docker, non-thinking); a setting — the capable model allowed on a `confidential` project's agent sessions by default, or on-premise only; FE-36 — a session holding more than its project now allows is ended; the safeguard — a `confidential` project's token refused staging's and production's Incident log tails while the setting allows the capable model; the guides | **Yes** — `ai/`, `infra/` | **Spec action 10** — approved (a), with the safeguard, and APPLIED (`d9a1fa1`) | ← next |
+| 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -175,6 +177,18 @@
   a more capable model (sol) — that is a repoint of `MANIFEST_CAPABLE_MODEL`, one line and a restart (sitting 9a's ruling).
   **And the gateway at UBC is a question of its own** — Manifest creating §10's users, keys and budgets in a SHARED LiteLLM means
   holding that gateway's master key — placed in ORIENTATION §8 *Open*, not decided.
+- **THE AGENT THAT BUILDS AN APP IS A PLATFORM SETTING — THE CAPABLE MODEL ALLOWED ON A `confidential` PROJECT BY DEFAULT; THE APP'S
+  OWN AI ON-PREMISE; `qwen3.8:27b` THE LAPTOP'S ON-PREMISE MODEL — SITTING 11a** (2026-09-28, at sitting 11's close, from the faculty
+  front-end's FE-35 and FE-36, in his words: *"when it becomes confidential we need to switch to the on-prem models. It's okay to use
+  the larger models to BUILD the app, but if the app needs AI, then we should switch to use the on-prem model for the AI within the
+  created app."* — then *"qwen3.8:27b will be the default on prem model and one to use locally. Can we perhaps make this a setting? So
+  that it's possible for us to change it in the future. We can use the default large models for sensitive apps now, but if we need to
+  change it to the on prem models, then we can adjust."*). Asked three questions, he chose all three recommendations: **Spec action
+  10 as drafted WITH the safeguard** (a `confidential` project's tokens refused staging's and production's Incident log tails while
+  its builder may go off-premise) — APPLIED (`d9a1fa1`); **a new sitting, 11a, before the acceptance**; and **the on-premise names
+  only** move to `qwen3.8:27b` on the laptop (`default-chat-onprem` and `-reasoning`), `default-chat` staying `qwen3.5:4b`, the fast
+  floor every demo and tier uses. *The relayed FE-35 (a capable ON-PREMISE model for building) is superseded* — though
+  `qwen3.8:27b` as the on-premise model is most of it.
 - **Carried from earlier plans, still binding:** D24's privileged four and the person-only class; step-up for a production
   deploy, an approval, member management and a production secret; the stored preview an approval binds; `SENSITIVE_FIELDS`
   as §7's list; every platform model call whose answer is read or shown is STRUCTURED OUTPUT (the D5 plan's Decision 22 —
@@ -2269,6 +2283,62 @@ and `config.litellm.capableFallback: string | undefined`.
 
 ---
 
+## Task 14a: The building agent's models — a platform setting; the laptop's on-premise model `qwen3.8:27b`; FE-36; the Incident safeguard
+
+> **ADDED BY RICH AT SITTING 11's CLOSE (2026-09-28), as sitting 11a, before the acceptance** (*Decided by Rich*, its building-agent
+> bullet; **Spec action 10**, applied `d9a1fa1`). Written at that close from the code at `d9a1fa1`; a hypothesis, measured first.
+
+**What the code does today** (read at sitting 11's close): `ai/models.ts`'s `agentModelsFor(catalogue, floor)` keeps every catalogue
+entry whose `max_classification` ranks at least the project's floor — so a `confidential` project's session lists
+`default-chat-onprem` and `default-chat-onprem-reasoning` alone (`infra/litellm/config.yaml`; FE-35, measured by the front-end: eleven
+answers, nothing committed in ten moves). `ai/sessions.ts:163` fixes a session's models at its start, so a later raise of the
+classification leaves it holding more (FE-36). `listIncidents` (`GET /v1/environments/{environmentId}/incidents`) answers every
+Incident's `logTail` — the last 200 lines, redacted at capture — to any credential holding `project:read`. On the laptop every chat
+name but `default-chat-large` is `ollama_chat/qwen3.5:4b`; `infra/models.txt` lists what `make seed` pulls; this machine has 36 GiB and
+`qwen3.8:27b` (17.7 GB) is already in its Ollama.
+
+**Files (a prediction):** `infra/litellm/config.yaml`, `infra/models.txt`; `packages/control-plane/src/config.ts` (the setting),
+`ai/models.ts`, `ai/sessions.ts` (and wherever a manifest's classification is validated — `api/spec-validation.ts`'s
+`validateAndRecord`), `api/routes/incidents.ts` (or wherever `listIncidents` lives), `api/error-codes.ts`; tests beside each, the
+authorization matrix, `ai/*.docker.test.ts`; `docs/api/agents.md`, `frontend.md`; `.env.example`; RUNBOOK; the contract (a code and
+descriptions — still `1.4.0` unless an enum grows, which the task rules on); the mock if a code or enum is added.
+
+- [ ] **Step 1: Measure first — and STOP and tell Rich if the model does not fit.** (a) `qwen3.8:27b` through LiteLLM as
+  `ollama_chat/…` answers non-thinking (§21: *"a thinking model streams no content at all"*) — with whatever per-model parameter
+  LiteLLM 1.98.0 passes (`think: false`), measured, not assumed; (b) memory: loaded beside `qwen3.5:4b` with Docker running (`/api/ps`
+  `size_vram`, `vm_stat`, `memory_pressure`) on this 36 GiB machine; (c) a first answer's latency, cold and warm; (d) whether the
+  Docker tier's fallback cases (`ai/capable.docker.test.ts`) then load the 27B model, and what that costs the tier. Record each in
+  `spikes/frontend-baseline/` as `[M…]`.
+- [ ] **Step 2: The laptop's on-premise model.** `default-chat-onprem` and `default-chat-onprem-reasoning` → `ollama_chat/qwen3.8:27b`
+  (its synthetic per-token cost kept, §21); `default-chat` stays `qwen3.5:4b`; `infra/models.txt` gains it, so `make seed` pulls it and
+  `make doctor` checks it; the capable model's fallback (Spec action 8, `default-chat-onprem`) is now the 27B model — say so.
+- [ ] **Step 3: The setting** — a name such as `MANIFEST_AGENT_BUILDER_MODELS` = `capable` (the default) | `on-premise`, parsed in
+  `config.ts`, named in `.env.example` and RUNBOOK. `agentModelsFor` gains it: on a `confidential` project, `capable` adds the capable
+  model's NAME when the catalogue holds it (never an entry the classification refuses otherwise — `default-chat`,
+  `default-chat-reasoning` and `default-embed` stay out); `on-premise` is today's rule. **RED first**: a `confidential` floor with
+  `capable` lists the on-premise names and `default-chat-large`; with `on-premise`, the on-premise names alone; with the capable model
+  unregistered, the on-premise names alone.
+- [ ] **Step 4: FE-36 — a session never holds more than its project now allows.** When a validated manifest raises the
+  classification (a commit, a push), and at boot under `on-premise` (the setting changed), end every active agent session of the
+  project whose `models` exceed what `agentModelsFor` now allows — its key revoked at the gateway, `agent_session.ended` published.
+  **Rule on the end reason**: an additive `endReason` value (`classification_raised`) is a response enum growing, which a client may
+  switch on — weigh it against reusing `ended`; either way the contract and the mock move together and the front-end is messaged.
+  **RED first**, and a Docker case proving LiteLLM refuses the ended key.
+- [ ] **Step 5: The safeguard.** While the setting is `capable`, `listIncidents` for a STAGING or PRODUCTION environment of a
+  `confidential` project, asked with a delegated TOKEN, is refused by a code of its own (e.g. `403 INCIDENT_LOG_CONFIDENTIAL`, decided
+  by the environment's kind and the project's classification, before any read); a person's session still reads it; the sandbox's is
+  readable (test users only). The authorization matrix gains its row. **RED first.**
+- [ ] **Step 6: The guides and the reference.** *For an AI agent*'s *The models you may call* and *Building a front-end*'s *Your agent's
+  model*: a `confidential` project's session lists the capable model while the platform allows it — for writing the app, never for
+  the app's own `ai.models`, which validation keeps on-premise; the new refusal; the ended session. `pnpm docs:write`; the examples
+  still run (the confidential case in `examples.test.ts` names the models it asserts).
+- [ ] **Step 7: The gates; the controls, predicted first**: (a) `agentModelsFor` ignoring the setting → Step 3's `capable` case red;
+  (b) the raise not ending sessions → Step 4's red, and the Docker case's key still answering; (c) the safeguard reading the setting
+  inverted → Step 5's red. `pnpm test:docker` owed (`ai/`, `infra/`). One fresh whole-branch reviewer. Commit per step, by name;
+  message the faculty front-end's session at every contract or mock commit — its F4 plan reads `session.models`.
+
+---
+
 ## Task 15: The acceptance — `make demo-frontend`: a front-end's server on the `app` origin drives all of it for a signed-in instructor, and a person clicks it
 
 > **[S9b] — FROM SITTING 9b (2026-09-28).** Offline, `default-chat-large` is answered by `default-chat-onprem` — but only once an
@@ -3154,6 +3224,28 @@ sandbox's included — a per-app keypair makes that cost nothing (§9) — and r
 **Options put to Rich:** **(a) as drafted — chosen**; (b) keep the spec and revert the code, letting sandbox rows accept an unsigned
 AuthnRequest (weaker: a sandbox sign-in becomes forgeable, and it undoes a fix he had just clicked working); not now (the row left out
 of step, carried). **Shared pages:** none restates the row (grepped); no other spec line assumed a keyless sandbox (grepped).
+
+### 10. §7, §10 and §26 — the agent that BUILDS an app is governed by a platform setting (the faculty front-end's FE-35 and FE-36) — DRAFTED 2026-09-28 AT SITTING 11's CLOSE, FROM RICH'S WORDS; ✅ **APPROVED BY RICH AS DRAFTED, WITH THE SAFEGUARD, OPTION (a), AND APPLIED THE SAME EVENING (`d9a1fa1`)**
+
+**Why.** FE-35: a `confidential` project's agent sessions listed only the small on-premise model, which could not write the app —
+and most course apps keep students' names, so most are `confidential`. FE-36: a session started while a project was `internal` kept
+`default-chat-large` after a commit raised it to `confidential`. Rich: the larger models may BUILD such an app; the app's OWN AI must
+be on-premise; and *"make this a setting"*. §7 said `confidential` *"never leaves on-premise hardware"*, and §10 gave an agent key
+exactly the models D17 allows for the project's classification.
+
+**The edits (applied):** **§7** — *"…and a `confidential` app's own AI never leaves on-premise hardware"*, then a paragraph: the
+agent that BUILDS an app is governed by a platform setting of its own (§26) — whether an agent session on a `confidential` project
+may call the capable model as well as the on-premise models; **yes by default**; set to on-premise only, every such session gets the
+on-premise models alone and the sessions already holding more are ended; the app's own `ai.models` stays on-premise either way;
+**and while the setting allows it, a delegated token on a `confidential` project is refused staging's and production's Incident log
+tails**, which can carry the input of the people the classification protects. **§10** — the agent key's models are D17's *"— and, on
+a `confidential` project while the builder setting allows it (§7, §26), the capable model too."* **§26** — the settings list gains
+*"whether a `confidential` project's building agent may call it (§7)"*, a change to the model catalogue with its step-up.
+
+**Options put to Rich:** **(a) with the safeguard — chosen**; (a′) without it (staging and production Incident log tails readable
+to the token — redacted, but redaction misses names and student numbers); not yet. **Shared pages:** `manifest-schematic.html`'s
+capable-model passage and `manifest-decisions.html`'s D17 say it in plain words; `manifest-stories.html`'s *"narrows the list of AI
+models the app may use"* stays true.
 
 ## What the self-review caught
 
@@ -5012,6 +5104,10 @@ detection (`api/representations/source.ts`) — it can be written as text.
 **The faculty front-end's findings of tonight, relayed for Rich** (manifest-app's `docs/api-findings.md`): FE-35 — a confidential
 project's later sessions get only the small on-premise model, which could not write the app; FE-36 — a session keeps
 `default-chat-large` after a commit raises the classification to `confidential`; FE-37 — fixed (`c4e10cc`, Spec action 9).
+**Then, after the close-out commit, Rich decided FE-35 and FE-36 in his own words** (*Decided by Rich*, the building-agent bullet):
+the larger models may BUILD a `confidential` app, the app's own AI stays on-premise, *"make this a setting"*, and `qwen3.8:27b` is the
+laptop's on-premise model — **Spec action 10**, drafted, approved (a) with its safeguard, and applied (`d9a1fa1`), with its two shared
+pages; **Task 14a and sitting 11a added before the acceptance**, and §7e moved to it.
 
 **Gates at the close** (the final tree, `d82b3a2`): `pnpm test` **2786 passed, 0 skipped, in 179 files — twice, identical** (725 s and
 719 s, alone, at load ~3–7) — **exactly as predicted** (`close-s11-predictions.md`: 2771 + examples 8 + journey docs gates 2 + document
