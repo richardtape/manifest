@@ -1759,8 +1759,9 @@ Fourteen plans are executed (§2's table).
 the plan for the faculty front-end's launch path** — **FE-6**, the three clocks (the staging registration, the production registration,
 the privacy assessment: D19's generated drafts, an owner's *"I've sent it"*, a state that can say *waiting since*, the staging
 registration as a tracked object like `IamRegistration`), and **FE-25**, an owner's *"please sign this off"* for a release, feeding
-§26's queue (today no administrator is told and nothing records it). **And, Rich's addition of 2026-09-29: the GitHub driver run against REAL GitHub** (§8 *Decided*'s first line) — a task of the
-next plan, not a plan of its own. **Then** the vulnerability database in the console (§8
+§26's queue (today no administrator is told and nothing records it). **And, Rich's additions of 2026-09-29, each a task of the next plan, not a plan of its own** (§8 *Decided*'s first lines): **the
+GitHub driver run against REAL GitHub**, and **a session holding a model its project no longer allows TRIMMED in place rather than
+ended** (measured first, with a spec action for §7's sentence). **Then** the vulnerability database in the console (§8
 *Decided*). Plan-writing house style: `superpowers:writing-plans`, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md)
 as the newest example — a Task 1 that measures, sittings approved by Rich, spec actions drafted with options and a recommendation.
 
@@ -1951,6 +1952,13 @@ reasoning is recorded.**
 
 ### Decided
 
+- **A SESSION HOLDING A MODEL ITS PROJECT NO LONGER ALLOWS IS TRIMMED IN PLACE, NOT ENDED — the next plan** (Rich, 2026-09-29,
+  *"yes please"*, after the faculty front-end's click on `notes-and-answers`: the building agent's own commit raised the project to
+  `confidential`, and FE-36's sweep ended all three live sessions `models_withdrawn` although the capable model was still allowed —
+  each key held `default-chat`, `default-chat-reasoning` and `default-embed`, which confidential withdraws). The next plan: MEASURE
+  first whether LiteLLM 1.98 changes a live key's `models` in place (`/key/update`) and refuses the withdrawn ones at once; then narrow
+  the key and keep the session, ending it only when nothing it may still use is left. **A spec action first**: §7's *"and the sessions
+  already holding more are ended"* (Spec action 10's words) changes, and the `agent_session` events say what was withdrawn.
 - **THE NEXT PLATFORM PLAN RUNS THE GITHUB DRIVER AGAINST REAL GITHUB** (Rich, 2026-09-29, after the front-end enablement plan's
   close: *"add the GitHub driver run to the next plan"*). D5's driver 2 was proved against the FAKE and the fake checked against GitHub by
   the conformance run, but the control plane has never run on the real `Manifest (local dev)` App. The run: `.env.example` section 2a's
