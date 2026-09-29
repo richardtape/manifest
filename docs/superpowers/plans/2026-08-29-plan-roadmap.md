@@ -1268,7 +1268,8 @@ expired in its 600 s). **The plan's one whole-branch review** (over all 98 commi
 PROJECT_ARCHIVED` answered by 23 operations and declared by none of the 66**, and the launch rehearsal skipping FE-36's sweep (sitting
 11a's ruling, reversed) — both fixed red first with a promoted swallowed cause, a stale retirer on a deleted project, and a test that
 would have gone red on 2026-11-01. Contract `1.4.0` (declared lists only). **M4 — a removed member's tokens and sessions — DECIDED by Rich
-after the close: removal revokes them** (ORIENTATION §8 *Decided*; a spec action first, in the next plan). **Next in his order: the faculty front-end's launch path (FE-6, FE-25), unwritten.**
+after the close: removal revokes them** (ORIENTATION §8 *Decided*; a spec action first, in the next plan). **Next in his order: the faculty front-end's launch path (FE-6, FE-25), unwritten — and, added by Rich after the close, the GitHub
+driver run against REAL GitHub (`Manifest-local-dev`) as one of its tasks** (ORIENTATION §8 *Decided*).
 
 ### The faculty front-end's message — RICH'S DECISIONS OF 2026-09-27, AND WHAT FOLLOWS THE FRONT-END ENABLEMENT PLAN
 

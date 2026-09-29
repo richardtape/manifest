@@ -1759,9 +1759,19 @@ Fourteen plans are executed (§2's table).
 the plan for the faculty front-end's launch path** — **FE-6**, the three clocks (the staging registration, the production registration,
 the privacy assessment: D19's generated drafts, an owner's *"I've sent it"*, a state that can say *waiting since*, the staging
 registration as a tracked object like `IamRegistration`), and **FE-25**, an owner's *"please sign this off"* for a release, feeding
-§26's queue (today no administrator is told and nothing records it). **Then** the vulnerability database in the console (§8
+§26's queue (today no administrator is told and nothing records it). **And, Rich's addition of 2026-09-29: the GitHub driver run against REAL GitHub** (§8 *Decided*'s first line) — a task of the
+next plan, not a plan of its own. **Then** the vulnerability database in the console (§8
 *Decided*). Plan-writing house style: `superpowers:writing-plans`, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md)
 as the newest example — a Task 1 that measures, sittings approved by Rich, spec actions drafted with options and a recommendation.
+
+**`.env` NOW SETS `MANIFEST_SOURCE_DRIVER=github` — AND ONLY THAT** (Rich, 2026-09-29, after the close; checked by counting lines,
+never printing values: none of section 2a's six real-App settings is set). The control plane running at the close (PID 63494) started
+BEFORE it, on driver 1. **At its next start** (`s11a-cp-start.sh` sources `.env`) it runs **driver 2 against the GitHub FAKE's defaults**
+— not real GitHub — and the fake is stopped (`make github-up` first); **every project made on driver 1 then answers `409
+SOURCE_PROVIDER_MISMATCH`** (the front-end's `my-weekly-thoughts` and `notes-and-answers` included); every driver-1 demo stops at its
+driver check; and `pnpm test:docker` from a shell that sourced `.env` boots its control planes on driver 2 (RUNBOOK). **Read the boot
+line's `"source"` after any restart.** For the real run, section 2a's whole block goes in together; for driver-1 work, comment the
+line out — ask Rich which he wants before restarting anything.
 
 **ASK RICH IN THE FIRST MESSAGE:**
 1. **Is the launch path next?** Or does the faculty front-end's own **real-platform acceptance** (its F4 plan's sitting 7, `manifest-app`
@@ -1941,6 +1951,12 @@ reasoning is recorded.**
 
 ### Decided
 
+- **THE NEXT PLATFORM PLAN RUNS THE GITHUB DRIVER AGAINST REAL GITHUB** (Rich, 2026-09-29, after the front-end enablement plan's
+  close: *"add the GitHub driver run to the next plan"*). D5's driver 2 was proved against the FAKE and the fake checked against GitHub by
+  the conformance run, but the control plane has never run on the real `Manifest (local dev)` App. The run: `.env.example` section 2a's
+  real-App block, a project created through the platform → a real PRIVATE repository in `Manifest-local-dev`, clicked on github.com;
+  network on and his yes, because it creates real repositories nothing deletes (and there are no webhooks on a laptop; `main` is not
+  protected on the free organisation). **He set `MANIFEST_SOURCE_DRIVER=github` in `.env` the same day** — §7e says what that does alone.
 - **REMOVING A MEMBER REVOKES THEIR TOKENS ON THE PROJECT AND ENDS THEIR AGENT SESSIONS** (Rich, 2026-09-29, after the front-end
   enablement plan's close: *"YEs"* to the recommended option (a) — the path `revokeToken` already takes). Raised by that plan's
   whole-branch review (M4; its *Sitting 12* and *What this plan does not build*). **Not built**: the next platform plan builds it,
