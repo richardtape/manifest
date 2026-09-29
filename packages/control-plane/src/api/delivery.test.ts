@@ -2,7 +2,7 @@ import { beforeEach, afterAll, describe, expect, it, vi } from 'vitest'
 import { asc, count, eq } from 'drizzle-orm'
 import { appSpecs, builds, events, releases } from '../db/index.js'
 import type { StreamFrame } from '../observability/index.js'
-import { resetDatabase } from '../db/testing.js'
+import { registerBackgroundWork, resetDatabase } from '../db/testing.js'
 import { createFakeDriver, type Driver } from '../runtime/index.js'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
 import { buildServer } from './server.js'
@@ -43,19 +43,19 @@ async function statusOf(
  */
 async function depsWithDriver(driver: Driver) {
   const deps = await testDeps()
-  return {
-    ...deps,
+  const builds = createBuildRunner({ db: deps.db, driver, bus: deps.bus })
+  const retirer = createRetirer({
+    db: deps.db,
     driver,
-    builds: createBuildRunner({ db: deps.db, driver, bus: deps.bus }),
-    retirer: createRetirer({
-      db: deps.db,
-      driver,
-      ai: deps.ai,
-      appSecrets: deps.appSecrets,
-      bus: deps.bus,
-      drainMs: 0,
-    }),
-  }
+    ai: deps.ai,
+    appSecrets: deps.appSecrets,
+    bus: deps.bus,
+    drainMs: 0,
+  })
+  // These replace the harness's, which `testDeps` registered: the next reset drains these too.
+  registerBackgroundWork(() => builds.idle())
+  registerBackgroundWork(() => retirer.idle())
+  return { ...deps, driver, builds, retirer }
 }
 
 /** A project with `n` builds started through the route and awaited to their end. */

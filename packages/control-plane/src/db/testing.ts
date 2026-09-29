@@ -148,6 +148,41 @@ function admin(): pg.Pool {
   return adminPool
 }
 
+/**
+ * Background work a test started and did not await (launch path plan Task 3, F26).
+ *
+ * A deploy schedules a retire pass and returns; the pass runs on after the test that
+ * started it. If the next test's `resetDatabase` truncates while that pass is inside its
+ * own transaction, Postgres finds a lock cycle and one side dies with `deadlock detected`
+ * (P6b sitting 4's F7: about one `delivery.test.ts` run in eight went red). Everything
+ * that starts such work registers its `idle` here, and `resetDatabase` drains first.
+ *
+ * The drain CLEARS the set, so work registered before a reset is drained by that reset
+ * and then forgotten: deps built in a `beforeAll` must register again (or be built per
+ * test) if their retirer runs after the first reset. `auth-page.test.ts` builds that way
+ * and retires nothing, so it costs nothing today.
+ */
+const backgroundWork = new Set<() => Promise<void>>()
+
+export function registerBackgroundWork(idle: () => Promise<void>): void {
+  backgroundWork.add(idle)
+}
+
+export async function drainBackgroundWork(): Promise<void> {
+  const pending = [...backgroundWork]
+  backgroundWork.clear()
+  const settled = await Promise.allSettled(pending.map((idle) => idle()))
+  for (const result of settled) {
+    if (result.status === 'rejected') {
+      console.error(
+        '[test harness] background work rejected while draining:',
+        result.reason,
+      )
+    }
+  }
+}
+
 export async function resetDatabase(): Promise<void> {
+  await drainBackgroundWork()
   await admin().query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
 }

@@ -48,7 +48,7 @@ import type { AiKeyService } from '../ai/index.js'
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
 import { buildServer, type ServerDeps } from './server.js'
 import { loadServedDocs, type ServedDocs } from './served-docs.js'
-import { resetDatabase } from '../db/testing.js'
+import { registerBackgroundWork, resetDatabase } from '../db/testing.js'
 import { addMember } from '../projects/index.js'
 import { testReservedLabels } from '../projects/testing.js'
 import {
@@ -791,6 +791,12 @@ export async function testDeps(): Promise<ServerDeps> {
   const bus = createEventBus()
   const appSecrets = createAppSecrets(masterKeypair)
   const ai = testAiKeyService()
+  // Built into locals so the harness can register their `idle`s: the next test's
+  // `resetDatabase` waits for both before it truncates (F26, launch path plan Task 3).
+  const retirer = createRetirer({ db, driver, ai, appSecrets, bus, drainMs: 0 })
+  const builds = createBuildRunner({ db, driver, bus })
+  registerBackgroundWork(() => retirer.idle())
+  registerBackgroundWork(() => builds.idle())
   return {
     db,
     config,
@@ -809,13 +815,13 @@ export async function testDeps(): Promise<ServerDeps> {
      * schedules a retire pass every API test, and the schedule is half of what this
      * task builds. `drainMs: 0` because the fake driver counts nothing in flight.
      */
-    retirer: createRetirer({ db, driver, ai, appSecrets, bus, drainMs: 0 }),
+    retirer,
     /**
      * A REAL RUNNER (P5a Task 13), over the same driver and bus: a build answers 202 and
      * runs in the background, so a test that reads a build's end awaits `builds.idle()`.
      * A test that replaces `driver` must replace this too, or its builds run on this one.
      */
-    builds: createBuildRunner({ db, driver, bus }),
+    builds,
     // A REAL queue (the D5 plan's Task 9), one per server, as the boot builds one: a test that
     // reads what a webhook caused awaits `sourceSync.idle()`.
     sourceSync: createSerialQueue(),
