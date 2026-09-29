@@ -2,6 +2,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pg from 'pg'
+import { realGithubRefusal } from './src/test-tier-guard.js'
 import { ensureDatabaseUrls } from './vitest.env.js'
 
 /** Must match TEST_REPOS_ROOT in src/api/testing.ts — different process, same path. */
@@ -55,6 +56,10 @@ const TABLES = [
 ]
 
 export async function setup(): Promise<() => Promise<void>> {
+  // FIRST, before anything destructive: the repository root's removal and the TRUNCATE below.
+  const refused = realGithubRefusal(process.env)
+  if (refused) throw new Error(refused)
+
   // Start from an empty repository root as well as an empty database. The API
   // tests create one directory per test and cannot clean up after themselves —
   // they have no teardown hook — so it is removed here, both before and after.
