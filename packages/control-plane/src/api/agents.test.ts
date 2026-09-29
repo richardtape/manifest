@@ -819,6 +819,45 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
     })
   })
 
+  it('the capable model builds a confidential app and never becomes its own AI: validation still refuses it in ai.models', async () => {
+    await withBuilderServer('capable', async (ctx) => {
+      const commit = async (model: string) =>
+        ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/commits`,
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+          payload: {
+            baseCommit: ctx.commitSha,
+            message: `ai.models: ${model}`,
+            changes: [
+              {
+                op: 'write',
+                path: 'manifest.yaml',
+                content: await manifestWith(
+                  ctx,
+                  'ai:',
+                  `  models: [${model}]`,
+                  '  budget:',
+                  '    project_monthly_usd: 10',
+                  'data:',
+                  '  classification: confidential',
+                ),
+              },
+            ],
+          },
+        })
+      // The builder may call it (the setting is `capable`) — the app may not (§7: D17 for `ai.models`).
+      expect(refusal(await commit('default-chat-large'))).toEqual({
+        status: 422,
+        code: 'SPEC_INVALID',
+      })
+      // The positive control: the same manifest naming the on-premise model is accepted.
+      const accepted = await commit('default-chat-onprem')
+      expect(accepted.statusCode, accepted.body).toBe(201)
+    })
+  })
+
   it('a commit that leaves the classification as it was ends nothing — and the raise that follows does', async () => {
     await withBuilderServer('capable', async (ctx) => {
       const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
