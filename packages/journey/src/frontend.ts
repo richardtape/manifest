@@ -52,7 +52,8 @@ import { waitFor } from './wait.js'
  *   people   MANIFEST_SESSION(_STEPPED), MANIFEST_STUDENT_SESSION   step 7
  *   archive  MANIFEST_SESSION(_STEPPED), the token and key          step 8: switched off
  *   restore  MANIFEST_SESSION, then a new token                     step 8: brought back
- *   delete   MANIFEST_SESSION_STEPPED                               step 9
+ *   delete   MANIFEST_SESSION_STEPPED                               step 9: deployed, deleted
+ *   recreate MANIFEST_SESSION                                       step 9: the slug taken again
  *   end      MANIFEST_SESSION, the new token                        step 10
  *
  * **`MANIFEST_STOP_AFTER=<step>`** ends the run after that step, green or red.
@@ -76,6 +77,7 @@ type Phase =
   | 'archive'
   | 'restore'
   | 'delete'
+  | 'recreate'
   | 'end'
 const PHASES: readonly Phase[] = [
   'person',
@@ -87,6 +89,7 @@ const PHASES: readonly Phase[] = [
   'archive',
   'restore',
   'delete',
+  'recreate',
   'end',
 ]
 
@@ -479,6 +482,19 @@ async function mint(client: ManifestClient, id: string, name: string) {
   return minted
 }
 
+/** The scratch project — the cheapest thing that deploys, made to be deleted (steps 2 and 9). */
+function createScratch(client: ManifestClient, slug: string) {
+  return client.POST('/v1/projects', {
+    params: { header: { 'Idempotency-Key': idempotencyKey() } },
+    body: {
+      slug,
+      name: 'A trial, deleted by make demo-frontend',
+      blueprint: SCRATCH_BLUEPRINT,
+      audience: { scale: 'solo', burst: 'steady' },
+    },
+  })
+}
+
 async function sessionsOf(client: ManifestClient, id: string) {
   return unwrap(
     await client.GET('/v1/projects/{projectId}/agent-sessions', {
@@ -603,24 +619,15 @@ async function personPhase(): Promise<void> {
 
   const scratch = projects.find((p) => p.slug === scratchSlug)
   if (scratch === undefined) {
-    const created = unwrap(
-      await page.POST('/v1/projects', {
-        params: { header: { 'Idempotency-Key': idempotencyKey() } },
-        body: {
-          slug: scratchSlug,
-          name: 'A trial, deleted by make demo-frontend',
-          blueprint: SCRATCH_BLUEPRINT,
-          audience: { scale: 'solo', burst: 'steady' },
-        },
-      }),
-      'createProject',
-    )
+    const created = unwrap(await createScratch(page, scratchSlug), 'createProject')
     state.scratchProjectId = created.id
     console.log(`  created ${scratchSlug} (${SCRATCH_BLUEPRINT}), which step 9 deletes`)
   } else {
     state.scratchProjectId = scratch.id
+    // The usual case after a green run: its step 9 deleted the scratch project and CREATED IT
+    // AGAIN, to show the slug free. Or a run that stopped before step 9 left it.
     console.log(
-      `  (${scratchSlug} was left by an earlier run that stopped before step 9)`,
+      `  (${scratchSlug} exists — made again by an earlier run's step 9, or left by one that stopped before it; this run's step 9 deletes it)`,
     )
     if (scratch.state === 'archived') await bringBack(page, scratch.id)
   }
@@ -952,13 +959,16 @@ async function agentPhase(): Promise<void> {
   state.logoSha256 = sha256(logo)
   save()
 
-  // THE CONTROLS, each against the new head, and none of them may move it.
+  // THE CONTROLS, each against the new head, and none of them may move it. Each asserts the RULE'S
+  // OWN WORDS as well as the code (`api/representations/source.ts`'s `contentProblems`): a write is
+  // judged text first, then by its name, then by its first bytes, and each answers REQUEST_INVALID —
+  // so the code alone would stay green on a later rule if an earlier one were removed.
   const asBytes = await commit(
     'server.js, sent as bytes',
     [
       {
         op: 'write',
-        path: 'server2.js',
+        path: 'server.js',
         content: Buffer.from(fixture('server.js')).toString('base64'),
         encoding: 'base64',
       },
@@ -966,9 +976,12 @@ async function agentPhase(): Promise<void> {
     appCommit,
   )
   checks.ok(
-    'server.js sent as base64: 400 REQUEST_INVALID — text is never sent as bytes',
-    refusal(asBytes, 400, 'REQUEST_INVALID') !== undefined,
-    describe(asBytes),
+    "server.js sent as base64: 400 REQUEST_INVALID, “is text; send it with encoding: 'utf8'”",
+    refusal(asBytes, 400, 'REQUEST_INVALID') !== undefined &&
+      JSON.stringify(asBytes.error).includes(
+        "'server.js' is text; send it with encoding: 'utf8'",
+      ),
+    `${describe(asBytes)} ${JSON.stringify(asBytes.error ?? null).slice(0, 300)}`,
   )
   const elf = await commit(
     'A logo that is a program',
@@ -983,9 +996,10 @@ async function agentPhase(): Promise<void> {
     appCommit,
   )
   checks.ok(
-    'an ELF header named logo2.png: 400 REQUEST_INVALID — not one of the ten kinds',
-    refusal(elf, 400, 'REQUEST_INVALID') !== undefined,
-    describe(elf),
+    'an ELF header named logo2.png: 400 REQUEST_INVALID, “is not a kind the API writes”',
+    refusal(elf, 400, 'REQUEST_INVALID') !== undefined &&
+      JSON.stringify(elf.error).includes("'logo2.png' is not a kind the API writes"),
+    `${describe(elf)} ${JSON.stringify(elf.error ?? null).slice(0, 300)}`,
   )
   const before = frames.length
   const { bytes: pdf, key: planted } = pdfWithAKey()
@@ -1153,11 +1167,11 @@ async function outputPhase(): Promise<void> {
   // A CREDENTIAL IN A URL: `mongodb://user:secret@` — anything between the user's colon and the `@`
   // that is not `[REDACTED]`.
   const unredacted = /mongodb:\/\/[^\s:@/"]+:(?!\[REDACTED\]@)[^\s@/"]+@/
+  // IN THE FIELD the app printed the URI in — the fixture's `mongo` — not anywhere in the line.
+  const redactedField = /"mongo":"[^"]*\[REDACTED\]/
   checks.ok(
-    'where the app printed its own MONGODB_URI, the line reads [REDACTED]',
-    line !== undefined &&
-      line.text.includes('"mongo":') &&
-      line.text.includes('[REDACTED]'),
+    'where the app printed its own MONGODB_URI — its "mongo" field — the line reads [REDACTED]',
+    line !== undefined && redactedField.test(line.text),
     line?.text.replace(unredacted, '<A CREDENTIAL>').slice(0, 300) ?? '',
   )
   checks.ok(
@@ -1308,11 +1322,12 @@ async function archivePhase(): Promise<void> {
   checks.step(
     '8. The instructor, stepped up, switches the app off — and everything it handed out stops',
   )
+  const chatModel = checks.must('the model, from step 3', state.chatModel)
   const alive = await keyAnswer(baseUrl, key)
   checks.ok(
-    'before: the gateway answers the agent’s key (200)',
-    alive.status === 200,
-    `${alive.status} ${alive.errorType}`,
+    `before: the gateway answers the agent’s key — 200, listing ${chatModel}`,
+    alive.status === 200 && alive.models.includes(chatModel),
+    `${alive.status} ${alive.errorType} [${alive.models.join(', ')}]`,
   )
   const unstepped = await switchOff(plain, id, '/')
   checks.ok(
@@ -1519,12 +1534,15 @@ async function deletePhase(): Promise<void> {
   // THE ONE CALL THIS DEMO MAKES TO A PROJECT IT DID NOT CREATE — and it is READ-ONLY: a launched
   // project's delete is refused before anything is touched (the plan's [S9]). Asked only when
   // `launch-app` has launched (`make demo-production` launches it).
-  const launched = unwrap(await stepped.GET('/v1/projects'), 'listProjects').find(
-    (p) => p.slug === 'launch-app' && p.launchedAt !== null,
+  const launchApp = unwrap(await stepped.GET('/v1/projects'), 'listProjects').find(
+    (p) => p.slug === 'launch-app',
   )
+  const launched = launchApp?.launchedAt === null ? undefined : launchApp
   if (launched === undefined) {
     console.log(
-      '  (launch-app has not launched on this machine — make demo-production launches it — so PROJECT_LAUNCHED_NOT_DELETABLE is not asked here)',
+      launchApp === undefined
+        ? '  (launch-app does not exist here, or is not among the instructor’s projects — make demo-production creates and launches it — so PROJECT_LAUNCHED_NOT_DELETABLE is not asked)'
+        : '  (launch-app exists and has not launched — make demo-production launches it — so PROJECT_LAUNCHED_NOT_DELETABLE is not asked)',
     )
   } else {
     const refused = await stepped.DELETE('/v1/projects/{projectId}', {
@@ -1546,6 +1564,36 @@ async function deletePhase(): Promise<void> {
       `${describe(refused)} (state ${still.state})`,
     )
   }
+}
+
+/**
+ * THE SLUG, TAKEN AGAIN — the proof that a delete RELEASED it. `checkSlug` answering `available` is
+ * read through its own copy of the predicate (`state <> 'deleted'`), so it would say so even if the
+ * partial unique index behind `createProject` were made unconditional (control 3(g)); only a create
+ * meets the index. Run after bash has seen the old repository gone, because this makes a new one.
+ * The new project is LEFT for the next run: its step 2 finds it and its step 9 deletes it.
+ */
+async function recreatePhase(): Promise<void> {
+  const page = person()
+  const scratchSlug = checks.must('its slug, from step 2', state.scratchSlug)
+  const deletedId = checks.must(
+    'the deleted project, from step 9',
+    state.scratchProjectId,
+  )
+  checks.step(`9. (cont.) ${scratchSlug}'s name, taken again by a new project`)
+  const again = await createScratch(page, scratchSlug)
+  checks.ok(
+    `createProject ${scratchSlug}: 201, a NEW project — the delete released the slug`,
+    again.response.status === 201 &&
+      again.data?.slug === scratchSlug &&
+      again.data.id !== deletedId,
+    `${describe(again)} ${again.data?.id ?? ''} (the deleted one was ${deletedId})`,
+  )
+  if (again.data !== undefined) state.scratchProjectId = again.data.id
+  save()
+  console.log(
+    `  left for the next run, whose step 9 deploys it and deletes it (step 2 finds it)`,
+  )
 }
 
 // ─── step 10 ───────────────────────────────────────────────────────────────────────────
@@ -1599,11 +1647,15 @@ async function endPhase(): Promise<void> {
     refusal(refused, 401, 'UNAUTHENTICATED') !== undefined,
     describe(refused),
   )
-  const active = (await sessionsOf(plain, id)).filter((s) => s.state === 'active')
+  const sessions = await sessionsOf(plain, id)
+  const resumed = sessions.find((s) => s.id === session2Id)
+  const active = sessions.filter((s) => s.state === 'active')
+  // THE POSITIVE HALF FIRST: the list holds the session this step ended, as ended — so "none active"
+  // is read from a list that has this project's sessions in it, not from an empty one.
   checks.ok(
-    'no session of this project is active',
-    active.length === 0,
-    active.map((s) => `${s.id} ${s.name}`).join(', '),
+    'listAgentSessions holds the session just ended, ended — and no session of this project is active',
+    resumed?.state === 'ended' && resumed.endReason === 'ended' && active.length === 0,
+    `${JSON.stringify(resumed ?? null).slice(0, 200)}; active: ${active.map((s) => `${s.id} ${s.name}`).join(', ')}`,
   )
 }
 
@@ -1618,6 +1670,7 @@ async function main(): Promise<void> {
     else if (phase === 'archive') await archivePhase()
     else if (phase === 'restore') await restorePhase()
     else if (phase === 'delete') await deletePhase()
+    else if (phase === 'recreate') await recreatePhase()
     else await endPhase()
   } catch (error) {
     save()

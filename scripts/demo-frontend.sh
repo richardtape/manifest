@@ -34,7 +34,7 @@
 #   6  what the sandbox instance printed, redacted            bash, then frontend.ts output
 #   7  a step-up on app; the student added by login name     bash, then frontend.ts people
 #   8  switched off (410) and brought back, data kept        frontend.ts archive, bash, restore, bash
-#   9  the scratch project deleted                           bash, frontend.ts delete, bash
+#   9  the scratch project deleted, its slug taken again     bash, frontend.ts delete, bash, recreate, bash
 #  10  the session ended, the token revoked                  frontend.ts end
 #
 # THE API IS THE app ORIGIN'S: https://app.manifest.internal/v1/* — the edge forwards /v1/* and
@@ -316,7 +316,32 @@ CODE="$(curl -sS --cacert "$CA" -b "$STU2_JAR" -o "$WORK/page-2.html" -w '%{http
 echo "  restored and redeployed: the page shows the response posted before the archive"
 stop_after 8
 
-say "9. A scratch project, deployed once and never launched, deleted for good"
+say "9. A scratch project, deployed once and never launched, deleted for good — and its name taken again"
+# THE REPOSITORY, WHERE THE CONTROL PLANE KEEPS IT — asked before the delete as well as after, so
+# "gone" is a change this step saw, never a path that was empty all along ($REPOS pointing somewhere
+# other than the control plane's MANIFEST_REPOS_ROOT) or a 404 the fake gives anything it will not
+# show. On driver 2 the fake is asked as faculty-dev (admin), whose 200 below is what makes its 404
+# after mean "no such repository". Prints the status; the body lands in $WORK/fake-repo.json.
+fake_repo() {
+  printf 'header = "authorization: token %s"\n' "$(cat "$DEVELOPER_TOKEN_FILE")" \
+    | curl -sS -K - -o "$WORK/fake-repo.json" -w '%{http_code}' -m 10 \
+      -H 'accept: application/vnd.github+json' "$FAKE/api/v3/repos/$ORG/$SCRATCH" || true
+}
+repository_there() {
+  if [ "$DRIVER" = local ]; then
+    [ -d "$REPOS/$SCRATCH.git" ] || fail "no $REPOS/$SCRATCH.git ($1) — is MANIFEST_REPOS_ROOT the
+value the control plane was started with?"
+    echo "  its repository is there ($1): $REPOS/$SCRATCH.git"
+  else
+    STATUS="$(fake_repo)"
+    [ "$STATUS" = 200 ] && [ "$(field name < "$WORK/fake-repo.json" 2>/dev/null)" = "$SCRATCH" ] \
+      || fail "the GitHub fake answers $STATUS for $ORG/$SCRATCH ($1), not 200 naming it: $(head -c 200 "$WORK/fake-repo.json")"
+    [ -d "$REPOS/$SCRATCH.git" ] || fail "no mirror at $REPOS/$SCRATCH.git ($1) — is MANIFEST_REPOS_ROOT the
+value the control plane was started with?"
+    echo "  its repository is there ($1): $ORG/$SCRATCH on the GitHub fake (200, named), and its mirror"
+  fi
+}
+repository_there "before the delete"
 # A step-up of its own: the scratch project builds first, and a step-up lasts ten minutes.
 SESSION_STEPPED="$(step_up)"
 run_phase delete MANIFEST_SESSION_STEPPED="$SESSION_STEPPED"
@@ -324,13 +349,18 @@ if [ "$DRIVER" = local ]; then
   [ ! -e "$REPOS/$SCRATCH.git" ] || fail "$REPOS/$SCRATCH.git is still there"
   echo "  its repository is gone: no $REPOS/$SCRATCH.git"
 else
-  STATUS="$(printf 'header = "authorization: token %s"\n' "$(cat "$DEVELOPER_TOKEN_FILE")" \
-    | curl -sS -K - -o /dev/null -w '%{http_code}' -m 10 \
-      -H 'accept: application/vnd.github+json' "$FAKE/api/v3/repos/$ORG/$SCRATCH" || true)"
-  [ "$STATUS" = 404 ] || fail "the GitHub fake answers $STATUS for $ORG/$SCRATCH, not 404"
+  # The fake's own 404 — GitHub's `{"message":"Not Found",…}` — not a status alone.
+  STATUS="$(fake_repo)"
+  [ "$STATUS" = 404 ] && [ "$(field message < "$WORK/fake-repo.json" 2>/dev/null)" = "Not Found" ] \
+    || fail "the GitHub fake answers $STATUS for $ORG/$SCRATCH, not 404 Not Found: $(head -c 200 "$WORK/fake-repo.json")"
   [ ! -e "$REPOS/$SCRATCH.git" ] || fail "its mirror, $REPOS/$SCRATCH.git, is still there"
-  echo "  its repository is gone: $ORG/$SCRATCH is 404 on the GitHub fake, and its mirror is removed"
+  echo "  its repository is gone: $ORG/$SCRATCH is 404 Not Found on the GitHub fake, and its mirror is removed"
 fi
+# THE SLUG, TAKEN AGAIN: only a create meets the partial unique index behind it (control 3(g)).
+# AFTER the check above, because it makes a new repository. The new project is left for the next
+# run's step 9.
+run_phase recreate MANIFEST_SESSION="$SESSION"
+repository_there "the new project's"
 stop_after 9
 
 say "10. The server ends its session; the instructor revokes its token"
