@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.."
 
 # WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
 # the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
-# to 12 are DRIVER 1's, step 13 is DRIVER 2's and step 14 runs on either; run a driver-1 demo on driver 2 and it CREATES
+# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 and 15 run on either; run a driver-1 demo on driver 2 and it CREATES
 # its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
 source_driver() {
   local answer
@@ -261,6 +261,30 @@ case "$(source_driver)" in
   local | github)
     echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — board-local' || echo '2 — board-github')"
     make demo-authoring; echo "demo-authoring exit=$?"
+    ;;
+  *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
+esac
+
+echo
+echo "=== 15. The front-end enablement plan's acceptance: the faculty front-end's origin, end to end, offline ==="
+# APPENDED, like steps 7 to 14. WHAT THIS PROVES OFFLINE THAT THE OTHER FOURTEEN DO NOT: the `app`
+# ORIGIN, https://app.manifest.internal — a person signed in THERE (and a post from the console's
+# origin with that cookie refused), a delegated token handed to a front-end's server, a MODEL
+# SESSION charged to the person with one real completion on the ON-PREMISE model, an app written as
+# text AND bytes (a PDF with a key in it refused), a sandbox instance's recent output read back
+# redacted, a student added by CWL login name, the app switched off (410) and brought back with its
+# data, and a scratch project deleted for good.
+#
+# ITS APP IS `confidential`, so its model session holds no `default-chat` and it calls
+# `default-chat-onprem` — qwen3.8:27b, which `make doctor` (step 3) needs pulled, and which this step
+# warms (~12 s cold; it evicts qwen3.5:4b). It never calls `default-chat-large`, which needs the network.
+#
+# IT RUNS ON EITHER DRIVER, like step 14, and says which slug: `frontend-local` on driver 1,
+# `frontend-github` on driver 2. Run it on BOTH for the whole acceptance.
+case "$(source_driver)" in
+  local | github)
+    echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — frontend-local' || echo '2 — frontend-github')"
+    make demo-frontend; echo "demo-frontend exit=$?"
     ;;
   *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
 esac

@@ -12,10 +12,11 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# fifteen `=== n.` headings are numbered 0 to 14, where 0 is the precondition and 1-14 are
+# sixteen `=== n.` headings are numbered 0 to 15, where 0 is the precondition and 1-15 are
 # the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it; P6b
 # Task 11 added step 12, `make demo-releases`; the D5 plan's Task 15 step 13, `make
-# demo-github`; the authoring API plan's Task 13 step 14, `make demo-authoring`).
+# demo-github`; the authoring API plan's Task 13 step 14, `make demo-authoring`; the front-end
+# enablement plan's Task 15 step 15, `make demo-frontend`).
 # This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
@@ -328,6 +329,21 @@ case "$DRIVER" in
   *) record "make demo-authoring" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
 esac
 
+# ---------------------------------------------------------------- 8. the front-end enablement plan's acceptance
+#   demo-frontend   — what the faculty front-end at https://app.manifest.internal needs, end to end
+#                     through the app origin (the front-end enablement plan's Task 15): a person's
+#                     session there and a front-end server's delegated token, a model session
+#                     charged to the person, an app written as text and bytes, a sandbox
+#                     instance's output read back redacted, a collaborator added by CWL login
+#                     name, the app switched off and brought back, a scratch project deleted. It
+#                     runs on EITHER driver, as demo-authoring does, and adds no test. AFTER
+#                     demo-releases on driver 1, so `launch-app` has launched and its step 9 asks
+#                     the read-only PROJECT_LAUNCHED_NOT_DELETABLE refusal.
+case "$DRIVER" in
+  local | github) run "make demo-frontend" make demo-frontend ;;
+  *) record "make demo-frontend" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
+esac
+
 # ---------------------------------------------------------------- the summary
 bold "=== summary ==="
 printf '%s' "$STEPS" | while IFS='|' read -r name status note; do
@@ -353,7 +369,7 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-14 include `make demo-identity` and `make demo-ai`;
+     network off, whose steps 0-15 include `make demo-identity` and `make demo-ai`;
    - BOTH source drivers in one run — one driver per control-plane process, so a run on
      driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 the other four.
 TAIL

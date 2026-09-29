@@ -1206,6 +1206,60 @@ expiry), and the repository a few commits longer. **What it does not cover:** th
 screens, the Docs screen and `/reference.html` — the clicked half (WALKTHROUGH) — and production, which a
 token cannot reach by design.
 
+## Running the front-end demo — `make demo-frontend`, the front-end enablement plan's acceptance
+
+*Added by the front-end enablement plan's sitting 12, 2026-09-29 (Task 15).*
+
+Everything the faculty front-end at **`https://app.manifest.internal`** needs from the platform, driven end to end through
+THAT origin: `https://app.manifest.internal/v1/*` and `/auth/*`, which the edge forwards to the control plane on 7100. It
+needs nothing on 7105 — that is the faculty front-end's own server, a separate project. **Two credentials, and which one
+acts is the point**: the INSTRUCTOR acts in their own session (on the real front-end that is browser code — the page's own
+client, which carries no credential because the browser sends the cookie; the demo passes the cookie's value only because
+it has no browser), and the FRONT-END'S SERVER acts on the delegated token the instructor mints for it, and on the model
+key it starts a session for. The bash half (`scripts/demo-frontend.sh`) does the sign-ins, the step-ups, the edge's
+answers and the app's own pages; the TypeScript half (`packages/journey/src/frontend.ts`) is every client call, through
+`@manifest/contract` alone. **It runs on EITHER driver**, as `make demo-authoring` does: step 0 asks which answers and picks
+`frontend-local` and `frontend-scratch-local` on driver 1, `frontend-github` and `frontend-scratch-github` on driver 2.
+
+```bash
+make demo-frontend                          # driver 1: frontend-local — 258 s fresh, 136 s re-used (2026-09-29)
+make github-up                              # then driver 2 — 'The control plane on driver 2'
+export MANIFEST_SOURCE_DRIVER=github
+pnpm --filter @manifest/control-plane dev   # "source":"github"
+make demo-frontend                          # driver 2: frontend-github
+DEMO_FRONTEND_STOP_AFTER=4 make demo-frontend   # stop after a step, 0 to 10 — a negative control's short run
+```
+
+**The app is `confidential`** (`fixtures/frontend-app/manifest.yaml`: it keeps students' names), which decides three things
+the demo meets (the plan's `[S11a]`): its manifest is committed BEFORE the model session starts, because a commit raising
+the classification ends every session started before it (`models_withdrawn`); the session holds **no `default-chat`**, so
+the demo reads the model from `session.models` and calls **`default-chat-onprem` — `qwen3.8:27b`**, which bash warms first
+straight at Ollama (~12–14 s cold; it evicts `qwen3.5:4b`, so the next demo that calls `default-chat` reloads it, ~3 s); and
+a token is refused staging's Incidents. **It never calls `default-chat-large`** (it needs the network); it prints whether
+`session.models` lists it.
+
+| Step | What happens | What must be true |
+|---|---|---|
+| 0 | `GET https://app.manifest.internal/v1/me`; which driver | `401` with `UNAUTHENTICATED` — **and never the edge's wildcard** (`manifest OK host=…` means dnsmasq's `app.` pin is missing) |
+| 1 | the instructor signs in ON `app` (`idp_login … /auth/login`, the ACS `https://app.manifest.internal/auth/saml/callback`) | the jar's `manifest_session` is `app.manifest.internal`'s alone; **the control**: `createProject` with that cookie and `Origin: https://console.manifest.internal` → `403 CSRF_ORIGIN_REFUSED`, and the project list unchanged; both slugs' orphan repositories cleared |
+| 2 | the instructor, in the session: an intake key started and ended; `frontend-<driver>` created as *"Week 3 — reading responses"* and renamed *"Reading responses"*; `frontend-scratch-<driver>` (`fixture-node@1`) created; the server's token minted | the gateway lists the intake model for the key, then answers it `401 token_not_found_in_db`; `project.renamed` on the stream, `from`/`to` and `via: session`; the token holds exactly `project:read`, `source:write`, `secret:write`, `build:create`, `release:create`, `release:deploy`, `output:read`, `agent:session`, for a day |
+| 3 | the server, on the token: the confidential `manifest.yaml`; `getAgentBudget`; `startAgentSession`; one real completion through `baseUrl` | the commit's sensitive diff names `data.classification`; the budget is the minter's; `201`, an `sk-` key, `via` the token; **no `default-chat`, and `default-chat-onprem`**; the same `Idempotency-Key` again → `409 AGENT_SESSION_ALREADY_STARTED` with no `sk-` in the body; the completion `200` with an answer; `listAgentSessions` active, and its `spentUsd` above zero within 45 s |
+| 4 | the agent commits `server.js` as text and `logo.png` — a 1×1 PNG the demo MAKES — as bytes: a dry run, then the commit | the dry run no commit, `logo.png added, server.js modified`, `main` unmoved; then `201` with the same two; `server.js` as base64 → `400 REQUEST_INVALID`; an ELF header as `logo2.png` → `400 REQUEST_INVALID`; **a PDF with an AWS-key-shaped value made at run time** → `409 SOURCE_SECRET_DETECTED` naming `syllabus.pdf:` and never the value, and `repository.secret_refused` naming it; `main` still the app's commit; `getTree` marks `logo.png` binary; `getFile?encoding=base64` the same bytes |
+| 5 | the server builds that commit, releases it, deploys it to **staging and the sandbox**; the STUDENT signs in inside the staging app and posts a response | the release froze `confidential`; both `healthy`; the app's `/api/me` is *Test Student* (**F1's guard**: without `express.urlencoded` nobody signs in); the post `303` to `/`; the page lists it under *Test Student*; `/logo.png` the committed bytes as `image/png` |
+| 6 | bash requests the SANDBOX page with the run's id; the server reads that instance's output | `listInstances` names step 5's sandbox instance as serving; `getInstanceOutput` holds the marker line for this run's request, with **`[REDACTED]` where the app printed its own `MONGODB_URI`**, and no line holding the password; **staging's output is `403 INSTANCE_OUTPUT_STAGING`** (recent output is the sandbox's, FE-24); production's refusal is the unit tier's; the token's staging `listIncidents` → `403 INCIDENT_LOG_CONFIDENTIAL`, its sandbox's and the person's staging `200` |
+| 7 | the instructor steps up ON `app`; the student signs in to MANIFEST on `app` (so the platform knows the login); `addMember { cwlLogin: 'student' }` | without the step-up `403 STEP_UP_REQUIRED`; stepped up `201`, `cwlLogin: student`, a collaborator; `member.added` whose `memberId` is the student and `userId` the instructor; `nobody` → `400 MEMBER_USER_NOT_FOUND` |
+| 8 | archive (stepped up); then restore, a NEW token for the server, the same release deployed again, and a new model session | the key answered before, then `401 token_not_found_in_db`; the token `401 UNAUTHENTICATED`; the instructor's `startBuild` `409 PROJECT_ARCHIVED`; step 3's session `ended`, `project_archived`; **both names `410`** with *This app has been switched off by its owner.*; after the restore the old token stays `401`, the redeploy is `healthy`, and **the page shows the response the student posted before the archive** |
+| 9 | the scratch project is built, deployed to its sandbox, then deleted (stepped up) | its sandbox name answered *fixture-app in sandbox*, and afterwards the edge's wildcard; `checkSlug` available; `getProject` `404 NOT_FOUND`; its repository gone (driver 1: no `.manifest/repos/<slug>.git`; driver 2: `404` on the fake, and no mirror). **When `launch-app` has launched** (`make demo-production`), `deleteProject` on it → `409 PROJECT_LAUNCHED_NOT_DELETABLE`, still `active` — the one call to a project the demo did not create, and read-only; otherwise it says it did not ask |
+| 10 | the server ends its session; the instructor revokes its token | `ended`/`ended`; the key `401 token_not_found_in_db`; the token `401 UNAUTHENTICATED`; no session of the project active |
+
+**It stops at the first red phase** (each phase prints every check first). **The re-use path** starts the app again from the
+project's first commit — one commit — so every run commits the same two changes, removes and re-adds the student, and renames
+the project back first. **It leaves** `frontend-<driver>` running in staging with the student's responses, the student a
+collaborator, and no session or token of its own live; the scratch project deleted (a tombstone); and a `mf-person-` user at
+LiteLLM, which `scripts/litellm-orphans.sh` reclaims. **What it does not cover:** production (a token cannot reach it by
+design, and nothing here launches), the capable model, and the CLICKED half — the reference console served on `app`
+(*Serving the reference console on the front-end's origin*, above) and a person clicking the same journey.
+
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 
 *Added by P5c sitting 8, 2026-09-19 (Task 13).*
@@ -1232,9 +1286,11 @@ Every step **reports rather than exits** (P4c Decision 26), so a red run is a me
 of everything that is broken rather than a stop at the first thing. It runs, in order:
 `make doctor`, `make verify`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`,
 `pnpm test`, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production`
-and — last of driver 1's, because it leaves `launch-app` on its leg C release — `make demo-releases`, and
-then `make demo-github`. *(This line named three demos until the D5 plan's sitting 8 found it; P6b sitting 7
-had added `make demo-releases` to the script and not to this sentence.)*
+and — last of driver 1's, because it leaves `launch-app` on its leg C release — `make demo-releases`,
+then `make demo-github`, and then, on EITHER driver, `make demo-authoring` and `make demo-frontend`. *(This line named
+three demos until the D5 plan's sitting 8 found it; P6b sitting 7 had added `make demo-releases` to the script and not
+to this sentence — and the authoring API plan's Task 13 added `make demo-authoring` to the script and not to it, which
+the front-end enablement plan's Task 15 found when it added `make demo-frontend` to both.)*
 
 **It asks the control plane which SOURCE DRIVER it runs first** (the D5 plan's Task 15), with the unsigned
 delivery `make demo-github` asks with. **On driver 1** — the normal case — the four driver-1 demos run, and
@@ -1260,7 +1316,7 @@ that invoke it.
 |---|---|
 | The CLICKED journey | `make demo-console`, run by a person. The Chrome extension will not type a password, even a test user's (ORIENTATION §4) |
 | `pnpm test:docker` (~13 min) | Owed only by a change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `ai/`, `observability/`, `infra/` or a `*.docker.test.ts` |
-| The OFFLINE acceptance | `scripts/offline-acceptance.sh`, run by hand with the network off — its steps are numbered **0 to 13**, where 0 is the precondition. It is the only thing that runs `make demo-identity` and `make demo-ai` |
+| The OFFLINE acceptance | `scripts/offline-acceptance.sh`, run by hand with the network off — its steps are numbered **0 to 15**, where 0 is the precondition (it read *0 to 13* after the authoring API plan added step 14; the front-end enablement plan's Task 15 added step 15, `make demo-frontend`). It is the only thing that runs `make demo-identity` and `make demo-ai` |
 | BOTH source drivers in one run | one driver per control-plane process: a run on driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 reads the other four NOT RUN. Run it once on each |
 
 **`make demo-console` signs nobody in.** It builds the contract and the console, checks

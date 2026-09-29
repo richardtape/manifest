@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-github demo-authoring demo-console ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-github demo-authoring demo-frontend demo-console ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -164,6 +164,14 @@ demo-github: github-up  ## D5's acceptance: an app whose code is on (fake) GitHu
 # first, as the control plane's own start does (RUNBOOK, `make demo-authoring`).
 demo-authoring: up  ## The authoring API's acceptance: an agent builds a bulletin board through the API — either driver.
 	@bash scripts/demo-authoring.sh
+
+# The front-end enablement plan's acceptance (its Task 15): what the faculty front-end at
+# https://app.manifest.internal needs, driven end to end through the app origin — a person's
+# session, a front-end server's token, a model session, text and bytes, recent output, people,
+# archive and delete. It runs on EITHER driver, as demo-authoring does: step 0 asks which, and
+# picks frontend-local or frontend-github (RUNBOOK, `make demo-frontend`).
+demo-frontend: up  ## The front-end enablement plan's acceptance: a front-end's server on the app origin drives it all — either driver.
+	@bash scripts/demo-frontend.sh
 
 demo-console: up  ## P5c: serve the reference console and print the checklist a person clicks.
 	@bash scripts/demo-console.sh
