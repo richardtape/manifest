@@ -61,8 +61,8 @@
 | 9b | 12b | **The capable model's fallback** (Rich, 2026-09-28): a platform setting naming a CATALOGUE entry — `default-chat-onprem` recommended (Ollama on the laptop, Pickerel at UBC) — that LiteLLM's own fallback (`POST /fallback`, measured) answers `default-chat-large` with when its provider fails, the network off included; the fallback's classification enforced by the platform, because the gateway does not check a key's model list before it falls back (measured) | **Yes** — `ai/` | **Spec action 8** — drafted by sitting 9a; ✅ approved (a) and APPLIED 2026-09-28, at 9a's close | **DONE 2026-09-28** — `ai/capable.ts`'s `ensureCapableFallback`: `MANIFEST_CAPABLE_MODEL_FALLBACK` (`default-chat-onprem` by default, EMPTY none) set as `default-chat-large`'s `general` fallback with LiteLLM's own `POST /fallback` straight after the capable model — measured DB-held, surviving a LiteLLM restart and a repoint — **removed by `DELETE` whenever the capable model is absent** (the entry outlives its primary, measured), and **refused unless every deployment of the name is a classified chat entry ranked at least the capable model's** (the gateway falls back without consulting a key's list, measured again); the boot line's `capableFallback`; the admin transport's `delete`; live in the Docker tier — an unreachable primary answered by the on-premise model through a key holding only `default-chat-large`, at the fallback's price; one fresh whole-branch review, its Important (the Docker cases beside the owner's real model) fixed red-first; the contract unchanged |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-28** — `DELIBERATELY_UNCALLED` empty again, 66 of 66: the console calls every operation this plan added (instances and sandbox-only output on Deploy; binary files previewed, downloaded and uploaded on Code, with the message checked and a commit's 1000-change stop said; name, rename, archive, restore and delete-never-launched on Project, members by CWL login name, email or PUID; agent sessions with the key shown once and the month's budget on Tokens; the intake key on Projects); **FE-24's code** (`INSTANCE_OUTPUT_STAGING`, a sibling code, decided by kind before the driver); **FE-17** (a browser refused at `/auth/*` sees a page); **FE-18** (`dist/` type-checks alone; `erasableSyntaxOnly`); **FE-26 and FE-27** (confirmed by Rich at the open: the mock trusts only its own session, refuses a Bearer where the security names the session alone, 404s ids it does not hold, answers each environment's instances and times from now, scripts its refusal states as options, starts from source); sitting 6's M2 (the signed `RelayState`); clicked against the mock and on the platform, Rich typing the sign-in and one step-up; one fresh whole-branch review, its two Importants fixed red-first; `pnpm test:docker` 246 in 41, green first run |
 | 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5); **and Task 14's `[S10]`** (sandbox-only output, FE-17's page, the mock's rules) | **No** — unless a step reaches `blueprints/` (**owed after all**: the front-end session's `c4e10cc`, FE-37, reached `blueprints/` and `releases/` while this sitting was paused) | — (**Spec action 9**, from `c4e10cc`, drafted and applied in-sitting) | **DONE 2026-09-28** — *Building a front-end* (`frontend.md`): the `app` origin and the refusal page, FE-2's rule, the agent's key, the capable model and its fallback header, the intake key, sandbox-only output and what redaction misses, images, PDFs and fonts, a name and a colleague, ending an app, `bodySha256`'s canonical form (FE-5), the contract from outside the workspace (FE-18), the mock's rules (FE-26/27); *For an AI agent*, *Authoring*, *Authentication*, *Conventions* (four rules the plan needed and no page stated), *Getting started* and the index brought up to the API; SIX new run examples (the person's own actions as BROWSER code — the review's Critical); the slug called a slug in published text, `CSRF_ORIGIN_REFUSED` for two origins, no `FE-n` in public text (each a gate); one fresh whole-branch review, its Critical and three Importants fixed red-first; **Spec action 9 approved and applied** (`d82b3a2`) |
-| 11a | 14a | **The building agent's models, a platform setting** (Rich, 2026-09-28, at sitting 11's close): `default-chat-onprem` and `-reasoning` → `qwen3.8:27b` on the laptop (MEASURED FIRST: 36 GiB beside Docker, non-thinking); a setting — the capable model allowed on a `confidential` project's agent sessions by default, or on-premise only; FE-36 — a session holding more than its project now allows is ended; the safeguard — a `confidential` project's token refused staging's and production's Incident log tails while the setting allows the capable model; the guides | **Yes** — `ai/`, `infra/` | **Spec action 10** — approved (a), with the safeguard, and APPLIED (`d9a1fa1`) | ← next |
-| 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
+| 11a | 14a | **The building agent's models, a platform setting** (Rich, 2026-09-28, at sitting 11's close): `default-chat-onprem` and `-reasoning` → `qwen3.8:27b` on the laptop (MEASURED FIRST: 36 GiB beside Docker, non-thinking); a setting — the capable model allowed on a `confidential` project's agent sessions by default, or on-premise only; FE-36 — a session holding more than its project now allows is ended; the safeguard — a `confidential` project's token refused staging's and production's Incident log tails while the setting allows the capable model; the guides | **Yes** — `ai/`, `infra/` | **Spec action 10** — approved (a), with the safeguard, and APPLIED (`d9a1fa1`) | **DONE 2026-09-28/29** — `qwen3.8:27b` MEASURED first (it fits beside Docker, not beside `qwen3.5:4b`: Ollama evicts one for the other; told to Rich) and made the laptop's on-premise model, `default-chat` staying `qwen3.5:4b`; `MANIFEST_AGENT_BUILDER_MODELS` (`capable` default, `on-premise`), a confidential session listing `default-chat-large` under `capable`; FE-36 — every valid manifest, every production deploy and every boot end the active sessions holding a model the project no longer allows (`models_withdrawn`), a start re-reading the classification under the project behind a barrier; the safeguard `403 INCIDENT_LOG_CONFIDENTIAL`, decided by every release that ran in the environment; the guides; the mock's `MANIFEST_MOCK_CONFIDENTIAL`; one fresh whole-branch review, its three Importants and three re-graded minors fixed red-first; `pnpm test:docker` 248 in 41, green first run |
+| 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | ← next |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -2303,36 +2303,36 @@ name but `default-chat-large` is `ollama_chat/qwen3.5:4b`; `infra/models.txt` li
 authorization matrix, `ai/*.docker.test.ts`; `docs/api/agents.md`, `frontend.md`; `.env.example`; RUNBOOK; the contract (a code and
 descriptions — still `1.4.0` unless an enum grows, which the task rules on); the mock if a code or enum is added.
 
-- [ ] **Step 1: Measure first — and STOP and tell Rich if the model does not fit.** (a) `qwen3.8:27b` through LiteLLM as
+- [x] **Step 1: Measure first — and STOP and tell Rich if the model does not fit.** (a) `qwen3.8:27b` through LiteLLM as
   `ollama_chat/…` answers non-thinking (§21: *"a thinking model streams no content at all"*) — with whatever per-model parameter
   LiteLLM 1.98.0 passes (`think: false`), measured, not assumed; (b) memory: loaded beside `qwen3.5:4b` with Docker running (`/api/ps`
   `size_vram`, `vm_stat`, `memory_pressure`) on this 36 GiB machine; (c) a first answer's latency, cold and warm; (d) whether the
   Docker tier's fallback cases (`ai/capable.docker.test.ts`) then load the 27B model, and what that costs the tier. Record each in
   `spikes/frontend-baseline/` as `[M…]`.
-- [ ] **Step 2: The laptop's on-premise model.** `default-chat-onprem` and `default-chat-onprem-reasoning` → `ollama_chat/qwen3.8:27b`
+- [x] **Step 2: The laptop's on-premise model.** `default-chat-onprem` and `default-chat-onprem-reasoning` → `ollama_chat/qwen3.8:27b`
   (its synthetic per-token cost kept, §21); `default-chat` stays `qwen3.5:4b`; `infra/models.txt` gains it, so `make seed` pulls it and
   `make doctor` checks it; the capable model's fallback (Spec action 8, `default-chat-onprem`) is now the 27B model — say so.
-- [ ] **Step 3: The setting** — a name such as `MANIFEST_AGENT_BUILDER_MODELS` = `capable` (the default) | `on-premise`, parsed in
+- [x] **Step 3: The setting** — a name such as `MANIFEST_AGENT_BUILDER_MODELS` = `capable` (the default) | `on-premise`, parsed in
   `config.ts`, named in `.env.example` and RUNBOOK. `agentModelsFor` gains it: on a `confidential` project, `capable` adds the capable
   model's NAME when the catalogue holds it (never an entry the classification refuses otherwise — `default-chat`,
   `default-chat-reasoning` and `default-embed` stay out); `on-premise` is today's rule. **RED first**: a `confidential` floor with
   `capable` lists the on-premise names and `default-chat-large`; with `on-premise`, the on-premise names alone; with the capable model
   unregistered, the on-premise names alone.
-- [ ] **Step 4: FE-36 — a session never holds more than its project now allows.** When a validated manifest raises the
+- [x] **Step 4: FE-36 — a session never holds more than its project now allows.** When a validated manifest raises the
   classification (a commit, a push), and at boot under `on-premise` (the setting changed), end every active agent session of the
   project whose `models` exceed what `agentModelsFor` now allows — its key revoked at the gateway, `agent_session.ended` published.
   **Rule on the end reason**: an additive `endReason` value (`classification_raised`) is a response enum growing, which a client may
   switch on — weigh it against reusing `ended`; either way the contract and the mock move together and the front-end is messaged.
   **RED first**, and a Docker case proving LiteLLM refuses the ended key.
-- [ ] **Step 5: The safeguard.** While the setting is `capable`, `listIncidents` for a STAGING or PRODUCTION environment of a
+- [x] **Step 5: The safeguard.** While the setting is `capable`, `listIncidents` for a STAGING or PRODUCTION environment of a
   `confidential` project, asked with a delegated TOKEN, is refused by a code of its own (e.g. `403 INCIDENT_LOG_CONFIDENTIAL`, decided
   by the environment's kind and the project's classification, before any read); a person's session still reads it; the sandbox's is
   readable (test users only). The authorization matrix gains its row. **RED first.**
-- [ ] **Step 6: The guides and the reference.** *For an AI agent*'s *The models you may call* and *Building a front-end*'s *Your agent's
+- [x] **Step 6: The guides and the reference.** *For an AI agent*'s *The models you may call* and *Building a front-end*'s *Your agent's
   model*: a `confidential` project's session lists the capable model while the platform allows it — for writing the app, never for
   the app's own `ai.models`, which validation keeps on-premise; the new refusal; the ended session. `pnpm docs:write`; the examples
   still run (the confidential case in `examples.test.ts` names the models it asserts).
-- [ ] **Step 7: The gates; the controls, predicted first**: (a) `agentModelsFor` ignoring the setting → Step 3's `capable` case red;
+- [x] **Step 7: The gates; the controls, predicted first**: (a) `agentModelsFor` ignoring the setting → Step 3's `capable` case red;
   (b) the raise not ending sessions → Step 4's red, and the Docker case's key still answering; (c) the safeguard reading the setting
   inverted → Step 5's red. `pnpm test:docker` owed (`ai/`, `infra/`). One fresh whole-branch reviewer. Commit per step, by name;
   message the faculty front-end's session at every contract or mock commit — its F4 plan reads `session.models`.
@@ -2340,6 +2340,19 @@ descriptions — still `1.4.0` unless an enum grows, which the task rules on); t
 ---
 
 ## Task 15: The acceptance — `make demo-frontend`: a front-end's server on the `app` origin drives all of it for a signed-in instructor, and a person clicks it
+
+> **[S11a] — FROM SITTING 11a (2026-09-28/29, Task 14a).** **Decide the fixture's classification before writing a phase**: a *reading
+> responses* app keeps students' names, and a `confidential` manifest changes three things the demo meets. (1) **A confidential
+> project's session holds NO `default-chat`** — it lists `default-chat-onprem`, `default-chat-onprem-reasoning` and, under the default
+> `MANIFEST_AGENT_BUILDER_MODELS=capable` with the capable model registered, `default-chat-large` — so [S9a]'s *"use `default-chat` for
+> every model call"* becomes `default-chat-onprem` there, which is **`qwen3.8:27b`** now: ~12 s to a first token cold, and it EVICTS
+> `qwen3.5:4b` (TRAPS.md's *OLLAMA WILL NOT HOLD* entry) — warm the one the phase calls, and read the model from `session.models`, never assume it.
+> (2) **A commit that raises the classification ENDS every session started before it** (`models_withdrawn`), its key refused for every
+> model — so write the confidential manifest BEFORE the agent phase starts its session, or start a new one after. (3) **A token is
+> refused staging's and production's Incidents, `403 INCIDENT_LOG_CONFIDENTIAL`**, decided by every release that ran there — a phase
+> reading an Incident with the token reads the SANDBOX's, and the person's session reads staging's. A control worth adding: the token's
+> staging `listIncidents` → that code, the person's → `200`. **`make doctor` now needs `qwen3.8:27b` pulled** (`infra/models.txt`), so a
+> machine without it reads one red until `make seed` — the offline acceptance's step 3 (`make doctor`) included.
 
 > **[S9b] — FROM SITTING 9b (2026-09-28).** Offline, `default-chat-large` is answered by `default-chat-onprem` — but only once an
 > ONLINE boot has registered it (a first registration made offline is refused), so `make demo-frontend` still uses `default-chat`
@@ -5140,3 +5153,189 @@ lint` and `pnpm format:check` clean. `scripts/ci-acceptance.sh` reads `2786 / 17
 **The four shared HTML pages, checked**: none restates §8's `SAML_PRIVATE_KEY_PATH` row, the sandbox's signing, the guides or a
 sitting's status (grepped for each; `manifest-decisions.html`'s *three sign-in worlds* and `manifest-schematic.html`'s sandbox
 sign-in passages stay true) — unchanged.
+
+### Sitting 11a — 2026-09-28: Task 14a, the building agent's models (Spec action 10; the faculty front-end's FE-35 and FE-36)
+
+**Run from ORIENTATION §7e** at Rich's *"read … ORIENTATION.md and proceed with the next sitting"*, with the faculty front-end's
+session beside it — `manifest-app-bb`, then `manifest-app-07` (a handover) — introduced to at the open, told the three rulings it asked
+for before they were committed, and messaged at every contract or mock commit and before the Docker tier. Inline execution
+(`superpowers:executing-plans`) on `main`; one fresh whole-branch reviewer (Opus, read-only, told never to run a test, run beside the
+Docker tier). **Step 2 was done LAST** (a ruling): Steps 3–5 do not depend on which model the on-premise names map to, and Rich had
+Step 1's answer in chat before the repoint landed. Commits: `e0d9abf` (Step 1's measurement), `ad4e94c` (the setting), `4f261e9`
+(FE-36), `38c2ade` (the safeguard, and the mock's option), `5b41ba8` (the guides), `ab4e672` (a guard: the capable model never becomes
+a confidential app's own AI), `9c9c500` (the on-premise model), `8c7eb5e` (the review's fix pass), and the close-out.
+
+**What it built.**
+- **Step 1, measured first** (`spikes/frontend-baseline/` `[M16]`–`[M19]`, through LiteLLM 1.98.0's own library in its container):
+  `qwen3.8:27b` answers non-thinking with the same `think: false` pin (0 reasoning frames in three runs), and the pin is load-bearing
+  for it too (50 of 50 frames reasoning at 50 tokens without it, the answer empty); 17.6 GB, all on Metal; first content 12.4 s cold,
+  0.49 s warm. **It fits beside Docker; it does NOT fit beside `qwen3.5:4b`** — Ollama evicts one for the other (`system_limited`:
+  22.4 GiB predicted against 7.6–15.9 GiB of free SYSTEM memory), so alternating costs ~9–12 s one way and ~3 s back, and the machine
+  reads ~15% free while the 27B is resident. Step 1's STOP condition was not met; Rich was told before Step 2 built on it.
+- **Step 3 — `MANIFEST_AGENT_BUILDER_MODELS`** (`capable`, the default, | `on-premise`; nothing else accepted, an empty line included —
+  fail-closed), in `config.agent.builderModels`, `.env.example` and RUNBOOK. `agentModelsFor(catalogue, floor, builder)` — the third
+  parameter REQUIRED — adds `default-chat-large`'s NAME on a `confidential` floor under `capable` when the catalogue holds it, and
+  nothing else the classification refuses. A confidential session now lists `default-chat-onprem`, `default-chat-onprem-reasoning`,
+  `default-chat-large`.
+- **Step 4 — FE-36**: `endSessionsHoldingMore` (`ai/sessions.ts`) ends every ACTIVE session whose key names a model the catalogue
+  still serves and `agentModelsFor` no longer allows — the key revoked at the gateway, `agent_session.ended` with the NEW reason
+  **`models_withdrawn`** (four sites: `EndReason`, the CHECK — migration `0039` —, the event payload, the representation). Called by
+  `validateAndRecord` after every VALID manifest it records (the API commit, a push, `validateSpec`, a build), **behind a `FOR UPDATE`
+  barrier** on the project row that waits for any session start holding it `FOR SHARE`, and by **every boot** over every project
+  (the boot line's `agentBuilderModels` and `agentSessionsWithdrawn`). **A start re-reads the classification under the project**, so
+  a raise recorded while it waited on the gateway is the one its key gets. Never a refusal of the commit: a session that cannot be
+  ended is an operator line, and the next boot ends it.
+- **Step 5 — the safeguard**: `listIncidents` for a `confidential` project's staging or production environment, asked with a
+  delegated TOKEN while the setting is `capable`, is **`403 INCIDENT_LOG_CONFIDENTIAL`** (`OutputError`), decided after the capability
+  and the scope and before anything is read; a person's session and every token's sandbox read are answered. The authorization
+  matrix's LAST row (its order load-bearing: it makes the fixture project confidential). The mock's **`MANIFEST_MOCK_CONFIDENTIAL=1`**
+  scripts the refusal and the confidential model list.
+- **Step 6 — the guides**: *For an AI agent* and *Building a front-end* — the capable model on a confidential project while the
+  platform allows it, for writing the app and never for its own `ai.models`; `models_withdrawn` and a new session; the refusal; the
+  example's confidential case with the capable model. **And a guard** (`ab4e672`): under `capable`, a confidential manifest naming
+  `default-chat-large` in `ai.models` is still `422 SPEC_INVALID`, the on-premise model accepted.
+- **Step 2 — the laptop's on-premise model**: `default-chat-onprem` and `-reasoning` → `ollama_chat/qwen3.8:27b` (the pin kept);
+  `infra/models.txt` pulls it (so `make seed`, and `make doctor`'s model check, whose count is unchanged); `default-chat` stays
+  `qwen3.5:4b`; so `default-chat-large`'s fallback answers as `ollama_chat/qwen3.8:27b`. LiteLLM restarted to load it — both names
+  read back from `/model/info`, `default-chat-large` kept (DB-held) — and through the PROXY `default-chat-onprem` streamed 5 content
+  frames and 0 reasoning with a request asking `reasoning_effort: high`, 11 s cold.
+- **Contract**: still **`1.4.0`** (the plan's one bump covers every additive change — a ruling), **66 operations, 128 codes** (was 127;
+  measured from `openapi.json`), `AgentSession.endReason` and `agent_session.ended`'s `reason` gain `models_withdrawn`.
+
+**Rulings** (the ledger's `Task 14a:` and `Final: Ruling:` lines, each with its cost if wrong):
+- **Inline execution** (`superpowers:executing-plans`), as sittings 9a, 9b and 11 ran, with one fresh reviewer at the end — the LEAN budget.
+- **Step 2 LAST**: Steps 3–5 do not depend on the model; Rich had Step 1's answer in chat before the repoint.
+- **`MANIFEST_AGENT_BUILDER_MODELS`**, two values and nothing else (an empty line refused — fail-closed); `agentModelsFor`'s third
+  parameter REQUIRED, so no caller keeps today's rule silently.
+- **"Holds more"** counts only a model the catalogue still serves — so unregistering the capable model does not end every
+  `internal` session; a dead name expires with its key.
+- **The check after EVERY valid manifest and at EVERY boot, whatever the setting** — the plan named the boot under `on-premise`; a
+  raise under `capable` ends sessions too (an `internal` session holds `default-chat`) — and **never a refusal** of a commit or a
+  deploy that has landed (an operator line; the next boot finishes it).
+- **A NEW end reason, `models_withdrawn`** — not `classification_raised` (the same end follows the setting narrowed, which raises
+  nothing), not `ended` (a person's or an agent's own end); the front-end asked to tell it from the cap.
+- **The contract stays `1.4.0`**: `document.ts`'s one bump per plan covers every additive change.
+- **The safeguard's code `INCIDENT_LOG_CONFIDENTIAL`** (`OutputError`), decided after the capability and scope and before any read.
+- **An end nobody asked for is attributed to the session's own person**, `tokenId` null, `via: 'session'` — the boot teardown's
+  precedent; `Via` has no platform value, and adding one is a contract change for one event (the review's M4, deferred, agrees it
+  is softened by the reason and the sentence).
+- **`classificationFloor` and `servingInstanceOf` take `Pick<Db, 'select'>`** (both only select) rather than a cast, so a
+  transaction reads them.
+- **The mock gains `MANIFEST_MOCK_CONFIDENTIAL`** (a code was added; sitting 10's rule), and nothing for `models_withdrawn` (a value
+  it never sends breaks no reader).
+- **The matrix's confidential row runs LAST**, its order load-bearing — the token actors are the fixture project's, so a second
+  confidential project could not express the rule.
+- **`boot.docker.test.ts` holds the boot's sweep** — the only test that fails if `index.ts` stops calling it.
+- **No sweep after a REHEARSAL** (the review's fix pass): only a CWL app rehearses, and its test needs the CWL fixture threaded with a
+  gateway; the launch deploys the same candidate next and sweeps, and every boot sweeps — *cost if wrong*: between a rehearsal and its
+  launch a session started before it keeps `default-chat`.
+- **The review's M1, M3 and M6 re-graded Important** (below); its M2, M4, M5, M7 and M8 deferred; its eleven declined lines stand.
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 Step 1's `[M17]`: `qwen3.8:27b` fits beside Docker and NOT beside `qwen3.5:4b`** — the task asked for it *"loaded beside"* the
+   4B; Ollama evicts one for the other (`system_limited`, 22.4 GiB predicted against 7.6–15.9 GiB free), so every alternation
+   reloads (~9–12 s, ~3 s back) and the Docker tier's `ai-path` file went from 4.7 s to 36.8 s (`[M19]`, measured by the tier).
+   Told to Rich before Step 2; a trap in `TRAPS.md`.
+2. **F2 The plan's Step 4 ended sessions *"at boot under on-premise"* only** — but under `capable` a raise ends them too: an
+   `internal` session holds `default-chat`, which a `confidential` project allows under neither setting. Ruled: every valid
+   manifest and every boot, whatever the setting.
+3. **F3 A session START read the classification before its transaction** — so a raise recorded while it waited on the gateway's
+   spend read (hundreds of milliseconds) would have minted the OLD models, and a raise recorded during its mint found no committed
+   session to end. Found writing FE-36's race tests; closed by the re-read under `holdActiveProject` and the check's `FOR UPDATE`
+   barrier, one test per ordering, each held by a control ((e), (f)).
+4. **F4 The fake LiteLLM's `slow()` said *"every call to `path`"* and delayed POSTs only** — a GET (`/user/info`) answered at once, so
+   the start race could not be opened at all; found when a test with a 6 s delay ran in 1.7 s. Fixed in `ai/testing.ts`; no caller
+   slowed a GET before (grepped).
+5. **F5 The first race test was ordering-dependent** — the commit route (git plumbing) outlasted its 400 ms window, so the start
+   re-read BEFORE the manifest was recorded, where the right outcome is the barrier's end, not new models. Split into two cases,
+   one per ordering.
+6. **F6 The guides' names gate reads a field whose name begins with an operation's verb as an operation** — `` `endReason` `` (`end…`)
+   was reported as an operation the API lacks. The prose was reworded; a trap in `TRAPS.md`.
+7. **F7 Two statements to the front-end's session were wrong, each corrected at once**: that a session at its cap reads `expired` (it
+   reads `active` — only `expiresAt` makes `expired`), and an operation count typed *"67 →"*.
+8. **F8 The two contract commits (`4f261e9`, `38c2ade`) landed BEFORE their heads-up** — sitting 11's F18 rule (message, read the
+   delivery, THEN commit) broken; no harm, the front-end was on the mock, and the fix pass's commit was announced first.
+9. **F9 Control (a1)'s predictions were wrong twice** — the *being minted* race stayed green (it asserts `toContain('default-chat')`,
+   not the list) and *the boot's sweep* went red unpredicted (it asserts the held session holds `default-chat-large` first).
+10. **F10 A "finding" that nothing in the tier builds `dist/` was WRONG** — `boot.docker.test.ts` and `capable.docker.test.ts` run
+    `pnpm --filter @manifest/control-plane build` themselves (`TRAPS.md` says so); the grep missed `run('pnpm', [...'build'])`. Caught
+    before it reached any document.
+11. **F11 (the review's I1) The safeguard fell to a lowered manifest**: it decided by `classificationFloor`, which a building agent's own
+    token lowers with a commit (`data.classification: internal`; D9 binds only at a production deploy), unlocking staging's Incidents
+    of the confidential release before it. Now `environmentFloor`: also every release that has had an instance in THAT environment.
+12. **F12 (the review's I2) A production deploy that raised the floor ended nothing** — `classificationFloor` never falls below what
+    production serves, and only a manifest and the boot swept. The deploy route now sweeps after a production deploy.
+13. **F13 (the review's I3) *For an AI agent* said a narrowed setting ends sessions *"before the commit answers"*** — it is the
+    platform's restart that does, and the ended-key bullet left the setting out.
+14. **F14 (the review's M1, re-graded Important) The Incident's `prompt` was published as *"shaped to be handed straight to an agent"*
+    with no caution**, and *Building a front-end* said a confidential project's Incidents are answered to the person — a front-end
+    following both hands the withheld log tail to the capable model, the harm the safeguard exists for. Held by a gate now.
+15. **F15 (the review's M3, re-graded Important) `endSessionsHoldingMore`'s `catch {}` dropped the cause**, and its one line said a
+    session *"STILL hold[s]"* its models after the gateway had revoked its key (a failure in the row's stamp, measured with a
+    refusing database).
+16. **F16 (the review's M6, re-graded Important) The two race tests waited on wall-clock sleeps** (100 ms, 300 ms) — red on a loaded
+    machine; they wait on the fake's recorded calls now, and controls (e) and (f) re-run on them.
+17. **F17 (the post-sweep check) *"TRAPS.md's newest entry"*, in §7e and in Task 15's `[S11a]`, pointed at the wrong trap** — the
+    eviction entry is the second-newest; the docs gate's verb rule was added after it. Found by opening TRAPS.md's tail; both now name
+    the entry by its heading.
+18. **F18 (the post-sweep check) ORIENTATION's top box listed what the plan has made true and omitted this sitting's** — the building
+    agent's setting, FE-36, the safeguard and the laptop's on-premise model; a missing fact, not a wrong one.
+
+**Negative controls** (Step 7, predicted in writing first — `s11a-predictions-controls.md`; each on `9c9c500`, restored by `git checkout`,
+tree clean after each): **(a1)** `agentModelsFor` never adding the capable model → 6 RED: the models, capable and route cases, *keeps a session*, *a
+raise recorded while a session waits* — and, UNPREDICTED, *the boot's sweep* (F9), while the predicted *being minted* stayed green (F9);
+**(a2)** always adding it on `confidential` → 4 RED, exactly as predicted; **(b)** `validateAndRecord` not calling the check → 5 unit RED
+exactly as predicted (*the boot's sweep* and *a raise recorded while a session waits* green, as predicted), and the Docker case RED —
+*"expected { status: 200 } to deeply equal { status: 401 …"*: the key answered on `default-chat-onprem` (the 27B loaded to answer it);
+**(c)** the safeguard reading the setting inverted → 5 RED exactly as predicted — its three route tests and the matrix row's
+`token-capable` and `token-privileged`; **(d)** `spec/policy.ts` letting an `internal` model through for confidential data → 2 RED
+exactly as predicted (*never becomes its own AI*, `policy.test`'s D17 case); **(e)** the barrier's `FOR UPDATE` removed → exactly
+*being minted* RED; **(f)** the start's re-read removed → exactly *a raise recorded while a session waits* RED — both re-run after
+the fix pass on the tests that wait on recorded calls, the same one RED each; **(g)** the boot's sweep forced `disabled`, `dist/` built
+with the break → `boot.docker.test.ts` 6 of 7, its new case RED *"expected 'disabled' to deeply equal { ended: 1, failed: +0 }"*, as
+predicted — no unit test imports `src/index.ts`. **The fix pass's own REDs**: I1 (`200` not `403`), I2 (the key `200` after the
+launch), M1 (the description without *confidential*), M3 (the one line *"STILL hold"*, no cause).
+
+**Deferred minors** (the ledger's `Final: minor (deferred)`): M2 the safeguard trusts the setting, not what live sessions hold — the
+seconds between `listen` and the boot's sweep, and a session whose revoke failed, under `on-premise`; M4 an end nobody asked for reads
+as the holder's own act in `agent_session.ended`'s `via`/`userId`; M5 with AI off, every valid commit to a project with a live session
+writes a *"could not be checked"* line; M7 in the start/raise race, `agent_session.ended` can be published before
+`agent_session.started`; M8 the `INSTANCE_OUTPUT_*` remedies and the guides' `next` hints still point a confidential project's token
+at `listIncidents`. **Declined lines, standing** (the review's): the env var in place of §26's audited console setting; the contract at
+`1.4.0`; `qwen3.8:27b`'s costs (Rich's, told); `classificationFloor`'s newest-valid-by-`createdAt` (Task 10's, pre-existing — I1's
+fix floors the safeguard independently of it); keys live with AI off (Task 11's design); a model re-added between boots (an operator's
+act); `listIncidents` omitting `FORBIDDEN` (pre-existing).
+
+**Gates at the close** (the final tree, `8c7eb5e`): `pnpm test` **2817 passed, 0 skipped, in 180 files — twice, identical** (759 s
+and 753 s, alone, at load ~5–10) — **exactly as predicted** (2786 + 31: `api/incidents.test.ts` 4 in a new file, `api/agents.test.ts`
+11, `ai/models.test.ts` 4, `config.test.ts` 1, the matrix's row 9, the mock 1, the docs gate 1); `pnpm test:docker` **248 in 41**, green
+FIRST run on `9c9c500`, alone, 1257 s — +2 as predicted; the fix pass re-ran the two Docker files reaching its changed lines alone
+(`agent-sessions`, `boot`), 10 of 10; `make doctor` **20 / 0 / 0** (the model check now includes `qwen3.8:27b`; the vulnerability database
+5.0 days old, stale after 2026-10-01); `make verify` **61 / 0 / 0**; `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean.
+`scripts/ci-acceptance.sh` reads `2817 / 180 / 20 / 61`.
+
+**The machine at the close** (queried 00:32, 2026-09-29, not remembered):
+
+- the control database **EMPTY — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions, 0 intake sessions, 40 migrations**
+  (`psql`) — the tests truncated last; the front-end's sitting-1 leftovers went with it, as its session agreed;
+- **30 `mf-` containers with no rows behind them** — `launch-app`'s six, `student-submissions`' six (sandbox and staging, the
+  front-end's window on 7100) and three each of `class-responses`, `f3-measure-mulp4617`, `student-q-and-a`, `student-reading-notes`,
+  `student-response-page` and `weekly-readings` — ALL present at the open (the snapshot's diff), left as found; `make verify`'s INFO
+  `mf- containers=30 networks=10 volumes=20`;
+- **THE CONTROL PLANE RUNNING** — PID 4563 on 7100, started detached (`nohup`) from Rich's `.env` by RUNBOOK's block (the plan's
+  git-ignored `.superpowers/sdd/2026-09-27-front-end-enablement/s11a-cp-start.sh`, logging to `close-s11a-cp.log`) on `8c7eb5e`, boot
+  line **`"capableModel":"registered"`, `"capableFallback":"set"`, `"agentBuilderModels":"capable"`, `"agentSessionsWithdrawn":{"ended":0,"failed":0}`**,
+  `"secretsScrubbed":14`, 15 docs pages, origins console and `app`. **7102 and 7105 are the faculty front-end's** (its mock, pid 28239,
+  and its server in mock mode) — never stop them; its session, `manifest-app-f8` at the close, uses nothing on 7100;
+- **LiteLLM** (restarted once, at Step 2, to load `config.yaml`): six models — `default-chat-onprem` and `-reasoning` →
+  `ollama_chat/qwen3.8:27b`, `default-chat-large` → `openai/gpt-6-luna` with its fallback `default-chat-onprem`; 6 users;
+  **Ollama**: `qwen3.5:4b` resident (and `nomic-embed-text`), the 27B unloaded;
+- the three cleanup scripts clean after `--apply` (allowed — `bash scripts/<name>.sh`: 7 networks, 1 volume, 6 LiteLLM orphans — 12
+  users to 6 — and 17 images) and bare again after: nothing dead; networks, volumes and ports identical to the open (the snapshots'
+  diff), one dead `student-submissions` image gone; `make doctor` 20/0/0; `make verify` 61/0/0; the GitHub fake absent; free disk 109 Gi.
+
+**The four shared HTML pages, checked**: `manifest-schematic.html`'s capable-model passage already says, in plain words, that it may help
+BUILD a confidential app and never becomes its own AI and that an administrator can confine building to UBC's hardware (swept when
+Spec action 10 was approved); none of the four names the laptop's on-premise model, an Incident's log tail or an agent session's end
+(grepped for `qwen`, `log tail`, `confidential`, `building agent`) — unchanged.

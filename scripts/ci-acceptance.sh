@@ -149,8 +149,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # (17, new), `contract/src/dist.test.ts` (2, new), `api/auth-page.test.ts` (5, new), `console/src/ending-state.test.ts`
 # (4, new), `console/src/code-state.test.ts` (5), `console/src/api.test.ts` (1), `api/instances.test.ts` (1),
 # `api/logout.test.ts` (1), and the matrix's staging-output row (9).
-EXPECT_TESTS=2786
-EXPECT_FILES=179
+# Then its sitting 11 (2026-09-28, the guides): +15, no new file — the examples (8), the journey's docs gates (2),
+# the document's gates (2), the slug cases (2) and one pinned body-hash vector.
+# Then its sitting 11a (2026-09-29, the building agent's models): +31 and one file — `api/incidents.test.ts` (4, new),
+# `api/agents.test.ts` (11), `ai/models.test.ts` (4), `config.test.ts` (1), the matrix's confidential-Incidents row (9),
+# `mock/src/scripted.test.ts` (1) and the journey's docs gate (1).
+EXPECT_TESTS=2817
+EXPECT_FILES=180
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=61
 
