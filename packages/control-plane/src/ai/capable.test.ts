@@ -196,7 +196,7 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
     await expect(ensureCapableModel(lite, SETTING)).rejects.toBeInstanceOf(AiError)
   })
 
-  it('gives an agent on an internal project the capable model, and one on a confidential project never', async () => {
+  it('gives an agent on an internal project the capable model, and one on a confidential project only while the builder setting allows it', async () => {
     const lite = fakeLiteLlm()
     await ensureCapableModel(lite, SETTING)
     const snapshot = await loadModelCatalogue(lite)
@@ -205,12 +205,21 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
       maxClassification: 'internal',
       kind: 'chat',
     })
-    expect(agentModelsFor(snapshot, 'internal')).toContain('default-chat-large')
-    expect(agentModelsFor(snapshot, 'public')).toContain('default-chat-large')
-    const confidential = agentModelsFor(snapshot, 'confidential')
-    expect(confidential).not.toContain('default-chat-large')
+    expect(agentModelsFor(snapshot, 'internal', 'on-premise')).toContain(
+      'default-chat-large',
+    )
+    expect(agentModelsFor(snapshot, 'public', 'on-premise')).toContain(
+      'default-chat-large',
+    )
+    // Spec action 10 (Task 14a): a confidential project's BUILDER may call it while the setting is
+    // `capable` (the default), and never under `on-premise`.
+    expect(agentModelsFor(snapshot, 'confidential', 'capable')).toContain(
+      'default-chat-large',
+    )
+    const onPremise = agentModelsFor(snapshot, 'confidential', 'on-premise')
+    expect(onPremise).not.toContain('default-chat-large')
     // A positive control: the confidential floor still gets the on-premise models.
-    expect(confidential).toContain('default-chat-onprem')
+    expect(onPremise).toContain('default-chat-onprem')
   })
 })
 

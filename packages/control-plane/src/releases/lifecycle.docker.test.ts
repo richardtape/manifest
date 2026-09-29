@@ -308,7 +308,7 @@ describeDocker('archive and restore against the real platform (Task 11)', () => 
         bus,
         llm,
         catalogue: declaredCatalogue(),
-        agent: { monthlyUsd: 10, sessionCapUsd: 2 },
+        agent: { monthlyUsd: 10, sessionCapUsd: 2, builderModels: 'capable' },
       },
       { actor: sessionActor({ userId }), projectId, name: 'archive-docker', capUsd: 1 },
     )

@@ -165,6 +165,8 @@ describe('configuration', () => {
       monthlyUsd: 10,
       sessionCapUsd: 2,
       llmUrl: 'http://127.0.0.1:7106/v1',
+      // Spec action 10 (Task 14a): a confidential project's building agent may call the capable model.
+      builderModels: 'capable',
     })
     expect(config.intake).toEqual({
       model: 'default-chat',
@@ -173,6 +175,23 @@ describe('configuration', () => {
       dailyKeys: 10,
       monthlyUsd: 50,
     })
+  })
+
+  it('reads the building agent’s setting, and refuses any value but its two (Spec action 10)', () => {
+    expect(
+      loadConfig({ ...base, MANIFEST_AGENT_BUILDER_MODELS: 'on-premise' }).agent
+        .builderModels,
+    ).toBe('on-premise')
+    expect(
+      loadConfig({ ...base, MANIFEST_AGENT_BUILDER_MODELS: 'capable' }).agent
+        .builderModels,
+    ).toBe('capable')
+    for (const value of ['onprem', 'CAPABLE', 'default-chat-large', '']) {
+      expect(
+        () => loadConfig({ ...base, MANIFEST_AGENT_BUILDER_MODELS: value }),
+        value,
+      ).toThrow(ConfigError)
+    }
   })
 
   it('coerces the agent and intake numbers, and refuses one that is not positive', () => {

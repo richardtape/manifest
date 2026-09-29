@@ -13,7 +13,7 @@ import {
 } from './agent-keys.js'
 import { CATALOGUE_CODES, CatalogueError, type ModelCatalogue } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
-import { agentModelsFor, classificationFloor } from './models.js'
+import { agentModelsFor, classificationFloor, type BuilderModels } from './models.js'
 
 /**
  * §10's agent sessions outside a sandbox (Spec action 1; the front-end enablement plan's Task 10,
@@ -66,7 +66,7 @@ export interface AgentSessionDeps {
   /** `undefined` under `MANIFEST_AI_ENABLED=0` — and the catalogue, read first, refuses then. */
   llm: LiteLlmClient | undefined
   catalogue: ModelCatalogue
-  agent: { monthlyUsd: number; sessionCapUsd: number }
+  agent: { monthlyUsd: number; sessionCapUsd: number; builderModels: BuilderModels }
 }
 
 /** Who ended a session, for the event: the acting triple every event since Task 6 carries. */
@@ -160,7 +160,7 @@ export async function startAgentSession(
   const snapshot = await deps.catalogue.get()
   const llm = gatewayOf(deps)
   const floor = await classificationFloor(deps.db, input.projectId)
-  const models = agentModelsFor(snapshot, floor)
+  const models = agentModelsFor(snapshot, floor, deps.agent.builderModels)
   if (models.length === 0) {
     // An empty list would be EVERY model to LiteLLM (`[M7]`): refused, never minted.
     throw new AgentSessionError(

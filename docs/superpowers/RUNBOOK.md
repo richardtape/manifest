@@ -192,7 +192,8 @@ fallback.
    that step failed — the fallback is then not tried). The boot always goes on.
 4. **Check it**: `curl -s http://127.0.0.1:7106/model/info -H "authorization: Bearer $LITELLM_MASTER_KEY"` — `default-chat-large`
    with `max_classification: internal` and a positive `input_cost_per_token` in BOTH `litellm_params` (pinned) and `model_info`.
-   `startAgentSession` on an `internal` or `public` project lists it in `session.models`; a `confidential` project's never does.
+   `startAgentSession` on an `internal` or `public` project lists it in `session.models`; a `confidential` project's lists it
+   only while `MANIFEST_AGENT_BUILDER_MODELS` is `capable` (the default — *The building agent's models*, below).
    `curl -s 'http://127.0.0.1:7106/fallback/default-chat-large?fallback_type=general' -H "authorization: Bearer
    $LITELLM_MASTER_KEY"` answers `"fallback_models":["default-chat-onprem"]`.
 
@@ -220,6 +221,16 @@ it** — and an app whose manifest declares `default-chat-large` is then refused
 `RELEASE_MODEL_NOT_IN_CATALOGUE`, until it is set again. `MANIFEST_INTAKE_MODEL` may name it too, which means the platform pays for
 intake on it. A call with no provider key in LiteLLM was refused inside LiteLLM as `500 litellm.AuthenticationError` — measured with
 the variable ABSENT from the container; the compose line now sets it EMPTY when `.env` lacks it, which was not re-measured.
+
+### The building agent's models
+
+*Added 2026-09-28 (the front-end enablement plan's Task 14a; §7, §10 and §26 as Spec action 10 amended them).* **`MANIFEST_AGENT_BUILDER_MODELS`
+decides which models the agent that BUILDS a `confidential` app may call** — Rich: *"It's okay to use the larger models to BUILD the
+app, but if the app needs AI, then we should switch to use the on-prem model for the AI within the created app"*, and *"make this a
+setting"*. **`capable`, the default**: a `confidential` project's agent session lists the on-premise models AND `default-chat-large`
+(when it is registered). **`on-premise`**: the on-premise models alone. Nothing else is accepted — the boot refuses a mistyped or
+empty value rather than guess. **The app's own `ai.models` is validated by D17 whatever this says**, so a `confidential` app's own AI
+stays on-premise either way. It is a platform setting (§26): put the line in `.env` and restart the control plane.
 
 ## The four verbs
 

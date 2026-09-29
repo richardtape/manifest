@@ -11,6 +11,7 @@ import {
 import { withProject } from '../db/testing.js'
 import type { Classification } from '../spec/index.js'
 import type { CatalogueSnapshot } from './catalogue.js'
+import { CAPABLE_MODEL_NAME } from './capable.js'
 import { agentModelsFor, classificationFloor } from './models.js'
 import { declaredCatalogue } from './testing.js'
 
@@ -85,14 +86,16 @@ async function servingProduction(
 describe('agentModelsFor (Decision 23)', () => {
   it('answers every catalogue entry at or above the classification', async () => {
     const catalogue = await declaredCatalogue().get()
-    expect(agentModelsFor(catalogue, 'confidential')).toEqual([
+    expect(agentModelsFor(catalogue, 'confidential', 'on-premise')).toEqual([
       'default-chat-onprem',
       'default-chat-onprem-reasoning',
     ])
-    expect(agentModelsFor(catalogue, 'internal')).toEqual(
+    expect(agentModelsFor(catalogue, 'internal', 'on-premise')).toEqual(
       expect.arrayContaining(['default-chat', 'default-chat-onprem', 'default-embed']),
     )
-    expect(agentModelsFor(catalogue, 'public')).toHaveLength(catalogue.models.length)
+    expect(agentModelsFor(catalogue, 'public', 'on-premise')).toHaveLength(
+      catalogue.models.length,
+    )
   })
 
   it('never answers an unclassified entry, and answers nothing when nothing is approved', () => {
@@ -100,8 +103,59 @@ describe('agentModelsFor (Decision 23)', () => {
       models: [{ name: 'default-chat', maxClassification: 'internal', kind: 'chat' }],
       unclassified: ['rogue-chat'],
     }
-    expect(agentModelsFor(catalogue, 'public')).toEqual(['default-chat'])
-    expect(agentModelsFor(catalogue, 'confidential')).toEqual([])
+    expect(agentModelsFor(catalogue, 'public', 'capable')).toEqual(['default-chat'])
+    expect(agentModelsFor(catalogue, 'confidential', 'capable')).toEqual([])
+  })
+})
+
+/** The declared catalogue with the capable model registered, as the boot registers it (Task 12a). */
+async function withCapable(): Promise<CatalogueSnapshot> {
+  const declared = await declaredCatalogue().get()
+  return {
+    ...declared,
+    models: [
+      ...declared.models,
+      { name: CAPABLE_MODEL_NAME, maxClassification: 'internal', kind: 'chat' },
+    ],
+  }
+}
+
+describe('agentModelsFor — the building agent’s setting (Spec action 10; the front-end enablement plan’s Task 14a)', () => {
+  it('lets a confidential project’s agent call the capable model while the setting is capable', async () => {
+    // The capable model's NAME and nothing else the classification refuses: default-chat,
+    // default-chat-reasoning and default-embed stay out (§7: the setting is about the BUILDER's model).
+    expect(agentModelsFor(await withCapable(), 'confidential', 'capable')).toEqual([
+      'default-chat-onprem',
+      'default-chat-onprem-reasoning',
+      CAPABLE_MODEL_NAME,
+    ])
+  })
+
+  it('gives a confidential project’s agent the on-premise models alone when the setting is on-premise', async () => {
+    expect(agentModelsFor(await withCapable(), 'confidential', 'on-premise')).toEqual([
+      'default-chat-onprem',
+      'default-chat-onprem-reasoning',
+    ])
+  })
+
+  it('adds nothing when the capable model is not registered, whatever the setting', async () => {
+    const declared = await declaredCatalogue().get()
+    expect(agentModelsFor(declared, 'confidential', 'capable')).toEqual([
+      'default-chat-onprem',
+      'default-chat-onprem-reasoning',
+    ])
+  })
+
+  it('changes nothing below confidential — the setting is the confidential floor’s alone', async () => {
+    const catalogue = await withCapable()
+    for (const floor of ['public', 'internal'] as const) {
+      expect(agentModelsFor(catalogue, floor, 'on-premise'), floor).toEqual(
+        agentModelsFor(catalogue, floor, 'capable'),
+      )
+      expect(agentModelsFor(catalogue, floor, 'on-premise'), floor).toContain(
+        CAPABLE_MODEL_NAME,
+      )
+    }
   })
 })
 

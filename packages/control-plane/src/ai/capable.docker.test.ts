@@ -168,9 +168,19 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
         maxClassification: 'internal',
         kind: 'chat',
       })
-      expect(agentModelsFor(snapshot, 'internal')).toContain(CAPABLE_MODEL_NAME)
-      expect(agentModelsFor(snapshot, 'confidential')).not.toContain(CAPABLE_MODEL_NAME)
-      expect(agentModelsFor(snapshot, 'confidential')).toContain('default-chat-onprem')
+      expect(agentModelsFor(snapshot, 'internal', 'on-premise')).toContain(
+        CAPABLE_MODEL_NAME,
+      )
+      // Spec action 10 (Task 14a): a confidential project's builder only while the setting allows it.
+      expect(agentModelsFor(snapshot, 'confidential', 'capable')).toContain(
+        CAPABLE_MODEL_NAME,
+      )
+      expect(agentModelsFor(snapshot, 'confidential', 'on-premise')).not.toContain(
+        CAPABLE_MODEL_NAME,
+      )
+      expect(agentModelsFor(snapshot, 'confidential', 'on-premise')).toContain(
+        'default-chat-onprem',
+      )
 
       // The review's I1: the price LiteLLM gave it is PINNED on the deployment, so no restart of
       // LiteLLM can take it away.

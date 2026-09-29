@@ -42,7 +42,7 @@ export {
   revokeKeyByAlias,
 } from './agent-keys.js'
 export type { BudgetSpend, CappedKeyInput } from './agent-keys.js'
-export { agentModelsFor, classificationFloor } from './models.js'
+export { agentModelsFor, classificationFloor, type BuilderModels } from './models.js'
 export {
   CAPABLE_FALLBACK_SETTING,
   CAPABLE_MODEL_NAME,

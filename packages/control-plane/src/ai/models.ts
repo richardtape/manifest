@@ -3,24 +3,43 @@ import type { Db } from '../db/index.js'
 import { appSpecs, environments, releases } from '../db/index.js'
 import { servingInstanceOf } from '../projects/index.js'
 import { CLASSIFICATION_RANK, type Classification } from '../spec/index.js'
+import { CAPABLE_MODEL_NAME } from './capable.js'
 import type { CatalogueSnapshot } from './catalogue.js'
+
+/**
+ * WHICH MODELS THE AGENT THAT BUILDS A `confidential` APP MAY CALL (§7, §10 and §26 as Spec action 10
+ * amended them; `MANIFEST_AGENT_BUILDER_MODELS`): `capable` — the default — adds the capable model to
+ * the on-premise ones; `on-premise` is D17's rule alone. A platform setting, never a project's: the
+ * app's OWN `ai.models` is validated by D17 whatever this says, so a `confidential` app's AI stays
+ * on-premise either way.
+ */
+export type BuilderModels = 'capable' | 'on-premise'
 
 /**
  * D17 FOR AN AGENT (Decision 23; Spec action 1's §10): the logical models an agent session's key may
  * call are EVERY classified catalogue entry approved for the project's data — its
  * `max_classification` rank at least the project's. An unclassified entry is never answered (§7's
- * rule — it is refused on its own). Read from the catalogue, never from a list here: nothing in
- * this module names a model, so the capable model Rich has decided to add later arrives by the
- * catalogue alone (sitting 7's check).
+ * rule — it is refused on its own). Read from the catalogue: nothing here names a model but the
+ * capable one.
+ *
+ * **AND, ON A `confidential` PROJECT WHILE THE BUILDER SETTING IS `capable`, THE CAPABLE MODEL TOO**
+ * (Spec action 10; the front-end enablement plan's Task 14a — Rich: *"It's okay to use the larger
+ * models to BUILD the app"*). Its NAME only, and only when the catalogue holds it classified — never
+ * another entry the classification refuses (`default-chat`, `default-chat-reasoning` and
+ * `default-embed` stay out), so the exception is exactly one model wide. Its fallback is the
+ * on-premise model (Spec action 8), which the floor allows anyway.
  */
 export function agentModelsFor(
   catalogue: CatalogueSnapshot,
   floor: Classification,
+  builder: BuilderModels,
 ): string[] {
+  const building = floor === 'confidential' && builder === 'capable'
   return catalogue.models
     .filter(
       (entry) =>
-        CLASSIFICATION_RANK[entry.maxClassification] >= CLASSIFICATION_RANK[floor],
+        CLASSIFICATION_RANK[entry.maxClassification] >= CLASSIFICATION_RANK[floor] ||
+        (building && entry.name === CAPABLE_MODEL_NAME),
     )
     .map((entry) => entry.name)
 }

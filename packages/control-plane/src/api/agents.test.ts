@@ -10,6 +10,7 @@ import {
   mutationHeaders,
   refusal,
   sessionFor,
+  testDeps,
   withProjectServer,
   type TestProject,
 } from './testing.js'
@@ -286,6 +287,63 @@ describe('agent sessions (the front-end enablement plan’s Task 10)', () => {
         },
       },
     )
+  })
+
+  it('lets a confidential project’s agent call the capable model while the builder setting allows it (Spec action 10)', async () => {
+    const declared = await declaredCatalogue().get()
+    const withCapable = {
+      enabled: true,
+      get: async () => ({
+        ...declared,
+        models: [
+          ...declared.models,
+          {
+            name: 'default-chat-large',
+            maxClassification: 'internal' as const,
+            kind: 'chat' as const,
+          },
+        ],
+      }),
+    }
+    const confidential = (ctx: TestProject) =>
+      ctx.db.insert(appSpecs).values({
+        projectId: ctx.projectId,
+        commitSha: ctx.commitSha,
+        parsed: { data: { classification: 'confidential' } },
+        schemaVersion: 1,
+        valid: true,
+        createdAt: new Date(Date.now() + 1000),
+      })
+    for (const [builderModels, expected] of [
+      [
+        'capable',
+        ['default-chat-onprem', 'default-chat-onprem-reasoning', 'default-chat-large'],
+      ],
+      ['on-premise', ['default-chat-onprem', 'default-chat-onprem-reasoning']],
+    ] as const) {
+      const lite = fakeLiteLlm()
+      // ONE `testDeps()` laid over the harness's whole, so the config and the source driver it
+      // was built with agree (the repositories' root is per call).
+      const base = await testDeps()
+      await withProjectServer(
+        async (ctx) => {
+          await confidential(ctx)
+          const res = await start(ctx, { cookies: ctx.ownerCookies })
+          expect(res.statusCode, res.body).toBe(201)
+          expect((res.json() as Started).session.models, builderModels).toEqual(expected)
+          // The KEY carries the same list — LiteLLM enforces the key's, never the row's.
+          expect(keyGenerations(lite).at(-1)?.body?.models, builderModels).toEqual(
+            expected,
+          )
+        },
+        {
+          ...base,
+          llm: lite,
+          catalogue: withCapable,
+          config: { ...base.config, agent: { ...base.config.agent, builderModels } },
+        },
+      )
+    }
   })
 
   it('a revoked token’s sessions end, and their keys are revoked by alias', async () => {

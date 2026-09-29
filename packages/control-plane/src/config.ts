@@ -325,6 +325,17 @@ const envSchema = z.object({
   MANIFEST_AGENT_MONTHLY_USD: z.coerce.number().positive().default(10),
   MANIFEST_AGENT_SESSION_CAP_USD: z.coerce.number().positive().default(2),
   /**
+   * THE AGENT THAT BUILDS A `confidential` APP (§7, §10 and §26 as Spec action 10 amended them; the
+   * front-end enablement plan's Task 14a — Rich, 2026-09-28: *"make this a setting … We can use the
+   * default large models for sensitive apps now, but if we need to change it to the on prem models,
+   * then we can adjust"*). `capable` — the default — lets a `confidential` project's agent sessions call
+   * the capable model as well as the on-premise models, and refuses delegated tokens that project's
+   * staging and production Incident log tails; `on-premise` gives those sessions the on-premise models
+   * alone, and the next boot ENDS every session holding more. **Nothing else is accepted — an empty line
+   * included**: a mistyped value must not quietly become the more permissive one.
+   */
+  MANIFEST_AGENT_BUILDER_MODELS: z.enum(['capable', 'on-premise']).default('capable'),
+  /**
    * Where a session's key is USED — the gateway's OpenAI-compatible base, as the agent reaches it.
    * The faculty front-end's server is a host process on the laptop, so the published port; at UBC
    * it is the gateway's own address. Answered in `startAgentSession`, never called by this process.
@@ -471,8 +482,16 @@ export interface Config {
     /** `MANIFEST_CAPABLE_MODEL_FALLBACK`: the catalogue entry that answers for it; absent, none does. */
     capableFallback?: string
   }
-  /** An agent session's bounds (Decision 22): a person's month, one session's cap, and where its key is used. */
-  agent: { monthlyUsd: number; sessionCapUsd: number; llmUrl: string }
+  /**
+   * An agent session's bounds (Decision 22): a person's month, one session's cap, where its key is
+   * used — and which models a `confidential` project's building agent may call (Spec action 10).
+   */
+  agent: {
+    monthlyUsd: number
+    sessionCapUsd: number
+    llmUrl: string
+    builderModels: 'capable' | 'on-premise'
+  }
   /** An intake session's bounds (Spec action 5): all the platform's, because the platform pays. */
   intake: {
     model: string
@@ -738,6 +757,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       monthlyUsd: raw.MANIFEST_AGENT_MONTHLY_USD,
       sessionCapUsd: raw.MANIFEST_AGENT_SESSION_CAP_USD,
       llmUrl: raw.MANIFEST_AGENT_LLM_URL,
+      builderModels: raw.MANIFEST_AGENT_BUILDER_MODELS,
     },
     intake: {
       model: raw.MANIFEST_INTAKE_MODEL,
