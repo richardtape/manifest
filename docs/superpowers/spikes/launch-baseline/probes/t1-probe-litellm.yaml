@@ -1,0 +1,14 @@
+# Task 1, Step 4(b) — the probe LiteLLM's config. No database; the stub on the host answers both deployments.
+model_list:
+  - model_name: probe-primary
+    litellm_params: { model: openai/stub, api_base: "http://host.docker.internal:7199/s400/v1", api_key: probe, num_retries: 0 }
+  - model_name: probe-primary-503
+    litellm_params: { model: openai/stub, api_base: "http://host.docker.internal:7199/s503/v1", api_key: probe, num_retries: 0 }
+  - model_name: probe-fallback
+    litellm_params: { model: openai/stub, api_base: "http://host.docker.internal:7199/ok/v1", api_key: probe }
+router_settings:
+  fallbacks: [{ "probe-primary": ["probe-fallback"] }, { "probe-primary-503": ["probe-fallback"] }]
+litellm_settings:
+  callbacks: probe_hook.proxy_handler_instance   # t1-probe_hook.py, mounted as probe_hook.py
+general_settings:
+  master_key: os.environ/PROBE_MASTER_KEY

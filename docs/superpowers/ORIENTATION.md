@@ -12,17 +12,14 @@ of it from its own origin** (the front-end enablement plan, the newest, EXECUTED
 `app.manifest.internal`, names a project and adds a colleague by CWL login, gives an agent a model key charged to them (or is
 given one the platform pays for while describing an app), reads a sandbox app's recent output redacted, commits images, PDFs and
 fonts, switches an app off and back on or deletes one that never launched, and builds with the capable model and its on-premise
-fallback — even a `confidential` app, while the platform setting allows it. **No plan is being executed; §7e says what is next.**
+fallback — even a `confidential` app, while the platform setting allows it. **The launch path plan is WRITTEN (2026-09-29), and its
+sitting 1 has run — the control plane's first run against REAL GitHub. §7e says what is next.**
 The roadmap's ledger outranks every document on status.
 
-*Last verified 2026-09-29, at the close of the front-end enablement plan's sitting 12 (Task 15 — the acceptance — and the plan's one
-whole-branch review's fix pass): THE PLAN IS EXECUTED. ONE NUMBER MOVED: `pnpm test` **2826 passed, 0 skipped, in 180 files** on the
-final tree (`11f2526`) — run 2 alone, 782 s; run 1, inside `make ci-acceptance`, read 2825 and ONE red, `api/delivery.test.ts`'s
-`deadlock detected` in the harness's `TRUNCATE` (the plan's F26 — P6b's trap, a deploy's retire pass outliving its test; the file 6 of
-7 green alone); `pnpm test:docker` **248 in 41** (owed by the fix pass's `ai/`, `projects/`, `releases/`; green on its first run, alone,
-1309 s); **`make doctor` 20 checks, 0 failed, 0 warnings** (the vulnerability database refreshed by Rich 2026-09-29, fresh until
-2026-10-06); **`make verify` 61**. `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean. `scripts/ci-acceptance.sh` reads
-`2826 / 180 / 20 / 61`.
+*Last verified 2026-09-29, at the close of the launch path plan's sitting 1 (Task 1 — the measurements, and the control plane's first
+run on REAL GitHub; no code changed): `make doctor` **20 checks, 0 failed, 0 warnings** and `make verify` **61 / 0 / 0**, re-read at the
+open; `pnpm test` **2826 passed, 0 skipped, in 180 files** and `pnpm test:docker` **248 in 41** stand from `11f2526` (the LEAN budget —
+nothing to re-run on a tree whose `src/` has not changed); `scripts/ci-acceptance.sh` reads `2826 / 180 / 20 / 61`; contract `1.4.0`.
 **This line states only the latest sitting** — each sitting's numbers are in its plan's *What executing this plan found*, dated,
 where they cannot drift.*
 
@@ -188,8 +185,8 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
-| **executing a plan** | **None is being executed.** [The front-end enablement plan](plans/2026-09-27-front-end-enablement.md) was EXECUTED on 2026-09-29 — eighteen tasks in fifteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
-| **writing a plan** | **The faculty front-end's LAUNCH PATH (FE-6, FE-25) is next in Rich's order** (the roadmap's *The faculty front-end's message*; §7e asks him to confirm it first); the vulnerability database in the console comes after it (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
+| **executing a plan** | **[The launch path plan](plans/2026-09-29-launch-path.md) is WRITTEN (2026-09-29) and its sitting 1 has run** — Task 1, the measurements and the control plane's first run on real GitHub, in the session that wrote it; its sittings table says what is next, once Rich has reviewed it. [The front-end enablement plan](plans/2026-09-27-front-end-enablement.md) was EXECUTED on 2026-09-29 — eighteen tasks in fifteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **writing a plan** | **The launch path is WRITTEN** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md)); **the vulnerability database in the console comes after it** in Rich's order (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
 | **writing code** | *The code* and *What the platform keeps true* below. **Then run `make demo` once**: it is the only thing that exercises boot, build, release, deploy and the edge through the real HTTP surface, and it is where this project's worst defects were found. |
@@ -232,6 +229,7 @@ docs/superpowers/
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
+│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 15 tasks in 12 proposed sittings, six spec actions drafted (none applied); its sitting 1 (Task 1) ran the same day
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -240,6 +238,8 @@ docs/superpowers/
     │                                   Each README.md is one section per measurement with its raw
     │                                   answer; the results-*.txt beside it is every command's full
     │                                   output. Read the CURRENT plan's before its sitting 2
+    ├── launch-baseline/               THE LAUNCH PATH PLAN'S MEASUREMENT SITTING (its Task 1, 2026-09-29): README.md, results-task1-2026-09-29.txt,
+    │                                   probes/ — and the control plane's FIRST RUN ON REAL GITHUB; ubc-structure.xml is UBC's metadata shape
     ├── authoring-baseline/            THE AUTHORING API'S MEASUREMENT SITTING (its Task 1, 2026-09-25): README.md,
     │                                   results-task1-2026-09-25.txt and probes/ — the writing session's and Task 1's
     ├── START-HERE.md                   the ORIGINAL spike briefing. Historical; its §6 is wrong
@@ -1748,101 +1748,67 @@ named in the row below.*
 | **D5 driver 2** | [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — **EXECUTED 2026-09-25**, all eight sittings | `make demo-github` (driver 2) — green fresh, re-use and from a `make reset` machine; step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1; **clicked by a person on both drivers**; the real conformance leg 17 of 17 | **Sitting 8's F11 and F12 are the ones to read**, found by the plan's one fresh whole-branch review: a path into a worktree's own `.git` could be written on both drivers (`core.fsmonitor` is code execution — latent until the authoring API supplies paths), and a push a read synced first was never validated. **Sitting 8's F15/F16**: `make demo` and `make demo-token` were red for five days after P6a's step-up because nothing ran them. **Sitting 1's F6**: one rewrite of GitHub's `main` froze a non-forced mirror's `main` for ever — the two-refspec mirror is its fix. **Sitting 4's F6**: without `repositoryOf`, a GitHub-mode control plane BUILT a driver-1 project. |
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
-### 7e. Write the next plan — the faculty front-end's LAUNCH PATH (FE-6, FE-25), with REAL GITHUB in its Task 1 ← **START HERE**
+### 7e. Rich reviews the launch path plan — then its sitting 2 (Tasks 2 and 3) ← **START HERE**
 
-**The front-end enablement plan is EXECUTED** (2026-09-29, [all eighteen tasks in fifteen sittings](plans/2026-09-27-front-end-enablement.md);
-its acceptance, `make demo-frontend`, green three times on EACH driver and inside `make ci-acceptance`, the offline acceptance's step
-15, seven negative controls seen red, a person clicking it — its *Sitting 12* is the record). **No plan is written or being executed.**
-Fourteen plans are executed (§2's table).
+**The launch path plan is WRITTEN** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md), 2026-09-29): FE-6's three
+clocks with D19's drafts and FE-25's sign-off request feeding §26's queue, plus Rich's additions (real GitHub, the key trim, member
+removal) and FE-33, FE-34, FE-38 and F26 at his word — **15 tasks in 12 PROPOSED sittings, six spec actions DRAFTED and none applied.**
+**Its sitting 1 — Task 1 — RAN THE SAME DAY, at his word, before his review**: the measurements, and **the control plane's first run
+against REAL GitHub**, green end to end (the plan's *Sitting 1*; [`spikes/launch-baseline/`](spikes/launch-baseline/README.md)).
+Fourteen plans are executed (§2's table); this one is the fifteenth begun.
 
-**THE NEXT JOB, IN RICH'S ORDER** (the roadmap's *The faculty front-end's message*, his *"Launch path first"* of 2026-09-27): **write
-the plan for the faculty front-end's launch path** — **FE-6**, the three clocks (the staging registration, the production registration,
-the privacy assessment: D19's generated drafts, an owner's *"I've sent it"*, a state that can say *waiting since*, the staging
-registration as a tracked object like `IamRegistration`), and **FE-25**, an owner's *"please sign this off"* for a release, feeding
-§26's queue (today no administrator is told and nothing records it). **And, Rich's additions of 2026-09-29, each a task of the next plan, not a plan of its own** (§8 *Decided*'s first lines): **the
-GitHub driver run against REAL GitHub**, and **a session holding a model its project no longer allows TRIMMED in place rather than
-ended** (measured first, with a spec action for §7's sentence). **Then** the vulnerability database in the console (§8
-*Decided*). Plan-writing house style: `superpowers:writing-plans`, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md)
-as the newest example — a Task 1 that measures, sittings approved by Rich, spec actions drafted with options and a recommendation.
+**THE NEXT JOB: Rich's review, then the plan's sitting 2** — Task 2 (what real GitHub found; **its Step 0, the test tiers refusing a
+real GitHub, lands FIRST and alone**) and Task 3 (F26's drain). The plan's sittings table is the other statement of it.
 
-**RICH WANTS TO SEE APPS CREATED THROUGH THE PLATFORM END UP ON GITHUB — `.env` KEEPS `MANIFEST_SOURCE_DRIVER=github`, BY HIS
-DECISION** (2026-09-29, after sitting 12's close: *"I'm keeping it in, I want to see apps created through the platform end up on
-github"*). **But that line alone is driver 2 against the GitHub FAKE's defaults, not real GitHub**: at the close none of `.env.example`
-section 2a's six real-App settings was set (checked by counting lines — **never print `.env`**). For REAL GitHub all six go in together,
-and none is a secret (the key is a file, `infra/secrets/github-app.pem`, `-rw-------`, git-ignored — never read or print it):
+**ASK RICH IN THE FIRST MESSAGE** (the plan's *What Rich does* has 1–4, 6 and 8 in full; 5 is Task 1's F17, and 7 is §8 *Open*):
+1. **The review** — the plan as written, its twelve sittings or a re-cut, its decisions. *Recommended:* approve; nothing Task 1
+   measured moves a boundary.
+2. **The six spec actions**, each with options and a recommendation. **None is needed before sitting 2**; 1 and 2 before sitting 5, 3
+   before 6, 4 before 7, 5 before 9 — **and 6 before sitting 4, because Task 1 measured that the guard can be built (Branch G)**. He may
+   decide them all at once, as he did the last plan's.
+3. **The rows sitting 2's first Vitest run will TRUNCATE**: the faculty front-end's `my-weekly-thoughts` and `notes-and-answers` (its
+   session said *"If you hear nothing, treat them as disposable"*), and `lp-real-a`'s row, whose repository stays on GitHub. Let them
+   go, or dump them first?
+4. **The driver**: the control plane is on REAL GitHub, by his `.env`. Sitting 2's tiers run from a shell with `MANIFEST_SOURCE_DRIVER`
+   and every `MANIFEST_GITHUB_*` UNSET until Task 2's Step 0 makes them refuse otherwise; the Docker tier would otherwise create real
+   repositories. **Task 2's Step 6 is a real-GitHub check — his yes, with the network on.**
+5. **Optional, whenever he likes — a push he makes on github.com**: edit `README.md` in `lp-real-a`'s web editor
+   (`https://github.com/Manifest-local-dev/lp-real-a`). The platform should see it at the next read, and not at a build of `{}`. It is
+   the one real-GitHub measurement Task 1 could not make without his hands (its F17).
+6. **FE-28 to FE-32** — does any join the plan? *Recommended:* FE-30 and FE-28 as a sitting of their own after it.
+7. **The commit-author question** (§8 *Open*, new): a commit made through the API carries the person's name to GitHub.
+8. **`make refresh-vulndb` — next due after 2026-10-06** (the network on, ~1–3 minutes). This plan's sittings cross the date.
 
-```
-MANIFEST_GITHUB_API_URL=https://api.github.com
-MANIFEST_GITHUB_GIT_URL=https://github.com
-MANIFEST_GITHUB_ORG=Manifest-local-dev
-MANIFEST_GITHUB_APP_ID=5068172
-MANIFEST_GITHUB_INSTALLATION_ID=164652178
-MANIFEST_GITHUB_APP_KEY=infra/secrets/github-app.pem
-```
-
-**What a restart onto real GitHub does** (RUNBOOK *The control plane on driver 2*, `.env.example` 2a): every project CREATED makes a
-real PRIVATE repository in `Manifest-local-dev`, which nothing deletes (remove them on github.com by hand); every source operation
-needs the network; GitHub cannot reach a laptop, so there are NO webhooks — a person's push on github.com is seen at the next read
-(Re-validate, or a build); on the FREE organisation `main` is NOT protected, and the project says so in GitHub's words; never reuse a
-slug across the fake and the real App. **Every project made on driver 1 answers `409 SOURCE_PROVIDER_MISMATCH`** after the restart —
-the faculty front-end's `my-weekly-thoughts` and `notes-and-answers` included, made in ITS real-platform acceptance after the close —
-and every driver-1 demo stops at its driver check (`make demo-github` and, with the fake, the others' driver-2 runs are the ones that
-work); `pnpm test:docker` from a shell that sourced `.env` boots its control planes on driver 2. **The control plane running at the
-close (PID 63494) started BEFORE the line, on driver 1: nothing has changed until it is restarted. Read the boot line's `"source"` and
-`"github"` after any restart.**
-
-**ASK RICH IN THE FIRST MESSAGE:**
-1. **The order**: write the plan (the launch path, FE-6 and FE-25, with the additions in §8 *Decided*'s first lines), whose **Task 1
-   measures and RUNS REAL GITHUB** — and **run Task 1 in the same session, straight after writing, before his review of the rest?** The
-   front-end enablement plan's sitting 1 did exactly that at his word, and it is the quickest way to what he asked to see. Recommend yes.
-2. **The real-App settings** — he adds the six lines above to `.env`, or tells the agent to append them (never printing `.env`).
-3. **The network on, and his yes** — the run creates real private repositories in `Manifest-local-dev`. And **when to restart the
-   control plane**: ask the faculty front-end's session first (`ListAgents`) — a restart strands its driver-1 projects mid-acceptance.
-4. **Does the plan carry FE-33, FE-34 and FE-38?** (`manifest-app/docs/api-findings.md`; the front-end's session has the platform's
-   recommendations, sent at his request: FE-33 — revoking, archiving, deleting or expiring a token closes its streams, `4401`, also the
-   review's M6; FE-34 — the capable model's fallback only for an unreachable or failing provider, measured first in LiteLLM 1.98's router;
-   FE-38 — `createdAt` on `Instance` and `InstanceSummary`), and F26's test fix — **his word.**
-5. **`make refresh-vulndb` — next due after 2026-10-06** (network on; ~1–3 minutes; only Docker Desktop needs to be up).
-
-**WHAT THE NEXT PLAN INHERITS** (the front-end enablement plan's *What this plan does not build* and its *Sitting 12* deferred list —
-read both): **M4, DECIDED by Rich at the close — removing a member revokes their tokens and ends their agent sessions (§8
-*Decided*; a spec action for §10's *Agent key* row and the *DelegatedToken* rule first)**; the whole-branch review's M1 (a restore after a part-way teardown: `teardown_finished_at`), M3 (the fleet's `name`,
-`state`, `archivedAt`), M5 (a non-default capable fallback below `confidential`), M6 (a stream opened before an archive or a revoke
-stays open — the front-end's FE-33); `AI_UNMAPPED` undeclared on the session routes and `revokeToken`'s 503-after-revoke unsaid; a secret driver 1's hook
-catches answering `SOURCE_GIT_FAILED` (its F18); a crashed-at-start app probed for ~2 minutes (F13); the reference console's
-create field labelled *Name* holding the slug (F12); **and a deploy's retire pass outliving its unit test, which can deadlock the
-next test's `TRUNCATE` (F26: `api/delivery.test.ts`, 2 of 8 runs) — a red there is that trap, not the code; re-run the file.** **Every one is named, none is urgent.**
-
-**THE FRONT-END'S SESSION** (`ListAgents`; the memory *a peer may open the next sitting*): at sitting 12's close it was
-**`manifest-app-9d`** — its F4 plan's sitting 7, the real-platform acceptance — holding 7102 (its mock, pid 93237 — restarted today; it was 28239) and 7105 (its server,
-mock mode, pid 6548); **it will message before it touches 7100, and waits for Rich's yes.** A session name changes at every handover —
-`ListAgents` immediately before every promised message; **heads-up, read its delivery, THEN commit** anything in `packages/contract` or
-`packages/mock`.
-
-**WHERE A PLAN-WRITING SITTING STOPS, AND HOW IT ENDS.** The plan written, self-reviewed, committed, and put to Rich with its sittings and
-spec actions — never executed in the same session. No test tier is owed by a document. The close: the roadmap's ledger, this §7e, §3's
-map, CLAUDE.md's *State* (a plan WRITTEN), and the cleanup scripts if anything ran.
-
-**THE MACHINE, AS SITTING 12 LEFT IT — queried at its close, 12:11 on 2026-09-29, not remembered:**
-
-- the control database **EMPTY at 12:11 — 0 projects, 0 users, 0 agent sessions, 0 instances, 40 migrations** (`psql`) — the tests truncated
-  last; **since then the faculty front-end's real-platform acceptance, Rich clicking, made `my-weekly-thoughts` and `notes-and-answers` (driver
-  1) with their agent sessions** — the latter raised to `confidential` by its own building agent, which ended its sessions `models_withdrawn`
-  (§8 *Decided*'s key trim) — and the front-end fixed a 60 s model timeout its round had (`0dca1e9` in `manifest-app`);
-- **21 `mf-` containers with no rows behind them** (`make ci-acceptance`'s demos and driver 2's `frontend-github`); `make verify`'s INFO
-  `mf- containers=21 networks=7 volumes=14`;
-- **THE CONTROL PLANE RUNNING** — PID 63494 on 7100, **driver 1**, from Rich's `.env` by the git-ignored
-  `.superpowers/sdd/2026-09-27-front-end-enablement/s11a-cp-start.sh` (RUNBOOK's block plus `MANIFEST_CAPABLE_MODEL`), on `11f2526` —
-  boot line `"capableModel"`, `"agentBuilderModels":"capable"`, `"agentSessionsWithdrawn":{"ended":0,"failed":0}`;
-  **7102 and 7105 are the faculty front-end's** (its mock and its server in mock mode) — never stop them;
-- **Ollama**: `qwen3.5:4b` and `nomic-embed-text` resident, the 27B unloaded; LiteLLM 4 users; the GitHub fake absent (its container
-  removed, its volume kept); the vulnerability database built `2026-09-29T06:32:31Z`;
-- the three cleanup scripts clean after `--apply`; `make doctor` 20/0/0; `make verify` 61/0/0;
-- **not this project's**: `docker-simple-saml-saml-idp-1` RUNNING and `cwl-spike-*` / `openwebui-openwebui-1` containers, started ~11:00
-  on 2026-09-29 by another project's session — leave them.
+**THE MACHINE, AS SITTING 1 LEFT IT — queried 13:53–13:56 on 2026-09-29, not remembered:**
+- **THE CONTROL PLANE RUNNING ON REAL GITHUB** — PID 31897 on 7100, from the git-ignored
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (sitting 11a's, unchanged), boot line
+  `"source":"github","github":"api.github.com","githubOrg":"Manifest-local-dev"`. **Read the boot line after any restart.**
+- **GitHub**: `Manifest-local-dev` holds exactly **`lp-real-a`** (private; `main` at `cec7653`, a commit made through the API).
+- **The control database**:
+  - `my-weekly-thoughts` and `notes-and-answers` (driver 1 — they answer `409 SOURCE_PROVIDER_MISMATCH` on driver 2; their
+    containers still run);
+  - `lp-real-a` (driver 2, sandbox healthy at `https://lp-real-a.sandbox.manifest.internal/`, an `active` PROBE registration,
+    ticket `PROBE-T1`);
+  - `lp-real-scratch` deleted, twice;
+  - users `ins000001` (member) and **`opr000001`, an ADMINISTRATOR** (granted by sitting 1, audited).
+- **Two orphaned FAKE mirrors** in `.manifest/repos` (`frontend-github.git`, `frontend-scratch-github.git`), which the real driver
+  adopts at boot (F1 — Task 2).
+- **LiteLLM**: no probe model, fallback, key or user. The front-end's two orphaned budgets (`mf-person-02f94aa7…`,
+  `mf-platform-intake`) and one dead `my-weekly-thoughts` image were LEFT (not this sitting's).
+- **7102 and 7105 are the faculty front-end's.**
+- `make doctor` **20/0/0** and `make verify` **61/0/0** at the open. **Not this project's**: `openwebui-verify-*` and the
+  `cwl-spike-*` containers (another project's session).
 
 **Query it again at open** — `docker exec manifest-postgres psql -U manifest -d manifest_control`, `docker ps`,
 `lsof -nP -iTCP:7100 -sTCP:LISTEN` — because Rich, or the front-end's sessions, will have used it since.
+
+**THE FRONT-END'S SESSION** (`ListAgents`; the memory *a peer may open the next sitting*): **`manifest-app-9d`** at sitting 1, closing its F4
+sitting 7. It was told before the restart that the control plane is on real GitHub, and it holds FE-33, FE-34 and FE-38 *"exactly
+as manifest-8b sent them"*. **A session name changes at every handover — `ListAgents` immediately before every promised message**;
+heads-up, read its delivery, THEN commit anything in `packages/contract` or `packages/mock` (Task 4 is the first).
+
+**WHERE SITTING 2 STOPS, AND HOW IT ENDS**: the plan's *How this plan is to be executed* — the four gates twice on the final tree,
+`pnpm test:docker` (owed by `source/`, from a clean shell), the record, the sittings table, and ORIENTATION §6's sweep.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -1852,7 +1818,8 @@ Constraints*:
   repository at the same time as you** — and a SECOND REPOSITORY now depends on this one's working tree (the faculty
   front-end links `packages/contract`, and runs `packages/mock` from source) — and `superpowers:executing-plans` and `using-git-worktrees` will both push you toward a
   branch you must not make.
-- **Ask before `sudo`, and before touching anything outside the repository** — `~/Developer/manifest-app` included.
+- **Ask before `sudo`, and before touching anything outside the repository** — `~/Developer/manifest-app` and
+  `~/Developer/saml-metadata-generator` included (the latter is read-only, and dirty with changes that are not ours).
   §6 rule 2, and CLAUDE.md's *Non-negotiables* has the rest.
 
 
@@ -1890,6 +1857,12 @@ reasoning is recorded.**
   sent it"*; *waiting since*; a §26 queue row); and three the drafter found — whether a staging release's attributes are
   validated against staging's registration, whether the slug becomes immutable once staging is registered, and whether D24
   should still let a token deploy to staging and set staging secrets now that real people use staging.
+- **A COMMIT MADE THROUGH THE API CARRIES THE PERSON'S NAME TO GITHUB — FOR THE PRIVACY OFFICE, RAISED 2026-09-29** by the launch
+  path plan's sitting 1 (F2), measured on the real App: GitHub shows *"Test Instructor <…@users.manifest.internal>"* as the author of
+  each commit made through the API, Manifest as committer. At UBC that is the production organisation (UBC's own, §19), so the name
+  stays inside UBC's GitHub — but it is a flow of a person's name to a third party, and the privacy assessment's *where it flows*
+  names it (the plan's Task 11). *Options, not yet weighed:* keep the person as author (attribution, as today); author every commit
+  as Manifest, and keep the person in the platform's own record only (`madeThrough` already holds it); or a pseudonymous author.
 - **MAY `internal` DATA REACH A MODEL PROVIDER OUTSIDE CANADA? — FOR THE PRIVACY OFFICE, RAISED 2026-09-27** by Rich's
   capable-model decision (*Decided*, below): the capable model is OpenAI's for now, at `internal`, as §7's catalogue already
   allows `default-chat` to *"route off-prem"*. The platform enforces the name's `max_classification`, and `confidential` never
@@ -1975,20 +1948,25 @@ reasoning is recorded.**
 
 ### Decided
 
-- **A SESSION HOLDING A MODEL ITS PROJECT NO LONGER ALLOWS IS TRIMMED IN PLACE, NOT ENDED — the next plan** (Rich, 2026-09-29,
+- **THE LAUNCH PATH PLAN: WRITTEN, ITS TASK 1 RUN THE SAME SESSION, FE-33/FE-34/FE-38 AND F26 CARRIED** (Rich, 2026-09-29, the plan's
+  first message: *"Yes: write the plan, then run its Task 1 (including the real-GitHub run) in the same session"*; *"The network is
+  on; you have my yes to create private repositories in Manifest-local-dev"*; *"Carry FE-33, FE-34 and FE-38, and the F26 test fix, in
+  the plan."*). Done: [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md), its sitting 1's record, and
+  `spikes/launch-baseline/`. **His review of the plan, its twelve sittings and its six spec actions is still his** (§7e).
+- **A SESSION HOLDING A MODEL ITS PROJECT NO LONGER ALLOWS IS TRIMMED IN PLACE, NOT ENDED — the launch path plan's Task 7, after its Spec action 1; `/key/update` by alias MEASURED to work, refused at once (its `[M3]`)** (Rich, 2026-09-29,
   *"yes please"*, after the faculty front-end's click on `notes-and-answers`: the building agent's own commit raised the project to
   `confidential`, and FE-36's sweep ended all three live sessions `models_withdrawn` although the capable model was still allowed —
   each key held `default-chat`, `default-chat-reasoning` and `default-embed`, which confidential withdraws). The next plan: MEASURE
   first whether LiteLLM 1.98 changes a live key's `models` in place (`/key/update`) and refuses the withdrawn ones at once; then narrow
   the key and keep the session, ending it only when nothing it may still use is left. **A spec action first**: §7's *"and the sessions
   already holding more are ended"* (Spec action 10's words) changes, and the `agent_session` events say what was withdrawn.
-- **THE NEXT PLATFORM PLAN RUNS THE GITHUB DRIVER AGAINST REAL GITHUB** (Rich, 2026-09-29, after the front-end enablement plan's
+- **THE NEXT PLATFORM PLAN RUNS THE GITHUB DRIVER AGAINST REAL GITHUB — RUN 2026-09-29 AS THE LAUNCH PATH PLAN'S TASK 1, GREEN END TO END (its `[M1]`); Task 2 fixes what it found** (Rich, 2026-09-29, after the front-end enablement plan's
   close: *"add the GitHub driver run to the next plan"*). D5's driver 2 was proved against the FAKE and the fake checked against GitHub by
   the conformance run, but the control plane has never run on the real `Manifest (local dev)` App. The run: `.env.example` section 2a's
   real-App block, a project created through the platform → a real PRIVATE repository in `Manifest-local-dev`, clicked on github.com;
   network on and his yes, because it creates real repositories nothing deletes (and there are no webhooks on a laptop; `main` is not
   protected on the free organisation). **He set `MANIFEST_SOURCE_DRIVER=github` in `.env` the same day** — §7e says what that does alone.
-- **REMOVING A MEMBER REVOKES THEIR TOKENS ON THE PROJECT AND ENDS THEIR AGENT SESSIONS** (Rich, 2026-09-29, after the front-end
+- **REMOVING A MEMBER REVOKES THEIR TOKENS ON THE PROJECT AND ENDS THEIR AGENT SESSIONS — the launch path plan's Task 8, after its Spec action 2** (Rich, 2026-09-29, after the front-end
   enablement plan's close: *"YEs"* to the recommended option (a) — the path `revokeToken` already takes). Raised by that plan's
   whole-branch review (M4; its *Sitting 12* and *What this plan does not build*). **Not built**: the next platform plan builds it,
   and drafts a SPEC ACTION for the words first — §10's *Agent key* row lists when a key is revoked (its session ended, its token

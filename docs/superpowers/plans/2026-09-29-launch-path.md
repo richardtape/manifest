@@ -1,5 +1,12 @@
 # The Launch Path Implementation Plan
 
+> **SITTING 1 — TASK 1 — DONE 2026-09-29, THE SAME SESSION, AT RICH'S WORD: THE CONTROL PLANE HAS RUN ON REAL GITHUB.** A project
+> created through the platform (`lp-real-a`) is a real private repository in `Manifest-local-dev`, holding a commit made through
+> the API; it was built from its mirror and served in the sandbox; and a scratch project was deleted and its repository gone
+> from GitHub. Every measurement is in [`spikes/launch-baseline/`](../spikes/launch-baseline/README.md), and `[M<n>]` blocks
+> head Tasks 2, 6, 7, 9, 10 and 11. **No task boundary moves**, and Task 6 is Branch G. **Rich's review is next** — the plan, its
+> twelve sittings and its six spec actions (*What Rich does* 1–2).
+
 > **WRITTEN 2026-09-29, AT RICH'S INSTRUCTION, FROM ORIENTATION §7e** (*"Yes: write the plan, then run its Task 1 (including the
 > real-GitHub run) in the same session"*). **Not yet reviewed by Rich.** Its sitting 1 — Task 1, the measurements and THE FIRST
 > RUN OF THE CONTROL PLANE AGAINST REAL GITHUB — runs in the same session, before his review, exactly as the front-end enablement
@@ -59,10 +66,10 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on — and THE CONTROL PLANE ON REAL GITHUB for the first time**: a project created through the platform becomes a real private repository in `Manifest-local-dev`; a commit through the API lands on github.com; a build and a deploy come from the mirror; a scratch project is deleted and its repository is gone. Also: LiteLLM 1.98.0's `/key/update` on a live key; which provider errors a `general` fallback answers, and whether a LiteLLM hook can see the original error; an open stream after a revoke; F26's rate; `saml-metadata-generator`'s output structure; where the blueprint's code reads each attribute; the gate numbers. **Alone, and first — the same session that wrote the plan, at Rich's word** | **No** — nothing under the owing paths changes | — | ← **next** |
-| 2 | 2, 3 | **What real GitHub found**, fixed: a repository left behind by a create that failed after GitHub made it; a project made against the fake refused on the real App, and the reverse (`source_repositories.api_host`); the demos refusing real GitHub by name; `scripts/github-real-repos.sh`; RUNBOOK's real-App section written from the run. **And F26**: every retirer and build runner a test builds, drained before `resetDatabase`'s `TRUNCATE` | **Yes** — `source/` | none | |
+| 1 | 1 | **The measurements this plan rests on — and THE CONTROL PLANE ON REAL GITHUB for the first time**: a project created through the platform becomes a real private repository in `Manifest-local-dev`; a commit through the API lands on github.com; a build and a deploy come from the mirror; a scratch project is deleted and its repository is gone. Also: LiteLLM 1.98.0's `/key/update` on a live key; which provider errors a `general` fallback answers, and whether a LiteLLM hook can see the original error; an open stream after a revoke; F26's rate; `saml-metadata-generator`'s output structure; where the blueprint's code reads each attribute; the gate numbers. **Alone, and first — the same session that wrote the plan, at Rich's word** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-29**, the session that wrote the plan — the control plane on the real App end to end (create, read, commit, build, deploy, delete; `lp-real-a` kept); `/key/update` by alias narrows a live key at once; FE-33 reproduced; every provider error falls back, a `422` answers `200 null`, and a trace-id guard can be built (Branch G); UBC's metadata structure recorded; `[M]` blocks at Tasks 2, 6, 7, 9, 10, 11; **the split stands** |
+| 2 | 2, 3 | **What real GitHub found**, fixed: a repository left behind by a create that failed after GitHub made it; a project made against the fake refused on the real App, and the reverse (`source_repositories.api_host`); the demos refusing real GitHub by name; `scripts/github-real-repos.sh`; RUNBOOK's real-App section written from the run. **And F26**: every retirer and build runner a test builds, drained before `resetDatabase`'s `TRUNCATE` | **Yes** — `source/` | none | ← **next**, after Rich's review |
 | 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | |
-| 4 | 6 | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich | **Yes** — `ai/`, `infra/` | **Spec action 6** — only if the guard is built | |
+| 4 | 6 | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich | **Yes** — `ai/`, `infra/` | **Spec action 6** — needed: Task 1 measured the guard buildable (Branch G, `[M5]`) | |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** | |
@@ -766,7 +773,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
 
 **Interfaces:** Produces the facts Tasks 2–15 rely on. Consumes nothing.
 
-- [ ] **Step 0: The machine, before anything.**
+- [x] **Step 0: The machine, before anything.**
   - `./scripts/snapshot-machine.sh > "$SCRATCH/before.txt"`.
   - Read `uptime` — a load over ~10 makes every timing here suspect.
   - Query the control database: projects, users, agent sessions, instances, `source_repositories`.
@@ -775,7 +782,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
   - **No `pnpm test` and no Docker tier**: the tree is unchanged since the front-end enablement plan's close (the LEAN budget),
     so ORIENTATION §2's numbers are the baseline, cited, not re-run. *(M10.)*
 
-- [ ] **Step 1: THE CONTROL PLANE ON THE REAL APP — `[M1]`.** Rich's yes and the network are in this plan's first message. **Every
+- [x] **Step 1: THE CONTROL PLANE ON THE REAL APP — `[M1]`.** Rich's yes and the network are in this plan's first message. **Every
   call is through the platform's API**, driven one step at a time by `probes/t1-real-github.sh`, which:
   - sources `scripts/lib/api.sh`;
   - signs in as `instructor` the way `scripts/demo-authoring.sh` does;
@@ -837,7 +844,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
   (k) **After**: `t1-github-read.ts list` → predict exactly `lp-real-a`. **Record the time every call to GitHub took** (the REST
       client's 10 s timeout, `client.ts:52-74`, and git's 120 s).
 
-- [ ] **Step 2: LiteLLM 1.98.0 narrowing a live key — `[M3]`.** Against the running proxy with the master key (`ai/testing.ts`'s
+- [x] **Step 2: LiteLLM 1.98.0 narrowing a live key — `[M3]`.** Against the running proxy with the master key (`ai/testing.ts`'s
   helpers from a scratch script), as a probe user `probe-trim-person` (`/user/new`, `max_budget: 0.05`,
   `auto_create_key: false`):
   (a) `/key/generate` with `key_alias: 'probe-trim-1'`, `models: ['default-chat', 'default-embed']`, `duration: '10m'`,
@@ -859,7 +866,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
   **If (b) cannot narrow a key by any route, or (c) never refuses, Decision 23 falls** and Task 7 is re-cut with Rich before
   sitting 5.
 
-- [ ] **Step 3: An open stream after a revoke — `[M4]`.** Against the control plane of Step 1, on `lp-real-a`:
+- [x] **Step 3: An open stream after a revoke — `[M4]`.** Against the control plane of Step 1, on `lp-real-a`:
   (a) mint a token (`project:read` only, `expiresInDays` the mint route's minimum);
   (b) open `wss://console.manifest.internal/v1/projects/<id>/events` with it, using Node 24's global `WebSocket` and
       `--use-system-ca` or the platform CA;
@@ -871,7 +878,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
   and record every frame's `type` and the close code, if any. A new upgrade with the same token: predict refused (`1006`), and a
   `GET` of the same URL answers `401 UNAUTHENTICATED`. Rename the project back.
 
-- [ ] **Step 4: The fallback by the provider's error — `[M5]`.**
+- [x] **Step 4: The fallback by the provider's error — `[M5]`.**
   **(a) Which errors a `general` fallback answers.** Write `probes/t1-stub-provider.mjs`: an OpenAI-shaped HTTP stub on the host
   at `127.0.0.1:7199` (free at the plan's writing — check `lsof` first). It answers `POST /s<status>/v1/chat/completions` with
   that status and an OpenAI-shaped error body, `/ok/…` with a valid completion, and `/slow/…` after 20 s.
@@ -901,7 +908,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
   CLIENT receives: status, body `type`, and whether the fallback's answer is gone. `docker rm -f manifest-probe-litellm`.
   **If the original status is not reachable, Decision 25's guard falls, and Task 6 is its documented branch.**
 
-- [ ] **Step 5: The structure UBC IAM receives — `[M6]`.** Copy `~/Developer/saml-metadata-generator/src/utils/metadata.ts` and
+- [x] **Step 5: The structure UBC IAM receives — `[M6]`.** Copy `~/Developer/saml-metadata-generator/src/utils/metadata.ts` and
   `algorithms.ts` into `$SCRATCH/smg/` (**the repository itself is read-only**, and dirty with changes that are not ours). Mint a
   throwaway self-signed certificate with `openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=lp-sample`, keeping only
   the certificate. Run `generateMetadata` with `appName: 'lp-sample'`, `appUrl: 'https://lp-sample.manifest.internal'`, the
@@ -918,7 +925,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
   - and whether `packages/control-plane` has an XML parser as a DIRECT dependency (`grep xmldom packages/control-plane/package.json` —
     predict **none**, so Task 10's tests assert the XML with a small parse of their own, or with `xmllint` in the Docker tier).
 
-- [ ] **Step 6: Where the blueprint's code reads each attribute — `[M9]`.** Read `blueprints/node-ts-mongo/skeleton/auth/*.js`
+- [x] **Step 6: Where the blueprint's code reads each attribute — `[M9]`.** Read `blueprints/node-ts-mongo/skeleton/auth/*.js`
   and `server.js`: the bridge (`auth/attributes.js`) turns a profile into a FLAT object keyed by FRIENDLY name —
   `ubcEduCwlPuid`, `mail`, `givenName`, `sn`, `eduPersonAffiliation`, `eduPersonPrincipalName`, `uid`. Record where the skeleton
   puts that object (`req.user`? a session field?), and therefore what an app's code writes to read one (`req.user.mail`,
@@ -926,7 +933,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
   read is `<something>.<friendlyName>`, so Decision 14's search is the friendly name as a whole word, outside the files the
   blueprint owns (`auth/`), in `.js`, `.mjs`, `.ts` and `.html` files.
 
-- [ ] **Step 7: The launch records today — `[M8]`.** On `lp-real-a`:
+- [x] **Step 7: The launch records today — `[M8]`.** On `lp-real-a`:
   (a) `getLaunchRecords` (predict both `null`) and `getLaunchReadiness` — record every item's `state` and `why`;
   (b) as `instructor` (the owner), `recordIamRegistration` → predict `403 FORBIDDEN`;
   (c) as the administrator — `operator`, given the role by `scripts/admin-grant.sh` as `scripts/demo-production.sh` does (it
@@ -938,7 +945,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
   (d) restore the manifest by a second commit. **The row cannot be deleted through the API** — record that it stays, as a
       `draft`, on a probe project.
 
-- [ ] **Step 8: The numbers and the seams' predictions — `[M10]`.**
+- [x] **Step 8: The numbers and the seams' predictions — `[M10]`.**
   - Contract counts with `jq`: `info.version`, operations, schemas, `ErrorCode`'s enum length, `x-manifest-event-types`.
   - Migrations with `ls packages/control-plane/drizzle/*.sql | wc -l`.
   - **Write down, before sitting 2**:
@@ -955,7 +962,7 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
 
   A wrong prediction is a finding.
 
-- [ ] **Step 9: The record, and the machine.**
+- [x] **Step 9: The record, and the machine.**
   - Write `README.md`, and correct every task a measurement contradicts with a dated `[M<n>]` block at its head.
   - `diff` a fresh snapshot against `before.txt`: no probe container, LiteLLM probe user, key, model or fallback, and no stub
     left; `lp-real-a` present, `lp-real-scratch` absent on GitHub and in the database.
@@ -969,6 +976,16 @@ by design**: `lp-real-a` stays, so Rich can see it on github.com, and `lp-real-s
 
 ---
 ## Task 2: What real GitHub found — a repository never left behind, a project never pointed at the wrong GitHub, and the demos honest about which GitHub they need
+
+> **`[M1]` (Task 1, 2026-09-29 — `spikes/launch-baseline/`, F1, F3, F4): the real run was green end to end, and adds two
+> items to this task.** (1) **The real App's driver adopts the FAKE's orphaned mirrors**: the boot's `prepare` rewrote
+> `frontend-github.git` and `frontend-scratch-github.git` (`manifest.webUrl` `http://127.0.0.1:7110/…`, no row) as its own.
+> `api_host` (Step 3) covers a project with a row. For a mirror with NONE, `prepare` skips a mirror whose `manifest.webUrl` host
+> is not the running `MANIFEST_GITHUB_GIT_URL`'s, and `scripts/dead-app-resources.sh` names orphan mirrors. Add a test: *a
+> mirror of another GitHub is left alone at boot*. (2) **`scripts/lib/api.sh`'s `api` sends `content-type: application/json`
+> with no body**, so a bodyless `DELETE` through it is `400 REQUEST_INVALID` — `content-type` only with a body, and a line in
+> TRAPS.md. And `.env.example:78`'s *"nothing deletes"* is measured wrong (Step 7 already corrects it). The real run's timings
+> for RUNBOOK: token mints 313–448 ms, REST reads 350–1101 ms, a create 8–9 s, a commit 5 s, a delete 1 s.
 
 **The list below is PREDICTED from *Read this first* 13–16. Task 1's `[M1]` block, written at the head of this task, adds what
 the run actually found and removes anything it disproved.** Every test here runs against the in-process fake (`source/github/
@@ -1253,6 +1270,21 @@ control's baseline**: a drain that works reads 0 of 8.
 
 ## Task 6: FE-34 — the capable model's fallback answers a provider that failed, and not a request the provider refused
 
+> **`[M5]` (Task 1, 2026-09-29 — F7–F10): THIS TASK IS BRANCH G, and Spec action 6's option (a) is needed before sitting
+> 4.** Measured on LiteLLM 1.98.0:
+> - **Every provider error falls back** — `400`, `401`, `403`, `404`, `408`, `429`, `5xx`, a timeout and a refused
+>   connection each answered `200` by `ollama_chat/qwen3.5:4b` with `x-litellm-attempted-fallbacks: 1`.
+> - **The hook runs on the fallback's call with `fallback_depth: 1`**, and the failed call's `exception_type` is in
+>   `metadata.previous_models` — **a ROUTER-WIDE list of at most four entries, shared across requests**.
+> - **The guard picks ITS OWN entry by `litellm_trace_id`**, and ALLOWS the fallback when it finds none (evicted under load).
+>   The probe's `t1-probe_hook.py` is the working shape.
+> - With it, a `400` primary reached the client as `400` — the provider's message, with LiteLLM's fallback debug text appended —
+>   and a `503` still fell back. **Assert the status and the error's `type`, never the whole message.**
+> - **NEW (F8): a provider's `422` reaches the client as HTTP `200` with a body of literal `null`**, no fallback header, and
+>   the stub was called twice. Step 1's Docker test adds the `422` case and **predicts it red** under the guard too. If the guard
+>   does not change it (LiteLLM answers before any fallback), the case is recorded as LiteLLM's, raised with Rich beside
+>   Branch D's options, and the guides say a `200` with a `null` body is a refusal.
+
 **`[M5]` decides which branch this task is.** *Branch G* is built if Task 1 measured that a hook on the fallback deployment's
 call can see the original error's status, and that raising there reaches the client as the original refusal. *Branch D* is the
 documented answer if it cannot. **Spec action 6 is needed before Branch G** (the words *"whenever its provider fails"* gain
@@ -1301,6 +1333,12 @@ sits beside.
 
 ---
 ## Task 7: A session whose project no longer allows one of its models is narrowed in place
+
+> **`[M3]` (Task 1, 2026-09-29 — F5): `/key/update { key_alias, models }` narrows a live key by its ALIAS alone (`200`), and
+> the same key's next call to the withdrawn model is refused 20 ms later — `403 key_model_access_denied`, *"This key can only
+> access models=[…]"* — while the kept model answers `200`.** So `narrowAgentKey` is one `POST /key/update` with the alias
+> `mf-agent-<sessionId>`; no `/key/list`, no hashed token and no cache window. The Docker case's refusal is `403
+> key_model_access_denied`, asserted by its `type`. `fakeLiteLlm` records `/key/update` only.
 
 **Spec action 1 first.** **`[M3]` decides the mechanism**: `/key/update` by alias, or by the hashed token read from `/key/list`.
 It also decides whether *"at once"* holds or a cache delay must be named. If `[M3]` found no route that narrows a live key and
@@ -1435,6 +1473,16 @@ refuses the withdrawn model, this task does not start — Decision 23, and Rich 
 ---
 ## Task 9: The three clocks' records — the staging registration, "I've sent it", and *waiting since*
 
+> **`[M8]` (Task 1, 2026-09-29 — F13, F14, F15):**
+> - **A draft recorded by an administrator FAILED the next SANDBOX build** (`SPEC_ATTRIBUTE_NOT_REGISTERED`, naming the four
+>   attributes the draft did not list), and the same build succeeded once the record was `active` with all five — *Read this
+>   first* 7, measured with its positive control.
+> - **The build check's tests are in `releases/build-attributes.test.ts`**: Step 1's first two tests go THERE, not in
+>   `build.test.ts`.
+> - **An owner refused `launch:record` is told *"Ask a project owner to grant you the role this action needs"***. Step 3 gives a
+>   platform-administrator-only capability (`launch:record`, and `release:approve` — check its hint too) a refusal hint that
+>   names an administrator. Add *an owner refused launch:record is told an administrator records it*.
+
 **Spec action 3 first.** This task builds the records and the owner's submission. The DRAFT an owner submits is Task 10's and
 Task 11's, so this task's tests write a row's package directly (`launch/testing.ts`'s new `withDraft(db, …)`). **Until Task 10
 lands, the submission routes have no client that can meet their precondition** — they are `DELIBERATELY_UNCALLED` naming Task 13.
@@ -1460,7 +1508,7 @@ lands, the submission routes have no client that can meet their precondition** �
   `privacy_assessment.submitted`
 - Modify: `packages/console/src/screens/tokens.tsx` (`everyCapability`), `packages/console/src/coverage.test.ts`
   (`DELIBERATELY_UNCALLED`, naming Task 13)
-- Test: `src/launch/records.test.ts`, `src/launch/readiness.test.ts`, `src/api/launch.test.ts`, `src/releases/build.test.ts`,
+- Test: `src/launch/records.test.ts`, `src/launch/readiness.test.ts`, `src/api/launch.test.ts`, `src/releases/build-attributes.test.ts` (`[M8]`),
   `src/projects/person-only.test.ts`, `src/api/authz-contract.ts`
 
 **Interfaces:**
@@ -1486,7 +1534,7 @@ lands, the submission routes have no client that can meet their precondition** �
 
 - [ ] **Step 1: The failing tests.**
   ```ts
-  // releases/build.test.ts — Review Focus 1
+  // releases/build-attributes.test.ts — Review Focus 1 (`[M8]`: where the build check's tests live)
   it('a draft never fails a build, and a registered production row still does', async () => {
     await withDraft(db, { projectId, environment: 'production', attributes: ['ubcEduCwlPuid'] })
     await commitManifest(ctx, { auth: { provider: 'cwl', attributes: ['ubcEduCwlPuid', 'mail'] } })
@@ -1514,7 +1562,7 @@ lands, the submission routes have no client that can meet their precondition** �
   it('refuses a second submission of a submitted record — LAUNCH_TRANSITION_INVALID', …)
   ```
 - [ ] **Step 2: Run — predict red.** Then **`pnpm exec vitest run --project unit src/launch/ src/api/launch.test.ts
-  src/releases/build.test.ts` alone** — predict ONLY the new tests red. P6a's and P6b's record tests are what hold the
+  src/releases/build-attributes.test.ts` alone** — predict ONLY the new tests red. P6a's and P6b's record tests are what hold the
   administrator's path.
 - [ ] **Step 3: Implement.**
   - **The migration** — `db:generate --custom`, written by hand, read back with `\d iam_registrations` — then applied.
@@ -1550,6 +1598,23 @@ lands, the submission routes have no client that can meet their precondition** �
 ---
 
 ## Task 10: D19's registration package — UBC's structure, Manifest's values, a justification for every attribute
+
+> **`[M6]` and `[M9]` (Task 1, 2026-09-29 — F11, F12).** **The structure** is `spikes/launch-baseline/probes/ubc-structure.xml`,
+> the tool's own output. Copy it into the test's fixture directory as `UBC_STRUCTURE_ORDER`'s source.
+> - **Keep**: the `md`, `ds` and `alg` namespaces; the top `md:Extensions` with the tool's default lists (sha256, sha384, sha512;
+>   rsa-sha256/384/512 and ecdsa-sha256); both `KeyDescriptor`s — `ds:KeyName` is the hostname, `X509SubjectName` is the
+>   certificate's own subject, and the encryption descriptor carries aes128-gcm, aes256-gcm and aes256-cbc; `Organization`;
+>   `ContactPerson technical`.
+> - **Change**: `protocolSupportEnumeration` is SAML 2.0 alone; ONE `SingleLogoutService` (HTTP-Redirect, the app's
+>   `auth.logout`) and ONE `AssertionConsumerService` (HTTP-POST, the app's `auth.callback`, index 1, `isDefault="true"`); a
+>   second `ContactPerson contactType="support"` for the platform's contacts.
+> - **Drop**: `init:RequestInitiator` and `ManageNameIDService` (Shibboleth daemon paths).
+> - **No `NameIDFormat`**, as the tool writes none.
+>
+> **The tool's `entityID` is the app URL and its `ID` is random — ours are §9's derived id and a hash.** **The search**
+> (Decision 14) reads `.js`, `.mjs`, `.ts` and `.html`, the served `public/` included: the proof app reads `mail` only in
+> BROWSER code (`public/app.js:25`, `me.attributes?.mail`). A read found only under `public/` justifies the attribute as *"shown
+> to the person in the browser"*. The skeleton exposes `req.user.user.<name>`.
 
 **Spec action 4 first.** **`[M6]`** gives the XML's structure, and **`[M9]`** the names the search looks for.
 
@@ -1688,6 +1753,12 @@ lands, the submission routes have no client that can meet their precondition** �
 ---
 
 ## Task 11: D19's privacy-assessment draft — §9's six rows, what Manifest knows and what the owner must add
+
+> **`[M1]` (Task 1, 2026-09-29 — F2): on driver 2, GitHub shows the PERSON as the author of every commit made through the
+> API** (*"Test Instructor <…@users.manifest.internal>"*). So the **flows** section gains a fact whenever the project's
+> repository is on GitHub: *"The names of the people who change the app through Manifest are sent to GitHub (<organisation>),
+> as the author of each change."* — source `the project's repository`. On driver 1 there is no such fact. Add it to Step 1's
+> flows test.
 
 **Spec action 4 first** (its §9 half).
 
@@ -2197,3 +2268,85 @@ deliberately**: §26's domain, audience and override rows (no entity), and D20's
 **The findings count for each sitting is derived at its close, never recalled**:
 `awk '/^### Sitting N —/,/^### Sitting N+1 —/' docs/superpowers/plans/2026-09-29-launch-path.md | grep -cE '^[[:space:]]*([0-9]+\. )?\*\*F[0-9]+ '`
 — and it goes to the roadmap's defect-rate table, and nowhere else.
+
+### Sitting 1 — 2026-09-29: Task 1, the measurements — and the control plane's first run on real GitHub
+
+**Run in the session that wrote the plan, at Rich's word** (*"write the plan, then run its Task 1 (including the real-GitHub run)
+in the same session"*; *"you have my yes to create private repositories in Manifest-local-dev"*). Inline
+(`superpowers:executing-plans`), on `main`. The faculty front-end's session (`manifest-app-9d`, its F4 sitting 7, closing) was
+told before the restart. It had cleared 7100 at 13:18 (*"restart whenever you're ready"*), holds FE-33, FE-34 and FE-38 *"exactly
+as manifest-8b sent them"*, has no new FE-n, and left its two driver-1 projects to Rich's word (*"If you hear nothing, treat them
+as disposable"*).
+
+**What it made true**:
+- **The control plane has run on the real App.** It stopped on driver 1 (PID 63494) and started on real GitHub from Rich's
+  `.env` (PID 31897).
+- **`lp-real-a`**, created through the platform, is a private repository in `Manifest-local-dev` holding a commit made through
+  the API. It was built from its mirror and is served in the sandbox.
+- **A scratch project was deleted, and its repository is gone from GitHub** — twice, the slug taken again between.
+
+And every premise the plan's additions rest on was measured. Commits: `0904ad5` (the plan) and the close-out.
+
+**Findings** (each with the measurement that found it; the README has the raw answers):
+
+1. **F1 The real App's driver adopts the FAKE's orphaned mirrors.** The boot's `sourceRepositoriesPrepared: 2` is
+   `frontend-github.git` and `frontend-scratch-github.git` (fake `webUrl`s, no rows). Nothing tells a fake-made repository from a
+   real one. → Task 2's `[M1]`.
+2. **F2 GitHub shows the PERSON as the author of each commit made through the API** (*"Test Instructor <…@users.manifest.internal>"*).
+   → Task 11's `[M1]`, a *where it flows* fact.
+3. **F3 `.env.example:78`'s *"nothing deletes"* is wrong**, measured live. → Task 2 Step 7.
+4. **F4 `scripts/lib/api.sh`'s `api` cannot send a bodyless `DELETE`** — it always sends `content-type: application/json` (`400
+   REQUEST_INVALID`). → Task 2's `[M1]`.
+5. **F5 `/key/update` by ALIAS narrows a live key, and the withdrawn model is refused 20 ms later.** Decision 23 holds, simpler
+   than planned. → Task 7's `[M3]`.
+6. **F6 FE-33 reproduced**: a revoked token's socket open for 30 s, receiving `project.renamed`.
+7. **F7 Every provider error falls back** — `400` through `503`, a timeout and a refused connection.
+8. **F8 A provider's `422` reaches the client as HTTP `200` with a `null` body**, with no fallback header, the stub called twice. →
+   Task 6's `[M5]`.
+9. **F9 LiteLLM's `previous_models` is router-wide and shared across requests; `litellm_trace_id` ties an entry to its request.**
+10. **F10 A trace-id guard in a LiteLLM callback turns a `400`'s fallback back into the `400`**, and leaves a `503`'s. **Task 6 is
+    Branch G.**
+11. **F11 `saml-metadata-generator`'s `entityID` is the app URL, its `ID` random, and its endpoints the Shibboleth daemon's**; the
+    structure is recorded as `probes/ubc-structure.xml`. → Task 10's `[M6]`.
+12. **F12 An app can read an attribute only in its browser code** (the proof app's `mail`, `public/app.js:25`). → Task 10's `[M9]`.
+13. **F13 An owner refused `launch:record` is told *"Ask a project owner to grant you the role"*.** → Task 9's `[M8]`.
+14. **F14 An administrator's DRAFT registration failed the next SANDBOX build** (`SPEC_ATTRIBUTE_NOT_REGISTERED`); `active` with all
+    five built. *Read this first* 7, measured with its positive control.
+15. **F15 The build check's tests are `releases/build-attributes.test.ts`**, not `build.test.ts`. → Task 9's `[M8]`.
+16. **F16 Four defects in the probes themselves**, each caught by reading the answer: an empty starter ending `set -e` silently, a
+    `content-type` on a bodyless `DELETE` (F4's cause), a top-level `return` in `node -e`, and one script's unexplained
+    `REQUEST_INVALID`s (replaced by plain `curl`). None reached a record.
+17. **F17 Step 1(h) — a push on github.com the platform did not make — was NOT measured**: it is Rich's hands, and it was asked at
+    the close.
+
+**Rulings** (the ledger's):
+- **Task 1 inline**, because the real-GitHub calls rest on Rich's yes in this conversation.
+- **The probes import the control plane's BUILT `dist/`**: Node's strip-only mode refuses `src/`'s parameter properties, and
+  `dist/` is `c5f1493`'s, identical to `src/` at `0904ad5`.
+- **The cleanup scripts' two orphaned LiteLLM budgets and one dead image were left**. They are the faculty front-end's, made before
+  this sitting opened, and deleting a budget resets someone's month.
+- **`lp-real-a` keeps an `active` probe registration (`PROBE-T1`), and `operator` stays an administrator** — until the next
+  Vitest run truncates both.
+
+**Gates**: no code changed, so none is owed (the LEAN budget). `make doctor` **20/0/0** and `make verify` **61/0/0** at the open;
+`pnpm test` **2826 in 180** and `pnpm test:docker` **248 in 41** stand from `11f2526`, not re-run. Contract **`1.4.0`**, 66
+operations, 128 codes, 46 event types; **40 migrations**.
+
+**The machine at the close** (queried at 13:53–13:56, 2026-09-29, not remembered):
+- **THE CONTROL PLANE RUNNING ON REAL GITHUB** — PID 31897 on 7100, from `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (git-ignored; sitting 11a's, unchanged), boot line
+  `"source":"github","github":"api.github.com","githubOrg":"Manifest-local-dev"`. **The front-end's `my-weekly-thoughts` and
+  `notes-and-answers` answer `409 SOURCE_PROVIDER_MISMATCH` until a restart on driver 1**, and their containers still run.
+- The control database:
+  - `my-weekly-thoughts`, `notes-and-answers` and `lp-real-a` active; `lp-real-scratch` deleted, twice;
+  - users `ins000001` (member) and `opr000001` (**admin**, granted by this sitting, audited).
+- **GitHub**: `Manifest-local-dev` holds exactly `lp-real-a` (private; `main` at `cec7653`).
+- **`lp-real-a`'s sandbox** is healthy at `https://lp-real-a.sandbox.manifest.internal/` (`mf-lp-real-a-sandbox-*`).
+- 7102 and 7105 are the faculty front-end's.
+- **No probe container, stub, LiteLLM probe model, fallback, key or user** is left (LiteLLM: 0 named `probe`).
+- Load 6–7.
+
+**The four shared HTML pages, checked, and unchanged**:
+- `manifest-phases.html`'s *"an app's code can live on (practice) GitHub"* and `manifest-schematic.html`'s status still describe what
+  is BUILT — this sitting ran a measurement, not a feature;
+- no spec action was applied, so `manifest-decisions.html` does not move;
+- `manifest-stories.html` names no GitHub or hostname rule this sitting touched.

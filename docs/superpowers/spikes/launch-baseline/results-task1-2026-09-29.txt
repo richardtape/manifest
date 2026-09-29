@@ -1,0 +1,143 @@
+# Task 1 of the launch path plan — every command's answer, 2026-09-29 (America/Vancouver), macOS 26 (Darwin 25.6.0),
+# Node 24.12.0, the control plane at 0904ad5 (src unchanged since c5f1493), LiteLLM 1.98.0 (images.lock:9).
+# Nothing here holds a key, a token, a cookie or a JWT: every probe prints names, booleans, shas and statuses.
+
+## Step 0 — the machine (13:31)
+uptime: load averages 5.20 5.33 5.32
+7100 node 63494 (driver 1, started 12:09:32); 7102 node 93237 (the front-end's mock); 7105 node 10795 (the front-end's server)
+control DB: projects 2 (my-weekly-thoughts, notes-and-answers — both source 'local'), users 1, agent_sessions 11, instances 4,
+            source_repositories 2, iam_registrations 0
+make doctor: 20 checks, 0 failed, 0 warnings
+make verify: 61 checks, 0 failed, 0 warnings
+pnpm test / pnpm test:docker: NOT RUN — the tree is unchanged since 11f2526 (the LEAN budget); ORIENTATION §2's 2826/180 and 248/41 stand
+
+## Step 1(a) — before (13:33)
+curl https://api.github.com/zen → 200 in 0.22 s
+t1-github-read.ts list:
+  mint (installation, metadata:read): 201 in 377 ms
+  list: 200 in 372 ms, total_count=0
+
+## Step 1(b) — the restart (13:36)
+stopped PID 63494 (node dist/index.js, started Tue 29 Sep 12:09:32 2026); started cp-start.sh (sitting 11a's, unchanged) → PID 31897
+boot line (grep): "driver":"docker" "source":"github" "github":"api.github.com" "githubOrg":"Manifest-local-dev"
+  "capableModel":"unchanged" "capableFallback":"unchanged" "agentBuilderModels":"capable" "sourceRepositoriesPrepared":2
+  "routesRestored":3 "agentSessionsWithdrawn":{"ended":0,"failed":0} "msg":"control plane ready"
+grep -c 'ghs_\|BEGIN\|sk-' on the log → 0
+sourceRepositoriesPrepared 2 = two MIRRORS in .manifest/repos with no row: frontend-github.git and frontend-scratch-github.git,
+  manifest.webUrl http://127.0.0.1:7110/manifest-apps/… — the FAKE's, left by the front-end enablement plan's demo-frontend on
+  driver 2; the real App's driver rewrote their refusing hooks as its own. The driver-1 repositories' hooks untouched (mtimes 12:15, 12:28).
+
+## Step 1(c) — the front-end's two projects on driver 2
+my-weekly-thoughts tree: {"error":{"code":"SOURCE_PROVIDER_MISMATCH","message":"my-weekly-thoughts's repository was made by the local driver, and this control plane runs the github driver; restart it on the local driver to work on this project"}} [409]
+notes-and-answers tree: {"error":{"code":"SOURCE_PROVIDER_MISMATCH","message":"notes-and-answers's repository was made by the local driver, and this control plane runs the github driver; restart it on the local driver to work on this project"}} [409]
+
+## Step 1(d) — lp-real-a, created through the platform (13:37)
+createProject lp-real-a: 8 s
+ id 4ea15bd4-7b2a-4637-b1af-d6bff72b6a1e; repository: provider github, fullName Manifest-local-dev/lp-real-a,
+ webUrl https://github.com/Manifest-local-dev/lp-real-a, mainProtected false,
+ protectionDetail "Upgrade to GitHub Pro or make this repository public to enable this feature.", visibility private
+t1-github-read.ts repo lp-real-a:
+  mint (lp-real-a): 201 in 448 ms
+  GET → 200 in 570 ms; private=true visibility=private default_branch=main
+  main: 200 sha=3c238757de75fbde5b5004fa1fa8945cbb48c209 message="chore: seed from blueprint skeleton"
+  author=Manifest <manifest@manifest.internal> committer=Manifest <manifest@manifest.internal>
+  protection GET: 403 Resource not accessible by integration   (the PROBE's contents:read token — not the driver's)
+event replay: project.created · repository.seeded ("…created with 12 files") · spec.validated ·
+  repository.protection_unavailable ("Manifest-local-dev/lp-real-a's main is NOT protected: GitHub would not protect it (see the project's repository), so a person can force-push or delete it on GitHub.") · manifest.stream.ready
+
+## Step 1(e) — reads through the platform (each a sync, the contents:read token)
+getTree: 1 s — commit 3c238757… 15 entries
+getFile manifest.yaml: 1 s — 3062 chars at 3c238757…
+listCommits: 1 s — 1 commit: 3c23875 "chore: seed from blueprint skeleton" by Manifest madeThrough=null
+
+## Step 1(f) — a commit through the authoring API
+createCommit: 5 s → commitSha cec76535c8fc7a28a33e28468656b17164f08749, parent 3c23875…, docs/made-by-manifest.md added;
+  spec valid (warning SPEC_FIELD_NOT_ENFORCED ai.budget.per_user_monthly_usd — the starter's, expected)
+GitHub: main: 200 sha=cec76535c8fc7a28a33e28468656b17164f08749 message="docs: made through Manifest, on real GitHub"
+  author=Test Instructor <02f94aa7-b7ca-4779-8ed1-8b1bf1ed0345@users.manifest.internal> committer=Manifest <manifest@manifest.internal>
+  commits: 2 — cec7653 | 3c23875
+
+## Step 1(g) — build and deploy from the mirror
+startBuild {}: build 81918828-1e80-4a24-863a-a02558b261ef, commit cec76535… → succeeded in 19 s; release 64fdd82b-9342-4252-a9f5-4767bbba51df
+deploy sandbox: 9 s — instance 8e92836b-436f-4687-92a9-e735dbdcd06b healthy
+GET https://lp-real-a.sandbox.manifest.internal/ → 200; body "<!doctype html> … <title>Manifest proof app</title>" — the app's own page, not the wildcard
+(the mirror keeps no FETCH_HEAD, so whether the build fetched is not read that way)
+
+## Step 1(h) — a push the platform did not make: NOT MEASURED in the sitting (Rich's hands; asked at the close)
+
+## Step 1(j) — delete, for real
+(the probe's first create had a bug — an empty starter ended `set -e` silently — and created nothing; fixed; its first two
+ deletes were refused REQUEST_INVALID because the probe sent content-type: application/json on a BODYLESS DELETE — the
+ platform's documented behaviour (P5b); sent bare after)
+createProject lp-real-scratch: 9 s (id 60b7c094-…); GitHub GET → 200, private; mirror present
+step-up; DELETE /v1/projects/60b7c094-… → 200 {"state":"deleted","deletedAt":"2026-09-29T20:40:18.984Z"} in 1 s; mirror gone
+GitHub after: scoped mint 422 "There is at least one repository that does not exist or is not accessible to the parent installation."; GET → 404 Not Found
+createProject lp-real-scratch AGAIN: 9 s (id e2a070a5-…) → 201; GitHub GET → 200 — the slug and GitHub's name both free
+step-up; DELETE → 200 state deleted (20:40:42Z); mirror gone
+
+## Step 1(k) — after
+t1-github-read.ts list: total_count=1 — lp-real-a private=true visibility=private created=2026-09-29T20:37:02Z
+control DB: my-weekly-thoughts active, notes-and-answers active, lp-real-a active, lp-real-scratch deleted ×2
+GitHub timings: token mint 313–448 ms; REST GETs 350–1101 ms; create 8–9 s end to end; commit 5 s; delete 1 s
+
+## Step 2 — LiteLLM 1.98.0 narrowing a live key (probes/t1-key-update.mjs, 13:41)
+(the key_update body is LiteLLM's own answer with every token field replaced by a placeholder)
+## (a) a user and a key holding default-chat and default-embed
+{"userNew":200}
+{"keyGenerate":200,"models":["default-chat","default-embed"],"alias":"probe-trim-1"}
+{"chat":{"status":200,"ms":324,"message":"","model":"default-chat"}}
+{"embed":{"status":200,"ms":598,"message":"","model":"default-embed"}}
+## (b) /key/update by ALIAS alone
+{"keyUpdateByAlias":200,"body":{"key":"<hashed or plain token>","token":"<hashed or plain token>","key_name":"<a key>","key_alias":"probe-trim-1","soft_budget_cooldown":false,"spend":0,"expires":"2026-09-29T20:51:50.465000+00:00","models":["default-embed"],"aliases":{},"config":{},"router_settings":{},"user_id":"probe-trim-person","team_id":null,"agent_id":null,"project_id":null,"permissions":{},"max_parallel_requests":null,"metadata":{},"blocked":null,"tpm_limit":null,"rpm_limit":null,"max_budget":0.01,"budget_duration":null,"budget_reset_at":null,"allowed_cache_controls":[],"allowed_routes":["/v1/chat/completions","/v1/embeddings","/v1/models"],"key_type":"default","policies":[],"access_group_ids":[],"model_spend":{},"model_max_budget":{},"budget_fallbacks":{},"budget_id":null,"organization_id":null,"object_permission_id":null,"created_at":"2026-09-29T20:41:50.468000+00:00","created_by":"default_user_id","updated_at":"2026-09-29T20:41:51.433000+00:00","updated_by":"default_user_id","settings_updated_at":"2026-09-29T20:41:51.432000+00:00","last_active":null,"rotation_count":0,"auto_rotate":false,"rotation_interval":null,"last_rotation_at":null,"key_rotation_at":null,"budget_limits":null,"litellm_budget_table":null,"litellm_organization_table":null,"litellm_project_table":null,"object_permission":null,"jwt_key_mappings":null}}
+## (c) at once — a chat through the SAME key (default-chat withdrawn)
+{"msAfterUpdate":20,"chat":{"status":403,"ms":20,"type":"key_model_access_denied","code":"403","message":"key not allowed to access model. This key can only access models=['default-embed']. Tried to access default-chat"}}
+## (d) the model it kept
+{"embed":{"status":200,"ms":41,"message":"","model":"default-embed"}}
+## (e) what /key/list says of the key now
+{"keyListAfter":200,"models":["default-embed"]}
+## (f) cleanup
+{"keyDelete":200}
+{"userDelete":200}
+
+## Step 3 — an open stream after a revoke (probes/t1-stream-revoke.mjs, 13:42, on lp-real-a)
+{"mint":201,"tokenId":"5329b9ec-c787-4280-8045-b23eec0b5c02"}
+{"openedWith":"the token","replayAndReady":16}
+{"revoke":200,"revokedAt":"2026-09-29T20:42:19.479Z"}
+{"rename":200}
+{"after30s":{"open":true,"closed":null,"framesAfterRevoke":["project.renamed"]}}
+{"newUpgradeWithRevokedToken":{"opened":false,"code":1006}}
+{"getWithRevokedToken":401,"code":"UNAUTHENTICATED"}
+{"renameBack":200}
+
+## Step 4(a) — which provider errors a general fallback answers (probes/t1-stub-provider.mjs + t1-fallback-classes.mjs; the second run — the first crashed parsing the 422 case's null body after 400–408, and cleaned up)
+{"keyGenerate":200}
+{"case":"400","status":200,"ms":194,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"401","status":200,"ms":161,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"403","status":200,"ms":159,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"404","status":200,"ms":161,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"408","status":200,"ms":168,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"422","status":200,"ms":19,"attemptedFallbacks":null,"attemptedRetries":null,"model":null,"bodyWasNull":true,"errorType":null,"errorCode":null,"message":""}
+{"case":"429","status":200,"ms":169,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"500","status":200,"ms":167,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"502","status":200,"ms":178,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"503","status":200,"ms":173,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"slow","status":200,"ms":5222,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"refused","status":200,"ms":193,"attemptedFallbacks":"1","attemptedRetries":"0","model":"ollama_chat/qwen3.5:4b","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"case":"ok","status":200,"ms":17,"attemptedFallbacks":"0","attemptedRetries":"0","model":"probe-fb-ok","bodyWasNull":false,"errorType":null,"errorCode":null,"message":""}
+{"keyDelete":200,"userDelete":200}
+--- the stub's own log for that run: every status once, 422 TWICE, /ok once
+
+## Step 4(b) — a hook in a probe LiteLLM (the same pinned image, 127.0.0.1:7197, no database; probes/t1-probe-litellm.yaml + t1-probe_hook.py)
+observe mode, two requests (probe-primary → stub 400; probe-primary-503 → stub 503), each falling back to probe-fallback:
+  first call:  fallback_depth None, previous_exception_types []
+  fallback:    fallback_depth 1,    previous_exception_types ['BadRequestError']
+  first call:  fallback_depth None, previous_exception_types []
+  fallback:    fallback_depth 1,    previous_exception_types ['BadRequestError', 'ServiceUnavailableError']   ← the ROUTER-WIDE list (≤4, log_retry), not this request's
+  with trace ids: each entry carries litellm_trace_id; the fallback call's own trace id picks ITS entry — 'mine' = ['BadRequestError'] for the 400, ['ServiceUnavailableError'] for the 503
+  previous entry keys: exception_string exception_type litellm_call_id litellm_logging_obj litellm_trace_id max_tokens metadata model proxy_server_request secret_fields shared_session stream
+guard mode (PROBE_GUARD=1: refuse a fallback whose OWN previous error is a client error):
+  probe-primary      → HTTP/1.1 400 Bad Request, {"error":{"message":"litellm.BadRequestError: OpenAIException - the stub refused this request with 400. Received Model Group=probe-primary
+Available Model Group Fallbacks=['probe-fallback']
+Error doing the fallback: litellm.BadRequestError: the provider refused the request as malformed (probe guard)…
+  probe-primary-503  → HTTP/1.1 200 OK, x-litellm-model-group: probe-fallback, x-litellm-attempted-fallbacks: 1
+cleanup: probe container removed; stub stopped; 7197–7199 free; the platform LiteLLM: 0 models and 0 users named probe

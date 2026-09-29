@@ -2295,3 +2295,35 @@ ticked, and the token was minted WITHOUT them (the DOM changed; React's state di
 refusal page with `SAML_LOGIN_NOT_BOUND` (*"the sign-in was not started by this browser"*). The platform is right; the page's hint
 (*"Start again at /auth/login"*) is wrong for a step-up — open `/auth/step-up?returnTo=…` again. And once stepped up, the WINDOW is
 also ten minutes: stage everything that needs it (a scratch project to delete, the member to add) BEFORE asking for the password.
+
+### The launch path plan (2026-09-29)
+
+**`scripts/lib/api.sh`'s `api DELETE …` IS REFUSED `400 REQUEST_INVALID`** (the launch path plan's sitting 1, F4). `api` sends
+`content-type: application/json` on every call, and the platform refuses a BODYLESS request so marked (P5b's rule — the platform
+is right). A demo that deletes through `api` never deletes: send the `DELETE` with `curl` and no `content-type` (as the
+TypeScript client does), until Task 2 makes `api` send the header only with a body.
+
+**NODE'S STRIP-ONLY TYPESCRIPT CANNOT IMPORT MOST OF THE CONTROL PLANE'S `src/`** (sitting 1). A probe importing
+`source/github/client.ts` reached `secrets/envelope.ts`'s parameter property (`constructor(readonly code: string, …)`) and died with
+`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`, even through `packages/github-fake/resolve-ts.mjs`. **Import the BUILT `packages/control-plane/dist/`**
+(current when `src/` has not changed since the control plane last started — `git log -1 -- packages/control-plane/src`), and give the
+process `MANIFEST_DATABASE_URL`: `dist/db/client.js` throws at import without it, although nothing connects.
+
+**LITELLM 1.98.0 ANSWERS A PROVIDER'S `422` WITH HTTP `200` AND A BODY OF LITERAL `null`** (sitting 1, F8). A stub provider
+answering `422` was called twice, and the client got `200`, `null`, no `x-litellm-attempted-fallbacks` header, in 19 ms. Every
+other error status fell back (F7). **A `200` is not an answer until its body is**: read `choices`, never the status alone.
+
+**LITELLM'S `metadata.previous_models` IS THE ROUTER'S, SHARED ACROSS REQUESTS** (sitting 1, F9). A callback on a fallback's call
+sees up to four recent failures from ANY request; the second request's hook saw the first request's `BadRequestError`. **Pick your
+own entry by `litellm_trace_id`**, which the fallback call and its failed first call share — and treat *"no entry of my own"* as
+unknown (it can be evicted under load).
+
+**ON THE REAL APP, GITHUB SHOWS THE PERSON AS EACH API COMMIT'S AUTHOR** (sitting 1, F2): *"Test Instructor
+<02f94aa7-…@users.manifest.internal>"*, with `Manifest <manifest@manifest.internal>` as committer. A person's display name leaves
+the platform with every commit made through the API.
+
+**A VITEST RUN TRUNCATES A REAL-GITHUB PROJECT'S ROW AND LEAVES ITS REPOSITORY** (sitting 1). `lp-real-a` lives on github.com
+whatever the database says; after `pnpm test` it is a repository no project owns. `scripts/github-real-repos.sh` (the launch path
+plan's Task 2) lists them against their rows. And while `.env` carries the real-App lines, **run the test tiers from a shell with
+`MANIFEST_SOURCE_DRIVER` and every `MANIFEST_GITHUB_*` unset** — a Docker tier booted from a shell that sourced `.env` would create
+repositories on the real App (Task 2's Step 0 makes the tiers refuse it).
