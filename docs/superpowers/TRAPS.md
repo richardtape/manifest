@@ -2224,3 +2224,15 @@ event, which is what React listens for.
 and a list, a form or a refusal inside it made React log `In HTML, <ul> cannot be a descendant of <p>` — one case since P5c — which
 no gate reads, because the console has no DOM tier. `Field` is a `<div>` now; **read the browser console when clicking a screen**
 (`read_console_messages` with a pattern), and put block content in a `Field` freely.
+
+**A TRUNCATION LEAVES `.manifest/repos/` BEHIND, SO A SLUG `checkSlug` CALLS FREE CAN STILL FAIL `createProject`** (measured by the
+faculty front-end's session, 2026-09-28; the front-end enablement plan's sitting 11, F20). `pnpm test`, one unit file, `pnpm
+contract:write` and the Docker tier truncate the control plane's tables, but no step removes a project's bare repository: the slug is
+free by the database, and `createProject`'s seed push then meets the old `main` and answers `409 SOURCE_CONFLICT`. Rich's click met it;
+fifteen leftovers were listed that night (`launch-app`, `journey-app`, `proof-app`, `reading-responses` among them). **A demo clears its
+own slug first** (`clear_orphan_repository`); a person re-creating a project by an old slug needs the leftover removed by hand.
+
+**A PEER SESSION'S NAME CHANGES AT EVERY HANDOVER — `ListAgents` IMMEDIATELY BEFORE EVERY PROMISED MESSAGE** (sitting 11, F18). The
+faculty front-end's session was `manifest-app-c4`, then `-2b`, then `-bb` within one evening. A heads-up sent to `-2b` in the same tool
+round as the commit it announced failed (*"No agent named 'manifest-app-2b' is reachable"*) while the commit went in, so the commit
+landed before any heads-up. Send the message, read that it was delivered, THEN commit.

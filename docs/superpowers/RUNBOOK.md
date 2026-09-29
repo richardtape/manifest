@@ -342,7 +342,7 @@ pnpm docs:html                     # writes the page and opens it
 pnpm docs:html --no-open           # writes it and only prints where it is
 ```
 
-It is one page: the nine guides in reading order and the three reference pages, each a top-level entry in the
+It is one page: the ten guides in reading order and the three reference pages, each a top-level entry in the
 sidebar with its sections under it, then *The API reference* — every operation, as `/reference.html` shows it. Links
 between guides go to the section in the same page. Scalar renders the guides itself (they are the description of a
 COPY of the published document; the published one never changes), from the standalone bundle copied beside the page —
@@ -828,7 +828,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 61 / 0**
-(**All four were re-measured on 2026-09-28 at the close of the front-end enablement plan's sitting 10 (Task 13, the console and the mock — and its whole-branch review's fix pass), and one moved: `pnpm test` **2771 passed** in 179 files on the final tree (was 2726 in 175; 847 s — its first run read 2769, two 5-second load timeouts in files it did not touch, green re-run alone); `pnpm test:docker` **246 in 41** (owed; green on its first run, unchanged); `make doctor` 20 with **0 failed and 0 warnings** — the vulnerability database goes stale after 2026-10-01; refresh it with `make refresh-vulndb` — and `make verify` **61**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-28 at the close of the front-end enablement plan's sitting 11 (Task 14, the guides — and its whole-branch review's fix pass, with Spec action 9 from the faculty front-end's FE-37), and one moved: `pnpm test` **2786 passed** in 179 files on the final tree, twice, identical (was 2771 in 179; 725 s and 719 s); `pnpm test:docker` **246 in 41** (owed by `c4e10cc`; green on its first run, unchanged); `make doctor` 20 with **0 failed and 0 warnings** — the vulnerability database goes stale after 2026-10-01; refresh it with `make refresh-vulndb` — and `make verify` **61**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has FOURTEEN steps, 1 to 14, after step 0's offline check** (the authoring API plan's Task 13 added step 14, `make demo-authoring`, which runs on either driver) — P5a sitting 12 added `make demo-journey` as step 8,

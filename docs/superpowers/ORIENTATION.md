@@ -8,37 +8,16 @@ the gates read; it deliberately states no job and no sitting's story (Rich, 2026
 executed** (§2's table): an application goes from a bare repository to a production launch, authenticated with CWL,
 on one laptop, offline — its code can live in a GitHub organisation instead (D5's driver 2) — and **an agent can now
 CREATE it through the API alone**, from the API's own served documentation (the authoring API, the newest). **The front-end enablement plan's
-execution is under way — Rich has approved it and its eight spec actions are applied (5 and 6, from the faculty front-end's message, in `25e7445`; 7, the capable model, in `959af7f`; 8, its fallback, in `e6c272d`), an app's recent output is readable through the API — the sandbox's only — an agent can commit an image, a PDF or a font, no line a client can make long is read quadratically, a project has a name people read and a colleague is added by CWL login name or email, Manifest signs a person in on the faculty front-end's own origin, an agent outside Manifest is given a model key charged to the person it works for and a person describing a new app one the platform pays for, an owner can switch an app off and bring it back, and delete one that never launched, the capable model — `default-chat-large`, OpenAI's `gpt-6-luna` on Rich's key — is registered from a setting at LiteLLM's own price and offered where D17 allows, and when its provider fails the on-premise model answers in its place; the reference console calls every one of those operations, `manifest-mock` trusts only the session it issued and answers only for the ids it holds, and a browser refused while signing in sees a page, not raw JSON — and §7e says what is next.** The roadmap's ledger outranks every document on status.
+execution is under way — Rich has approved it and its nine spec actions are applied (5 and 6, from the faculty front-end's message, in `25e7445`; 7, the capable model, in `959af7f`; 8, its fallback, in `e6c272d`; 9, the SP key in every environment, in `d82b3a2`), an app's recent output is readable through the API — the sandbox's only — an agent can commit an image, a PDF or a font, no line a client can make long is read quadratically, a project has a name people read and a colleague is added by CWL login name or email, Manifest signs a person in on the faculty front-end's own origin, an agent outside Manifest is given a model key charged to the person it works for and a person describing a new app one the platform pays for, an owner can switch an app off and bring it back, and delete one that never launched, the capable model — `default-chat-large`, OpenAI's `gpt-6-luna` on Rich's key — is registered from a setting at LiteLLM's own price and offered where D17 allows, and when its provider fails the on-premise model answers in its place; the reference console calls every one of those operations, `manifest-mock` trusts only the session it issued and answers only for the ids it holds, and a browser refused while signing in sees a page, not raw JSON; the API's guides say all of it — *Building a front-end* among them — with every code block run against the mock, and an app on a draft address can sign in (the faculty front-end's FE-37) — and §7e says what is next.** The roadmap's ledger outranks every document on status.
 
-*Last verified 2026-09-28, at the close of the front-end enablement plan's sitting 10 (Task 13 — the console and the mock — with
-FE-24's code, FE-17, FE-18, FE-26 and FE-27; one whole-branch review's fix pass). TWO NUMBERS MOVED: `pnpm test` **2771 passed, 0
-skipped, in 179 files** (run 2 on the final tree, 847 s; run 1 2769 — two 5-second load timeouts in files this sitting did not touch,
-both green re-run alone); `pnpm test:docker` **246 in 41** (owed; green on its first run, beside the reviewer — unchanged, no Docker
-file changed); **`make doctor` 20 checks, 0 failed, 0 warnings** (the vulnerability database goes stale after 2026-10-01 — `make
-refresh-vulndb`); **`make verify` 61**. `pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean. `scripts/ci-acceptance.sh` reads
-`2771 / 179 / 20 / 61`.
+*Last verified 2026-09-28, at the close of the front-end enablement plan's sitting 11 (Task 14 — the guides — with Spec action 9, from
+the faculty front-end's FE-37; one whole-branch review's fix pass). ONE NUMBER MOVED: `pnpm test` **2786 passed, 0 skipped, in 179
+files** (twice on the final tree, identical — 725 s and 719 s, at load ~3–7); `pnpm test:docker` **246 in 41** (owed by `c4e10cc`'s
+`releases/` and `blueprints/` change; green on its first run, alone, 1151 s — unchanged, no Docker file changed); **`make doctor` 20
+checks, 0 failed, 0 warnings** (the vulnerability database goes stale after 2026-10-01 — `make refresh-vulndb`); **`make verify` 61**.
+`pnpm typecheck`, `pnpm lint` and `pnpm format:check` clean. `scripts/ci-acceptance.sh` reads `2786 / 179 / 20 / 61`.
 **This line states only the latest sitting** — each sitting's numbers are in its plan's *What executing this plan found*, dated,
 where they cannot drift.*
-
-> **A CHANGE MADE HERE BY THE FRONT-END SESSION, AT RICH'S WORD (2026-09-28, `manifest-app`'s F3 sitting 7), once.** Read
-> before anything else in this file; it is not a sitting of this plan.
-> - **What was wrong (the front-end's FE-37):** no app on a draft address could sign in. Every app's IdP row requires a
->   signed AuthnRequest (`sso/metadata-store.ts`, `renderSpMetadata`, `'validate.authnrequest': true`, in every
->   environment), but a sandbox app was given no key (`spec/injection.ts`, and `releases/release.ts` placed no key file),
->   so the blueprint's `auth/ubcshib.js` sent an unsigned request and the IdP answered `500` *"Validation of received
->   messages enabled, but no signature found on message."* Measured on three sandbox apps. Found by Rich's click.
-> - **What changed:** `spec/injection.ts` renders `SAML_PRIVATE_KEY_PATH` in every environment (its §8 row is now `all`);
->   `releases/release.ts` places the key file in every environment; `injection.test.ts` and `injection-drift.test.ts`
->   follow; `blueprints/node-ts-mongo/agents/AGENTS.md`'s row and `skeleton/auth/ubcshib.js`'s comment say so.
-> - **What was verified:** `renderInjection` gives every kind the key (a direct check, red before and green after);
->   `tsc --noEmit` and Prettier on the changed files. **NOT run: `pnpm test` and `pnpm test:docker`**, since
->   `vitest.global-setup.ts` truncates the shared database. `deploy-sso.docker.test.ts` asserts the key file on a deploy,
->   and no Docker test was re-read for a sandbox that expects none. **Owed by this session:** both tiers, on the next
->   sitting's first run.
-> - **Not changed, for this session to align at Rich's word:** the spec's §8 table (never edited from outside). Its row for
->   `SAML_PRIVATE_KEY_PATH` still reads *staging and production*.
-> - **The running control plane** must be rebuilt and restarted to take it; an app already deployed takes it by deploying
->   its release again.
 
 **Short of context? Read §7e, §2's numbers box, §6 and §4's curated traps, in that order.** The full trap catalogue
 is [`TRAPS.md`](TRAPS.md), meant to be searched, not read through.
@@ -85,17 +64,17 @@ browser after sitting 7, which no tier had ever looked at — **116 in P5b's 13*
 roadmap's table — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat
 a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, re-measured 2026-09-28 on this machine at the front-end enablement plan's sitting 10
-(Task 13, the console and the mock; its record is in the plan). `pnpm test` **2771** in **179** files (was 2726 in 175); `make doctor`
-**20** with **0 failed and 0 warnings**; `make verify` **61**; `pnpm test:docker` **246** in **41** — owed (`observability/output.ts`),
-green on its first run, beside the reviewer:**
+**The four numbers you will check first, re-measured 2026-09-28 on this machine at the front-end enablement plan's sitting 11
+(Task 14, the guides; its record is in the plan). `pnpm test` **2786** in **179** files (was 2771 in 179); `make doctor`
+**20** with **0 failed and 0 warnings**; `make verify` **61**; `pnpm test:docker` **246** in **41** — owed (`c4e10cc`, the
+front-end's FE-37: `releases/`, `blueprints/`), green on its first run, alone:**
 
 | Gate | What it reads now |
 |---|---|
-| `pnpm test` (from the **repo root**) | **2771 passed, 0 skipped, 179 files**, **~14 min (854 s and 847 s alone, the front-end enablement plan's sitting 10, at load ~5–13 — its run 1 read 2769: two 5-second timeouts at load 6–7 in `api/intake.test.ts` and `api/webhooks.test.ts`, green re-run alone, trap 7; 830 s and 791 s alone, its sitting 9b, at load ~3–6; 693 s and 690 s alone, its sitting 9a, at load ~5–7; 688 s and 656 s alone, its sitting 9, at load ~6–13; 633 s and 651 s alone, its sitting 8, at load ~4–5; 605 s and 600 s alone, its sitting 7, at load ~4–6; 562 s and 578 s alone, the front-end enablement plan's sitting 6, at load ~4; 615 s and 559 s in its sitting 5, at load ~4–7; 520 s and 517 s in its sitting 4; 520 s and 514 s in its sitting 3; 487 s and 482 s in its sitting 2; 525 s inside `make ci-acceptance` before it) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice, identical, on the FINAL tree at every close — `make ci-acceptance`'s run counts as one — and single files while working (§8 *Decided*: the LEAN budget); `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2771**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **246 tests, 0 SKIPPED, 41 files** (2026-09-28, the front-end enablement plan's sitting 10: 1145 s, green FIRST run, alone — no Vitest beside it — at load ~4–6, beside its whole-branch reviewer, exactly as predicted: owed by `observability/output.ts`'s code union (FE-24), and no Docker file changed; its fix pass touched no owing path (the console, the mock and a comment in `api/`). Its sitting 9b: 1142 s, green FIRST run, alone — no Vitest beside it — at load ~4–6, beside its whole-branch reviewer; +2 tests in `ai/capable.docker.test.ts` (4 → 6: an unreachable primary answered by the on-premise model, and a public-rank fallback refused) — and one more than predicted, because 9a's fix pass added its I3 boot case after its tier ran, so the tree held 244 from `5df6322` (F10); its fix pass changed only that Docker file's own two cases, re-run alone, 6 of 6, **and they chat on `default-chat-large` only after clearing the name, asserted — never beside the owner's real model**. Its sitting 9a: 1084 s, green FIRST run, alone — no Vitest beside it — at load ~2.5–4.8, beside its whole-branch reviewer; +3 tests and one file, `ai/capable.docker.test.ts`; its fix pass changed `ai/capable.ts` and `index.ts`, so the three Docker files that run them — `ai/capable.docker.test.ts` (now 4, with the boot-on-a-held-port case), `ai/ai-path.docker.test.ts` and `boot.docker.test.ts` — were re-run alone, 18 of 18; **the tier's own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — restart the control plane with `.env` after it**. Its sitting 9: 240 in 40, 1098 s, green FIRST run, alone — no Vitest beside it — at load ~6–7, beside its whole-branch reviewer; +8 tests and one file, `releases/delete.docker.test.ts` (7) and the Docker driver's `removeName` contract case (1); its fix pass changed `releases/lifecycle.ts`, which that file and `releases/lifecycle.docker.test.ts` run, so both were re-run alone, 12 of 12 — grepped: no Docker case reaches the fix pass's `build/context.ts` or GitHub lines. Its sitting 8: 232 in 39, 1064 s, green FIRST run, alone — no Vitest beside it — at load ~5–9, beside its whole-branch reviewer; +10 tests and one file, `releases/lifecycle.docker.test.ts` (5), the SSO deregistration (1) and the Docker driver's contract (4); its fix pass changed `releases/lifecycle.ts`, which that file runs, so it was re-run alone, 5 of 5. Its sitting 7: 222 in 38, 985 s, green on its SECOND run, alone, at load ~5–6 — its first, 985 s beside the reviewer, read 2 failed in Task 10's own Docker file because unit Vitest ran beside it, trap 8, and did not count (that sitting's F10); +4 tests in two files, `ai/agent-keys.docker.test.ts` and `ai/agent-sessions.docker.test.ts`. Its sitting 6: 953 s, green first time at load ~3–7, run once beside its whole-branch review — Task 8 ADDED `identity/saml.docker.test.ts`'s two-origin real sign-in; its fix pass touched no line a Docker case runs, grepped. Its sitting 5: 217 in 36, 940 s, green first time at load ~4, run once beside its whole-branch review — Task 7 EXTENDED `identity/saml.docker.test.ts`'s real sign-in to read `cwl_login`, so the count did not move; its fix pass touched no line a Docker case runs, GREPPED before ruling. Its sitting 4: 945 s, green first time at load ~3.4, run once beside its whole-branch review — and its fix pass's one Docker file, `identity/saml.docker.test.ts`, re-run alone on the final tree, 3 of 3, because a sign-out case drives the changed `completeSpLogout` (that sitting's F15). Its sitting 3: 940 s, green first time at load ~3.5, run once beside its whole-branch review — its fix pass touched no line a Docker case runs. Its sitting 2: 949 s all green on its pre-fix tree, then 926 s on its final tree with ONE red — the wall-clock *a retire waits for a request that is in flight*, green re-run alone at load 4–7. Before it, 210 in 35 — the authoring API plan's sitting 9: 957 s, green first time at load ~5; its sitting 8's 932 s, green first time at load ~3–5; its sitting 6's 943 s, green first time at load 4–9; its sitting 5's 927 s, green on its SECOND run — the first, 895 s, was red in `sso/login.docker.test.ts` alone because macOS had half-deleted a cached fixture repository in `$TMPDIR` (that sitting's F14; `runtime/docker/testing.ts` now rebuilds one) — its sitting 4's 881 s, its sitting 3's 895 s, its sitting 2's 896 s and 878 s, and its sitting 1's 906 s; the D5 plan's sitting 8's 1341 s at load 5–16 — the Docker VM itself — and its sitting 7's 1201 s at load ~2–5. Its one wall-clock case — *a retire waits for a request that is in flight*, a drain bound — was red at load 12–15 in sittings 5 and 6 and green re-run alone at ~6; TRAPS.md has the re-run command, which leaves one dead network behind). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the cleanup scripts, because it regenerates seven dead app networks and one volume every time — and about thirteen app images, which `scripts/app-images.sh` removes — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`; sitting 6's two tiers did not show it). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test` (from the **repo root**) | **2786 passed, 0 skipped, 179 files**, **~12–14 min (725 s and 719 s alone, the front-end enablement plan's sitting 11, at load ~3–7, identical on both runs; 854 s and 847 s alone, its sitting 10, at load ~5–13 — its run 1 read 2769: two 5-second timeouts at load 6–7 in `api/intake.test.ts` and `api/webhooks.test.ts`, green re-run alone, trap 7; 830 s and 791 s alone, its sitting 9b, at load ~3–6; 693 s and 690 s alone, its sitting 9a, at load ~5–7; 688 s and 656 s alone, its sitting 9, at load ~6–13; 633 s and 651 s alone, its sitting 8, at load ~4–5; 605 s and 600 s alone, its sitting 7, at load ~4–6; 562 s and 578 s alone, the front-end enablement plan's sitting 6, at load ~4; 615 s and 559 s in its sitting 5, at load ~4–7; 520 s and 517 s in its sitting 4; 520 s and 514 s in its sitting 3; 487 s and 482 s in its sitting 2; 525 s inside `make ci-acceptance` before it) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice, identical, on the FINAL tree at every close — `make ci-acceptance`'s run counts as one — and single files while working (§8 *Decided*: the LEAN budget); `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2786**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
+| `pnpm test:docker` | **246 tests, 0 SKIPPED, 41 files** (2026-09-28, the front-end enablement plan's sitting 11: 1151 s, green FIRST run, alone — no Vitest beside it — at load ~5–7, exactly as predicted: owed by `c4e10cc` (the faculty front-end's FE-37 — the SP key in every environment, `releases/release.ts` and `blueprints/`), no Docker file changed and none asserts a keyless sandbox (grepped; `deploy-sso` asserts the key on staging). Its sitting 10: 1145 s, green FIRST run, alone — no Vitest beside it — at load ~4–6, beside its whole-branch reviewer, exactly as predicted: owed by `observability/output.ts`'s code union (FE-24), and no Docker file changed; its fix pass touched no owing path (the console, the mock and a comment in `api/`). Its sitting 9b: 1142 s, green FIRST run, alone — no Vitest beside it — at load ~4–6, beside its whole-branch reviewer; +2 tests in `ai/capable.docker.test.ts` (4 → 6: an unreachable primary answered by the on-premise model, and a public-rank fallback refused) — and one more than predicted, because 9a's fix pass added its I3 boot case after its tier ran, so the tree held 244 from `5df6322` (F10); its fix pass changed only that Docker file's own two cases, re-run alone, 6 of 6, **and they chat on `default-chat-large` only after clearing the name, asserted — never beside the owner's real model**. Its sitting 9a: 1084 s, green FIRST run, alone — no Vitest beside it — at load ~2.5–4.8, beside its whole-branch reviewer; +3 tests and one file, `ai/capable.docker.test.ts`; its fix pass changed `ai/capable.ts` and `index.ts`, so the three Docker files that run them — `ai/capable.docker.test.ts` (now 4, with the boot-on-a-held-port case), `ai/ai-path.docker.test.ts` and `boot.docker.test.ts` — were re-run alone, 18 of 18; **the tier's own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — restart the control plane with `.env` after it**. Its sitting 9: 240 in 40, 1098 s, green FIRST run, alone — no Vitest beside it — at load ~6–7, beside its whole-branch reviewer; +8 tests and one file, `releases/delete.docker.test.ts` (7) and the Docker driver's `removeName` contract case (1); its fix pass changed `releases/lifecycle.ts`, which that file and `releases/lifecycle.docker.test.ts` run, so both were re-run alone, 12 of 12 — grepped: no Docker case reaches the fix pass's `build/context.ts` or GitHub lines. Its sitting 8: 232 in 39, 1064 s, green FIRST run, alone — no Vitest beside it — at load ~5–9, beside its whole-branch reviewer; +10 tests and one file, `releases/lifecycle.docker.test.ts` (5), the SSO deregistration (1) and the Docker driver's contract (4); its fix pass changed `releases/lifecycle.ts`, which that file runs, so it was re-run alone, 5 of 5. Its sitting 7: 222 in 38, 985 s, green on its SECOND run, alone, at load ~5–6 — its first, 985 s beside the reviewer, read 2 failed in Task 10's own Docker file because unit Vitest ran beside it, trap 8, and did not count (that sitting's F10); +4 tests in two files, `ai/agent-keys.docker.test.ts` and `ai/agent-sessions.docker.test.ts`. Its sitting 6: 953 s, green first time at load ~3–7, run once beside its whole-branch review — Task 8 ADDED `identity/saml.docker.test.ts`'s two-origin real sign-in; its fix pass touched no line a Docker case runs, grepped. Its sitting 5: 217 in 36, 940 s, green first time at load ~4, run once beside its whole-branch review — Task 7 EXTENDED `identity/saml.docker.test.ts`'s real sign-in to read `cwl_login`, so the count did not move; its fix pass touched no line a Docker case runs, GREPPED before ruling. Its sitting 4: 945 s, green first time at load ~3.4, run once beside its whole-branch review — and its fix pass's one Docker file, `identity/saml.docker.test.ts`, re-run alone on the final tree, 3 of 3, because a sign-out case drives the changed `completeSpLogout` (that sitting's F15). Its sitting 3: 940 s, green first time at load ~3.5, run once beside its whole-branch review — its fix pass touched no line a Docker case runs. Its sitting 2: 949 s all green on its pre-fix tree, then 926 s on its final tree with ONE red — the wall-clock *a retire waits for a request that is in flight*, green re-run alone at load 4–7. Before it, 210 in 35 — the authoring API plan's sitting 9: 957 s, green first time at load ~5; its sitting 8's 932 s, green first time at load ~3–5; its sitting 6's 943 s, green first time at load 4–9; its sitting 5's 927 s, green on its SECOND run — the first, 895 s, was red in `sso/login.docker.test.ts` alone because macOS had half-deleted a cached fixture repository in `$TMPDIR` (that sitting's F14; `runtime/docker/testing.ts` now rebuilds one) — its sitting 4's 881 s, its sitting 3's 895 s, its sitting 2's 896 s and 878 s, and its sitting 1's 906 s; the D5 plan's sitting 8's 1341 s at load 5–16 — the Docker VM itself — and its sitting 7's 1201 s at load ~2–5. Its one wall-clock case — *a retire waits for a request that is in flight*, a drain bound — was red at load 12–15 in sittings 5 and 6 and green re-run alone at ~6; TRAPS.md has the re-run command, which leaves one dead network behind). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the cleanup scripts, because it regenerates seven dead app networks and one volume every time — and about thirteen app images, which `scripts/app-images.sh` removes — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`; sitting 6's two tiers did not show it). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **20 checks, 0 failed, 0 warnings** — the faculty front-end's server on 7105 counted as the platform's by its marker (`GET /api/__doctor` → `manifest-app`, sitting 9a; before it, 1 failed while that server ran) — one of them the GitHub fake's image (`make seed`, profile `github`); the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
-| `make verify` | **61 checks, 0 failed, 0 warnings** — four of them `app.manifest.internal`'s (sitting 6: it serves the API, refuses a container, allows only the gateway, and its site is the console's changed in two places), two the GitHub fake's, static, whether or not it runs. Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
+| `make verify` | **61 checks, 0 failed, 0 warnings** — four of them `app.manifest.internal`'s (sitting 6: it serves the API, refuses a container, allows only the gateway, and its site is the console's changed in two places), two the GitHub fake's, static, whether or not it runs. Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=24 networks=8 volumes=16` at sitting 11's close — `launch-app`'s and the faculty front-end's walks' sandboxes, all with no rows behind them since the tiers' truncation. *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. Last green 2026-09-27, FRESH, inside `make ci-acceptance` (the authoring API plan's sitting 10) |
 | `make demo-releases` | P6b's acceptance: ~2 min re-used, ~3 fresh (it runs `make demo-production` first when `launch-app` has not launched). Step 12 of the offline acceptance and the last step of `make ci-acceptance`. It leaves `launch-app` on its leg C release. Last green 2026-09-27 inside `make ci-acceptance` (the authoring API plan's sitting 10); before it 2026-09-25, fresh after a `pnpm test`, 140 s: leg A's preview `llm` with ONE model sentence (the egress change's — none for `sn`), leg C's `not-modelled` (its only change is `sn`, so no model was asked) |
 | `make demo-token` | P5b's acceptance, ~30 s; step 9 of the offline acceptance. **It steps the instructor up since the D5 plan's sitting 8** — confirming a privileged action has needed §20's step-up since P6a (`f989fcb`, 2026-09-20), and it was RED from then until that sitting ran it (F16). Last green 2026-09-27, inside `make ci-acceptance` |
@@ -103,7 +82,7 @@ green on its first run, beside the reviewer:**
 | `make demo-github` | **The D5 plan's acceptance — driver 2 ONLY** (`MANIFEST_SOURCE_DRIVER=github`, `make github-up`): ~70 s re-used, ~80 s fresh, ten steps against the GitHub fake, each phase ending `every check passed`. On driver 1 it stops at step 0 and creates nothing. Step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1. Green three times 2026-09-25 (fresh, re-use, after `make reset`) |
 | `make demo-authoring` | **The authoring API plan's acceptance — EITHER driver** (step 0 asks: `board-local` on driver 1, `board-github` on driver 2): an agent on a delegated token builds a bulletin board through the API alone, refused and helped by its codes, and people use it. ~35–40 s re-used or fresh; `DEMO_AUTHORING_STOP_AFTER=<step>` for a control's short run. Step 14 of the offline acceptance; a step of `make ci-acceptance`. Green 2026-09-26/27 three times on each driver (fresh, re-use, from `make reset`) and inside `make ci-acceptance` |
 | `make demo-journey` | P5a's acceptance: all eight steps, ~51 s, over the contract; last green 2026-09-27 in `make ci-acceptance` (the authoring API plan's sitting 10) |
-| `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2 — and `make demo-authoring` on EITHER; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `2771 / 179 / 20 / 61` — and move with it** (§6). Last run 2026-09-27 on driver 1 (the authoring API plan's sitting 10): every step PASS, `demo-github` NOT RUN, 841 s |
+| `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2 — and `make demo-authoring` on EITHER; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `2786 / 179 / 20 / 61` — and move with it** (§6). Last run 2026-09-27 on driver 1 (the authoring API plan's sitting 10): every step PASS, `demo-github` NOT RUN, 841 s |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
 cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are
@@ -165,7 +144,7 @@ each sitting left them, dated, and they deliberately do not move.
 - **§8's open questions.**
 
 **The spec is current, with no open follow-up.** Every spec change has been applied only after Rich approved it —
-**most recently the front-end enablement plan's Spec action 8** (drafted by its sitting 9a from its measurements of LiteLLM's
+**most recently the front-end enablement plan's Spec action 9** (drafted by its sitting 11 after the faculty front-end's session fixed FE-37 at Rich's word, `c4e10cc`; approved as drafted, option (a), and applied 2026-09-28, `d82b3a2`): §8's `SAML_PRIVATE_KEY_PATH` row is `all` — every environment's app is given its SP key and every sign-in is signed. Before it **the same plan's Spec action 8** (drafted by its sitting 9a from its measurements of LiteLLM's
 `/fallback`; approved as drafted, option (a), and applied 2026-09-28, `e6c272d`): the capable model's fallback is the on-premise
 model — a platform setting naming a catalogue entry, `default-chat-onprem` by default, answering `default-chat-large` when its
 provider fails, at its own price, its classification the platform's to enforce (§7, §21, §26). Before it **the same plan's Spec action 7** (drafted at its sitting 8's close from Rich's decision; approved
@@ -199,7 +178,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
-| **executing a plan** | **[The front-end enablement plan](plans/2026-09-27-front-end-enablement.md)** — approved by Rich, its fourteen sittings (9a and 9b added by him) and ALL EIGHT of its spec actions (applied — 1–4 in `1d1afd7`, 5 and 6, from the faculty front-end's message, in `25e7445`, 7 in `959af7f`, 8, the capable model's fallback, in `e6c272d`); **its sittings table says which is next, and §7e how to run it**. The authoring API's was EXECUTED on 2026-09-27. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **executing a plan** | **[The front-end enablement plan](plans/2026-09-27-front-end-enablement.md)** — approved by Rich, its fourteen sittings (9a and 9b added by him) and ALL NINE of its spec actions (applied — 1–4 in `1d1afd7`, 5 and 6, from the faculty front-end's message, in `25e7445`, 7 in `959af7f`, 8, the capable model's fallback, in `e6c272d`, 9, the SP key in every environment, in `d82b3a2`); **its sittings table says which is next, and §7e how to run it**. The authoring API's was EXECUTED on 2026-09-27. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
 | **writing a plan** | **None is due.** The front-end enablement plan (2026-09-27) replaced *Spec action 1's plan* and is written; the vulnerability database in the console comes after it (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
@@ -212,7 +191,7 @@ docs/external-track.md          the UBC IAM / PIA work that runs in parallel (do
                                 app.manifest.internal from 7105; links @manifest/contract to THIS working tree (so keep it
                                 buildable at every commit); its asks of the platform are FE-1…FE-25 in docs/api-findings.md, and
                                 Rich's decisions on them are in docs/2026-09-27-to-the-platform-session.md (begun 2026-09-27)
-docs/api/                       THE API'S DOCUMENTATION, served at GET /v1/docs: nine guides, reference/ (GENERATED by
+docs/api/                       THE API'S DOCUMENTATION, served at GET /v1/docs: ten guides, reference/ (GENERATED by
                                 `pnpm docs:write`) and llms.txt — PUBLIC TEXT; names nothing internal (a gate)
 docs/superpowers/
 ├── ORIENTATION.md              ← you are here
@@ -242,7 +221,7 @@ docs/superpowers/
 │   ├── 2026-09-22-p6b-subsequent-releases.md      P6b — executed 2026-09-23; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
-│   ├── 2026-09-27-front-end-enablement.md         BEING EXECUTED — approved by Rich 2026-09-27; 17 tasks in 14 sittings (Task 12a, sitting 9a, added at sitting 8's close: the capable model — DONE 2026-09-28; Task 12b, sitting 9b, added at 9a: its fallback — DONE 2026-09-28); all 8 spec actions APPLIED; its sittings table says how far
+│   ├── 2026-09-27-front-end-enablement.md         BEING EXECUTED — approved by Rich 2026-09-27; 17 tasks in 14 sittings (Task 12a, sitting 9a, added at sitting 8's close: the capable model — DONE 2026-09-28; Task 12b, sitting 9b, added at 9a: its fallback — DONE 2026-09-28); all 9 spec actions APPLIED; its sittings table says how far
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -392,6 +371,13 @@ defect even when every test is green.**
   `email`), never how anybody is identified: the PUID is. **Only the real IdP enforces the attribute list** — an
   in-process test IdP signs whatever it is handed, so a unit test cannot see `uid` dropped from it
   (`identity/saml.docker.test.ts` can).
+
+- **EVERY ENVIRONMENT'S APP IS GIVEN ITS SP KEY, THE SANDBOX'S INCLUDED, AND EVERY SIGN-IN IS SIGNED** (the faculty front-end's
+  FE-37, `c4e10cc`, made by its session at Rich's word; §8 as Spec action 9 amended it, `d82b3a2`). Every app's row in the Manifest
+  IdP requires a signed AuthnRequest (`renderSpMetadata`'s `'validate.authnrequest': true`), so `spec/injection.ts` renders
+  `SAML_PRIVATE_KEY_PATH` and `releases/release.ts` places the key file in EVERY environment — before it, a sandbox app sent an
+  unsigned request and the IdP answered `500` *"no signature found on message"*: no draft app could sign in. The blueprint still
+  reads the variable as allowed-absent, so an app deployed before the change starts — and signs in only after a redeploy.
 
 - **MANIFEST SIGNS A PERSON IN ON EITHER OF ITS TWO ORIGINS, EACH JUDGED BY THE ORIGIN A REQUEST ARRIVED ON** (the front-end
   enablement plan's sitting 6; §21, §20 and §9 as Spec action 2 amended them). `config.origins` is the console's first, then
@@ -819,7 +805,7 @@ defect even when every test is green.**
   type-checks on its own** (FE-18): its build is `node build.mjs` — `tsc` then a copy of `schema.d.ts` — and its source
   compiles under a consumer's `erasableSyntaxOnly` (`src/dist.test.ts`).
 - **THE API'S DOCUMENTATION IS SERVED BY THE API, GENERATED FROM IT, AND ITS CODE IS RUN** (the authoring API plan's
-  Task 11, 2026-09-26). `docs/api/` — nine hand-written guides for a developer and an agent at once, four reference
+  Task 11, 2026-09-26). `docs/api/` — ten hand-written guides (*Building a front-end* the tenth, the front-end enablement plan's sitting 11) for a developer and an agent at once, four reference
   pages, and `llms.txt` — is read at boot by `docs/load.ts` (bounded; a page with no title or first paragraph, a
   symlink, a non-UTF-8 page or an empty root refuses the boot, naming it — and, since the front-end enablement plan's
   Task 5 (F11), two pages that make ONE slug, naming both, and a name `getDoc` cannot address; `DOC_SLUG` is stated once and
@@ -1725,65 +1711,85 @@ named in the row below.*
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
 | **D5 driver 2** | [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — **EXECUTED 2026-09-25**, all eight sittings | `make demo-github` (driver 2) — green fresh, re-use and from a `make reset` machine; step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1; **clicked by a person on both drivers**; the real conformance leg 17 of 17 | **Sitting 8's F11 and F12 are the ones to read**, found by the plan's one fresh whole-branch review: a path into a worktree's own `.git` could be written on both drivers (`core.fsmonitor` is code execution — latent until the authoring API supplies paths), and a push a read synced first was never validated. **Sitting 8's F15/F16**: `make demo` and `make demo-token` were red for five days after P6a's step-up because nothing ran them. **Sitting 1's F6**: one rewrite of GitHub's `main` froze a non-forced mirror's `main` for ever — the two-refspec mirror is its fix. **Sitting 4's F6**: without `repositoryOf`, a GitHub-mode control plane BUILT a driver-1 project. |
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
-### 7e. Execute the front-end enablement plan's sitting 11 — Task 14, the guides ← **START HERE**
+### 7e. Execute the front-end enablement plan's sitting 12 — Task 15, the acceptance, ALONE AND LAST ← **START HERE**
 
-**Sittings 1 to 10, 9a and 9b are DONE** (2026-09-27/28). [The plan](plans/2026-09-27-front-end-enablement.md) — seventeen tasks in
-fourteen sittings, approved by Rich, **all EIGHT of its spec actions APPLIED** — is what the faculty front-end at `app.manifest.internal`
-needs from Manifest. **Sitting 11 (Task 14) is this one**; then 12 (the acceptance, alone and last). The faculty front-end is
-`~/Developer/manifest-app`, other sessions' repository (§3's map; never edit it).
+**Sittings 1 to 11, 9a and 9b are DONE** (2026-09-27/28). [The plan](plans/2026-09-27-front-end-enablement.md) — seventeen tasks in
+fourteen sittings, approved by Rich, **all NINE of its spec actions APPLIED** (9, from the faculty front-end's FE-37, at sitting 11) — is
+what the faculty front-end at `app.manifest.internal` needs from Manifest. **Sitting 12 (Task 15) is this one, and the plan's last**:
+`make demo-frontend`, green three times on EACH driver and inside `make ci-acceptance`, the offline acceptance's step 15, its negative
+controls, **a clicked half (Rich types every password)**, then the plan's ONE whole-branch review and the close-out for a plan EXECUTED.
+The faculty front-end is `~/Developer/manifest-app`, other sessions' repository (§3's map; never edit it).
 
-**WHAT SITTING 10 BUILT** — its record is the plan's *Sitting 10*; §3 has the bullets (*an app's recent output is read in the sandbox
-only*; *a browser refused at `/auth/*` is shown a page*; *every operation has a caller in the console*, with the mock's new rules and
-FE-18): the console calls all 66 operations; `INSTANCE_OUTPUT_STAGING` (FE-24's code); FE-17's page; FE-18's `dist/`; FE-26/27's mock;
-sitting 6's M2. **Contract**: still `1.4.0`, 66 operations, **127 error codes** (126 + `INSTANCE_OUTPUT_STAGING`), 90 schemas, 46 event
-types.
+**WHAT SITTING 11 BUILT** — its record is the plan's *Sitting 11*: *Building a front-end* (`docs/api/frontend.md`) and every guide the
+new surface touches, six new run examples (the person's own actions as BROWSER code), the slug called a slug in published text,
+`CSRF_ORIGIN_REFUSED` for two origins, no `FE-n` in public text — each held by a gate — and **Spec action 9** (§8's
+`SAML_PRIVATE_KEY_PATH` row `all`, `d82b3a2`), from **`c4e10cc`, the front-end session's FE-37 fix made at Rich's word while sitting 11
+was paused: every environment's app is given its SP key, so an app on a draft address can sign in** (§3). **Contract**: still `1.4.0`, 66
+operations, 127 codes — text only.
 
 **ASK RICH IN THE FIRST MESSAGE:**
-1. **`make refresh-vulndb` is due after 2026-10-01** (network on — his). Sitting 11 does not need it; sitting 12's `make ci-acceptance`
-   and `make demo-production` do, so run it before sitting 12.
-2. **Nothing else waits on him for sitting 11** — the guides change no spec. If a guide's run example needs the platform rather than the
-   mock, that is a clicked half's question, not this sitting's.
+1. **`make refresh-vulndb` (network on — his) — due after 2026-10-01**, and Task 15 NEEDS it fresh: `make ci-acceptance`'s
+   `make demo-production` and `make demo-releases`, and step 9's `launch-app` refusal (a delete refused because it launched). Past the
+   date, §13's `scans` item refuses every production launch.
+2. **The clicked half's time** (Step 4) — he types every password; stage everything first and ask once (the memory *clicked-half
+   passwords are Rich's*).
+3. **FE-35 and FE-36, relayed from the front-end's session** (§8 *Open*) — FE-36 (a session keeps `default-chat-large` after a commit
+   raises the classification to `confidential`) is a D17 enforcement gap; **FE-35 was relayed as his decision (a) — a model able to
+   write an app, approved for `confidential`** — confirm it in his own words, and ask where each goes: this plan's close, or the next
+   plan. Neither is Task 15's.
 
-**THE FRONT-END'S SESSION — MESSAGE IT FIRST** (`ListAgents`; the memory *a peer may open the next sitting*). At sitting 10's close
-**`manifest-app-c4`** was live — the THIRD front-end session of the sitting (`manifest-app-fa` → `manifest-app-6a` → `c4`, each a
-handover Rich announced) — running its F3 sitting 6 in mock mode (7105 → 7102, its own `pnpm mock` from our source at `18f3214`); it
-said nothing of its on 7100 or the edge needs to survive, will ask before using 7100, and asks for a message at each commit touching
-`packages/contract` or the mock, and the close-out commit. **A session name changes at every handover — send to the name `ListAgents`
-prints, never one remembered.** **Sitting 10 left the control plane RUNNING** (the block below).
+**WHAT TASK 15's TEXT DOES NOT SAY** (each opened at sitting 11's close — re-verify before relying on it):
+- **Recent output is SANDBOX-ONLY since sitting 10 (FE-24's code)** — Task 15's step 5–6 and Step 4's clicked half read a STAGING
+  instance's output, which is now `403 INSTANCE_OUTPUT_STAGING`. **Deploy the release to the sandbox too and read the sandbox
+  instance** (step 6's `[REDACTED]` `MONGODB_URI` control included); the staging deploy stays for the student's sign-in.
+- **A token needs `output:read` and `agent:session`** — step 2's list already names both; keep them.
+- **The person's own actions are browser code** (sitting 11's Critical): `demo-frontend`'s person phases run in the instructor's
+  SESSION as the demo's bash half does today (a demo is the person's own script), never presented as a front-end server's pattern.
+- **A truncation leaves `.manifest/repos/` behind** (sitting 11's F20, measured by the front-end): a slug `checkSlug` calls free can
+  answer `createProject` `409 SOURCE_CONFLICT`. Step 0's `clear_orphan_repository` is exactly the guard — keep it for BOTH projects.
+- **An app deployed before `c4e10cc` signs in only after a redeploy** — every demo deploys afresh, so nothing to do; the
+  `mf-launch-app-*` containers still running have had no rows since the unit tier's truncation, and `make demo-production`
+  (inside `make ci-acceptance`) creates `launch-app` again from nothing.
+- **The review's deferred minors** (the plan's *Sitting 11*): `deleteForGood` makes its key inside (M3); `example-binary` is
+  Node-only (M7). And carried from sitting 10: `[S6]` (5), M3 — a non-canonical configured origin refuses every mutation.
 
-**Read, in this order:** Task 14 in full (`## Task 14:` — its bracketed blocks **`[S10]`** first, then `[S9b]`, `[S9a]`, `[S7]`, `[S3]`,
-`[S6]`, `[S5]`, `[S4]`, `[S2]`, before its Files); `docs/api/*.md` as they stand; `packages/journey/src/examples.test.ts` (every guide
-code block is an `example-*.ts` run against the mock) and `pnpm docs:write`; RUNBOOK's *Running `manifest-mock`* (the mock's rules
-changed in sitting 10 — a guide's example must send `mock-session` or a Bearer, never an invented session); §4's traps 7, 8 and 11.
+**THE FRONT-END'S SESSION — MESSAGE IT FIRST** (`ListAgents`; the memory *a peer may open the next sitting*). At sitting 11's close
+**`manifest-app-bb`** was live — running its F4 plan's sitting 1 (measurements), at Rich's word; its 7105 (pid 33856) and its mock on
+7102 (pid 28239) — leave both. **It was given a ~90-minute window on 7100 and the edge from 22:16** (the machine block, below), and
+said it would message when done with 7100 — ask it whether it is, before any tier. **A session name changes at every handover — `ListAgents` IMMEDIATELY before every promised
+message** (sitting 11's F18: a heads-up went to a session that had just handed over, and arrived after the commit).
 
-**What Task 14's text does not say** (each opened at sitting 10's close — re-verify before relying on it):
-- **The output read is SANDBOX-ONLY now** — `[S2]` and `agents.md:118` say otherwise (Task 14's `[S10]` (1)).
-- **The mock refuses an invented session and a Bearer on a session-only operation** — an example that relied on either now fails its
-  run (`examples.test.ts` passed at sitting 10's close, so none does today).
-- **`[S6]` (5), M3 — a non-canonical configured origin passes `loadConfig` and refuses every mutation** — is NOT built (the plan built it
-  only if config was touched); it is a carried defect, not a guide.
-- The whole-branch review's deferred minors (the plan's *Sitting 10*, and the ledger) include two a guide could mention: the mock copies
-  request fields without the request schema's bounds (M5), and FE-17's page title reads *"Sign-in"* for a logout refusal too (M6).
+**Read, in this order:** Task 15 in full (`## Task 15:` — its `[S9b]`, `[S9a]`, `[S9]` and `[S7]` blocks first); the plan's *Sitting 10*
+and *Sitting 11* records; RUNBOOK's *Running the control plane* and every `make demo-*` section (the new demo copies their split);
+`scripts/demo-authoring.sh` and `packages/journey/src/authoring.ts` (the newest demo, the shape to copy); `infra/lib/idp-login.sh`; §4's
+traps 6, 7, 8 and 11.
 
-**WHERE SITTING 11 STOPS, AND HOW IT ENDS.** Task 14 alone — **the next sitting is 12** (Task 15, the acceptance). `pnpm test:docker` is
-owed only if a step reaches `blueprints/` (the sittings table). The LEAN budget (single files while working, `pnpm test` twice on the
-FINAL tree), one fresh whole-branch reviewer told never to run a test, `make doctor` and `make verify`, the cleanup scripts, then the
-close-out (§6). **Restart the control plane with Rich's `.env` at the close** if you stopped it.
+**WHERE SITTING 12 STOPS, AND HOW IT ENDS.** Task 15 alone — and it ends the plan: **the plan's one fresh whole-branch review over its
+whole range** (Task 15 Step 5), its Importants fixed red first, then the close-out for a plan EXECUTED (§6; CLAUDE.md's *State*, §2's
+table, §3's invariants, the four shared HTML pages checked). `pnpm test:docker` is owed if any code changes. The LEAN budget
+(single files while working, `pnpm test` twice on the FINAL tree), `make doctor` and `make verify`, the cleanup scripts. **What comes
+next is the faculty front-end's launch path** (FE-6, FE-25 — the plan's *Successor*), then the vulnerability database in the console;
+Rich places it.
 
-**THE MACHINE, AS SITTING 10 LEFT IT — queried at its close, 2026-09-28, not remembered:**
-- the control database: **2 projects — `fixture-f44d79da` and `other-5a3899cc`, the fixture rows of this sitting's last single-file
-  re-run** (a test resets at its start, not its end), 6 events, 3 users, 0 instances, 0 agent sessions, 1 intake session, **39
-  migrations** (`psql`); every row the sitting's clicks made (`s10-throwaway`, deleted anyway) truncated by the final runs;
-- **`launch-app`'s six `mf-launch-app-*` containers and the faculty front-end's `f3-measure-mulp4617` sandbox's three**, running with no
-  rows behind them (the front-end said nothing of theirs must survive) — left as found; no other `mf-` container;
-- **THE CONTROL PLANE RUNNING** — PID 89341 on 7100, started detached (`nohup`) from Rich's `.env` by RUNBOOK's block (the plan's
-  git-ignored `.superpowers/sdd/2026-09-27-front-end-enablement/s10-cp-start.sh`, logging beside it to `close-s10-cp.log`), boot line
-  **`"capableModel":"registered"`, `"capableFallback":"set"`**, `"secretsScrubbed":14`; **7102 and 7105 are the faculty front-end's**
-  (node 83842 and 85878 — never stop them); nothing on 7104 or 7112 (this sitting's console and mock, stopped);
-- **LiteLLM**: `default-chat-large` → `openai/gpt-6-luna`, one row; its fallback `default-chat-onprem` (`general`); 3 LiteLLM users;
-- both Ollama models unloaded (`/api/ps` empty); the GitHub fake absent; the edge restarted by the Docker tier;
-- the three cleanup scripts clean after `--apply` (allowed — `bash scripts/<name>.sh`) and bare again after: nothing dead, 0 app images;
-  `make verify`'s INFO `mf- containers=9 networks=3 volumes=6`; `make doctor` 20/0/0; free disk 52 Gi (54 at open).
+**THE MACHINE, AS SITTING 11 LEFT IT — queried at its close, 2026-09-28, not remembered:**
+- the control database **EMPTY — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions, 0 intake sessions, 39 migrations**
+  (`psql`, 22:15) — the Docker tier truncated last; Rich let his `student-q-and-a` go with it (asked first);
+- **24 `mf-` containers with no rows behind them**: `launch-app`'s six, and three each of the faculty front-end's walks
+  (`class-responses`, `student-q-and-a`, `student-reading-notes`, `student-response-page`, `weekly-readings`, `f3-measure-mulp4617`) —
+  left as found (the front-end's session said none must survive); `make verify`'s INFO `mf- containers=24 networks=8 volumes=16`;
+- **THE CONTROL PLANE RUNNING** — PID 93161 on 7100, started detached (`nohup`) from Rich's `.env` by RUNBOOK's block (the plan's
+  git-ignored `.superpowers/sdd/2026-09-27-front-end-enablement/s11-cp-start.sh`, logging to `close-s11-cp.log`) on `d82b3a2`, boot line
+  **`"capableModel":"registered"`, `"capableFallback":"set"`**, `"secretsScrubbed":14`, origins console and `app`; its boot read
+  `docs/api/` with *Building a front-end* in it (a page it cannot load refuses the boot) — not read back over HTTP, which needs a
+  credential and the database was empty. **7102 and 7105 are the faculty front-end's** (pids 28239 and
+  33856 — never stop them), and **its session `manifest-app-bb` was given a ~90-minute window on 7100 from 22:16**, at Rich's word:
+  a project or two as `instructor`, a deploy to the laptop's staging, a missing-secret refusal, a `student` sign-in to a draft,
+  capable-model calls — so expect its rows and containers;
+- **LiteLLM**: six models — `default-chat-large` → `openai/gpt-6-luna` with its fallback `default-chat-onprem`; 7 users;
+  `qwen3.5:4b` loaded (warmed for the tier, 30-minute keep-alive);
+- the three cleanup scripts clean after `--apply` (allowed — `bash scripts/<name>.sh`: 7 networks, 1 volume, 2 LiteLLM orphans
+  — `mf-platform-intake` among them, so the intake month restarts — and 16 images) and bare again after: nothing dead;
+  `make doctor` 20/0/0; `make verify` 61/0/0; the GitHub fake absent; free disk 46 Gi.
 
 **Query it again at open** — `docker exec manifest-postgres psql -U manifest -d manifest_control`, `docker ps`,
 `lsof -nP -iTCP:7100 -sTCP:LISTEN` — because Rich, or the front-end's sessions, will have used it since.
@@ -1806,6 +1812,21 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 reasoning is recorded.**
 
 ### Open
+
+- **FE-35 AND FE-36 — RELAYED FROM THE FACULTY FRONT-END'S SESSION, 2026-09-28 (at sitting 11), FOR RICH TO PLACE.** From its F3
+  sitting 7's walks (manifest-app's `docs/api-findings.md`). **FE-36 — a session keeps `default-chat-large` after a commit raises the
+  project's classification to `confidential`**: an agent session's `models` are fixed when it starts (D17 read then), so a
+  `confidential` project's data can still reach the capable model — OpenAI's, outside Canada — until that session ends. A D17
+  enforcement gap, not a preference: *recommended* — end (or re-key) a project's agent sessions when a validated manifest raises its
+  classification, in the next plan, or in sitting 12 if Rich wants it before the acceptance. **FE-35 — a `confidential` project's later
+  sessions get only the small on-premise model, which could not write the app** (measured on 7100: eleven answers, nothing committed
+  in ten moves; most course apps keep students' names, so most are `confidential`). D17 is working as specified; the cost is
+  capability. **RELAYED AS RICH'S DECISION, TO CONFIRM (the front-end's session, 2026-09-28, late): option (a) — a model able to write
+  an app, approved for `confidential` data, at `max_classification: confidential`**; on the laptop `qwen3.6:35b-a3b` (22.6 GB) or
+  `qwen3.8:27b` (17.7 GB), both already in its Ollama. *Undesigned — the platform's to design once confirmed*: which model; whether it
+  is `default-chat-onprem` itself or a new on-premise name beside it (Spec action 8's fallback rule names `default-chat-onprem`); the
+  laptop's memory and C1's offline floor; whether a spec action is needed (§7's catalogue). The front-end reads `session.models` and
+  carries on on whatever is listed until it lands. FE-37 is FIXED (`c4e10cc`, Spec action 9).
 
 - **FE-28 TO FE-32 — RELAYED AS RICH'S DECISIONS, TO CONFIRM (2026-09-28); FE-26 AND FE-27 CONFIRMED BY RICH AT SITTING 10's OPEN
   (*"Both join Task 13"*) AND BUILT THERE (`18f3214`) — *Decided*.** The faculty front-end's session sent them to sitting

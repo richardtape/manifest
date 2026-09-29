@@ -59,8 +59,8 @@
 | 9a | 12a | **The capable model**: `default-chat-large`, one logical name at `internal` whose provider is `MANIFEST_CAPABLE_MODEL` (OpenAI for now), registered by the control plane at boot through LiteLLM's `/model/new` and removed when unset; an unpriced model refused; the provider's key in LiteLLM's environment alone; agent keys get it where D17 allows | **Yes** — `ai/` | **Spec action 7** — applied 2026-09-27 (`959af7f`) | **DONE 2026-09-28** — `ai/capable.ts`: `default-chat-large` → `openai/gpt-6-luna` (Rich's choice) at `internal`, registered straight after `listen` under a chosen id, PINNED at the price LiteLLM itself reported (so an offline restart of LiteLLM cannot make it free), a repoint created before the old one goes, a setting LiteLLM will not serve or cannot price refused with the working model kept; the provider key LiteLLM's alone and scrubbed from the control plane (with `MANIFEST_APP_PASSWORD` and `MANIFEST_REHEARSAL_PASSWORD`); live on Rich's key — an agent session listed it, one chat `200`, `spentUsd` read; F12 closed (the front-end's marker on 7105); one fresh whole-branch review, its three Importants fixed red-first; **Spec action 8 drafted** (the fallback) |
 | 9b | 12b | **The capable model's fallback** (Rich, 2026-09-28): a platform setting naming a CATALOGUE entry — `default-chat-onprem` recommended (Ollama on the laptop, Pickerel at UBC) — that LiteLLM's own fallback (`POST /fallback`, measured) answers `default-chat-large` with when its provider fails, the network off included; the fallback's classification enforced by the platform, because the gateway does not check a key's model list before it falls back (measured) | **Yes** — `ai/` | **Spec action 8** — drafted by sitting 9a; ✅ approved (a) and APPLIED 2026-09-28, at 9a's close | **DONE 2026-09-28** — `ai/capable.ts`'s `ensureCapableFallback`: `MANIFEST_CAPABLE_MODEL_FALLBACK` (`default-chat-onprem` by default, EMPTY none) set as `default-chat-large`'s `general` fallback with LiteLLM's own `POST /fallback` straight after the capable model — measured DB-held, surviving a LiteLLM restart and a repoint — **removed by `DELETE` whenever the capable model is absent** (the entry outlives its primary, measured), and **refused unless every deployment of the name is a classified chat entry ranked at least the capable model's** (the gateway falls back without consulting a key's list, measured again); the boot line's `capableFallback`; the admin transport's `delete`; live in the Docker tier — an unreachable primary answered by the on-premise model through a key holding only `default-chat-large`, at the fallback's price; one fresh whole-branch review, its Important (the Docker cases beside the owner's real model) fixed red-first; the contract unchanged |
 | 10 | 13 | **The console and the mock**: a screen, or a control, for every operation this plan adds; `DELIBERATELY_UNCALLED` empty again; the mock scripting the states the examples do not. **And, from the front-end's message** (Task 13's `[S6]`): **the recent-output read made sandbox-only** (FE-24's code), a refused sign-in shown a page rather than raw JSON (FE-17), and `@manifest/contract`'s `dist/` complete with its types (FE-18) | **No** — unless FE-17's page or FE-24's refusal reaches `identity/` or `observability/` (then yes) | **Spec action 6** (FE-24) — applied 2026-09-27 (`25e7445`) | **DONE 2026-09-28** — `DELIBERATELY_UNCALLED` empty again, 66 of 66: the console calls every operation this plan added (instances and sandbox-only output on Deploy; binary files previewed, downloaded and uploaded on Code, with the message checked and a commit's 1000-change stop said; name, rename, archive, restore and delete-never-launched on Project, members by CWL login name, email or PUID; agent sessions with the key shown once and the month's budget on Tokens; the intake key on Projects); **FE-24's code** (`INSTANCE_OUTPUT_STAGING`, a sibling code, decided by kind before the driver); **FE-17** (a browser refused at `/auth/*` sees a page); **FE-18** (`dist/` type-checks alone; `erasableSyntaxOnly`); **FE-26 and FE-27** (confirmed by Rich at the open: the mock trusts only its own session, refuses a Bearer where the security names the session alone, 404s ids it does not hold, answers each environment's instances and times from now, scripts its refusal states as options, starts from source); sitting 6's M2 (the signed `RelayState`); clicked against the mock and on the platform, Rich typing the sign-in and one step-up; one fresh whole-branch review, its two Importants fixed red-first; `pnpm test:docker` 246 in 41, green first run |
-| 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5); **and Task 14's `[S10]`** (sandbox-only output, FE-17's page, the mock's rules) | **No** — unless a step reaches `blueprints/` | — | ← next |
-| 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | |
+| 11 | 14 | **The guides**: *Building a front-end* (new), and *For an AI agent*, *Authoring*, *Authentication*, *Conventions* and *The journey* brought up to the API — every code block a run example. **And** (Task 14's `[S6]`): the two origins; **FE-2's rule** (the front-end's server may replay the session to `getMe` only); consuming the contract from outside the workspace (FE-18); `bodySha256`'s canonical form (FE-5); **and Task 14's `[S10]`** (sandbox-only output, FE-17's page, the mock's rules) | **No** — unless a step reaches `blueprints/` (**owed after all**: the front-end session's `c4e10cc`, FE-37, reached `blueprints/` and `releases/` while this sitting was paused) | — (**Spec action 9**, from `c4e10cc`, drafted and applied in-sitting) | **DONE 2026-09-28** — *Building a front-end* (`frontend.md`): the `app` origin and the refusal page, FE-2's rule, the agent's key, the capable model and its fallback header, the intake key, sandbox-only output and what redaction misses, images, PDFs and fonts, a name and a colleague, ending an app, `bodySha256`'s canonical form (FE-5), the contract from outside the workspace (FE-18), the mock's rules (FE-26/27); *For an AI agent*, *Authoring*, *Authentication*, *Conventions* (four rules the plan needed and no page stated), *Getting started* and the index brought up to the API; SIX new run examples (the person's own actions as BROWSER code — the review's Critical); the slug called a slug in published text, `CSRF_ORIGIN_REFUSED` for two origins, no `FE-n` in public text (each a gate); one fresh whole-branch review, its Critical and three Importants fixed red-first; **Spec action 9 approved and applied** (`d82b3a2`) |
+| 12 | 15 | **The acceptance**: `make demo-frontend` — a front-end's server on the `app` origin drives all of it — in `make ci-acceptance` and as the offline acceptance's step 15, green three times; every other demo; **and a clicked half**. **Alone, and last** | **Yes** if any code changes | — | ← next |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -3137,6 +3137,24 @@ a fallback is router-wide there, one of the reasons ORIENTATION §8's *Open* que
 with the network off — true, and now also what answers the capable model's name offline) and `manifest-decisions.html` if it restates
 D17's list.
 
+### 9. §8 — `SAML_PRIVATE_KEY_PATH` is required in every environment, the sandbox's included (the faculty front-end's FE-37) — DRAFTED 2026-09-28 BY SITTING 11; ✅ **APPROVED BY RICH AS DRAFTED, OPTION (a), AND APPLIED THE SAME EVENING (`d82b3a2`)**
+
+**Why.** While sitting 11 was paused, the faculty front-end's session made one change here at Rich's word — `c4e10cc`, its FE-37:
+no app on a draft address could sign in, because every app's row in the Manifest IdP requires a signed AuthnRequest
+(`renderSpMetadata`'s `'validate.authnrequest': true`, every environment) while a sandbox app was given no key to sign with
+(`spec/injection.ts` rendered `SAML_PRIVATE_KEY_PATH`, and `releases/release.ts` placed the key file, only outside the sandbox), so the
+IdP answered `500` *"no signature found on message"*. The code now gives every environment the key; the approved spec's §8 row still
+said *staging, production* and *"Optional in sandbox"*. §9 already mints a keypair **per app and environment**, and says requiring
+signed AuthnRequests *"costs nothing"*.
+
+**The edit (§8's row, whole):** *"| `SAML_PRIVATE_KEY_PATH` | mounted path to the **SP's own** private key, used to sign
+AuthnRequests and decrypt assertions. Required in every environment: the Manifest IdP requires every app's AuthnRequest signed, the
+sandbox's included — a per-app keypair makes that cost nothing (§9) — and real UBC encrypts assertions. | all |"*
+
+**Options put to Rich:** **(a) as drafted — chosen**; (b) keep the spec and revert the code, letting sandbox rows accept an unsigned
+AuthnRequest (weaker: a sandbox sign-in becomes forgeable, and it undoes a fix he had just clicked working); not now (the row left out
+of step, carried). **Shared pages:** none restates the row (grepped); no other spec line assumed a keyless sandbox (grepped).
+
 ## What the self-review caught
 
 *Run against the spec and the code with fresh eyes after the plan was written, as `superpowers:writing-plans` prescribes, and by checking claims rather than re-reading prose (ORIENTATION §6). Each is fixed where it was found.*
@@ -4861,3 +4879,168 @@ alone (29 of 29, at load 12–17), so load, not a leak (§4's trap) — 854 s; *
 - both Ollama models unloaded (`/api/ps` empty); the GitHub fake absent; the edge restarted by the Docker tier;
 - the three cleanup scripts clean after `--apply` (allowed — `bash scripts/<name>.sh`) and bare again after: nothing dead, 0 app images;
   `make verify`'s INFO `mf- containers=9 networks=3 volumes=6`; `make doctor` 20/0/0; free disk 52 Gi (54 at open).
+
+### Sitting 11 — 2026-09-28: Task 14, the guides — with Spec action 9 (the faculty front-end's FE-37)
+
+**Run from ORIENTATION §7e** at Rich's *"read … ORIENTATION.md and proceed with the next sitting"*, with the faculty front-end's
+session beside it — `manifest-app-c4`, then (after Rich's break) `manifest-app-2b` and `manifest-app-bb`, each a handover — messaged
+first, and at every commit touching `packages/contract` or `packages/mock`. **Paused mid-sitting** (Rich: *"I need to close the laptop
+now"*) after the whole-branch review came back, with the tree clean and the ledger naming where to resume; **while it was paused the
+front-end's session made ONE change here at Rich's word** — `c4e10cc`, FE-37: every environment's app is given its SP key (below).
+Inline execution (`superpowers:executing-plans`) on `main`; one fresh whole-branch reviewer (Opus, read-only, told never to run a
+test). Commits: `8ef685d` (the slug and CSRF wording), `08df532` (no `FE-n` in public text), `e90de38` (the guides and examples),
+`c90f571` (the review's fix pass), `d82b3a2` (Spec action 9), and the close-out.
+
+**What it built.** **`docs/api/frontend.md` — *Building a front-end*** (new): the `app` origin (the edge's split of `/v1` and `/auth`
+from the front-end's own paths), sign-in, step-up and sign-out on either origin, a session its own origin's, `CSRF_ORIGIN_REFUSED`
+either way, the refusal page; **the two credentials and FE-2's rule** (a front-end's server may replay the person's cookie to `getMe`
+and for nothing else — *the rule is the control*); the agent's key (`agent:session`, answered once, capped, D17's models read from
+`models`, the capable model and the fallback header, spend never `$0` for unknown, every refusal code); the intake key; a running
+app's output (`output:read`, SANDBOX ONLY, the bounds, what redaction misses); images, PDFs and fonts (the ten kinds, text never as
+bytes, the scan's blind spots); a name and a colleague; archive, restore and delete (who may, step-up, `PROJECT_TEARDOWN_INCOMPLETE`
+finished by the same request, a token of a switched-off app `401`); `bodySha256`'s canonical form (FE-5); `@manifest/contract` from
+outside the workspace, and a token never given to a browser client (FE-18); the mock's rules (FE-26/27); what the platform leaves to a
+front-end. **Every other guide the surface touches**: *For an AI agent* (the model key, reading what the app printed — its *"not
+available yet"* gone — the knowledge pack's `express.urlencoded`, the new refusals, a switched-off app's `401`), *Authoring* (bytes as
+well as text, the commit message rule, `getCommit`'s 1000, a file and a directory at one path, the scan's blind spots), *Authentication*
+(two origins, the refusal page, archive and delete among step-up and session-only), *Conventions* (below), *Getting started* (the slug
+and a name) and the index. **Six new run examples** — `example-output`, `-agent-session`, `-intake`, `-binary`, `-archive`,
+`-body-hash` — and `example-read`'s comment, each inlined by `pnpm docs:write`, type-checked, and run against `manifest-mock` by
+`examples.test.ts` (20 cases), with in-test stand-ins for what the mock cannot play (a model gateway, step-up, a teardown that stops, a
+confidential project's models). **Published wording**: the slug called a slug everywhere it was called *"the name"* (`checkSlug`, the
+`SLUG_*` codes, `project.created`, the fleet, two remedies); `CSRF_ORIGIN_REFUSED` for two origins; `InstanceOutput.environmentKind`
+without an internal id — each held by a gate. **Spec action 9** (§8's `SAML_PRIVATE_KEY_PATH` row, `all`) drafted from `c4e10cc`,
+approved by Rich as drafted and applied (`d82b3a2`). Contract still **`1.4.0`**, 66 operations, 127 codes — text only.
+
+**Rulings** (the ledger's `Task 14:` and `Final: Ruling:` lines, each with its cost if wrong):
+- **Two examples beyond the plan's four**, `example-intake` ([S7]) and `example-body-hash` (FE-5) — the latter pinned to the same three
+  vectors as the platform's own `tokens/pending.test.ts`, so the published form cannot drift from `tokens/pending.ts`.
+- **Stand-ins inside `examples.test.ts`** for what the mock cannot play, never new mock options (the mock keeps no state and plays no
+  step-up, by decision) — so those branches are proved against a stand-in's words; the platform's own route tests hold them.
+- **`getting-started.md` changed** though not in the Files list — its step 1 called the slug *"its name"*.
+- **The *"in the console"* remedies** (`TOKEN_CREDENTIAL_REFUSED`, `TOKEN_PERSON_ONLY`, `TOKEN_ACTION_PENDING`, `pending_action.created`)
+  **left** — incomplete for `app`'s users, not false. Carried.
+- **The fleet's missing `name`** (sitting 5's minor 5, handed to Task 13 and not built there) **not built here** — an additive field in
+  `projects/fleet.ts` and a console screen, not a guide. Carried.
+- **Rich chose to let his `student-q-and-a` go** with the tiers' truncation (asked before the unit tier; the front-end's session had
+  said nothing of its own on 7100 must survive).
+- **The review's re-grade**: C1, I1, I2, I3 stand; M1, M2, M4, M5 and M6 — this sitting's own false or unsafe published text —
+  re-graded and corrected in the pass; M3, M7, M8 deferred; the declined lines stand (below).
+
+**Findings** (each with the measurement that found it):
+
+1. **F1 Sitting 5's deferred minor 5 was still live**: the SLUG called *"the project's name"* in eight published places
+   (`checkSlug`'s summary and answers, `project.created`'s `slug`, the fleet's `slug`, two remedies) — handed to this task. A document
+   gate and `checkSlug`'s own answers, RED first (8 hits; *"'Chem_Labs' cannot be a project name"*).
+2. **F2 `CSRF_ORIGIN_REFUSED`'s summary and remedy still said *"the console's origin"*** after sitting 6 made two origins sign people
+   in — the same gate.
+3. **F3 `InstanceOutput.environmentKind`'s published description said *"since FE-24's code"*** — an id only this team can resolve —
+   and the public-text gates knew `F\d`, not `FE-n` or *"Spec action n"*. Both gates extended; RED on exactly that sentence.
+4. **F4 The body-hash example's first run was RED**: `questionAbout` returned the CONFIRMED question for a request whose new question
+   was pending — an answered ask and a new one share method, path and hash. The example finds only a WAITING question.
+5. **F5 Step 2's prediction *"conventions.md: nothing new in the rules"* was WRONG — four rules this plan needed that no page
+   stated**: THREE answers carrying a credential are answered once (`mintToken`, `startAgentSession`, `startIntakeSession`), not
+   *"the one exception"*; a refused request is not remembered, so the same key may be re-sent (the teardown retry depends on it —
+   `replayOrStore` stores nothing when the handler throws); bounded lists answer `truncated` beside cursor paging; and the bodyless
+   list named two `DELETE`s where the document has six, and no `POST` where it has three (`startIntakeSession`, `runRehearsal`,
+   `createApprovalPreview`) — measured against 7100: a bodyless `POST` with `content-type: application/json` is `400 REQUEST_INVALID`
+   before authentication, without it `401`.
+6. **F6 `frontend.md`'s first draft said an agent session ends when its key expires and `agent_session.ended` says which** — an expired
+   session's `state` reads `expired`, and no event is published for expiry. Corrected before commit.
+7. **F7 `frontend.md`'s first draft claimed a test that passes against the mock passes against the platform** — false of a stateless
+   mock with no step-up and no `Origin` check. Corrected before commit.
+8. **F8 The plan's Files list missed `packages/journey/src/docs-html.ts`** — the one-page documentation's `READING_ORDER` must place a
+   new page, and its gate was RED naming `frontend.md` (*"index.md links to frontend.md, which is no page here"*), as designed.
+9. **F9 (the review's C1, Critical) The two examples of a person's own actions were SERVER code**: `example-intake` and
+   `example-archive` took the session cookie's VALUE and built a client from it — exactly what the page's own FE-2 rule forbids, and
+   shape that works only off a browser (a browser client carries no credential; the cookie is `httpOnly`). Both now take the page's
+   own client; `examples.test.ts` drives them as a browser does (the cookie added by `fetch`); a docs gate refuses
+   `createManifestClient({ … session …` on that page. RED first (*"Invalid URL"* ×2; 5 hits).
+10. **F10 (the review's I1) A `confidential` project's agent key started, then the example threw, leaving a live key nobody held for an
+    hour** — its `models` hold only `default-chat-onprem*`, which the example never chose, and it chose AFTER the start. It now takes
+    the on-premise model and ENDS a session with no chat model. RED first (*"no chat model among default-chat-onprem,
+    default-chat-onprem-reasoning"*).
+11. **F11 (the review's I2) No page named the capabilities an agent's token needs** — `agent:session` (`startAgentSession`) and
+    `output:read` (`getInstanceOutput`), in no guide, no reference page and no description; following the guides gives `403
+    FORBIDDEN`, and the mock's any-Bearer kept every example green. Both guides name them; a docs gate, RED first.
+12. **F12 (the review's I3) The slug fix missed the slug's own refusals** — `SLUG_INVALID`, `SLUG_RESERVED`, `SLUG_TAKEN`, the
+    reserved hint, `SlugCheck.slug` — whose *"the name is taken"* sends a person to edit the wrong field beside a name that need not be
+    unique. A gate over every `SLUG_*` code and the slug check, and a reserved case; RED first (8 hits).
+13. **F13 (the review's M1, re-graded) *For an AI agent* said an agent of a switched-off app sees `409 PROJECT_ARCHIVED`** — a token of
+    a project that is not active is no credential at all (`tokens/actor.ts:50`): `401`, and the guide then told it to ask for a token
+    that cannot be minted on an archived project. Corrected in both guides.
+14. **F14 (M2, re-graded) The examples showed a person `ManifestApiError.message`** — *"startIntakeSession failed with 409
+    INTAKE_DAILY_LIMIT_REACHED: …"* — where the guide says *"say so plainly"*; now the envelope's own sentence, asserted exactly.
+15. **F15 (M6, re-graded) *"In a browser the client sends no cookie"* omitted that a TOKEN given to a browser client is silently
+    dropped**, so the request goes out on the person's full session — the page now says never give a browser client a token.
+16. **F16 (M4, re-graded) *"Newest first"* for `listInstances`** — it is the one SEEN most recently first; *go by `serving`*.
+17. **F17 (M5, re-graded) Redaction's misses omitted the app's own secrets under six characters** (`MIN_SECRET_LENGTH`).
+18. **F18 The fix pass's heads-up to the front-end's session went to `manifest-app-2b` as it handed over** — in the same tool round as the
+    commit, so `c90f571` landed before any heads-up arrived; re-sent to `manifest-app-bb` at once, saying so. **`ListAgents` immediately
+    before each promised message** (TRAPS.md).
+19. **F19 `c4e10cc` (FE-37) left the approved spec's §8 row out of step with the code** — its own note said so and left it for this
+    session: Spec action 9, drafted, approved as drafted by Rich, applied (`d82b3a2`). And it owed both tiers, run at this close.
+20. **F20 (measured by the front-end's session, reported here) A truncation leaves `.manifest/repos/` behind**, so `checkSlug` calls a
+    slug free while `createProject` answers `409 SOURCE_CONFLICT` — its seed push meets the old `main` (Rich's click met it; fifteen
+    leftovers listed, `launch-app` and `journey-app` among them). Not this sitting's to fix; carried (TRAPS.md, and §7e).
+21. **F21 (the post-sweep check) *"Seven run examples"* in four documents, where the directory holds SIX new ones** — the ledger's
+    ruling called the second extra example *"a SEVENTH"* (the plan's four, plus intake, plus the body hash, is six), and `e90de38`'s
+    message repeats it; found by counting the files (`git diff --stat 5a952f5..HEAD -- packages/journey/src/`). Corrected in the
+    documents; the commit message stands as history.
+22. **F22 (the post-sweep check) §7e's front-end paragraph said its session *"will ask Rich and message you before using 7100"*** — an
+    hour after that session had been GIVEN a window on 7100 (22:16) by this sitting; found by reading §7e against the machine block
+    beneath it. Rewritten: ask it whether it is done with 7100 before any tier.
+
+**Negative controls** (Step 5, predicted in writing first — `s11-predictions-controls.md`; each restored by `git checkout`, tree clean
+after each): **(a)** `getAgentBudget` → `getAgentBudgets` in `frontend.md`'s prose → the names gate RED naming it, the drift test green —
+as predicted; **(b)** `reference/errors.md`'s title hand-edited → the drift gate RED naming it — as predicted; **(c)**
+`example-agent-session.ts` reading `key` from `listAgentSessions` → `tsc` RED, TS2339 *"Property 'key' does not exist"* on
+`AgentSession` — as predicted, the property the guide depends on; **(d)** `tokens/pending.ts`'s canonical form without its sort →
+`pending.test.ts` RED on both the order case and the published vectors — as predicted; **(e)** *"(FE-2)"* in `frontend.md`'s prose →
+the public-text gate RED naming the line — as predicted; **(f)** the intake case's `ran.add` removed → *"ran every example file"* RED
+naming `example-intake` — as predicted. **The fix pass's own REDs**: C1 (*"Invalid URL"* ×2, 5 gate hits), I1, I2 (4 missing), I3 (8
+hits and the reserved hint), M2 (the exact sentence).
+
+**Deferred minors** (the ledger's `Final: minor (deferred)`): M3 `deleteForGood` retries at once and makes its key inside, so a caller
+retrying after a NETWORK error cannot reuse it; M7 `example-binary` is Node-only both ways (`Buffer`) while its comment tells a browser
+how to encode; M8 *"each session says why"* — a delete ends sessions through its archive (`project_archived`), and nothing sets
+`project_deleted`. **Declined lines, standing and carried**: `bodySha256` hashes the SCHEMA-PARSED body (`api/contract/route.ts`) —
+equal to the sent JSON for today's strict privileged bodies, and would diverge if one gained a default; `MintTokenRequest.capabilities`'
+description omits `project:delete` among the refused; an all-ASCII PDF is refused as text because the text test runs before kind
+detection (`api/representations/source.ts`) — it can be written as text.
+
+**The faculty front-end's findings of tonight, relayed for Rich** (manifest-app's `docs/api-findings.md`): FE-35 — a confidential
+project's later sessions get only the small on-premise model, which could not write the app; FE-36 — a session keeps
+`default-chat-large` after a commit raises the classification to `confidential`; FE-37 — fixed (`c4e10cc`, Spec action 9).
+
+**Gates at the close** (the final tree, `d82b3a2`): `pnpm test` **2786 passed, 0 skipped, in 179 files — twice, identical** (725 s and
+719 s, alone, at load ~3–7) — **exactly as predicted** (`close-s11-predictions.md`: 2771 + examples 8 + journey docs gates 2 + document
+gates 2 + slug cases 2 + one pinned vector; `c4e10cc` replaced one case with one in each of its two files); `pnpm test:docker` **246 in
+41**, green FIRST run, alone, 1151 s — owed by `c4e10cc`'s `releases/` and `blueprints/` change, exactly as predicted (no Docker file
+changed; none asserts a keyless sandbox, grepped); `make doctor` **20 / 0 / 0**; `make verify` **61 / 0 / 0**; `pnpm typecheck`, `pnpm
+lint` and `pnpm format:check` clean. `scripts/ci-acceptance.sh` reads `2786 / 179 / 20 / 61`.
+
+**The machine at the close** (queried at 22:15, not remembered):
+
+- the control database **EMPTY — 0 projects, 0 events, 0 users, 0 instances, 0 agent sessions, 0 intake sessions, 39 migrations**
+  (`psql`, 22:15) — the Docker tier truncated last; Rich let his `student-q-and-a` go with it (asked first);
+- **24 `mf-` containers with no rows behind them**: `launch-app`'s six, and three each of the faculty front-end's walks
+  (`class-responses`, `student-q-and-a`, `student-reading-notes`, `student-response-page`, `weekly-readings`, `f3-measure-mulp4617`) —
+  left as found (the front-end's session said none must survive); `make verify`'s INFO `mf- containers=24 networks=8 volumes=16`;
+- **THE CONTROL PLANE RUNNING** — PID 93161 on 7100, started detached (`nohup`) from Rich's `.env` by RUNBOOK's block (the plan's
+  git-ignored `.superpowers/sdd/2026-09-27-front-end-enablement/s11-cp-start.sh`, logging to `close-s11-cp.log`) on `d82b3a2`, boot line
+  **`"capableModel":"registered"`, `"capableFallback":"set"`**, `"secretsScrubbed":14`, origins console and `app`; its boot read
+  `docs/api/` with *Building a front-end* in it (a page it cannot load refuses the boot) — not read back over HTTP, which needs a
+  credential and the database was empty. **7102 and 7105 are the faculty front-end's** (pids 28239 and
+  33856 — never stop them), and **its session `manifest-app-bb` was given a ~90-minute window on 7100 from 22:16**, at Rich's word:
+  a project or two as `instructor`, a deploy to the laptop's staging, a missing-secret refusal, a `student` sign-in to a draft,
+  capable-model calls — so expect its rows and containers;
+- **LiteLLM**: six models — `default-chat-large` → `openai/gpt-6-luna` with its fallback `default-chat-onprem`; 7 users;
+  `qwen3.5:4b` loaded (warmed for the tier, 30-minute keep-alive);
+- the three cleanup scripts clean after `--apply` (allowed — `bash scripts/<name>.sh`: 7 networks, 1 volume, 2 LiteLLM orphans
+  — `mf-platform-intake` among them, so the intake month restarts — and 16 images) and bare again after: nothing dead;
+  `make doctor` 20/0/0; `make verify` 61/0/0; the GitHub fake absent; free disk 46 Gi.
+
+**The four shared HTML pages, checked**: none restates §8's `SAML_PRIVATE_KEY_PATH` row, the sandbox's signing, the guides or a
+sitting's status (grepped for each; `manifest-decisions.html`'s *three sign-in worlds* and `manifest-schematic.html`'s sandbox
+sign-in passages stay true) — unchanged.

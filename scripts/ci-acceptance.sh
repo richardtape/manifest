@@ -149,7 +149,7 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # (17, new), `contract/src/dist.test.ts` (2, new), `api/auth-page.test.ts` (5, new), `console/src/ending-state.test.ts`
 # (4, new), `console/src/code-state.test.ts` (5), `console/src/api.test.ts` (1), `api/instances.test.ts` (1),
 # `api/logout.test.ts` (1), and the matrix's staging-output row (9).
-EXPECT_TESTS=2771
+EXPECT_TESTS=2786
 EXPECT_FILES=179
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=61
