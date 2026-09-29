@@ -1412,6 +1412,9 @@ it belongs among the traps the next sitting is most likely to hit.
   *a release freezes its BUILD's spec* — and with NO extra `[retire]` line, because Postgres chose the `TRUNCATE` as the deadlock
   victim, so the pass itself succeeded.** The tell is then only `deadlock detected` at `db/testing.ts`'s `resetDatabase`. Most of
   `delivery.test.ts` calls `app.close()` without draining the retirer; the central fix is the next plan's.
+  **Fixed centrally by the launch path plan's Task 3: `registerBackgroundWork` / `drainBackgroundWork` in
+  `packages/control-plane/src/db/testing.ts` — `testDeps` registers its retirer's and build runner's `idle`, and
+  `resetDatabase` drains them (and forgets them) before it truncates; 8 runs of `delivery.test.ts` read 1 red before and 0 after.**
 - **A FIELD LEFT OUT OF A REPRESENTATION IS STRIPPED, SILENTLY, FROM EVERY ANSWER** (P6b sitting 4, F8).
   Representations are plain `z.object`s, and zod strips a key the schema does not name — so the read and
   the `409` both lose it, a byte-identical comparison of the two stays GREEN, and `tsc` is silent, because an
