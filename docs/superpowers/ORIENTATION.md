@@ -1728,15 +1728,15 @@ was paused: every environment's app is given its SP key, so an app on a draft ad
 operations, 127 codes — text only.
 
 **ASK RICH IN THE FIRST MESSAGE:**
-1. **`make refresh-vulndb` (network on — his) — due after 2026-10-01**, and Task 15 NEEDS it fresh: `make ci-acceptance`'s
+1. **`make refresh-vulndb` (network on — his) — due after 2026-10-01; Rich said at sitting 11's close he will run it before then —
+   CONFIRM it ran** (`make doctor`'s staleness line names the build date), because Task 15 NEEDS it fresh: `make ci-acceptance`'s
    `make demo-production` and `make demo-releases`, and step 9's `launch-app` refusal (a delete refused because it launched). Past the
    date, §13's `scans` item refuses every production launch.
 2. **The clicked half's time** (Step 4) — he types every password; stage everything first and ask once (the memory *clicked-half
    passwords are Rich's*).
-3. **FE-35 and FE-36, relayed from the front-end's session** (§8 *Open*) — FE-36 (a session keeps `default-chat-large` after a commit
-   raises the classification to `confidential`) is a D17 enforcement gap; **FE-35 was relayed as his decision (a) — a model able to
-   write an app, approved for `confidential`** — confirm it in his own words, and ask where each goes: this plan's close, or the next
-   plan. Neither is Task 15's.
+3. **FE-35 and FE-36** (§8 *Open*) — **Rich answered in his own words at sitting 11's close**: larger models may BUILD a
+   `confidential` app; the app's own AI must be on-prem. Whether that is (A), (B) or (C) there — and the spec action (A) needs — may
+   still be awaited: read §8's entry, and ask only what it leaves open. Neither is Task 15's.
 
 **WHAT TASK 15's TEXT DOES NOT SAY** (each opened at sitting 11's close — re-verify before relying on it):
 - **Recent output is SANDBOX-ONLY since sitting 10 (FE-24's code)** — Task 15's step 5–6 and Step 4's clicked half read a STAGING
@@ -1827,6 +1827,15 @@ reasoning is recorded.**
   is `default-chat-onprem` itself or a new on-premise name beside it (Spec action 8's fallback rule names `default-chat-onprem`); the
   laptop's memory and C1's offline floor; whether a spec action is needed (§7's catalogue). The front-end reads `session.models` and
   carries on on whatever is listed until it lands. FE-37 is FIXED (`c4e10cc`, Spec action 9).
+  **RICH, TO THE PLATFORM SESSION, 2026-09-28 at sitting 11's close — his own words:** *"when it becomes confidential we need to
+  switch to the on-prem models. It's okay to use the larger models to BUILD the app, but if the app needs AI, then we should switch to
+  use the on-prem model for the AI within the created app."* Read as: the BUILDING agent may use the capable (off-prem) model on a
+  `confidential` project, and the app's OWN AI (`ai.models`) must be on-prem — which validation and deploy already enforce. That would
+  settle FE-35 without an on-prem capable model and make FE-36 no gap for the builder, but it changes Spec action 1's *"on the models
+  the project's data classification allows (D17)"* for agent keys — **a spec action**. Put to him as (A) his words, (B) the relayed
+  on-prem capable model, (C) A now and B when UBC hosts one; **his answer is awaited**. The risk named with (A): an off-prem builder
+  can read staging and production Incident log tails (redaction misses names and student numbers) — *recommended*, refuse those to a
+  `confidential` project's off-prem agent session.
 
 - **FE-28 TO FE-32 — RELAYED AS RICH'S DECISIONS, TO CONFIRM (2026-09-28); FE-26 AND FE-27 CONFIRMED BY RICH AT SITTING 10's OPEN
   (*"Both join Task 13"*) AND BUILT THERE (`18f3214`) — *Decided*.** The faculty front-end's session sent them to sitting
