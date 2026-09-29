@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { instances } from '../db/index.js'
+import { appSpecs, instances } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
@@ -111,6 +111,12 @@ const STEP_UP = { status: 403, code: 'STEP_UP_REQUIRED' } as const
 const PRODUCTION_OUTPUT = { status: 403, code: 'INSTANCE_OUTPUT_PRODUCTION' } as const
 /** …and staging's, since FE-24's code (sitting 10; §14 as Spec action 6 left it), by its own code. */
 const STAGING_OUTPUT = { status: 403, code: 'INSTANCE_OUTPUT_STAGING' } as const
+/**
+ * The safeguard (§7 as Spec action 10 amended it; the front-end enablement plan's Task 14a): a
+ * confidential project's staging and production Incidents are refused a TOKEN, by its own code, while
+ * its building agent may use the capable model — the harness's default setting.
+ */
+const CONFIDENTIAL_INCIDENTS = { status: 403, code: 'INCIDENT_LOG_CONFIDENTIAL' } as const
 
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
@@ -228,6 +234,12 @@ interface Fixture {
    * another's archive.
    */
   throwaway: () => Promise<string>
+  /**
+   * Makes the fixture project `confidential` — a newer VALID manifest saying so, written once, which is
+   * what `classificationFloor` reads (the front-end enablement plan's Task 14a). ONLY the last row calls
+   * it: every row before it answers for an `internal` project.
+   */
+  makeConfidential: () => Promise<void>
   /**
    * One instance in SANDBOX and one in production, written directly (the front-end enablement
    * plan's Task 3) — what the output rows are aimed at. Both rows read `failed`, so neither
@@ -2029,6 +2041,35 @@ const ROUTES: RouteCase[] = [
       'token-privileged': { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
     },
   },
+  /**
+   * THE SAFEGUARD (§7 as Spec action 10 amended it; the front-end enablement plan's Task 14a) — LAST IN
+   * THIS TABLE, AND THE ORDER IS LOAD-BEARING: its request makes the fixture project CONFIDENTIAL, which
+   * no row before it may see (the agent-session rows would otherwise read another list, and the Incident
+   * row above another answer). The same route as that row, on the same staging environment: the
+   * PEOPLE still read it; a token holding `project:read` — `token-capable`, `token-privileged` — is refused
+   * by the safeguard's own code, decided after the capability and the scope, so `token-incapable` and
+   * `token-other-project` keep theirs.
+   */
+  {
+    method: 'GET',
+    url: '/v1/environments/:environmentId/incidents',
+    label: 'a confidential project, while its builder may use the capable model',
+    request: async (f) => {
+      await f.makeConfidential()
+      return { url: `/v1/environments/${f.environmentId.staging}/incidents` }
+    },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': CONFIDENTIAL_INCIDENTS,
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': CONFIDENTIAL_INCIDENTS,
+    },
+  },
 ]
 
 export function describeAuthorizationContract(
@@ -2287,6 +2328,8 @@ export function describeAuthorizationContract(
       const removable = await ensureTestUser(deps.db, 'platform_admin')
       await addMember(deps.db, body.id, removable.id, 'collaborator')
 
+      // Written once, by the last row's first case (Task 14a).
+      let madeConfidential = false
       fixture = {
         projectId: body.id,
         otherProjectId,
@@ -2301,6 +2344,18 @@ export function describeAuthorizationContract(
         commitSha: body.spec.commitSha,
         mainHead: () =>
           deps.source.resolveRef(deps.source.repositoryFor('authz-fixture'), 'main'),
+        makeConfidential: async () => {
+          if (madeConfidential) return
+          madeConfidential = true
+          await deps.db.insert(appSpecs).values({
+            projectId: body.id,
+            commitSha: body.spec.commitSha,
+            parsed: { data: { classification: 'confidential' } },
+            schemaVersion: 1,
+            valid: true,
+            createdAt: new Date(Date.now() + 1000),
+          })
+        },
         throwaway: async () => {
           const created = await app.inject({
             method: 'POST',

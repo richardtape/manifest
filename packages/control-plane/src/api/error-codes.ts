@@ -612,6 +612,17 @@ export const ERROR_CODES = {
     remedy:
       'Read a sandbox instance’s output instead — deploy the same release there (`deploy`) to see what it prints — or a failed staging instance’s Incident (`listIncidents`), whose log tail is the only window onto staging.',
   },
+  // The safeguard (§7 as Spec action 10 amended it; the front-end enablement plan's Task 14a): an
+  // Incident's log tail is an app's output, and a confidential project's staging and production ones
+  // can carry the input of the people the classification protects.
+  INCIDENT_LOG_CONFIDENTIAL: {
+    status: 403,
+    families: ['OutputError'],
+    summary:
+      'A confidential project’s staging and production Incidents are not answered to a delegated token while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of the real people the classification protects, and redaction does not remove names or student numbers.',
+    remedy:
+      'Read the sandbox’s Incidents instead — its users are test users — or ask the person you work for to read this environment’s Incidents in their own session and tell you what failed.',
+  },
   INSTANCE_OUTPUT_UNAVAILABLE: {
     status: 409,
     families: ['OutputError'],

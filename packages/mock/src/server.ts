@@ -71,6 +71,13 @@ export interface MockOptions {
    * — describing a new app is paused, `409 INTAKE_DAILY_LIMIT_REACHED` or `INTAKE_BUDGET_EXHAUSTED`.
    */
   launched?: boolean
+  /**
+   * `MANIFEST_MOCK_CONFIDENTIAL=1` (the front-end enablement plan's Task 14a): `mock-app`'s data is
+   * `confidential` and the platform lets its building agent use the capable model (§7, Spec action
+   * 10) — so a token is refused staging's and production's Incidents, `403 INCIDENT_LOG_CONFIDENTIAL`,
+   * and every agent session holds the on-premise models and `default-chat-large`.
+   */
+  confidential?: boolean
   agentBudget?: 'ok' | 'exhausted' | 'unavailable'
   intake?: 'open' | 'daily-limit' | 'budget-spent'
   /** §12's silent scan window; shortened by a test that must not wait ten seconds. */
@@ -283,13 +290,26 @@ const ANSWERS: Record<string, Answerer> = {
   // the same fixture for every id put a staging incident under `sandbox`, which reads as a
   // failed deploy of an environment that has never been deployed — measured in a browser
   // on 2026-09-19.
-  listIncidents: (ctx) =>
-    ok(
+  //
+  // AND, SCRIPTED CONFIDENTIAL (Task 14a), a token is refused staging's and production's — the
+  // platform's rule and words, decided before anything is read; a session and the sandbox are answered.
+  listIncidents: (ctx) => {
+    const env = ctx.params.environmentId
+    if (
+      ctx.options.confidential &&
+      ctx.credential === 'token' &&
+      (env === f.STAGING_ID || env === f.PRODUCTION_ID)
+    )
+      throw new MockRefusal(
+        403,
+        'INCIDENT_LOG_CONFIDENTIAL',
+        `the ${env === f.STAGING_ID ? 'staging' : 'production'} Incidents of a confidential project are not answered to a delegated token while its building agent may use the capable model (§7); a person reads them in their own session`,
+      )
+    return ok(
       'IncidentList',
-      ctx.params.environmentId === f.STAGING_ID
-        ? f.INCIDENTS
-        : { environmentId: ctx.params.environmentId ?? '', incidents: [] },
-    ),
+      env === f.STAGING_ID ? f.INCIDENTS : { environmentId: env ?? '', incidents: [] },
+    )
+  },
   // §26's fleet is administrators only, and a non-administrator is `403`, not `404`: there
   // is no tenant's resource to hide (P5a Task 16).
   listFleet: (ctx) => {
@@ -465,6 +485,7 @@ const ANSWERS: Record<string, Answerer> = {
     return created('AgentSessionStarted', {
       session: f.agentSession(ctx.now, {
         id: f.AGENT_SESSION_ID,
+        models: f.agentModels(ctx.options.confidential),
         name: body.name ?? 'an agent session',
         capUsd: body.capUsd ?? 2,
         via:
@@ -485,6 +506,7 @@ const ANSWERS: Record<string, Answerer> = {
       f.agentSessions(
         ctx.now,
         ctx.options.agentBudget === 'unavailable' ? 'unavailable' : 'known',
+        ctx.options.confidential,
       ),
     ),
   endAgentSession: (ctx) => {
@@ -865,6 +887,7 @@ export function createMockServer(options: MockOptions = {}): Server {
       options.role ?? (process.env.MANIFEST_MOCK_ROLE === 'admin' ? 'admin' : 'member'),
     fail: options.fail ?? process.env.MANIFEST_MOCK_FAIL === '1',
     launched: options.launched ?? process.env.MANIFEST_MOCK_LAUNCHED === '1',
+    confidential: options.confidential ?? process.env.MANIFEST_MOCK_CONFIDENTIAL === '1',
     agentBudget:
       options.agentBudget ??
       (process.env.MANIFEST_MOCK_AGENT_BUDGET === 'exhausted' ||

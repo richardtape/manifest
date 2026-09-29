@@ -242,6 +242,11 @@ line's `agentBuilderModels`** (the setting in force) **and `agentSessionsWithdra
 or `failed` (with ONE `[boot] the agent sessions could not be checked …` line). A session that could not be ended is named in an
 operator line and stays live until it expires or the next boot ends it; a commit is never refused for it.
 
+**The safeguard, while the setting is `capable`**: `listIncidents` for a `confidential` project's STAGING or PRODUCTION environment,
+asked with a delegated TOKEN, is refused **`403 INCIDENT_LOG_CONFIDENTIAL`** before anything is read — an Incident's log tail can
+carry the input of the people the classification protects, and redaction does not remove names or student numbers. A person's
+session still reads it, and every token reads the sandbox's. Under `on-premise` a token reads them as before.
+
 ## The four verbs
 
 | | |
@@ -416,6 +421,7 @@ an instance (and keeps an earlier failed one), staging runs one, production none
 | `MANIFEST_MOCK_FAIL` | unset | `1` plays the deploy's other ending: `instance.failed` + `incident.opened` |
 | `MANIFEST_MOCK_LAUNCHED` | unset | `1`: `mock-app` has been to production — `launchedAt` set, and a delete is `409 PROJECT_LAUNCHED_NOT_DELETABLE` |
 | `MANIFEST_MOCK_AGENT_BUDGET` | `ok` | `exhausted`: the month is spent — a session start is `409 AGENT_BUDGET_EXHAUSTED`; `unavailable`: the gateway does not answer — every spend reads `null` with its reason, and a session start is `503 AI_BACKEND_UNAVAILABLE`, as the platform's is |
+| `MANIFEST_MOCK_CONFIDENTIAL` | unset | `1`: `mock-app`'s data is `confidential` and its building agent may use the capable model — a TOKEN is refused staging's and production's Incidents, `403 INCIDENT_LOG_CONFIDENTIAL` (a session and the sandbox are answered), and every agent session holds `default-chat-onprem`, `default-chat-onprem-reasoning` and `default-chat-large` |
 | `MANIFEST_MOCK_INTAKE` | `open` | `daily-limit` or `budget-spent`: describing a new app is paused — `409 INTAKE_DAILY_LIMIT_REACHED` or `INTAKE_BUDGET_EXHAUSTED` |
 | `MANIFEST_MOCK_SCAN_MS` | `10000` | §12's silent scan window (below). Shorten it in a test |
 

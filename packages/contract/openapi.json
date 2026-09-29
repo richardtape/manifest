@@ -877,7 +877,7 @@
           "delivery"
         ],
         "summary": "An environment’s incidents",
-        "description": "§14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt.",
+        "description": "§14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt. **A delegated token is refused a `confidential` project’s staging and production Incidents** (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of real people. A person’s session reads them, and every token reads the sandbox’s.",
         "parameters": [
           {
             "name": "environmentId",
@@ -920,7 +920,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INCIDENT_LOG_CONFIDENTIAL, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -931,6 +931,7 @@
           }
         },
         "x-manifest-error-codes": [
+          "INCIDENT_LOG_CONFIDENTIAL",
           "INTERNAL",
           "NOT_FOUND",
           "RATE_LIMITED",
@@ -9256,6 +9257,7 @@
           "FORBIDDEN",
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
+          "INCIDENT_LOG_CONFIDENTIAL",
           "INSTANCE_OUTPUT_PRODUCTION",
           "INSTANCE_OUTPUT_STAGING",
           "INSTANCE_OUTPUT_UNAVAILABLE",
@@ -9385,6 +9387,7 @@
           "FORBIDDEN": "A member of the project whose role does not hold this capability.",
           "IDEMPOTENCY_KEY_REQUIRED": "A mutation arrived without an Idempotency-Key of at least 8 characters (D23.6).",
           "IDEMPOTENCY_KEY_REUSED": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
+          "INCIDENT_LOG_CONFIDENTIAL": "A confidential project’s staging and production Incidents are not answered to a delegated token while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of the real people the classification protects, and redaction does not remove names or student numbers.",
           "INSTANCE_OUTPUT_PRODUCTION": "A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.",
           "INSTANCE_OUTPUT_STAGING": "A staging instance’s output is not readable (§14): staging serves real people — staging CWL holders at UBC — whose input its output can carry. Decided by the environment’s kind, so a laptop’s staging is refused too.",
           "INSTANCE_OUTPUT_UNAVAILABLE": "The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.",
@@ -17779,6 +17782,11 @@
       "status": 409,
       "summary": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
       "remedy": "Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`)."
+    },
+    "INCIDENT_LOG_CONFIDENTIAL": {
+      "status": 403,
+      "summary": "A confidential project’s staging and production Incidents are not answered to a delegated token while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of the real people the classification protects, and redaction does not remove names or student numbers.",
+      "remedy": "Read the sandbox’s Incidents instead — its users are test users — or ask the person you work for to read this environment’s Incidents in their own session and tell you what failed."
     },
     "INSTANCE_OUTPUT_PRODUCTION": {
       "status": 403,

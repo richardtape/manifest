@@ -7,14 +7,18 @@ import type { LineRedactor } from './redact.js'
  * output is never readable, because both serve real people (§14 as Spec action 6 left it; FE-24's
  * code, sitting 10), decided from the environment row before the driver is asked;
  * `INSTANCE_OUTPUT_UNAVAILABLE` (409) — the instance no longer runs, so its Incident is the place
- * to look.
+ * to look; and `INCIDENT_LOG_CONFIDENTIAL` (403) — an Incident's log tail is an app's output too, and a
+ * `confidential` project's staging and production ones are refused a delegated token while its building
+ * agent may use the capable model (§7 as Spec action 10 amended it; the front-end enablement plan's Task
+ * 14a).
  */
 export class OutputError extends Error {
   constructor(
     readonly code:
       | 'INSTANCE_OUTPUT_PRODUCTION'
       | 'INSTANCE_OUTPUT_STAGING'
-      | 'INSTANCE_OUTPUT_UNAVAILABLE',
+      | 'INSTANCE_OUTPUT_UNAVAILABLE'
+      | 'INCIDENT_LOG_CONFIDENTIAL',
     message: string,
   ) {
     super(message)

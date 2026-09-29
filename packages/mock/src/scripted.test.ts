@@ -356,6 +356,51 @@ describe('Task 13 — the states the document’s examples cannot show', () => {
     }
   })
 
+  it('refuses a token a confidential mock-app’s staging and production Incidents, and lists the confidential models, when scripted (Task 14a)', async () => {
+    const incidents = (at: string, env: string, headers: Record<string, string>) =>
+      fetch(`${at}/v1/environments/${env}/incidents`, { headers })
+    // The positive control: mock-app as it always was — a token reads staging's Incident.
+    const plain = await serve()
+    const read = await incidents(plain, f.STAGING_ID, BEARER)
+    expect(read.status).toBe(200)
+    expect(((await read.json()) as { incidents: unknown[] }).incidents).toHaveLength(1)
+
+    const confidential = await serve({ confidential: true })
+    for (const env of [f.STAGING_ID, f.PRODUCTION_ID]) {
+      const refused = await incidents(confidential, env, BEARER)
+      expect(refused.status, env).toBe(403)
+      expect(await codeOf(refused), env).toBe('INCIDENT_LOG_CONFIDENTIAL')
+      // A person's session still reads it.
+      expect((await incidents(confidential, env, SESSION)).status, env).toBe(200)
+    }
+    expect((await incidents(confidential, f.SANDBOX_ID, BEARER)).status).toBe(200)
+
+    // The models a confidential project's agent session holds while its builder may use the capable model.
+    const started = await fetch(
+      `${confidential}/v1/projects/${f.PROJECT_ID}/agent-sessions`,
+      {
+        method: 'POST',
+        headers: mutation(BEARER),
+        body: JSON.stringify({ name: 'build it' }),
+      },
+    )
+    expect(started.status).toBe(201)
+    const models = [
+      'default-chat-onprem',
+      'default-chat-onprem-reasoning',
+      'default-chat-large',
+    ]
+    expect(
+      ((await started.json()) as { session: { models: string[] } }).session.models,
+    ).toEqual(models)
+    const listed = (await (
+      await fetch(`${confidential}/v1/projects/${f.PROJECT_ID}/agent-sessions`, {
+        headers: SESSION,
+      })
+    ).json()) as { sessions: { models: string[] }[] }
+    expect(listed.sessions.map((s) => s.models)).toEqual([models, models])
+  })
+
   it('answers the month’s budget from now, and a spent or unreadable month when scripted', async () => {
     const budget = async (at: string) =>
       (await (await fetch(`${at}/v1/agent-budget`, { headers: SESSION })).json()) as {

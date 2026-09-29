@@ -11,7 +11,8 @@ import {
   type Db,
 } from '../../db/index.js'
 import { assertLaunchable } from '../../launch/index.js'
-import { incidentPrompt, listIncidents } from '../../observability/index.js'
+import { classificationFloor } from '../../ai/index.js'
+import { incidentPrompt, listIncidents, OutputError } from '../../observability/index.js'
 import {
   assertCapability,
   assertStepUp,
@@ -1100,12 +1101,12 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'An environment’s incidents',
     description:
-      '§14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt.',
+      '§14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt. **A delegated token is refused a `confidential` project’s staging and production Incidents** (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of real people. A person’s session reads them, and every token reads the sandbox’s.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The incidents.', schema: IncidentList },
-    errors: ['NOT_FOUND'],
+    errors: ['NOT_FOUND', 'INCIDENT_LOG_CONFIDENTIAL'],
     examples: {
       response: {
         environmentId: '4de1302a-e630-4fca-8d47-5c66d99bfdb8',
@@ -1133,6 +1134,21 @@ export const releaseRoutes = [
         actor,
         params.environmentId,
       )
+      // THE SAFEGUARD (§7 as Spec action 10 amended it; the front-end enablement plan's Task 14a),
+      // decided BEFORE anything is read: while a confidential project's building agent may call the
+      // capable model — which may route off-premise — a delegated token is the agent's credential,
+      // and staging's and production's log tails can carry real people's input. By the environment's
+      // KIND, as the output read decides, and by the classification the agent key is routed by.
+      if (
+        actor.credential === 'token' &&
+        environment.kind !== 'sandbox' &&
+        deps.config.agent.builderModels === 'capable' &&
+        (await classificationFloor(deps.db, environment.projectId)) === 'confidential'
+      )
+        throw new OutputError(
+          'INCIDENT_LOG_CONFIDENTIAL',
+          `the ${environment.kind} Incidents of a confidential project are not answered to a delegated token while its building agent may use the capable model (§7); a person reads them in their own session`,
+        )
       const [project] = await deps.db
         .select({ slug: projects.slug })
         .from(projects)

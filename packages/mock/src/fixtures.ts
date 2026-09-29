@@ -799,6 +799,19 @@ const AGENT_MODELS = [
   'default-chat-large',
   'default-embed',
 ]
+/**
+ * A `confidential` project's, while the platform lets its building agent use the capable model (§7,
+ * Spec action 10; the front-end enablement plan's Task 14a) — the on-premise models, then the capable one.
+ */
+const CONFIDENTIAL_AGENT_MODELS = [
+  'default-chat-onprem',
+  'default-chat-onprem-reasoning',
+  'default-chat-large',
+]
+
+/** The models `mock-app`'s agent sessions hold: `MANIFEST_MOCK_CONFIDENTIAL=1` makes them the confidential list. */
+export const agentModels = (confidential: boolean): string[] =>
+  confidential ? CONFIDENTIAL_AGENT_MODELS : AGENT_MODELS
 
 /** What the gateway says when it cannot say what was spent — the platform's own words. */
 export const SPEND_UNKNOWN =
@@ -830,14 +843,17 @@ export function agentSession(
 export function agentSessions(
   now: number,
   spend: 'known' | 'unavailable',
+  confidential = false,
 ): Schemas['AgentSessionList'] {
   const unknown =
     spend === 'unavailable' ? { spentUsd: null, spentUnavailable: SPEND_UNKNOWN } : {}
+  const models = agentModels(confidential)
   return {
     sessions: [
-      agentSession(now, { id: AGENT_SESSION_ID, ...unknown }),
+      agentSession(now, { id: AGENT_SESSION_ID, models, ...unknown }),
       agentSession(now, {
         id: ENDED_AGENT_SESSION_ID,
+        models,
         name: 'Fix the sign-in page',
         state: 'ended',
         endedAt: at(now, -60),
