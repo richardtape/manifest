@@ -1,0 +1,39 @@
+# Reading responses: students post a response to the week's reading, and the
+# class reads them.
+#
+# `make demo-frontend`'s app (the front-end enablement plan's Task 15). A faculty
+# front-end's server writes this file, with `server.js` and a `logo.png` it makes,
+# into a project created from the bare `node-ts-mongo@1` skeleton, through nothing
+# but Manifest's API on a delegated token. It puts its project's slug in `name` as
+# it writes it: §7 refuses a manifest whose name is not its project's
+# (SPEC_NAME_SLUG_MISMATCH).
+manifest: 1
+name: frontend-app
+blueprint: node-ts-mongo@1
+description: Reading responses — students post a response to the week's reading, and the class reads them.
+
+runtime:
+  port: 3000
+  health: /healthz
+
+services:
+  - { type: mongo, version: "7", name: db }
+
+auth:
+  provider: cwl
+  # Each attribute has a reason, because §9 asks for one and enforces release at
+  # the IdP against exactly this list:
+  #   ubcEduCwlPuid   who signed in — the session is keyed on it, and it is never
+  #                   stored beside a response or shown to anybody
+  #   givenName, sn   a response is shown under its author's name
+  attributes: [ubcEduCwlPuid, givenName, sn]
+  callback: /auth/ubcshib/callback
+  logout: /auth/logout
+
+data:
+  # A response names the student who wrote it and says what they think of the
+  # reading: `confidential`. D17 then allows only on-premise models for anything
+  # that reads it, and the agent that builds it is governed by the platform's
+  # MANIFEST_AGENT_BUILDER_MODELS (§7, §10 and §26 as Spec action 10 amended them).
+  classification: confidential
+  retention_days: 120
