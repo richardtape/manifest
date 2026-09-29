@@ -17,14 +17,20 @@ import { resetDatabase } from '../db/testing.js'
 import { writeFiles } from '../source/testing.js'
 import {
   approvedProject,
+  commitManifest,
+  CWL_LAUNCH_ATTRIBUTES,
+  cwlFakes,
+  cwlManifest,
   loginAs,
   mutationHeaders,
+  projectBody,
   refusal,
   sessionFor,
   testDeps,
   withProjectServer,
   type TestProject,
 } from './testing.js'
+import { buildServer, type ServerDeps } from './server.js'
 
 const HOUR_MS = 3_600_000
 
@@ -1303,6 +1309,118 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
     } finally {
       await ctx.deps.builds.idle()
       await ctx.app.close()
+      await resetDatabase()
+    }
+  })
+
+  /**
+   * THE OTHER PRODUCTION CALLER OF `deployRelease` (the whole-branch review's I2): D21's rehearsal
+   * deploys the candidate into production itself, and a rehearsal's instance is what production's
+   * route then serves — so it floors the classification exactly as a launch does. A CWL app, because
+   * only one is rehearsed: over `cwlFakes`, the unit tier's two labelled fakes, and for their reason.
+   */
+  it('a rehearsal that deploys a confidential release into production ends the sessions it no longer allows, before it answers (the whole-branch review’s I2)', async () => {
+    await resetDatabase()
+    const lite = fakeLiteLlm()
+    const base = await testDeps()
+    const deps: ServerDeps = {
+      ...base,
+      ...cwlFakes(base),
+      llm: lite,
+      catalogue: await capableCatalogue(),
+    }
+    const app = await buildServer(deps)
+    const slug = 'fe36-rehearse'
+    try {
+      const cookies = await loginAs(deps, 'bio_prof')
+      const created = await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        payload: projectBody(slug, { blueprint: 'node-ts-mongo@1' }),
+        cookies,
+        headers: mutationHeaders(deps),
+      })
+      expect(created.statusCode, created.body).toBe(201)
+      const project = created.json() as {
+        id: string
+        slug: string
+        environments: { id: string; kind: string }[]
+      }
+      const ctx = { app, deps, cookies, project }
+      const call = async (url: string, payload: Record<string, unknown>) =>
+        app.inject({
+          method: 'POST',
+          url,
+          payload,
+          cookies,
+          headers: mutationHeaders(deps),
+        })
+      // R1: a CONFIDENTIAL release, serving staging — the rehearsal's candidate.
+      await commitManifest(
+        ctx,
+        cwlManifest(slug, CWL_LAUNCH_ATTRIBUTES, [
+          'data:',
+          '  classification: confidential',
+        ]),
+        'feat: confidential, signing in with CWL',
+      )
+      const build = await call(`/v1/projects/${project.id}/builds`, {})
+      expect(build.statusCode, build.body).toBe(202)
+      await deps.builds.idle()
+      const release = await call(`/v1/projects/${project.id}/releases`, {
+        buildId: (build.json() as { id: string }).id,
+      })
+      expect(release.statusCode, release.body).toBe(201)
+      const staging = project.environments.find((e) => e.kind === 'staging')!
+      const staged = await call(`/v1/environments/${staging.id}/deploy`, {
+        releaseId: (release.json() as { id: string }).id,
+      })
+      expect(staged.json().state, staged.body).toBe('healthy')
+      // `main` LOWERED to internal — as in the launch case above. Production serves nothing, so the
+      // floor is `internal`, and a session started now holds `default-chat`.
+      await commitManifest(
+        ctx,
+        cwlManifest(slug, CWL_LAUNCH_ATTRIBUTES),
+        'the data is internal after all',
+      )
+      const started = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${project.id}/agent-sessions`,
+        payload: { name: 'before the rehearsal' },
+        cookies,
+        headers: { ...mutationHeaders(deps), 'idempotency-key': randomUUID() },
+      })
+      expect(started.statusCode, started.body).toBe(201)
+      const { session, key } = started.json() as Started
+      expect(session.models).toContain('default-chat')
+      expect(lite.use(key, 'default-chat')).toEqual({ status: 200 })
+
+      // The rehearsal: production now serves the CONFIDENTIAL release, so the floor rises.
+      const rehearsed = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${project.id}/rehearsal`,
+        cookies: await loginAs(deps, 'platform_admin', { steppedUp: true }),
+        headers: mutationHeaders(deps),
+      })
+      expect(rehearsed.statusCode, rehearsed.body).toBe(200)
+      // It really deployed into production and passed — the precondition, not the subject.
+      expect(rehearsed.json()).toMatchObject({
+        passed: true,
+        evidence: { listener: 'public' },
+      })
+
+      expect(lite.use(key, 'default-chat')).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
+      })
+      const [row] = await deps.db
+        .select()
+        .from(agentSessions)
+        .where(eq(agentSessions.id, session.id))
+      expect(row).toMatchObject({ endReason: 'models_withdrawn' })
+    } finally {
+      await deps.builds.idle()
+      await app.close()
       await resetDatabase()
     }
   })

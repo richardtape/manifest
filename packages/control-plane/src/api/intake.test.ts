@@ -45,19 +45,26 @@ const mints = (lite: FakeLiteLlm) => lite.calls.filter((c) => c.path === '/key/g
 /**
  * Midnight today in Vancouver, as an instant — computed by `Intl`, not by the SQL under test.
  * `longOffset` answers `GMT-07:00` (PDT) or `GMT-08:00` (PST).
+ *
+ * **AT MIDNIGHT'S OFFSET, NEVER NOW'S** (the whole-branch review's deferred triage): on the day the
+ * clocks change, now's offset is an hour away from the one midnight had. Found by asking at the
+ * instant now's offset puts midnight: within an hour of it, and on midnight's side of the change,
+ * which Vancouver makes at 02:00.
  */
 function vancouverMidnight(now = new Date()): number {
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver' }).format(
     now,
   )
-  const offset = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Vancouver',
-    timeZoneName: 'longOffset',
-  })
-    .formatToParts(now)
-    .find((p) => p.type === 'timeZoneName')!
-    .value.replace('GMT', '')
-  return Date.parse(`${date}T00:00:00${offset}`)
+  const offsetAt = (at: Date): string =>
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Vancouver',
+      timeZoneName: 'longOffset',
+    })
+      .formatToParts(at)
+      .find((p) => p.type === 'timeZoneName')!
+      .value.replace('GMT', '')
+  const near = new Date(`${date}T00:00:00${offsetAt(now)}`)
+  return Date.parse(`${date}T00:00:00${offsetAt(near)}`)
 }
 
 describe('intake sessions (Spec action 5, FE-1)', () => {
@@ -135,6 +142,28 @@ describe('intake sessions (Spec action 5, FE-1)', () => {
       expect(seconds).toBeLessThanOrEqual(300)
       expect(seconds).toBeGreaterThan(290)
     })
+  })
+
+  /**
+   * THE TEST'S OWN CLOCK, on the days Vancouver's changes (the whole-branch review's deferred triage):
+   * the test below compares rows with `vancouverMidnight()`, and a midnight computed with NOW's offset
+   * is an hour out for the rest of the day the clocks change — the test goes red every such day,
+   * first on 2026-11-01. Asked of the helper, because the day the SQL counts is Postgres's `now()`,
+   * which no fake timer reaches. An ordinary day is the positive control.
+   */
+  it('finds Vancouver’s midnight at MIDNIGHT’S offset, on the days the clocks change too', () => {
+    // An ordinary day, PDT all day: 00:00 −07:00.
+    expect(vancouverMidnight(new Date('2026-09-29T19:00:00Z'))).toBe(
+      Date.parse('2026-09-29T07:00:00Z'),
+    )
+    // 2026-11-01: PDT until 02:00 local (09:00Z), so midnight was 00:00 −07:00 — asked at noon PST.
+    expect(vancouverMidnight(new Date('2026-11-01T20:00:00Z'))).toBe(
+      Date.parse('2026-11-01T07:00:00Z'),
+    )
+    // 2027-03-14: PST until 02:00 local (10:00Z), so midnight was 00:00 −08:00 — asked at noon PDT.
+    expect(vancouverMidnight(new Date('2027-03-14T19:00:00Z'))).toBe(
+      Date.parse('2027-03-14T08:00:00Z'),
+    )
   })
 
   it('counts a person’s keys over a VANCOUVER day, and refuses one more with a code of its own', async () => {

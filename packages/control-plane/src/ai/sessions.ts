@@ -519,16 +519,23 @@ export async function endSessionsOf(
  * **FE-36 — A SESSION NEVER HOLDS MORE THAN ITS PROJECT NOW ALLOWS** (§7 and §10 as Spec action 10 amended
  * them; the front-end enablement plan's Task 14a). Ends, `models_withdrawn`, every ACTIVE session — of one
  * project, or of `every` project — whose key names a model the catalogue still serves and that
- * `agentModelsFor` no longer allows: its project's classification was raised (a commit, a push), or the
- * builder setting was narrowed to `on-premise` (a restart). A name the catalogue no longer holds is not
- * counted: the gateway serves nothing under it. An expired session is not touched — its key stopped at
- * its own `duration`.
+ * `agentModelsFor` no longer allows: its project's classification was raised, or the builder setting was
+ * narrowed to `on-premise` (a restart). The classification rises when a newer valid manifest is RECORDED —
+ * by a commit through the API, a build, `validateSpec`, or on driver 2 a push its webhook reports — or
+ * when production comes to serve a release classified higher (a production deploy, a rehearsal). **A push
+ * to driver 1's repository is recorded by none of these** (the whole-branch review's M7): a new start and
+ * a live session both read the manifest last recorded, so they agree with each other, but until one of
+ * those runs they hold what the manifest on `main` may no longer allow. A name the catalogue no longer
+ * holds is not counted: the gateway serves nothing under it. An expired session is not touched — its key
+ * stopped at its own `duration`.
  *
- * **Callers**: `api/spec-validation.ts`'s `validateAndRecord`, after every valid manifest it records
- * (behind `barrier`), and the boot, over every project. Each failure is named in ONE operator line and
- * answered in `failed` — never thrown, because a commit that raised the classification has already landed —
- * and the next boot's sweep ends what is left. The person the session is charged to is who it is attributed
- * to: nobody asked for this end, and they are the one whose key it was.
+ * **Callers**: `api/spec-validation.ts`'s `withdrawWhatItNoLongerAllows` (behind its barrier) — after
+ * every valid manifest `validateAndRecord` records, after a production deploy and after a rehearsal — and
+ * the boot, over every project. Each failure is named in a line of its own with its cause, then all of
+ * them in one summary line, and answered in `failed` — never thrown, because a commit that raised the
+ * classification has already landed — and the next boot's sweep ends what is left. The person the session
+ * is charged to is who it is attributed to: nobody asked for this end, and they are the one whose key it
+ * was.
  *
  * Reads nothing from the gateway when no session is active, so a commit to a project nobody is building
  * with pays one query.

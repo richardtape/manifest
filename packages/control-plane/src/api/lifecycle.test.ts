@@ -17,6 +17,7 @@ import type { AiKeyService } from '../ai/index.js'
 import { fakeLiteLlm, type FakeLiteLlm } from '../ai/testing.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
 import {
+  archiveProject,
   finishTeardowns,
   recoverAtBoot,
   runTeardown,
@@ -26,6 +27,7 @@ import type { FakeDriver } from '../runtime/index.js'
 import type { SsoDeregistrar, SsoRegistrar } from '../sso/index.js'
 import { fingerprintOf, recordPendingAction, tokenActor } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
+import { ensureTestUser } from '../identity/testing.js'
 import { lifecycleDeps } from './routes/lifecycle.js'
 import type { ServerDeps } from './server.js'
 import {
@@ -1020,6 +1022,80 @@ describe('delete (§11, Task 12)', () => {
       expect(fleet.body).not.toContain(ctx.projectId)
       // And while a slug is held by a LIVE project, it is still taken: the index is partial, not gone.
       expect((await check()).json()).toMatchObject({ available: false })
+    })
+  }, 30_000)
+
+  /**
+   * THE WHOLE-BRANCH REVIEW'S M2 (and the deferred "archiveProject does not re-read the state under
+   * its lock"): an archive that authorized BEFORE a delete finished waits on the project's lock the
+   * delete holds, and runs once the slug is free. Every step of a teardown reaches the edge, the
+   * driver and the IdP by NAME, which is the slug's — so, unguarded, it switched off, retired and
+   * deregistered whichever project had taken the slug since. Called here as it would then run: past
+   * the route, whose `assertCapability` a deleted project already answers `404`.
+   */
+  it('an archive that authorized before a delete and runs after it touches nothing — the names may be another project’s now', async () => {
+    await withLifecycleServer(async (ctx, _lite, sso) => {
+      const slug = await slugOf(ctx)
+      expect((await remove(ctx, ctx.ownerSteppedUp)).statusCode).toBe(200)
+      // Another project takes the slug, and serves staging on the same name.
+      const again = await ctx.app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        payload: projectBody(slug),
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(again.statusCode, again.body).toBe(201)
+      const taken = again.json() as {
+        id: string
+        spec: { commitSha: string }
+        environments: { id: string; kind: string }[]
+      }
+      const build = await mutate(ctx, `/v1/projects/${taken.id}/builds`, {
+        commitSha: taken.spec.commitSha,
+      })
+      expect(build.statusCode, build.body).toBe(202)
+      await ctx.deps.builds.idle()
+      const release = await mutate(ctx, `/v1/projects/${taken.id}/releases`, {
+        buildId: (build.json() as { id: string }).id,
+      })
+      expect(release.statusCode, release.body).toBe(201)
+      const staging = taken.environments.find((e) => e.kind === 'staging')!
+      const deployed = await mutate(ctx, `/v1/environments/${staging.id}/deploy`, {
+        releaseId: (release.json() as { id: string }).id,
+      })
+      expect(deployed.json().state, deployed.body).toBe('healthy')
+      const driver = ctx.deps.driver as FakeDriver
+      const hostname = `${slug}.staging.manifest.internal`
+      const serving = await driver.servingInstance(hostname)
+      expect(serving).toBeDefined()
+      const removedBefore = sso.removed.length
+      const owner = await ensureTestUser(ctx.db, 'bio_prof')
+
+      await archiveProject(lifecycleDeps(ctx.deps), {
+        projectId: ctx.projectId,
+        actor: {
+          credential: 'session',
+          userId: owner.id,
+          platformRole: 'member',
+          puid: 'bio_prof',
+          steppedUpAt: Date.now(),
+          expiresAt: Date.now() + 3_600_000,
+        },
+      })
+
+      // The name still reaches the project that holds it now…
+      expect(driver.isSwitchedOff(hostname)).toBe(false)
+      expect(await driver.servingInstance(hostname)).toBe(serving)
+      expect((await driver.status(serving!)).healthy).toBe(true)
+      // …its Route record stays, nothing was deregistered, and the tombstone is still a tombstone.
+      const [route] = await ctx.db
+        .select()
+        .from(routes)
+        .where(eq(routes.hostname, hostname))
+      expect(route).toBeDefined()
+      expect(sso.removed.length).toBe(removedBefore)
+      expect((await stateOf(ctx)).state).toBe('deleted')
     })
   }, 30_000)
 

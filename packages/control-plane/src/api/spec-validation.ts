@@ -158,8 +158,9 @@ export async function validateAndRecord(
 
 /**
  * **FE-36, WHENEVER THE CLASSIFICATION MAY HAVE RISEN** (the front-end enablement plan's Task 14a): at the
- * moment a valid manifest is recorded (above), and after a PRODUCTION deploy (`api/routes/releases.ts`),
- * because `classificationFloor` never falls below the release production serves — its review's I2: a
+ * moment a valid manifest is recorded (above), and after a PRODUCTION deploy (`api/routes/releases.ts`)
+ * and a rehearsal, which deploys into production too (`api/routes/launch.ts`, the whole-branch review's
+ * I2), because `classificationFloor` never falls below the release production serves — its review's I2: a
  * launch of a confidential release while `main` says `internal` raised the floor and ended nothing. Every
  * active session of the project holding a model it no longer allows is ended — before the caller is
  * answered, so it sees it done.

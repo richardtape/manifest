@@ -9,6 +9,7 @@ import {
 } from '../../launch/index.js'
 import { assertCapability } from '../../projects/index.js'
 import { requireSession } from '../actor.js'
+import { withdrawWhatItNoLongerAllows } from '../spec-validation.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
 import {
@@ -328,31 +329,46 @@ export const launchRoutes = [
       // exist (Task 6's measured ordering).
       const actor = requireSession(request)
       await assertCapability(deps.db, actor, params.projectId, 'launch:record')
-      return toRehearsal(
-        await runRehearsal(
-          {
-            db: deps.db,
-            driver: deps.driver,
-            config: deps.config,
-            // THE SAME OBJECT THE DEPLOY ROUTE BUILDS, held equal by `tsc` rather than by
-            // memory: `DeployDeps` gaining a field turns both call sites red.
-            deploy: {
-              secrets: deps.secrets,
-              appSecrets: deps.appSecrets,
-              sso: deps.sso,
-              blueprints: deps.blueprints,
-              ai: deps.ai,
-              catalogue: deps.catalogue,
+      /**
+       * FE-36 AFTER THE REHEARSAL'S PRODUCTION DEPLOY (the whole-branch review's I2), as the
+       * `deploy` route runs it after a production deploy: a rehearsal's instance is what
+       * production's route then serves, and `classificationFloor` floors every agent session by
+       * that release — so the rehearsal may have RAISED the classification, and every session
+       * holding what the project no longer allows is ended before this answers. In `finally`,
+       * because the deploy may have landed although the rehearsal then failed (a registration it
+       * could not read back, a sign-in that threw); on a rehearsal refused before its deploy the
+       * sweep finds nothing to end. Never a refusal: `withdrawWhatItNoLongerAllows` writes an
+       * operator line and the next boot's sweep ends what is left.
+       */
+      try {
+        return toRehearsal(
+          await runRehearsal(
+            {
+              db: deps.db,
+              driver: deps.driver,
+              config: deps.config,
+              // THE SAME OBJECT THE DEPLOY ROUTE BUILDS, held equal by `tsc` rather than by
+              // memory: `DeployDeps` gaining a field turns both call sites red.
+              deploy: {
+                secrets: deps.secrets,
+                appSecrets: deps.appSecrets,
+                sso: deps.sso,
+                blueprints: deps.blueprints,
+                ai: deps.ai,
+                catalogue: deps.catalogue,
+                bus: deps.bus,
+                retirer: deps.retirer,
+              },
+              signIn: deps.signIn,
               bus: deps.bus,
-              retirer: deps.retirer,
             },
-            signIn: deps.signIn,
-            bus: deps.bus,
-          },
-          params.projectId,
-          { userId: actor.userId, puid: actor.puid },
-        ),
-      )
+            params.projectId,
+            { userId: actor.userId, puid: actor.puid },
+          ),
+        )
+      } finally {
+        await withdrawWhatItNoLongerAllows(deps, params.projectId, 'a rehearsal')
+      }
     },
   }),
 ]

@@ -3,6 +3,7 @@ import type { AiKeyService } from '../ai/index.js'
 import {
   environments,
   instances,
+  projects,
   routes,
   withEnvironmentLock,
   type Db,
@@ -32,7 +33,7 @@ export interface RetireOutcome {
   retired: string[]
   /** Handles that could not be — an `instance.retire_failed` Event each, tried again. */
   failed: string[]
-  skipped?: 'no-environment' | 'nothing-serves'
+  skipped?: 'no-environment' | 'nothing-serves' | 'project-deleted'
 }
 
 export interface Retirer {
@@ -69,6 +70,25 @@ export async function retireEnvironment(
   // instance that is mid-deploy. The DRAIN is outside it — a deploy must not wait two
   // minutes for one.
   const plan = await withEnvironmentLock(environment.id, async () => {
+    /**
+     * A DELETED PROJECT'S NAMES ARE NOBODY'S — OR ANOTHER PROJECT'S (the whole-branch review's M2).
+     * This lock is the ENVIRONMENT's, but the route and the containers below are found by HOSTNAME,
+     * which is the slug's; a deleted project's slug is free, and a new project of the same slug
+     * serves the same names under a lock of its own. So a pass queued for the deleted one — a
+     * deploy's, or the boot's — would retire the new one's containers, a deploy of it in flight
+     * included, and publish their retirement on the tombstone. Read UNDER the lock, where what to
+     * retire is chosen: until the tombstone is written the slug is still this project's (the
+     * partial unique index), so no other project can serve these names while the choice is made —
+     * and once it is written, the pass does nothing. The delete retired everything of its own
+     * before it wrote the tombstone.
+     */
+    const [owner] = await deps.db
+      .select({ state: projects.state })
+      .from(projects)
+      .where(eq(projects.id, environment.projectId))
+    if (owner === undefined || owner.state === 'deleted')
+      return 'project-deleted' as const
+
     /**
      * THE MOST DANGEROUS LINE IN THIS PLAN.
      *
@@ -126,6 +146,8 @@ export async function retireEnvironment(
     return { targets, rows, marked, servingIsRecorded: servingRecord !== undefined }
   })
   if (plan === undefined) return { retired: [], failed: [], skipped: 'nothing-serves' }
+  if (plan === 'project-deleted')
+    return { retired: [], failed: [], skipped: 'project-deleted' }
 
   const redact: Redactor = makeRedactor(
     await deps.appSecrets.secretValues(deps.db, {

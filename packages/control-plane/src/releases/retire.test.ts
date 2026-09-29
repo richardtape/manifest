@@ -7,6 +7,7 @@ import {
   builds,
   events,
   instances,
+  projects,
   releases,
   routes,
   users,
@@ -267,6 +268,42 @@ describe('retireEnvironment (P4c Task 7)', () => {
         (await db.select().from(instances).where(eq(instances.id, rows.old.id)))[0]!
           .state,
       ).toBe('healthy')
+    })
+  })
+
+  /**
+   * THE WHOLE-BRANCH REVIEW'S M2: locks are keyed by environment id, but what a pass reaches —
+   * the edge's route and the driver's containers — is keyed by HOSTNAME, which is the slug's. Once a
+   * project is deleted its slug is free, and a new project of the same slug serves the same names
+   * under a different lock; a pass queued for the deleted one's environment would retire the new
+   * one's containers. Here the containers on the name stand for the new project's: a pass for a
+   * DELETED project's environment touches none of them. (The first test in this block is the
+   * positive control: the same three, the project active, and two are retired.)
+   */
+  it('touches nothing on the hostname of a DELETED project’s environment — another project may hold the name now', async () => {
+    await withRollback(async (db) => {
+      const { driver, environment, rows, orphan } = await threeInstances(db)
+      await db
+        .update(projects)
+        .set({ state: 'deleted', deletedAt: new Date() })
+        .where(eq(projects.id, environment.projectId))
+      const ai: string[] = []
+
+      const outcome = await retireEnvironment(
+        depsFor(db, driver, recordingAi(ai)),
+        environment.id,
+      )
+
+      expect(outcome).toEqual({ retired: [], failed: [], skipped: 'project-deleted' })
+      expect((await driver.listInstances(environment.hostname)).sort()).toEqual(
+        [rows.old.handle, orphan, rows.serving.handle].sort(),
+      )
+      expect(await driver.servingInstance(environment.hostname)).toBe(rows.serving.handle)
+      expect(
+        (await db.select().from(instances).where(eq(instances.id, rows.old.id)))[0]!
+          .state,
+      ).toBe('healthy')
+      expect(ai).toEqual([])
     })
   })
 

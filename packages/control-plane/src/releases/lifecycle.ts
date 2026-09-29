@@ -372,6 +372,18 @@ export async function archiveProject(
   input: { projectId: string; actor: SessionActor },
 ): Promise<void> {
   await withProjectLock(input.projectId, async () => {
+    /**
+     * THE STATE AGAIN, UNDER THE LOCK (the whole-branch review's M2): the route authorized before it
+     * waited here, and a DELETE holds this lock to its end — so an archive that waited on one runs
+     * once the slug is free. Every step reaches the edge, the driver and the IdP by NAME, which is the
+     * slug's, and would switch off, retire and deregister whichever project has taken it since. A
+     * tombstone is left alone; the route then answers the stranger's `404` (Decision 31).
+     */
+    const [current] = await deps.db
+      .select({ state: projects.state })
+      .from(projects)
+      .where(eq(projects.id, input.projectId))
+    if (current === undefined || current.state === 'deleted') return
     const by = await switchOffUnderLock(deps, input.projectId, input.actor)
     await publishArchivedOnce(deps, input.projectId, by)
   })
