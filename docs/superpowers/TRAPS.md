@@ -2336,3 +2336,16 @@ repositories on the real App (Task 2's Step 0 makes the tiers refuse it).
 `-d` and nowhere else, so a bodyless request is no longer marked JSON and refused `400 REQUEST_INVALID` first. **Any other bodyless call a demo writes by hand with `curl`
 must do the same** — the platform's refusal is right (P5b's rule), and it reads like a missing route or a CSRF refusal until the
 code is read. Every demo's mutation sent a body at the time of the change, so none of them moved.
+
+**THE TEST TIERS REFUSE A SHELL THAT SOURCED `.env`, SINCE THE LAUNCH PATH PLAN'S SITTING 2** (Task 2, Step 0,
+`src/test-tier-guard.ts`). `refusing to run: MANIFEST_GITHUB_API_URL points at a real GitHub (api.github.com)` — before any table is
+truncated — means `MANIFEST_SOURCE_DRIVER=github` and a real URL are in YOUR shell's environment, nearly always from `set -a; . ./.env`
+(the control plane's start block). Open a fresh shell for Vitest; never unset only half of the lines. It prints the host, never the
+value.
+
+**`app.manifest.internal` SERVES WHATEVER RUNS ON 7105 — AND THE FACULTY FRONT-END'S SERVER THERE MAY BE IN MOCK MODE** (the launch
+path plan's sitting 2, F14, Rich's demo). The edge sends `/v1/*` and `/auth/*` to the control plane on 7100 and everything else to
+7105. With the front-end's server started `MANIFEST_APP_MODE=mock` (origin `http://127.0.0.1:7105`, asking the mock on 7102), a person
+signs in for real and a page action fails: the page showed a support reference (`0565-503F`) that reached no store — the refusal by
+the server's origin and session checks is INFERRED, because neither server logs a refused request. **Before a live demo, read its log's first line**: `manifest-app
+(mock) on …` is the mock; `edge` is the platform. It is the front-end session's process — ask it to restart in `edge` mode.

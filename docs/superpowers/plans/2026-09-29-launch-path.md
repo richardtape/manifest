@@ -9,8 +9,12 @@
 > (5a, Task 8a) and a seventh spec action — FE-39 CONFIRMED by Rich the same evening, its three open choices answered; Spec
 > action 7 APPLIED at his word (Rich, 2026-09-29: *"apply 7"*)**.
 
+> **SITTING 2 — TASKS 2 AND 3 — DONE 2026-09-29, after Rich APPROVED THIS PLAN AS WRITTEN, THIRTEEN SITTINGS** (sitting 2's first
+> message). The test tiers refuse a real GitHub; a failed create leaves no repository; `source_repositories.api_host`; the demos refuse
+> real GitHub by name; `scripts/github-real-repos.sh`; F26 drained centrally — and Step 6's real check green. *Sitting 2* is the record.
+
 > **WRITTEN 2026-09-29, AT RICH'S INSTRUCTION, FROM ORIENTATION §7e** (*"Yes: write the plan, then run its Task 1 (including the
-> real-GitHub run) in the same session"*). **Not yet reviewed by Rich.** Its sitting 1 — Task 1, the measurements and THE FIRST
+> real-GitHub run) in the same session"*). **Reviewed and APPROVED by Rich as written, thirteen sittings, 2026-09-29** (sitting 2's first message). Its sitting 1 — Task 1, the measurements and THE FIRST
 > RUN OF THE CONTROL PLANE AGAINST REAL GITHUB — runs in the same session, before his review, exactly as the front-end enablement
 > plan's sitting 1 did. Every fact in *Read this first* was read from the code at `862851c` on 2026-09-29; Task 1 re-measures
 > each one marked *(T1: M<n>)* into `spikes/launch-baseline/`, and a `[M<n>]` block at the head of a task is what it corrected.
@@ -47,7 +51,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 
 **Predecessor:** [`2026-09-27-front-end-enablement.md`](./2026-09-27-front-end-enablement.md), executed 2026-09-29. **Its *What this plan does not build* and its *Sitting 12*'s deferred list are an input list**: M4 (Rich's decision) is Task 8; M6 is FE-33, Task 5; M3 is part of Task 12; F26 is Task 3. The rest stays named in *What this plan does not build* below.
 
-**Successor:** the vulnerability database in the console (Rich, 2026-09-27: *"Launch path first"*; ORIENTATION §8 *Decided*). Then, in the roadmap's order, FE-19, FE-20, FE-21, FE-22, FE-7 and FE-3.
+**Successor:** the vulnerability database in the console (Rich, 2026-09-27: *"Launch path first"*; ORIENTATION §8 *Decided*). Then, in the roadmap's order, FE-19, FE-20, FE-21, FE-22, FE-7 and FE-3. **And FE-30 with FE-28, as a sitting of their own after this plan** (Rich, 2026-09-29, sitting 2's first message: *"not in this plan. Put FE-30 and FE-28 in a sitting of their own after it"* — where it falls beside the vulnerability database in the console is his to say).
 
 ---
 
@@ -55,8 +59,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 
 **One sitting per session, with a check-in at each boundary.** This pattern has carried every plan since P4a. It means a session limit never lands in the middle of a task. This plan commits after every task: a stop *between* tasks is recoverable, a stop *inside* one is not.
 
-> **TWELVE SITTINGS — PROPOSED, NOT YET APPROVED BY RICH — AND A THIRTEENTH, 5a (Task 8a, FE-39), PROPOSED AFTER SITTING 1's CLOSE
-> FROM THE FRONT-END'S RELAY — CONFIRMED BY RICH THE SAME EVENING.** The order puts the **measured, small and self-contained** work first,
+> **THIRTEEN SITTINGS — APPROVED BY RICH AS WRITTEN, 2026-09-29 (sitting 2's first message) — the thirteenth, 5a (Task 8a, FE-39),
+> added after sitting 1's close from the front-end's relay and confirmed by Rich the same evening.** The order puts the **measured, small and self-contained** work first,
 > so the suite is stable (F26) and real GitHub's fixes land before anything is built on driver 2 again. It then puts **the spec
 > actions as LATE as possible**: sittings 2–4 need none (Spec action 6, the fallback's words, before sitting 4 only if Task 1
 > finds a guard can be built), so Rich can decide Spec actions 1–2 before sitting 5, 3 before sitting 6, 4 before sitting 7 and
@@ -70,8 +74,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on — and THE CONTROL PLANE ON REAL GITHUB for the first time**: a project created through the platform becomes a real private repository in `Manifest-local-dev`; a commit through the API lands on github.com; a build and a deploy come from the mirror; a scratch project is deleted and its repository is gone. Also: LiteLLM 1.98.0's `/key/update` on a live key; which provider errors a `general` fallback answers, and whether a LiteLLM hook can see the original error; an open stream after a revoke; F26's rate; `saml-metadata-generator`'s output structure; where the blueprint's code reads each attribute; the gate numbers. **Alone, and first — the same session that wrote the plan, at Rich's word** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-29**, the session that wrote the plan — the control plane on the real App end to end (create, read, commit, build, deploy, delete; `lp-real-a` kept); `/key/update` by alias narrows a live key at once; FE-33 reproduced; every provider error falls back, a `422` answers `200 null`, and a trace-id guard can be built (Branch G); UBC's metadata structure recorded; `[M]` blocks at Tasks 2, 6, 7, 9, 10, 11; **the split stands** |
-| 2 | 2, 3 | **What real GitHub found**, fixed: a repository left behind by a create that failed after GitHub made it; a project made against the fake refused on the real App, and the reverse (`source_repositories.api_host`); the demos refusing real GitHub by name; `scripts/github-real-repos.sh`; RUNBOOK's real-App section written from the run. **And F26**: every retirer and build runner a test builds, drained before `resetDatabase`'s `TRUNCATE` | **Yes** — `source/` | none | ← **next**, after Rich's review |
-| 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | |
+| 2 | 2, 3 | **What real GitHub found**, fixed: a repository left behind by a create that failed after GitHub made it; a project made against the fake refused on the real App, and the reverse (`source_repositories.api_host`); the demos refusing real GitHub by name; `scripts/github-real-repos.sh`; RUNBOOK's real-App section written from the run. **And F26**: every retirer and build runner a test builds, drained before `resetDatabase`'s `TRUNCATE` | **Yes** — `source/` | none | **DONE 2026-09-29**, after Rich approved the plan — subagent-driven: Step 0 first and alone (the tiers refuse a real GitHub, watched with the day's rows still in the tables); a failed create destroys what the driver made; `api_host` (migration `0040`, never published); the boot leaves another GitHub's mirror alone; the demos refuse real GitHub by name; `github-real-repos.sh`; F26 drained centrally (`delivery.test.ts` 1 of 8 red before, 0 of 8 after); **Step 6 on real GitHub green** (`lp-real-b` made with `api.github.com`, deleted, gone); one whole-branch review and its fix wave; Rich's demo paused it (F14) |
+| 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | ← **next** |
 | 4 | 6 | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich | **Yes** — `ai/`, `infra/` | **Spec action 6** — needed: Task 1 measured the guard buildable (Branch G, `[M5]`) | |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
@@ -143,13 +147,28 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
   **Task 8a in sitting 5a**, after **Spec action 7**'s words are applied (*What Rich does* 9). It reverses §9's deliberate stance
   (the control plane does not ask for `eduPersonAffiliation` — *"authorization is Manifest's"*, `sso/platform.ts:44-52`).
 
+## FE-40 — relayed at Rich's word (2026-09-29, during sitting 2's close), PROPOSED for Task 13 until he confirms it
+
+- **FE-40 — THE MOCK CANNOT PLAY A LAUNCH** (relayed by the faculty front-end's session `manifest-app-ce` as *"carried at Rich's word
+  (2026-09-29: 'file it, and carry it now')"*; its `docs/api-findings.md` FE-40). Read in `packages/mock` at `20838d4`: `LAUNCH_READINESS`
+  is `ready: false` (`fixtures.ts:623-629`) and the only ready checklist is a LAUNCHED app's; step-up is deliberately not enforced
+  (`server.ts:45-47`), so no production deploy is ever `403 STEP_UP_REQUIRED` and there is no `/auth/step-up`; a production deploy
+  answers staging's fixture (`:250-257`); `getApproval` always answers the approved fixture (`:426-435`) and `runRehearsal` always
+  `passed: true` (`:407-412`). **Asked, each OPT-IN like `MANIFEST_MOCK_LAUNCHED`** (defaults and the console's tests unchanged):
+  (1) a first launch that is ready, with a production deploy answering a production instance of its own; (2) a production deploy and a
+  production secret answered `403 STEP_UP_REQUIRED` until the session steps up, and an `/auth/step-up` that steps up and redirects to
+  `returnTo`; (3) `getApproval` `404` before a decision, and a rejection with a reason; (4) `runRehearsal` `passed: false` with the
+  platform's evidence shape. **Task 13 (sitting 10) already changes the mock, so it is the natural home.** Nothing of the front-end's
+  waits on it; its F5b's acceptance would use it. **Relayed, not said to this session — so PROPOSED: Task 13 carries it only once Rich
+  confirms it** (ORIENTATION §7e asks him).
+
 ---
 
 ## What Rich does, and when
 
 **Ten things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
 
-1. **Review this plan, and approve or re-cut the sittings split** — after sitting 1, which he asked to run first.
+1. ~~**Review this plan, and approve or re-cut the sittings split**~~ **DONE — approved as written, thirteen sittings** (Rich, 2026-09-29, sitting 2's first message).
 2. **Read and decide the seven spec actions** (the seventh, FE-39's, relayed — item 9) (*Spec actions*, below), each **before the sitting that builds it**: **1 and 2 before
    sitting 5; 3 before sitting 6; 4 before sitting 7; 5 before sitting 9; 6 before sitting 4, and only if Task 1's `[M5]` finds a
    guard can be built.** Each carries its exact wording, its options and a recommendation, and is applied to the spec only after he
@@ -2040,6 +2059,10 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Task 13: The console and the mock — every new operation called, the owner's half of the launch records, and a Queue
 
+> **FE-40 (relayed 2026-09-29, PROPOSED until Rich confirms — its section above)**: four OPT-IN mock switches so the mock can play
+> a first launch — ready, step-up enforced, `getApproval` `404` before a decision, a failed rehearsal. If confirmed, they are this
+> task's, beside the defaults, which do not move.
+
 **Files:**
 - Modify: `packages/console/src/screens/records.tsx` — for each of the three records:
   - *Draft the request* / *Fill in what we know* (`launch:draft`);
@@ -2524,3 +2547,140 @@ in its own sitting 5a, and Spec action 7. Its open choices are the administrator
 reassigned) or by login; what a person who stops being faculty keeps; and which affiliations count at UBC. Writing it found that
 **`demo-frontend` and `demo-token` add `student` as a member**, which the rule refuses; so a second faculty test user, `colleague`,
 is proposed. The laptop IdP already releases `eduPersonAffiliation` for all three test users.
+
+### Sitting 2 — 2026-09-29: Tasks 2 and 3 — what real GitHub found, and F26
+
+**Run after Rich's review** (his first message: the plan *"approved as written, thirteen sittings"*; the three rows allowed to go at
+the first Vitest run; the control plane left on real GitHub; *"Land Task 2's Step 0 … first and alone"*; *"you have my yes for Task
+2's Step 6 real-GitHub check"*; FE-28 to FE-32 not in this plan — *"FE-30 and FE-28 in a sitting of their own after it"*; the
+commit-author question left open; `make refresh-vulndb` not due until after 2026-10-06). **Subagent-driven**
+(`superpowers:subagent-driven-development`), on `main`, session `manifest-13`: an implementer and a reviewer per task, one fix round
+(Task 3), one whole-branch review and one fix wave. The faculty front-end's session was told before the first truncation
+(`manifest-app-9d`: *"go ahead, nothing of ours is on 7100"*), and its successor `manifest-app-ce` was answered mid-sitting. **Rich
+paused the sitting for a demo** of the live platform, which could not run (F14), and then said *"Please finish your work"*.
+
+**What it made true**:
+- **The test tiers refuse a real GitHub** (Step 0, `a816502`, landed first and alone): `src/test-tier-guard.ts`'s
+  `realGithubRefusal`, the first statement of the global setup both tiers run, refuses when `MANIFEST_SOURCE_DRIVER=github` and a
+  `MANIFEST_GITHUB_*_URL` names a non-loopback host — printing the host, never the value — before the repository root is removed or a
+  table truncated. Its control ran while the database still held the day's rows: two refusals (the API URL, then the git URL) left
+  `projects` at 5 and `users` at 3; the positive control, unset, truncated them to 0.
+- **A create that fails after the driver made the repository destroys it** (`7e5f615`), logging a failed destroy with
+  `console.error` and answering the original error; a clash refused inside `createRepository` never reaches the destroy (the final
+  fix wave's route test, watched red).
+- **A project names the GitHub it lives on**: `source_repositories.api_host` (migration `0040_keen_northstar`, nullable — rows older
+  than it are answered by any host of the same provider), written at creation from the driver's new `identity()`, compared by
+  `repositoryOf`, which refuses `409 SOURCE_PROVIDER_MISMATCH` naming both hosts before GitHub is asked. **Never published**:
+  `linkOf` returns `PublishedRepositoryLink`, and `openapi.json` did not move (contract `1.4.0`).
+- **The boot leaves another GitHub's mirror alone** (sitting 1's F1): `sourceRepositoriesPrepared` read **1** at the restart onto the
+  real App (sitting 1 read 2 — the fake's two orphans).
+- **The demos refuse real GitHub by name** (`require_fake_github`, before any fake health check in `demo-authoring`, `demo-frontend`
+  and `demo-github`); **`scripts/github-real-repos.sh`** lists the organisation against the projects that own it and deletes one
+  `NONE` repository at a typed `yes`; `scripts/lib/api.sh` sends `content-type` only with a body (sitting 1's F4); `dead-app-resources.sh`
+  names orphan mirrors; RUNBOOK's *On the real App*; `.env.example`.
+- **F26 is drained centrally** (`7bf40b6`, `20838d4`, `60ff3cd`): `registerBackgroundWork`/`drainBackgroundWork` in `db/testing.ts`;
+  `resetDatabase` awaits every retirer, build runner and source sync a test built before it truncates. `api/delivery.test.ts` alone,
+  eight runs each: **1 of 8 red (2 `deadlock detected`) before, 0 of 8 after**, no `[retire] … failed` line either way.
+- **Step 6 — Rich's yes, the network on — green**, on the control plane restarted onto `7e5f615` (16:16): `github-real-repos.sh` read
+  `lp-real-a  NONE` (its row truncated, as Rich allowed; the repository stays on GitHub — his to remove); `lp-real-b` created (8 s,
+  private, `mainProtected: false` with GitHub's words), `api_host` = `api.github.com` in `psql`, listed `live`, stepped up, deleted
+  (1 s, through `api.sh`'s bodyless `DELETE`), gone from GitHub and the mirror. The listing's first real run (the fake serves no
+  `/installation/repositories`).
+
+Commits: `a816502`, `7e5f615`, `7bf40b6`, `7a2135d`, `20838d4`, `60ff3cd`, `46f3988`, and the close-out.
+
+**Findings** (each with what found it):
+1. **F1 The plan's `repositoryOf` interface was not the code's.** It gave `(db, projectId, running)` with *"every caller passes
+   `deps.source.identity()`"*; the code is `(deps, project)` with eight callers passing `deps`. Ruled at the pre-flight scan: the
+   signature stays and `SourceDriver` gains `identity()`, so no call site moved.
+2. **F2 The plan's `githubDeps({ failHeadCommitOnce })` does not exist** — the test wraps `githubTestDeps(fake).source`'s `headCommit`.
+3. **F3 Step 6's prediction (`lp-real-a  live <id>`) was false by construction** once the first Vitest run truncated the row; Rich's
+   answer 3 said so, and `NONE` was predicted and read.
+4. **F4 Task 1's `[M1]` added four items Task 2's *Files* list omitted** (`prepare()`'s skip and its test, `dead-app-resources.sh`'s
+   mirrors, `api.sh`'s header, a TRAPS line) — built.
+5. **F5 Control (c) could have stayed green for the wrong reason**: the fake is not running, so `demo-authoring`'s step 0 refuses on
+   the fake's health with the guard removed. The control asserts the guard's own words.
+6. **F6 Before `api_host`, a project made on another fake was already refused `409` — as `SOURCE_GIT_FAILED`**, after the driver had
+   reached for the repository (Task 2's RED). A status-only assertion would have been green for the wrong reason.
+7. **F7 The plan put `github-real-repos.ts` in `packages/journey`, whose boundary test admits only `@manifest/contract`** — it is
+   `src/source/github/real-repos.ts` and `real-repos-main.ts`, run from the built `dist/` (git-ignored) as Task 1's probe was.
+8. **F8 The GitHub fake serves no `/installation/repositories`**, so the unit test answers that one path with a spy and Step 6 was the
+   listing's first real exercise (2 repositories, `total_count` asserted).
+9. **F9 The plan's own F26 test could not tell an AWAITED drain from one merely called.** The TRUNCATE outlasts its 50 ms window, so a
+   `void drainBackgroundWork()` variant stayed green, and the drain-removed control went red at a different assertion than predicted.
+   Found by the task review; fixed with a sentinel row the held pass reads, and both variants watched red (`drained-after-truncate`).
+10. **F10 `require_fake_github`'s FAIL text could defeat the guard** (the whole-branch review's I1): the guard reads `.env`, so
+    commenting the block out WITHOUT restarting would pass while the control plane still ran the real App. The text now says to
+    restart; control (c) re-run.
+11. **F11 No route test held *"a clash never reaches the destroy"*** (I2) — added, and watched red (`expected 404 to be 200`) with the
+    route believing it had made the repository.
+12. **F12 `sourceSync`, the third background worker in `ServerDeps`, was not drained** (M2) — registered in the fix wave.
+13. **F13 `SOURCE_PROVIDER_MISMATCH`'s published description no longer covers every cause** (M1): `error-codes.ts` says *"made by a
+    different source driver"*; the same driver on another GitHub is new. The runtime message names both hosts. **The contract is
+    frozen this sitting, so it waits for Task 4, which takes `1.5.0`** — and the front-end is told then.
+14. **F14 Rich's demo could not run** (mid-sitting): `app.manifest.internal` sends `/v1` and `/auth` to 7100 and everything else to
+    7105, which ran the faculty front-end's server with `MANIFEST_APP_MODE=mock` (origin `http://127.0.0.1:7105`, asking 7102). A real
+    session met a mock-mode server; the page showed `0565-503F`, and the report never reached the front-end's problem store (its newest
+    row was 20:00Z) — refused, by inference, the same way: its server logs nothing for a refused request. Not this platform's code; told to
+    `manifest-app-ce`.
+15. **F15 Left, and recorded for the sitting whose paths they touch**: `real-repos.ts` deletes by `.env`'s org, not the listed
+    `fullName` (fails safe — `source/`, so the next sitting that touches it); hosts compared as spelled (`localhost:7110` and
+    `127.0.0.1:7110` are two GitHubs to `api_host`); the drain has no time bound (a stuck `idle()` is an unnamed 10 s hook timeout);
+    `source-repositories.test.ts` leaves an `lp-hosts` row until the next run; `dead-app-resources.sh` reads an unreadable mirror as
+    driver 1's; both `.env` readers miss an indented line.
+16. **F16 The Docker tier prints no control-plane boot line into its output**, so the plan's *"read one tier control plane's boot line
+    to prove it"* could not be done that way; the shell's `MANIFEST_*` count (0) and Step 0's guard stand in.
+17. **F17 The fix wave's own new test broke the module boundary**, and only the close's whole-suite runs saw it: `pnpm test` read
+    **2853 passed, 1 failed, twice** — `module-boundaries.test.ts`'s *"never imports another module by a deep path"*, naming
+    `api/projects.test.ts: from '../source/github/git.js'` — because the fix wave ran single files. The helper moved into
+    `source/testing.ts` (`lsRemoteMainAsPerson`, `46f3988`) and both runs were repeated on the new tree.
+18. **F18 RUNBOOK said the offline acceptance has *"FOURTEEN steps, 1 to 14"*** while `scripts/offline-acceptance.sh` has steps 1 to 15
+    since the front-end enablement plan's sitting 12 (ORIENTATION §2 and CLAUDE.md had it right) — found by this sitting's sweep.
+19. **F19 The roadmap's Phase 2 row still said the launch path was *"NOT YET WRITTEN"*** — stale since the plan was written the same
+    morning; found by this sitting's sweep.
+20. **F20 The hand-off's first draft said the platform held *"no project"* at the close** — written before the close's re-run of
+    `webhook.docker.test.ts`, which leaves `gh-hooks`; `psql` said one. Found by the post-sweep check, opening what §7e pointed at.
+
+**Rulings** (the ledger's, in order): Q5 (the github.com push) came back with both options — measured instead: a build of `{}` and a
+read at 15:13–15:14 left the mirror's `main` at `cec7653`, so no push was made and sitting 1's F17 stays unmeasured; `repositoryOf`
+keeps its signature (F1); the failure injection (F2); Step 6 predicts `NONE` (F3); `[M1]`'s items built (F4); `api_host` never
+published; Step 6 run by the controller; control (c) asserts words (F5); the drain clears its set (only `auth-page.test.ts` builds
+`testDeps()` in a `beforeAll`, and it retires nothing — the doc comment says so); the F26 test made deterministic (F9); one fix wave
+for I1, I2, two FIX-NOW minors, M2 and M4; M1, M3, M5–M8 left (F13, F15); `litellm-orphans.sh --apply` NOT run — its one mode also
+deletes the front-end's person budget and the platform's intake budget (resetting their month), as sitting 1 ruled.
+
+**Negative controls**, each after its commit and restored from git: Step 0 (the guard's call removed → the refused run ran; restored →
+refused); Task 2 (a) the destroy removed → red at the fake's repository; (b) `repositoryOf` provider-only → red at `SOURCE_GIT_FAILED`
+where `SOURCE_PROVIDER_MISMATCH` belonged, its positive control green; (c) `require_fake_github` on a missing key → step 0 no longer
+printed the guard's line; Task 3 `void drain` → red `drained-after-truncate`, drain removed → 3 of 3 red; I2 → red `expected 404 to be
+200`. **None could not fail.**
+
+**Gates** (on the final tree, `60ff3cd`): `pnpm test` **2854 passed, 0 skipped, in 183 files**, twice on `46f3988` (711 s and 710 s alone, load ~3.5–4.2;
+`deadlock detected` **0** in both — F26's first whole runs with the drain; one `[retire]` line each, `retire.test.ts`'s deliberate one)
+— up from 2826 in 180 (+28 tests; +3 files: `test-tier-guard.test.ts`, `source/github/real-repos.test.ts`, `db/testing.test.ts`); its
+first two runs, on `60ff3cd`, read 2853 and one red (F17). `pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean. `pnpm
+test:docker` **248 in 41**, 1231 s, green FIRST run, alone (the whole-branch reviewer reading only), on `20838d4` — owed by `source/`;
+after the fix wave, `source/github/webhook.docker.test.ts` alone on `46f3988`, 1 of 1 — the one Docker file in which the wave's
+source-sync registration waits on anything. `make doctor` **20/0/0** and `make verify` **61/0/0** after the restart. Contract
+**`1.4.0`**, unchanged (66 operations, 128 codes, 46 event types); **41 migrations** (`0040_keen_northstar` newest).
+
+**The machine at the close** (queried 18:49–18:52, not remembered): - **THE CONTROL PLANE RUNNING ON REAL GITHUB** — PID 49186 on 7100, restarted 18:49 from the git-ignored
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged), boot line
+  `"source":"github","github":"api.github.com","githubOrg":"Manifest-local-dev"`.
+- **The control database**: one project, **`gh-hooks`** — left by the close's re-run of `webhook.docker.test.ts` (driver 2 on a fake,
+  `api_host` `127.0.0.1:60083`, so the real-GitHub control plane refuses it `SOURCE_PROVIDER_MISMATCH`) — and its one user. The
+  front-end's `my-weekly-thoughts` and `notes-and-answers` and `lp-real-a`'s row are gone, as Rich allowed.
+- **GitHub**: `Manifest-local-dev` holds exactly `lp-real-a`, owned by no project (`github-real-repos.sh`: `lp-real-a  NONE`).
+- **Mirrors** `dead-app-resources.sh` names and never removes: `frontend-github.git` and `frontend-scratch-github.git` (the fake's)
+  and `lp-real-a.git` (real).
+- **Containers**: the truncated projects' apps still run (`make verify`'s INFO: `mf- containers=33 networks=11 volumes=22`); **no
+  runtime route is applied** (the Docker tier restarted the edge, and no row remains to re-apply one).
+- **Cleanup**: `dead-app-resources.sh` 0 dead after its `--apply`; `app-images.sh` 0 dead after its `--apply` (it took the front-end's
+  dead `my-weekly-thoughts` image too); `litellm-orphans.sh` reads 3 orphaned — `p4b-probe-user`, the front-end's person budget and
+  the platform's intake budget — **not applied** (a budget's deletion resets its month; its one mode takes all three).
+- **7102 and 7105 are the faculty front-end's** (its server in MOCK mode); **nothing on 7104** (the console is not running).
+- **Not this project's**: the `cwl-spike-*` containers (up), and `openwebui-verify-*` (gone since the open) — another session's.
+- Load 5–7.
+
+**The four shared HTML pages, checked, and unchanged**: no spec action was applied this sitting, and none describes the source
+driver's test guards, `api_host` or F26.

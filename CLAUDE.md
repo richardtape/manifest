@@ -18,9 +18,10 @@ other document on status.*
 and Phase 2's first five plans, P6a (the first production launch), P6b (subsequent releases), D5's
 GitHub source driver, the authoring API and **the front-end enablement plan** (2026-09-29 — what the faculty front-end at
 `app.manifest.internal` needs; eighteen tasks in fifteen sittings, all ten of its spec actions Rich's and applied). Every one has an
-acceptance that passes. **The launch path plan is WRITTEN** (`docs/superpowers/plans/2026-09-29-launch-path.md`, 2026-09-29 — FE-6,
-FE-25 and Rich's additions; 16 tasks in 13 proposed sittings — Task 8a and sitting 5a from the faculty front-end's FE-39, confirmed by Rich — seven spec actions drafted — 7 applied at Rich's word, 1–6 not) **and its sitting 1 has run** —
-the measurements, and the control plane's FIRST RUN AGAINST REAL GITHUB (`Manifest-local-dev`), green end to end. ORIENTATION §7e says
+acceptance that passes. **The launch path plan is WRITTEN and APPROVED by Rich as written** (`docs/superpowers/plans/2026-09-29-launch-path.md`, 2026-09-29 — FE-6,
+FE-25 and Rich's additions; 16 tasks in 13 sittings — Task 8a and sitting 5a from the faculty front-end's FE-39, confirmed by Rich — seven spec actions drafted — 7 applied at Rich's word, 1–6 not) **and its sittings 1 and 2 have run** —
+the measurements and the control plane's FIRST RUN AGAINST REAL GITHUB (`Manifest-local-dev`), green end to end; then what that run
+found (the test tiers refuse a real GitHub, `source_repositories.api_host`, `scripts/github-real-repos.sh`) and F26. ORIENTATION §7e says
 what is next. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
@@ -50,8 +51,8 @@ the objects a real IAM registration and PIA would populate; **since 2026-09-20 i
 access to UBC's staging IdP, is the ONLY part of a first production launch this platform
 cannot do for itself** — Manifest runs D21's rehearsal locally and says in the checklist that
 it proves the registration's shape and never UBC's acceptance of it), **the real
-repositories in `Manifest-local-dev`** — only `lp-real-a` at the launch path plan's sitting 1; a Vitest run truncates its row and
-leaves the repository, and removing one is his (the plan's *What Rich does* 5) — **refreshing the
+repositories in `Manifest-local-dev`** — only `lp-real-a`, owned by no project since the launch path plan's sitting 2 truncated its row
+(`bash scripts/github-real-repos.sh` lists it `NONE`); a Vitest run truncates a row and leaves the repository, and removing one is his (the plan's *What Rich does* 5) — **refreshing the
 vulnerability database weekly, with the network on** (**`make refresh-vulndb`**, added
 2026-09-24 at Rich's request; last run by him 2026-09-29 — nothing up or down but Docker Desktop, ~1–3 minutes; **next due after 2026-10-06** — past §12's
 seven days `make doctor` warns and §13's `scans` item refuses every production launch, so
