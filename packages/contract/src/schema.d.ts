@@ -828,7 +828,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a member
-         * @description Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`. Idempotent — removing somebody who is not a member answers the members as they are, and publishes nothing — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.
+         * @description Takes a person off the project (§13) — and their agent with them: every delegated token they minted on the project is revoked with the removal, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there are ended, their model keys revoked at the gateway (§6, §10, §20). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`, saying how many tokens it revoked and sessions it ended. Idempotent — removing somebody who is not a member answers the members as they are and publishes nothing, and ends any agent session of theirs still live on the project — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy. **An error while ending their sessions comes AFTER the removal** — `503 AI_CATALOGUE_DISABLED` when AI is switched off, a `500` when the model gateway fails: the person is already off the project and their tokens already revoked, and only their agent sessions are not yet ended. Repeat the same request (once AI is back on) and it ends them.
          */
         delete: operations["removeMember"];
         options?: never;
@@ -1232,8 +1232,8 @@ export interface components {
             state: "active" | "ended" | "expired";
             /** @description When it was ended; null while it has not been. */
             endedAt: string | null;
-            /** @description Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise); a session that keeps any model it may still use is narrowed instead, and goes on. Null while it has not been ended; a session that ran out of time or money is never ended by that. */
-            endReason: ("ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn") | null;
+            /** @description Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise); a session that keeps any model it may still use is narrowed instead, and goes on — or `member_removed`: the person it works for was taken off the project. Null while it has not been ended; a session that ran out of time or money is never ended by that. */
+            endReason: ("ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn" | "member_removed") | null;
             /** @description What this session’s key has spent, in US dollars — for an ended session, what the gateway had recorded when it ended (a call in its last seconds may not be counted). Null, never 0, when it is not known: `spentUnavailable` says why. */
             spentUsd: number | null;
             /** @description Why `spentUsd` is null, when it is. */
@@ -3766,13 +3766,17 @@ export interface components {
             type: "member.removed";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
-            /** @description A person was taken off the project (§13). Not published for somebody who was not a member. */
+            /** @description A person was taken off the project (§13) — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed (§6, §10, §20). Not published for somebody who was not a member. */
             machineDetail: {
                 /**
                  * Format: uuid
                  * @description The person taken off the project.
                  */
                 memberId: string;
+                /** @description How many delegated tokens they had minted on the project were revoked with the removal — every one still live; a token of theirs on another project is not touched. */
+                tokensRevoked: number;
+                /** @description How many of their agent sessions on the project the removal ended — started by a token or in their own browser alike. When some could not be ended (the request was answered an error), repeating the removal ends them; each end is its own `agent_session.ended`. */
+                sessionsEnded: number;
                 /**
                  * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
                  * @enum {string}
@@ -3937,10 +3941,10 @@ export interface components {
                  */
                 sessionId: string;
                 /**
-                 * @description Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).
+                 * @description Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise) — or `member_removed`: the person it works for was taken off the project. A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).
                  * @enum {string}
                  */
-                reason: "ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn";
+                reason: "ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn" | "member_removed";
                 /**
                  * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
                  * @enum {string}
@@ -8467,7 +8471,7 @@ export interface operations {
                     "application/json": components["schemas"]["MemberList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

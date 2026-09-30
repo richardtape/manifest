@@ -313,11 +313,11 @@ export const tokenRoutes = [
       // "not yours", "not there" and "already revoked" alike; only a caller that has seen
       // the row can tell a 404 from an idempotent second revoke.
       //
-      // ONLY THE MINTER. A project owner revoking a collaborator's token is not built in
-      // Phase 1 — `revokeToken` keys on `userId`, and widening it is a repository change
-      // plus a rule about who may revoke whose, which belongs with the console that would
-      // show the list (P5c). Until then a token outlives its minter's membership, which is
-      // recorded in the sitting's findings rather than left to be discovered.
+      // ONLY THE MINTER. A project owner revoking a collaborator's token is not built — FE-11's
+      // option (b), which Rich did not choose: `revokeToken` keys on `userId`, and widening it is a
+      // repository change plus a rule about who may revoke whose. What an owner CAN do is remove the
+      // person, which revokes every token they minted on the project (Spec action 2; the launch path
+      // plan's Task 8) — so a token no longer outlives its minter's membership.
       const row = await tokenById(deps.db, params.tokenId)
       if (row === undefined || row.userId !== actor.userId) {
         throw new AuthorizationError('NOT_FOUND', `no token '${params.tokenId}'`)

@@ -92,6 +92,34 @@ export async function revokeTokensOf(
 }
 
 /**
+ * Revokes every live token ONE PERSON minted on ONE project — §6's `DelegatedToken` as Spec action 2
+ * amended it (the launch path plan's Task 8): *"A token is revoked when its minter is removed from its
+ * project, because it acts for that person there and nowhere else."* `user_id` IS the minter. BOTH
+ * conditions, never one: a token of theirs on another project is not this removal's, and a colleague's
+ * on this one is not theirs. Answers the ids it revoked; a token already revoked keeps the stamp it had.
+ */
+export async function revokeTokensOfMember(
+  // `update` alone, so the removal revokes inside the transaction that removes: a removal committed
+  // without its revoke would be a person gone and their agent still working.
+  db: Pick<Db, 'update'>,
+  projectId: string,
+  userId: string,
+): Promise<string[]> {
+  const revoked = await db
+    .update(delegatedTokens)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(
+        eq(delegatedTokens.projectId, projectId),
+        eq(delegatedTokens.userId, userId),
+        isNull(delegatedTokens.revokedAt),
+      ),
+    )
+    .returning({ id: delegatedTokens.id })
+  return revoked.map((row) => row.id)
+}
+
+/**
  * Every token scoped to a project, newest first — including the revoked and the expired.
  *
  * §20 asks for a list a person can review, and a list that hid the revoked ones would

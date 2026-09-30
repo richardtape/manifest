@@ -16,6 +16,7 @@ import {
 } from '../identity/testing.js'
 import { eventFrame, recordEvent, type StreamFrame } from '../observability/index.js'
 import { EXAMPLE_DETAILS } from '../observability/testing.js'
+import { addMember } from '../projects/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
 import { loginAs, mutationHeaders, projectBody, refusal, testDeps } from './testing.js'
@@ -787,6 +788,61 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     expect(eventTypesOf(session.frames)).toContain('project.deleted')
     expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
     expect(server.deps.streams.closeProject(server.projectId)).toBe(0)
+  }, 15_000)
+
+  it('removing a member closes their token streams 4401 and their session streams 4404 — and a colleague’s stays open (Task 8)', async () => {
+    // §20 as Spec action 2 amended it: *"closes their open streams"*. The token's close is its revoke's,
+    // `4401`, after the removal's transaction commits; the person's own session stream is `4404` — the
+    // project is not theirs any more, and that is not a credential gone.
+    const server = await streamServer()
+    const ta = await ensureTestUser(server.deps.db, 'bio_student')
+    await addMember(server.deps.db, server.projectId, ta.id, 'collaborator')
+    const token = await mintTestToken(server.deps.db, {
+      userId: ta.id,
+      projectId: server.projectId,
+      capabilities: ['project:read'],
+    })
+    const theirToken = server.connect({ bearer: token.plaintext })
+    const theirSession = server.connect('bio_student')
+    const [tokenSocket, sessionSocket] = await Promise.all([theirToken, theirSession])
+    const tokenFrames = recorder(tokenSocket)
+    const sessionFrames = recorder(sessionSocket)
+    const colleague = await sessionStream(server)
+    await waitUntil(
+      () => tokenFrames.some(isReady) && sessionFrames.some(isReady),
+      'the TA’s two streams’ ready frames',
+    )
+    const tokenClosed = closeOf(tokenSocket)
+    const sessionClosed = closeOf(sessionSocket)
+    const removedAt = Date.now()
+    const res = await server.app.inject({
+      method: 'DELETE',
+      url: `/v1/projects/${server.projectId}/members/${ta.id}`,
+      cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
+      headers: mutationHeaders(server.deps),
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    const [tokenClose, sessionClose] = await Promise.all([tokenClosed, sessionClosed])
+    expect(tokenClose).toMatchObject({
+      code: 4401,
+      reason: expect.stringContaining('revoked'),
+    })
+    expect(sessionClose).toMatchObject({
+      code: 4404,
+      reason: expect.stringContaining('no longer a member'),
+    })
+    expect(tokenClose.at - removedAt).toBeLessThan(WITHIN_MS)
+    expect(sessionClose.at - removedAt).toBeLessThan(WITHIN_MS)
+    // THE POSITIVE CONTROL: the owner's stream is open, and hears the removal the TA's never did —
+    // closed before `member.removed` was published.
+    await waitUntil(
+      () => eventTypesOf(colleague.frames).includes('member.removed'),
+      'member.removed on the owner’s stream',
+    )
+    expect(colleague.socket.readyState).toBe(WebSocket.OPEN)
+    expect(eventTypesOf(tokenFrames)).not.toContain('member.removed')
+    expect(eventTypesOf(sessionFrames)).not.toContain('member.removed')
+    expect(server.deps.bus.listenerCount(server.projectId)).toBe(1)
   }, 15_000)
 
   it('closing the server unregisters every stream it holds — nothing is left for the next test', async () => {

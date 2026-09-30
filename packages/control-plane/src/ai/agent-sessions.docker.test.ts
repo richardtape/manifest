@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { expect, it } from 'vitest'
-import { mutationHeaders, withProjectServer, type TestProject } from '../api/testing.js'
+import {
+  mutationHeaders,
+  sessionFor,
+  withProjectServer,
+  type TestProject,
+} from '../api/testing.js'
+import { ensureTestUser } from '../identity/testing.js'
 import { describeDocker } from '../runtime/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import {
@@ -45,8 +51,9 @@ interface Started {
  * the key, never by reading a row. A real in-process server over the running LiteLLM: the token's
  * revocation reaches the key through `revokeToken`'s route, and the cap is LiteLLM's own.
  *
- * Every session a case starts is ended in its `finally`, and the person's LiteLLM user —
- * `mf-person-<this run's bio_prof>` — deleted, so the run leaves no live key and no budget behind.
+ * Every session a case starts is ended in its `finally`, and each person's LiteLLM user —
+ * `mf-person-<this run's bio_prof>`, and any other person a case started a session for — deleted, so
+ * the run leaves no live key and no budget behind.
  */
 describeDocker('agent sessions against the running gateway (Task 10)', () => {
   async function withGateway(
@@ -57,22 +64,25 @@ describeDocker('agent sessions against the running gateway (Task 10)', () => {
       masterKey: litellmMasterKey(),
     })
     const started: string[] = []
-    let person: string | undefined
+    const people = new Set<string>()
     await withProjectServer(
       async (ctx) => {
-        person = ctx.userId
+        people.add(ctx.userId)
         try {
           await fn(ctx, llm)
         } finally {
           const { rows } = await agentSessionsOf(ctx.db, ctx.projectId, 50)
-          for (const row of rows) started.push(row.id)
+          for (const row of rows) {
+            started.push(row.id)
+            people.add(row.userId)
+          }
         }
       },
       { llm },
     )
     for (const id of started) await revokeKeyByAlias(llm, agentKeyAlias(id))
-    if (person !== undefined)
-      await llm.post('/user/delete', { user_ids: [personAiUserId(person)] })
+    if (people.size > 0)
+      await llm.post('/user/delete', { user_ids: [...people].map(personAiUserId) })
   }
 
   it(
@@ -111,6 +121,62 @@ describeDocker('agent sessions against the running gateway (Task 10)', () => {
           type: 'token_not_found_in_db',
         })
         expect(session.models).toContain('default-chat')
+      })
+    },
+  )
+
+  it(
+    'a removed member’s token-started session ends, and LiteLLM refuses its key — a colleague’s keeps answering (the launch path plan’s Task 8)',
+    { timeout: 120_000 },
+    async () => {
+      // Spec action 2: removing a person ends their agent there. Measured by CALLING the gateway with
+      // each key — never by reading the row — before the removal and after it.
+      await withGateway(async (ctx) => {
+        await sessionFor(ctx, 'bio_student', 'collaborator')
+        const ta = await ensureTestUser(ctx.db, 'bio_student')
+        const token = await mintTestToken(ctx.db, {
+          userId: ta.id,
+          projectId: ctx.projectId,
+          capabilities: ['agent:session'],
+          name: 'ta-conversation-docker',
+        })
+        const theirs = await ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/agent-sessions`,
+          payload: { name: 'docker-removed', capUsd: 1 },
+          headers: {
+            authorization: `Bearer ${token.plaintext}`,
+            'idempotency-key': randomUUID(),
+          },
+        })
+        expect(theirs.statusCode, theirs.body).toBe(201)
+        const colleagues = await ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/agent-sessions`,
+          payload: { name: 'docker-colleague', capUsd: 1 },
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+        })
+        expect(colleagues.statusCode, colleagues.body).toBe(201)
+        const theirKey = (theirs.json() as Started).key
+        const colleagueKey = (colleagues.json() as Started).key
+        expect(await chat(theirKey, 'default-chat')).toEqual({ status: 200 })
+        expect(await chat(colleagueKey, 'default-chat')).toEqual({ status: 200 })
+
+        const removed = await ctx.app.inject({
+          method: 'DELETE',
+          url: `/v1/projects/${ctx.projectId}/members/${ta.id}`,
+          cookies: ctx.ownerSteppedUp,
+          headers: mutationHeaders(ctx.deps),
+        })
+        expect(removed.statusCode, removed.body).toBe(200)
+        // AT ONCE — the removal has answered: the removed person's key is refused by the GATEWAY…
+        expect(await chat(theirKey, 'default-chat')).toEqual({
+          status: 401,
+          type: 'token_not_found_in_db',
+        })
+        // …and the colleague's, on the same project, still answers.
+        expect(await chat(colleagueKey, 'default-chat')).toEqual({ status: 200 })
       })
     },
   )

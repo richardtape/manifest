@@ -528,11 +528,13 @@ A person was added to the project, or their role on it changed (§13). Not publi
 
 ## `member.removed`
 
-A person was taken off the project (§13). Not published for somebody who was not a member.
+A person was taken off the project (§13) — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed (§6, §10, §20). Not published for somebody who was not a member.
 
 ```json
 {
   "memberId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+  "tokensRevoked": 1,
+  "sessionsEnded": 1,
   "via": "session",
   "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "tokenId": null

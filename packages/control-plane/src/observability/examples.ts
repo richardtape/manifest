@@ -228,6 +228,8 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
   },
   'member.removed': {
     memberId: OTHER_UUID,
+    tokensRevoked: 1,
+    sessionsEnded: 1,
     via: 'session',
     userId: UUID,
     tokenId: null,

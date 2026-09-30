@@ -146,7 +146,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `app_secret.cleared` | A secret’s value was removed from one environment; deploying a release that declares it there is refused until it is set again. |
 | `project.renamed` | The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not. |
 | `member.added` | A person was added to the project, or their role on it changed (§13). Not published when nothing changed. |
-| `member.removed` | A person was taken off the project (§13). Not published for somebody who was not a member. |
+| `member.removed` | A person was taken off the project (§13) — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed (§6, §10, §20). Not published for somebody who was not a member. |
 | `agent_session.started` | An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published. |
 | `agent_session.narrowed` | An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key. |
 | `agent_session.ended` | An agent session’s key was revoked at the gateway (§10). |

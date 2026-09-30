@@ -1,5 +1,6 @@
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
+import { endSessionsOf } from '../../ai/index.js'
 import { appSpecs, environments, type Db } from '../../db/index.js'
 import { makeRedactor, publishEvent } from '../../observability/index.js'
 import {
@@ -19,6 +20,7 @@ import {
   removeMember,
   servingInstanceOf,
 } from '../../projects/index.js'
+import { revokeTokensOfMember } from '../../tokens/index.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
 import { validateAndRecord } from '../spec-validation.js'
@@ -48,6 +50,37 @@ const actorDetail = (actor: Actor) => ({
   userId: actor.userId,
   tokenId: actor.credential === 'token' ? actor.tokenId : null,
 })
+/** `1 delegated token`, `2 delegated tokens` — a count inside a sentence. */
+const counted = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`
+
+/**
+ * `member.removed`'s sentence: who removed whom, and what that did to their agent — said only when it
+ * did something, so a removal that revoked and ended nothing reads as it always did. `unfinished` when
+ * ending a session failed: the removal is recorded all the same, and says what is left to do.
+ */
+function removedSentence(
+  who: string,
+  them: string,
+  tokensRevoked: number,
+  sessionsEnded: number,
+  unfinished: boolean,
+): string {
+  const did = [
+    ...(tokensRevoked === 0
+      ? []
+      : [`revoking ${counted(tokensRevoked, 'delegated token')} they had minted on it`]),
+    ...(sessionsEnded === 0
+      ? []
+      : [`ending ${counted(sessionsEnded, 'agent session')} of theirs there`]),
+  ]
+  return (
+    `${who} removed ${them} from the project${did.length === 0 ? '' : `, ${did.join(' and ')}`}.` +
+    (unfinished
+      ? ' At least one of their agent sessions could not be ended; repeating the removal ends it.'
+      : '')
+  )
+}
+
 /** The member routes that name a person: `userId` is the §6 `users.id`, not a PUID. */
 const MemberParams = z.strictObject({ projectId: PATH.projectId, userId: PATH.userId })
 const EnvironmentParams = z.strictObject({ environmentId: PATH.environmentId })
@@ -496,7 +529,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Remove a member',
     description:
-      'Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`. Idempotent — removing somebody who is not a member answers the members as they are, and publishes nothing — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.',
+      'Takes a person off the project (§13) — and their agent with them: every delegated token they minted on the project is revoked with the removal, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there are ended, their model keys revoked at the gateway (§6, §10, §20). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`, saying how many tokens it revoked and sessions it ended. Idempotent — removing somebody who is not a member answers the members as they are and publishes nothing, and ends any agent session of theirs still live on the project — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy. **An error while ending their sessions comes AFTER the removal** — `503 AI_CATALOGUE_DISABLED` when AI is switched off, a `500` when the model gateway fails: the person is already off the project and their tokens already revoked, and only their agent sessions are not yet ended. Repeat the same request (once AI is back on) and it ends them.',
     params: MemberParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -519,6 +552,10 @@ export const projectReadRoutes = [
       'TOKEN_ACTION_REJECTED',
       // §20's step-up, the same capability and therefore the same guard (P6a Task 9).
       'STEP_UP_REQUIRED',
+      // The launch path plan's Task 8: ending the removed person's agent sessions needs the model
+      // gateway, and with AI switched off `endSessionsOf` answers the code `revokeToken` declares for
+      // the same end — AFTER the removal and its revoke have committed, as the description says.
+      'AI_CATALOGUE_DISABLED',
     ],
     examples: {
       response: [
@@ -535,24 +572,86 @@ export const projectReadRoutes = [
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, 'members:manage')
       assertStepUp(actor, 'members:manage')
-      const outcome = await removeMember(deps.db, params.projectId, params.userId)
+      const { projectId, userId } = params
+      // THE REMOVAL AND ITS REVOKE IN ONE TRANSACTION (Spec action 2; the launch path plan's Task 8):
+      // both are the database's alone, so no failure after this — the gateway's included — can leave a
+      // person off the project with a live token acting for them on it, and a revoke that fails leaves
+      // them on it. Only for a REMOVAL (`removeMember` answers, it does not throw): the last owner
+      // refused, or somebody who was not a member, revokes nothing.
+      const { outcome, revoked } = await deps.db.transaction(async (tx) => {
+        const removal = await removeMember(tx, projectId, userId)
+        return {
+          outcome: removal,
+          revoked:
+            removal === 'removed'
+              ? await revokeTokensOfMember(tx, projectId, userId)
+              : [],
+        }
+      })
       if (outcome === 'last owner') throw new LastOwnerError()
-      // Published only for a removal: taking off somebody who was not a member changed nothing.
+      if (outcome === 'removed') {
+        // THEIR STREAMS, ONCE THE TRANSACTION HAS COMMITTED — never inside it, where a close would
+        // announce a removal that could still roll back — and BEFORE their sessions (the launch path
+        // plan's Task 5, for its reason): closing needs nothing, ending a session needs the model
+        // gateway and can fail, and an outage must never leave a removed person listening. Each revoked
+        // token's `4401`, then the person's own session streams, `4404`: the project is not theirs now.
+        deps.streams.closeTokens(revoked)
+        deps.streams.closePerson(projectId, userId)
+      }
+      // THEN THEIR AGENT SESSIONS on the project — token-started and browser-started — `member_removed`.
+      // REACHED FOR SOMEBODY WHO IS NOT A MEMBER TOO, as `revokeToken`'s end is reached for a token
+      // already revoked: the same request repeated is how the sessions a removal answered an error
+      // could not end get ended. (An administrator who is not a member and holds a session here loses
+      // it the same way — which any member of the project could already do, one `endAgentSession` at a
+      // time, so this grants nobody anything new.) `endSessionsOf` names each failure with its cause
+      // on the operator's stderr before it throws — never a swallowed catch — and the throw is
+      // answered below, after the event.
+      const ended: string[] = []
+      let failure: unknown
+      try {
+        await endSessionsOf(
+          deps,
+          { projectId, userId },
+          'member_removed',
+          {
+            userId: actor.userId,
+            tokenId: actor.credential === 'token' ? actor.tokenId : null,
+          },
+          ended,
+        )
+      } catch (error) {
+        failure = error
+      }
+      // Published only for a removal: taking off somebody who was not a member changed nothing. And
+      // published EVEN WHEN ending a session failed — the person is off the project and their tokens
+      // revoked, and the retry that ends the rest answers `'not a member'`, so it would never record it.
       if (outcome === 'removed') {
         await publishEvent(
           deps.db,
           deps.bus,
           {
-            projectId: params.projectId,
-            subject: `member:${params.userId}`,
+            projectId,
+            subject: `member:${userId}`,
             type: 'member.removed',
-            machineDetail: { memberId: params.userId, ...actorDetail(actor) },
-            humanMessage: `${await actorPhrase(deps.db, actor)} removed ${await personName(deps.db, params.userId)} from the project.`,
+            machineDetail: {
+              memberId: userId,
+              tokensRevoked: revoked.length,
+              sessionsEnded: ended.length,
+              ...actorDetail(actor),
+            },
+            humanMessage: removedSentence(
+              await actorPhrase(deps.db, actor),
+              await personName(deps.db, userId),
+              revoked.length,
+              ended.length,
+              failure !== undefined,
+            ),
           },
           makeRedactor([]),
         )
       }
-      return (await listMembers(deps.db, params.projectId)).map(toMember)
+      if (failure !== undefined) throw failure
+      return (await listMembers(deps.db, projectId)).map(toMember)
     },
   }),
   defineRoute({

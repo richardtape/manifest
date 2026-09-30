@@ -543,11 +543,12 @@ export async function assertCapability(
    * and turn the id space into an enumeration oracle. No membership is consulted — the
    * token names its project, and the row's foreign key is what makes that project real.
    *
-   * **A token therefore outlives its minter's membership.** Removing somebody from a
-   * project does not stop a token they minted for it; revoking the token does. Phase 1
-   * accepts that deliberately — the alternative is a `project_members` read on every
-   * request a token makes, which is the per-request database cost Decision 9 rejected —
-   * and the plan that adds member removal to the console is the one that revisits it.
+   * **No membership read, and yet a token does not outlive its minter's membership**
+   * (Spec action 2; the launch path plan's Task 8): removing a person revokes every token
+   * they minted on the project, in the removal's own transaction — so the token row this
+   * branch never re-reads is already revoked by the time the removal answers. A
+   * `project_members` read on every request a token makes is the per-request database cost
+   * Decision 9 rejected; the revoke at the removal costs one statement, once.
    *
    * **THE ORDER OF THE FOUR CHECKS BELOW IS THE SECURITY PROPERTY**, and the next
    * reader will want to reorder them for readability. Scope, then the person-only rule,

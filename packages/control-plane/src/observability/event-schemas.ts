@@ -639,15 +639,33 @@ export const EVENT_DETAIL_SCHEMAS = {
     .describe(
       'A person was added to the project, or their role on it changed (§13). Not published when nothing changed.',
     ),
+  /**
+   * The launch path plan's Task 8 (Spec action 2) adds the two counts — what the removal did to the
+   * person's agent besides. Additive: a client that reads neither reads the event as it did.
+   */
   'member.removed': z
     .strictObject({
       memberId: Uuid.describe('The person taken off the project.'),
+      tokensRevoked: z
+        .number()
+        .int()
+        .nonnegative()
+        .describe(
+          'How many delegated tokens they had minted on the project were revoked with the removal — every one still live; a token of theirs on another project is not touched.',
+        ),
+      sessionsEnded: z
+        .number()
+        .int()
+        .nonnegative()
+        .describe(
+          'How many of their agent sessions on the project the removal ended — started by a token or in their own browser alike. When some could not be ended (the request was answered an error), repeating the removal ends them; each end is its own `agent_session.ended`.',
+        ),
       via: Via,
       userId: ActingUser,
       tokenId: ActingToken,
     })
     .describe(
-      'A person was taken off the project (§13). Not published for somebody who was not a member.',
+      'A person was taken off the project (§13) — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed (§6, §10, §20). Not published for somebody who was not a member.',
     ),
   /**
    * The front-end enablement plan's Task 10. `userId` is who started it — the person charged, a
@@ -707,9 +725,10 @@ export const EVENT_DETAIL_SCHEMAS = {
           'project_archived',
           'project_deleted',
           'models_withdrawn',
+          'member_removed',
         ])
         .describe(
-          'Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).',
+          'Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise) — or `member_removed`: the person it works for was taken off the project. A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).',
         ),
       via: Via,
       userId: ActingUser,

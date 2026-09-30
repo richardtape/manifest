@@ -98,10 +98,11 @@ export const AgentSession = representation(
           'project_archived',
           'project_deleted',
           'models_withdrawn',
+          'member_removed',
         ])
         .nullable()
         .describe(
-          'Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise); a session that keeps any model it may still use is narrowed instead, and goes on. Null while it has not been ended; a session that ran out of time or money is never ended by that.',
+          'Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise); a session that keeps any model it may still use is narrowed instead, and goes on — or `member_removed`: the person it works for was taken off the project. Null while it has not been ended; a session that ran out of time or money is never ended by that.',
         ),
       spentUsd: z
         .number()

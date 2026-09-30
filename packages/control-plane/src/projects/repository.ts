@@ -431,9 +431,14 @@ export async function findPerson(
  * project with no owner is one nobody can grant access to, delete or deploy, and §13 has
  * no route back: the row would have to be repaired in the database. The count and the
  * delete are one statement so two removals racing cannot each see the other's owner.
+ *
+ * **IT ANSWERS `'last owner'`, IT DOES NOT THROW** — so a caller holding a transaction gates what
+ * follows on `'removed'`. The route runs it in ONE transaction with `revokeTokensOfMember` (Spec
+ * action 2; the launch path plan's Task 8): `select` and `delete` alone, so the transaction's handle
+ * is accepted, and a revoke that fails rolls the removal back with it.
  */
 export async function removeMember(
-  db: Db,
+  db: Pick<Db, 'select' | 'delete'>,
   projectId: string,
   userId: string,
 ): Promise<'removed' | 'not a member' | 'last owner'> {

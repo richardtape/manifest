@@ -1,5 +1,5 @@
 import { and, desc, eq, gt, isNull } from 'drizzle-orm'
-import { agentSessions, delegatedTokens, type Db } from '../db/index.js'
+import { agentSessions, delegatedTokens, projectMembers, type Db } from '../db/index.js'
 import {
   eventFrame,
   makeRedactor,
@@ -7,7 +7,12 @@ import {
   recordEvent,
   type EventBus,
 } from '../observability/index.js'
-import { holdActiveProject, personName, type Actor } from '../projects/index.js'
+import {
+  AuthorizationError,
+  holdActiveProject,
+  personName,
+  type Actor,
+} from '../projects/index.js'
 import type { Classification } from '../spec/index.js'
 import { tokenById } from '../tokens/index.js'
 import {
@@ -32,7 +37,8 @@ import { agentModelsFor, classificationFloor, type BuilderModels } from './model
  * §10's agent sessions outside a sandbox (Spec action 1; the front-end enablement plan's Task 10,
  * Decisions 20–25): a row per session, a key per row — named by the row's id and never stored —
  * charged to the person the agent works for, capped, D17-routed, and ended with its session, its
- * token or its project. `api/routes/agents.ts` is the caller; Task 11's archive calls
+ * token, its project or that person's place on it. `api/routes/agents.ts` is the caller; Task 11's
+ * archive, a token's revoke and a member's removal (the launch path plan's Task 8) call
  * `endSessionsOf` too.
  */
 
@@ -64,10 +70,17 @@ export type AgentSessionRow = typeof agentSessions.$inferSelect
 /**
  * Decision 25's written ends — and `models_withdrawn` (FE-36; the front-end enablement plan's Task 14a):
  * its project no longer allows ANY model it held — one that keeps a model it may use is narrowed instead
- * (the launch path plan's Task 7). Running out — of time or of money — is READ, never written.
+ * (the launch path plan's Task 7) — and `member_removed` (Spec action 2; the launch path plan's Task 8):
+ * the person it works for was taken off the project. Running out — of time or of money — is READ, never
+ * written.
  */
 export type EndReason =
-  'ended' | 'token_revoked' | 'project_archived' | 'project_deleted' | 'models_withdrawn'
+  | 'ended'
+  | 'token_revoked'
+  | 'project_archived'
+  | 'project_deleted'
+  | 'models_withdrawn'
+  | 'member_removed'
 
 /** `expired` is derived at read time: LiteLLM stops the key at its `duration`, and no timer runs here. */
 export function sessionState(
@@ -246,6 +259,29 @@ export async function startAgentSession(
       // manifest is recorded: it waits for this commit and `narrowSessionsHoldingMore` then narrows (or
       // ends) what it holds — or it went first, and this read sees the new manifest.
       models = await modelsNow(tx)
+      // THE PERSON'S PLACE ON THE PROJECT, HELD FOR THE LENGTH OF THE START (Spec action 2; the launch
+      // path plan's Task 8) — the token's hold below, for a session with no token. `assertCapability`
+      // read the membership when the request arrived: a removal committing during the mint found no
+      // committed session to end, and this then committed a live key for somebody no longer on the
+      // project. `FOR SHARE` conflicts with the removal's DELETE, so either the removal waits for this
+      // commit — and its `endSessionsOf` ends the session — or it committed first, and the start is
+      // refused as a stranger is. An ADMINISTRATOR acts here without membership (§13), so none is
+      // refused for having none; a membership they hold is held all the same.
+      if (input.actor.credential === 'session') {
+        const [member] = await tx
+          .select({ role: projectMembers.role })
+          .from(projectMembers)
+          .where(
+            and(
+              eq(projectMembers.projectId, input.projectId),
+              eq(projectMembers.userId, person),
+            ),
+          )
+          .for('share')
+        if (member === undefined && input.actor.platformRole !== 'admin') {
+          throw new AuthorizationError('NOT_FOUND', `no project '${input.projectId}'`)
+        }
+      }
       if (tokenId !== null) {
         const [held] = await tx
           .select({
@@ -378,6 +414,7 @@ const endReasonWords: Record<EndReason, string> = {
   project_deleted: 'ended because the project was deleted',
   models_withdrawn:
     'ended because its project no longer allows any of the models it held — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise',
+  member_removed: 'ended because the person it works for was removed from the project',
 }
 
 /**
@@ -461,22 +498,35 @@ export async function endAgentSession(
 }
 
 /**
- * Ends EVERY live session of a token or a project (Decision 25: a revoked token, an archived or a
- * deleted project). Each is tried; each that could not be ended is named in a line of its own WITH
- * ITS CAUSE, then all of them in one summary line, and the call fails — so the request that asked is
- * answered an error and its retry, which reaches here even when the token is already revoked, ends
- * what remains. Answers the ids it ended.
+ * Ends EVERY live session of a token, a project, or one person on a project (Decision 25: a revoked
+ * token, an archived or a deleted project; Spec action 2: a person removed from it). Each is tried;
+ * each that could not be ended is named in a line of its own WITH ITS CAUSE, then all of them in one
+ * summary line, and the call fails — so the request that asked is answered an error and its retry,
+ * which reaches here even when the token is already revoked or the person already removed, ends what
+ * remains. Answers the ids it ended.
+ *
+ * **A PERSON'S TARGET IS TOLD FROM A PROJECT'S FIRST** (the launch path plan's Task 8): `{ projectId,
+ * userId }` also has a `projectId`, and read as the project alone it would end every session on it — a
+ * removal ending the colleagues' agents too. Token-started and browser-started alike: `user_id` is on
+ * every session, and a browser-started one has no token for a revoke to reach.
  *
  * **THE ANSWER IS THE CAUSE WHEN THE CAUSE HAS A CODE** (the whole-branch review's I1): AI switched
  * off (`gatewayOf`'s `AI_CATALOGUE_DISABLED`) is rethrown as a `CatalogueError` of the same code, so
- * `revokeToken` answers the code it declares, and an archive's operator line names it; anything else
- * is a plain `Error`, a `500`.
+ * `revokeToken` and `removeMember` answer the code they declare, and an archive's operator line names
+ * it; anything else is a plain `Error`, a `500`.
  */
 export async function endSessionsOf(
   deps: { db: Db; bus: EventBus; llm: LiteLlmClient | undefined },
-  target: { projectId: string } | { tokenId: string },
+  target:
+    { projectId: string; userId: string } | { projectId: string } | { tokenId: string },
   reason: EndReason,
   by: EndedBy,
+  /**
+   * Where each id is put AS its session ends — the answer is this array. For a caller that records
+   * what it did even when the call then fails: `removeMember`'s `member.removed` is published whether
+   * or not every session ended, and counts the ones that did.
+   */
+  ended: string[] = [],
 ): Promise<string[]> {
   const live = await deps.db
     .select()
@@ -485,11 +535,15 @@ export async function endSessionsOf(
       and(
         'tokenId' in target
           ? eq(agentSessions.requestedByToken, target.tokenId)
-          : eq(agentSessions.projectId, target.projectId),
+          : 'userId' in target
+            ? and(
+                eq(agentSessions.projectId, target.projectId),
+                eq(agentSessions.userId, target.userId),
+              )
+            : eq(agentSessions.projectId, target.projectId),
         isNull(agentSessions.endedAt),
       ),
     )
-  const ended: string[] = []
   const failed: string[] = []
   let catalogue: CatalogueError | undefined
   for (const row of live) {
@@ -511,7 +565,11 @@ export async function endSessionsOf(
   }
   if (failed.length > 0) {
     const scope =
-      'tokenId' in target ? `token ${target.tokenId}` : `project ${target.projectId}`
+      'tokenId' in target
+        ? `token ${target.tokenId}`
+        : 'userId' in target
+          ? `person ${target.userId} on project ${target.projectId}`
+          : `project ${target.projectId}`
     console.error(
       `${failed.length} agent session(s) of ${scope} could not be ended after '${reason}': ${failed.join(', ')} — each line above says why; a key not revoked stays live until it expires or the request is retried`,
     )

@@ -3169,7 +3169,7 @@ Answer, `201`:
 
 `DELETE /v1/projects/{projectId}/members/{userId}` · a session or a delegated token
 
-Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`. Idempotent — removing somebody who is not a member answers the members as they are, and publishes nothing — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.
+Takes a person off the project (§13) — and their agent with them: every delegated token they minted on the project is revoked with the removal, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there are ended, their model keys revoked at the gateway (§6, §10, §20). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`, saying how many tokens it revoked and sessions it ended. Idempotent — removing somebody who is not a member answers the members as they are and publishes nothing, and ends any agent session of theirs still live on the project — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy. **An error while ending their sessions comes AFTER the removal** — `503 AI_CATALOGUE_DISABLED` when AI is switched off, a `500` when the model gateway fails: the person is already off the project and their tokens already revoked, and only their agent sessions are not yet ended. Repeat the same request (once AI is back on) and it ends them.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3193,6 +3193,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |

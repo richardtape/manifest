@@ -1,7 +1,21 @@
+import { randomUUID } from 'node:crypto'
 import { and, asc, eq, inArray } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
-import { events, users } from '../db/index.js'
+import { describe, expect, it, vi } from 'vitest'
+import { personAiUserId } from '../ai/index.js'
+import { fakeLiteLlm, type FakeLiteLlm } from '../ai/testing.js'
+import {
+  agentSessions,
+  delegatedTokens,
+  events,
+  projectMembers,
+  users,
+  type Db,
+} from '../db/index.js'
 import { upsertUserFromAssertion, type SamlIdentity } from '../identity/index.js'
+import { ensureTestUser } from '../identity/testing.js'
+import { addMember } from '../projects/index.js'
+import { mintTestToken } from '../tokens/testing.js'
+import { ROUTE_DEFINITIONS } from './routes/index.js'
 import {
   mutationHeaders,
   refusal,
@@ -294,7 +308,10 @@ describe('people by CWL login name or email (Task 7)', () => {
           'member.added',
           { memberId: student.id, role: 'owner', previousRole: 'collaborator', ...actor },
         ],
-        ['member.removed', { memberId: student.id, ...actor }],
+        [
+          'member.removed',
+          { memberId: student.id, tokensRevoked: 0, sessionsEnded: 0, ...actor },
+        ],
       ])
       expect(published.map((e) => e.humanMessage)).toEqual([
         'Bio Prof added Test Student to the project as a collaborator.',
@@ -325,3 +342,506 @@ describe('people by CWL login name or email (Task 7)', () => {
     })
   })
 })
+
+/**
+ * REMOVING A PERSON REMOVES THEIR AGENT TOO (§6, §10 and §20 as Spec action 2 amended them; the launch
+ * path plan's Task 8 — Rich's *"YEs"*, 2026-09-29). Every token they minted on the project is revoked
+ * IN THE REMOVAL'S OWN TRANSACTION; then their event streams are closed (`api/events.test.ts` holds
+ * that half, over real sockets); then their agent sessions there are ended — token-started and
+ * browser-started alike — `member_removed`. Before this, a TA removed in week five kept an agent
+ * working on the project for up to a year: a token's authority is its own, and a browser-started
+ * session has no token for a revoke to reach.
+ */
+describe('removing a member revokes their tokens on the project, ends their agent sessions and closes their streams (Task 8)', () => {
+  /**
+   * `members:manage` is step-up guarded: the owner's stepped-up session. A fresh Idempotency-Key unless
+   * one is given — the same one, for a request REPEATED.
+   */
+  const remove = (ctx: TestProject, userId: string, key: string = randomUUID()) =>
+    ctx.app.inject({
+      method: 'DELETE',
+      url: `/v1/projects/${ctx.projectId}/members/${userId}`,
+      cookies: ctx.ownerSteppedUp,
+      headers: { ...mutationHeaders(ctx.deps), 'idempotency-key': key },
+    })
+
+  /**
+   * The TA: `bio_student`, a collaborator on the fixture project AND on the second one — so a token
+   * or a session of theirs on the other project is one they could really hold.
+   */
+  async function theTa(ctx: TestProject) {
+    const cookies = await sessionFor(ctx, 'bio_student', 'collaborator')
+    const user = await ensureTestUser(ctx.db, 'bio_student')
+    await addMember(ctx.db, ctx.otherProjectId, user.id, 'collaborator')
+    return { id: user.id, cookies }
+  }
+
+  const tokenState = async (
+    ctx: TestProject,
+    id: string,
+  ): Promise<'live' | 'revoked'> => {
+    const [row] = await ctx.db
+      .select({ revokedAt: delegatedTokens.revokedAt })
+      .from(delegatedTokens)
+      .where(eq(delegatedTokens.id, id))
+    if (row === undefined) throw new Error(`no token '${id}'`)
+    return row.revokedAt === null ? 'live' : 'revoked'
+  }
+
+  /** `getProject`, asked with a token. */
+  const readAs = (ctx: TestProject, plaintext: string, projectId: string) =>
+    ctx.app.inject({
+      method: 'GET',
+      url: `/v1/projects/${projectId}`,
+      headers: { authorization: `Bearer ${plaintext}` },
+    })
+
+  type Auth = { cookies: Record<string, string> } | { bearer: string }
+
+  const startSession = (ctx: TestProject, auth: Auth, projectId: string) =>
+    ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${projectId}/agent-sessions`,
+      payload: { name: 'Mark the lab reports' },
+      ...('cookies' in auth
+        ? { cookies: auth.cookies, headers: mutationHeaders(ctx.deps) }
+        : {
+            headers: {
+              authorization: `Bearer ${auth.bearer}`,
+              'idempotency-key': randomUUID(),
+            },
+          }),
+    })
+
+  /**
+   * A session started, and its key ANSWERING — the positive control each "refused" below is read
+   * against, so a refusal cannot be a key that never worked.
+   */
+  async function started(
+    ctx: TestProject,
+    lite: FakeLiteLlm,
+    auth: Auth,
+    projectId: string = ctx.projectId,
+  ): Promise<{ id: string; key: string; model: string }> {
+    const res = await startSession(ctx, auth, projectId)
+    expect(res.statusCode, res.body).toBe(201)
+    const body = res.json() as { session: { id: string; models: string[] }; key: string }
+    const model = body.session.models[0]!
+    expect(lite.use(body.key, model)).toEqual({ status: 200 })
+    return { id: body.session.id, key: body.key, model }
+  }
+
+  /** What the gateway answers a revoked key — LiteLLM's own `token_not_found_in_db`, as `agents.test.ts` reads it. */
+  const REVOKED_KEY = { status: 401, type: 'token_not_found_in_db' }
+
+  const sessionRow = async (ctx: TestProject, id: string) => {
+    const [row] = await ctx.db
+      .select({ endedAt: agentSessions.endedAt, endReason: agentSessions.endReason })
+      .from(agentSessions)
+      .where(eq(agentSessions.id, id))
+    return row
+  }
+
+  const published = (ctx: TestProject, type: string) =>
+    ctx.db
+      .select({
+        subject: events.subject,
+        machineDetail: events.machineDetail,
+        humanMessage: events.humanMessage,
+      })
+      .from(events)
+      .where(and(eq(events.projectId, ctx.projectId), eq(events.type, type)))
+      .orderBy(asc(events.createdAt))
+
+  const isMember = async (ctx: TestProject, userId: string): Promise<boolean> =>
+    (
+      await ctx.db
+        .select({ role: projectMembers.role })
+        .from(projectMembers)
+        .where(
+          and(
+            eq(projectMembers.projectId, ctx.projectId),
+            eq(projectMembers.userId, userId),
+          ),
+        )
+    ).length === 1
+
+  const byOwner = (ctx: TestProject) => ({
+    via: 'session',
+    userId: ctx.userId,
+    tokenId: null,
+  })
+
+  it('revokes their tokens on THIS project, and only theirs', async () => {
+    await withProjectServer(async (ctx) => {
+      const ta = await theTa(ctx)
+      const taHere = await mintTestToken(ctx.db, {
+        userId: ta.id,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      const taElsewhere = await mintTestToken(ctx.db, {
+        userId: ta.id,
+        projectId: ctx.otherProjectId,
+        capabilities: ['project:read'],
+      })
+      const owners = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      // One of theirs revoked BEFORE: it keeps the stamp it had, and is not counted again.
+      const earlier = await mintTestToken(ctx.db, {
+        userId: ta.id,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      const stamped = new Date(Date.now() - 60_000)
+      await ctx.db
+        .update(delegatedTokens)
+        .set({ revokedAt: stamped })
+        .where(eq(delegatedTokens.id, earlier.row.id))
+      // The positive control: the TA's token answers before the removal.
+      expect((await readAs(ctx, taHere.plaintext, ctx.projectId)).statusCode).toBe(200)
+
+      const res = await remove(ctx, ta.id)
+      expect(res.statusCode, res.body).toBe(200)
+
+      expect(await tokenState(ctx, taHere.row.id)).toBe('revoked')
+      // Another project's is not this removal's — the TA is still a member there.
+      expect(await tokenState(ctx, taElsewhere.row.id)).toBe('live')
+      // A colleague's is not theirs.
+      expect(await tokenState(ctx, owners.row.id)).toBe('live')
+      const [kept] = await ctx.db
+        .select({ revokedAt: delegatedTokens.revokedAt })
+        .from(delegatedTokens)
+        .where(eq(delegatedTokens.id, earlier.row.id))
+      expect(kept!.revokedAt).toEqual(stamped)
+
+      // And the revoked token is refused AT ONCE, while the two left live still answer.
+      expect(refusal(await readAs(ctx, taHere.plaintext, ctx.projectId))).toEqual({
+        status: 401,
+        code: 'UNAUTHENTICATED',
+      })
+      expect(
+        (await readAs(ctx, taElsewhere.plaintext, ctx.otherProjectId)).statusCode,
+      ).toBe(200)
+      expect((await readAs(ctx, owners.plaintext, ctx.projectId)).statusCode).toBe(200)
+
+      const removed = await published(ctx, 'member.removed')
+      expect(removed.map((e) => e.machineDetail)).toEqual([
+        { memberId: ta.id, tokensRevoked: 1, sessionsEnded: 0, ...byOwner(ctx) },
+      ])
+      expect(removed[0]!.humanMessage).toBe(
+        'Bio Prof removed Bio Student from the project, revoking 1 delegated token they had minted on it.',
+      )
+    })
+  })
+
+  it('ends their agent sessions on the project — token-started and browser-started — member_removed', async () => {
+    const lite = fakeLiteLlm()
+    await withProjectServer(
+      async (ctx) => {
+        const ta = await theTa(ctx)
+        const token = await mintTestToken(ctx.db, {
+          userId: ta.id,
+          projectId: ctx.projectId,
+          capabilities: ['agent:session'],
+        })
+        const byToken = await started(ctx, lite, { bearer: token.plaintext })
+        // No token reaches this one: `requested_by_token` is null, so only the PERSON names it.
+        const inBrowser = await started(ctx, lite, { cookies: ta.cookies })
+
+        const res = await remove(ctx, ta.id)
+        expect(res.statusCode, res.body).toBe(200)
+
+        // Refused by the GATEWAY — the key itself, never only the row.
+        expect(lite.use(byToken.key, byToken.model)).toEqual(REVOKED_KEY)
+        expect(lite.use(inBrowser.key, inBrowser.model)).toEqual(REVOKED_KEY)
+        for (const { id } of [byToken, inBrowser]) {
+          expect(await sessionRow(ctx, id)).toMatchObject({
+            endedAt: expect.any(Date),
+            endReason: 'member_removed',
+          })
+        }
+        const ended = await published(ctx, 'agent_session.ended')
+        expect(ended.map((e) => e.machineDetail)).toEqual(
+          expect.arrayContaining(
+            [byToken, inBrowser].map(({ id }) => ({
+              sessionId: id,
+              reason: 'member_removed',
+              ...byOwner(ctx),
+            })),
+          ),
+        )
+        expect(ended).toHaveLength(2)
+        expect(ended[0]!.humanMessage).toBe(
+          "Bio Student's agent session 'Mark the lab reports' was ended because the person it works for was removed from the project.",
+        )
+        const [removed] = await published(ctx, 'member.removed')
+        expect(removed!.machineDetail).toEqual({
+          memberId: ta.id,
+          tokensRevoked: 1,
+          sessionsEnded: 2,
+          ...byOwner(ctx),
+        })
+        expect(removed!.humanMessage).toBe(
+          'Bio Prof removed Bio Student from the project, revoking 1 delegated token they had minted on it and ending 2 agent sessions of theirs there.',
+        )
+      },
+      { llm: lite },
+    )
+  })
+
+  it('a colleague’s session on the same project, and the removed person’s own on another project, survive the removal', async () => {
+    // `endSessionsOf`'s `{ projectId, userId }` must be told from `{ projectId }` FIRST — read as the
+    // project alone, a removal would end every session on it (the controller's ruling 3).
+    const lite = fakeLiteLlm()
+    await withProjectServer(
+      async (ctx) => {
+        const ta = await theTa(ctx)
+        const theirs = await started(ctx, lite, { cookies: ta.cookies })
+        const colleagues = await started(ctx, lite, { cookies: ctx.ownerCookies })
+        const elsewhere = await started(
+          ctx,
+          lite,
+          { cookies: ta.cookies },
+          ctx.otherProjectId,
+        )
+
+        expect((await remove(ctx, ta.id)).statusCode).toBe(200)
+
+        // The positive control: the removed person's session HERE is ended…
+        expect(lite.use(theirs.key, theirs.model)).toEqual(REVOKED_KEY)
+        // …and neither of the others is.
+        expect(lite.use(colleagues.key, colleagues.model)).toEqual({ status: 200 })
+        expect(lite.use(elsewhere.key, elsewhere.model)).toEqual({ status: 200 })
+        expect(await sessionRow(ctx, colleagues.id)).toEqual({
+          endedAt: null,
+          endReason: null,
+        })
+        expect(await sessionRow(ctx, elsewhere.id)).toEqual({
+          endedAt: null,
+          endReason: null,
+        })
+      },
+      { llm: lite },
+    )
+  })
+
+  it('removing the last owner is still refused, and revokes nothing', async () => {
+    // The revoke shares the removal's transaction, and runs only for a removal: a refused removal
+    // must leave every token live and every session running — a refusal has no side effects.
+    const lite = fakeLiteLlm()
+    await withProjectServer(
+      async (ctx) => {
+        const owners = await mintTestToken(ctx.db, {
+          userId: ctx.userId,
+          projectId: ctx.projectId,
+          capabilities: ['project:read'],
+        })
+        const session = await started(ctx, lite, { cookies: ctx.ownerCookies })
+
+        expect(refusal(await remove(ctx, ctx.userId))).toEqual({
+          status: 409,
+          code: 'PROJECT_LAST_OWNER',
+        })
+        expect(await isMember(ctx, ctx.userId)).toBe(true)
+        expect(await tokenState(ctx, owners.row.id)).toBe('live')
+        expect(lite.use(session.key, session.model)).toEqual({ status: 200 })
+        expect(await published(ctx, 'member.removed')).toEqual([])
+
+        // The positive control: with a second owner the same removal goes through — and revokes.
+        await sessionFor(ctx, 'bio_student', 'owner')
+        const res = await remove(ctx, ctx.userId)
+        expect(res.statusCode, res.body).toBe(200)
+        expect(await tokenState(ctx, owners.row.id)).toBe('revoked')
+        expect(lite.use(session.key, session.model)).toEqual(REVOKED_KEY)
+      },
+      { llm: lite },
+    )
+  })
+
+  it('a removal whose revoke fails removes nobody — the member stays, and every token of theirs stays live', async () => {
+    // THE TRANSACTION'S OWN PROPERTY (the controller's ruling 2): no removal without its revoke. The
+    // database refuses the revoke's UPDATE — and only it — after the membership row is deleted in the
+    // same transaction; the delete must roll back with it.
+    await withProjectServer(async (ctx) => {
+      const ta = await theTa(ctx)
+      const token = await mintTestToken(ctx.db, {
+        userId: ta.id,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      const real = ctx.deps.db
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      let res: Awaited<ReturnType<typeof remove>>
+      try {
+        ctx.deps.db = refusingTokenUpdates(real)
+        res = await remove(ctx, ta.id)
+      } finally {
+        ctx.deps.db = real
+        logged.mockRestore()
+      }
+      expect(refusal(res)).toEqual({ status: 500, code: 'INTERNAL' })
+      expect(await isMember(ctx, ta.id)).toBe(true)
+      expect(await tokenState(ctx, token.row.id)).toBe('live')
+      expect(await published(ctx, 'member.removed')).toEqual([])
+
+      // The positive control: the same removal, the database willing, removes and revokes.
+      expect((await remove(ctx, ta.id)).statusCode).toBe(200)
+      expect(await isMember(ctx, ta.id)).toBe(false)
+      expect(await tokenState(ctx, token.row.id)).toBe('revoked')
+    })
+  })
+
+  it('with AI switched off, answers AI_CATALOGUE_DISABLED with the person already removed and their tokens already revoked — and the removal repeated once AI is back ends their sessions', async () => {
+    const lite = fakeLiteLlm()
+    await withProjectServer(
+      async (ctx) => {
+        const ta = await theTa(ctx)
+        const token = await mintTestToken(ctx.db, {
+          userId: ta.id,
+          projectId: ctx.projectId,
+          capabilities: ['agent:session'],
+        })
+        const session = await started(ctx, lite, { bearer: token.plaintext })
+        const key = randomUUID()
+        const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+        let off: Awaited<ReturnType<typeof remove>>
+        try {
+          // The control plane restarted with AI off while the session's key is still live.
+          ctx.deps.llm = undefined
+          off = await remove(ctx, ta.id, key)
+        } finally {
+          ctx.deps.llm = lite
+          logged.mockRestore()
+        }
+        expect(refusal(off)).toEqual({ status: 503, code: 'AI_CATALOGUE_DISABLED' })
+        expect(off.body).toContain('1 agent session(s) could not be ended')
+        // The declaration is the answer…
+        expect(
+          ROUTE_DEFINITIONS.find((r) => r.operationId === 'removeMember')?.errors,
+        ).toContain('AI_CATALOGUE_DISABLED')
+        // …and what its description promises is so: removed, and revoked, already.
+        expect(await isMember(ctx, ta.id)).toBe(false)
+        expect(await tokenState(ctx, token.row.id)).toBe('revoked')
+        expect(lite.use(session.key, session.model)).toEqual({ status: 200 })
+        // The removal is recorded though its sessions are not ended — once, with what it did.
+        const first = await published(ctx, 'member.removed')
+        expect(first.map((e) => e.machineDetail)).toEqual([
+          { memberId: ta.id, tokensRevoked: 1, sessionsEnded: 0, ...byOwner(ctx) },
+        ])
+        expect(first[0]!.humanMessage).toBe(
+          'Bio Prof removed Bio Student from the project, revoking 1 delegated token they had minted on it. At least one of their agent sessions could not be ended; repeating the removal ends it.',
+        )
+
+        // POSITIVE CONTROL: the SAME request — its Idempotency-Key too, since a failure stores nothing —
+        // AI back on, ends the session, and records no second removal.
+        const again = await remove(ctx, ta.id, key)
+        expect(again.statusCode, again.body).toBe(200)
+        expect(lite.use(session.key, session.model)).toEqual(REVOKED_KEY)
+        expect(await sessionRow(ctx, session.id)).toMatchObject({
+          endReason: 'member_removed',
+        })
+        expect(await published(ctx, 'member.removed')).toHaveLength(1)
+      },
+      { llm: lite },
+    )
+  })
+
+  it('a member removed WHILE their browser session is starting never leaves their agent a working key', async () => {
+    // The whole-branch review's I1, for a person rather than a token: the removal's `endSessionsOf`
+    // saw no committed row while the start's mint was in flight, and the start then committed a live
+    // key for somebody no longer on the project.
+    const lite = fakeLiteLlm()
+    await withProjectServer(
+      async (ctx) => {
+        const ta = await theTa(ctx)
+        lite.slow('/key/generate', 150)
+        const starting = startSession(ctx, { cookies: ta.cookies }, ctx.projectId)
+        await untilCalled(lite, '/key/generate')
+        const res = await remove(ctx, ta.id)
+        expect(res.statusCode, res.body).toBe(200)
+        const answered = await starting
+        if (answered.statusCode === 201) {
+          const body = answered.json() as {
+            session: { models: string[] }
+            key: string
+          }
+          expect(lite.use(body.key, body.session.models[0]!)).toEqual(REVOKED_KEY)
+        } else {
+          expect(refusal(answered)).toEqual({ status: 404, code: 'NOT_FOUND' })
+        }
+        // Whichever order the two landed in: no key of theirs is live.
+        expect(liveKeysOf(lite, ta.id)).toEqual([])
+      },
+      { llm: lite },
+    )
+  })
+
+  it('a member removed before their browser session reaches its key is refused NOT_FOUND, and nothing is minted', async () => {
+    // The other order: the removal commits while the start reads the month (`/user/info`), before its
+    // transaction — the start has already passed `assertCapability`, so only a read under its
+    // transaction can see the person gone.
+    const lite = fakeLiteLlm()
+    await withProjectServer(
+      async (ctx) => {
+        const ta = await theTa(ctx)
+        lite.slow('/user/info', 150)
+        const starting = startSession(ctx, { cookies: ta.cookies }, ctx.projectId)
+        await untilCalled(lite, '/user/info')
+        expect((await remove(ctx, ta.id)).statusCode).toBe(200)
+        expect(refusal(await starting)).toEqual({ status: 404, code: 'NOT_FOUND' })
+        expect(lite.calls.filter((c) => c.path === '/key/generate')).toEqual([])
+        expect(liveKeysOf(lite, ta.id)).toEqual([])
+        // The positive control: the owner — still a member — starts one the same way.
+        await started(ctx, lite, { cookies: ctx.ownerCookies })
+      },
+      { llm: lite },
+    )
+  })
+})
+
+/** Waits until the fake gateway has been ASKED `path` — its answer may still be on its way. */
+async function untilCalled(lite: FakeLiteLlm, path: string): Promise<void> {
+  for (let i = 0; i < 200 && !lite.calls.some((c) => c.path === path); i++) {
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  expect(
+    lite.calls.some((c) => c.path === path),
+    `${path} was never called`,
+  ).toBe(true)
+}
+
+/** Every key the fake gateway still holds for this person. */
+const liveKeysOf = (lite: FakeLiteLlm, userId: string) =>
+  [...lite.keys.values()].filter((k) => k.userId === personAiUserId(userId))
+
+/**
+ * The database, refusing an UPDATE of `delegated_tokens` — and nothing else — outside a transaction
+ * and inside one alike: the revoke's statement failing where it runs, whichever that is.
+ */
+function refusingTokenUpdates(db: Db): Db {
+  const refusing = <T extends object>(target: T): T =>
+    new Proxy(target, {
+      get(inner, name) {
+        if (name === 'update') {
+          return (table: unknown) => {
+            if (table === delegatedTokens)
+              throw new Error('the database refused the revoke')
+            return (inner as unknown as Db).update(table as typeof delegatedTokens)
+          }
+        }
+        if (name === 'transaction') {
+          return (fn: (tx: unknown) => Promise<unknown>) =>
+            (inner as unknown as Db).transaction((tx) => fn(refusing(tx)))
+        }
+        const value = Reflect.get(inner, name, inner) as unknown
+        return typeof value === 'function'
+          ? (value as (...args: unknown[]) => unknown).bind(inner)
+          : value
+      },
+    })
+  return refusing(db)
+}
