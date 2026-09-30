@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { describe, expect, it, vi } from 'vitest'
 import { instances } from '../db/index.js'
 import type { FakeDriver } from '../runtime/index.js'
@@ -146,9 +146,20 @@ describe('listInstances — an environment’s instances (Task 3)', () => {
   // last — so the second instance is a row written directly: made later, never seen.
   it('an instance says when it was made, and a newer one is newer whatever the list order', async () => {
     await withProjectServer(async (ctx) => {
-      const before = Date.now()
+      // The window is the DATABASE's clock, never the host's (ORIENTATION §4 trap 14: Postgres runs in
+      // Docker Desktop's VM and its clock drifts). `clock_timestamp()`, not `now()`: `now()` is the
+      // transaction's start, which is what the column default stamped — and a bound must be read at
+      // the moment it is read. The default's `now()` falls between the two readings.
+      const dbClock = async () => {
+        const res = (await ctx.db.execute(
+          sql`SELECT (extract(epoch FROM clock_timestamp()) * 1000)::float8 AS ms`,
+        )) as unknown as { rows?: { ms: number }[] } | { ms: number }[]
+        const row = Array.isArray(res) ? res[0] : res.rows?.[0]
+        return Number(row!.ms)
+      }
+      const before = await dbClock()
       const a = await deployToStaging(ctx)
-      const after = Date.now()
+      const after = await dbClock()
       const [rowA] = await ctx.db.select().from(instances).where(eq(instances.id, a.id))
       const b = await instanceRow(ctx, {
         environmentId: ctx.stagingEnvironmentId,
@@ -175,8 +186,8 @@ describe('listInstances — an environment’s instances (Task 3)', () => {
       expect(listedB.lastSeenAt).toBeNull()
       expect(Date.parse(listedB.createdAt)).toBeGreaterThan(Date.parse(listedA.createdAt))
       // …and the time is when the DEPLOY made it, not a constant: inside the window the deploy ran in.
-      expect(Date.parse(listedA.createdAt)).toBeGreaterThanOrEqual(before - 2000)
-      expect(Date.parse(listedA.createdAt)).toBeLessThanOrEqual(after + 2000)
+      expect(Date.parse(listedA.createdAt)).toBeGreaterThanOrEqual(before)
+      expect(Date.parse(listedA.createdAt)).toBeLessThanOrEqual(after)
       expect(listedB.createdAt).toBe(b.createdAt.toISOString())
     })
   })
