@@ -1,17 +1,30 @@
 import { and, desc, eq, gt, isNull } from 'drizzle-orm'
 import { agentSessions, delegatedTokens, type Db } from '../db/index.js'
-import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import {
+  eventFrame,
+  makeRedactor,
+  publishEvent,
+  recordEvent,
+  type EventBus,
+} from '../observability/index.js'
 import { holdActiveProject, personName, type Actor } from '../projects/index.js'
+import type { Classification } from '../spec/index.js'
 import { tokenById } from '../tokens/index.js'
 import {
   agentKeyAlias,
   ensurePersonBudget,
   mintAgentKey,
+  narrowAgentKey,
   personSpend,
   revokeAgentKey,
   type BudgetSpend,
 } from './agent-keys.js'
-import { CATALOGUE_CODES, CatalogueError, type ModelCatalogue } from './catalogue.js'
+import {
+  CATALOGUE_CODES,
+  CatalogueError,
+  type CatalogueSnapshot,
+  type ModelCatalogue,
+} from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { agentModelsFor, classificationFloor, type BuilderModels } from './models.js'
 
@@ -50,7 +63,8 @@ export type AgentSessionRow = typeof agentSessions.$inferSelect
 
 /**
  * Decision 25's written ends — and `models_withdrawn` (FE-36; the front-end enablement plan's Task 14a):
- * its project no longer allows a model it held. Running out — of time or of money — is READ, never written.
+ * its project no longer allows ANY model it held — one that keeps a model it may use is narrowed instead
+ * (the launch path plan's Task 7). Running out — of time or of money — is READ, never written.
  */
 export type EndReason =
   'ended' | 'token_revoked' | 'project_archived' | 'project_deleted' | 'models_withdrawn'
@@ -227,10 +241,10 @@ export async function startAgentSession(
       // THE CLASSIFICATION, READ AGAIN UNDER THE PROJECT (FE-36; the front-end enablement plan's Task
       // 14a). The read above refuses early; this one is what the key is minted with. A commit raising
       // the classification while this start waited on the gateway — its spend read takes hundreds of
-      // milliseconds — found no committed session to end, and this would then have minted the OLD
-      // models. `endSessionsHoldingMore`'s barrier takes this row FOR UPDATE after the new manifest
-      // is recorded: it waits for this commit and then ends what it holds — or it went first, and
-      // this read sees the new manifest.
+      // milliseconds — found no committed session to narrow, and this would then have minted the OLD
+      // models. `withdrawWhatItNoLongerAllows`'s barrier takes this row FOR UPDATE after the new
+      // manifest is recorded: it waits for this commit and `narrowSessionsHoldingMore` then narrows (or
+      // ends) what it holds — or it went first, and this read sees the new manifest.
       models = await modelsNow(tx)
       if (tokenId !== null) {
         const [held] = await tx
@@ -363,7 +377,7 @@ const endReasonWords: Record<EndReason, string> = {
   project_archived: 'ended because the project was switched off',
   project_deleted: 'ended because the project was deleted',
   models_withdrawn:
-    'ended because its project no longer allows the models it held — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise',
+    'ended because its project no longer allows any of the models it held — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise',
 }
 
 /**
@@ -483,7 +497,7 @@ export async function endSessionsOf(
       await endAgentSession(deps, row, reason, by)
       ended.push(row.id)
     } catch (error) {
-      // EACH WITH ITS CAUSE (the whole-branch review's M8, as `endSessionsHoldingMore`'s M3):
+      // EACH WITH ITS CAUSE (the whole-branch review's M8, as `narrowSessionsHoldingMore`'s M3):
       // `endAgentSession` writes a line of its own only when the REVOCATION fails — a failure
       // before it (`gatewayOf`, AI switched off) or after it (the row's stamp, the event) would
       // otherwise be named below as a live key the gateway may already have revoked. `String`
@@ -515,32 +529,126 @@ export async function endSessionsOf(
 
 // ---------------------------------------------------------------- withdrawn
 
+/** `a`, `a and b`, `a, b and c` — model names inside a sentence. */
+function inWords(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] ?? ''
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+}
+
 /**
- * **FE-36 — A SESSION NEVER HOLDS MORE THAN ITS PROJECT NOW ALLOWS** (§7 and §10 as Spec action 10 amended
- * them; the front-end enablement plan's Task 14a). Ends, `models_withdrawn`, every ACTIVE session — of one
- * project, or of `every` project — whose key names a model the catalogue still serves and that
- * `agentModelsFor` no longer allows: its project's classification was raised, or the builder setting was
- * narrowed to `on-premise` (a restart). The classification rises when a newer valid manifest is RECORDED —
- * by a commit through the API, a build, `validateSpec`, or on driver 2 a push its webhook reports — or
- * when production comes to serve a release classified higher (a production deploy, a rehearsal). **A push
- * to driver 1's repository is recorded by none of these** (the whole-branch review's M7): a new start and
- * a live session both read the manifest last recorded, so they agree with each other, but until one of
- * those runs they hold what the manifest on `main` may no longer allow. A name the catalogue no longer
- * holds is not counted: the gateway serves nothing under it. An expired session is not touched — its key
- * stopped at its own `duration`.
+ * WHY `withdrawn` LEFT A SESSION, for its sentence: a model the setting `capable` would still allow was
+ * withdrawn by the builder SETTING (`on-premise`, read at a restart); any other by the project's
+ * classification — its manifest, or the release production serves.
+ */
+function withdrawnBecause(
+  snapshot: CatalogueSnapshot,
+  floor: Classification,
+  withdrawn: readonly string[],
+): string {
+  const underCapable = new Set(agentModelsFor(snapshot, floor, 'capable'))
+  return [
+    ...(withdrawn.some((m) => !underCapable.has(m))
+      ? [`the project is now ${floor}`]
+      : []),
+    ...(withdrawn.some((m) => underCapable.has(m))
+      ? ['the platform now keeps a confidential project’s building agent on-premise']
+      : []),
+  ].join(' and ')
+}
+
+/**
+ * NARROWS ONE SESSION IN PLACE (§7 as Spec action 1 amended it; the launch path plan's Task 7, Decision 23):
+ * its key to `kept` at the gateway, then its row's `models` and `agent_session.narrowed` in ONE
+ * transaction, and the frame published only once that has committed.
+ *
+ * **THE GATEWAY FIRST, AND THE ROW ONLY AFTER IT ANSWERED.** A narrowing the gateway refuses throws before
+ * anything is written: the session goes on, its row still names every model its key can call, and the
+ * next sweep — every trigger, and the boot — finds it again. Written first, a failure would leave a key
+ * holding models its row says it lost. A narrowing the gateway made and the transaction then failed to
+ * record is the same row, found again: `/key/update` with the same list is answered as the first was.
+ *
+ * The row is written only while it is still what the sweep read — not ended, and holding the same list —
+ * so two sweeps racing on one session publish one event, and an end that landed between the read and the
+ * write is left as it is. Answers whether it recorded the narrowing.
+ */
+async function narrowAgentSession(
+  deps: { db: Db; bus: EventBus; llm: LiteLlmClient | undefined },
+  row: AgentSessionRow,
+  change: { withdrawn: string[]; kept: string[]; because: string },
+): Promise<boolean> {
+  await narrowAgentKey(gatewayOf(deps), row.id, change.kept)
+  const who = await personName(deps.db, row.userId)
+  const recorded = await deps.db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(agentSessions)
+      .set({ models: change.kept })
+      .where(
+        and(
+          eq(agentSessions.id, row.id),
+          isNull(agentSessions.endedAt),
+          eq(agentSessions.models, row.models),
+        ),
+      )
+      .returning({ id: agentSessions.id })
+    if (updated === undefined) return undefined
+    return recordEvent(
+      tx,
+      {
+        projectId: row.projectId,
+        subject: `agent_session:${row.id}`,
+        type: 'agent_session.narrowed',
+        // Attributed as `models_withdrawn`'s end is: nobody asked, and the key is the person's.
+        machineDetail: {
+          sessionId: row.id,
+          withdrawn: change.withdrawn,
+          models: change.kept,
+          via: 'session',
+          userId: row.userId,
+          tokenId: null,
+        },
+        humanMessage:
+          `${who}'s agent session '${row.name}' can no longer use ${inWords(change.withdrawn)}, ` +
+          `because ${change.because}; it keeps ${inWords(change.kept)}.`,
+      },
+      makeRedactor([]),
+    )
+  })
+  if (recorded === undefined) return false
+  deps.bus.publish(eventFrame(recorded))
+  return true
+}
+
+/**
+ * **FE-36 — A SESSION NEVER HOLDS MORE THAN ITS PROJECT NOW ALLOWS** (§7 and §10 as Spec actions 10 and 1
+ * amended them; the front-end enablement plan's Task 14a, and the launch path plan's Task 7). Every ACTIVE
+ * session — of one project, or of `every` project — whose key names a model the catalogue still serves and
+ * that `agentModelsFor` no longer allows is NARROWED IN PLACE: its key keeps what the project still allows
+ * and loses the rest at once, the session goes on, and `agent_session.narrowed` says what was withdrawn. It
+ * is ENDED `models_withdrawn` only when nothing it may use is left — no model the project still allows (a
+ * key is never narrowed to an empty list, which LiteLLM reads as every model). Its project's classification
+ * was raised, or the builder setting was narrowed to `on-premise` (a restart). The classification rises
+ * when a newer valid manifest is RECORDED — by a commit through the API, a build, `validateSpec`, or on
+ * driver 2 a push its webhook reports — or when production comes to serve a release classified higher (a
+ * production deploy, a rehearsal). **A push to driver 1's repository is recorded by none of these** (the
+ * whole-branch review's M7): a new start and a live session both read the manifest last recorded, so they
+ * agree with each other, but until one of those runs they hold what the manifest on `main` may no longer
+ * allow. A name the catalogue no longer holds is not counted as withdrawn — the gateway serves nothing
+ * under it — and is kept on the key, but it is nothing the session may USE: one left holding only such
+ * names is ended. An expired session is not touched — its key stopped at its own `duration`.
  *
  * **Callers**: `api/spec-validation.ts`'s `withdrawWhatItNoLongerAllows` (behind its barrier) — after
  * every valid manifest `validateAndRecord` records, after a production deploy and after a rehearsal — and
  * the boot, over every project. Each failure is named in a line of its own with its cause, then all of
  * them in one summary line, and answered in `failed` — never thrown, because a commit that raised the
- * classification has already landed — and the next boot's sweep ends what is left. The person the session
- * is charged to is who it is attributed to: nobody asked for this end, and they are the one whose key it
- * was.
+ * classification has already landed — and the next sweep (any trigger, and every boot) finishes it. **A
+ * narrowing that failed is the trade the sweep has always made**: the session stays live, and its key
+ * keeps the withdrawn models until then — the operator line says which. The person the session is charged
+ * to is who it is attributed to: nobody asked for this, and they are the one whose key it was.
  *
  * Reads nothing from the gateway when no session is active, so a commit to a project nobody is building
  * with pays one query.
  */
-export async function endSessionsHoldingMore(
+export async function narrowSessionsHoldingMore(
   deps: {
     db: Db
     bus: EventBus
@@ -549,7 +657,7 @@ export async function endSessionsHoldingMore(
     agent: { builderModels: BuilderModels }
   },
   scope: { projectId: string } | 'every',
-): Promise<{ ended: string[]; failed: string[] }> {
+): Promise<{ ended: string[]; narrowed: string[]; failed: string[] }> {
   const live = await deps.db
     .select()
     .from(agentSessions)
@@ -560,44 +668,72 @@ export async function endSessionsHoldingMore(
         ...(scope === 'every' ? [] : [eq(agentSessions.projectId, scope.projectId)]),
       ),
     )
-  if (live.length === 0) return { ended: [], failed: [] }
+  if (live.length === 0) return { ended: [], narrowed: [], failed: [] }
   const snapshot = await deps.catalogue.get()
   const served = new Set([
     ...snapshot.models.map((m) => m.name),
     ...snapshot.unclassified,
   ])
-  const allowedFor = new Map<string, Set<string>>()
+  const projects = new Map<string, { floor: Classification; allowed: Set<string> }>()
   const ended: string[] = []
+  const narrowed: string[] = []
   const failed: string[] = []
   for (const row of live) {
-    let allowed = allowedFor.get(row.projectId)
-    if (allowed === undefined) {
+    let project = projects.get(row.projectId)
+    if (project === undefined) {
       const floor = await classificationFloor(deps.db, row.projectId)
-      allowed = new Set(agentModelsFor(snapshot, floor, deps.agent.builderModels))
-      allowedFor.set(row.projectId, allowed)
+      project = {
+        floor,
+        allowed: new Set(agentModelsFor(snapshot, floor, deps.agent.builderModels)),
+      }
+      projects.set(row.projectId, project)
     }
+    const { floor, allowed } = project
     const withdrawn = row.models.filter((m) => served.has(m) && !allowed.has(m))
     if (withdrawn.length === 0) continue
+    const kept = row.models.filter((m) => allowed.has(m) || !served.has(m))
+
+    if (!kept.some((m) => allowed.has(m))) {
+      // NOTHING IT MAY USE IS LEFT: ended, as every withdrawal was before the launch path plan's Task 7.
+      try {
+        await endAgentSession(deps, row, 'models_withdrawn', {
+          userId: row.userId,
+          tokenId: null,
+        })
+        ended.push(row.id)
+      } catch (error) {
+        // EACH WITH ITS CAUSE (the review's M3): `endAgentSession` writes a line of its own only when
+        // the REVOCATION fails; a failure after it — the row's stamp, the event — would otherwise be
+        // named here as a live key the gateway had already revoked.
+        console.error(
+          `agent session ${row.id}: its end (models_withdrawn) did not complete — its key may or may not still be live; the next sweep tries again: ${String(error)}`,
+        )
+        failed.push(row.id)
+      }
+      continue
+    }
+
     try {
-      await endAgentSession(deps, row, 'models_withdrawn', {
-        userId: row.userId,
-        tokenId: null,
+      const recorded = await narrowAgentSession(deps, row, {
+        withdrawn,
+        kept,
+        because: withdrawnBecause(snapshot, floor, withdrawn),
       })
-      ended.push(row.id)
+      if (recorded) narrowed.push(row.id)
     } catch (error) {
-      // EACH WITH ITS CAUSE (the review's M3): `endAgentSession` writes a line of its own only when
-      // the REVOCATION fails; a failure after it — the row's stamp, the event — would otherwise be
-      // named here as a live key the gateway had already revoked.
+      // Its own line, WITH ITS CAUSE — the gateway's refusal, AI switched off, or the record after a
+      // narrowing the gateway made — and what its key may still hold. `String` of an `AiError`, a
+      // `CatalogueError` or a database error carries no key: a key is never in any of them.
       console.error(
-        `agent session ${row.id}: its end (models_withdrawn) did not complete — its key may or may not still be live; the next boot tries again: ${String(error)}`,
+        `agent session ${row.id}: its narrowing did not complete — its key may still hold ${inWords(withdrawn)}, which its project no longer allows, until the next sweep narrows it: ${String(error)}`,
       )
       failed.push(row.id)
     }
   }
   if (failed.length > 0) {
     console.error(
-      `${failed.length} agent session(s) hold models their project no longer allows and could not be ended: ${failed.join(', ')} — each line above says why; a key not revoked stays live until it expires or the next boot ends it`,
+      `${failed.length} agent session(s) hold models their project no longer allows and could not be narrowed or ended: ${failed.join(', ')} — each line above says why; ${narrowed.length} other(s) were narrowed and ${ended.length} ended; a key not narrowed or revoked keeps those models until it expires or the next sweep — a commit, a production deploy, a rehearsal or a boot — finishes it`,
     )
   }
-  return { ended, failed }
+  return { ended, narrowed, failed }
 }

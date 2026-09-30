@@ -1216,7 +1216,7 @@ export interface components {
                 /** @description The label its minter gave it. */
                 tokenName: string;
             } | null;
-            /** @description The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has. */
+            /** @description The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has. When the project stops allowing some of them, the key loses those at once and keeps the rest (`agent_session.narrowed`), and this list is what it holds now. */
             models: string[];
             /** @description The most the key may spend, in US dollars. The gateway refuses it past this. */
             capUsd: number;
@@ -1232,7 +1232,7 @@ export interface components {
             state: "active" | "ended" | "expired";
             /** @description When it was ended; null while it has not been. */
             endedAt: string | null;
-            /** @description Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). Null while it has not been ended; a session that ran out of time or money is never ended by that. */
+            /** @description Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise); a session that keeps any model it may still use is narrowed instead, and goes on. Null while it has not been ended; a session that ran out of time or money is never ended by that. */
             endReason: ("ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn") | null;
             /** @description What this session’s key has spent, in US dollars — for an ended session, what the gateway had recorded when it ended (a call in its last seconds may not be counted). Null, never 0, when it is not known: `spentUnavailable` says why. */
             spentUsd: number | null;
@@ -3872,6 +3872,60 @@ export interface components {
              * @description What happened. Switch on it: each type has one `machineDetail` shape.
              * @constant
              */
+            type: "agent_session.narrowed";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key. */
+            machineDetail: {
+                /**
+                 * Format: uuid
+                 * @description The session — `listAgentSessions` names it.
+                 */
+                sessionId: string;
+                /** @description The logical models its key may no longer call — the gateway refuses them from now on. */
+                withdrawn: string[];
+                /** @description The logical models its key still holds: what it held that the project still allows. Never empty — a session left with nothing it may use is ended instead. */
+                models: string[];
+                /**
+                 * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
+                 * @enum {string}
+                 */
+                via: "session" | "token";
+                /**
+                 * Format: uuid
+                 * @description The person who acted — for a token, the person who minted it. `listMembers` names them.
+                 */
+                userId: string;
+                /** @description The delegated token that acted (`listTokens`); null when the person acted in their own session. */
+                tokenId: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "agent_session.ended";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
@@ -3883,7 +3937,7 @@ export interface components {
                  */
                 sessionId: string;
                 /**
-                 * @description Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise).
+                 * @description Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).
                  * @enum {string}
                  */
                 reason: "ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn";

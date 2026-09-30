@@ -37,7 +37,7 @@ import {
   createLiteLlmClient,
   disabledAiKeyService,
   disabledCatalogue,
-  endSessionsHoldingMore,
+  narrowSessionsHoldingMore,
 } from './ai/index.js'
 import {
   controlPlaneSpEntity,
@@ -480,25 +480,26 @@ const capable =
       )
 
 /**
- * **FE-36, AT EVERY BOOT** (§7 and §10 as Spec action 10 amended them; the front-end enablement plan's
- * Task 14a): every active agent session holding a model its project no longer allows is ended,
- * `models_withdrawn`. It is how `MANIFEST_AGENT_BUILDER_MODELS=on-premise` reaches the sessions a
- * `capable` platform started — the setting is read at boot, so this is where it changes — and how a raise
- * whose ending failed at the commit is finished. AFTER the capable model's step, so the catalogue it reads
- * is the one this process serves. NEVER FATAL: a session that cannot be ended is one operator line (from
- * the sweep), and a gateway that does not answer is one more. With AI off there is no gateway to end a key
- * at, and nothing is read.
+ * **FE-36, AT EVERY BOOT** (§7 and §10 as Spec actions 10 and 1 amended them; the front-end enablement
+ * plan's Task 14a, and the launch path plan's Task 7): every active agent session holding a model its
+ * project no longer allows is narrowed in place to what it still allows — or ended, `models_withdrawn`,
+ * when nothing it may use is left. It is how `MANIFEST_AGENT_BUILDER_MODELS=on-premise` reaches the
+ * sessions a `capable` platform started — the setting is read at boot, so this is where it changes — and
+ * how a raise whose narrowing failed at the commit is finished. AFTER the capable model's step, so the
+ * catalogue it reads is the one this process serves. NEVER FATAL: a session that cannot be narrowed or
+ * ended is one operator line (from the sweep), and a gateway that does not answer is one more. With AI off
+ * there is no gateway to narrow a key at, and nothing is read.
  */
 const agentSessionsWithdrawn = await (async (): Promise<
-  { ended: number; failed: number } | 'disabled' | 'failed'
+  { ended: number; narrowed: number; failed: number } | 'disabled' | 'failed'
 > => {
   if (!catalogue.enabled) return 'disabled'
   try {
-    const { ended, failed } = await endSessionsHoldingMore(
+    const { ended, narrowed, failed } = await narrowSessionsHoldingMore(
       { db, bus, llm, catalogue, agent: config.agent },
       'every',
     )
-    return { ended: ended.length, failed: failed.length }
+    return { ended: ended.length, narrowed: narrowed.length, failed: failed.length }
   } catch (error) {
     console.error(
       '[boot] the agent sessions could not be checked against what their projects now allow (MANIFEST_AGENT_BUILDER_MODELS, and each project’s classification); the next boot tries again:',

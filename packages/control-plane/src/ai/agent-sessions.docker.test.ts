@@ -155,21 +155,37 @@ describeDocker('agent sessions against the running gateway (Task 10)', () => {
     })
   })
 
+  /**
+   * THE LAUNCH PATH PLAN'S TASK 7 (Spec action 1), against the real gateway: a raise NARROWS the session in
+   * place. `[M3]` measured LiteLLM 1.98.0 refusing a withdrawn model 20 ms after `/key/update` by alias —
+   * `403 key_model_access_denied` — and answering the kept one; this is the same measurement made by the
+   * platform's own sweep, through the API's own commit. The kept model is `default-chat-onprem` — the
+   * laptop's on-premise 27B, the only chat model a `confidential` project keeps here (`testDeps`' catalogue
+   * is `config.yaml`'s, with no capable model) — so its first answer waits for Ollama to load it (~10 s,
+   * `[M17]`). Never `default-chat-large`: the tier has no network (C1).
+   */
   it(
-    'a commit raising the project to confidential ends its session, and LiteLLM refuses the key (FE-36, Task 14a)',
-    { timeout: 120_000 },
+    'a commit raising the project to confidential narrows its session in place: the withdrawn model refused at once, the kept one answered (Task 7, FE-36)',
+    { timeout: 180_000 },
     async () => {
       await withGateway(async (ctx) => {
         const res = await ctx.app.inject({
           method: 'POST',
           url: `/v1/projects/${ctx.projectId}/agent-sessions`,
-          payload: { name: 'docker-withdrawn', capUsd: 1 },
+          payload: { name: 'docker-narrowed', capUsd: 1 },
           cookies: ctx.ownerCookies,
           headers: mutationHeaders(ctx.deps),
         })
         expect(res.statusCode, res.body).toBe(201)
         const { session, key } = res.json() as Started
-        expect(session.models).toContain('default-chat')
+        // Derived from `config.yaml` in its order: every entry is approved for at least `internal`.
+        expect(session.models).toEqual([
+          'default-chat',
+          'default-chat-onprem',
+          'default-chat-reasoning',
+          'default-chat-onprem-reasoning',
+          'default-embed',
+        ])
         expect(await chat(key, 'default-chat')).toEqual({ status: 200 })
 
         // The raise, through the API's own commit — the manifest it leaves validated and recorded.
@@ -197,15 +213,18 @@ describeDocker('agent sessions against the running gateway (Task 10)', () => {
         })
         expect(committed.statusCode, committed.body).toBe(201)
 
-        // Refused by the GATEWAY — even for the on-premise model the new classification allows,
-        // because the whole key is gone; a new session is what an agent starts next.
-        expect(await chat(key, 'default-chat-onprem')).toEqual({
-          status: 401,
-          type: 'token_not_found_in_db',
+        // AT ONCE — no wait, the commit has answered: refused by the GATEWAY for the withdrawn model…
+        expect(await chat(key, 'default-chat')).toEqual({
+          status: 403,
+          type: 'key_model_access_denied',
         })
+        // …and the SAME key answered for the model it kept.
+        expect(await chat(key, 'default-chat-onprem')).toEqual({ status: 200 })
         const { rows } = await agentSessionsOf(ctx.db, ctx.projectId, 50)
         expect(rows.find((r) => r.id === session.id)).toMatchObject({
-          endReason: 'models_withdrawn',
+          endedAt: null,
+          endReason: null,
+          models: ['default-chat-onprem', 'default-chat-onprem-reasoning'],
         })
       })
     },

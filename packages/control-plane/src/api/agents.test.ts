@@ -5,8 +5,8 @@ import { agentSessions, appSpecs, events, idempotencyKeys } from '../db/index.js
 import { declaredCatalogue, fakeLiteLlm, type FakeLiteLlm } from '../ai/testing.js'
 import {
   disabledCatalogue,
-  endSessionsHoldingMore,
   endSessionsOf,
+  narrowSessionsHoldingMore,
   type BuilderModels,
   type ModelCatalogue,
 } from '../ai/index.js'
@@ -839,20 +839,85 @@ async function capableCatalogue(): Promise<ModelCatalogue> {
   return { enabled: true, get: async () => snapshot }
 }
 
-/** A server whose catalogue holds the capable model, under the builder setting given. */
+/**
+ * A catalogue with NO model approved for `confidential` data — the declared catalogue's `internal` entries
+ * alone, and no capable model — so a session a raise reaches is left with nothing it may use (the launch
+ * path plan's Task 7: the one case still ENDED `models_withdrawn`).
+ */
+async function internalOnlyCatalogue(): Promise<ModelCatalogue> {
+  const declared = await declaredCatalogue().get()
+  const snapshot = {
+    ...declared,
+    models: declared.models.filter((m) => m.maxClassification === 'internal'),
+  }
+  return { enabled: true, get: async () => snapshot }
+}
+
+/** A server whose catalogue holds the capable model (or `catalogue`), under the builder setting given. */
 async function withBuilderServer(
   builderModels: BuilderModels,
   fn: (ctx: TestProject, lite: FakeLiteLlm) => Promise<void>,
+  catalogue?: ModelCatalogue,
 ): Promise<void> {
   const lite = fakeLiteLlm()
   const base = await testDeps()
   await withProjectServer((ctx) => fn(ctx, lite), {
     ...base,
     llm: lite,
-    catalogue: await capableCatalogue(),
+    catalogue: catalogue ?? (await capableCatalogue()),
     config: { ...base.config, agent: { ...base.config.agent, builderModels } },
   })
 }
+
+/**
+ * THE LISTS THE NARROWING TESTS EXPECT, DERIVED BEFORE THEY WERE RUN (the launch path plan's Task 7: *"never
+ * adjust an expectation to what the code answers"*) from `agentModelsFor` (`ai/models.ts`) over
+ * `capableCatalogue()` — `infra/litellm/config.yaml`'s five entries in their order (`default-chat` internal,
+ * `default-chat-onprem` confidential, `default-chat-reasoning` internal, `default-chat-onprem-reasoning`
+ * confidential, `default-embed` internal), then `default-chat-large` (internal) — under the builder setting
+ * `capable`. An `internal` session holds every one of the six (each is approved for at least `internal`).
+ * Raised to `confidential`, the project allows the two approved for it and, while the setting is `capable`,
+ * the capable model's name: the session KEEPS those three, in the order it held them, and loses the rest.
+ */
+const INTERNAL_SESSION = [
+  'default-chat',
+  'default-chat-onprem',
+  'default-chat-reasoning',
+  'default-chat-onprem-reasoning',
+  'default-embed',
+  'default-chat-large',
+]
+const CONFIDENTIAL_KEEPS = [
+  'default-chat-onprem',
+  'default-chat-onprem-reasoning',
+  'default-chat-large',
+]
+const CONFIDENTIAL_WITHDRAWS = ['default-chat', 'default-chat-reasoning', 'default-embed']
+
+const gatewayCalls = (lite: FakeLiteLlm, path: '/key/update' | '/key/delete') =>
+  lite.calls.filter((c) => c.path === path)
+
+/** The sweep itself, as the boot and every trigger run it — here over every project. */
+const sweep = (
+  ctx: TestProject,
+  lite: FakeLiteLlm,
+  overrides: { builderModels?: BuilderModels; catalogue?: ModelCatalogue } = {},
+) =>
+  narrowSessionsHoldingMore(
+    {
+      db: ctx.db,
+      bus: ctx.deps.bus,
+      llm: lite,
+      catalogue: overrides.catalogue ?? ctx.deps.catalogue,
+      agent: {
+        ...ctx.deps.config.agent,
+        ...(overrides.builderModels === undefined
+          ? {}
+          : { builderModels: overrides.builderModels }),
+      },
+    },
+    'every',
+  )
 
 /** The project's `manifest.yaml` on `main`, with `lines` appended — the fixture declares no `data:`. */
 async function manifestWith(ctx: TestProject, ...lines: string[]): Promise<string> {
@@ -910,11 +975,20 @@ const endedEvents = (ctx: TestProject) =>
       and(eq(events.projectId, ctx.projectId), eq(events.type, 'agent_session.ended')),
     )
 
-describe('FE-36 — a session never holds more than its project now allows (Spec action 10; Task 14a)', () => {
-  it('a commit that raises the project to confidential ends every session holding a model it no longer allows — models_withdrawn, published, the key refused', async () => {
+const narrowedEvents = (ctx: TestProject) =>
+  ctx.db
+    .select()
+    .from(events)
+    .where(
+      and(eq(events.projectId, ctx.projectId), eq(events.type, 'agent_session.narrowed')),
+    )
+
+describe('FE-36 — a session never holds more than its project now allows (Spec action 10; Task 14a) — narrowed in place (Spec action 1; the launch path plan’s Task 7)', () => {
+  it('a commit that raises the project to confidential NARROWS a session to what it may still use, and keeps it — one /key/update, the withdrawn models refused at once, the rest answered, published', async () => {
     await withBuilderServer('capable', async (ctx, lite) => {
       const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
-      expect(internal.session.models).toContain('default-chat')
+      // The precondition, against the DERIVED list (the constants' comment): the capable model is held too.
+      expect(internal.session.models).toEqual(INTERNAL_SESSION)
       expect(lite.use(internal.key, 'default-chat')).toEqual({ status: 200 })
 
       await commitFile(
@@ -924,25 +998,133 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         await manifestWith(ctx, 'data:', '  classification: confidential'),
       )
 
-      // The key is refused at the GATEWAY — revoked by its alias, never only a row stamped.
-      expect(lite.use(internal.key, 'default-chat')).toEqual({
-        status: 401,
-        type: 'token_not_found_in_db',
+      // The session GOES ON, and answers what its key now holds.
+      expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+        state: 'active',
+        endedAt: null,
+        endReason: null,
+        models: CONFIDENTIAL_KEEPS,
       })
+      // At the GATEWAY: one narrowing, by the alias alone — never a revocation.
+      expect(gatewayCalls(lite, '/key/update').map((c) => c.body)).toEqual([
+        { key_alias: `mf-agent-${internal.session.id}`, models: CONFIDENTIAL_KEEPS },
+      ])
+      expect(gatewayCalls(lite, '/key/delete')).toHaveLength(0)
+      // The SAME key: refused a withdrawn model at once (`[M3]`'s refusal), answered a kept one.
+      for (const withdrawn of CONFIDENTIAL_WITHDRAWS) {
+        expect(lite.use(internal.key, withdrawn)).toEqual({
+          status: 403,
+          type: 'key_model_access_denied',
+        })
+      }
+      expect(lite.use(internal.key, 'default-chat-onprem')).toEqual({ status: 200 })
+      expect(lite.use(internal.key, 'default-chat-large')).toEqual({ status: 200 })
+
+      // Published: what was withdrawn, what it keeps, and the person by NAME — never a key or its hash.
+      const [narrowed, ...more] = await narrowedEvents(ctx)
+      expect(more).toEqual([])
+      expect(narrowed?.subject).toBe(`agent_session:${internal.session.id}`)
+      expect(narrowed?.machineDetail).toEqual({
+        sessionId: internal.session.id,
+        withdrawn: CONFIDENTIAL_WITHDRAWS,
+        models: CONFIDENTIAL_KEEPS,
+        via: 'session',
+        userId: ctx.userId,
+        tokenId: null,
+      })
+      expect(narrowed?.humanMessage).toBe(
+        `${internal.session.person.name}'s agent session 'Build the bulletin board' can no longer use ` +
+          'default-chat, default-chat-reasoning and default-embed, because the project is now confidential; ' +
+          'it keeps default-chat-onprem, default-chat-onprem-reasoning and default-chat-large.',
+      )
+      expect(JSON.stringify(narrowed)).not.toContain(internal.key)
+      expect(JSON.stringify(narrowed)).not.toContain('hash-of-')
+      expect(await endedEvents(ctx)).toEqual([])
+    })
+  })
+
+  it('a session left with nothing it may use is ENDED models_withdrawn, as before — its key revoked, never narrowed to nothing', async () => {
+    await withBuilderServer(
+      'capable',
+      async (ctx, lite) => {
+        const internal = (
+          await start(ctx, { cookies: ctx.ownerCookies })
+        ).json() as Started
+        // Derived: the three `internal` entries of `infra/litellm/config.yaml`, in its order — and none is
+        // approved for `confidential` data, and there is no capable model to keep.
+        expect(internal.session.models).toEqual([
+          'default-chat',
+          'default-chat-reasoning',
+          'default-embed',
+        ])
+
+        await commitFile(
+          ctx,
+          ctx.commitSha,
+          'manifest.yaml',
+          await manifestWith(ctx, 'data:', '  classification: confidential'),
+        )
+
+        // Revoked at the GATEWAY by its alias, for every model — never a key narrowed to an empty list,
+        // which LiteLLM would read as EVERY model (`[M7]`).
+        expect(gatewayCalls(lite, '/key/update')).toHaveLength(0)
+        expect(gatewayCalls(lite, '/key/delete')).toHaveLength(1)
+        expect(lite.use(internal.key, 'default-chat')).toEqual({
+          status: 401,
+          type: 'token_not_found_in_db',
+        })
+        expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+          state: 'ended',
+          endReason: 'models_withdrawn',
+        })
+        const [ended] = await endedEvents(ctx)
+        expect(ended?.machineDetail).toMatchObject({
+          sessionId: internal.session.id,
+          reason: 'models_withdrawn',
+        })
+        expect(ended?.humanMessage).toMatch(/no longer allows any of the models it held/)
+        expect(await narrowedEvents(ctx)).toEqual([])
+      },
+      await internalOnlyCatalogue(),
+    )
+  })
+
+  it('a session whose only models the project still allows are no longer served is ended, not narrowed to names nothing answers', async () => {
+    await withBuilderServer('capable', async (ctx, lite) => {
+      const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      expect(internal.session.models).toEqual(INTERNAL_SESSION)
+      // The raise, recorded without the commit's own sweep, so the sweep below is the only one.
+      await ctx.db.insert(appSpecs).values({
+        projectId: ctx.projectId,
+        commitSha: ctx.commitSha,
+        parsed: { data: { classification: 'confidential' } },
+        schemaVersion: 1,
+        valid: true,
+        createdAt: new Date(Date.now() + 1000),
+      })
+      // The gateway now serves `default-chat` alone: it is withdrawn, and every name the session would keep
+      // is one nothing answers under — so nothing it may use is left.
+      const served = (await declaredCatalogue().get()).models.filter(
+        (m) => m.name === 'default-chat',
+      )
+      const shrunk: ModelCatalogue = {
+        enabled: true,
+        get: async () => ({ models: served, unclassified: [] }),
+      }
+      expect(await sweep(ctx, lite, { catalogue: shrunk })).toEqual({
+        ended: [internal.session.id],
+        narrowed: [],
+        failed: [],
+      })
+      expect(gatewayCalls(lite, '/key/update')).toHaveLength(0)
       expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
         state: 'ended',
         endReason: 'models_withdrawn',
       })
-      const [ended] = await endedEvents(ctx)
-      expect(ended?.machineDetail).toMatchObject({
-        sessionId: internal.session.id,
-        reason: 'models_withdrawn',
-      })
-      expect(ended?.humanMessage).toMatch(/no longer allows/)
     })
   })
 
-  it('keeps a session its project still allows: one started confidential outlives a later confidential commit, while the internal one beside it ends', async () => {
+  it('keeps a session its project still allows: one started confidential outlives a later confidential commit, while the internal one beside it is narrowed', async () => {
     await withBuilderServer('capable', async (ctx, lite) => {
       // The positive control, in the same test: a session started while the project was internal.
       const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
@@ -965,17 +1147,24 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
       expect(byId.get(confidential.session.id)).toMatchObject({
         state: 'active',
         endReason: null,
+        models: confidential.session.models,
       })
       expect(byId.get(internal.session.id)).toMatchObject({
-        state: 'ended',
-        endReason: 'models_withdrawn',
+        state: 'active',
+        endReason: null,
+        models: CONFIDENTIAL_KEEPS,
       })
       expect(lite.use(confidential.key, 'default-chat-large')).toEqual({ status: 200 })
+      // ONE narrowing, the raise's: the second commit's sweep found nothing either session may not hold.
+      expect(gatewayCalls(lite, '/key/update').map((c) => c.body?.key_alias)).toEqual([
+        `mf-agent-${internal.session.id}`,
+      ])
       expect(
-        (await endedEvents(ctx)).map(
+        (await narrowedEvents(ctx)).map(
           (e) => (e.machineDetail as { sessionId: string }).sessionId,
         ),
       ).toEqual([internal.session.id])
+      expect(await endedEvents(ctx)).toEqual([])
     })
   })
 
@@ -1018,13 +1207,15 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
     })
   })
 
-  it('a commit that leaves the classification as it was ends nothing — and the raise that follows does', async () => {
-    await withBuilderServer('capable', async (ctx) => {
+  it('a commit that leaves the classification as it was narrows nothing — and the raise that follows does', async () => {
+    await withBuilderServer('capable', async (ctx, lite) => {
       const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
       const head = await commitFile(ctx, ctx.commitSha, 'notes.md', 'no change of data\n')
       expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
         state: 'active',
+        models: INTERNAL_SESSION,
       })
+      expect(gatewayCalls(lite, '/key/update')).toHaveLength(0)
       // The positive control, in the same test: the same session, the raise.
       await commitFile(
         ctx,
@@ -1033,13 +1224,14 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         await manifestWith(ctx, 'data:', '  classification: confidential'),
       )
       expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
-        state: 'ended',
-        endReason: 'models_withdrawn',
+        state: 'active',
+        models: CONFIDENTIAL_KEEPS,
       })
+      expect(gatewayCalls(lite, '/key/update')).toHaveLength(1)
     })
   })
 
-  it('the boot’s sweep ends a confidential session holding the capable model once the setting is on-premise — and keeps it under capable', async () => {
+  it('the boot’s sweep narrows a confidential session holding the capable model once the setting is on-premise — and keeps it whole under capable', async () => {
     await withBuilderServer('capable', async (ctx, lite) => {
       await commitFile(
         ctx,
@@ -1048,31 +1240,39 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         await manifestWith(ctx, 'data:', '  classification: confidential'),
       )
       const held = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
-      expect(held.session.models).toContain('default-chat-large')
-      const sweep = (builderModels: BuilderModels) =>
-        endSessionsHoldingMore(
-          {
-            db: ctx.db,
-            bus: ctx.deps.bus,
-            llm: lite,
-            catalogue: ctx.deps.catalogue,
-            agent: { ...ctx.deps.config.agent, builderModels },
-          },
-          'every',
-        )
+      expect(held.session.models).toEqual(CONFIDENTIAL_KEEPS)
       // The setting unchanged: nothing is held beyond what it allows.
-      expect(await sweep('capable')).toEqual({ ended: [], failed: [] })
+      expect(await sweep(ctx, lite, { builderModels: 'capable' })).toEqual({
+        ended: [],
+        narrowed: [],
+        failed: [],
+      })
       expect(lite.use(held.key, 'default-chat-large')).toEqual({ status: 200 })
-      // The setting narrowed, as a restart with MANIFEST_AGENT_BUILDER_MODELS=on-premise does.
-      expect(await sweep('on-premise')).toEqual({ ended: [held.session.id], failed: [] })
-      expect(lite.use(held.key, 'default-chat-onprem')).toEqual({
-        status: 401,
-        type: 'token_not_found_in_db',
+      // The setting narrowed, as a restart with MANIFEST_AGENT_BUILDER_MODELS=on-premise does: the capable
+      // model goes, and the on-premise ones stay.
+      expect(await sweep(ctx, lite, { builderModels: 'on-premise' })).toEqual({
+        ended: [],
+        narrowed: [held.session.id],
+        failed: [],
       })
+      expect(lite.use(held.key, 'default-chat-large')).toEqual({
+        status: 403,
+        type: 'key_model_access_denied',
+      })
+      expect(lite.use(held.key, 'default-chat-onprem')).toEqual({ status: 200 })
       expect((await sessionsById(ctx)).get(held.session.id)).toMatchObject({
-        state: 'ended',
-        endReason: 'models_withdrawn',
+        state: 'active',
+        endReason: null,
+        models: ['default-chat-onprem', 'default-chat-onprem-reasoning'],
       })
+      // Its sentence names the SETTING as the cause — the project's classification did not change.
+      const [narrowed] = await narrowedEvents(ctx)
+      expect(narrowed?.machineDetail).toMatchObject({ withdrawn: ['default-chat-large'] })
+      expect(narrowed?.humanMessage).toBe(
+        `${held.session.person.name}'s agent session 'Build the bulletin board' can no longer use ` +
+          'default-chat-large, because the platform now keeps a confidential project’s building agent ' +
+          'on-premise; it keeps default-chat-onprem and default-chat-onprem-reasoning.',
+      )
     })
   })
 
@@ -1112,12 +1312,12 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
   )
 
   it(
-    'a session whose key is being minted when the raise is recorded is ended by it before the commit answers',
+    'a session whose key is being minted when the raise is recorded is narrowed by it before the commit answers',
     { timeout: 30_000 },
     async () => {
       await withBuilderServer('capable', async (ctx, lite) => {
         // The other order: the start is INSIDE its transaction — the project held, the old models read —
-        // when the manifest is recorded. The barrier waits for it to commit; the sweep then ends it.
+        // when the manifest is recorded. The barrier waits for it to commit; the sweep then narrows it.
         lite.slow('/key/generate', 6_000)
         const starting = start(ctx, { cookies: ctx.ownerCookies })
         // Inside the mint, so inside the transaction holding the project FOR SHARE (the review's M6).
@@ -1129,58 +1329,84 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
           await manifestWith(ctx, 'data:', '  classification: confidential'),
         )
         const started = (await starting).json() as Started
-        expect(started.session.models).toContain('default-chat')
+        expect(started.session.models).toEqual(INTERNAL_SESSION)
         expect((await sessionsById(ctx)).get(started.session.id)).toMatchObject({
-          state: 'ended',
-          endReason: 'models_withdrawn',
+          state: 'active',
+          models: CONFIDENTIAL_KEEPS,
         })
         expect(lite.use(started.key, 'default-chat')).toEqual({
-          status: 401,
-          type: 'token_not_found_in_db',
+          status: 403,
+          type: 'key_model_access_denied',
         })
+        expect(lite.use(started.key, 'default-chat-onprem')).toEqual({ status: 200 })
       })
     },
   )
 
-  it('a session the gateway will not end is named in an operator line, the commit still lands, and the boot’s sweep ends it', async () => {
+  it('a gateway failure while narrowing leaves the session live and its row unchanged, the commit still lands, and the sweep says so — and the next sweep narrows it', async () => {
     await withBuilderServer('capable', async (ctx, lite) => {
       const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
       const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
       try {
-        lite.fail('/key/delete', 500, 1)
+        lite.fail('/key/update', 500, 1)
+        // `commitFile` asserts the 201: the commit lands whatever the gateway answered.
         await commitFile(
           ctx,
           ctx.commitSha,
           'manifest.yaml',
           await manifestWith(ctx, 'data:', '  classification: confidential'),
         )
-        expect(logged.mock.calls.flat().join('\n')).toContain(internal.session.id)
+        // …and the sweep SAYS so: in its answer, from a second failure —
+        lite.fail('/key/update', 500, 1)
+        expect(await sweep(ctx, lite)).toEqual({
+          ended: [],
+          narrowed: [],
+          failed: [internal.session.id],
+        })
+        // — and in an operator line naming the session and what its key may still hold, never the key.
+        const lines = logged.mock.calls.map((call) => call.map(String).join(' '))
+        expect(
+          lines.some(
+            (line) =>
+              line.includes(internal.session.id) &&
+              line.includes('default-chat, default-chat-reasoning and default-embed'),
+          ),
+          lines.join('\n'),
+        ).toBe(true)
+        expect(lines.join('\n')).not.toContain(internal.key)
+        expect(lines.join('\n')).not.toContain('hash-of-')
       } finally {
         logged.mockRestore()
       }
+      // LEFT LIVE, ITS ROW UNCHANGED, nothing published — and the key truly still holds what the row says.
       expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
         state: 'active',
+        endReason: null,
+        models: INTERNAL_SESSION,
       })
-      expect(
-        await endSessionsHoldingMore(
-          {
-            db: ctx.db,
-            bus: ctx.deps.bus,
-            llm: lite,
-            catalogue: ctx.deps.catalogue,
-            agent: ctx.deps.config.agent,
-          },
-          'every',
-        ),
-      ).toEqual({ ended: [internal.session.id], failed: [] })
+      expect(await narrowedEvents(ctx)).toEqual([])
+      expect(await endedEvents(ctx)).toEqual([])
+      expect(lite.use(internal.key, 'default-chat')).toEqual({ status: 200 })
+
+      // The positive control, in the same test: the gateway answers, and the next sweep narrows it.
+      expect(await sweep(ctx, lite)).toEqual({
+        ended: [],
+        narrowed: [internal.session.id],
+        failed: [],
+      })
+      expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+        state: 'active',
+        models: CONFIDENTIAL_KEEPS,
+      })
       expect(lite.use(internal.key, 'default-chat')).toEqual({
-        status: 401,
-        type: 'token_not_found_in_db',
+        status: 403,
+        type: 'key_model_access_denied',
       })
+      expect(await narrowedEvents(ctx)).toHaveLength(1)
     })
   })
 
-  it('a session whose key was revoked but whose end could not be recorded is named with its cause — never as still holding its models (the review’s M3)', async () => {
+  it('a narrowing the gateway made but the database did not record is named with its cause, and the next sweep records it', async () => {
     await withBuilderServer('capable', async (ctx, lite) => {
       const internal = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
       await ctx.db.insert(appSpecs).values({
@@ -1191,12 +1417,12 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         valid: true,
         createdAt: new Date(Date.now() + 1000),
       })
-      // The gateway revokes the key; the database then refuses the row's stamp.
+      // The gateway narrows the key; the database then refuses the transaction that records it.
       const refusing = new Proxy(ctx.db, {
         get(target, name) {
-          if (name === 'update')
+          if (name === 'transaction')
             return () => {
-              throw new Error('the database refused the stamp')
+              throw new Error('the database refused the record')
             }
           const value = Reflect.get(target, name, target) as unknown
           return typeof value === 'function' ? value.bind(target) : value
@@ -1205,7 +1431,7 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
       const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
       try {
         expect(
-          await endSessionsHoldingMore(
+          await narrowSessionsHoldingMore(
             {
               db: refusing,
               bus: ctx.deps.bus,
@@ -1215,30 +1441,113 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
             },
             'every',
           ),
-        ).toEqual({ ended: [], failed: [internal.session.id] })
+        ).toEqual({ ended: [], narrowed: [], failed: [internal.session.id] })
         const lines = logged.mock.calls.map((call) => call.map(String).join(' '))
-        // Its own line, with the cause.
         expect(
           lines.some(
             (line) =>
               line.includes(internal.session.id) &&
-              line.includes('the database refused the stamp'),
+              line.includes('the database refused the record'),
           ),
           lines.join('\n'),
         ).toBe(true)
-        // And no line claims a key is still live that the gateway has revoked.
-        expect(lines.join('\n')).not.toMatch(/STILL hold/)
       } finally {
         logged.mockRestore()
       }
+      // The key WAS narrowed; the row still says what it held — so the next sweep narrows again (the same
+      // list, which the gateway takes as it took the first) and records it.
       expect(lite.use(internal.key, 'default-chat')).toEqual({
-        status: 401,
-        type: 'token_not_found_in_db',
+        status: 403,
+        type: 'key_model_access_denied',
       })
+      expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+        models: INTERNAL_SESSION,
+      })
+      expect(await sweep(ctx, lite)).toEqual({
+        ended: [],
+        narrowed: [internal.session.id],
+        failed: [],
+      })
+      expect(gatewayCalls(lite, '/key/update').map((c) => c.body?.models)).toEqual([
+        CONFIDENTIAL_KEEPS,
+        CONFIDENTIAL_KEEPS,
+      ])
+      expect((await sessionsById(ctx)).get(internal.session.id)).toMatchObject({
+        state: 'active',
+        models: CONFIDENTIAL_KEEPS,
+      })
+      expect(await narrowedEvents(ctx)).toHaveLength(1)
     })
   })
 
-  it('a production deploy that raises the classification ends the sessions it no longer allows, before it answers (the review’s I2)', async () => {
+  it('a session whose key was revoked but whose end could not be recorded is named with its cause — never as still holding its models (the review’s M3)', async () => {
+    // A catalogue with nothing approved for `confidential`, so the raise ENDS this session (Task 7).
+    const catalogue = await internalOnlyCatalogue()
+    await withBuilderServer(
+      'capable',
+      async (ctx, lite) => {
+        const internal = (
+          await start(ctx, { cookies: ctx.ownerCookies })
+        ).json() as Started
+        await ctx.db.insert(appSpecs).values({
+          projectId: ctx.projectId,
+          commitSha: ctx.commitSha,
+          parsed: { data: { classification: 'confidential' } },
+          schemaVersion: 1,
+          valid: true,
+          createdAt: new Date(Date.now() + 1000),
+        })
+        // The gateway revokes the key; the database then refuses the row's stamp.
+        const refusing = new Proxy(ctx.db, {
+          get(target, name) {
+            if (name === 'update')
+              return () => {
+                throw new Error('the database refused the stamp')
+              }
+            const value = Reflect.get(target, name, target) as unknown
+            return typeof value === 'function' ? value.bind(target) : value
+          },
+        })
+        const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+        try {
+          expect(
+            await narrowSessionsHoldingMore(
+              {
+                db: refusing,
+                bus: ctx.deps.bus,
+                llm: lite,
+                catalogue: ctx.deps.catalogue,
+                agent: ctx.deps.config.agent,
+              },
+              'every',
+            ),
+          ).toEqual({ ended: [], narrowed: [], failed: [internal.session.id] })
+          const lines = logged.mock.calls.map((call) => call.map(String).join(' '))
+          // Its own line, with the cause.
+          expect(
+            lines.some(
+              (line) =>
+                line.includes(internal.session.id) &&
+                line.includes('the database refused the stamp'),
+            ),
+            lines.join('\n'),
+          ).toBe(true)
+          // And no line claims a key is still live that the gateway has revoked.
+          expect(lines.join('\n')).not.toMatch(/STILL hold/)
+          expect(lines.join('\n')).not.toMatch(/may still hold/)
+        } finally {
+          logged.mockRestore()
+        }
+        expect(lite.use(internal.key, 'default-chat')).toEqual({
+          status: 401,
+          type: 'token_not_found_in_db',
+        })
+      },
+      catalogue,
+    )
+  })
+
+  it('a production deploy that raises the classification narrows the sessions holding what it no longer allows, before it answers (the review’s I2)', async () => {
     await resetDatabase()
     const lite = fakeLiteLlm()
     const slug = 'fe36-launch'
@@ -1283,7 +1592,7 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
       })
       expect(started.statusCode, started.body).toBe(201)
       const { session, key } = started.json() as Started
-      expect(session.models).toContain('default-chat')
+      expect(session.models).toEqual(INTERNAL_SESSION)
       expect(lite.use(key, 'default-chat')).toEqual({ status: 200 })
 
       // The launch: production now serves the CONFIDENTIAL release, so the floor rises.
@@ -1297,15 +1606,21 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
       expect(launched.statusCode, launched.body).toBe(200)
       expect(launched.json().state).toBe('healthy')
 
+      // Narrowed, not ended: the withdrawn model refused at the gateway, a kept one answered.
       expect(lite.use(key, 'default-chat')).toEqual({
-        status: 401,
-        type: 'token_not_found_in_db',
+        status: 403,
+        type: 'key_model_access_denied',
       })
+      expect(lite.use(key, 'default-chat-onprem')).toEqual({ status: 200 })
       const [row] = await ctx.deps.db
         .select()
         .from(agentSessions)
         .where(eq(agentSessions.id, session.id))
-      expect(row).toMatchObject({ endReason: 'models_withdrawn' })
+      expect(row).toMatchObject({
+        endedAt: null,
+        endReason: null,
+        models: CONFIDENTIAL_KEEPS,
+      })
     } finally {
       await ctx.deps.builds.idle()
       await ctx.app.close()
@@ -1319,7 +1634,7 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
    * route then serves — so it floors the classification exactly as a launch does. A CWL app, because
    * only one is rehearsed: over `cwlFakes`, the unit tier's two labelled fakes, and for their reason.
    */
-  it('a rehearsal that deploys a confidential release into production ends the sessions it no longer allows, before it answers (the whole-branch review’s I2)', async () => {
+  it('a rehearsal that deploys a confidential release into production narrows the sessions holding what it no longer allows, before it answers (the whole-branch review’s I2)', async () => {
     await resetDatabase()
     const lite = fakeLiteLlm()
     const base = await testDeps()
@@ -1392,7 +1707,7 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
       })
       expect(started.statusCode, started.body).toBe(201)
       const { session, key } = started.json() as Started
-      expect(session.models).toContain('default-chat')
+      expect(session.models).toEqual(INTERNAL_SESSION)
       expect(lite.use(key, 'default-chat')).toEqual({ status: 200 })
 
       // The rehearsal: production now serves the CONFIDENTIAL release, so the floor rises.
@@ -1409,15 +1724,21 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         evidence: { listener: 'public' },
       })
 
+      // Narrowed, not ended: the withdrawn model refused at the gateway, a kept one answered.
       expect(lite.use(key, 'default-chat')).toEqual({
-        status: 401,
-        type: 'token_not_found_in_db',
+        status: 403,
+        type: 'key_model_access_denied',
       })
+      expect(lite.use(key, 'default-chat-onprem')).toEqual({ status: 200 })
       const [row] = await deps.db
         .select()
         .from(agentSessions)
         .where(eq(agentSessions.id, session.id))
-      expect(row).toMatchObject({ endReason: 'models_withdrawn' })
+      expect(row).toMatchObject({
+        endedAt: null,
+        endReason: null,
+        models: CONFIDENTIAL_KEEPS,
+      })
     } finally {
       await deps.builds.idle()
       await app.close()

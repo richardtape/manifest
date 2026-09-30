@@ -249,8 +249,9 @@ export function Tokens({
  * and limited to the models D17 allows the project's data. Beside the tokens because it is the
  * same kind of thing: a credential a person hands an agent, shown once.
  *
- * RE-READ ON `agent_session.started` / `agent_session.ended` (D23.2) — a session a token started,
- * or one its token's revocation ended, reaches this list without a reload.
+ * RE-READ ON `agent_session.started` / `.narrowed` / `.ended` (D23.2) — a session a token started,
+ * one a raised classification narrowed, or one its token's revocation ended, reaches this list without
+ * a reload.
  */
 function AgentSessions({
   api,
@@ -264,7 +265,9 @@ function AgentSessions({
   const changed = frames.filter(
     (f) =>
       f.kind === 'event' &&
-      (f.type === 'agent_session.started' || f.type === 'agent_session.ended'),
+      (f.type === 'agent_session.started' ||
+        f.type === 'agent_session.narrowed' ||
+        f.type === 'agent_session.ended'),
   ).length
   const sessions = useAsync(() => api.listAgentSessions(projectId), [projectId, changed])
   const budget = useAsync(() => api.getAgentBudget(), [changed])

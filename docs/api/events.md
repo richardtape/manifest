@@ -148,6 +148,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `member.added` | A person was added to the project, or their role on it changed (§13). Not published when nothing changed. |
 | `member.removed` | A person was taken off the project (§13). Not published for somebody who was not a member. |
 | `agent_session.started` | An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published. |
+| `agent_session.narrowed` | An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key. |
 | `agent_session.ended` | An agent session’s key was revoked at the gateway (§10). |
 | `sso.deregistered` | The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11). |
 | `project.archived` | The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored. |

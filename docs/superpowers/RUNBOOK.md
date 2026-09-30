@@ -232,16 +232,20 @@ setting"*. **`capable`, the default**: a `confidential` project's agent session 
 empty value rather than guess. **The app's own `ai.models` is validated by D17 whatever this says**, so a `confidential` app's own AI
 stays on-premise either way. It is a platform setting (§26): put the line in `.env` and restart the control plane.
 
-**A session never holds more than its project now allows** (FE-36). Every valid `manifest.yaml` the platform records — a commit
-through the API, a push, a validation — and every PRODUCTION deploy (the release production serves floors the classification; the
-review's I2) is followed by a check of the project's ACTIVE agent sessions, and every session whose key
-names a model the project no longer allows is ended: its key revoked at LiteLLM, `agent_session.ended` published with reason
-**`models_withdrawn`**. Raising a project from `internal` to `confidential` ends the sessions started before it (they hold
-`default-chat`); a later session gets the confidential list. **Every boot** runs the same check over every project — which is how
-`on-premise` reaches the sessions a `capable` platform started, and how a check that failed at a commit is finished. **Read the boot
-line's `agentBuilderModels`** (the setting in force) **and `agentSessionsWithdrawn`**: `{"ended":n,"failed":m}`, `disabled` (AI off),
-or `failed` (with ONE `[boot] the agent sessions could not be checked …` line). A session that could not be ended is named in an
-operator line and stays live until it expires or the next boot ends it; a commit is never refused for it.
+**A session never holds more than its project now allows** (FE-36; since the launch path plan's Task 7, Spec action 1, it is
+NARROWED IN PLACE). Every valid `manifest.yaml` the platform records — a commit through the API, a push, a validation — and every
+PRODUCTION deploy, the rehearsal's included (the release production serves floors the classification; the review's I2), is followed
+by a check of the project's ACTIVE agent sessions, and every session whose key names a model the project no longer allows is
+narrowed: its key's models cut at LiteLLM by `/key/update` on its alias, so the SAME key is refused the withdrawn models at once
+(`403 key_model_access_denied`) and still answers the rest; then its row's `models`, and `agent_session.narrowed` published. Raising a
+project from `internal` to `confidential` narrows the sessions started before it to the on-premise models (and the capable model
+while the setting is `capable`). **Only a session left with nothing it may use is ended** — its key revoked, `agent_session.ended`
+with reason **`models_withdrawn`**. **Every boot** runs the same check over every project — which is how `on-premise` reaches the
+sessions a `capable` platform started, and how a check that failed at a commit is finished. **Read the boot line's
+`agentBuilderModels`** (the setting in force) **and `agentSessionsWithdrawn`**: `{"ended":n,"narrowed":k,"failed":m}`, `disabled`
+(AI off), or `failed` (with ONE `[boot] the agent sessions could not be checked …` line). A session that could not be narrowed or
+ended is named in an operator line with what its key may still hold, and stays live until it expires or the next check — a commit, a
+production deploy, a rehearsal or a boot — finishes it; a commit is never refused for it.
 
 **The safeguard, while the setting is `capable`**: `listIncidents` for a `confidential` project's STAGING or PRODUCTION environment,
 asked with a delegated TOKEN, is refused **`403 INCIDENT_LOG_CONFIDENTIAL`** before anything is read — an Incident's log tail can

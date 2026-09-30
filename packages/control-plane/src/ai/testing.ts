@@ -157,7 +157,8 @@ export async function deleteProbeKeyByAlias(alias: string): Promise<void> {
  * `use(key)` is the MODEL route's half: it refuses a key the way `[M7]` measured 1.98.0 refusing —
  * `401 token_not_found_in_db` once deleted, `401 expired_key` past its `duration`, `429
  * budget_exceeded` over its own `max_budget` or its user's, `403 key_model_access_denied` for a
- * model outside its list. `testAiKeyService` stays for the tests that want no gateway at all.
+ * model outside its list — the list `/key/update` narrowed included, at once, as the launch path
+ * plan's `[M3]` measured. `testAiKeyService` stays for the tests that want no gateway at all.
  */
 export interface FakeLiteLlmCall {
   method: 'GET' | 'POST' | 'DELETE'
@@ -454,6 +455,24 @@ export function fakeLiteLlm(): FakeLiteLlm {
           fallback_models: list,
           fallback_type: body.fallback_type ?? 'general',
           message: `Fallback configuration ${updated ? 'updated' : 'created'} successfully`,
+        } as T
+      }
+      case '/key/update': {
+        // As 1.98.0 answers (the launch path plan's Task 1, `[M3]`; Task 7's probe of an unknown alias):
+        // a key found by its ALIAS alone, its `models` REPLACED and every other bound left as it was;
+        // an alias no key holds is `404 not_found_error`. Only `models` is modelled. The answer
+        // carries the key's hash, as the real one does, as a marker no caller may carry on.
+        const alias = String(body.key_alias)
+        const k = [...keys.values()].find((x) => x.alias === alias)
+        if (k === undefined) return refuse(404, 'not_found_error')
+        if (Array.isArray(body.models)) k.models = [...(body.models as string[])]
+        return {
+          key: `hash-of-${k.alias}`,
+          token: `hash-of-${k.alias}`,
+          key_alias: k.alias,
+          user_id: k.userId,
+          models: [...k.models],
+          max_budget: k.maxBudget,
         } as T
       }
       case '/key/delete': {

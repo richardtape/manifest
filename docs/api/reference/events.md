@@ -558,6 +558,29 @@ An agent was given a model key for this project, charged to the person who start
 }
 ```
 
+## `agent_session.narrowed`
+
+An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key.
+
+```json
+{
+  "sessionId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+  "withdrawn": [
+    "default-chat",
+    "default-chat-reasoning",
+    "default-embed"
+  ],
+  "models": [
+    "default-chat-onprem",
+    "default-chat-onprem-reasoning",
+    "default-chat-large"
+  ],
+  "via": "session",
+  "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": null
+}
+```
+
 ## `agent_session.ended`
 
 An agent session’s key was revoked at the gateway (§10).

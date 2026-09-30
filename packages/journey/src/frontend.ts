@@ -745,9 +745,10 @@ async function sessionPhase(): Promise<void> {
     }
   }
 
-  // [S11a]: A COMMIT THAT RAISES THE CLASSIFICATION ENDS EVERY SESSION STARTED BEFORE IT
-  // (`models_withdrawn`). So the manifest — `confidential`, because the app keeps students' names —
-  // is committed BEFORE the session starts, and the session is the confidential one.
+  // [S11a]: A COMMIT THAT RAISES THE CLASSIFICATION NARROWS EVERY SESSION STARTED BEFORE IT (it ended
+  // them, `models_withdrawn`, until the launch path plan's Task 7). So the manifest — `confidential`,
+  // because the app keeps students' names — is committed BEFORE the session starts, and the session is
+  // the confidential one from its first call.
   const base = (await tree(client, id)).commitSha
   const manifest = await client.POST('/v1/projects/{projectId}/commits', {
     params: { path: { projectId: id }, header: { 'Idempotency-Key': idempotencyKey() } },

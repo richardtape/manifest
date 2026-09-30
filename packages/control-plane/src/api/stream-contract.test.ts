@@ -76,6 +76,10 @@ const PUBLISHED_ELSEWHERE = {
   'project.deleted':
     'api/lifecycle.test.ts — deleteProject, and releases/delete.docker.test.ts',
   'sso.deregistered': 'sso/registration.docker.test.ts — the real IdP',
+  // The launch path plan's Task 7: published when a raised classification (or the builder setting)
+  // withdraws a model from a live session, and this lifecycle's project is never raised.
+  'agent_session.narrowed':
+    'api/agents.test.ts — a commit raising the project to confidential (Task 7)',
 } as const
 
 /**

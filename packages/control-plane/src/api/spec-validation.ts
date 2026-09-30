@@ -1,5 +1,5 @@
 import { and, desc, eq } from 'drizzle-orm'
-import { endSessionsHoldingMore } from '../ai/index.js'
+import { narrowSessionsHoldingMore } from '../ai/index.js'
 import { appSpecs, projects, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent } from '../observability/index.js'
 import { repositoryOf } from '../projects/index.js'
@@ -162,7 +162,8 @@ export async function validateAndRecord(
  * and a rehearsal, which deploys into production too (`api/routes/launch.ts`, the whole-branch review's
  * I2), because `classificationFloor` never falls below the release production serves — its review's I2: a
  * launch of a confidential release while `main` says `internal` raised the floor and ended nothing. Every
- * active session of the project holding a model it no longer allows is ended — before the caller is
+ * active session of the project holding a model it no longer allows is narrowed in place to what it still
+ * allows, or ended when nothing it may use is left (the launch path plan's Task 7) — before the caller is
  * answered, so it sees it done.
  *
  * **THE BARRIER FIRST.** A session STARTING now holds the project row `FOR SHARE` while its key is
@@ -172,7 +173,7 @@ export async function validateAndRecord(
  * classification a moment before would commit a key for the old models after this found nothing.
  *
  * **NEVER A REFUSAL.** The commit or push has landed and its validation is recorded; a failure here is
- * an operator line naming the project, and the next boot's sweep ends what is left.
+ * an operator line naming the project, and the next sweep — any of these, or the boot's — finishes it.
  */
 export async function withdrawWhatItNoLongerAllows(
   deps: ServerDeps,
@@ -188,7 +189,7 @@ export async function withdrawWhatItNoLongerAllows(
         .where(eq(projects.id, projectId))
         .for('update')
     })
-    await endSessionsHoldingMore(
+    await narrowSessionsHoldingMore(
       {
         db: deps.db,
         bus: deps.bus,
@@ -200,7 +201,7 @@ export async function withdrawWhatItNoLongerAllows(
     )
   } catch (error) {
     console.error(
-      `[agent sessions] project ${projectId}: its agent sessions could not be checked after ${after}, so one may still hold a model the project no longer allows until it expires or the next boot ends it:`,
+      `[agent sessions] project ${projectId}: its agent sessions could not be checked after ${after}, so one may still hold a model the project no longer allows until it expires or the next sweep — a commit, a production deploy, a rehearsal or a boot — narrows or ends it:`,
       error,
     )
   }

@@ -158,7 +158,16 @@ export const EVENT_TYPES = [
    * its end. NEVER the key: it is in the start's answer and nowhere else.
    */
   'agent_session.started',
-  /** …and ITS KEY WAS REVOKED — ended, its token revoked, or its project switched off or deleted. */
+  /**
+   * …ITS KEY WAS NARROWED IN PLACE (§7 as Spec action 1 amended it; the launch path plan's Task 7): the
+   * project no longer allows some of its models — a raised classification, or the builder setting — and
+   * the key lost them at the gateway and kept the rest. The session goes on. NEVER the key.
+   */
+  'agent_session.narrowed',
+  /**
+   * …and ITS KEY WAS REVOKED — ended, its token revoked, its project switched off or deleted, or nothing
+   * it held still allowed.
+   */
   'agent_session.ended',
   /**
    * §9: an SP registration was REMOVED from the Manifest IdP — §11's archive takes an app's sandbox
@@ -226,9 +235,13 @@ export interface Event {
  * "every Event carries a faculty-legible human_message"; the migration's CHECK
  * constraint is the second. This one exists so the message names the field and
  * the caller rather than arriving as a Postgres constraint violation.
+ *
+ * `insert` alone, so a caller can record the event in the SAME transaction as the change it describes
+ * and publish its frame only after the commit (`ai/sessions.ts`'s narrowing — the launch path plan's
+ * Task 7); `publishEvent` is the one-step form for everything else.
  */
 export async function recordEvent(
-  db: Db,
+  db: Pick<Db, 'insert'>,
   input: EventInput,
   redact: Redactor,
 ): Promise<Event> {

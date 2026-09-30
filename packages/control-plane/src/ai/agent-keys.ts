@@ -16,8 +16,8 @@ import { AI_ALLOWED_ROUTES } from './keys.js'
  * call at once, and a user's month refuses under a key whose own cap is higher.
  *
  * **A KEY IS NAMED BY ITS ALIAS, NEVER BY ITS VALUE.** The alias is derived from the session's id, so
- * it cannot disagree with the row, and `/key/delete { key_aliases }` revokes it (`[M7]`) without the
- * platform ever holding the key.
+ * it cannot disagree with the row: `/key/delete { key_aliases }` revokes it (`[M7]`), and `/key/update
+ * { key_alias }` narrows it (the launch path plan's `[M3]`), without the platform ever holding the key.
  */
 
 /** Every budget window this module sets — a calendar month, as `ensureAiUser`'s (S3). */
@@ -194,6 +194,44 @@ export async function revokeKeyByAlias(
 
 export const revokeAgentKey = (client: LiteLlmClient, sessionId: string): Promise<void> =>
   revokeKeyByAlias(client, agentKeyAlias(sessionId))
+
+/**
+ * NARROWS a live agent key to `models`, in place (§7 as Spec action 1 amended it; the launch path plan's
+ * Task 7, Decision 23): ONE `/key/update { key_alias, models }`. `[M3]` measured LiteLLM 1.98.0 taking the
+ * alias alone — no `/key/list`, no hashed token — and refusing a withdrawn model on the same key 20 ms
+ * later (`403 key_model_access_denied`) while the kept ones answer; the key's cap, life and routes stay as
+ * they were. The session keeps its key, so the agent holding it is never handed a new one — which could
+ * not reach it: a key is answered once and never stored.
+ *
+ * **NEVER TO NOTHING**: to LiteLLM an EMPTY model list is EVERY model (`[M7]`), so an empty `models` is
+ * refused here before the gateway is asked — the caller ENDS a session left with nothing instead.
+ *
+ * **`404` IS DONE, as `revokeKeyByAlias`'s rule has it**: measured at this task (the image
+ * `ghcr.io/berriai/litellm@sha256:20b5044b…`), an alias no key holds is `404 not_found_error` and
+ * nothing is created — so no key under the alias holds a withdrawn model, which is the end state wanted.
+ * Any other failure is the client's `AiError` and surfaces: the key still holds what it held. Its
+ * answer carries the key's hashed token and is never read, logged or returned.
+ */
+export async function narrowAgentKey(
+  client: LiteLlmClient,
+  sessionId: string,
+  models: readonly string[],
+): Promise<void> {
+  if (models.length === 0) {
+    throw new Error(
+      `agent session ${sessionId}: a key is never narrowed to no models — LiteLLM reads an empty ` +
+        'model list as every model; a session left with nothing it may use is ended instead.',
+    )
+  }
+  try {
+    await client.post('/key/update', {
+      key_alias: agentKeyAlias(sessionId),
+      models: [...models],
+    })
+  } catch (error) {
+    if (!(error instanceof AiError && error.status === 404)) throw error
+  }
+}
 
 export const revokeIntakeKey = (
   client: LiteLlmClient,

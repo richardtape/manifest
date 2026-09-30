@@ -73,7 +73,7 @@ export const AgentSession = representation(
       models: z
         .array(z.string())
         .describe(
-          'The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has.',
+          'The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has. When the project stops allowing some of them, the key loses those at once and keeps the rest (`agent_session.narrowed`), and this list is what it holds now.',
         ),
       capUsd: z
         .number()
@@ -101,7 +101,7 @@ export const AgentSession = representation(
         ])
         .nullable()
         .describe(
-          'Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). Null while it has not been ended; a session that ran out of time or money is never ended by that.',
+          'Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise); a session that keeps any model it may still use is narrowed instead, and goes on. Null while it has not been ended; a session that ran out of time or money is never ended by that.',
         ),
       spentUsd: z
         .number()

@@ -219,7 +219,8 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
   let interruptedBuild: string
   let stalePending: string
   let freshPending: string
-  let withdrawnSession: string
+  let endedSession: string
+  let narrowedSession: string
   let keptSession: string
   let probeAfterBoot: { status: number; body: string; instance: string }
 
@@ -481,12 +482,16 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
     )
 
     /**
-     * AND TWO AGENT SESSIONS ON A PROJECT NOW `confidential` (the front-end enablement plan's Task 14a,
-     * FE-36): one holding `default-chat`, which a confidential project never allows, and one holding
-     * only the on-premise model. The boot ends the first and keeps the second — the kept one is the
-     * discrimination, because "the session ended" is also true of a sweep that ends every session.
-     * Neither key was ever minted: the gateway answers 404 for the alias and for the person, which the
-     * end reads as already revoked and as spend unknown (measured at this sitting).
+     * AND THREE AGENT SESSIONS ON A PROJECT NOW `confidential` (the front-end enablement plan's Task 14a,
+     * FE-36; the launch path plan's Task 7): one holding only `default-chat`, which a confidential project
+     * never allows — nothing it may use is left, so the boot ENDS it; one holding `default-chat` AND the
+     * on-premise model — the boot NARROWS it to the on-premise model and it goes on; and one holding only
+     * the on-premise model, which the boot leaves alone — the kept one is the discrimination, because
+     * "the session ended" is also true of a sweep that ends every session. No key was ever minted: the
+     * gateway answers 404 for the alias and for the person, which the end reads as already revoked and
+     * as spend unknown (measured at the front-end enablement plan's sitting), and the narrowing as a key
+     * that holds nothing to withdraw (`/key/update` for an alias no key holds is `404 not_found_error`,
+     * measured at the launch path plan's Task 7).
      */
     await db.insert(appSpecs).values({
       projectId: project.id,
@@ -510,7 +515,8 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
           })
           .returning()
       )[0]!.id
-    withdrawnSession = await session(['default-chat', 'default-chat-onprem'])
+    endedSession = await session(['default-chat'])
+    narrowedSession = await session(['default-chat', 'default-chat-onprem'])
     keptSession = await session(['default-chat-onprem'])
 
     // AND THE EDGE FORGETS THE ROUTE, which is what `docker restart manifest-caddy`
@@ -620,21 +626,31 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
     expect(await stateOfAsk(freshPending)).toBe('pending')
   }, 120_000)
 
-  it('ends an agent session holding a model its project no longer allows, and keeps one it allows (Task 14a, FE-36)', async () => {
+  it('narrows an agent session holding a model its project no longer allows, ends one left with nothing, and keeps one it allows (Task 14a, FE-36; the launch path plan’s Task 7)', async () => {
     /**
-     * THE UNIT TIER CANNOT SEE THIS EITHER: `endSessionsHoldingMore` has its own tests in
+     * THE UNIT TIER CANNOT SEE THIS EITHER: `narrowSessionsHoldingMore` has its own tests in
      * `api/agents.test.ts`, and they stay green with the boot's call deleted. This is the only test
      * that fails if `src/index.ts` stops calling it — and the only way a narrowed
      * `MANIFEST_AGENT_BUILDER_MODELS` reaches a session a `capable` platform started.
      */
-    expect(boot.agentSessionsWithdrawn).toEqual({ ended: 1, failed: 0 })
-    const endOf = async (id: string) =>
+    expect(boot.agentSessionsWithdrawn).toEqual({ ended: 1, narrowed: 1, failed: 0 })
+    const rowOf = async (id: string) =>
       (await db.select().from(agentSessions).where(eq(agentSessions.id, id)))[0]!
-    expect(await endOf(withdrawnSession)).toMatchObject({
+    expect(await rowOf(endedSession)).toMatchObject({
       endReason: 'models_withdrawn',
       endedAt: expect.any(Date),
+      models: ['default-chat'],
     })
-    expect(await endOf(keptSession)).toMatchObject({ endReason: null, endedAt: null })
+    expect(await rowOf(narrowedSession)).toMatchObject({
+      endReason: null,
+      endedAt: null,
+      models: ['default-chat-onprem'],
+    })
+    expect(await rowOf(keptSession)).toMatchObject({
+      endReason: null,
+      endedAt: null,
+      models: ['default-chat-onprem'],
+    })
   }, 120_000)
 
   it('finishes a drain a restart cut short', async () => {

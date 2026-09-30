@@ -672,6 +672,31 @@ export const EVENT_DETAIL_SCHEMAS = {
     .describe(
       'An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published.',
     ),
+  /**
+   * The launch path plan's Task 7 (§7 as Spec action 1 amended it). Nobody asked for it: it is attributed,
+   * as `agent_session.ended`'s `models_withdrawn` is, to the person the session is charged to — `via`
+   * `session`, no token. `models` is what the key holds NOW, so a client needs no second read.
+   */
+  'agent_session.narrowed': z
+    .strictObject({
+      sessionId: Uuid.describe('The session — `listAgentSessions` names it.'),
+      withdrawn: z
+        .array(z.string())
+        .describe(
+          'The logical models its key may no longer call — the gateway refuses them from now on.',
+        ),
+      models: z
+        .array(z.string())
+        .describe(
+          'The logical models its key still holds: what it held that the project still allows. Never empty — a session left with nothing it may use is ended instead.',
+        ),
+      via: Via,
+      userId: ActingUser,
+      tokenId: ActingToken,
+    })
+    .describe(
+      'An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key.',
+    ),
   'agent_session.ended': z
     .strictObject({
       sessionId: Uuid.describe('The session that ended.'),
@@ -684,7 +709,7 @@ export const EVENT_DETAIL_SCHEMAS = {
           'models_withdrawn',
         ])
         .describe(
-          'Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise).',
+          'Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).',
         ),
       via: Via,
       userId: ActingUser,

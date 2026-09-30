@@ -4095,6 +4095,26 @@
             }
           },
           {
+            "type": "agent_session.narrowed",
+            "description": "An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key.",
+            "example": {
+              "sessionId": "2b7e4f90-3c1d-4a6e-8f25-9d0c1b3a4e57",
+              "withdrawn": [
+                "default-chat",
+                "default-chat-reasoning",
+                "default-embed"
+              ],
+              "models": [
+                "default-chat-onprem",
+                "default-chat-onprem-reasoning",
+                "default-chat-large"
+              ],
+              "via": "session",
+              "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "tokenId": null
+            }
+          },
+          {
             "type": "agent_session.ended",
             "description": "An agent session’s key was revoked at the gateway (§10).",
             "example": {
@@ -7293,7 +7313,7 @@
             ]
           },
           "models": {
-            "description": "The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has.",
+            "description": "The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has. When the project stops allowing some of them, the key loses those at once and keeps the rest (`agent_session.narrowed`), and this list is what it holds now.",
             "type": "array",
             "items": {
               "type": "string"
@@ -7333,7 +7353,7 @@
             ]
           },
           "endReason": {
-            "description": "Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). Null while it has not been ended; a session that ran out of time or money is never ended by that.",
+            "description": "Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise); a session that keeps any model it may still use is narrowed instead, and goes on. Null while it has not been ended; a session that ran out of time or money is never ended by that.",
             "anyOf": [
               {
                 "type": "string",
@@ -13434,6 +13454,120 @@
               "type": {
                 "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
                 "type": "string",
+                "const": "agent_session.narrowed"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key.",
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "description": "The session — `listAgentSessions` names it.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "withdrawn": {
+                    "description": "The logical models its key may no longer call — the gateway refuses them from now on.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "models": {
+                    "description": "The logical models its key still holds: what it held that the project still allows. Never empty — a session left with nothing it may use is ended instead.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "via": {
+                    "description": "How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.",
+                    "type": "string",
+                    "enum": [
+                      "session",
+                      "token"
+                    ]
+                  },
+                  "userId": {
+                    "description": "The person who acted — for a token, the person who minted it. `listMembers` names them.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "description": "The delegated token that acted (`listTokens`); null when the person acted in their own session.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "sessionId",
+                  "withdrawn",
+                  "models",
+                  "via",
+                  "userId",
+                  "tokenId"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
                 "const": "agent_session.ended"
               },
               "humanMessage": {
@@ -13451,7 +13585,7 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
                   },
                   "reason": {
-                    "description": "Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows a model it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise).",
+                    "description": "Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, or `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise). A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).",
                     "type": "string",
                     "enum": [
                       "ended",

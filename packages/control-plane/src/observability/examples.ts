@@ -241,6 +241,18 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     userId: UUID,
     tokenId: OTHER_UUID,
   },
+  'agent_session.narrowed': {
+    sessionId: OTHER_UUID,
+    withdrawn: ['default-chat', 'default-chat-reasoning', 'default-embed'],
+    models: [
+      'default-chat-onprem',
+      'default-chat-onprem-reasoning',
+      'default-chat-large',
+    ],
+    via: 'session',
+    userId: UUID,
+    tokenId: null,
+  },
   'agent_session.ended': {
     sessionId: OTHER_UUID,
     reason: 'token_revoked',

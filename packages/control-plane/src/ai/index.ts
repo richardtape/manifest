@@ -67,9 +67,9 @@ export {
   agentSessionsOf,
   cachedPersonSpend,
   endAgentSession,
-  endSessionsHoldingMore,
   endSessionsOf,
   gatewayOf,
+  narrowSessionsHoldingMore,
   sessionState,
   startAgentSession,
 } from './sessions.js'
