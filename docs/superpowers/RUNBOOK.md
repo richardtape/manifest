@@ -363,7 +363,7 @@ paragraph refuses the boot, naming it — restart the control plane to serve an 
 `packages/console/public/`, which the console serves at `/llms.txt`); run it after `pnpm contract:write && pnpm
 contract:generate`, and commit what it writes, or `pnpm test` is red naming the page.
 
-**To read all of it with NOTHING running — no Docker, no control plane, no mock, no server — run `pnpm docs:html`**
+**To read the API reference with NOTHING running — no Docker, no control plane, no mock, no server — run `pnpm docs:html`**
 (added after sitting 8, at Rich's request). It writes `dist/api-docs/` — git-ignored, rebuilt whenever you run it — and
 **opens `dist/api-docs/index.html` in your default browser itself**, straight from disk (`open` on macOS, `xdg-open` on
 Linux), printing its `file://` address too:
@@ -373,12 +373,11 @@ pnpm docs:html                     # writes the page and opens it
 pnpm docs:html --no-open           # writes it and only prints where it is
 ```
 
-It is one page: the ten guides in reading order and the three reference pages, each a top-level entry in the
-sidebar with its sections under it, then *The API reference* — every operation, as `/reference.html` shows it. Links
-between guides go to the section in the same page. Scalar renders the guides itself (they are the description of a
-COPY of the published document; the published one never changes), from the standalone bundle copied beside the page —
-so the one prerequisite is `pnpm install`. It makes no request but for its own two files. **A jump to a guide's title lands
-up to half a screen above the heading** — Scalar's own sidebar does the same, so it is the renderer's, not the links'.
+It is one page, **the reference only**: every operation, grouped by tag, with its parameters, examples and errors —
+as `/reference.html` shows it — rendered by Scalar from the standalone bundle copied beside the page, so the one
+prerequisite is `pnpm install`. It makes no request but for its own two files. **The guides are not in it** (Rich,
+2026-09-30: pasted above the reference, they doubled the Markdown and were squeezed beside Scalar's request panel):
+read them as Markdown in `docs/api/`, or from `GET /v1/docs`; the page's introduction says so.
 
 ## Running `manifest-mock`
 
