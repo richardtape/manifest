@@ -74,7 +74,7 @@ supersedes:
 | `docker-simple-saml` | **Read-only reference, not part of the platform.** The **Manifest IdP** is a separate image Manifest builds (`infra/idp/`, §9, §21); S2 measured its SQL metadata source against this repository, and nothing depends on this repository running or existing. |
 | `ubc-genai-toolkit` | **Ours, changed only with discipline (C6).** Used as-is by manifested apps; its `openai-compat` provider points at LiteLLM. Manifest pins an exact version. |
 | `tlef-ansible` | Describes how UBC deploys today (RHEL 9 VMs, nginx, Let's Encrypt, GitHub webhooks). Informs the eventual VM driver; not a dependency of the MVP. |
-| `saml-metadata-generator` | **Absorbed as a library.** Already generates RSA-4096 certificates and UBC-standard SP metadata as a downloadable package — exactly the artifact a UBC IAM registration request requires (§9). Not rebuilt. |
+| `saml-metadata-generator` | **Its structure, not its code.** It generates UBC-standard SP metadata as a downloadable package — exactly the artifact a UBC IAM registration request requires (§9). Manifest renders that structure with its own values and its own certificate; the tool is a web application, not a library, and not a dependency. |
 | `FakeAcademicAPI`, `canvas-bridge` | Future `integrations:` targets. Reserved for post-MVP (§15). |
 | `vibonarium`, `vibonarium-old` | Earlier prototype of the same idea, built on Coolify. **Inspiration only.** Coolify has been evaluated and rejected. No code is carried forward. |
 
@@ -217,7 +217,7 @@ boundary intact even when the code inside is actively hostile.
 | D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | An app whose first contact with real Shibboleth is production launch day will fail on launch day. **Staging now makes that contact every day**, signing people in against UBC's staging IdP through its own registration (§9). What the rehearsal adds is therefore narrower: it exercises the **production** registration, its attribute release and its certificate before anything is public. Whether that still needs a blocking item once staging is registered is an open question (§19); until it is answered, the rehearsal stays. *(Rationale changed 2026-09-27: it rested on staging using the Manifest IdP.)* |
 | D22 | **This repo ships a `console/` — a reference console — as a Phase 1 deliverable.** It is the executable proof that the public API is complete and sufficient, not the product. It imports *only* the generated client from `contract/`, enforced by a lint boundary and a test. | Without it, the faculty journey is undemonstrable until Phase 3, and API gaps surface when the front-end team hits them rather than while they are cheap to fix. The import rule converts "is the API complete?" from an opinion into a build failure. |
 | D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
-| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. **Four actions are stricter still — *person-only*: approving a release (§13), recording UBC's IAM registration or Privacy Office assessment (§9), running D21's pre-production rehearsal (§9), and archiving or deleting a project (§11).** A delegated token can never be minted holding any of them, and a token that asks is refused outright rather than given a pending action: three of them are records that a named person decided — and a confirmed retry would let the token make that record — and the rehearsal puts an unapproved release on production's public listener while its sign-in runs, past anything a token deploys (§20). *(Added 2026-09-22.)* | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: read everything about its project, trigger builds, deploy to sandbox and staging, set its app's sandbox and staging secrets, start a model session for its agent, stream logs and events — the entire build loop. Only four things need a human. **A token is scoped to one project and so does not create projects**: a human creates the project in an interactive session and mints the token for it, which is the natural order anyway. *(Reconciled 2026-09-17: this sentence previously listed project creation, which contradicts the scope rule in the decision beside it — a project-scoped token cannot use what it creates. The scope rule wins; an unscoped "creator" token is left to the phase that needs one.)* |
+| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. **Four actions are stricter still — *person-only*: approving a release (§13), recording UBC's IAM registration or Privacy Office assessment, or saying that a request to either was sent (§9), running D21's pre-production rehearsal (§9), and archiving or deleting a project (§11).** A delegated token can never be minted holding any of them, and a token that asks is refused outright rather than given a pending action: three of them are records that a named person decided — and a confirmed retry would let the token make that record — and the rehearsal puts an unapproved release on production's public listener while its sign-in runs, past anything a token deploys (§20). *(Added 2026-09-22.)* | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: read everything about its project, trigger builds, deploy to sandbox and staging, set its app's sandbox and staging secrets, start a model session for its agent, stream logs and events — the entire build loop. Only four things need a human. **A token is scoped to one project and so does not create projects**: a human creates the project in an interactive session and mints the token for it, which is the natural order anyway. *(Reconciled 2026-09-17: this sentence previously listed project creation, which contradicts the scope rule in the decision beside it — a project-scoped token cannot use what it creates. The scope rule wins; an unscoped "creator" token is left to the phase that needs one.)* |
 | D25 | **The agent knowledge pack is served over the API**, versioned with its blueprint — not only baked into sandbox images. | A third-party agent on someone's laptop cannot read a file inside a container it never runs. Without this, a BYO agent has no way to learn how to write a valid `manifest.yaml` or wire CWL auth, which is exactly the knowledge that makes an app work on this platform. |
 | D26 | **Every app has a permanent canonical hostname. A custom production domain is an addition to it, never a replacement.** | The canonical name is what Manifest controls, what its wildcard certificate covers, and what internal tooling, health checks and the SP `entityID` are pinned to. Letting a vanity domain *replace* it would make the identity registration (§9) a function of a field a faculty member can edit, which is precisely the assertion-phishing shape D15 exists to prevent. Keeping both means a broken or lapsed custom domain degrades to a working app on an ugly URL, rather than to an outage. |
 | D27 | **A custom domain on a CWL app must be chosen before its UBC IAM registration is submitted.** Adding or changing one afterwards is an IAM change request, not a platform setting. | The ACS URL is part of what UBC IAM registers (§9, D15), and it must contain the hostname the browser is actually on or the assertion will not be accepted. This is the ordering constraint faculty are most likely to get wrong: choosing a domain is a five-second decision in week one that costs a multi-week change request in week twelve. Manifest therefore asks for the domain *at* registration time rather than offering it as a later convenience. Apps with `auth.provider: none` have no such constraint and may change domain freely. |
@@ -334,8 +334,9 @@ admin-ui/       React admin front-end
 | **Domain** | `id`, `project_id`, `hostname`, `state` (`pending` \| `verified` \| `attached` \| `failed` \| `detached`), `verification_token`, `cert_source` (`acme` \| `uploaded`), `cert_expires_at`, `last_checked_at`, `verified_at` |
 | **Secret** | `id`, `project_id`, `environment_kind`, `name`, `ciphertext`, `created_at` |
 | **Approval** | `id`, `release_id`, `decision`, `decided_by`, `reason`, `diff_snapshot` |
-| **IamRegistration** | `id`, `project_id`, `entity_id`, `acs_url`, `slo_url`, `cert_fingerprint`, `cert_expires_at`, `registered_attributes`, `state` (`draft` \| `submitted` \| `active` \| `change_requested` \| `expired`), `external_ticket_ref` |
-| **PrivacyAssessment** | `id`, `project_id`, `generated_draft`, `state` (`draft` \| `submitted` \| `approved`), `reviewer`, `approved_at` |
+| **ApprovalRequest** | `id`, `release_id`, `project_id`, `requested_by`, `requested_by_token`, `note`, `created_at` — an owner's request that an administrator sign off the release serving staging. It is answered by an `Approval` and closes when one is recorded or the release stops being the launch candidate; its `note` is shown to administrators and to nobody else |
+| **IamRegistration** | `id`, `project_id`, `environment` (`staging` \| `production`), `entity_id`, `acs_url`, `slo_url`, `cert_fingerprint`, `cert_expires_at`, `registered_attributes`, `state` (`draft` \| `submitted` \| `active` \| `change_requested` \| `expired`), `external_ticket_ref`, `submitted_at`, `submitted_by`, `generated_package` — one per environment that signs people in against UBC |
+| **PrivacyAssessment** | `id`, `project_id`, `generated_draft`, `state` (`draft` \| `submitted` \| `approved`), `reviewer`, `approved_at`, `external_ticket_ref` (the PIA number), `submitted_at`, `submitted_by` |
 | **LaunchReadiness** | `project_id`, checklist state across IAM registration, PIA, rehearsal, security scan, admin approval |
 | **DelegatedToken** | `id`, `user_id`, `project_id`, `name`, `token_hash`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `revoked_at`, `last_used_at`, `rate_limit` — the plaintext exists only at minting and is never stored, so `token_hash` is what authenticates a presented token, `name` is what makes one reviewable in a list, and `revoked_at` is how one is ended **before** its expiry. **A token is revoked when its minter is removed from its project**, because it acts for that person there and nowhere else. Revocation is not optional for a credential an agent holds, which is why a delegated token has a server-side record where a Phase 1 session does not (§20) |
 | **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `expires_at`, `resolved_by`, `resolved_at`, `consumed_at` — `expires_at` is what makes the `expired` state reachable rather than decorative, and `consumed_at` records that a confirmation has been **spent**, so confirming grants exactly one retry rather than a standing permission. `consumed_at` is a column and not a fifth state: "confirmed but not yet retried" and "confirmed and used" are one decision at two moments |
@@ -698,8 +699,10 @@ gets a staging CWL is UBC's process.
 
 **Registering an app's staging environment is a request to UBC IAM, reviewed by
 people, with a wait**, and it is no more programmatic than production's (C4). It is
-**a third clock**, beside the production registration and the privacy assessment
-(§13), and the first of the three to start. **It gates the staging address**: until
+**the second of three steps, in UBC's order** (§13): the privacy assessment, then this
+registration, then production's. **It is sent only once the privacy assessment is
+approved, and its package carries the assessment's reference** (the PIA number).
+**It gates the staging address**: until
 IAM has registered it, a CWL app's staging environment serves but signs nobody in,
 and people try the app in the sandbox. An app with `auth.provider: none` registers
 nothing and waits for nothing. Manifest derives the request's values as it derives
@@ -709,8 +712,9 @@ production's (D15):
 - the ACS and SLO URLs on the staging hostname;
 - the requested attributes, each with its justification.
 
-**How Manifest drafts and tracks the request is not yet designed** (§19).
-`IamRegistration` (§6) is production's today.
+**Manifest drafts and tracks it as it does production's** — an `IamRegistration` of the
+`staging` kind (§6), with its own package, its own submission and its own state, beside
+the production one.
 
 **On the laptop, staging keeps the Manifest IdP's fake sign-in** (§21). C1 forbids a
 laptop that needs UBC's network, so a laptop's staging registers itself the way the
@@ -723,8 +727,9 @@ make the submission accurate, complete and legible to someone who has never hear
 of SAML (D19) — so that what reaches the reviewer needs as little back-and-forth as
 possible.
 
-**Manifest generates the registration package** from the AppSpec, reusing
-`saml-metadata-generator` as a library:
+**Manifest generates the registration package** from the AppSpec, **in the structure
+UBC's `saml-metadata-generator` produces** — its elements, organisation and algorithms —
+with Manifest's own derived values:
 
 - entityID — `https://{platform-domain}/sp/{slug}/production`, where the platform
   domain is deployment configuration (`manifest.ubc.ca` on UBC infrastructure,
@@ -737,11 +742,25 @@ possible.
 - an RSA-4096 keypair and SP metadata XML in UBC's expected structure
 - the requested attribute list, **each with a justification derived from where the
   app actually uses that attribute** — this is what IAM asks for, and precisely
-  what a faculty member cannot write unaided
+  what a faculty member cannot write unaided — each attribute's purpose, and the lines
+  of the app's code that read it, found by a bounded search. An attribute the code never
+  reads is flagged before the package is sent, so it can be removed rather than asked
+  for. The private key never leaves the platform: the package carries the certificate.
 - technical and privacy contacts from the project owner and platform admins
+- the privacy assessment's reference (the PIA number), which UBC IAM asks for
 
 `IamRegistration` tracks state (`draft → submitted → active`, plus
-`change_requested` and `expired`) against an external ticket reference.
+`change_requested` and `expired`) against an external ticket reference. **The owner
+moves it to `submitted`** — *I've sent it* — with the day they sent it, which is how
+Manifest can say how long it has waited; **UBC's answers are an administrator's
+record**. The same holds for a `PrivacyAssessment`. A registration no reviewer has
+registered gates nothing: a production build is checked against
+`registered_attributes` only once UBC has registered them.
+
+**The production registration is sent only once the staging registration is
+`active`** — the app has signed people in at staging and its owner judges it tested.
+What UBC decides — a registration `active`, an assessment `approved` — is an
+administrator's record of UBC's answer, and is never refused for order.
 
 **Attribute drift is a build-time failure, not a login-time one.** Manifest stores
 `registered_attributes` and validates every production release against it (§7). If
@@ -749,15 +768,17 @@ the agent adds an attribute IAM never registered, the build fails with a plain
 message and a pre-generated change request, long before a student would have hit
 a broken login.
 
-**Certificate lifecycle.** `saml-metadata-generator` issues certificates valid for
-one to five years. An expired SP certificate silently breaks authentication for a
+**Certificate lifecycle.** Manifest issues each environment's SP certificate itself,
+once, at registration (D20), for a fixed term. An expired SP certificate silently breaks authentication for a
 live course application, and nothing surfaces it until it is already urgent.
 Manifest records `cert_expires_at` and raises escalating alerts starting 90 days
 out; renewal is a tracked IAM change request with an overlap window (D20).
 
 ### Privacy Impact Assessment
 
-A PIA is required per production app (C4). Manifest generates the draft from what
+A PIA is required per production app (C4), and **it comes first**: UBC IAM asks for
+its reference, so neither of an app's registrations is sent until the assessment is
+approved. Manifest generates the draft from what
 it already holds, so the owner reviews and signs rather than authoring from
 nothing:
 
@@ -769,6 +790,9 @@ nothing:
 | Retention and disposal | `data.retention_days`, plus the sunset policy |
 | Who is accountable | project owner, collaborators, platform admins |
 | Hosting and jurisdiction | the driver's placement and the model catalogue's `max_classification` |
+
+**What Manifest cannot know, the draft names as a gap for the owner** — what the app
+keeps in its own database, where UBC will host it — rather than leaving it out.
 
 `PrivacyAssessment` tracks `draft → submitted → approved`. Production deployment
 is blocked until it is `approved`.
@@ -1557,10 +1581,18 @@ drives, rather than a single approval click:
 
 The first two have multi-week lead times, so Manifest surfaces them the moment a
 project is created — not at the point the owner asks to go live. A faculty member
-should never discover the existence of a PIA on the day they wanted to launch. A CWL
-app has **a third clock, and it starts first**: its staging registration with UBC's
-staging IdP (§9). It gates signing in at the staging address rather than going live,
-and it is surfaced at the same moment as the other two.
+should never discover the existence of a PIA on the day they wanted to launch. **They
+run in UBC's order, one after another**: the privacy assessment; then, for a CWL app,
+its staging registration with UBC's staging IdP (§9), which gates signing in at the
+staging address rather than going live; then, once staging is registered and the owner
+has tested it there, the production registration. All three are surfaced the moment a
+project is created, each saying what it waits on. Each of the three is drafted by
+Manifest and sent by the owner, and each says, while it waits, how long it has waited.
+
+**The owner asks for the administrator's approval** on the release serving staging,
+and the request waits in the administrators' queue (§26) with how long it has waited —
+so the one approval a launch needs from a person at the platform is never waited for
+without being asked for.
 
 ### Gate (D9)
 
@@ -1843,10 +1875,10 @@ Each phase ends in something demonstrable in a browser.
 | **Platform-level PIA for the control plane** (separate from each app's) | Blocks UBC deployment | UBC Privacy Office |
 | On-prem model endpoints and their LiteLLM configuration | Exists; needs a logical-name mapping | Manifest team |
 | Wildcard DNS and certificates on UBC infra | Needed at Phase 5 | UBC IT |
-| **Privacy Impact Assessment — resolved: one per production app** (C4). Manifest generates the draft (§9); the owner reviews and signs. A platform-level PIA covering the control plane itself is still needed separately. | Blocks every production launch | UBC Privacy Office + project owner |
+| **Privacy Impact Assessment — resolved: one per production app** (C4). Manifest generates the draft (§9); the owner reviews and signs. A platform-level PIA covering the control plane itself is still needed separately. | Blocks every production launch, and sending an app's staging registration (§9) | UBC Privacy Office + project owner |
 | **UBC IAM registration — one per production app** (C4). Manifest generates the package (§9); turnaround is external and multi-week. | Blocks every production launch | UBC IAM + Manifest team |
 | Access to UBC's staging IdP (`authentication.stg.id.ubc.ca`), for every CWL app's staging environment (§9) and for the pre-production rehearsal (D21) | Needed at Phase 2 for the rehearsal; before any app's staging serves at UBC for the rest | UBC IAM |
-| **UBC IAM registration, one per CWL app's staging environment** (§9): reviewed by people, with a wait. How Manifest drafts and tracks it, beside `IamRegistration` or as a second kind of it, is not yet designed | Blocks signing in at an app's staging address | UBC IAM + Manifest team |
+| **UBC IAM registration, one per CWL app's staging environment** (§9): reviewed by people, with a wait. Manifest drafts and tracks it as a second kind of `IamRegistration` (§9) | Blocks signing in at an app's staging address | UBC IAM + Manifest team |
 | **Whether a privacy assessment covers an app's staging use by real people** (staging CWL holders, the owner's colleagues and students among them), or staging needs cover of its own (§9) | Open; needed before any app's staging serves at UBC | UBC Privacy Office |
 | **Whether D21's rehearsal keeps a purpose** once staging signs people in against UBC's staging IdP every day (§9) | Open; the rehearsal stays a blocking item until it is answered | UBC IAM + Manifest team |
 | **Independent security review / penetration test** | Required before the first public production app | UBC IT Security |
@@ -2859,7 +2891,7 @@ Every queue item is derived from an entity that already exists:
 
 | Queue item | Source | Decided by |
 |---|---|---|
-| Release awaiting approval | `Approval` (D9) | admin |
+| Release awaiting approval | `ApprovalRequest`, answered by an `Approval` (D9) | admin |
 | Confirmation of a delegated-token action | `PendingAction` (D24) | the requesting user, in *their* queue — listed here because it is the same mechanism |
 | IAM registration to submit or amend | `IamRegistration` (D19) | admin + UBC IAM |
 | Privacy assessment to review | `PrivacyAssessment` | owner, then Privacy Office |

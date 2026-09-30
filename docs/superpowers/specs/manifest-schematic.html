@@ -409,7 +409,9 @@
     <span class="where">WHERE <b>the going-live checklist</b> &middot; the part that is deliberately not instant</span>
     <p>This is the honest heart of the design. Every live UBC app that knows who its users are
     needs <strong>its own sign-in registration and its own privacy assessment</strong>. Both are
-    read by colleagues at UBC &mdash; the identity team, and the privacy team who run PIAs.
+    read by colleagues at UBC &mdash; the identity team, and the privacy team who run PIAs
+    &mdash; and they go in the university&rsquo;s order: the privacy assessment first, because
+    the sign-in registration asks for its reference.
     <strong>These steps are human on purpose.</strong> Somebody should look properly at an
     application that is about to hold student information, and no amount of software replaces
     that judgement.</p>
@@ -445,19 +447,20 @@
           <div class="ui-check"><span class="mk done">&#10003;</span><span class="bd">
             <b>Security scan</b><p>No known problems in anything the app uses</p></span></div>
           <div class="ui-check"><span class="mk wait">&#8226;</span><span class="bd">
-            <b>UBC sign-in registration</b>
-            <p>With the UBC identity team since 6 May. We drafted it, you signed it. You will be told the moment it moves.</p></span></div>
-          <div class="ui-check"><span class="mk wait">&#8226;</span><span class="bd">
             <b>Privacy assessment</b>
-            <p>Draft ready for your review. It covers: student number, name, and which bench they
-            booked. Nothing else leaves the app.</p></span></div>
+            <p>With the Privacy Office since 6 May. We drafted it, you signed it. It covers:
+            student number, name, and which bench they booked. Nothing else leaves the app.</p></span></div>
+          <div class="ui-check"><span class="mk wait">&#8226;</span><span class="bd">
+            <b>UBC sign-in registration</b>
+            <p>Drafted, and ready to send once the privacy assessment is approved &mdash; the
+            identity team asks for its reference. You will be told the moment it can go.</p></span></div>
           <div class="ui-check"><span class="mk stop">&#8226;</span><span class="bd">
             <b>Rehearsal sign-in</b>
             <p>Runs automatically once the registration is approved. Catches problems before
             students would.</p></span></div>
           <div class="ui-btnrow">
             <span class="ui-btn dis">Go live</span>
-            <span class="ui-btn">Review the privacy draft</span>
+            <span class="ui-btn">Review the sign-in draft</span>
           </div>
         </div>
       </div>
