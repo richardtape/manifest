@@ -797,6 +797,9 @@ export async function testDeps(): Promise<ServerDeps> {
   const builds = createBuildRunner({ db, driver, bus })
   registerBackgroundWork(() => retirer.idle())
   registerBackgroundWork(() => builds.idle())
+  // The webhook's sync writes `app_specs` and events off the request: same drain (final review, M2).
+  const sourceSync = createSerialQueue()
+  registerBackgroundWork(() => sourceSync.idle())
   return {
     db,
     config,
@@ -824,7 +827,7 @@ export async function testDeps(): Promise<ServerDeps> {
     builds,
     // A REAL queue (the D5 plan's Task 9), one per server, as the boot builds one: a test that
     // reads what a webhook caused awaits `sourceSync.idle()`.
-    sourceSync: createSerialQueue(),
+    sourceSync,
     reservedLabels: await testReservedLabels(),
     // The REAL `docs/api/` and the REAL document, built once per run: both are the repository's.
     docs: await servedDocsOnce(config.apiDocsRoot),

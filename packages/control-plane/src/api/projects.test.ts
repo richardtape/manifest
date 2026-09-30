@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -23,7 +24,8 @@ import { mintTestToken } from '../tokens/testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { AI_CODES, AiError, disabledCatalogue, type ModelCatalogue } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
-import { writeFiles } from '../source/testing.js'
+import { gitWithToken } from '../source/github/git.js'
+import { pushAsPerson, writeFiles } from '../source/testing.js'
 
 // These drive a real server, so they cannot use withRollback. Each test starts
 // from an empty database; without this they collide on the unique project slug.
@@ -57,6 +59,15 @@ async function asPerson(fake: StartedFake, slug: string): Promise<number> {
     headers: { authorization: `token ${fake.developerToken}` },
   })
   return res.status
+}
+
+/** `refs/heads/main`'s commit on the fake, read as the PERSON (a git wire read, not the driver's). */
+async function lsRemoteMain(fake: StartedFake, slug: string): Promise<string> {
+  const out = await gitWithToken(
+    ['ls-remote', `${fake.gitUrl}/${fake.org}/${slug}.git`, 'refs/heads/main'],
+    { cwd: tmpdir(), token: fake.developerToken },
+  )
+  return out.split('\t')[0]!.trim()
 }
 
 async function signedIn(puid: TestUserPuid = 'bio_prof') {
@@ -307,6 +318,54 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
         expect(await asPerson(fake, 'lp-fail-after')).toBe(200)
       } finally {
         await failing.sourceSync.idle()
+        await app.close()
+      }
+    } finally {
+      await fake.stop()
+    }
+  })
+
+  /**
+   * A CREATE REFUSED INSIDE `createRepository` LEAVES THE EXISTING REPOSITORY ALONE (the final review's
+   * I2). The route destroys what the driver made when a LATER step fails, and `made` is set only once
+   * `createRepository` returned — so a name clash, which the driver refuses before making anything,
+   * must never reach the destroy: the repository is somebody else's. Driver 2, against the fake: a
+   * person made `lp-theirs` and pushed to it.
+   */
+  it('a create refused for a name GitHub already holds leaves that repository and its commit alone', async () => {
+    const fake = await startFake()
+    try {
+      const deps = await githubTestDeps(fake)
+      const made = await fetch(`${fake.apiUrl}/orgs/${fake.org}/repos`, {
+        method: 'POST',
+        headers: {
+          authorization: `token ${fake.developerToken}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ name: 'lp-theirs', private: true }),
+      })
+      expect(made.status).toBe(201)
+      const theirs = await pushAsPerson(
+        fake,
+        'lp-theirs',
+        { 'theirs.txt': 'mine\n' },
+        'their work',
+      )
+      const app = await buildServer(deps)
+      try {
+        const cookies = await loginAs(deps, 'bio_prof')
+        const post = (slug: string) =>
+          app.inject({ ...create(slug), cookies, headers: mutationHeaders(deps) })
+        const res = await post('lp-theirs')
+        expect(refusal(res).code).toBe('SOURCE_REPOSITORY_EXISTS')
+        expect(await asPerson(fake, 'lp-theirs')).toBe(200) // still on "GitHub"
+        expect(await lsRemoteMain(fake, 'lp-theirs')).toBe(theirs) // with their commit
+        expect(await deps.db.select().from(projects)).toEqual([])
+        // THE POSITIVE CONTROL: a name nobody holds creates.
+        const ok = await post('lp-nobody')
+        expect(ok.statusCode, ok.body).toBe(201)
+      } finally {
+        await deps.sourceSync.idle()
         await app.close()
       }
     } finally {

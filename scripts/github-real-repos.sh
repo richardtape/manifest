@@ -2,7 +2,8 @@
 # scripts/github-real-repos.sh — every repository in the REAL organisation `.env` names, each beside
 # the project that owns it (the launch path plan's Task 2).
 #
-#   bash scripts/github-real-repos.sh                    # list. Changes nothing.
+#   bash scripts/github-real-repos.sh                    # list. Changes nothing on GitHub or in the
+#                                                        # database; it rebuilds the control plane's dist/ (git-ignored).
 #   bash scripts/github-real-repos.sh --delete <name>    # delete ONE repository no project row names
 #
 # WHY. Any Vitest run truncates the control plane's tables and leaves the real repositories on
@@ -16,8 +17,8 @@
 # (node's strip-only TypeScript cannot import the control plane's src/ — TRAPS, the launch path
 # plan). It mints its installation tokens IN MEMORY through the driver's own app-auth.ts and
 # tokens.ts, and never prints the key, a token or `.env`'s values: `.env` is exported into ONE
-# subshell and read nowhere else. SKIPPED, exit 0, with no real App in `.env` or with the network
-# off — as `github-conformance.sh` is — so the offline acceptance can never fail on it.
+# subshell and read nowhere else. SKIPPED, exit 0, with no real App in `.env`, and with GitHub unreachable only AFTER
+# `manifest-postgres` answered and the build succeeded: it FAILS when either is down or broken.
 #
 # macOS ships bash 3.2 and a BSD userland: no associative arrays, no `mapfile`, no `xargs -r`.
 set -euo pipefail

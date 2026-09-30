@@ -106,6 +106,11 @@ control plane on driver 2':
 # empty or a loopback URL. No line at all is the config's default, which is the fake. Called in
 # step 0, BEFORE the fake's own health check — so the refusal names the real cause — and before
 # anything is created. The caller sets ROOT.
+#
+# It reads `.env`, which the documented start sources — never the running process — so it is right
+# only when the control plane was started from the `.env` it reads: commenting the real-App block
+# out WITHOUT restarting the control plane passes the guard while the control plane still runs the
+# real App (the final review's I1).
 require_fake_github() {
   local env_file="${ROOT:?}/.env" assignment='^(export[[:space:]]+)?MANIFEST_GITHUB_API_URL='
   [ -r "$env_file" ] || return 0
@@ -117,7 +122,7 @@ require_fake_github() {
     | grep -c -E "${assignment}[\"']?https?://(127\.[0-9]+\.[0-9]+\.[0-9]+|localhost|\[::1\])([:/\"'[:space:]]|\$)" \
     || true)" = 0 ]; then
     printf '\n\033[31m%s\033[0m\n' "FAIL this demo drives the GitHub FAKE (make github-up); the control plane is set to real GitHub (.env's
-     MANIFEST_GITHUB_API_URL). Run it with the real-App lines unset, or see RUNBOOK's \"On the real App\"." >&2
+     MANIFEST_GITHUB_API_URL). Comment out .env's real-App block AND restart the control plane on the fake (RUNBOOK, \"On the real App\"); the guard reads .env, never the running process." >&2
     exit 1
   fi
 }

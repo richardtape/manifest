@@ -11,6 +11,10 @@ describe('resetDatabase and background work (launch path plan Task 3, F26)', () 
     // The pass reads it after it is released. An AWAITED drain runs the pass before the
     // TRUNCATE, so the row is there; a drain that is merely called, or run beside the
     // TRUNCATE, reads it after (or blocked behind) the TRUNCATE, so the row is gone.
+    //
+    // Primed first: the admin pool's FIRST connection is made here, before the timed window, so a
+    // slow first connect cannot let an un-awaited drain look as if it waited.
+    await resetDatabase()
     const unique = randomUUID().slice(0, 8)
     await db.insert(users).values({
       ubcCwlPuid: `sentinel-${unique}`,
@@ -52,6 +56,12 @@ describe('resetDatabase and background work (launch path plan Task 3, F26)', () 
 
   it('a pass that rejects is logged, and the reset still runs', async () => {
     const lines: unknown[][] = []
+    const unique = randomUUID().slice(0, 8)
+    await db.insert(users).values({
+      ubcCwlPuid: `sentinel-${unique}`,
+      email: `sentinel-${unique}@example.ubc.ca`,
+      displayName: 'Sentinel',
+    })
     const original = console.error
     console.error = (...args: unknown[]) => {
       lines.push(args)
@@ -65,5 +75,12 @@ describe('resetDatabase and background work (launch path plan Task 3, F26)', () 
       console.error = original
     }
     expect(lines.some((l) => l.join(' ').includes('pass exploded'))).toBe(true)
+    // The reset RAN, not only logged: the sentinel row is gone.
+    expect(
+      await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.ubcCwlPuid, `sentinel-${unique}`)),
+    ).toEqual([])
   })
 })
