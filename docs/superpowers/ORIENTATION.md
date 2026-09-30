@@ -150,8 +150,8 @@ each sitting left them, dated, and they deliberately do not move.
   access arrives, and no code does.
 - **§8's open questions.**
 
-**The spec is current, with no open follow-up** — the launch path plan's Spec actions 1–6 are drafted and wait for Rich, and nothing
-in the spec is out of step while they do. Every spec change has been applied only after Rich approved it —
+**The spec is current, with no open follow-up** — the launch path plan's Spec actions 1–5 are drafted and wait for Rich, and 6 is DECIDED
+(option (a)) and applied by sitting 4 before Task 6; nothing in the spec is out of step meanwhile, because nothing it changes is built yet. Every spec change has been applied only after Rich approved it —
 **most recently the launch path plan's Spec action 7** (the faculty front-end's FE-39, relayed and then confirmed by Rich with his three
 answers; applied at his *"apply 7"*, 2026-09-29): only a faculty member — `eduPersonAffiliation` exactly `faculty` — or an administrator,
 named by a setting of PUIDs, may start a project or an intake session or be added to one; one who stops being faculty keeps their
@@ -233,7 +233,7 @@ docs/superpowers/
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
-│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 18 tasks in 14 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich), seven spec actions drafted (7 applied, 1–6 not); IN EXECUTION — its sittings table says how far
+│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 18 tasks in 14 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich), seven spec actions drafted (7 applied, 6 decided (a), 1–5 not); IN EXECUTION — its sittings table says how far
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1767,7 +1767,7 @@ named in the row below.*
 **The launch path plan** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md)) is **APPROVED BY RICH AS WRITTEN,
 THIRTEEN SITTINGS** (2026-09-29) — FE-6's three clocks with D19's drafts and FE-25's sign-off request feeding §26's queue, plus Rich's
 additions (real GitHub, the key trim, member removal), FE-33, FE-34, FE-38, F26 and FE-39. **18 tasks in 14 sittings** (FE-41's Task 6a and FE-42's
-Task 6b/sitting 4a added after sitting 3's close, confirmed by Rich)**; seven spec actions — 7 APPLIED, 1–6 wait for him.** Fourteen plans are executed (§2's table); this is the fifteenth. **Sittings 1, 2 and 3 are
+Task 6b/sitting 4a added after sitting 3's close, confirmed by Rich)**; seven spec actions — 7 APPLIED, 6 DECIDED (a), 1–5 wait for him.** Fourteen plans are executed (§2's table); this is the fifteenth. **Sittings 1, 2 and 3 are
 DONE** — the measurements and the first run on REAL GitHub; what real GitHub found, and F26; and **sitting 3: FE-38 (`Instance.createdAt`,
 migration `0041`, contract `1.5.0` — the plan's ONE bump) and FE-33 (a stream whose credential is gone is closed at the moment it goes,
 `4401`/`4404`)**. The plan's *Sitting 3* is the record.
@@ -1780,18 +1780,19 @@ while Spec action 6 is undecided.** **Then Task 6** (FE-34, **Branch G**, as Tas
 when the capable model's provider refused the request as malformed (a `4xx` other than `408`/`429`), and leaves every unreachable,
 timed-out, rate-limited or failing provider falling back to the on-premise model; `make verify` gains a check that LiteLLM loaded it
 (**61 → 62**); `ai/fallback-guard.docker.test.ts`; the two guides. **`pnpm test:docker` is owed** (`ai/`, `infra/`). **Spec action 6
-is needed FIRST.** The plan's sittings table is the other statement of it.
+is DECIDED — option (a), Rich, after sitting 3's close — and sitting 4 APPLIES it to the spec before Task 6.** The plan's sittings table is
+the other statement of it.
 
 **ASK RICH IN THE FIRST MESSAGE:**
 0. **Real GitHub, for Task 6a — ✅ HIS YES IS GIVEN** (Rich, 2026-09-29, to sitting 3's session after its close: *"yes for real
    github"*): to create (and delete) a private `lp-starter-…` repository in `Manifest-local-dev` to reproduce FE-41 and check its fix
    (*What Rich does* 3). **Still check the network is on** (`bash scripts/github-real-repos.sh` reads the organisation), and say in the
    first message that you are using it.
-1. **Spec action 6 — needed BEFORE Task 6** (the plan's *Spec actions*, 6): what *"its provider fails"* means for the capable model's
-   fallback. **(a)** Branch G's words — *"cannot be reached or fails — a refused connection, a timeout, a rate limit or a server error
+1. **Spec action 6 — ✅ DECIDED: option (a)** (Rich, 2026-09-29, to sitting 3's session after its close: *"(a) is good"*, having read the words).
+   **Nothing to ask — APPLY it to §7 as worded in the plan's *Spec actions*, 6, before Task 6** (the spec-edit classifier has refused such
+   edits before and cleared on retry after Rich allowed it in chat — never work around it), then sweep what a spec action sweeps. As offered: **(a)** Branch G's words — *"cannot be reached or fails — a refused connection, a timeout, a rate limit or a server error
    … and never for a request the provider refused as malformed"* (recommended; `[M5]` measured the guard buildable); (b) Branch D's
-   words (the gateway also answers a malformed request; a client reads `x-litellm-attempted-fallbacks`); (c) no fallback. **Without
-   his decision, sitting 4 does not start Task 6** — stop and say so. Applied only after he has read the words; the four shared HTML
+   words (the gateway also answers a malformed request; a client reads `x-litellm-attempted-fallbacks`); (c) no fallback. Applied only after he had read the words — he has; the four shared HTML
    pages checked at application (none restated the fallback on 2026-09-29).
 2. **Sitting 4's first Vitest run TRUNCATES** whatever the platform holds by then — at sitting 3's close it held **nothing** (0 projects, 0 users — the close's own unit runs truncated it). **The faculty front-end's F5
    sitting 1 was waiting on this close to make ONE project on 7100 — a REAL private repository in `Manifest-local-dev`** — so by sitting
@@ -2001,6 +2002,10 @@ reasoning is recorded.**
 
 ### Decided
 
+- **THE LAUNCH PATH PLAN'S SPEC ACTION 6 — OPTION (a)** (Rich, 2026-09-29, to sitting 3's session after its close: *"(a) is good"*,
+  having read the words): the capable model's fallback answers only a provider that *"cannot be reached or fails — a refused
+  connection, a timeout, a rate limit or a server error … and never for a request the provider refused as malformed"*. **Not yet in
+  the spec: sitting 4 applies it to §7 before Task 6** (Branch G's guard), and sweeps what a spec action sweeps.
 - **FE-41 AND FE-42 — CONFIRMED BY RICH TO A PLATFORM SESSION after the launch path plan's sitting 3's close** (2026-09-29; relayed
   *"at Rich's word"* by the faculty front-end's session `manifest-app-a0` from its F5 sitting 1 on 7100). **FE-41** — a project created
   WITH a starter fails `409 SOURCE_GIT_FAILED` on real GitHub, unlogged: *"Fold into sitting 4"* — Task 6a. **FE-42** — the project's

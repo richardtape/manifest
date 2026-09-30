@@ -109,7 +109,7 @@ no administrator's reason is required anywhere, and who acted is only half-recor
 newest open question. **The console's design: [`2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md)
 — written 2026-09-27 and drawn as a clickable mockup the same day; no plan, by Rich's choice.**
 
-### Spec actions raised by the launch path plan — SEVEN DRAFTED 2026-09-29; ✅ **7 APPLIED 2026-09-29** at Rich's *"apply 7"*; 1–6 wait for him
+### Spec actions raised by the launch path plan — SEVEN DRAFTED 2026-09-29; ✅ **7 APPLIED 2026-09-29** at Rich's *"apply 7"*; ✅ **6 DECIDED, option (a)**, 2026-09-29 after sitting 3's close (*"(a) is good"*) — applied by sitting 4; 1–5 wait for him
 
 The words are the plan's *Spec actions* ([`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md)). **7 — who may build (the faculty
 front-end's FE-39)**: relayed by its session as Rich's decision, then confirmed by him with three answers (*"1. YEs, PUID 2. YEs keep but
@@ -1313,7 +1313,7 @@ session"*), carrying FE-6 and FE-25 — which absorbs **P8, launch package gener
 - An owner's sign-off request is its own row, feeding `listQueue`, §26's queue, derived and oldest first.
 - A draft never gates a build.
 
-**Seven spec actions drafted — the seventh APPLIED at Rich's word (Rich, 2026-09-29: *"apply 7"*), 1–6 not** (the seventh, FE-39's, added after sitting 1's close with Task 8a in a sitting 5a — relayed, then CONFIRMED by Rich the same evening: administrators by PUID, a person who stops being faculty keeps their projects and starts nothing new, exactly `faculty`): §7's trim; §10/§6/§20's member rule; §9/§6/§13/§19/D24's staging kind and owner
+**Seven spec actions drafted — the seventh APPLIED at Rich's word (Rich, 2026-09-29: *"apply 7"*), 6 DECIDED (option (a), after sitting 3's close; applied by sitting 4), 1–5 not** (the seventh, FE-39's, added after sitting 1's close with Task 8a in a sitting 5a — relayed, then CONFIRMED by Rich the same evening: administrators by PUID, a person who stops being faculty keeps their projects and starts nothing new, exactly `faculty`): §7's trim; §10/§6/§20's member rule; §9/§6/§13/§19/D24's staging kind and owner
 submission; §9's package wording; §6/§13/§26's `ApprovalRequest`; and §7's *"fails"*.
 
 **Sitting 1 — Task 1 — ran 2026-09-29, in the same session** ([`spikes/launch-baseline/`](../spikes/launch-baseline/README.md)):
