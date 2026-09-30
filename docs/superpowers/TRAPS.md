@@ -2367,3 +2367,48 @@ at the health verdict, healthy or not, and it is the column's only writer; `list
 failed attempt made after the serving one lists FIRST, and only an instance a deploy has made and not yet seen (provisioning,
 starting) has `null` and lists last. **Read `createdAt` (contract `1.5.0`) for which attempt is newest, and `serving` for which one
 serves — never the list's order.** The mock's failed instance still says `null` (the front-end judged it harmless).
+
+**REAL GITHUB REFUSES A REPOSITORY IT MADE SECONDS AGO** (the launch path plan's sitting 4, FE-41's F1, F5, F6, F7). For ~2–4 s after
+`POST /orgs/{org}/repos` answers `201`, git may be told the new repository is refused, in at least four measured shapes: `remote:
+Repository not found` / `fatal: repository '…' not found`; a second-leg `error: RPC failed; HTTP 404` followed by *"the remote end hung
+up unexpectedly"* (protocol v0) or *"expected flush after ref listing"* (v2, what github.com speaks); and `remote: Write access to
+repository not granted … returned error: 403`. It is intermittent (6 of 7 creates failed one evening; five no-starter creates had
+landed the day before) and has nothing to do with a starter. Driver 2's `createRepository` retries by STATUS (403/404), one ≤30 s budget
+per creation, a fresh token per retry, and nowhere else. **A probe that creates a repository and pushes at once will flake the same way
+— retry it, or wait.**
+
+**THE GITHUB FAKE SPEAKS GIT PROTOCOL v0; github.com SPEAKS v2** (sitting 4, F8). git's words for the same HTTP failure differ between
+them (a second-leg 404 above), so a classifier built from the fake's words can miss github.com's. The fake's `protocolV2` quirk (test-only)
+passes `Git-Protocol` through for upload-pack; its default is unchanged because moving it touches the Docker tier and conformance.
+**Build any matcher of git's words from a REAL measurement, and hold it with the fake in both protocols.**
+
+**DOCKER DESKTOP RUNS OUT OF NETWORKS AT ~31** (sitting 4). Its default address pools (`172.17–31.0.0/16` and `192.168.0.0/16` in
+`/20`s) hold about 31 user networks; past that every `POST /networks/create` answers `400 all predefined address pools have been fully
+subnetted`. The demos' and the front-end's app networks accumulate (an app's three environments are up to three networks), and every
+Docker-tier run leaves seven dead ones — so the tier went red in `runtime/docker/driver.docker.test.ts` and `networks.docker.test.ts` at
+33 networks, and both were 40 of 40 alone after `bash scripts/dead-app-resources.sh --apply`. **Count `docker network ls -q | wc -l`
+before a tier; run the cleanup first if it is near 30.**
+
+**LITELLM 1.98.0 NAMES A PROVIDER'S 401, 403, 404, 408, 413 AND 422 ALL `BadRequestError`** when the body carries OpenAI's
+`invalid_request_error` (`exception_mapping_utils.py`, before its status branch) — and `metadata.previous_models` keeps only the class NAME
+(sitting 4, F13). A hook that decides by class name cannot tell a malformed request from a revoked provider key. **Read the status** —
+the manifest guard reads it from the request's own `litellm_logging_obj` (`model_call_details['exception']`).
+
+**LITELLM'S TRACE ID IS THE CLIENT'S TO SET** (sitting 4, F14). `litellm_trace_id` and `litellm_session_id` come from
+`x-litellm-trace-id`, `x-litellm-session-id`, ANY `x-<vendor>-session-id` (its own example: `x-claude-code-session-id`) and W3C
+`traceparent`; `standard_logging_object.trace_id` returns the SESSION id first unless `request_correlation_in_logs` is on. **Never key
+per-request state on either** — two requests of one agent session share it. The request's own `litellm_logging_obj` is fresh per
+request and passed by reference through every fallback attempt.
+
+**A PROVIDER'S `422` REACHES THE CLIENT AS `200` WITH A BODY OF `null`** (sitting 1's F8, still true under the guard — sitting 4's F16):
+LiteLLM 1.98.0's `drop_params` retry loop returns `None` before any fallback. `ai/fallback-guard.docker.test.ts` asserts it as `KNOWN
+(F8)` so a LiteLLM that fixes it turns red; the guides tell a client that a `200` whose body is `null` is a refusal.
+
+**THE AGENT'S EDIT TOOL REPLACES A FILE'S INODE — A SINGLE-FILE BIND MOUNT THEN SHOWS THE CONTAINER NO FILE AT ALL** (sitting 4's final
+wave, measured: `infra/litellm/manifest_guard.py` 87984135 → 88068457, and `/app/manifest_guard.py` did not exist in `manifest-litellm`
+until a restart). ORIENTATION §4 trap 18 ALREADY names the agent's edit tool — the controller's own brief said the opposite, and the
+wave's implementer measured it: through Docker Desktop's file sharing the container then saw NO file, not the old one. Neither `sed -i`
+nor an editor that saves by rename writes in place either. **To change a bind-mounted file without a restart, write THROUGH the file** (`python3` `open(p,'r+')`,
+`seek(0)`, `write`, `truncate()`, or a shell `cat new > file`), then check `ls -i` is unchanged and compare `docker exec … sha256sum`
+with the host's `shasum -a 256`. After any other edit, restart the container and read both back — the controller's control for the
+streamed-400 case did exactly that (inode 87966811 kept both ways).

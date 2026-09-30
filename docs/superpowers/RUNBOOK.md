@@ -659,6 +659,13 @@ network, and every project made on it lives on github.com whatever the database 
   this demo drives the GitHub FAKE (make github-up); the control plane is set to real GitHub (.env's
   MANIFEST_GITHUB_API_URL)"*: each is the fake's end to end, and against github.com would leave a real
   repository behind when it failed part-way. Every driver-1 demo stops too (`require_driver local`).
+- **A repository GitHub made seconds ago may be REFUSED over git for ~2–4 s** (the launch path plan's sitting 4, FE-41 — measured on
+  github.com: 6 of 7 creates failed one evening, with or without a starter). Driver 2's create retries its seed push and its first
+  fetch while GitHub refuses the new repository `403`/`404` — one budget of at most ~30 s per creation, a fresh token each time — and
+  each retry writes *"github driver: Manifest-local-dev/<slug>: the seed push [or: the first fetch] of a repository GitHub made seconds
+  ago was refused (…); retry n of 5 for this creation, in <ms> ms (FE-41)"*. A create that still fails writes *"POST /v1/projects:
+  <slug> was not created; its repository step failed (<code>): …"* and leaves nothing behind. **So a create may take up to ~30 s
+  longer than below** (8–11 s typical, 5 of 5 after the fix).
 - **What GitHub took** (Task 1, 2026-09-29): token mints 313–448 ms; REST reads 350–1101 ms; a create 8–9 s;
   a commit through the authoring API 5 s; a delete 1 s.
 
@@ -904,8 +911,8 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
-and the current numbers are **`make doctor` 20 / 0 and `make verify` 61 / 0**
-(**All four were re-measured on 2026-09-29 at the close of the launch path plan's sitting 3 (Tasks 4–5 — FE-38's `createdAt`, contract `1.5.0`, and FE-33's stream registry), and one moved: `pnpm test` **2875 passed** in **184** files, twice on the final tree (was 2854 in 183; 710 s and 703 s alone, 0 `deadlock detected` in either); `pnpm test:docker` **248 in 41** (green on its first run, 1181 s); `make doctor` 20 with **0 failed and 0 warnings** — the vulnerability database goes stale after 2026-10-06; refresh it with `make refresh-vulndb` — and `make verify` **61**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+and the current numbers are **`make doctor` 20 / 0 and `make verify` 62 / 0**
+(**All four were re-measured on 2026-09-30 at the close of the launch path plan's sitting 4 (Tasks 6a and 6 — FE-41's create retry on real GitHub, and FE-34's fallback guard), and three moved: `pnpm test` **2894 passed** in **184** files, twice on the final tree (was 2875; 739 s and 747 s alone, 0 `deadlock detected` in either); `pnpm test:docker` **268 in 42** (267 in 42 measured on the task tree, 1257 s — two reds for Docker's exhausted address pools, both green alone after `scripts/dead-app-resources.sh --apply` — plus the final wave's one case run alone); `make doctor` 20 with **0 failed and 0 warnings** — the vulnerability database goes stale after 2026-10-06; refresh it with `make refresh-vulndb` — and `make verify` **62** (+1: the running LiteLLM loaded the fallback guard).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has FIFTEEN steps, 1 to 15, after step 0's offline check** (the front-end enablement plan's Task 15 added step 15, `make demo-frontend`, and the authoring API plan's Task 13 step 14, `make demo-authoring` — both run on either driver; this line said FOURTEEN until the launch path plan's sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,

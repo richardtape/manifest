@@ -228,3 +228,37 @@ record**:
 
 `[M<n>]` blocks at the head of Tasks 2 (F1, F4), 6 (F7–F10, and F8's `422`), 7 (F5), 9 (F13, F14, F15), 10 (F11, F12) and 11
 (F2). **No task boundary moves**: the twelve-sitting split stands, and Spec action 6 is now needed before sitting 4 (Branch G).
+
+## Sitting 4 (2026-09-29, 04:57–06:05Z) — FE-41's cause, MEASURED on github.com (Task 6a, Step 1 and Step 4)
+
+**At Rich's yes** (*"yes for real github"*, given to sitting 3's session after its close), every repository PRIVATE in
+`Manifest-local-dev`, named `lp-starter-…`, and deleted. Two probes, beside the others: `probes/t6a-starter-create.ts` (the
+control plane's BUILT GitHub driver, `createRepository` with a scratch mirror root, every REST call logged by method, path, status
+and time — never a token) and `probes/t6a-git-ready.ts` (a new repository pushed at once and fetched back, each retried every 500 ms,
+every answer logged). Through the running control plane: `probes/t1-real-github.sh create <slug> <name> [starter]`.
+
+**Before the fix — FE-41's premise ("a create WITH a starter fails") is FALSE:**
+
+| Try | How | Starter | Answer |
+|---|---|---|---|
+| lp-starter-a | the CP (84d485a) | proof-app | `409 SOURCE_GIT_FAILED` — the creation's first **fetch**: `remote: Repository not found. \| fatal: repository '…/lp-starter-a.git/' not found` |
+| lp-starter-b | the driver | proof-app | **created**, pushed, protection `403` (free plan), fetched, deleted — 9.0 s |
+| lp-starter-c, -d | the CP | proof-app | `409` — the **seed push**: `remote: Repository not found. …` |
+| lp-starter-e | the CP | **none** | `409` — the seed push, the same words |
+| lp-starter-f | the driver | proof-app | the seed push, the same words |
+| lp-starter-g | the driver | **none** | the seed push exited 1 with stdout `Done` and **no ref line** (a `404` on the push's SECOND request, the task's implementer found) |
+| lp-starter-h | readiness | — | `ls-remote` answered at once |
+| lp-starter-i, -j | readiness | — | push OK at +0 ms; the first fetch `Repository not found` at +1.9–2.2 s; **the same token's fetch OK at +3.2–4.1 s** |
+
+**So: real GitHub answers a repository it created seconds earlier as refused over git — intermittently, for a few seconds, with
+or without a starter.** Sittings 1–2's five no-starter creates happened to land. Nothing was ever left behind: the driver's own
+cleanup deleted each repository; what was missing was the route's log line.
+
+**After the fix** (a bounded retry of the seed push and the first fetch, one ≤30 s budget per creation, a fresh token per retry —
+`0f2275a` … `ebfc571`), through the control plane:
+
+| Commit | Creates | What GitHub did |
+|---|---|---|
+| `fd2de69` (404 in two shapes) | 2 of 3 | lp-starter-l's first fetch `Repository not found`, retried once, created; **lp-starter-m refused**: `error: RPC failed; HTTP 404 curl 22 … \| fatal: expected flush after ref listing` — a second-leg 404 in git protocol v2's words (the fake spoke v0) |
+| `9c9972a` (any `RPC failed; HTTP 404`) | 3 of 4 | **lp-starter-p refused** on the seed push: `remote: Write access to repository not granted. \| fatal: unable to access '…': The requested URL returned error: 403` — a THIRD shape |
+| `ebfc571` (403 or 404 by status; a fresh token per retry) | **5 of 5** | lp-starter-r's seed push refused `403 … not granted`, retried with a FRESH token, created; lp-starter-v's first fetch `Repository not found`, retried, created; s, t, u no lag. All five `private=true visibility=private` (`t1-github-read.ts list`), then deleted after a step-up; `github-real-repos.sh`: `f5-reading NONE`, `lp-real-a NONE` |

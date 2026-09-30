@@ -18,6 +18,10 @@
 > token or session, `4404` at a delete's tombstone — and the race between the upgrade's credential check and the stream's registration
 > is closed. *Sitting 3* is the record.
 
+> **SITTING 4 — TASKS 6a AND 6 — DONE 2026-09-29/30.** FE-41: real GitHub refuses a repository it made seconds ago — not the
+> starter — so driver 2's create retries its seed push and first fetch (by status, ≤30 s, a fresh token each time); 5 of 5 on
+> github.com. Spec action 6 applied; FE-34's guard keeps §7's words in the gateway (`make verify` 62). *Sitting 4* is the record.
+
 > **WRITTEN 2026-09-29, AT RICH'S INSTRUCTION, FROM ORIENTATION §7e** (*"Yes: write the plan, then run its Task 1 (including the
 > real-GitHub run) in the same session"*). **Reviewed and APPROVED by Rich as written, thirteen sittings, 2026-09-29** (sitting 2's first message). Its sitting 1 — Task 1, the measurements and THE FIRST
 > RUN OF THE CONTROL PLANE AGAINST REAL GITHUB — runs in the same session, before his review, exactly as the front-end enablement
@@ -81,8 +85,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 1 | 1 | **The measurements this plan rests on — and THE CONTROL PLANE ON REAL GITHUB for the first time**: a project created through the platform becomes a real private repository in `Manifest-local-dev`; a commit through the API lands on github.com; a build and a deploy come from the mirror; a scratch project is deleted and its repository is gone. Also: LiteLLM 1.98.0's `/key/update` on a live key; which provider errors a `general` fallback answers, and whether a LiteLLM hook can see the original error; an open stream after a revoke; F26's rate; `saml-metadata-generator`'s output structure; where the blueprint's code reads each attribute; the gate numbers. **Alone, and first — the same session that wrote the plan, at Rich's word** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-29**, the session that wrote the plan — the control plane on the real App end to end (create, read, commit, build, deploy, delete; `lp-real-a` kept); `/key/update` by alias narrows a live key at once; FE-33 reproduced; every provider error falls back, a `422` answers `200 null`, and a trace-id guard can be built (Branch G); UBC's metadata structure recorded; `[M]` blocks at Tasks 2, 6, 7, 9, 10, 11; **the split stands** |
 | 2 | 2, 3 | **What real GitHub found**, fixed: a repository left behind by a create that failed after GitHub made it; a project made against the fake refused on the real App, and the reverse (`source_repositories.api_host`); the demos refusing real GitHub by name; `scripts/github-real-repos.sh`; RUNBOOK's real-App section written from the run. **And F26**: every retirer and build runner a test builds, drained before `resetDatabase`'s `TRUNCATE` | **Yes** — `source/` | none | **DONE 2026-09-29**, after Rich approved the plan — subagent-driven: Step 0 first and alone (the tiers refuse a real GitHub, watched with the day's rows still in the tables); a failed create destroys what the driver made; `api_host` (migration `0040`, never published); the boot leaves another GitHub's mirror alone; the demos refuse real GitHub by name; `github-real-repos.sh`; F26 drained centrally (`delivery.test.ts` 1 of 8 red before, 0 of 8 after); **Step 6 on real GitHub green** (`lp-real-b` made with `api.github.com`, deleted, gone); one whole-branch review and its fix wave; Rich's demo paused it (F14) |
 | 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | **DONE 2026-09-29** — subagent-driven, after Rich's answers (FE-40 confirmed; the database dumped first): `0041` and `Instance.createdAt`, **contract `1.5.0`** (the plan's one bump); the stream registry — `4401` at a revoke, an archive's revoke and an expiry (token AND session), a delete's `4404` at the tombstone, **the authorization → registration race window closed and held by a deterministic lock test**; one fix round per task, one whole-branch review beside the Docker tier, one fix wave; the front-end told at every contract commit and adopted `1.5.0` |
-| 4 | 6, 6a | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich. **And FE-41 (Task 6a, Rich's, after sitting 3's close): a project created WITH a starter on real GitHub — reproduced at his yes, logged, fixed on driver 2, held by a test** | **Yes** — `ai/`, `infra/`, `source/` | **Spec action 6** — ✅ **DECIDED by Rich: option (a)** (2026-09-29, after sitting 3's close: *"(a) is good"*); **sitting 4 APPLIES it to the spec before Task 6**; Task 6a needs none | ← **next** |
-| 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich | |
+| 4 | 6, 6a | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich. **And FE-41 (Task 6a, Rich's, after sitting 3's close): a project created WITH a starter on real GitHub — reproduced at his yes, logged, fixed on driver 2, held by a test** | **Yes** — `ai/`, `infra/`, `source/` | **Spec action 6** — ✅ **DECIDED by Rich: option (a)** (2026-09-29, after sitting 3's close: *"(a) is good"*); **APPLIED by sitting 4 before Task 6** (`0ebe514`); Task 6a needs none | **DONE 2026-09-29/30** — subagent-driven: **FE-41's premise false** (not the starter — real GitHub refuses a repository it made seconds ago, 403/404 in four measured shapes); driver 2's create retries its seed push and first fetch by STATUS, one ≤30 s budget, a fresh token per retry, and forgets a slug's stale tokens first; a failed create logged; on github.com 6 of 7 failed before, 5 of 5 after (2 retried). **Spec action 6 applied**; the **fallback guard** (`manifest_guard.py`) refuses a fallback after a provider's 400/413/422, read from the request's own logging object, lets 401/403/404/408/429/5xx fall back — streamed too; `make verify` 62. F8 (`422` → `200 null`) stands, LiteLLM's — for Rich |
+| 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich. **A TOKEN MAY NOT RUN IT — Rich's (a), PERSONS ONLY** (relayed by `manifest-73`, his session for 4a, 2026-09-29: owner, collaborators and administrators from an interactive session; a delegated token stays refused, SESSION_ONLY as today; one D24 clause is DRAFTED as a spec action for his later approval — it does not block 4a) | ← **next** |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
@@ -2925,3 +2929,169 @@ instance's time; their two *revoked* mentions are of tokens in general. No spec 
   sitting 4; FE-42 → Task 6b in a new sitting 4a. **18 tasks in 14 sittings.**
 28. **F28 The close-out's own**: the sittings table's row 4, edited at sitting 3's close, carried `||` before its marker — an empty
   seventh cell — found while adding row 4a, and fixed.
+
+### Sitting 4 — 2026-09-29/30: Tasks 6a and 6 — FE-41 (a repository GitHub made seconds ago, retried) and FE-34 (the fallback guard); Spec action 6 applied
+
+**Run after sitting 3's close and Rich's two answers to it** (*"yes for real github"* for Task 6a; Spec action 6 *"(a) is good"*), by
+session `manifest-a1`, **subagent-driven** on `main`: an implementer and a reviewer per task (both opus; re-reviews sonnet or opus),
+one whole-branch review beside the Docker tier. **Task 6a first** (it needed no spec action), then Spec action 6 applied, then Task 6.
+Peers: the faculty front-end (`manifest-app-a0` → `-e2` → `-58` → `-6d`/`-6b`, mock mode throughout — *"truncate freely"*, *"restart
+LiteLLM as often as you need"*); `manifest-c8` (no task; held everything); **`manifest-73`, Rich's session for sitting 4a, waiting
+read-only for this close** — and, relayed by it, Rich's answer for 4a (below). The database was DUMPED before the first truncation:
+`.superpowers/sdd/2026-09-29-launch-path/manifest_control-before-sitting4-2026-09-29.dump` (120 KB; `f5-reading`, `ins000001`,
+`opr000001` admin, 8 instances).
+
+**What it made true**:
+- **A project created on driver 2 survives GitHub's first seconds** (`0f2275a`, `fd2de69`, `9c9972a`, `f054bd9`, `ebfc571`). **FE-41's
+  premise was false — it is not the starter.** Real GitHub answers a repository it created seconds earlier as REFUSED over git, for
+  ~2–4 s, with or without a starter, in at least four measured shapes (`spikes/launch-baseline/`'s *Sitting 4* section has every
+  answer). Driver 2's `createRepository` now retries its seed push and its first fetch **while GitHub refuses the NEW repository 403 or
+  404, by status, in whatever words git prints it** — one budget of at most ~30 s per creation (`[1000, 2000, 4000, 8000, 15000]` ms,
+  shared), a FRESH token for every retry, an operator line for every retry — and nowhere else (a 404 after the creation window means
+  gone). A failed create writes an operator line naming its code and cause (FE-41's *"nothing was logged"*). The GitHub fake learns
+  the lag as TEST-ONLY quirks (`notFoundAfterCreate`'s `push`/`fetch`/`pushPack`/`fetchPack`, `writeNotGrantedAfterCreate`, and
+  `protocolV2`), never its default. **On github.com: before the fix 6 of 7 creates failed; on `ebfc571`, 5 of 5 proof-app creates
+  succeeded, 2 of them after a retry** (`lp-starter-r`'s seed push refused `403`, `lp-starter-v`'s first fetch refused `404`) — every
+  repository private, then deleted.
+- **Spec action 6 is in §7** (`0ebe514`): the capable model's fallback answers a provider that *"cannot be reached or fails — a refused
+  connection, a timeout, a rate limit or a server error, the network off included — and never for a request the provider refused as
+  malformed"*.
+- **The gateway keeps that sentence** (`8ef6d46`, `c16b23d`): `infra/litellm/manifest_guard.py`, loaded by `config.yaml`'s `callbacks`
+  and mounted by `compose.yaml`, refuses a FALLBACK call when the request's OWN failed attempt was a malformed-request refusal — `400`,
+  `413` or `422`, read by STATUS from the request's own `litellm_logging_obj` (no shared store, nothing a client can name) — and lets
+  `401`, `403`, `404`, `408`, `429`, every `5xx`, a timeout and a refused connection fall back to the on-premise model, exactly as
+  before. **`make verify` gains a check that the running LiteLLM loaded it (61 → 62).** `ai/fallback-guard.docker.test.ts` holds every
+  status; `agents.md` and `frontend.md` say what a fallback answers and how a client tells (`x-litellm-attempted-fallbacks`).
+
+Commits: `0f2275a`, `fd2de69`, `9c9972a`, `f054bd9`, `ebfc571` (Task 6a and its three rounds from the real checks, and a fresh token per
+retry); `0ebe514` (Spec action 6); `8ef6d46`, `c16b23d` (Task 6 and its fix round); `7fc25f9` (the whole-branch review's wave); and the
+close-out.
+
+**Findings** (each with what found it):
+1. **F1 FE-41's premise was false**: a create WITHOUT a starter failed too (`lp-starter-e`, `-g`), and one WITH a starter succeeded
+   (`lp-starter-b`) — the controller's reproduction, through the control plane and through the driver's own built code. The cause is
+   GitHub's propagation after a create; sittings 1–2's five no-starter creates happened to land.
+2. **F2 A failed create wrote no operator line** — the control plane's log held only boot lines for FE-41's two failures (the
+   answer's own message named the cause: `git fetch failed: remote: Repository not found`).
+3. **F3 `lp-starter-g`'s push exited 1 with stdout `Done` and no ref line** — a `404` on the push's SECOND request (the implementer's
+   throwaway proxy recorded real git's output for all four 404 positions before the quirk was written).
+4. **F4 The retry bound applied per step** — ~60 s worst case where the ruling said ≤30 s (the implementer's concern 2, the review's
+   M1); one budget per creation.
+5. **F5 A second-leg 404 on github.com is worded in git protocol v2's words** — `error: RPC failed; HTTP 404 … | fatal: expected flush
+   after ref listing` (`lp-starter-m`, real check #1) — which round 1's classifier, built on the fake's v0 words (*"the remote end hung
+   up unexpectedly"*), did not retry. **Found only by the real check.**
+6. **F6 A third shape: `403` `Write access to repository not granted`** on the seed push (`lp-starter-p`, real check #2) — the fresh
+   `contents: write` token not yet granted on the new repository. **Found only by the real check**; the classifier moved from wording to
+   STATUS.
+7. **F7 A retried `403` reused the token GitHub had just refused** (the implementer's round-3 concern) — every retry now mints afresh;
+   **proved on github.com**: `lp-starter-r`'s `403` retried with a fresh token and created.
+8. **F8 The GitHub fake speaks git protocol v0 by default; GitHub speaks v2** (the implementer's round 2) — a test-only `protocolV2`
+   quirk reproduces v2's words; moving the default touches the Docker tier and conformance, and is left.
+9. **F9 Driver 1's `SourceError` messages carry git's command line and the repository's laptop path** — `local-driver.ts:103–106`
+   wraps `String(error)` (execFile's `Command failed: git --git-dir <path> …`), and `api/errors.ts:757` puts the message in a `409`
+   body. Pre-existing; found because Ruling 5 assumed the opposite (the implementer's concern 4, verified by the controller). The new
+   operator line is scrubbed; **the wire is not — left for the sitting whose paths it touches.**
+10. **F10 The plan's Spec action 6 said no shared page restates the fallback — `manifest-schematic.html` does** (*"when that provider
+    cannot be reached … the platform's own on-premise model answers in its place"*); true under (a), unchanged.
+11. **F11 The permission classifier refused a READ-ONLY grep of the four shared pages** (*Modify Shared Resources*) **and reading
+    sitting 1's `[M5]` probe files** (*Security Weaken*) — neither worked around; both cleared on one retry after Rich's *"Yes you can go
+    ahead I give you permission"*.
+12. **F12 The plan's Task 6 said *"a 4xx other than 408 and 429"*; the approved spec says *"never for a request the provider refused as
+    malformed"*** — so a provider's `401`, `403` and `404` (the platform's own credential, permission or model name failing) FALL BACK.
+    The controller's ruling, the spec winning; one list in the guard if Rich wants otherwise.
+13. **F13 LiteLLM 1.98.0 names a provider's `401`, `403`, `404`, `408`, `413` and `422` ALL `BadRequestError`** when the body says
+    `invalid_request_error` (`exception_mapping_utils.py`, before its status branch), and `previous_models` keeps only the name — so a
+    guard reading class names cannot keep ruling F12; it reads the STATUS.
+14. **F14 Round one's guard keyed on a CLIENT-SUPPLIED id** (the task review's Important): LiteLLM sets `litellm_trace_id` and
+    `litellm_session_id` from `x-litellm-trace-id`, `x-litellm-session-id`, any `x-<vendor>-session-id` and `traceparent`, and its
+    logging payload's trace id prefers the session id — so one request could be judged by another's failure, a `no-log` request was
+    unseen, and a missed status fell to the class name and REFUSED a `401`. Now read from the request's own logging object (verified in
+    LiteLLM's source: fresh per request, passed by reference through every fallback, the provider error stored synchronously before the
+    fallback's hook). Red on round one's guard: a `baggage` case (session ≠ trace → a `401` refused) and a `no-log` case.
+15. **F15 The concurrent shared-session pair cases could not fail against round one's guard** — the race never interleaved in two runs,
+    and the stub cannot force it. The property is held by construction (no shared store) and by F14's two deterministic cases.
+16. **F16 [M5]'s F8 STANDS UNDER THE GUARD: a provider's `422` still reaches the client as HTTP `200` with a body of literal `null`** —
+    LiteLLM's `drop_params` retry loop returns `None` before any fallback. The Docker case asserts it as `KNOWN (F8)`, so a LiteLLM that
+    fixes it turns red; the guides say a `200` whose body is `null` is a refusal. **Rich's** (ORIENTATION §8).
+17. **F17 A refused capable-model request now carries LiteLLM's debug text** — the router-wide list of LOGICAL fallback pairs and a
+    provider-class prefix (`OpenAIException`); **no underlying model id, host or port** (asserted on every refusal case).
+18. **F18 `ai/capable.docker.test.ts` removed the dev control plane's capable model** (`default-chat-large`, `openai/gpt-6-luna`) and its
+    fallback — ORIENTATION §2's known trap; the close's restart restores it.
+19. **F19 A ROUTER-made `400`** (*no healthy deployments*, `router.py:10903`) is logged fire-and-forget, so the guard refuses or allows it
+    by a race — a platform failure, no worse than round one; the guard's comment now says the synchronous store is a PROVIDER error's.
+20. **F20 §7 and response HEADERS** (the Task 6 re-review): a success answer carries `x-litellm-model-api-base`
+    (`http://host.docker.internal:11434`, measured 2026-09-28) and an error may carry `x-litellm-model-name` from the deployment's
+    underlying model — pre-existing and platform-wide; §7 says logical names only. **Rich's** (ORIENTATION §8).
+21. **F21 No test ran the PRODUCTION retry schedule** (the whole-branch review's m1): every FE-41 test passed `createRetryDelaysMs`, so a
+    default of `[]` — a driver that never retries — stayed green; only github.com had seen `retry 1 of 5 … in 1000 ms`. A case now builds
+    the driver without the option (`7fc25f9`), red with the default emptied.
+22. **F22 A same-slug create after a failed one started with the FAILED create's cached tokens** — its `contents: write` AND its
+    `administration: write` (m2): the cache is keyed by NAME, GitHub binds a token to the repository's ID, and `createRepository`'s catch
+    never forgot them — so `protectMain` could have recorded `main` unprotected, or a delete read a `404` as gone (inferred, unmeasured).
+    `tokens.forget(projectSlug)` first (`7fc25f9`), red before: `{ write: 1, administration: 1 }` against `{ write: 2, administration: 2 }`.
+23. **F23 The guard had no case on a STREAMED request** (m3), the only chat route a platform key has — added (`7fc25f9`): a streamed
+    `400` is a JSON `400`, not an SSE frame, and no fallback is called. **The controller's control, the guard removed IN PLACE: `200
+    attempted-fallbacks=1` — LiteLLM does fall back a streamed `400` without it, so the case can fail.**
+24. **F24 The guard's header comment claimed more than the guard does** (m4 and the re-review's O1): it refuses every fallback TYPE of
+    every model after a `400`/`413`/`422` (a future `context_window_fallbacks` would be defeated), a `400` is not always the caller's (a
+    billing `400`; `LiteLLMUnknownProvider`), and only a PROVIDER's error is stored before the fallback's hook — all said now.
+25. **F25 The controller's wave brief said the agent's Edit tool edits in place — it replaces the inode** (`manifest_guard.py` 87984135 →
+    88068457; the container then saw NO file until a restart) — ORIENTATION §4 trap 18 already named the edit tool; trap 18 and TRAPS.md
+    now say what the container shows and how to write through a file.
+26. **F26 The Docker tier went red twice at 33 Docker networks: *"all predefined address pools have been fully subnetted"*** —
+    `runtime/docker/driver.docker.test.ts` and `networks.docker.test.ts`, code this sitting never touched; Docker Desktop's default pools
+    hold ~31 user networks. After `dead-app-resources.sh --apply` both were 40 of 40 alone (TRAPS.md).
+27. **F27 The ledger's own gate-count note was stale** — *"`pnpm test` +1, Docker +15"* when the branch added +17 unit and +19 Docker by
+    then (the whole-branch review; measured below after the wave's two more).
+28. **F28 CLAUDE.md still named Spec action 7 as the latest spec change** after `0ebe514` (the whole-branch review) — swept.
+
+**Rulings** (the ledger's, in order): Task 6a's cause and fix confined to the creation window; the fake's lag test-only; Step 1's
+reproduction on the running control plane and its line read at Step 4; one budget and the second-leg 404 (concerns 1–2); the planted
+hook in test F accepted; F9 left; the round-2 and round-3 widenings (F5, F6) and a fresh token per retry (F7) — each from a real check;
+Spec action 6 applied as worded, the diff marker's bold dropped; the schematic unchanged (F10); F12's status list (spec over plan);
+the guard keyed by status (F13); M4 (a fixed refusal sentence, `400` for a `413`) accepted; a per-request key (F14).
+**Negative controls**, each after its commit and restored from git (the implementers' reports have every quoted assertion). Task 6a:
+round 1's six — the classifier answering `false`, the no-line predicate removed, the retry leaking into every fetch and into every push,
+every verdict retried, the route's line unscrubbed — each red where predicted; then one per round: the `RPC failed; HTTP 404` match
+removed (only the new fetch case red), the old wording (only test B), round 1's regex (only the ls-refs case), round 2's regex ((a) and
+the github.com-strings case), the `\b` removed (`HTTP 4040` retried), the per-retry `forget` removed (two mint counts red); the wave's
+default `[]` (the production-schedule case) and the top-of-create `forget` removed (the same-slug case). Task 6: `callbacks` removed →
+`400`, `413` and the concurrent pair red, every falling-back case green, `make verify` 1 failed; the old trace-keyed store → only the
+`baggage` and `no-log` cases red; **the controller's, the guard removed IN PLACE → the streamed `400` answered `200
+attempted-fallbacks=1`** (F23). **One control could not fail as written — the concurrent shared-session pairs (F15).**
+
+**Gates** (on the final tree, `7fc25f9`): `pnpm test` **2894 passed, 0 skipped, in 184 files**, twice (739 s and 747 s alone, load ~4–9;
+`deadlock detected` **0** in both) — up from 2875 (+19: `projects.test.ts` 1, `driver.test.ts` 14, the fake's `git-http.test.ts` 3,
+`examples.test.ts` 1; no new unit file). `pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean. **`pnpm test:docker` 267 in 42 on
+`c16b23d`** (1257 s, alone, the whole-branch reviewer reading only) — **265 green and 2 red for the ENVIRONMENT** (F26: Docker's address
+pools, in `runtime/docker/`, which this sitting never touched), both **40 of 40 alone** after the cleanup; +19 cases and one file,
+`ai/fallback-guard.docker.test.ts`. The wave after it re-ran the Docker files reaching its lines alone — `fallback-guard` 20 of 20 (+1, the
+streamed case), `source/github/build` 1 of 1, `source/github/webhook` 1 of 1 — so the tier stands at **268 in 42** on the final tree
+(derived: 267 measured + the one case run alone). `make doctor` **20/0/0** and `make verify` **62/0/0** after the close's restart
+(+1: *the running LiteLLM loaded the fallback guard*). Contract **`1.5.0`** (unmoved); **42 migrations** (unmoved).
+
+**The machine at the close** (queried 01:11–01:13 on 2026-09-30, not remembered):
+- **THE CONTROL PLANE RUNNING ON REAL GITHUB** — PID 65663 on 7100, restarted 01:11 onto `7fc25f9` from the git-ignored
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged), boot line `"source":"github","github":"api.github.com",
+  "githubOrg":"Manifest-local-dev"`, `capableModel: registered`, `capableFallback: set` (the Docker tier had removed them — F18),
+  `sourceRepositoriesPrepared: 2`.
+- **The control database: EMPTY** — 0 projects, 0 users (the close's unit runs truncated it); **42 migrations**.
+- **GitHub**: `Manifest-local-dev` holds exactly `f5-reading` and `lp-real-a`, both owned by no project (`github-real-repos.sh`: `NONE`);
+  no `lp-starter-*` — all twenty-two made this sitting are gone.
+- **Mirrors** `dead-app-resources.sh` names and never removes: `f5-reading.git`, `lp-real-a.git` (real), `frontend-github.git`,
+  `frontend-scratch-github.git` (the fake's).
+- **Containers**: 42 `mf-` (`make verify`'s INFO: `mf- containers=42 networks=14 volumes=28`) — the demos' and the front-end's apps,
+  `f5-reading`'s nine among them, no rows behind them; 26 Docker networks in all.
+- **LiteLLM** serves the guard: `config.yaml` and `manifest_guard.py` in the container hash as the host's (`31e05149…`, `04ba779a…`).
+- **Cleanup**: `dead-app-resources.sh --apply` (1 network, 1 volume — after the tier's 7 and 1 earlier) and `app-images.sh --apply` (17
+  dead) — both ALLOWED, both re-measured 0 dead; `litellm-orphans.sh` reads the same 3 as sittings 1–3 — **not applied** (a budget's
+  deletion resets its month).
+- **7102 and 7105 are the faculty front-end's** (node 35047 and 32247, mock mode); **nothing on 7104**.
+- **Not this project's**: the `cwl-spike-*` containers and `openwebui-openwebui-1`. Ollama **0.35.0**. **Free disk 95 → 73 GiB** — not
+  attributed: Docker's images hold 31.9 GB and its build cache 25.1 GB (20.9 reclaimable); `docker builder prune` is machine-wide, so
+  it is Rich's.
+- Load 5–7.
+
+**The four shared HTML pages, checked**: Spec action 6's recheck (F10) — `manifest-schematic.html`'s fallback sentence stays true,
+unchanged; `manifest-decisions.html` (no D-number moved), `manifest-phases.html` (its *"an app's code can live on (practice) GitHub"*
+still describes what is built — this sitting made a create reliable, not a new capability) and `manifest-stories.html` unchanged.
