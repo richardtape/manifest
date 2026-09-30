@@ -2122,7 +2122,7 @@ be verifiable rather than described.
 
 ### Platform inventory
 
-Nine long-running containers, plus three host processes (control plane, admin UI,
+Ten long-running containers, plus three host processes (control plane, admin UI,
 console) and Ollama as a host application. The builder and scanner are transient,
 created per build and destroyed:
 
@@ -2139,6 +2139,7 @@ created per build and destroyed:
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
 | GitHub fake | 7110 | **Opt-in** (`make github-up`, compose profile `github`) — a GitHub-compatible test double for D5's driver 2: App installation tokens, private repositories, git over HTTP and HMAC-signed webhooks. **It is not GitHub**: its answers are held to GitHub's own published schemas and test vector, and checked against a real GitHub App by an opt-in conformance run. |
+| Mailpit | 7111 (SMTP), 7112 (inbox) | The laptop's mail sink: the faculty front-end's server, and later the platform's own notices, send to it. Messages in memory only; no relay, so nothing leaves the laptop. On UBC infrastructure, UBC's SMTP relay takes its place. |
 | Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. **It cannot reach container IPs** on Docker Desktop (S1), so health checks and readiness polling go through the edge or a published port, never the container address. **Clients reach it through the edge on the console's origin (§21), never on this port**; the edge refuses those routes to app and sandbox networks (§12). |
 | Admin UI (Vite) | 7101 | Host process |
 | `manifest-mock` | 7102 | Host process; needed only when working on the front-end without the platform |
