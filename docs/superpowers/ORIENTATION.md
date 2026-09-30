@@ -1835,7 +1835,7 @@ is needed FIRST.** The plan's sittings table is the other statement of it.
 word; `manifest-app-a0`), building ONE project through its UI as `instructor` — a REAL private repository in `Manifest-local-dev` —
 and launching it to production. At its request, **and Rich's own yes to sitting 3**, `operator` (`opr000001`) was made a platform
 administrator with `scripts/admin-grant.sh` (read back: role `admin`). **It asks that sitting 4 CHECK WITH IT BEFORE ANY TRUNCATION**:
-its project is kept until its measurements are recorded, and then it can go. Its server on 7105 is in `edge` mode for it.
+its project is kept until its measurements are recorded, and then it can go. It said it would switch its server on 7105 to `edge` mode for it — read that server's log line at open.
 
 **Query it again at open** — `docker exec manifest-postgres psql -U manifest -d manifest_control`, `docker ps`,
 `lsof -nP -iTCP:7100 -sTCP:LISTEN`, `bash scripts/github-real-repos.sh` (the network) — because Rich, or the front-end's sessions, will
