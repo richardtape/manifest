@@ -15,19 +15,25 @@
 # THE PROVIDER'S STATUS, NOT LITELLM'S CLASS NAME (measured at Task 6). LiteLLM names an OpenAI-shaped error
 # `BadRequestError` whenever its body says `invalid_request_error` — WHATEVER the status: a stub answering 401, 403,
 # 404, 408, 413 and 422 with that body was named `BadRequestError` every time, while the exception kept the
-# provider's own `status_code`. The router's `previous_models` (what [M5] measured the fallback's hook can see)
-# stores only the class NAME, so a guard reading it alone refused a 401. So the guard has two halves:
+# provider's own `status_code`. So the status decides; the class only when an exception carries no status.
 #
-#   1. `async_log_failure_event` records each failed call's provider status against its request's trace id.
-#      LiteLLM AWAITS it before the exception reaches the router ("router retry fallback relies on this!",
-#      utils.py's wrapper_async), so the record exists before any fallback starts. The key is the failure's
-#      `standard_logging_object.trace_id` — the failed call's own `litellm_trace_id` is a different value, and
-#      only the former equals the fallback call's `litellm_trace_id` (measured at Task 6).
-#   2. `async_pre_call_deployment_hook` runs on the fallback deployment's call with `fallback_depth >= 1` ([M5])
-#      and refuses it when THIS request's provider status is 400, 413 or 422. With no status recorded for it, it
-#      reads THIS request's own `previous_models` entry, picked by `litellm_trace_id` — that list is the ROUTER's,
-#      at most four entries shared across requests (F9) — and refuses a class of LiteLLM's that means malformed.
-#      With neither, it ALLOWS the fallback: a failure it cannot see is treated as a failure.
+# EACH REQUEST IS JUDGED BY ITS OWN FAILURE, READ FROM ITS OWN LOGGING OBJECT (fix round 1). The proxy makes one
+# logging object per request and hands it to every attempt, the fallback's included (router.py:~3005 passes
+# `litellm_logging_obj` through); the failed attempt's exception is stored on it (`model_call_details["exception"]`,
+# litellm_logging.py:~2875) BEFORE its failure reaches the router, and nothing between that attempt and the
+# fallback's pre-call hook replaces it (`update_environment_variables` updates the dict, and runs after the hook).
+# Measured at the fix round, in a probe LiteLLM from the pinned image: the fallback's hook saw the SAME object as
+# the primary's attempt, holding the primary's exception and status (400, 401, 403, 404, 408, 413, 429, 503), and
+# two concurrent requests sharing one trace and session id saw two different objects.
+#   The first shape keyed a shared store by trace or session id, and a CLIENT names both — `x-litellm-trace-id`,
+#   `x-litellm-session-id`, any `x-<vendor>-session-id` (an agent's `x-claude-code-session-id`), W3C `traceparent`
+#   and `baggage` — so one request was judged by another's failure: a 401 sent with `baggage` was refused, and a
+#   `no-log` request inherited its session's earlier status (the review; the Docker test's red run). No client can
+#   name a logging object, and there is no store to go stale.
+#
+# The hook runs on the fallback deployment's call with `fallback_depth >= 1` ([M5]) and never on a first call.
+# When it cannot see a failure — no logging object, no exception on it, or a read that fails — it ALLOWS the
+# fallback: a failure it cannot see is treated as a failure.
 #
 # WHAT THE CLIENT SEES WHEN REFUSED: the provider's refusal. When a fallback raises, the router answers the ORIGINAL
 # exception (router.py's async_function_with_fallbacks_common_utils) — the provider's status, LiteLLM's `type` for
@@ -42,41 +48,24 @@
 #
 # PRINTS NOTHING FROM A REQUEST — no message, key, header or prompt: one line at load (`make verify` reads the
 # callback list instead, which proves it is REGISTERED and not merely imported), and one per refusal naming the
-# trace id, the status and the class. It must never throw anything but the deliberate refusal: a guard that
-# crashes on its own reading would turn every fallback into a failure, so every read is wrapped and a failed
+# status, the class and the request's trace id — which a client may name, so it is printed as `repr()` and cut,
+# never as raw text that could forge a log line. It must never throw anything but the deliberate refusal: a guard
+# that crashed on its own reading would turn every fallback into a failure, so every read is wrapped and a failed
 # read ALLOWS.
-from collections import OrderedDict
-
 import httpx
 import litellm
+import openai
 from litellm.integrations.custom_logger import CustomLogger
 
 # The provider refused the request as malformed. 413 is LiteLLM's too (it names Anthropic's and Replicate's 413 a
 # BadRequestError); 422 is the provider's unprocessable request.
 MALFORMED_STATUSES = frozenset({400, 413, 422})
 
-# When no status was recorded: LiteLLM 1.98.0's BadRequestError and every subclass of it, listed by NAME because
-# `previous_models` stores `type(e).__name__` — read inside the running container at Task 6 (litellm/exceptions.py:
-# ContentPolicyViolationError, ContextWindowExceededError, ImageFetchError, LiteLLMUnknownProvider,
-# RejectedRequestError, UnsupportedParamsError) — its InvalidRequestError (openai's BadRequestError, status 400),
-# and its UnprocessableEntityError.
-MALFORMED_CLASSES = frozenset(
-    {
-        "BadRequestError",
-        "ContentPolicyViolationError",
-        "ContextWindowExceededError",
-        "ImageFetchError",
-        "InvalidRequestError",
-        "LiteLLMUnknownProvider",
-        "RejectedRequestError",
-        "UnprocessableEntityError",
-        "UnsupportedParamsError",
-    }
-)
-
-# How many requests' statuses are remembered. A fallback starts within the same request, milliseconds after its
-# failure is recorded, so this only has to outlast the requests in flight at once; the oldest goes first.
-REMEMBERED = 4096
+# Only for an exception that carries no status: openai's BadRequestError covers LiteLLM 1.98.0's BadRequestError
+# and every subclass of it (read in the running container at Task 6: ContentPolicyViolationError,
+# ContextWindowExceededError, ImageFetchError, LiteLLMUnknownProvider, RejectedRequestError,
+# UnsupportedParamsError) and its InvalidRequestError; openai's UnprocessableEntityError covers LiteLLM's.
+MALFORMED_CLASSES = (openai.BadRequestError, openai.UnprocessableEntityError)
 
 print(
     "manifest_guard: loaded — the capable model's fallback answers a provider that failed, "
@@ -86,54 +75,30 @@ print(
 
 
 class ManifestFallbackGuard(CustomLogger):
-    def __init__(self) -> None:
-        super().__init__()
-        self._statuses: "OrderedDict[str, int]" = OrderedDict()
-
-    async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
-        try:
-            trace = (kwargs.get("standard_logging_object") or {}).get("trace_id")
-            status = getattr(kwargs.get("exception"), "status_code", None)
-            if not isinstance(trace, str):
-                return
-            if not isinstance(status, int):
-                # A failure with no status — a deployment in cooldown answers RouterRateLimitError (measured) —
-                # clears the trace's record, so a caller that reuses its own trace id is never judged by the
-                # status of an earlier request.
-                self._statuses.pop(trace, None)
-                return
-            self._statuses[trace] = status
-            self._statuses.move_to_end(trace)
-            while len(self._statuses) > REMEMBERED:
-                self._statuses.popitem(last=False)
-        except Exception as error:  # never break LiteLLM's failure logging; say so, with nothing from the request
-            print(f"manifest_guard: could not record a failure ({type(error).__name__})", flush=True)
-
     async def async_pre_call_deployment_hook(self, kwargs, call_type):
         try:
-            if not isinstance(kwargs.get("fallback_depth"), int) or kwargs["fallback_depth"] < 1:
+            depth = kwargs.get("fallback_depth")
+            if not isinstance(depth, int) or depth < 1:
                 return None
-            trace = kwargs.get("litellm_trace_id")
-            if not isinstance(trace, str):
+            details = getattr(kwargs.get("litellm_logging_obj"), "model_call_details", None)
+            failure = details.get("exception") if isinstance(details, dict) else None
+            if failure is None:
                 return None
-            status = self._statuses.get(trace)
-            meta = kwargs.get("metadata") or kwargs.get("litellm_metadata") or {}
-            mine = [
-                p
-                for p in (meta.get("previous_models") or [])
-                if isinstance(p, dict) and p.get("litellm_trace_id") == trace
-            ]
-            named = mine[-1].get("exception_type") if mine else None
-            refused = status in MALFORMED_STATUSES if status is not None else named in MALFORMED_CLASSES
+            status = getattr(failure, "status_code", None)
+            if isinstance(status, int):
+                refused = status in MALFORMED_STATUSES
+            else:
+                refused = isinstance(failure, MALFORMED_CLASSES)
+            trace = repr(str(kwargs.get("litellm_trace_id"))[:64])
         except Exception as error:  # a read that fails ALLOWS the fallback — and says so
             print(f"manifest_guard: could not read a fallback ({type(error).__name__}); allowed", flush=True)
             return None
         if not refused:
             return None
         print(
-            f"manifest_guard: refused the fallback of trace {trace} — its provider answered "
-            f"{status if status is not None else 'a status not recorded'} ({named or 'class not recorded'}), "
-            "a request refused as malformed",
+            f"manifest_guard: refused a fallback — its provider answered "
+            f"{status if isinstance(status, int) else 'no status'} ({type(failure).__name__}), "
+            f"a request refused as malformed; trace {trace}",
             flush=True,
         )
         raise _refusal(status, str(kwargs.get("model")))

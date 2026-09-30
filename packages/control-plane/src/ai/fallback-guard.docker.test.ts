@@ -31,6 +31,14 @@ import {
  * `invalid_request_error` for every 4xx but 429, which LiteLLM names `BadRequestError` whatever the status
  * (measured at Task 6) — so these cases also prove the guard follows the provider's STATUS, not the class name.
  *
+ * EACH REQUEST IS JUDGED BY ITS OWN FAILURE (fix round 1). A client names its own trace and session ids — LiteLLM
+ * takes them from `x-litellm-trace-id`, `x-litellm-session-id`, any `x-<vendor>-session-id` (an agent's
+ * `x-claude-code-session-id`), W3C `traceparent` and `baggage` — so the cases below send requests that SHARE one,
+ * at once and one after another, and one whose session id is not its trace id. The first guard kept statuses in a
+ * store keyed by those ids, and the `baggage` and `no-log` cases were red against it every run: a 401 refused, and
+ * a malformed request answered by the fallback. The concurrent pairs stayed green against it — they only fail when
+ * the two requests interleave between one's failure and its fallback, which the stub cannot force.
+ *
  * Every primary is called ONCE per run under a name of its own: a `401` or `404` puts its deployment in
  * LiteLLM's cooldown, and a second call is then answered `RouterRateLimitError` without reaching the provider
  * (measured at Task 6).
@@ -41,6 +49,12 @@ const STUB_PORT = 7199
 const STUB = `http://host.docker.internal:${STUB_PORT}`
 const RUN = randomUUID().slice(0, 8)
 const probe = (c: string): string => `probe-fg-${c}-${RUN}`
+
+/**
+ * The model id every probe deployment names at its provider — distinctive, so a refusal can be searched for it:
+ * §7 lets a caller see logical names only, and LiteLLM appends its own debug text to a refusal (`[M5]`).
+ */
+const UNDERLYING = `probe-underlying-${RUN}`
 
 const FALLBACK = probe('fallback')
 const FALLBACK_PATH = '/fallback/ok/v1/chat/completions'
@@ -72,6 +86,26 @@ const PRIMARIES: Record<string, { apiBase: string; path?: string }> = {
   // F9's pair: sent AT ONCE, so each must be decided by its own failure and not the router's last one.
   'pair-400': { apiBase: `${STUB}/pair/s400/v1`, path: '/pair/s400/v1/chat/completions' },
   'pair-503': { apiBase: `${STUB}/pair/s503/v1`, path: '/pair/s503/v1/chat/completions' },
+}
+// The fix round's: requests that share a client-supplied id, each pair on its own deployments (cooldown is per
+// deployment, and the stub counts each path apart).
+for (const [c, s] of [
+  ['sess-400', 400],
+  ['sess-503', 503],
+  ['vendor-400', 400],
+  ['vendor-503', 503],
+  ['baggage-401', 401],
+  ['baggage-400', 400],
+  ['loga-503', 503],
+  ['logb-400', 400],
+  ['logc-400', 400],
+  ['logd-503', 503],
+] as const) {
+  const tag = c.split('-')[0]
+  PRIMARIES[c] = {
+    apiBase: `${STUB}/${tag}/s${s}/v1`,
+    path: `/${tag}/s${s}/v1/chat/completions`,
+  }
 }
 for (const s of [400, 401, 403, 404, 408, 413, 422, 429, 500, 502, 503]) {
   PRIMARIES[String(s)] = {
@@ -127,7 +161,7 @@ describeDocker(
       await client.post('/model/new', {
         model_name: name,
         litellm_params: {
-          model: 'openai/stub',
+          model: `openai/${UNDERLYING}`,
           api_base: apiBase,
           api_key: 'probe-not-a-key',
           // One attempt, so a status is never retried into a different answer; 5 s for the timeout case.
@@ -141,11 +175,20 @@ describeDocker(
       made.models.push(name)
     }
 
-    async function chat(model: string): Promise<Answer> {
+    async function chat(
+      model: string,
+      headers: Record<string, string> = {},
+      extra: Record<string, unknown> = {},
+    ): Promise<Answer> {
       const res = await fetch(`${litellmUrl()}/v1/chat/completions`, {
         method: 'POST',
-        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+        headers: {
+          ...headers,
+          authorization: `Bearer ${key}`,
+          'content-type': 'application/json',
+        },
         body: JSON.stringify({
+          ...extra,
           model,
           max_tokens: 5,
           messages: [{ role: 'user', content: 'Answer with the single word ok.' }],
@@ -250,6 +293,30 @@ describeDocker(
       expect(await fallbackOf(client, CAPABLE_MODEL_NAME)).toEqual(capableBefore)
     })
 
+    /**
+     * The provider's refusal, as LiteLLM answers it: the status, its `type`, and the status as `code` (measured at
+     * Task 6); no fallback header (measured absent — `0` would say the same). The message is NOT asserted — LiteLLM
+     * appends its fallback debug text to it (`[M5]`) — except that it names no deployment's underlying model id or
+     * provider address (the fix round's M5: §7's logical names only).
+     */
+    function expectTheProvidersRefusal(r: Answer, status: number): void {
+      expect(r.status, r.seen).toBe(status)
+      expect(r.body?.error?.type, r.seen).toBe('invalid_request_error')
+      expect(r.body?.error?.code, r.seen).toBe(String(status))
+      expect([null, '0'], r.seen).toContain(r.fellBack)
+      expect(r.text).not.toContain(UNDERLYING)
+      expect(r.text).not.toContain('host.docker.internal')
+      expect(r.text).not.toContain(String(STUB_PORT))
+    }
+
+    /** The fallback's answer: `200`, one fallback attempted, the fallback's group, the stub's `ok`. */
+    function expectTheFallbacksAnswer(r: Answer): void {
+      expect(r.status, r.seen).toBe(200)
+      expect(r.fellBack, r.seen).toBe('1')
+      expect(r.group).toBe(FALLBACK)
+      expect(r.body?.choices?.[0]?.message?.content).toBe('ok')
+    }
+
     it('a healthy provider answers itself — 200, no fallback attempted (the positive control)', async () => {
       const before = stub!.hits(FALLBACK_PATH)
       const r = await chat(probe('ok'))
@@ -266,13 +333,7 @@ describeDocker(
       async (status) => {
         const before = stub!.hits(FALLBACK_PATH)
         const r = await chat(probe(String(status)))
-        expect(r.status, r.seen).toBe(status)
-        // The provider's refusal, as LiteLLM answers it: its `type`, and the status as `code` (measured at
-        // Task 6). The message is NOT asserted — LiteLLM appends its fallback debug text to it (`[M5]`).
-        expect(r.body?.error?.type, r.seen).toBe('invalid_request_error')
-        expect(r.body?.error?.code, r.seen).toBe(String(status))
-        // Measured absent on a refusal; `0` would say the same thing.
-        expect([null, '0'], r.seen).toContain(r.fellBack)
+        expectTheProvidersRefusal(r, status)
         expect(stub!.hits(`/s${status}/v1/chat/completions`)).toBe(1)
         expect(stub!.hits(FALLBACK_PATH), 'the fallback was called').toBe(before)
       },
@@ -305,10 +366,7 @@ describeDocker(
       async (c) => {
         const before = stub!.hits(FALLBACK_PATH)
         const r = await chat(probe(c))
-        expect(r.status, r.seen).toBe(200)
-        expect(r.fellBack, r.seen).toBe('1')
-        expect(r.group).toBe(FALLBACK)
-        expect(r.body?.choices?.[0]?.message?.content).toBe('ok')
+        expectTheFallbacksAnswer(r)
         expect(stub!.hits(FALLBACK_PATH)).toBe(before + 1)
         const { path } = PRIMARIES[c]!
         if (path !== undefined)
@@ -322,12 +380,58 @@ describeDocker(
         chat(probe('pair-400')),
         chat(probe('pair-503')),
       ])
-      expect(refused.status, refused.seen).toBe(400)
-      expect(refused.body?.error?.type, refused.seen).toBe('invalid_request_error')
-      expect([null, '0'], refused.seen).toContain(refused.fellBack)
-      expect(failed.status, failed.seen).toBe(200)
-      expect(failed.fellBack, failed.seen).toBe('1')
+      expectTheProvidersRefusal(refused, 400)
+      expectTheFallbacksAnswer(failed)
       expect(stub!.hits(FALLBACK_PATH)).toBe(before + 1)
+    })
+
+    it.each([
+      ['x-litellm-session-id', 'sess'],
+      ['x-claude-code-session-id', 'vendor'],
+    ])(
+      'two requests SHARING %s, sent at once — a 400 and a 503 — are each decided by their own failure',
+      async (header, tag) => {
+        const shared = { [header]: randomUUID() }
+        const before = stub!.hits(FALLBACK_PATH)
+        const [refused, failed] = await Promise.all([
+          chat(probe(`${tag}-400`), shared),
+          chat(probe(`${tag}-503`), shared),
+        ])
+        expectTheProvidersRefusal(refused, 400)
+        expectTheFallbacksAnswer(failed)
+        expect(stub!.hits(FALLBACK_PATH)).toBe(before + 1)
+      },
+    )
+
+    it('a request whose session id is not its trace id (W3C baggage) is judged by its own failure — a 401 falls back, a 400 is refused', async () => {
+      // `baggage` sets the session id alone, and the router makes the trace id: the two differ.
+      const failed = await chat(probe('baggage-401'), {
+        baggage: `session.id=${randomUUID()}`,
+      })
+      expectTheFallbacksAnswer(failed)
+      const refused = await chat(probe('baggage-400'), {
+        baggage: `session.id=${randomUUID()}`,
+      })
+      expectTheProvidersRefusal(refused, 400)
+    })
+
+    /**
+     * IN ONE SESSION, A REQUEST WITH NO FAILURE EVENT OF ITS OWN. A client's `no-log: true` skips every logging
+     * callback's failure event (LiteLLM 1.98.0 `should_run_callback`), so a guard that recorded statuses by the
+     * session's id judged such a request by the session's EARLIER request — deterministically, where the
+     * concurrent pairs above only race. Both directions: a malformed request after a failed one, and a failed one
+     * after a malformed one.
+     */
+    it('in one session, a request whose failure is not logged (no-log) is judged by its own failure, not the session’s last one', async () => {
+      const first = { 'x-litellm-session-id': randomUUID() }
+      expectTheFallbacksAnswer(await chat(probe('loga-503'), first))
+      expectTheProvidersRefusal(
+        await chat(probe('logb-400'), first, { 'no-log': true }),
+        400,
+      )
+      const second = { 'x-litellm-session-id': randomUUID() }
+      expectTheProvidersRefusal(await chat(probe('logc-400'), second), 400)
+      expectTheFallbacksAnswer(await chat(probe('logd-503'), second, { 'no-log': true }))
     })
   },
 )
