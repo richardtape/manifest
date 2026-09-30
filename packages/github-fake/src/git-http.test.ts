@@ -202,10 +202,11 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
    * new repository's first requests the way GitHub did, and REAL git must then say what the driver
    * matches — GitHub's `Repository not found.` relayed as `remote:` and git's own
    * `fatal: repository '…' not found` — or, when only a push's SECOND request is refused, exit 1
-   * with `Done` and no line for the ref, which is lp-starter-g's answer from real GitHub.
+   * with `Done` and no line for the ref, which is lp-starter-g's answer from real GitHub; and when
+   * only a fetch's second request is, git's `RPC failed; HTTP 404` (the fix round's item 1).
    */
   it('notFoundAfterCreate: a new repository’s first git requests are answered Repository not found, as GitHub did in FE-41 — and then served', async () => {
-    quirks.notFoundAfterCreate = { push: 1, pushPack: 1, fetch: 1 }
+    quirks.notFoundAfterCreate = { push: 1, pushPack: 1, fetch: 1, fetchPack: 1 }
     await createRepo('app')
     const sha = await localCommit('src', 'hello\n')
     const t = await token({ repositories: ['app'], permissions: { contents: 'write' } })
@@ -219,7 +220,11 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
     expect(notFound.stderr).toContain('remote: Repository not found.')
     expect(notFound.stderr).toContain(`fatal: repository '${remote('app')}/' not found`)
     // The advertisement answered, the pack refused: no line for the ref at all.
-    expect(await push()).toMatchObject({ code: 1, stdout: 'Done\n' })
+    expect(await push()).toMatchObject({
+      code: 1,
+      stdout: 'Done\n',
+      stderr: expect.stringContaining('error: RPC failed; HTTP 404'),
+    })
     const landed = await push()
     expect(landed.code).toBe(0)
     expect(landed.stdout).toMatch(/^\*\t\S+:refs\/heads\/main\t\[new branch\]$/m)
@@ -230,6 +235,19 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
     expect(unseen.stderr).toContain('remote: Repository not found.')
     expect(unseen.stderr).toContain(`fatal: repository '${remote('app')}/' not found`)
     expect((await ls()).stdout).toContain(`${sha}\trefs/heads/main`)
+    // A FETCH, whose second request — the pack — is refused: git's second-leg 404.
+    const into = join(work, 'into.git')
+    expect((await git(['init', '-q', '--bare', '-b', 'main', into])).code).toBe(0)
+    const fetch = () =>
+      git(['fetch', '--porcelain', remote('app'), 'refs/heads/*:refs/heads/*'], {
+        cwd: into,
+        token: t,
+      })
+    const unpacked = await fetch()
+    expect(unpacked.code).toBe(128)
+    expect(unpacked.stderr).toContain('error: RPC failed; HTTP 404')
+    expect(unpacked.stderr).toContain('fatal: the remote end hung up unexpectedly')
+    expect((await fetch()).code).toBe(0)
     // Read at each request: raised mid-run, it refuses the NEXT one — then serves again.
     quirks.notFoundAfterCreate.fetch = 2
     expect((await ls()).code).toBe(128)

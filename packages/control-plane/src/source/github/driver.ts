@@ -66,26 +66,37 @@ export interface GithubDriverOptions {
    */
   scanLimits?: ScanLimits
   /**
-   * The waits between a NEW repository's attempts at its seed push and its first fetch while
-   * GitHub has not yet found it (FE-41, `createRepository`) — `CREATE_RETRY_DELAYS_MS` unless a
-   * test makes them short. One more attempt than there are waits.
+   * The waits before a NEW repository's retries while GitHub has not yet found it (FE-41,
+   * `createRepository`) — ONE schedule per creation, which its seed push and then its first fetch
+   * draw on in turn — `CREATE_RETRY_DELAYS_MS` unless a test makes them short.
    */
   createRetryDelaysMs?: readonly number[]
 }
 
 /**
  * FE-41's BOUND (the launch path plan's Task 6a): real GitHub was measured answering a repository it
- * had made seconds before as not found over git for 2–4 s (2026-09-29), so five waits, 30 s in all,
- * absorb the measured lag several times over and still end a create that will never land.
+ * had made seconds before as not found over git for 2–4 s (2026-09-29). ONE CREATION'S schedule,
+ * SHARED by its seed push and then its first fetch (FE-41's fix round): five retries and 30 s of
+ * waiting IN ALL, never per step — the measured lag absorbed several times over, and a create that
+ * will never land still ended.
  */
 const CREATE_RETRY_DELAYS_MS: readonly number[] = [1000, 2000, 4000, 8000, 15000]
+
+/** What one creation has spent of that schedule (FE-41): its seed push and first fetch share it. */
+interface RetryBudget {
+  spent: number
+}
 
 /**
  * GitHub's own answer to a repository it cannot find, as git prints it — its `Repository not
  * found.` relayed as `remote:`, and git's `fatal: repository '<url>' not found` (both measured on
- * real GitHub in FE-41, and reproduced with real git against the fake's `notFoundAfterCreate`).
+ * real GitHub in FE-41, and reproduced with real git against the fake's `notFoundAfterCreate`) —
+ * and the SECOND LEG (FE-41's fix round): the advertisement answered and the next request 404'd,
+ * which git reports as `error: RPC failed; HTTP 404 …` and `fatal: the remote end hung up
+ * unexpectedly` (a fetch exits 128 with it; lp-starter-g's push, measured on real GitHub, exited 1).
  */
-const NOT_FOUND = /remote: Repository not found|fatal: repository '[^']*' not found/i
+const NOT_FOUND =
+  /remote: Repository not found|fatal: repository '[^']*' not found|error: RPC failed; HTTP 404\b.*fatal: the remote end hung up unexpectedly/i
 
 /** §7's slug rule, re-stated as driver 1 does: the traversal defence depends on no other module. */
 const SLUG = /^[a-z][a-z0-9-]{2,38}$/
@@ -526,34 +537,37 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
    * 6a, measured on real GitHub 2026-09-29): for roughly 2–4 s after its `201`, git may be answered
    * not found — the seed push or the creation's first fetch, with a starter or without — and the
    * same token's next try lands. So `createRepository`'s two git steps, and NOTHING ELSE, try again
-   * on exactly that answer, a bounded number of times: outside the creation, not found means the
-   * repository is gone or out of reach, and a retry would hide it. `unanswered` names a RESULT that
-   * is the same lag — a push whose second request GitHub could not find exits 1 with `Done` and no
-   * line for `main` (lp-starter-g) — and a line for `main`, a verdict, is never retried. Every retry
-   * is an operator line, so the lag is seen being absorbed; the last attempt's answer, thrown or
-   * returned, is the caller's exactly as it was before.
+   * on exactly that answer, out of ONE `budget` for the creation (the fix round's item 2): outside
+   * the creation, not found means the repository is gone or out of reach, and a retry would hide it.
+   * `unanswered` names a RESULT that is the same lag — a push whose second request GitHub could not
+   * find exits 1 with `Done` and no line for `main` (lp-starter-g) — and a line for `main`, a
+   * verdict, is never retried. Every retry is an operator line saying what was seen, so the lag is
+   * seen being absorbed; the last attempt's answer, thrown or returned, is the caller's exactly as
+   * it was before.
    */
   async function whileNew<T>(
     slug: string,
     step: string,
+    budget: RetryBudget,
     attempt: () => Promise<T>,
     unanswered: (result: T) => string | null = () => null,
   ): Promise<T> {
     const delays = o.createRetryDelaysMs ?? CREATE_RETRY_DELAYS_MS
-    for (let n = 0; ; n += 1) {
-      let said: string
+    for (;;) {
+      let seen: string
       try {
         const result = await attempt()
-        const missing = unanswered(result)
-        if (missing === null || n >= delays.length) return result
-        said = missing
+        const words = unanswered(result)
+        if (words === null || budget.spent >= delays.length) return result
+        seen = `GitHub answered ${step} of a repository it made seconds ago without a verdict for main (git said ${words})`
       } catch (error) {
-        if (!notYetFound(error) || n >= delays.length) throw error
-        said = error.message
+        if (!notYetFound(error) || budget.spent >= delays.length) throw error
+        seen = `${step} of a repository GitHub made seconds ago was not found (${error.message})`
       }
-      const delay = delays[n]!
+      const delay = delays[budget.spent]!
+      budget.spent += 1
       console.error(
-        `github driver: ${o.org}/${slug}: ${step} of a repository GitHub made seconds ago was not found, attempt ${n + 1} of ${delays.length + 1} (${tokens.redact(said)}); trying again in ${delay} ms (FE-41)`,
+        `github driver: ${o.org}/${slug}: ${tokens.redact(seen)}; retry ${budget.spent} of ${delays.length} for this creation, in ${delay} ms (FE-41)`,
       )
       await new Promise((resolve) => setTimeout(resolve, delay))
     }
@@ -567,8 +581,9 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
    * is read from porcelain's own line for `main`: a moved branch is `SOURCE_CONFLICT`, and any
    * other refusal — GH006, a hook — is never read as success.
    *
-   * `seed` is `createRepository`'s push alone, the one `whileNew` tries again (FE-41) — the SAME
-   * commit each time, so a push that landed unanswered is answered `=` by the next.
+   * `seed` — its creation's retry budget — is `createRepository`'s push alone, the one `whileNew`
+   * tries again (FE-41): the SAME commit each time, so a push that landed unanswered is answered
+   * `=` by the next.
    */
   async function buildAndPush(
     slug: string,
@@ -576,7 +591,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     message: string,
     author: GitIdentity,
     push: boolean,
-    seed = false,
+    seed?: RetryBudget,
   ): Promise<Omit<BuiltCommit, 'gitDir' | 'dispose'>> {
     const built = await buildCommit({ ...input, message, author })
     try {
@@ -595,13 +610,14 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
               { cwd: tmpdir(), token, acceptExit: [1] },
             ),
           )
-        const said = seed
-          ? await whileNew(slug, 'the seed push', pushOnce, (out) =>
-              pushVerdict(out).line === null
-                ? `no line for refs/heads/main; git said ${out.trim().split('\n').slice(-3).join(' | ') || 'nothing'}`
-                : null,
-            )
-          : await pushOnce()
+        const said =
+          seed === undefined
+            ? await pushOnce()
+            : await whileNew(slug, 'the seed push', seed, pushOnce, (out) =>
+                pushVerdict(out).line === null
+                  ? out.trim().split('\n').slice(-3).join(' | ') || 'nothing'
+                  : null,
+              )
         const { verdict, line } = pushVerdict(said)
         if (verdict === 'conflict') {
           throw new SourceError(
@@ -842,6 +858,9 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
             `GitHub created ${o.org}/${projectSlug} ${String(body.visibility ?? 'without a visibility')}; it has been deleted`,
           )
         }
+        // ONE retry budget for this creation (FE-41's fix round): the seed push and the first
+        // fetch below draw on it in turn, so the whole creation waits 30 s at most.
+        const retries: RetryBudget = { spent: 0 }
         // No base, so nothing is borrowed — the mirror is made after this push.
         const { commit: seeded } = await buildAndPush(
           projectSlug,
@@ -857,7 +876,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
           'chore: seed from blueprint skeleton',
           MANIFEST_COMMITTER,
           true,
-          true, // the seed: tried again while GitHub has not yet found the repository (FE-41)
+          retries, // the seed: tried again while GitHub has not yet found the repository (FE-41)
         )
         if (typeof body.full_name !== 'string' || typeof body.html_url !== 'string') {
           throw client.refusal(
@@ -878,8 +897,8 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
           fullName: body.full_name,
           webUrl: body.html_url,
         })
-        // Tried again, as the seed push is, while GitHub has not yet found it (FE-41).
-        await whileNew(projectSlug, 'the first fetch', () =>
+        // Tried again, as the seed push is, from what the push left of the budget (FE-41).
+        await whileNew(projectSlug, 'the first fetch', retries, () =>
           sync(projectSlug, mirror, { report: false }),
         )
         // The seed was scanned before it left (`assertNoSecrets`), so it is marked scanned:

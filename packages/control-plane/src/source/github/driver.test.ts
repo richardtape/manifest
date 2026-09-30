@@ -1053,7 +1053,7 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
  */
 describe('the GitHub driver absorbs GitHub’s lag on a repository it has just made — and only there (FE-41, Task 6a)', () => {
   const SEED = { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' }
-  /** Six attempts and no waiting: the default's shape without its 30 s. */
+  /** Five retries and no waiting: the default's shape without its 30 s. */
   const FAST = { createRetryDelaysMs: [0, 0, 0, 0, 0] }
   const AUTHOR = { name: 'person', email: 'person@example.org' }
   /** The retry's operator lines — each one names FE-41. */
@@ -1089,10 +1089,12 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       const lines = retries(said)
       expect(lines).toHaveLength(2)
       expect(lines[0]).toContain(`${h.fake.org}/chem-labs`)
-      expect(lines[0]).toContain('the seed push')
-      expect(lines[0]).toContain('attempt 1 of 6')
+      expect(lines[0]).toContain(
+        'the seed push of a repository GitHub made seconds ago was not found',
+      )
+      expect(lines[0]).toContain('retry 1 of 5')
       expect(lines[0]).toContain('remote: Repository not found.')
-      expect(lines[1]).toContain('attempt 2 of 6')
+      expect(lines[1]).toContain('retry 2 of 5')
       expect(h.minted.length).toBeGreaterThan(0)
       for (const token of h.minted) expect(lines.join('\n')).not.toContain(token)
     } finally {
@@ -1111,9 +1113,13 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       expect(await h.driver.headCommit(ref)).toBe(onGithub)
       const lines = retries(said)
       expect(lines).toHaveLength(1)
-      expect(lines[0]).toContain('the seed push')
-      expect(lines[0]).toContain('no line for refs/heads/main')
-      expect(lines[0]).toContain('Done')
+      // Said as what was SEEN — no verdict for main — never as not found (the fix round's item 4;
+      // the seed push test above is its positive control).
+      expect(lines[0]).toContain(
+        'GitHub answered the seed push of a repository it made seconds ago without a verdict for main',
+      )
+      expect(lines[0]).not.toContain('not found')
+      expect(lines[0]).toContain('git said Done')
       // Absorbed, so never reported as the refusal it would have been.
       expect(
         said.mock.calls.flat().some((l) => String(l).includes('refused Manifest')),
@@ -1136,8 +1142,31 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       expect(lines).toHaveLength(1)
       expect(lines[0]).toContain(`${h.fake.org}/chem-labs`)
       expect(lines[0]).toContain('the first fetch')
-      expect(lines[0]).toContain('attempt 1 of 6')
+      expect(lines[0]).toContain('retry 1 of 5')
       expect(lines[0]).toContain('remote: Repository not found.')
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  /**
+   * THE SECOND LEG (FE-41's fix round, item 1): GitHub answered the advertisement and then 404'd
+   * the next request — measured on real GitHub for a push (lp-starter-g). For a fetch git exits 128
+   * with `error: RPC failed; HTTP 404` and `fatal: the remote end hung up unexpectedly`.
+   */
+  it('a first fetch whose SECOND request GitHub answers 404 — git’s `RPC failed; HTTP 404` — is tried again, and the mirror holds what GitHub has', async () => {
+    const h = await harness({ quirks: { notFoundAfterCreate: { fetchPack: 1 } } }, FAST)
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await h.driver.createRepository('chem-labs', SEED)
+      expect(await upstreamMain(h, 'chem-labs')).toBe(
+        await lsRemoteMain(h.fake, 'chem-labs'),
+      )
+      const lines = retries(said)
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain('the first fetch')
+      expect(lines[0]).toContain('error: RPC failed; HTTP 404')
     } finally {
       said.mockRestore()
       await h.cleanup()
@@ -1172,10 +1201,51 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
         expect(await getAsPerson(h.fake, slug)).toBe(404)
         expect(existsSync(join(h.mirrorRoot, `${slug}.git`))).toBe(false)
       }
-      // Two retries each (attempts 1 and 2 of 3); the third attempt's failure is the answer.
+      // Two retries each — every creation has its own budget; the third attempt's failure is the answer.
       const lines = retries(said)
       expect(lines).toHaveLength(6)
-      expect(lines.filter((l) => l.includes('attempt 2 of 3'))).toHaveLength(3)
+      expect(lines.filter((l) => l.includes('retry 2 of 2'))).toHaveLength(3)
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  /**
+   * ONE BUDGET FOR THE WHOLE CREATION (FE-41's fix round, item 2): the schedule is SHARED — the seed
+   * push's retries come out of it, and the first fetch's out of what is left — so a create waits at
+   * most the schedule's sum IN ALL (30 s by default), never that much per step.
+   */
+  it('one retry budget for the whole creation: push and fetch retries within it are absorbed, and past it the create fails and is undone', async () => {
+    const quirks: NonNullable<StartFakeOptions['quirks']> = {
+      notFoundAfterCreate: { push: 2, fetch: 2 },
+    }
+    const h = await harness({ quirks }, { createRetryDelaysMs: [0, 0, 0] })
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      // Two retries for the push and two for the fetch, against three for the creation.
+      await expect(h.driver.createRepository('chem-labs', SEED)).rejects.toMatchObject({
+        code: 'SOURCE_GIT_FAILED',
+        message: expect.stringContaining('Repository not found'),
+      })
+      expect(await getAsPerson(h.fake, 'chem-labs')).toBe(404)
+      expect(existsSync(join(h.mirrorRoot, 'chem-labs.git'))).toBe(false)
+      const spent = retries(said)
+      expect(spent).toHaveLength(3)
+      expect(spent[0]).toContain('the seed push')
+      expect(spent[0]).toContain('retry 1 of 3')
+      expect(spent[1]).toContain('the seed push')
+      expect(spent[1]).toContain('retry 2 of 3')
+      expect(spent[2]).toContain('the first fetch')
+      expect(spent[2]).toContain('retry 3 of 3')
+      // Within it — two and one — the same lag is absorbed.
+      said.mockClear()
+      quirks.notFoundAfterCreate = { push: 2, fetch: 1 }
+      await h.driver.createRepository('bio-labs', SEED)
+      expect(await upstreamMain(h, 'bio-labs')).toBe(
+        await lsRemoteMain(h.fake, 'bio-labs'),
+      )
+      expect(retries(said)).toHaveLength(3)
     } finally {
       said.mockRestore()
       await h.cleanup()
@@ -1196,7 +1266,7 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
         message: expect.stringContaining('Repository not found'),
       })
       expect(await h.driver.headCommit(ref)).toBe(head) // the one refusal is spent
-      quirks.notFoundAfterCreate = { fetch: 1, push: 1 }
+      quirks.notFoundAfterCreate = { push: 1 }
       const change = {
         base: head,
         changes: [{ op: 'write' as const, path: 'b.txt', content: 'b\n' }],

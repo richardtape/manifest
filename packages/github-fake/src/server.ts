@@ -87,11 +87,17 @@ export interface FakeQuirks {
    * s. Each count is how many requests of one kind, to each repository made through `POST
    * /orgs/{org}/repos` in this process, are answered so: `push` the push's first request (its
    * advertisement — git prints `remote: Repository not found.` and exits 128), `pushPack` its
-   * second (the pack — git exits 1 with `Done` and no line for the ref: lp-starter-g's answer), and
-   * `fetch` a fetch's or an ls-remote's first. The refusals MADE are counted, so a count raised
-   * mid-run refuses the next requests of that kind.
+   * second (the pack — git exits 1 with `Done` and no line for the ref: lp-starter-g's answer),
+   * `fetch` a fetch's or an ls-remote's first, and `fetchPack` a fetch's second (git exits 128 with
+   * `error: RPC failed; HTTP 404` and `fatal: the remote end hung up unexpectedly`). The refusals
+   * MADE are counted, so a count raised mid-run refuses the next requests of that kind.
    */
-  notFoundAfterCreate?: { push?: number; pushPack?: number; fetch?: number }
+  notFoundAfterCreate?: {
+    push?: number
+    pushPack?: number
+    fetch?: number
+    fetchPack?: number
+  }
 }
 
 /** The App's permissions — exactly what `Manifest (local dev)` is registered with. */
@@ -443,7 +449,12 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     // it refuses nothing until a rule is PUT.
     await installProtectionHook(dir)
     state.repos[repo.name.toLowerCase()] = repo
-    refusedSinceCreate.set(repo.name.toLowerCase(), { push: 0, pushPack: 0, fetch: 0 })
+    refusedSinceCreate.set(repo.name.toLowerCase(), {
+      push: 0,
+      pushPack: 0,
+      fetch: 0,
+      fetchPack: 0,
+    })
     save()
     return repoJson(repo, g)
   }
@@ -711,15 +722,16 @@ export function createFakeServer(config: FakeConfig): FakeServer {
           const counts = config.quirks?.notFoundAfterCreate
           const made = refusedSinceCreate.get(r.repo.toLowerCase())
           if (counts === undefined || made === undefined) return false
+          const advertisement = r.op === 'info/refs'
           const kind =
             service === 'git-receive-pack'
-              ? r.op === 'info/refs'
+              ? advertisement
                 ? 'push'
                 : 'pushPack'
-              : r.op === 'info/refs'
+              : advertisement
                 ? 'fetch'
-                : undefined
-          if (kind === undefined || made[kind] >= (counts[kind] ?? 0)) return false
+                : 'fetchPack'
+          if (made[kind] >= (counts[kind] ?? 0)) return false
           made[kind] += 1
           return true
         },
