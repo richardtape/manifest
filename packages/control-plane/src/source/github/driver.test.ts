@@ -1073,6 +1073,13 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       () => 'resolved',
       (e: unknown) => (e instanceof SourceError ? e.code : String(e)),
     )
+  /** How many tokens GitHub minted for `chem-labs` alone, with exactly these permissions. */
+  const mintsFor = (h: Harness, permissions: Record<string, string>) =>
+    h.mints.filter(
+      (m) =>
+        JSON.stringify(m.repositories) === JSON.stringify(['chem-labs']) &&
+        JSON.stringify(m.permissions) === JSON.stringify(permissions),
+    ).length
 
   it('a seed push GitHub answers not found TWICE is tried again: the repository is made, seeded and mirrored, and the lag is said', async () => {
     const h = await harness({ quirks: { notFoundAfterCreate: { push: 2 } } }, FAST)
@@ -1144,6 +1151,8 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       expect(lines[0]).toContain('the first fetch')
       expect(lines[0]).toContain('retry 1 of 5')
       expect(lines[0]).toContain('remote: Repository not found.')
+      // The retry MINTED AFRESH (FE-41's fix round 4): the refused attempt's read token, and a new one.
+      expect(mintsFor(h, { contents: 'read' })).toBe(2)
     } finally {
       said.mockRestore()
       await h.cleanup()
@@ -1221,6 +1230,9 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       expect(lines[0]).toContain('the seed push')
       expect(lines[0]).toContain('remote: Write access to repository not granted.')
       expect(lines[0]).toContain('The requested URL returned error: 403')
+      // The retry MINTED AFRESH (FE-41's fix round 4): a token minted before GitHub's propagation
+      // is never the one retried — the refused attempt's write token, and a new one.
+      expect(mintsFor(h, { contents: 'write' })).toBe(2)
     } finally {
       said.mockRestore()
       await h.cleanup()

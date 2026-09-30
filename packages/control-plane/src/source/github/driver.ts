@@ -550,8 +550,8 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
    * `unanswered` names a RESULT that is the same lag — a push whose second request GitHub could not
    * find exits 1 with `Done` and no line for `main` (lp-starter-g) — and a line for `main`, a
    * verdict, is never retried. Every retry is an operator line saying what was seen, so the lag is
-   * seen being absorbed; the last attempt's answer, thrown or returned, is the caller's exactly as
-   * it was before.
+   * seen being absorbed, and forgets the repository's tokens first, so it mints afresh (fix round
+   * 4); the last attempt's answer, thrown or returned, is the caller's exactly as it was before.
    */
   async function whileNew<T>(
     slug: string,
@@ -577,6 +577,9 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       console.error(
         `github driver: ${o.org}/${slug}: ${tokens.redact(seen)}; retry ${budget.spent} of ${delays.length} for this creation, in ${delay} ms (FE-41)`,
       )
+      // EVERY RETRY MINTS AFRESH (FE-41's fix round 4): a token minted before GitHub's propagation
+      // reached the new repository is never the one retried — about 300 ms a retry.
+      tokens.forget(slug)
       await new Promise((resolve) => setTimeout(resolve, delay))
     }
   }
