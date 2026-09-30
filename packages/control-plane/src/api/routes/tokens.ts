@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
 import { endSessionsOf } from '../../ai/index.js'
+import { projectMembers } from '../../db/index.js'
 import { makeRedactor, publishEvent } from '../../observability/index.js'
 import {
   assertCapability,
@@ -185,6 +187,27 @@ export const tokenRoutes = [
       // token; or it committed first, and the mint is refused `PROJECT_ARCHIVED`.
       const row = await deps.db.transaction(async (tx) => {
         await holdActiveProject(tx, params.projectId)
+        // AND THE MINTER'S PLACE ON IT, FOR THE SAME REASON (Spec action 2; the launch path plan's
+        // Task 8, its review's I1): a removal that landed between step 1 and here revoked every token
+        // of theirs but this one, which would then commit live for up to a year — and nothing could
+        // revoke it: the removal repeated answers "not a member", and only its minter may revoke a
+        // token. `FOR SHARE` conflicts with the removal's DELETE, so either the removal waits for this
+        // commit — and its `revokeTokensOfMember` revokes the token — or it committed first, and the
+        // mint is refused as a stranger is. An ADMINISTRATOR mints without membership (§13), so none
+        // is refused for having none; a membership they hold is held all the same.
+        const [member] = await tx
+          .select({ role: projectMembers.role })
+          .from(projectMembers)
+          .where(
+            and(
+              eq(projectMembers.projectId, params.projectId),
+              eq(projectMembers.userId, actor.userId),
+            ),
+          )
+          .for('share')
+        if (member === undefined && actor.platformRole !== 'admin') {
+          throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
+        }
         return createToken(tx, {
           id,
           userId: actor.userId,

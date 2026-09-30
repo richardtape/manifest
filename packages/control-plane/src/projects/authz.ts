@@ -545,7 +545,8 @@ export async function assertCapability(
    *
    * **No membership read, and yet a token does not outlive its minter's membership**
    * (Spec action 2; the launch path plan's Task 8): removing a person revokes every token
-   * they minted on the project, in the removal's own transaction — so the token row this
+   * they minted on the project, in the removal's own transaction — and a mint racing it holds
+   * the minter's membership row, so no token slips in behind the revoke — so the token row this
    * branch never re-reads is already revoked by the time the removal answers. A
    * `project_members` read on every request a token makes is the per-request database cost
    * Decision 9 rejected; the revoke at the removal costs one statement, once.

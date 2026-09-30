@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq, inArray } from 'drizzle-orm'
+import pg from 'pg'
 import { describe, expect, it, vi } from 'vitest'
 import { personAiUserId } from '../ai/index.js'
 import { fakeLiteLlm, type FakeLiteLlm } from '../ai/testing.js'
@@ -801,7 +802,170 @@ describe('removing a member revokes their tokens on the project, ends their agen
       { llm: lite },
     )
   })
+
+  /** `mintToken`, in the person's own session. */
+  const mint = (ctx: TestProject, cookies: Record<string, string>) =>
+    ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.projectId}/tokens`,
+      cookies,
+      headers: mutationHeaders(ctx.deps),
+      payload: { name: 'ta-agent', capabilities: ['project:read'], expiresInDays: 1 },
+    })
+
+  /** Every token of theirs on the project that is not revoked. */
+  const liveTokensOf = async (ctx: TestProject, userId: string) =>
+    (
+      await ctx.db
+        .select({ id: delegatedTokens.id, revokedAt: delegatedTokens.revokedAt })
+        .from(delegatedTokens)
+        .where(
+          and(
+            eq(delegatedTokens.projectId, ctx.projectId),
+            eq(delegatedTokens.userId, userId),
+          ),
+        )
+    ).filter((t) => t.revokedAt === null)
+
+  it('a token the person mints WHILE they are being removed is revoked with the rest — the removal waits for the mint', async () => {
+    // The task review's I1: the mint read the membership before its transaction, and held only the
+    // project in it — so a removal landing before its INSERT revoked every token but that one, which
+    // then committed live for up to 365 days, with nothing left that could revoke it. DETERMINISTIC:
+    // a second connection holds the person's `users` row, so the mint's INSERT (its foreign key) waits
+    // INSIDE its transaction, after everything it reads under lock; the removal is sent then.
+    await withProjectServer(async (ctx) => {
+      const ta = await theTa(ctx)
+      await holding(
+        'SELECT 1 FROM users WHERE id = $1 FOR UPDATE',
+        [ta.id],
+        async (lock) => {
+          const minting = mint(ctx, ta.cookies)
+          await until(
+            () => lock.waitedOn('%delegated_tokens%'),
+            'the mint’s INSERT waiting on the held user row',
+          )
+          let settled = false
+          const removing = remove(ctx, ta.id).then((res) => {
+            settled = true
+            return res
+          })
+          // HELD, the removal waits on the mint — its DELETE on the membership the mint holds. Without a
+          // hold it finishes here, before the mint has written anything its revoke could find.
+          await until(
+            async () => settled || (await lock.waitedOnBehind('%project_members%')),
+            'the removal waiting on the mint, or finished',
+          )
+          await lock.release()
+          const [minted, removed] = await Promise.all([minting, removing])
+          expect(removed.statusCode, removed.body).toBe(200)
+          expect(minted.statusCode, minted.body).toBe(201)
+          // Minted, and revoked by the removal that waited for it.
+          expect(
+            await tokenState(ctx, (minted.json() as { token: { id: string } }).token.id),
+          ).toBe('revoked')
+        },
+      )
+      expect(await liveTokensOf(ctx, ta.id)).toEqual([])
+    })
+  })
+
+  it('a mint that read the membership before the removal committed is refused NOT_FOUND, and writes no token', async () => {
+    // The other order: the removal commits between the mint's `assertCapability` and its transaction.
+    // A second connection holds the PROJECT's row against the mint's `FOR SHARE` (and not against the
+    // removal, whose event's foreign key takes only `FOR KEY SHARE`), so the mint waits at its first
+    // statement under lock while the removal runs to the end.
+    await withProjectServer(async (ctx) => {
+      const ta = await theTa(ctx)
+      await holding(
+        'SELECT 1 FROM projects WHERE id = $1 FOR NO KEY UPDATE',
+        [ctx.projectId],
+        async (lock) => {
+          const minting = mint(ctx, ta.cookies)
+          await until(
+            () => lock.waitedOn('%projects%'),
+            'the mint’s project hold waiting on the held project row',
+          )
+          const removed = await remove(ctx, ta.id)
+          expect(removed.statusCode, removed.body).toBe(200)
+          await lock.release()
+          expect(refusal(await minting)).toEqual({ status: 404, code: 'NOT_FOUND' })
+        },
+      )
+      expect(await liveTokensOf(ctx, ta.id)).toEqual([])
+      // The positive control: the owner — still a member — mints the same way.
+      expect((await mint(ctx, ctx.ownerCookies)).statusCode).toBe(201)
+    })
+  })
 })
+
+/**
+ * A row held by a SECOND connection, as the database's owner — so a request waits at a statement we
+ * know — and how to tell who waits on it. `waitedOn`: a statement matching `pattern` waits on this
+ * lock. `waitedOnBehind`: one waits on a backend that itself waits on it. Both confined to THIS
+ * lock's backend: the dev control plane shares `manifest_control`, so the database alone would not
+ * tell its waits from ours (as `api/events.test.ts`'s window test found).
+ */
+async function holding(
+  statement: string,
+  params: unknown[],
+  fn: (lock: {
+    waitedOn: (pattern: string) => Promise<boolean>
+    waitedOnBehind: (pattern: string) => Promise<boolean>
+    release: () => Promise<void>
+  }) => Promise<void>,
+): Promise<void> {
+  const admin = new pg.Pool({ connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL })
+  const held = await admin.connect()
+  try {
+    const { rows } = await held.query<{ pid: number }>('SELECT pg_backend_pid() AS pid')
+    const pid = rows[0]!.pid
+    await held.query('BEGIN')
+    await held.query(statement, params)
+    const count = async (sql: string, pattern: string) =>
+      Number((await admin.query<{ n: string }>(sql, [pid, pattern])).rows[0]!.n) > 0
+    await fn({
+      waitedOn: (pattern) =>
+        count(
+          `SELECT count(*) AS n FROM pg_stat_activity
+            WHERE datname = current_database() AND wait_event_type = 'Lock'
+              AND query ILIKE $2 AND $1 = ANY(pg_blocking_pids(pid))`,
+          pattern,
+        ),
+      waitedOnBehind: (pattern) =>
+        count(
+          `SELECT count(*) AS n FROM pg_stat_activity a
+            WHERE a.datname = current_database() AND a.wait_event_type = 'Lock'
+              AND a.query ILIKE $2
+              AND EXISTS (SELECT 1 FROM unnest(pg_blocking_pids(a.pid)) AS b(pid)
+                           WHERE $1 = ANY(pg_blocking_pids(b.pid)))`,
+          pattern,
+        ),
+      // ROLLBACK, never COMMIT: the statement held a row and changed nothing. A second one, from the
+      // `finally`, is a warning and not an error.
+      release: async () => {
+        await held.query('ROLLBACK')
+      },
+    })
+  } finally {
+    await held.query('ROLLBACK')
+    held.release()
+    await admin.end()
+  }
+}
+
+/** Polls `condition` until it holds, or fails naming what it waited for. */
+async function until(
+  condition: () => boolean | Promise<boolean>,
+  what: string,
+  timeoutMs = 5_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (!(await condition())) {
+    if (Date.now() > deadline)
+      throw new Error(`timed out after ${timeoutMs} ms waiting for ${what}`)
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+}
 
 /** Waits until the fake gateway has been ASKED `path` — its answer may still be on its way. */
 async function untilCalled(lite: FakeLiteLlm, path: string): Promise<void> {
