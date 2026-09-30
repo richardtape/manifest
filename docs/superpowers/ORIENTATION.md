@@ -1783,9 +1783,10 @@ timed-out, rate-limited or failing provider falling back to the on-premise model
 is needed FIRST.** The plan's sittings table is the other statement of it.
 
 **ASK RICH IN THE FIRST MESSAGE:**
-0. **Real GitHub, for Task 6a** — the network on, and his yes to create (and delete) a private `lp-starter-…` repository in
-   `Manifest-local-dev` to reproduce FE-41 and check its fix (*What Rich does* 3). Without it, Task 6a stops after making the failure
-   visible on the fake.
+0. **Real GitHub, for Task 6a — ✅ HIS YES IS GIVEN** (Rich, 2026-09-29, to sitting 3's session after its close: *"yes for real
+   github"*): to create (and delete) a private `lp-starter-…` repository in `Manifest-local-dev` to reproduce FE-41 and check its fix
+   (*What Rich does* 3). **Still check the network is on** (`bash scripts/github-real-repos.sh` reads the organisation), and say in the
+   first message that you are using it.
 1. **Spec action 6 — needed BEFORE Task 6** (the plan's *Spec actions*, 6): what *"its provider fails"* means for the capable model's
    fallback. **(a)** Branch G's words — *"cannot be reached or fails — a refused connection, a timeout, a rate limit or a server error
    … and never for a request the provider refused as malformed"* (recommended; `[M5]` measured the guard buildable); (b) Branch D's
