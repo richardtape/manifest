@@ -59,7 +59,7 @@ export const tokenRoutes = [
     tag: 'tokens',
     summary: 'Mint a delegated token',
     description:
-      'D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.',
+      'D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.',
     params: ProjectParams,
     query: NO_QUERY,
     body: MintTokenRequest,
@@ -133,17 +133,18 @@ export const tokenRoutes = [
         )
       }
 
-      // 2b. D24's PERSON-ONLY two (P6b Task 2, Decision 14), refused the same way and for a
-      //     stricter reason: these are not questions a person confirms for an agent — each
-      //     is a record that a named person decided. The central rule in `assertCapability`
-      //     refuses a token holding one however it was minted; this makes the row impossible.
+      // 2b. The PERSON-ONLY set (P6b Task 2, Decision 14; `project:delete` and, since the launch
+      //     path plan's Task 6b, `launch:rehearse`), refused the same way and for a stricter
+      //     reason: these are not questions a person confirms for an agent — each is a person's
+      //     to do. The central rule in `assertCapability` refuses a token holding one however it
+      //     was minted; this makes the row impossible.
       const personOnly = body.capabilities.filter((capability) =>
         isPersonOnly(capability),
       )
       if (personOnly.length > 0) {
         throw new BadRequestError(
           'TOKEN_CAPABILITY_FORBIDDEN',
-          `a delegated token may never hold ${personOnly.join(', ')} — each is a record that a named person decided (D24)`,
+          `a delegated token may never hold ${personOnly.join(', ')} — a person does each, in their own session (D24)`,
           'A person does these in the console, in their own session. Mint the token without them; no confirmation can grant them to an agent.',
         )
       }

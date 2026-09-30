@@ -281,7 +281,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Run the pre-production rehearsal',
     description:
-      'D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.',
+      'D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. **Who may run it:** the project’s owner, a collaborator or a platform administrator, each in their own signed-in session and with no second sign-in — never a delegated token (`403 TOKEN_CREDENTIAL_REFUSED`, whatever the token holds); anyone else is told the project does not exist (`404 NOT_FOUND`). Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -291,10 +291,13 @@ export const launchRoutes = [
         'The rehearsal, passed or failed. A failure is a 200 with `passed: false` and the reason in its evidence — it is a MEASUREMENT, and a measurement that came out badly is not a request error.',
       schema: Rehearsal,
     },
-    capability: 'launch:record',
+    capability: 'launch:rehearse',
+    // NO `FORBIDDEN` SINCE TASK 6b: every role that can see the project holds `launch:rehearse`
+    // (owner, collaborator, administrator), a stranger is `NOT_FOUND` and a token is refused
+    // first, so no request can be answered it — and a declared code nothing answers is a
+    // document that lies (`authz-contract.ts`'s archived measurement's rule).
     errors: [
       'NOT_FOUND',
-      'FORBIDDEN',
       'TOKEN_CREDENTIAL_REFUSED',
       'REHEARSAL_NO_CANDIDATE',
       'REHEARSAL_NOT_CWL',
@@ -323,12 +326,13 @@ export const launchRoutes = [
       },
     },
     handler: async ({ deps, request, params }) => {
-      // D14 and Decision 4: an administrator, in a browser — `requireSession`'s RETURN
-      // TYPE is the enforcement, because `runRehearsal` needs the `puid` it returns, and
-      // it runs BEFORE the project is read so a token learns nothing about which projects
-      // exist (Task 6's measured ordering).
+      // A PERSON, in their own session — the owner, a collaborator or an administrator since the
+      // launch path plan's Task 6b (FE-42, Rich's option (a)); an administrator alone before it
+      // (D14, P6a Decision 4). `requireSession`'s RETURN TYPE is the enforcement, because
+      // `runRehearsal` needs the `puid` it returns, and it runs BEFORE the project is read so a
+      // token learns nothing about which projects exist (P6a Task 6's measured ordering).
       const actor = requireSession(request)
-      await assertCapability(deps.db, actor, params.projectId, 'launch:record')
+      await assertCapability(deps.db, actor, params.projectId, 'launch:rehearse')
       /**
        * FE-36 AFTER THE REHEARSAL'S PRODUCTION DEPLOY (the whole-branch review's I2), as the
        * `deploy` route runs it after a production deploy: a rehearsal's instance is what

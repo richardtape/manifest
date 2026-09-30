@@ -18,6 +18,14 @@ import {
  */
 const D24_PERSON_ONLY = ['release:approve', 'launch:record', 'project:delete'] as const
 
+/**
+ * AND RUNNING D21'S REHEARSAL, by Rich's option (a) on 2026-09-29 (the faculty front-end's FE-42;
+ * the launch path plan's Task 6b): the owner, a collaborator or an administrator, in their own
+ * session — never a token. Kept apart from D24's three because D24's clause for it is DRAFTED for
+ * his approval, not applied: until it is, the set is D24's three plus this one.
+ */
+const PERSON_ONLY_LITERALS = [...D24_PERSON_ONLY, 'launch:rehearse'] as const
+
 const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
   credential: 'token',
   userId: randomUUID(),
@@ -28,6 +36,7 @@ const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
     'release:approve',
     'launch:record',
     'project:delete',
+    'launch:rehearse',
   ]),
   rateLimit: 60,
   expiresAt: Date.now() + 86_400_000,
@@ -35,13 +44,13 @@ const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
 })
 
 describe('the person-only class (D24, §20)', () => {
-  it('is exactly the three, and nothing has been quietly added', () => {
-    expect([...PERSON_ONLY].sort()).toEqual([...D24_PERSON_ONLY].sort())
+  it('is exactly D24’s three and the rehearsal, and nothing has been quietly added', () => {
+    expect([...PERSON_ONLY].sort()).toEqual([...PERSON_ONLY_LITERALS].sort())
   })
 
   it('is DISJOINT from the privileged four — a person-only action never becomes a pending action', () => {
     for (const c of PERSON_ONLY) expect(PRIVILEGED.has(c)).toBe(false)
-    for (const c of D24_PERSON_ONLY) expect(isPersonOnly(c)).toBe(true)
+    for (const c of PERSON_ONLY_LITERALS) expect(isPersonOnly(c)).toBe(true)
     expect(isPersonOnly('release:promote')).toBe(false)
   })
 
@@ -56,6 +65,11 @@ describe('the person-only class (D24, §20)', () => {
     // §11: archiving and deleting a project take an app away from its students (Spec action 3).
     await expect(
       assertCapability(undefined as never, token(), 'p-1', 'project:delete'),
+    ).rejects.toBeInstanceOf(PersonOnlyRefusedError)
+    // D21's rehearsal (Task 6b): `runRehearsal` calls `requireSession` first, so this central
+    // rule is the SECOND layer — seen on its own here and on `api/person-only.test.ts`'s probe.
+    await expect(
+      assertCapability(undefined as never, token(), 'p-1', 'launch:rehearse'),
     ).rejects.toBeInstanceOf(PersonOnlyRefusedError)
   })
 

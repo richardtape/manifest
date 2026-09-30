@@ -37,12 +37,13 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 type Capability = Schemas['MintTokenRequest']['capabilities'][number]
 
 /**
- * THE FOURTEEN, HELD TO THE DOCUMENT BY `tsc` IN BOTH DIRECTIONS — eleven until P6a Task 6
- * added `launch:record`, which `tsc` caught here and `pnpm test` could not see at all,
- * twelve until the authoring API plan's Task 6 added `source:write`, caught here again, and
- * thirteen until its Task 8 added `secret:write`. A capability renamed or
- * removed from `MintTokenRequest.capabilities` makes the array un-assignable; one ADDED makes
- * `Exclude<Capability, T[number]>` non-`never`, which collapses the parameter's type to
+ * EVERY ONE THE CONTRACT NAMES, HELD TO THE DOCUMENT BY `tsc` IN BOTH DIRECTIONS — eleven
+ * until P6a Task 6 added `launch:record`, which `tsc` caught here and `pnpm test` could not
+ * see at all, twelve until the authoring API plan's Task 6 added `source:write`, caught here
+ * again, and thirteen until its Task 8 added `secret:write`; no count since, because the one
+ * written here drifted (the launch path plan's Task 6b added `launch:rehearse`). A capability
+ * renamed or removed from `MintTokenRequest.capabilities` makes the array un-assignable; one
+ * ADDED makes `Exclude<Capability, T[number]>` non-`never`, which collapses the parameter's type to
  * `never` and refuses the call. So this list cannot silently drift from the contract, which
  * is the whole reason it is written through a function rather than as a bare `as const`.
  */
@@ -94,6 +95,12 @@ const CAPABILITIES = everyCapability([
    * same honest shape this screen has for the four: the API is what says no.
    */
   'launch:record',
+  /**
+   * Running D21's pre-production rehearsal (the launch path plan's Task 6b): the owner's, a
+   * collaborator's and an administrator's — and PERSON-ONLY, so never mintable (`PERSON_ONLY`
+   * below). Caught here by `tsc`, as every capability added to the contract is.
+   */
+  'launch:rehearse',
   'quota:set',
   'secret:read',
 ] as const)
@@ -131,19 +138,21 @@ const PRIVILEGED_REASON =
 
 /**
  * D24's PERSON-ONLY THREE (P6b Task 2; `project:delete` — archiving and deleting a project, §11 —
- * since the front-end enablement plan's Task 11) — **RESTATED HERE FOR EXACTLY THE REASON
+ * since the front-end enablement plan's Task 11) AND THE REHEARSAL (`launch:rehearse`, the launch
+ * path plan's Task 6b) — **RESTATED HERE FOR EXACTLY THE REASON
  * `PRIVILEGED` ABOVE IS, AND THAT IS STILL A FINDING ABOUT THE DOCUMENT, NOT A PREFERENCE.**
  * `MintTokenRequest.capabilities` marks neither class; only its prose names them.
  *
  * Stricter than the four: an agent asking for one of these is refused `403
- * TOKEN_PERSON_ONLY` with NO question for anybody to confirm, because each is a record that
- * a named person decided. The mint route refuses all three `400 TOKEN_CAPABILITY_FORBIDDEN`;
+ * TOKEN_PERSON_ONLY` with NO question for anybody to confirm, because each is a person's to do
+ * in their own session. The mint route refuses all four `400 TOKEN_CAPABILITY_FORBIDDEN`;
  * `disabled` is an explanation, never the control.
  */
 const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
   'release:approve',
   'launch:record',
   'project:delete',
+  'launch:rehearse',
 ])
 
 const PERSON_ONLY_REASON = 'A person does this — no token and no confirmation can.'

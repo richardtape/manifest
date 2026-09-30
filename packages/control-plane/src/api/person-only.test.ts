@@ -19,9 +19,9 @@ afterAll(resetDatabase)
  * D24's PERSON-ONLY class, seen through a real route (P6b Task 2, Decision 14).
  *
  * **THE RULE IS CENTRAL, SO IT IS TESTED ON A ROUTE THAT DOES NOT CALL `requireSession`.**
- * Every real route asserting `release:approve` or `launch:record` calls `requireSession`
- * first and answers a token `403 TOKEN_CREDENTIAL_REFUSED` before the capability is ever
- * read — so no real route can show whether `assertCapability` refuses on its own. These
+ * Every real route asserting `release:approve`, `launch:record` or `launch:rehearse` calls
+ * `requireSession` first and answers a token `403 TOKEN_CREDENTIAL_REFUSED` before the
+ * capability is ever read — so no real route can show whether `assertCapability` refuses on its own. These
  * probes are that route: registered through `registerRoutes`, so they run under the same
  * wrapper that turns D24's privileged refusal into a pending action, and asserting one
  * capability and nothing else.
@@ -62,6 +62,10 @@ function probeFor(capability: Capability, suffix: string) {
 const PROBES = {
   approve: probeFor('release:approve', 'Approve'),
   record: probeFor('launch:record', 'Record'),
+  // D21's rehearsal (the launch path plan's Task 6b): person-only by Rich's option (a), and — unlike
+  // the two above — held by the OWNER too, so the mint route's "no more than you hold" rule cannot be
+  // what refuses the owner's mint of it below.
+  rehearse: probeFor('launch:rehearse', 'Rehearse'),
   // THE COUNTER'S POSITIVE CONTROL: one of D24's privileged four, on a route of exactly
   // this shape, DOES record a question. Without it "no pending action" is a claim that is
   // equally true of a wrapper that never runs on these probes.
@@ -72,6 +76,7 @@ interface Ctx {
   deps: ServerDeps
   app: FastifyInstance
   projectId: string
+  ownerCookies: Record<string, string>
   adminCookies: Record<string, string>
   adminUserId: string
 }
@@ -80,7 +85,12 @@ async function withServer(fn: (ctx: Ctx) => Promise<void>): Promise<void> {
   await resetDatabase()
   const deps = await testDeps()
   const app = await buildServer(deps)
-  registerRoutes(app, deps, [PROBES.approve, PROBES.record, PROBES.promote])
+  registerRoutes(app, deps, [
+    PROBES.approve,
+    PROBES.record,
+    PROBES.rehearse,
+    PROBES.promote,
+  ])
   try {
     const ownerCookies = await loginAs(deps, 'bio_prof')
     const created = await app.inject({
@@ -91,13 +101,15 @@ async function withServer(fn: (ctx: Ctx) => Promise<void>): Promise<void> {
       headers: mutationHeaders(deps),
     })
     expect(created.statusCode).toBe(201)
-    // A PLATFORM ADMINISTRATOR, because only that role holds either capability — so the
-    // mint route's own "no more than you hold" rule cannot be what refuses here.
+    // A PLATFORM ADMINISTRATOR, because only that role holds `release:approve` and
+    // `launch:record` — so the mint route's own "no more than you hold" rule cannot be what
+    // refuses here. (`launch:rehearse` the owner holds too, and has a case of its own below.)
     const admin = await ensureTestUser(deps.db, 'platform_admin')
     await fn({
       deps,
       app,
       projectId: (created.json() as { id: string }).id,
+      ownerCookies,
       adminCookies: await loginAs(deps, 'platform_admin'),
       adminUserId: admin.id,
     })
@@ -142,11 +154,11 @@ function ask(ctx: Ctx, probe: keyof typeof PROBES, plaintext: string) {
   })
 }
 
-function mint(ctx: Ctx, capabilities: string[]) {
+function mint(ctx: Ctx, capabilities: string[], cookies = ctx.adminCookies) {
   return ctx.app.inject({
     method: 'POST',
     url: `/v1/projects/${ctx.projectId}/tokens`,
-    cookies: ctx.adminCookies,
+    cookies,
     headers: mutationHeaders(ctx.deps),
     payload: { name: 'person-only', capabilities, expiresInDays: 1 },
   })
@@ -173,6 +185,16 @@ describe('the person-only class on a route (D24, §20)', () => {
     })
   })
 
+  it('refuses a token holding launch:rehearse the same way — the rehearsal is person-only too', async () => {
+    await withServer(async (ctx) => {
+      const plaintext = await holding(ctx, ['project:read', 'launch:rehearse'])
+      expect(await pendingCount(ctx)).toBe(0)
+      const res = await ask(ctx, 'rehearse', plaintext)
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_PERSON_ONLY' })
+      expect(await pendingCount(ctx)).toBe(0)
+    })
+  })
+
   it('the counter’s positive control: a PRIVILEGED capability on a probe of the same shape does record a question', async () => {
     await withServer(async (ctx) => {
       const plaintext = await holding(ctx, ['project:read'])
@@ -185,7 +207,7 @@ describe('the person-only class on a route (D24, §20)', () => {
 
   it('the positive control: a platform administrator’s SESSION passes the same route', async () => {
     await withServer(async (ctx) => {
-      for (const probe of ['approve', 'record'] as const) {
+      for (const probe of ['approve', 'record', 'rehearse'] as const) {
         const res = await ctx.app.inject({
           method: 'POST',
           url: `/v1/projects/${ctx.projectId}/zz-person-only-${probe}`,
@@ -198,10 +220,16 @@ describe('the person-only class on a route (D24, §20)', () => {
     })
   })
 
-  it('the mint route refuses release:approve, launch:record and project:delete: 400 TOKEN_CAPABILITY_FORBIDDEN, and writes no row', async () => {
+  it('the mint route refuses release:approve, launch:record, project:delete and launch:rehearse: 400 TOKEN_CAPABILITY_FORBIDDEN, and writes no row', async () => {
     await withServer(async (ctx) => {
-      // `project:delete` since the front-end enablement plan's Task 11 (§11's archive and delete).
-      for (const capability of ['release:approve', 'launch:record', 'project:delete']) {
+      // `project:delete` since the front-end enablement plan's Task 11 (§11's archive and delete);
+      // `launch:rehearse` since the launch path plan's Task 6b.
+      for (const capability of [
+        'release:approve',
+        'launch:record',
+        'project:delete',
+        'launch:rehearse',
+      ]) {
         const res = await mint(ctx, ['project:read', capability])
         expect(refusal(res)).toEqual({ status: 400, code: 'TOKEN_CAPABILITY_FORBIDDEN' })
         // The message NAMES the capability, so an agent can correct itself (D23.7).
@@ -210,6 +238,25 @@ describe('the person-only class on a route (D24, §20)', () => {
         )
       }
       expect(await tokenCount(ctx)).toBe(0)
+    })
+  })
+
+  /**
+   * THE OWNER HOLDS `launch:rehearse` (Task 6b), so step 3 of the mint — *no more than the minter
+   * holds* — would let it through: the person-only rule is the ONLY thing refusing this request,
+   * which is what makes it the row that sees that rule for this capability.
+   */
+  it('refuses the OWNER’s mint of launch:rehearse too — they hold it, and a token still may not', async () => {
+    await withServer(async (ctx) => {
+      const res = await mint(ctx, ['project:read', 'launch:rehearse'], ctx.ownerCookies)
+      expect(refusal(res)).toEqual({ status: 400, code: 'TOKEN_CAPABILITY_FORBIDDEN' })
+      expect((res.json() as { error: { message: string } }).error.message).toContain(
+        'launch:rehearse',
+      )
+      expect(await tokenCount(ctx)).toBe(0)
+      // The positive control, as the same owner: what they may delegate is minted.
+      const minted = await mint(ctx, ['project:read'], ctx.ownerCookies)
+      expect(minted.statusCode, minted.body).toBe(201)
     })
   })
 

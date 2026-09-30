@@ -188,8 +188,9 @@ export interface DeployInput {
    * them when they decide** — §13's checklist lists the rehearsal before the approval, and
    * Task 19's demo runs them in that order. It is the one deploy that legitimately precedes
    * an approval, it deploys the SAME digest the approval will later bind, and it is
-   * reachable only through `POST /v1/projects/{id}/rehearsal`, which an administrator must
-   * hold `launch:record` for.
+   * reachable only through `POST /v1/projects/{id}/rehearsal`, which a person must hold
+   * `launch:rehearse` for, in their own session — the owner, a collaborator or an administrator
+   * since the launch path plan's Task 6b (an administrator's `launch:record` before it).
    *
    * **IT DEFAULTS TO THE CHECKED VALUE**, so a new caller is verified unless it says it is
    * a rehearsal — the opposite default would make every future caller an exemption nobody

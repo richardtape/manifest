@@ -867,7 +867,7 @@ export interface paths {
         put?: never;
         /**
          * Run the pre-production rehearsal
-         * @description D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.
+         * @description D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. **Who may run it:** the project’s owner, a collaborator or a platform administrator, each in their own signed-in session and with no second sign-in — never a delegated token (`403 TOKEN_CREDENTIAL_REFUSED`, whatever the token holds); anyone else is told the project does not exist (`404 NOT_FOUND`). Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.
          */
         post: operations["runRehearsal"];
         delete?: never;
@@ -959,7 +959,7 @@ export interface paths {
         put?: never;
         /**
          * Mint a delegated token
-         * @description D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.
+         * @description D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.
          */
         post: operations["mintToken"];
         delete?: never;
@@ -4810,8 +4810,8 @@ export interface components {
         MintTokenRequest: {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
-            /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve or launch:record, which are person-only and refused outright. */
-            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "agent:session" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "quota:set" | "secret:read")[];
+            /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only and refused outright. */
+            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "agent:session" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "launch:rehearse" | "quota:set" | "secret:read")[];
             /** @description How long the token lives, in days. D24: a token has an expiry, and at most 365 days of one. */
             expiresInDays: number;
         };
@@ -8544,7 +8544,7 @@ export interface operations {
                     "application/json": components["schemas"]["Rehearsal"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

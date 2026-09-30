@@ -83,6 +83,27 @@ describe('the privileged set (D24, §20)', () => {
     expect(capabilitiesFor(null, 'admin').has('launch:record')).toBe(true)
   })
 
+  /**
+   * **`launch:rehearse` IS NOT PRIVILEGED EITHER — IT IS PERSON-ONLY, AND EVERY ROLE HOLDS IT**
+   * (the launch path plan's Task 6b; the faculty front-end's FE-42, Rich's option (a),
+   * 2026-09-29). Running D21's rehearsal is a MEASUREMENT, not a record of what UBC decided,
+   * so the owner and a collaborator run it as an administrator does (§13: *"same as owner
+   * except member management, archiving and deletion"*) — while `launch:record` stays the
+   * administrator's alone, asserted beside it so the two cannot be confused.
+   */
+  it('does NOT make launch:rehearse privileged — it is person-only, and owner, collaborator and admin hold it', () => {
+    expect(isPrivileged('launch:rehearse')).toBe(false)
+    expect(isPersonOnly('launch:rehearse')).toBe(true)
+    expect(capabilitiesFor('owner', 'member').has('launch:rehearse')).toBe(true)
+    expect(capabilitiesFor('collaborator', 'member').has('launch:rehearse')).toBe(true)
+    expect(capabilitiesFor(null, 'admin').has('launch:rehearse')).toBe(true)
+    // A stranger holds nothing, this included.
+    expect(capabilitiesFor(null, 'member').has('launch:rehearse')).toBe(false)
+    // And the RECORDS are unchanged: the rehearsal did not ride in on `launch:record`.
+    expect(capabilitiesFor('owner', 'member').has('launch:record')).toBe(false)
+    expect(capabilitiesFor('collaborator', 'member').has('launch:record')).toBe(false)
+  })
+
   it('gives a platform admin the three admin capabilities, and no role holds secret read', () => {
     const admin = capabilitiesFor(null, 'admin')
     expect(admin.has('release:approve')).toBe(true)

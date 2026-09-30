@@ -298,11 +298,12 @@ export const ERROR_CODES = {
    * D24's PERSON-ONLY class (P6b Task 2), and the SIXTH `403` on this API. Distinct from
    * `TOKEN_CREDENTIAL_REFUSED` (a route no token may use at all) and from
    * `TOKEN_ACTION_PENDING` (a question a person can confirm): this one is a dead end by
-   * design, because each action is a record that a named person decided.
+   * design, because each action is a person's to do — a record of what they decided, or (since
+   * the launch path plan's Task 6b) the pre-production rehearsal they run.
    */
   TOKEN_PERSON_ONLY: api(
     403,
-    'A delegated token asked for a person-only action (D24) — approving a release, or recording UBC’s IAM or privacy decision. Refused outright; no pending action is created.',
+    'A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.',
     'A person does this, in the console, in their own session. No token can hold it and no confirmation grants it — do not ask for one.',
   ),
   // GET /v1/docs/{slug} (the authoring API plan's Task 11)
@@ -359,7 +360,7 @@ export const ERROR_CODES = {
     'Send one credential: the session cookie from a browser, or `Authorization: Bearer` from a program — never both.',
   ),
   TOKEN_CAPABILITY_FORBIDDEN: bad(
-    'A mint asked for one of D24’s four privileged capabilities, or for one of its two person-only ones; the message names which.',
+    'A mint asked for one of D24’s four privileged capabilities, or for a person-only one; the message names which.',
     'Mint the token without them. A privileged action is granted to a token one request at a time, by a person’s confirmation (`TOKEN_ACTION_PENDING`); a person-only one never is.',
   ),
   // The authoring API plan's Task 8: its own code, so an agent told it stops asking.

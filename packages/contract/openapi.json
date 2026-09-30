@@ -5021,7 +5021,7 @@
           "launch"
         ],
         "summary": "Run the pre-production rehearsal",
-        "description": "D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.",
+        "description": "D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. **Who may run it:** the project’s owner, a collaborator or a platform administrator, each in their own signed-in session and with no second sign-in — never a delegated token (`403 TOKEN_CREDENTIAL_REFUSED`, whatever the token holds); anyone else is told the project does not exist (`404 NOT_FOUND`). Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.",
         "security": [
           {
             "session": []
@@ -5087,7 +5087,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5099,7 +5099,6 @@
         },
         "x-manifest-error-codes": [
           "CSRF_ORIGIN_REFUSED",
-          "FORBIDDEN",
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
@@ -5965,7 +5964,7 @@
           "tokens"
         ],
         "summary": "Mint a delegated token",
-        "description": "D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.",
+        "description": "D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.",
         "security": [
           {
             "session": []
@@ -9502,9 +9501,9 @@
           "TOKEN_ACTION_PENDING": "A delegated token asked for one of D24’s privileged four; `pendingAction` is the question a person must answer.",
           "TOKEN_ACTION_REJECTED": "A person refused this exact request. `pendingAction.reason` is why, in their words; retrying it will not change the answer.",
           "TOKEN_ALREADY_MINTED": "A mint was retried with its Idempotency-Key: the first request minted the token named, and its secret was shown to that request alone and is not kept.",
-          "TOKEN_CAPABILITY_FORBIDDEN": "A mint asked for one of D24’s four privileged capabilities, or for one of its two person-only ones; the message names which.",
+          "TOKEN_CAPABILITY_FORBIDDEN": "A mint asked for one of D24’s four privileged capabilities, or for a person-only one; the message names which.",
           "TOKEN_CREDENTIAL_REFUSED": "A valid delegated token asked for something D24 reserves to an interactive session.",
-          "TOKEN_PERSON_ONLY": "A delegated token asked for a person-only action (D24) — approving a release, or recording UBC’s IAM or privacy decision. Refused outright; no pending action is created.",
+          "TOKEN_PERSON_ONLY": "A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.",
           "UNAUTHENTICATED": "The request carries no valid credential — no session, or a delegated token that is unknown, revoked or expired.",
           "WEBHOOKS_NOT_CONFIGURED": "This control plane runs the local source driver, which receives no webhooks.",
           "WEBHOOK_PAYLOAD_INVALID": "A correctly signed delivery whose body is not a JSON object, or which lacks X-GitHub-Delivery or X-GitHub-Event.",
@@ -15668,7 +15667,7 @@
             "maxLength": 64
           },
           "capabilities": {
-            "description": "The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve or launch:record, which are person-only and refused outright.",
+            "description": "The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only and refused outright.",
             "minItems": 1,
             "type": "array",
             "items": {
@@ -15688,6 +15687,7 @@
                 "release:promote",
                 "release:approve",
                 "launch:record",
+                "launch:rehearse",
                 "quota:set",
                 "secret:read"
               ]
@@ -18254,7 +18254,7 @@
     },
     "TOKEN_CAPABILITY_FORBIDDEN": {
       "status": 400,
-      "summary": "A mint asked for one of D24’s four privileged capabilities, or for one of its two person-only ones; the message names which.",
+      "summary": "A mint asked for one of D24’s four privileged capabilities, or for a person-only one; the message names which.",
       "remedy": "Mint the token without them. A privileged action is granted to a token one request at a time, by a person’s confirmation (`TOKEN_ACTION_PENDING`); a person-only one never is."
     },
     "TOKEN_CREDENTIAL_REFUSED": {
@@ -18264,7 +18264,7 @@
     },
     "TOKEN_PERSON_ONLY": {
       "status": 403,
-      "summary": "A delegated token asked for a person-only action (D24) — approving a release, or recording UBC’s IAM or privacy decision. Refused outright; no pending action is created.",
+      "summary": "A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.",
       "remedy": "A person does this, in the console, in their own session. No token can hold it and no confirmation grants it — do not ask for one."
     },
     "UNAUTHENTICATED": {

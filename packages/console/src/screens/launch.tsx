@@ -30,10 +30,13 @@ import {
  * second source of truth this project has paid for seven times (P3, ORIENTATION §9).
  * `launch/readiness.ts` computes it; this renders it.
  *
- * **EVERY ACTION IS AN ADMINISTRATOR'S, AND HIDING IT FROM EVERYONE ELSE IS AN AFFORDANCE,
- * NEVER A CONTROL** — the Fleet link's rule (`app.tsx`). The two records and the rehearsal
- * need `launch:record` in an interactive session (P6a Decision 4) and the platform refuses
- * anybody else `403`; an owner reading this panel is told who acts by each item's `owner`.
+ * **EVERY ACTION BUT THE REHEARSAL IS AN ADMINISTRATOR'S, AND HIDING IT FROM EVERYONE ELSE IS
+ * AN AFFORDANCE, NEVER A CONTROL** — the Fleet link's rule (`app.tsx`). The two records need
+ * `launch:record` in an interactive session (P6a Decision 4) and the platform refuses anybody
+ * else `403`; an owner reading this panel is told who acts by each item's `owner`. **The
+ * rehearsal is EVERYONE's who can read this panel** since the launch path plan's Task 6b: the
+ * owner, a collaborator and an administrator all hold `launch:rehearse`, and a stranger is
+ * refused the project before this screen renders.
  */
 export function Launch({
   api,
@@ -74,14 +77,13 @@ export function Launch({
           launchedAt={launchedAt}
           actions={{
             ...approvalAction(readiness.value, isAdmin),
-            ...(isAdmin
-              ? adminActions({
-                  api,
-                  projectId,
-                  readiness: readiness.value,
-                  onChanged: readiness.reload,
-                })
-              : {}),
+            ...rehearsalAction({
+              api,
+              projectId,
+              readiness: readiness.value,
+              onChanged: readiness.reload,
+            }),
+            ...(isAdmin ? adminActions(projectId) : {}),
           }}
         />
       )}
@@ -98,8 +100,23 @@ export function Launch({
  *   the second is changed by building again, which the Builds panel above already does.
  * - **`admin-approval` is `approvalAction`'s** below, because it is not an administrator's
  *   alone: an owner may READ the decision, in the administrator's own words.
+ * - **`rehearsal` is `rehearsalAction`'s**, because since the launch path plan's Task 6b it is
+ *   not an administrator's alone either: it is anybody's who can read this checklist.
  */
-function adminActions({
+function adminActions(projectId: string): Partial<Record<LaunchItemId, React.ReactNode>> {
+  const records = href(`/projects/${projectId}/records`)
+  return {
+    'iam-registration': <a {...records}>Record what UBC IAM said</a>,
+    'privacy-assessment': <a {...records}>Record what the Privacy Office said</a>,
+  }
+}
+
+/**
+ * D21's rehearsal, for EVERYONE who can read this checklist (the launch path plan's Task 6b): the
+ * owner, a collaborator and an administrator hold `launch:rehearse`. An affordance like the rest —
+ * the platform refuses a delegated token, and a launched app has no `rehearsal` item to act on.
+ */
+function rehearsalAction({
   api,
   projectId,
   readiness,
@@ -110,24 +127,19 @@ function adminActions({
   readiness: Schemas['LaunchReadiness']
   onChanged: () => void
 }): Partial<Record<LaunchItemId, React.ReactNode>> {
-  const records = href(`/projects/${projectId}/records`)
   const rehearsal = readiness.items.find((i) => i.id === 'rehearsal')
-  return {
-    'iam-registration': <a {...records}>Record what UBC IAM said</a>,
-    'privacy-assessment': <a {...records}>Record what the Privacy Office said</a>,
-    ...(rehearsal === undefined
-      ? {}
-      : {
-          rehearsal: (
-            <RunRehearsal
-              api={api}
-              projectId={projectId}
-              again={rehearsal.state === 'met'}
-              onDone={onChanged}
-            />
-          ),
-        }),
-  }
+  return rehearsal === undefined
+    ? {}
+    : {
+        rehearsal: (
+          <RunRehearsal
+            api={api}
+            projectId={projectId}
+            again={rehearsal.state === 'met'}
+            onDone={onChanged}
+          />
+        ),
+      }
 }
 
 /**

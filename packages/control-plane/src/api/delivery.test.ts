@@ -1,15 +1,22 @@
+import { randomUUID } from 'node:crypto'
 import { beforeEach, afterAll, describe, expect, it, vi } from 'vitest'
 import { asc, count, eq } from 'drizzle-orm'
-import { appSpecs, builds, events, releases } from '../db/index.js'
+import { appSpecs, builds, events, rehearsals, releases } from '../db/index.js'
+import { ensureTestUser } from '../identity/testing.js'
+import { addMember } from '../projects/index.js'
+import { mintTestToken } from '../tokens/testing.js'
 import type { StreamFrame } from '../observability/index.js'
 import { registerBackgroundWork, resetDatabase } from '../db/testing.js'
 import { createFakeDriver, type Driver } from '../runtime/index.js'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
-import { buildServer } from './server.js'
+import { buildServer, type ServerDeps } from './server.js'
 import {
   approvedProject,
   builtProject,
   commitManifest,
+  CWL_LAUNCH_ATTRIBUTES,
+  cwlFakes,
+  cwlManifest,
   loginAs,
   mutationHeaders,
   projectBody,
@@ -1312,5 +1319,267 @@ describe('a build uses the validation of the commit it builds (Task 7)', () => {
       // It was validated — and recorded invalid — once.
       expect(await rowsFor(ctx, invalid)).toBe(1)
     })
+  })
+})
+
+/**
+ * WHO MAY RUN D21'S REHEARSAL (the launch path plan's Task 6b; the faculty front-end's FE-42, Rich's
+ * option (a), 2026-09-29): the project's OWNER, a COLLABORATOR (§13: *"same as owner except member
+ * management, archiving and deletion"*) or a platform administrator — each in their own session,
+ * and never a delegated token. Until this task only an administrator could: the front-end's owner
+ * pressing *Run the dry run* was answered `403 FORBIDDEN`, *"role 'owner' may not 'launch:record'"*.
+ * Its own capability, `launch:rehearse`, because running a measurement is not RECORDING what UBC
+ * decided — that stays an administrator's (§9), and the last case holds it so.
+ *
+ * A CWL app over `cwlFakes`, the unit tier's two labelled fakes, and for their reason: only a CWL
+ * app is rehearsed, and the subject here is WHO may run one — never the registration or the
+ * sign-in themselves, which the Docker tier measures.
+ */
+describe('who may run D21’s rehearsal (§13, D24)', () => {
+  /** A CWL app whose release is serving staging — the rehearsal's candidate — through the routes. */
+  async function stagedCwlProject(slug: string) {
+    const base = await testDeps()
+    const deps: ServerDeps = { ...base, ...cwlFakes(base) }
+    const app = await buildServer(deps)
+    const cookies = await loginAs(deps, 'bio_prof')
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      payload: projectBody(slug, { blueprint: 'node-ts-mongo@1' }),
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    if (created.statusCode !== 201)
+      throw new Error(
+        `creating '${slug}' answered ${created.statusCode}: ${created.body}`,
+      )
+    const project = created.json() as {
+      id: string
+      slug: string
+      environments: { id: string; kind: string }[]
+    }
+    await commitManifest(
+      { app, deps, cookies, project },
+      cwlManifest(slug, CWL_LAUNCH_ATTRIBUTES),
+      'feat: sign in with CWL',
+    )
+    const post = (url: string, payload: Record<string, unknown>) =>
+      app.inject({
+        method: 'POST',
+        url,
+        payload,
+        cookies,
+        headers: mutationHeaders(deps),
+      })
+    const started = await post(`/v1/projects/${project.id}/builds`, {})
+    if (started.statusCode !== 202)
+      throw new Error(`the CWL build answered ${started.statusCode}: ${started.body}`)
+    await deps.builds.idle()
+    const release = await post(`/v1/projects/${project.id}/releases`, {
+      buildId: (started.json() as { id: string }).id,
+    })
+    if (release.statusCode !== 201)
+      throw new Error(`the CWL release answered ${release.statusCode}: ${release.body}`)
+    const staging = project.environments.find((e) => e.kind === 'staging')!
+    const staged = await post(`/v1/environments/${staging.id}/deploy`, {
+      releaseId: (release.json() as { id: string }).id,
+    })
+    if (staged.statusCode !== 200 || staged.json().state !== 'healthy')
+      throw new Error(
+        `the CWL staging deploy answered ${staged.statusCode}: ${staged.body}`,
+      )
+    return {
+      app,
+      deps,
+      cookies,
+      project,
+      releaseId: (release.json() as { id: string }).id,
+    }
+  }
+
+  function rehearse(
+    ctx: Awaited<ReturnType<typeof stagedCwlProject>>,
+    credential: { cookies: Record<string, string> } | { bearer: string },
+  ) {
+    return ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.project.id}/rehearsal`,
+      ...('cookies' in credential
+        ? { cookies: credential.cookies, headers: mutationHeaders(ctx.deps) }
+        : {
+            headers: {
+              authorization: `Bearer ${credential.bearer}`,
+              'idempotency-key': randomUUID(),
+            },
+          }),
+    })
+  }
+
+  /** What a rehearsal MEASURED — everything but its own id and clock, which differ run to run. */
+  function measured(body: Record<string, unknown>) {
+    const {
+      id: _id,
+      ranAt: _ranAt,
+      evidence,
+      ...rest
+    } = body as {
+      id: string
+      ranAt: string
+      evidence: Record<string, unknown>
+    }
+    const { instanceId: _instanceId, ...measurement } = evidence
+    return { ...rest, evidence: measurement }
+  }
+
+  async function rehearsalCount(ctx: Awaited<ReturnType<typeof stagedCwlProject>>) {
+    const [row] = await ctx.deps.db
+      .select({ n: count() })
+      .from(rehearsals)
+      .where(eq(rehearsals.projectId, ctx.project.id))
+    return row?.n ?? -1
+  }
+
+  it('the OWNER’s rehearsal answers as the administrator’s does — a real rehearsal, 200 and passed, which meets the checklist item', async () => {
+    const ctx = await stagedCwlProject('fe42-owner')
+    try {
+      // The owner's ORDINARY session — no step-up: §20's list does not include the rehearsal.
+      const owner = await rehearse(ctx, { cookies: ctx.cookies })
+      expect(refusal(owner)).toEqual({ status: 200, code: undefined })
+      expect(owner.json()).toMatchObject({
+        projectId: ctx.project.id,
+        releaseId: ctx.releaseId,
+        passed: true,
+        attributes: [...CWL_LAUNCH_ATTRIBUTES],
+        evidence: {
+          listener: 'public',
+          attributesReleased: [...CWL_LAUNCH_ATTRIBUTES],
+        },
+      })
+      // A REHEARSAL THAT COUNTS: the owner's run meets the item a launch is gated on, in the
+      // owner's own reading of the checklist.
+      const readiness = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.project.id}/launch-readiness`,
+        cookies: ctx.cookies,
+      })
+      const item = (readiness.json().items as { id: string; state: string }[]).find(
+        (i) => i.id === 'rehearsal',
+      )
+      expect(item?.state).toBe('met')
+
+      // THE ADMINISTRATOR'S, ON THE SAME CANDIDATE — the comparison the brief names: the same
+      // measurement, whoever pressed the button.
+      const admin = await rehearse(ctx, {
+        cookies: await loginAs(ctx.deps, 'platform_admin'),
+      })
+      expect(refusal(admin)).toEqual({ status: 200, code: undefined })
+      expect(measured(owner.json())).toEqual(measured(admin.json()))
+      expect(await rehearsalCount(ctx)).toBe(2)
+    } finally {
+      await ctx.deps.builds.idle()
+      await ctx.app.close()
+    }
+  })
+
+  it('a COLLABORATOR may run it too (§13: same as owner except membership, archiving and deletion)', async () => {
+    const ctx = await stagedCwlProject('fe42-collab')
+    try {
+      const user = await ensureTestUser(ctx.deps.db, 'bio_student')
+      await addMember(ctx.deps.db, ctx.project.id, user.id, 'collaborator')
+      const res = await rehearse(ctx, { cookies: await loginAs(ctx.deps, 'bio_student') })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      expect(res.json()).toMatchObject({ releaseId: ctx.releaseId, passed: true })
+    } finally {
+      await ctx.deps.builds.idle()
+      await ctx.app.close()
+    }
+  })
+
+  /**
+   * PERSONS ONLY (Rich's option (a)): a token holding `launch:rehearse` — written STRAIGHT TO THE
+   * STORE, since the mint route refuses it (`api/person-only.test.ts`) — is refused for its
+   * CREDENTIAL CLASS by `requireSession`, before the capability or the project is read, and runs
+   * nothing. The central rule behind it (`TOKEN_PERSON_ONLY`) is the probe's, in that file.
+   */
+  it('refuses a delegated token — even one holding launch:rehearse — 403 TOKEN_CREDENTIAL_REFUSED, and runs nothing', async () => {
+    const ctx = await stagedCwlProject('fe42-token')
+    try {
+      const owner = await ensureTestUser(ctx.deps.db, 'bio_prof')
+      const { plaintext } = await mintTestToken(ctx.deps.db, {
+        userId: owner.id,
+        projectId: ctx.project.id,
+        capabilities: ['project:read', 'launch:rehearse'],
+      })
+      const res = await rehearse(ctx, { bearer: plaintext })
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' })
+      expect(await rehearsalCount(ctx)).toBe(0)
+    } finally {
+      await ctx.deps.builds.idle()
+      await ctx.app.close()
+    }
+  })
+
+  it('tells a stranger the project does not exist: 404 NOT_FOUND, and runs nothing', async () => {
+    const ctx = await stagedCwlProject('fe42-stranger')
+    try {
+      const res = await rehearse(ctx, {
+        cookies: await loginAs(ctx.deps, 'unrelated_user'),
+      })
+      expect(refusal(res)).toEqual({ status: 404, code: 'NOT_FOUND' })
+      expect(await rehearsalCount(ctx)).toBe(0)
+    } finally {
+      await ctx.deps.builds.idle()
+      await ctx.app.close()
+    }
+  })
+
+  /**
+   * THE RECORDS ARE UNCHANGED (§9): what UBC IAM and the Privacy Office decided is still recorded by
+   * an administrator alone — the rehearsal was given its own capability rather than riding in on
+   * `launch:record`, and this is the case that would see the other choice. The administrator's
+   * record is the positive control, on the same project.
+   */
+  it('still refuses the OWNER both records — 403 FORBIDDEN naming launch:record — and the administrator records', async () => {
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
+    try {
+      const iam = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${project.id}/launch-records/iam-registration`,
+        payload: {
+          entityId: `https://manifest.internal/sp/${project.slug}/production`,
+          acsUrl: `https://${project.slug}.manifest.internal/auth/ubcshib/callback`,
+          sloUrl: `https://${project.slug}.manifest.internal/auth/logout`,
+          registeredAttributes: [...CWL_LAUNCH_ATTRIBUTES],
+          state: 'submitted',
+          externalTicketRef: 'IAM-FE42',
+        },
+        cookies,
+        headers: mutationHeaders(deps),
+      })
+      const pia = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${project.id}/launch-records/privacy-assessment`,
+        payload: { state: 'submitted', externalTicketRef: 'PIA-FE42' },
+        cookies,
+        headers: mutationHeaders(deps),
+      })
+      for (const res of [iam, pia]) {
+        expect(refusal(res)).toEqual({ status: 403, code: 'FORBIDDEN' })
+        expect((res.json() as { error: { message: string } }).error.message).toContain(
+          "may not 'launch:record'",
+        )
+      }
+      const recorded = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${project.id}/launch-records/privacy-assessment`,
+        payload: { state: 'submitted', externalTicketRef: 'PIA-FE42' },
+        cookies: await loginAs(deps, 'platform_admin'),
+        headers: mutationHeaders(deps),
+      })
+      expect(refusal(recorded)).toEqual({ status: 200, code: undefined })
+    } finally {
+      await deps.builds.idle()
+      await app.close()
+    }
   })
 })

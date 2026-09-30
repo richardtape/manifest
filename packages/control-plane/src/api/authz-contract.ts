@@ -1354,8 +1354,11 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
-   * D21's rehearsal (P6a Task 14). `launch:record`'s third route, and the same actor
-   * answers as the other two: an administrator alone, in an interactive session.
+   * D21's rehearsal (P6a Task 14). **`launch:rehearse` since the launch path plan's Task 6b**
+   * (the faculty front-end's FE-42, Rich's option (a)): the OWNER, a COLLABORATOR (§13) and an
+   * administrator each answer as the administrator alone did before, in an interactive session —
+   * and every token is still refused for its credential class. Until Task 6b this was
+   * `launch:record`'s third route, and the owner and collaborator rows read `403`.
    *
    * **THE `409` IS `REHEARSAL_NO_CANDIDATE`, and that is a fact about WHERE THIS ROW SITS.**
    * Nothing in this suite deploys to staging before it — the deploy rows are below — so no
@@ -1368,8 +1371,10 @@ const ROUTES: RouteCase[] = [
     url: '/v1/projects/:projectId/rehearsal',
     request: (f) => ({ url: `/v1/projects/${f.projectId}/rehearsal` }),
     expect: {
-      owner: 403,
-      collaborator: 403,
+      // THE SAME ANSWER AS THE ADMINISTRATOR'S, NAMED for the reason given there: each reaches the
+      // candidate check, which is the proof that the capability let them through.
+      owner: { status: 409, code: 'REHEARSAL_NO_CANDIDATE' },
+      collaborator: { status: 409, code: 'REHEARSAL_NO_CANDIDATE' },
       stranger: 404,
       // **NAMED, because a bare `409` in this table means `RELEASE_PRODUCTION_GATE_
       // UNAVAILABLE`** — `REFUSAL_CODE` maps one code per status, so a bare number here
@@ -1379,8 +1384,8 @@ const ROUTES: RouteCase[] = [
       admin: { status: 409, code: 'REHEARSAL_NO_CANDIDATE' },
       anonymous: 401,
       // Refused for the CREDENTIAL CLASS before any capability is read, like the two
-      // records above — and `token-capable` holds `launch:record`, which is what makes
-      // this row mean anything rather than being a statement about a capability nobody has.
+      // records above — and `token-capable` holds `launch:rehearse` (Task 6b), which is what
+      // makes this row mean anything rather than being a statement about a capability nobody has.
       'token-capable': SESSION_ONLY,
       'token-incapable': SESSION_ONLY,
       'token-other-project': SESSION_ONLY,
@@ -2217,6 +2222,11 @@ export function describeAuthorizationContract(
         // like. `requireSession` answers first on both record routes, so no row's
         // expectation moves; `api/person-only.test.ts` is what sees the central rule.
         'launch:record',
+        // The launch path plan's Task 6b: `runRehearsal` asserts `launch:rehearse`, PERSON-ONLY
+        // and so not mintable either — written straight to the store for the same reason as
+        // `launch:record` above, so the rehearsal row's `SESSION_ONLY` is the credential class
+        // refusing a token that HOLDS it.
+        'launch:rehearse',
         // The authoring API plan's Task 6: `createCommit` asserts `source:write`, which the
         // mint route WOULD give this owner's token (it is neither privileged nor person-only).
         // Without it here the row's `token-capable: 'pass'` would be a `403` — and with it
@@ -2634,8 +2644,9 @@ export function describeAuthorizationContract(
      * through `refusedWhenArchived` — the predicate `assertCapability` itself refuses by — and THIS is
      * what holds the derivation to the answers: the fixture project ARCHIVED, every row asked again
      * as its owner and as an administrator (unstepped: the state is refused before step-up, and the
-     * administrator is who holds `launch:record` and `release:approve`), and the operations that
-     * answered `PROJECT_ARCHIVED` compared with the operations the PUBLISHED DOCUMENT says can.
+     * administrator is who holds `launch:record` and `release:approve`, while both hold
+     * `launch:rehearse`), and the operations that answered `PROJECT_ARCHIVED` compared with the
+     * operations the PUBLISHED DOCUMENT says can.
      * Declared and never answered would be a document that lies; answered and not declared, one
      * that says nothing — which is what it did.
      *

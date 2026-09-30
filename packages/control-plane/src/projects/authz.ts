@@ -84,6 +84,21 @@ export const CAPABILITIES = [
    * the central rule is reached — two layers, two codes.
    */
   'launch:record',
+  /**
+   * RUNNING D21'S PRE-PRODUCTION REHEARSAL — `runRehearsal` (the launch path plan's Task 6b; the
+   * faculty front-end's FE-42, Rich's option (a), 2026-09-29). The project's OWNER, a COLLABORATOR
+   * (§13: *"same as owner except member management, archiving and deletion"*) and an administrator
+   * hold it; until this task the route asserted `launch:record`, and an owner pressing the button
+   * was answered `403`. **ITS OWN CAPABILITY, NOT `launch:record`**, because a rehearsal is a
+   * MEASUREMENT the platform takes, and `launch:record` is recording what UBC decided — an
+   * administrator's (§9, R1), and it stays so.
+   *
+   * **PERSON-ONLY** (`PERSON_ONLY` below), by the same decision: persons only, never a delegated
+   * token — it deploys a candidate into production with production-shaped values. The route calls
+   * `requireSession` first (`403 TOKEN_CREDENTIAL_REFUSED`), and the central rule refuses a token
+   * holding it whatever the route does. NOT step-up guarded: §20's list does not name it.
+   */
+  'launch:rehearse',
   'quota:set',
 ] as const
 
@@ -135,11 +150,19 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
  * refuses. And refused with its OWN code, `TOKEN_PERSON_ONLY`, so that removing either the
  * central rule or a route's `requireSession` turns a test red (P6b Decision 14). DISJOINT from
  * `PRIVILEGED` by construction, and `person-only.test.ts` holds it so.
+ *
+ * **AND RUNNING D21'S REHEARSAL, `launch:rehearse`, SINCE THE LAUNCH PATH PLAN'S TASK 6b** — by
+ * Rich's option (a) on 2026-09-29 (the faculty front-end's FE-42): persons only. It is not a record
+ * of a decision — it is a measurement that deploys into production — so the reason above is not
+ * its reason; *a person runs it, in their own session* is. **D24's clause naming it is DRAFTED for
+ * his approval and not yet applied**, so until it is this set is D24's three plus this one, and
+ * `person-only.test.ts` names it apart from them.
  */
 export const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
   'release:approve',
   'launch:record',
   'project:delete',
+  'launch:rehearse',
 ])
 
 export function isPersonOnly(capability: PrivilegedCapability): boolean {
@@ -376,10 +399,13 @@ const OWNER: readonly Capability[] = [
   'release:create',
   'release:deploy',
   'release:promote',
+  // D21's rehearsal (Task 6b, FE-42): the owner's, so the collaborator's and the administrator's.
+  'launch:rehearse',
 ]
 
 // §13: "same as owner except member management and deletion" — and not promotion,
-// which is the owner's decision about their own students (D24, P5b Task 2).
+// which is the owner's decision about their own students (D24, P5b Task 2). The rehearsal
+// STAYS (Task 6b): it puts nothing in front of students, which is why promotion is filtered.
 const COLLABORATOR: readonly Capability[] = OWNER.filter(
   (cap) =>
     cap !== 'members:manage' && cap !== 'project:delete' && cap !== 'release:promote',
@@ -455,8 +481,10 @@ export class PersonOnlyRefusedError extends Error {
     readonly projectId: string,
     readonly tokenId: string,
   ) {
+    // "A person's to do" and not "a record that a named person decided": since Task 6b the class
+    // holds the rehearsal, which is a measurement a person runs rather than a decision recorded.
     super(
-      `'${capability}' is a record that a named person decided (D24): no delegated token may ` +
+      `'${capability}' is a person's to do, in their own session (D24): no delegated token may ` +
         'hold it, and no confirmation can grant it',
     )
     this.name = 'PersonOnlyRefusedError'
