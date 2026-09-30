@@ -2387,7 +2387,11 @@ passes `Git-Protocol` through for upload-pack; its default is unchanged because 
 subnetted`. The demos' and the front-end's app networks accumulate (an app's three environments are up to three networks), and every
 Docker-tier run leaves seven dead ones — so the tier went red in `runtime/docker/driver.docker.test.ts` and `networks.docker.test.ts` at
 33 networks, and both were 40 of 40 alone after `bash scripts/dead-app-resources.sh --apply`. **Count `docker network ls -q | wc -l`
-before a tier; run the cleanup first if it is near 30.**
+before a tier; run the cleanup first if it is near 30.** **And at 26 with NOTHING dead, it still goes red** (the launch path plan's sitting 4a, 2026-09-30: the same
+two files, at 33): the 14 `mf-` networks of apps whose rows a test run truncated (the demos', the front-end's, `f5-reading`'s three) are
+not dead — their containers hold them — and they leave ~5 networks of headroom where a tier needs 7. From 26, expect those two reds,
+run `bash scripts/dead-app-resources.sh --apply` (the tier's own seven), and re-run the two files alone (40 of 40, ~220 s). Removing
+those apps' containers, or widening Docker Desktop's address pools, is Rich's.
 
 **LITELLM 1.98.0 NAMES A PROVIDER'S 401, 403, 404, 408, 413 AND 422 ALL `BadRequestError`** when the body carries OpenAI's
 `invalid_request_error` (`exception_mapping_utils.py`, before its status branch) — and `metadata.previous_models` keeps only the class NAME

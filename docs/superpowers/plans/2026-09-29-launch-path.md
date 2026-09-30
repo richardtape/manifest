@@ -86,8 +86,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 2 | 2, 3 | **What real GitHub found**, fixed: a repository left behind by a create that failed after GitHub made it; a project made against the fake refused on the real App, and the reverse (`source_repositories.api_host`); the demos refusing real GitHub by name; `scripts/github-real-repos.sh`; RUNBOOK's real-App section written from the run. **And F26**: every retirer and build runner a test builds, drained before `resetDatabase`'s `TRUNCATE` | **Yes** — `source/` | none | **DONE 2026-09-29**, after Rich approved the plan — subagent-driven: Step 0 first and alone (the tiers refuse a real GitHub, watched with the day's rows still in the tables); a failed create destroys what the driver made; `api_host` (migration `0040`, never published); the boot leaves another GitHub's mirror alone; the demos refuse real GitHub by name; `github-real-repos.sh`; F26 drained centrally (`delivery.test.ts` 1 of 8 red before, 0 of 8 after); **Step 6 on real GitHub green** (`lp-real-b` made with `api.github.com`, deleted, gone); one whole-branch review and its fix wave; Rich's demo paused it (F14) |
 | 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | **DONE 2026-09-29** — subagent-driven, after Rich's answers (FE-40 confirmed; the database dumped first): `0041` and `Instance.createdAt`, **contract `1.5.0`** (the plan's one bump); the stream registry — `4401` at a revoke, an archive's revoke and an expiry (token AND session), a delete's `4404` at the tombstone, **the authorization → registration race window closed and held by a deterministic lock test**; one fix round per task, one whole-branch review beside the Docker tier, one fix wave; the front-end told at every contract commit and adopted `1.5.0` |
 | 4 | 6, 6a | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich. **And FE-41 (Task 6a, Rich's, after sitting 3's close): a project created WITH a starter on real GitHub — reproduced at his yes, logged, fixed on driver 2, held by a test** | **Yes** — `ai/`, `infra/`, `source/` | **Spec action 6** — ✅ **DECIDED by Rich: option (a)** (2026-09-29, after sitting 3's close: *"(a) is good"*); **APPLIED by sitting 4 before Task 6** (`0ebe514`); Task 6a needs none | **DONE 2026-09-29/30** — subagent-driven: **FE-41's premise false** (not the starter — real GitHub refuses a repository it made seconds ago, 403/404 in four measured shapes); driver 2's create retries its seed push and first fetch by STATUS, one ≤30 s budget, a fresh token per retry, and forgets a slug's stale tokens first; a failed create logged; on github.com 6 of 7 failed before, 5 of 5 after (2 retried). **Spec action 6 applied**; the **fallback guard** (`manifest_guard.py`) refuses a fallback after a provider's 400/413/422, read from the request's own logging object, lets 401/403/404/408/429/5xx fall back — streamed too; `make verify` 62. F8 (`422` → `200 null`) stands, LiteLLM's — for Rich |
-| 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich. **A TOKEN MAY NOT RUN IT — Rich's (a), PERSONS ONLY** (relayed by `manifest-73`, his session for 4a, 2026-09-29: owner, collaborators and administrators from an interactive session; a delegated token stays refused, SESSION_ONLY as today; one D24 clause is DRAFTED as a spec action for his later approval — it does not block 4a) | ← **next** |
-| 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | |
+| 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich. **A TOKEN MAY NOT RUN IT — Rich's (a), PERSONS ONLY** (relayed by `manifest-73`, his session for 4a, 2026-09-29: owner, collaborators and administrators from an interactive session; a delegated token stays refused, SESSION_ONLY as today; one D24 clause is DRAFTED as a spec action for his later approval — it does not block 4a); **Spec action 8 drafted by 4a — its premise RE-ASKED** (the rehearsal leaves the unapproved candidate on production's public listener) | **DONE 2026-09-30** — subagent-driven: Step 1 read by the controller (no spec text names who triggers it — no stop); **`launch:rehearse`**, in `OWNER` (collaborator and administrator inherit it), person-only, not step-up; `runRehearsal`'s description says who may run it and drops `FORBIDDEN`; the owner still refused `launch:record`; contract `1.5.0` (the enum gains it); the front-end told first; **the whole-branch review found the rehearsal leaves an UNAPPROVED candidate serving production's public listener until the launch — Rich's (a) had rested on the controller's wrong *"nothing is public"*, so Spec action 8 re-asks it** (`fa02bbc` stands meanwhile); one wave: the published person-only lists held by a test, the journey's launch row split, comments made true |
+| 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | ← **next** |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** | |
@@ -199,7 +199,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 **Ten things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
 
 1. ~~**Review this plan, and approve or re-cut the sittings split**~~ **DONE — approved as written, thirteen sittings** (Rich, 2026-09-29, sitting 2's first message).
-2. **Read and decide the seven spec actions** (the seventh, FE-39's, relayed — item 9) (*Spec actions*, below), each **before the sitting that builds it**: **1 and 2 before
+2. **Read and decide the spec actions** (the seventh, FE-39's, relayed — item 9; the eighth, drafted by sitting 4a, re-asks FE-42's premise) (*Spec actions*, below), each **before the sitting that builds it**: **1 and 2 before
    sitting 5; 3 before sitting 6; 4 before sitting 7; 5 before sitting 9; 6 before sitting 4, and only if Task 1's `[M5]` finds a
    guard can be built.** Each carries its exact wording, its options and a recommendation, and is applied to the spec only after he
    has read the words. A sitting that finds one undecided stops and asks.
@@ -700,7 +700,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Tests that run `git` set their own identity and ignore the machine's config**: `-c user.name=… -c user.email=… -c
   commit.gpgsign=false`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=/dev/null`.
 - **Nothing in this plan installs an external package.** A task that believes it needs one records a finding and raises it.
-- **Ask before `sudo`.** No task needs it. **Never edit the spec** — the seven spec actions go to Rich. **Never touch Laravel
+- **Ask before `sudo`.** No task needs it. **Never edit the spec** — the spec actions go to Rich. **Never touch Laravel
   Valet.** These four containers must survive: `docker-simple-saml-saml-idp-1`, `qdrant-local-dev`, `mongodb`, `mongo-express`.
   **`caddy-data` must never be destroyed.** **`docker-simple-saml`, `ubc-genai-toolkit` and `saml-metadata-generator` are
   read-only** — Task 1 runs the tool's `generateMetadata` from a COPY in `$SCRATCH`, never in place.
@@ -1464,6 +1464,12 @@ case; `packages/github-fake` if the fake must learn GitHub's real behaviour (the
 ## Task 6b: FE-42 — the project's owner may run D21's rehearsal
 
 > **Added after sitting 3's close, confirmed by Rich** (the *FE-42* section above), as **its own small sitting, 4a**.
+>
+> **`[S4a]` (sitting 4a, 2026-09-30 — DONE, `fa02bbc` and `7814f75`):** Step 1 found no spec text naming who triggers the rehearsal;
+> `launch:rehearse` was built in `OWNER`, person-only, not step-up. **Step 1's *"the rehearsal does not touch production"* is FALSE**: it
+> deploys the unapproved candidate onto production's PUBLIC listener and nothing retires it until the launch (the whole-branch review's
+> I1; the record's F1) — so **Spec action 8 re-asks Rich who may run it and whether it should take itself down**; the published
+> description and `launching.md` step 2 still say *"behind the gate"* and change with his answer.
 
 **Files** (to be confirmed by Step 1): `packages/control-plane/src/api/routes/launch.ts` (`runRehearsal`'s `capability`, today
 `launch:record`, and its description — which must say who may run it), `src/projects/authz.ts` (`CAPABILITIES`, the role grants,
@@ -1703,6 +1709,15 @@ faculty member, which is the whole unit tier's `withProjectServer` owner.
 ---
 
 ## Task 9: The three clocks' records — the staging registration, "I've sent it", and *waiting since*
+
+> **`[S4a]` (sitting 4a, 2026-09-30 — Task 6b, `fa02bbc`, and its final wave): `launch:rehearse` IS ALREADY IN `CAPABILITIES`, `OWNER`
+> and `PERSON_ONLY`** (`projects/authz.ts`), and in the console's `everyCapability([...])` and its own `PERSON_ONLY` set
+> (`packages/console/src/screens/tokens.tsx`) — `launch:submit` goes beside it, and `person-only.test.ts`'s set keeps it. **The
+> published person-only lists are now HELD BY A TEST** (the sitting's final wave, the whole-branch review's I2): adding
+> `launch:submit` to `PERSON_ONLY` goes red until it is named in `mintToken`'s description (`api/routes/tokens.ts`),
+> `MintTokenRequest.capabilities`' (`api/representations/tokens.ts`), and — by the test's phrase map — the `TOKEN_PERSON_ONLY`
+> summary (`api/error-codes.ts`) and `docs/api/agents.md`'s *a person's alone* list. **Add all four to this task's Files**, and a phrase
+> for `launch:submit` to the test's map. (How `project:delete` went missing from two of them for a whole plan.)
 
 > **`[M8]` (Task 1, 2026-09-29 — F13, F14, F15):**
 > - **A draft recorded by an administrator FAILED the next SANDBOX build** (`SPEC_ATTRIBUTE_NOT_REGISTERED`, naming the four
@@ -2185,7 +2200,8 @@ lands, the submission routes have no client that can meet their precondition** �
   - *I've sent it*, and *waiting since*;
   - asking for sign-off;
   - what an administrator does with the queue;
-  - what a token may and may not do (`launch:draft` and `approval:request` yes; `launch:submit` and `launch:record` never).
+  - what a token may and may not do (`launch:draft` and `approval:request` yes; `launch:submit`, `launch:record` and `launch:rehearse`
+    never — the last since sitting 4a's Task 6b, and whatever Rich decides on Spec action 8 about who runs a rehearsal and what it leaves serving).
 - Modify: `docs/api/events.md` (`4401`, the new events), `docs/api/agents.md` (a narrowed session; the fallback's header),
   `docs/api/frontend.md` (removing a person; the queue is not the front-end's), `docs/api/conventions.md` (a field that says *since*)
 - Create: `packages/journey/src/example-launch-path.ts` (the guide's code, run against the mock) — **browser code where it is a
@@ -2302,7 +2318,7 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Spec actions
 
-**SIX, DRAFTED 2026-09-29 WITH THIS PLAN — AND A SEVENTH, FROM FE-39, DRAFTED AFTER SITTING 1'S CLOSE, ITS OPTIONS DECIDED BY RICH THE SAME EVENING AND APPLIED AT HIS WORD (Rich, 2026-09-29: *"apply 7"*); 1–6 NOT APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
+**SIX, DRAFTED 2026-09-29 WITH THIS PLAN — AND A SEVENTH, FROM FE-39, DRAFTED AFTER SITTING 1'S CLOSE, ITS OPTIONS DECIDED BY RICH THE SAME EVENING AND APPLIED AT HIS WORD (Rich, 2026-09-29: *"apply 7"*); 6 APPLIED BY SITTING 4 (`0ebe514`); AND AN EIGHTH, FROM FE-42, DRAFTED BY SITTING 4a (2026-09-30) — ITS PREMISE RE-ASKED OF RICH (who may run the rehearsal, and what it leaves serving); 1–5 AND 8 NOT APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
 only after he has read the words. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §6,
 §7, §9, §10, §13, §20, §26 and D24 in plain language, and each action below names the pages it moves.
 
@@ -2489,6 +2505,67 @@ affiliations). *Declined:* building open to every CWL holder.
 
 **Shared pages:** `manifest-decisions.html` — a sentence on who may build; `manifest-schematic.html`, where it describes who signs
 in; check the others.
+
+### 8. D24 and §20 — who may run D21's rehearsal, and what it leaves serving (drafted by sitting 4a, 2026-09-30) — NOT APPLIED; ITS PREMISE RE-ASKED
+
+**Why.** FE-42 (the faculty front-end's F5 sitting 1): a project's owner pressing *Run the dry run* was refused `403 FORBIDDEN`,
+*"role 'owner' may not 'launch:record'"*. Rich carried option (a) (*"Both: row now, ask platform"*; *"Yes, its own small sitting"*),
+and sitting 4a (Task 6b, `fa02bbc`) built it: `launch:rehearse`, held by the owner, a collaborator and an administrator, person-only,
+no step-up. Asked by sitting 4a's session *"may a delegated token run it too?"*, Rich answered **(a), PERSONS ONLY** (2026-09-29).
+
+**What that question left out — the whole-branch review's I1, verified by the controller.** The question told Rich the rehearsal
+deploys the candidate *"into production, behind the gate, so nothing is public"*. **That was wrong.** The rehearsal deploys the
+UNAPPROVED candidate (`purpose: 'rehearsal'`, which skips the digest check) into production, whose listener is `public`, and
+**nothing retires it afterwards** (`releases/launched.ts`: *"a rehearsal, whose instance serves production too"*) — so until the
+launch, or a later deploy, the candidate serves the app's production hostname on the public listener, signing people in under the
+production-shaped registration. P6b's Decision 16 (*"Before a launch nothing is public"*) is a premise about students — nobody has
+been sent the address — not a barrier. Until `fa02bbc` only an administrator could do that. **Now an owner's or a collaborator's
+ordinary session can, with no step-up, and repeatedly** — so an owner could keep an unapproved candidate serving at the production
+address without an approval, a registration or an assessment, and a stolen owner session could put one there. §20: *"A stolen admin
+session must not be sufficient to put an app on the public internet."*
+
+**Decide first — what may a rehearsal leave serving, and who may run one:**
+- **(a) accept it as built** — persons (owner, collaborator, administrator), no step-up, the instance kept until the launch;
+- **(b) as (a), with step-up** — §20's second authentication round trip before a rehearsal (adds the rehearsal to §20's step-up list);
+  closes the stolen-session case, not the owner's own repeated use;
+- **(c) as (a), and the rehearsal retires its production instance once its probe is recorded** (recommended) — the rehearsal proves
+  the registration's shape and then takes itself down, so nothing unapproved stays on the public listener whoever runs it; the ~90 s
+  of the probe itself remain; a later sitting's code change in `launch/rehearsal.ts` (and the demos that read production afterwards);
+- **(d) back to an administrator alone** — `launch:rehearse` granted to `PLATFORM_ADMIN` only; the faculty front-end keeps its
+  *"an administrator runs it"* row (its FE-42 option (b)).
+
+**Proposed wording (for (a), (b) or (c); (d) needs only the §20 row):**
+- **D24**, the person-only sentence: *"**Three actions are stricter still — *person-only*: approving a release (§13), recording UBC's
+  IAM registration or Privacy Office assessment (§9), and archiving or deleting a project (§11).** A delegated token can never be
+  minted holding any of them, and a token that asks is refused outright rather than given a pending action, because each is a record
+  that a named person decided — and a confirmed retry would let the token make that record."* becomes:
+
+  > *"**Four actions are stricter still — *person-only*: approving a release (§13), recording UBC's IAM registration or Privacy
+  > Office assessment (§9), running D21's pre-production rehearsal (§9), and archiving or deleting a project (§11).** A delegated
+  > token can never be minted holding any of them, and a token that asks is refused outright rather than given a pending action:
+  > three of them are records that a named person decided — and a confirmed retry would let the token make that record — and the
+  > rehearsal puts an unapproved release on production's public listener, past anything a token deploys (§20)."*
+- **§20**, *Credential classes*, the delegated token's row: *"**Not project creation, archiving or deletion**, which need an
+  interactive session (D24, §11)"* becomes *"**Not project creation, archiving or deletion, or D21's rehearsal**, which need an
+  interactive session (D24, §9, §11)"*.
+- **For (b)**, also §20's step-up bullet: *"… plus archiving or deleting a project …"* gains *"plus running D21's rehearsal, which
+  puts an unapproved release on production's public listener"*.
+- **For (c)**, also §9's *Pre-production rehearsal (D21)*: after *"before anything is public"*, *"The rehearsal's production instance
+  is retired once its sign-in is recorded; nothing it deployed keeps serving."*
+- **§13**, the roles list is unchanged (the owner has *"Full control of their own project"*; the collaborator is *"same as owner
+  except member management, archiving and deletion"*).
+
+*Coordination with Spec action 3*, which edits the same D24 sentence (*"… **or saying that a request to either was sent** (§9)"*):
+the two touch different clauses and compose — whichever is applied second keeps the other's words.
+
+**Published text that already says "(D24)" for the rehearsal** (depends on this action; changes only if the clause does): the
+`TOKEN_PERSON_ONLY` summary (`api/error-codes.ts`), `PersonOnlyRefusedError`'s message (`projects/authz.ts`) and the mint's person-only
+refusal (`api/routes/tokens.ts`).
+
+**Shared pages:** `manifest-decisions.html` D24 (*"Three things are stricter still, because each is a record that a named person
+decided: …"* — becomes four, with the rehearsal's own reason; for (b) and (c) its §9/§20 sentences too); `manifest-schematic.html`
+where it describes the launch checklist (check whether it says who runs the rehearsal or that it stays up); `manifest-phases.html` and
+`manifest-stories.html` (check, and say so).
 
 ---
 
@@ -3095,3 +3172,128 @@ streamed case), `source/github/build` 1 of 1, `source/github/webhook` 1 of 1 —
 **The four shared HTML pages, checked**: Spec action 6's recheck (F10) — `manifest-schematic.html`'s fallback sentence stays true,
 unchanged; `manifest-decisions.html` (no D-number moved), `manifest-phases.html` (its *"an app's code can live on (practice) GitHub"*
 still describes what is built — this sitting made a create reliable, not a new capability) and `manifest-stories.html` unchanged.
+
+### Sitting 4a — 2026-09-30: Task 6b — FE-42 (the project's owner may run D21's rehearsal); Spec action 8 drafted, its premise re-asked
+
+**Run after sitting 4's close** (`0510c63`, handed over by `manifest-a1` with the machine as its §7e said), by session `manifest-73` —
+Rich's session for 4a, which had waited read-only through sitting 4 — **subagent-driven** on `main`: one implementer (opus), one task
+review (opus), one whole-branch review (opus) beside the Docker tier, one fix wave (opus) and its scoped re-review. Rich answered 4a's
+one question before bed (*"may a delegated token run the rehearsal too?"* — **(a), persons only**), relayed into sitting 4's close.
+Peers: the faculty front-end (`manifest-app-e2` → `-58` → `-6d`/`-6b`, mock mode throughout, *"truncate freely"*; told before the
+contract commit, and it checked `fa02bbc` against its own code — typecheck and 1568 tests green, no mock restart); `manifest-c8` (no
+task). **The database was EMPTY at open** (0 projects, 0 users), so nothing was dumped.
+
+**What it made true**:
+- **A project's owner, and a collaborator, may run D21's rehearsal** (`fa02bbc`): a new capability, **`launch:rehearse`**, granted in
+  `OWNER` (so `COLLABORATOR`, which filters `OWNER`, and `PLATFORM_ADMIN`, which spreads it, hold it too), **PERSON-ONLY** (the mint
+  refuses it `400 TOKEN_CAPABILITY_FORBIDDEN`; `assertCapability` refuses a token holding it `403 TOKEN_PERSON_ONLY`; the route's
+  `requireSession` refuses every token `403 TOKEN_CREDENTIAL_REFUSED` first — two layers, two codes), **not step-up** (§20's list omits
+  it). `runRehearsal` asserts it; its published description says who may run it; its declared codes lose `FORBIDDEN` (every role that
+  can see the project holds it; a stranger is `404`). **`launch:record` — recording what UBC decided — stays an administrator's
+  alone**, and the owner is still refused both records, held with the administrator's record as the positive control. The console's
+  Launch screen shows the rehearsal button to everyone who can read the checklist; its Tokens screen lists `launch:rehearse`, disabled
+  with the person-only reason. The contract stays **`1.5.0`** (the token capability enum gains `launch:rehearse`).
+- **The published person-only lists are held to `PERSON_ONLY`** (`7814f75`, the whole-branch review's I2): `api/person-only.test.ts`
+  finds a member missing from `mintToken`'s description or `MintTokenRequest.capabilities`' (by name, from the OpenAPI document), or from
+  the `TOKEN_PERSON_ONLY` summary or `agents.md`'s *a person's alone* line (by a phrase map that fails CLOSED — a member with no phrase is
+  red, and the map's keys must equal the set). `agents.md` names the rehearsal. **The journey's launch row is three** — *see what a first
+  launch needs* (either), *rehearse* (a person), *record UBC's answers* (an administrator) — so `docs/api/journey.md` no longer offers the
+  rehearsal or the records to an agent. The owner's records refusal has the administrator's IAM record as its positive control. The
+  comments that said a rehearsal puts nothing public say what it leaves serving and name Spec action 8.
+
+Commits: `fa02bbc` (Task 6b); `7814f75` (the whole-branch review's wave); and the close-out.
+
+**Findings** (each with what found it):
+1. **F1 Task 6b's premise — and the question Rich answered — misdescribed what a rehearsal leaves serving** (the whole-branch
+   review's I1, verified by the controller in `launch/rehearsal.ts:90`, `releases/launched.ts:33`, `releases/production.docker.test.ts`'s
+   `[M7]` and P6b's Decision 16). The rehearsal deploys the UNAPPROVED candidate (`purpose: 'rehearsal'`, the digest check skipped) into
+   production, whose listener is `public`, and nothing retires it: it serves the production hostname until the launch or a later
+   deploy. The brief's *"the rehearsal does not touch production"*, the FE-42 framing's *"behind the gate"*, the controller's own
+   question to Rich (*"so nothing is public"*) and `authz.ts`'s *"puts nothing in front of students"* were all wrong; Decision 16's
+   *"Before a launch nothing is public"* is a premise about students, not a barrier. **Before `fa02bbc` only an administrator could put
+   an unapproved candidate there; now an owner's or a collaborator's session can, with no step-up, and repeatedly.** Not decided here:
+   `fa02bbc` stays (a laptop, no real exposure; the front-end has not built its press), the comments are corrected, and **Spec action 8
+   re-asks Rich** with four options — (a) accept, (b) step-up, **(c) retire the rehearsal's production instance once its probe is
+   recorded (recommended)**, (d) back to an administrator alone.
+2. **F2 Nothing held the published person-only lists to `PERSON_ONLY`** (the whole-branch review's I2): `mintToken`'s description,
+   `MintTokenRequest.capabilities`', the `TOKEN_PERSON_ONLY` summary and `agents.md`'s list were written by hand — which is how
+   `project:delete` had been missing from two of them since the front-end enablement plan's Task 11, and how Task 9's `launch:submit`
+   would repeat it. Held by a test since `7814f75`; Task 9's `[S4a]` says what `launch:submit` must add.
+3. **F3 `project:delete` was missing from both token descriptions** (the implementer, while adding `launch:rehearse`) — person-only since
+   the front-end enablement plan, never named in them; added in `fa02bbc`.
+4. **F4 `TOKEN_CAPABILITY_FORBIDDEN`'s summary said *"one of its two person-only ones"*** — stale at three since Spec action 3 of the
+   front-end enablement plan; count-free since `fa02bbc`.
+5. **F5 The journey's launch row offered the rehearsal and both records to an agent** (the task review's m10, the whole-branch review's
+   M1): `packages/journey/src/coverage.ts`'s `who: 'either'` put *"rehearse, and record UBC's answers | either"* in the public
+   `docs/api/journey.md`, contradicting `launching.md`; `coverage.test.ts` never checked `who`. Split into three rows in `7814f75`; nothing yet checks `who` against an operation's credential.
+6. **F6 The owner's records refusal had a positive control for the PIA only** (the task review's m5) — no administrator's IAM record
+   succeeded anywhere in `delivery.test.ts`. The administrator's IAM record, from `launchedCwlProject`'s payload shape, since `7814f75`.
+7. **F7 PRE-EXISTING: the authz matrix's archived case passes over a `500`** (the implementer; the task review's m9, judged by the
+   whole-branch review): `makeConfidential` (`api/authz-contract.ts:~2363`) inserts a hand-written `parsed` with no `env`, valid, one second
+   ahead, so `listAppSecrets` → `newestValidSpec` → `resolveEnv`'s `spec.env.map` throws `TypeError` → `500 INTERNAL`, and the case
+   compares declared and answered codes only, so it stays green and prints to stderr on every run. **Not a real-manifest risk** — every
+   valid row the platform writes is `manifestSchema`'s output with `env` defaulted to `[]` (`spec-validation.ts:121`, `routes/projects.ts:361`,
+   `spec/schema.ts:239`) — except a row written under an older schema on a long-lived database. **Carried**: the fixture should write a
+   schema-parsed spec, and the archived case should fail on any `INTERNAL`.
+8. **F8 The Docker tier ran out of Docker Desktop's address pools again** — 2 red at 33 networks (`driver.docker.test.ts`,
+   `networks.docker.test.ts`), exactly as sitting 4's F26 predicted from a start of 26; 40 of 40 alone after the cleanup script's
+   `--apply` of the tier's own seven networks. **The 14 `mf-` networks of apps with no rows (the demos', the front-end's, `f5-reading`'s
+   three) leave the tier ~5 networks of headroom it needs 7 of**: removing those apps' containers, or widening Docker Desktop's pools, is
+   Rich's (a host change, and another session's leftovers).
+9. **F9 The controller's pre-flight named `launch:rehearse` "person-only like `launch:record`" without asking what the rehearsal
+   deploys** — the ruling was right about tokens and blind about exposure; F1 is the measurement it skipped. A capability's grant is a
+   question about what the operation DOES, not only about who holds its neighbours.
+10. **F10 The wave found two more published sentences that misdescribe the rehearsal** — `runRehearsal`'s description (*"behind the
+    gate"*, *"on the live listener"*) and `docs/api/launching.md` step 2 (*"deployed behind the gate"*). **Left for Spec action 8's answer**
+    (the true words depend on the option; the description is a contract commit).
+11. **F11 `tokens.tsx` said *"the person-only two"*, *"all eleven"* and — added by `fa02bbc` — *"refuses all four"*** (the task review's m6,
+    and the wave): counts that drift; reworded without one. **The console's own `PERSON_ONLY` set is still held by no test** (the import
+    boundary keeps it from reading the server's) — carried.
+
+**Negative controls** (after the commit, each predicted first, restored with `git checkout`, the tree clean after):
+- **(a) `launch:rehearse` removed from `OWNER`** → 9 red / 769 green across the five files: the owner's and collaborator's rehearsals
+  (`403 FORBIDDEN`), the matrix's owner, collaborator AND administrator rows (`PLATFORM_ADMIN` spreads `OWNER`), the archived-state check
+  (`runRehearsal` declared `PROJECT_ARCHIVED` and no longer answering it), the administrator's probe, the privileged role check — and one
+  unnamed red that follows from the prediction's own logic (`delivery.test.ts`'s *refuses a rehearsal when nothing is serving staging*,
+  the administrator having lost the capability too).
+- **(b) `launch:rehearse` removed from `PERSON_ONLY`** → 7 red / 771 green, exactly as predicted (the class tests, the privileged check,
+  the token probe `201` for `TOKEN_PERSON_ONLY`, the mint loop, the owner's mint `201`); **green as predicted: the route's token case and
+  the matrix's token rows** — `requireSession` refuses a token before any capability is read, which is the second layer holding alone.
+- **(c) the wave's: `launch:rehearse` removed from `mintToken`'s description** → 1 red as predicted, *"expected [ 'launch:rehearse' ] to
+  deeply equal []"* (1 failed, 13 passed); and two more, each as predicted — the rehearsal dropped from `agents.md` turns only the guide
+  case red; its phrase deleted from the map turns exactly three cases red. Restored, the tree clean.
+
+**Rulings** (the ledger's, in order): no worktree (CLAUDE.md); Step 1 read by the controller — no spec text names who triggers the
+rehearsal, so no stop; `launch:rehearse` new, in `OWNER`, `PERSON_ONLY`, not step-up; the collaborator holds it (§13); the tier run at 26
+networks rather than removing another session's apps or changing the host; I1 re-asked of Rich, `fa02bbc` kept; one wave (I1's comments,
+I2's test, M1, m5, m6, m3); the minors carried (m1 beside Spec action 8, m4, m7 to the clicked half, m8 before FE-39, m9 as F7); the wave's two published
+sentences (F10) left for Spec action 8's answer; the plan's workspace kept (nine sittings remain).
+
+**Gates on the final tree** (`7814f75`): `pnpm test` **2908 passed, 0 skipped, in 184 files**, twice (722 s and 711 s alone,
+0 `deadlock detected`); `pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean; `pnpm test:docker` **268 in 42** on `fa02bbc` —
+266 and the two pool reds (1210 s, alone, the whole-branch reviewer reading only), and the two files 40 of 40 alone after the cleanup
+(218 s); the wave owed no Docker re-run — comments only in the owing paths (`projects/authz.ts`, `launch/rehearsal.ts`), checked line by line;
+`make doctor` **20/0/0**, `make verify` **62/0/0**
+after the close's restart; contract **`1.5.0`**.
+
+**The machine at the close** (queried 03:03–03:04 on 2026-09-30, not remembered):
+- **The control plane: PID 53532 on 7100, on `7814f75`, REAL GitHub** (Rich's `.env`), restarted at the close by
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged; detached, `nohup`), boot line `"source":"github","github":"api.github.com",
+  "githubOrg":"Manifest-local-dev"`, `capableModel: registered`, `capableFallback: set`, `sourceRepositoriesPrepared: 2`.
+- **The control database: EMPTY** — 0 projects, 0 users; **42 migrations** (`0041_broad_power_man` newest; 4a added none).
+- **GitHub**: `Manifest-local-dev` holds exactly `f5-reading` and `lp-real-a`, both `NONE`.
+- **Mirrors** `dead-app-resources.sh` names and never removes: `f5-reading.git`, `lp-real-a.git` (real), `frontend-github.git`,
+  `frontend-scratch-github.git` (the fake's).
+- **Containers**: 42 `mf-` (`make verify`'s INFO: `mf- containers=42 networks=14 volumes=28`) — the demos' and the front-end's apps,
+  `f5-reading`'s nine among them, no rows behind them; **26 Docker networks** in all (the pool is ~31 — the record's F8); no runtime route
+  applied. `make verify` **62/0/0**, `make doctor` **20/0/0**; LiteLLM healthy, serving the fallback guard.
+- **Cleanup**: `dead-app-resources.sh` (1 network + 1 volume at the close, after the tier's seven mid-sitting) and `app-images.sh` (15) 0 dead
+  after their `--apply`; `litellm-orphans.sh` reads the same 3 as sittings 1–4 — `p4b-probe-user`, the front-end's person budget and the
+  platform's intake budget — **not applied** (a budget's deletion resets its month; its one mode takes all three).
+- **7102 and 7105 are the faculty front-end's** (node 35047 and 51453 — 7105's restarted during 4a; mock mode by its word); **nothing on 7104**.
+- **Not this project's**: the `cwl-spike-*` containers and `openwebui-openwebui-1`. Ollama **0.35.0**. **Free disk 73 GiB** (73 at 4a's open;
+  Docker's build cache 25 GB, 21 GB reclaimable — Rich's).
+- Load 3–4.
+
+**The four shared HTML pages, checked**: no spec action was applied, so none moved; `manifest-decisions.html`'s D24 (*"Three things are
+stricter still …"*) moves only when Spec action 8 is applied, and says so in the action.

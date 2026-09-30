@@ -155,7 +155,7 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then its sitting 11a (2026-09-29, the building agent's models): +31 and one file — `api/incidents.test.ts` (4, new),
 # `api/agents.test.ts` (11), `ai/models.test.ts` (4), `config.test.ts` (1), the matrix's confidential-Incidents row (9),
 # `mock/src/scripted.test.ts` (1) and the journey's docs gate (1).
-EXPECT_TESTS=2894
+EXPECT_TESTS=2908
 EXPECT_FILES=184
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=62
