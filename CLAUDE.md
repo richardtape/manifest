@@ -19,10 +19,10 @@ and Phase 2's first five plans, P6a (the first production launch), P6b (subseque
 GitHub source driver, the authoring API and **the front-end enablement plan** (2026-09-29 — what the faculty front-end at
 `app.manifest.internal` needs; eighteen tasks in fifteen sittings, all ten of its spec actions Rich's and applied). Every one has an
 acceptance that passes. **The launch path plan is WRITTEN and APPROVED by Rich as written** (`docs/superpowers/plans/2026-09-29-launch-path.md`, 2026-09-29 — FE-6,
-FE-25 and Rich's additions; 16 tasks in 13 sittings — Task 8a and sitting 5a from the faculty front-end's FE-39, confirmed by Rich — seven spec actions drafted — 7 applied at Rich's word, 1–6 not) **and its sittings 1 and 2 have run** —
-the measurements and the control plane's FIRST RUN AGAINST REAL GITHUB (`Manifest-local-dev`), green end to end; then what that run
-found (the test tiers refuse a real GitHub, `source_repositories.api_host`, `scripts/github-real-repos.sh`) and F26. ORIENTATION §7e says
-what is next. Each plan's *What executing this plan found* is its record; this file keeps none of it.
+FE-25 and Rich's additions; 16 tasks in 13 sittings — Task 8a and sitting 5a from the faculty front-end's FE-39, confirmed by Rich — seven spec actions drafted — 7 applied at Rich's word, 1–6 not) **and it is in execution** —
+its first sitting ran the control plane AGAINST REAL GITHUB (`Manifest-local-dev`), green end to end; its sittings table says how far
+it has got, and ORIENTATION §7e says what is next (this file names no sitting — it said *"sittings 1 and 2 have run"* until the
+launch path plan's sitting 3 found it stale). Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|

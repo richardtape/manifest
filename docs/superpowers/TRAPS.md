@@ -2349,3 +2349,21 @@ path plan's sitting 2, F14, Rich's demo). The edge sends `/v1/*` and `/auth/*` t
 signs in for real and a page action fails: the page showed a support reference (`0565-503F`) that reached no store — the refusal by
 the server's origin and session checks is INFERRED, because neither server logs a refused request. **Before a live demo, read its log's first line**: `manifest-app
 (mock) on …` is the mock; `edge` is the platform. It is the front-end session's process — ask it to restart in `edge` mode.
+
+**`app.close()` RESOLVES WHILE A WEBSOCKET STREAM IS STILL REGISTERED** (`@fastify/websocket` 11.3.0; the launch path plan's sitting 3,
+F13, measured by Task 5's control (e)). The plugin's `preClose` sends each open socket a close frame and calls `done()` at once — it
+does NOT wait for the sockets' `close` events — so anything a stream registered (the stream registry's entry, its expiry timer, a bus
+listener) outlives the server unless a hook stops it. `api/routes/events.ts`'s `onClose` hook stops every open stream; removing it turns
+*"closing the server unregisters every stream it holds"* red (`expected 1 to be +0`). A new per-socket resource needs the same hook.
+
+**A TEST THAT WAITS FOR A LOCK IN `pg_stat_activity` MUST WAIT FOR ITS OWN** (the launch path plan's sitting 3, F16). The dev control
+plane on 7100 and the unit tier share the database `manifest_control`, so `datname = current_database()` does NOT exclude the running
+platform's backends: a lock wait of theirs on the same table satisfies the poll early. Scope it to the backends your lock blocks —
+`$1 = ANY(pg_blocking_pids(pid))`, with `$1` the lock connection's own `pg_backend_pid()` — as `api/events.test.ts`'s race-window
+test does.
+
+**A FAILED DEPLOY'S INSTANCE HAS A `lastSeenAt`** (the launch path plan's sitting 3, F1). `releases/release.ts` stamps `last_seen_at`
+at the health verdict, healthy or not, and it is the column's only writer; `listInstances` orders `last_seen_at desc nulls last`. So a
+failed attempt made after the serving one lists FIRST, and only an instance a deploy has made and not yet seen (provisioning,
+starting) has `null` and lists last. **Read `createdAt` (contract `1.5.0`) for which attempt is newest, and `serving` for which one
+serves — never the list's order.** The mock's failed instance still says `null` (the front-end judged it harmless).

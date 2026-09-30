@@ -13,6 +13,11 @@
 > message). The test tiers refuse a real GitHub; a failed create leaves no repository; `source_repositories.api_host`; the demos refuse
 > real GitHub by name; `scripts/github-real-repos.sh`; F26 drained centrally — and Step 6's real check green. *Sitting 2* is the record.
 
+> **SITTING 3 — TASKS 4 AND 5 — DONE 2026-09-29.** FE-38: every instance says when the deploy made it (`0041`, contract **`1.5.0`**,
+> the plan's one bump). FE-33: a stream whose credential is gone is closed at the moment it goes — `4401` for a revoked or expired
+> token or session, `4404` at a delete's tombstone — and the race between the upgrade's credential check and the stream's registration
+> is closed. *Sitting 3* is the record.
+
 > **WRITTEN 2026-09-29, AT RICH'S INSTRUCTION, FROM ORIENTATION §7e** (*"Yes: write the plan, then run its Task 1 (including the
 > real-GitHub run) in the same session"*). **Reviewed and APPROVED by Rich as written, thirteen sittings, 2026-09-29** (sitting 2's first message). Its sitting 1 — Task 1, the measurements and THE FIRST
 > RUN OF THE CONTROL PLANE AGAINST REAL GITHUB — runs in the same session, before his review, exactly as the front-end enablement
@@ -75,8 +80,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on — and THE CONTROL PLANE ON REAL GITHUB for the first time**: a project created through the platform becomes a real private repository in `Manifest-local-dev`; a commit through the API lands on github.com; a build and a deploy come from the mirror; a scratch project is deleted and its repository is gone. Also: LiteLLM 1.98.0's `/key/update` on a live key; which provider errors a `general` fallback answers, and whether a LiteLLM hook can see the original error; an open stream after a revoke; F26's rate; `saml-metadata-generator`'s output structure; where the blueprint's code reads each attribute; the gate numbers. **Alone, and first — the same session that wrote the plan, at Rich's word** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-29**, the session that wrote the plan — the control plane on the real App end to end (create, read, commit, build, deploy, delete; `lp-real-a` kept); `/key/update` by alias narrows a live key at once; FE-33 reproduced; every provider error falls back, a `422` answers `200 null`, and a trace-id guard can be built (Branch G); UBC's metadata structure recorded; `[M]` blocks at Tasks 2, 6, 7, 9, 10, 11; **the split stands** |
 | 2 | 2, 3 | **What real GitHub found**, fixed: a repository left behind by a create that failed after GitHub made it; a project made against the fake refused on the real App, and the reverse (`source_repositories.api_host`); the demos refusing real GitHub by name; `scripts/github-real-repos.sh`; RUNBOOK's real-App section written from the run. **And F26**: every retirer and build runner a test builds, drained before `resetDatabase`'s `TRUNCATE` | **Yes** — `source/` | none | **DONE 2026-09-29**, after Rich approved the plan — subagent-driven: Step 0 first and alone (the tiers refuse a real GitHub, watched with the day's rows still in the tables); a failed create destroys what the driver made; `api_host` (migration `0040`, never published); the boot leaves another GitHub's mirror alone; the demos refuse real GitHub by name; `github-real-repos.sh`; F26 drained centrally (`delivery.test.ts` 1 of 8 red before, 0 of 8 after); **Step 6 on real GitHub green** (`lp-real-b` made with `api.github.com`, deleted, gone); one whole-branch review and its fix wave; Rich's demo paused it (F14) |
-| 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | ← **next** |
-| 4 | 6 | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich | **Yes** — `ai/`, `infra/` | **Spec action 6** — needed: Task 1 measured the guard buildable (Branch G, `[M5]`) | |
+| 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | **DONE 2026-09-29** — subagent-driven, after Rich's answers (FE-40 confirmed; the database dumped first): `0041` and `Instance.createdAt`, **contract `1.5.0`** (the plan's one bump); the stream registry — `4401` at a revoke, an archive's revoke and an expiry (token AND session), a delete's `4404` at the tombstone, **the authorization → registration race window closed and held by a deterministic lock test**; one fix round per task, one whole-branch review beside the Docker tier, one fix wave; the front-end told at every contract commit and adopted `1.5.0` |
+| 4 | 6 | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich | **Yes** — `ai/`, `infra/` | **Spec action 6** — needed: Task 1 measured the guard buildable (Branch G, `[M5]`) || ← **next** |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
@@ -147,7 +152,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
   **Task 8a in sitting 5a**, after **Spec action 7**'s words are applied (*What Rich does* 9). It reverses §9's deliberate stance
   (the control plane does not ask for `eduPersonAffiliation` — *"authorization is Manifest's"*, `sso/platform.ts:44-52`).
 
-## FE-40 — relayed at Rich's word (2026-09-29, during sitting 2's close), PROPOSED for Task 13 until he confirms it
+## FE-40 — relayed at Rich's word (2026-09-29, during sitting 2's close), then CONFIRMED by Rich at sitting 3's open — Task 13 carries it
 
 - **FE-40 — THE MOCK CANNOT PLAY A LAUNCH** (relayed by the faculty front-end's session `manifest-app-ce` as *"carried at Rich's word
   (2026-09-29: 'file it, and carry it now')"*; its `docs/api-findings.md` FE-40). Read in `packages/mock` at `20838d4`: `LAUNCH_READINESS`
@@ -159,8 +164,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
   production secret answered `403 STEP_UP_REQUIRED` until the session steps up, and an `/auth/step-up` that steps up and redirects to
   `returnTo`; (3) `getApproval` `404` before a decision, and a rejection with a reason; (4) `runRehearsal` `passed: false` with the
   platform's evidence shape. **Task 13 (sitting 10) already changes the mock, so it is the natural home.** Nothing of the front-end's
-  waits on it; its F5b's acceptance would use it. **Relayed, not said to this session — so PROPOSED: Task 13 carries it only once Rich
-  confirms it** (ORIENTATION §7e asks him).
+  waits on it; its F5b's acceptance would use it. **Relayed first, then CONFIRMED by Rich to a platform session** (2026-09-29, sitting 3's
+  first message, answering ORIENTATION §7e's question: *"Confirm"*) — **Task 13 carries it.**
 
 ---
 
@@ -2059,8 +2064,8 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Task 13: The console and the mock — every new operation called, the owner's half of the launch records, and a Queue
 
-> **FE-40 (relayed 2026-09-29, PROPOSED until Rich confirms — its section above)**: four OPT-IN mock switches so the mock can play
-> a first launch — ready, step-up enforced, `getApproval` `404` before a decision, a failed rehearsal. If confirmed, they are this
+> **FE-40 (relayed 2026-09-29, CONFIRMED by Rich at sitting 3's open — its section above)**: four OPT-IN mock switches so the mock
+> can play a first launch — ready, step-up enforced, `getApproval` `404` before a decision, a failed rehearsal. They are this
 > task's, beside the defaults, which do not move.
 
 **Files:**
@@ -2684,3 +2689,156 @@ source-sync registration waits on anything. `make doctor` **20/0/0** and `make v
 
 **The four shared HTML pages, checked, and unchanged**: no spec action was applied this sitting, and none describes the source
 driver's test guards, `api_host` or F26.
+
+### Sitting 3 — 2026-09-29: Tasks 4 and 5 — FE-38's `createdAt` (contract `1.5.0`) and FE-33's stream registry
+
+**Run after Rich's answers in its first message** (FE-40 *"Confirm"*; the control database DUMPED before the first truncation — it held
+`gh-hooks` and one user; `lp-real-a` left on GitHub; the control plane left on real GitHub at the close). **Subagent-driven**
+(`superpowers:subagent-driven-development`), on `main`, session `manifest-c3`: a pre-flight scan against the code (its table and seven
+rulings are the ledger's), an implementer and a reviewer per task (Task 4 sonnet, Task 5 opus), one fix round each, one whole-branch
+review beside the Docker tier, and one fix wave. The faculty front-end's session (`manifest-app-a0`) was told before the first
+truncation, before each commit touching `packages/contract` or `packages/mock` and after each landed; it adopted `1.5.0` at `d894b8e`
+(its typecheck and 1248 tests, twice) and stayed off 7100 until this close (its F5 sitting 1 waits on it, Rich's word).
+
+**What it made true**:
+- **Every instance says when the deploy made it** (`d894b8e`, `2a26547`): `instances.created_at` (migration `0041_broad_power_man`,
+  hand-written: added nullable, backfilled from its release's `created_at` — the earliest it could have been made — then `NOT NULL`,
+  `DEFAULT now()`; the snapshot carries it, so `db:generate` after it reports no change), `Instance.createdAt` (and so
+  `InstanceSummary`'s) on `deploy`, `listInstances` and `getEnvironment`, every published example and mock fixture. **Contract `1.5.0`**
+  — the plan's ONE bump, in its three carriers (`document.ts`, `packages/contract/package.json`, `openapi.json`), covering Task 5 and
+  every later task. `SOURCE_PROVIDER_MISMATCH`'s description names the same-driver, other-GitHub cause (sitting 2's F13).
+- **A stream whose credential is gone is closed at the moment it goes** (`4bac1cf`, `9ac609d`): `observability/streams.ts`, ONE registry
+  per process (built at boot beside the bus, carried in `ServerDeps` and the lifecycle's deps); `streamProject` registers before its
+  second authorization read and re-reads a token actor's token after registering (the race window); an expiry timer per stream —
+  token AND session — clamped to `2 ** 31 - 1` and re-armed; `revokeToken` closes `4401` after the revoke commits and BEFORE
+  `endSessionsOf` (a gateway outage never leaves a revoked token listening — tested); the archive closes the tokens its transaction
+  revoked, after it commits; a delete closes its tokens' streams `4401` at the switch-off and the rest `4404` at the tombstone;
+  `closePerson` for Task 8; an `onClose` hook. `closeCodes` gains `4401` (*"The credential was revoked or expired. Get a new one —
+  sign the person in again, or ask them for a new token; reconnecting with the same credential is refused."*); `revokeToken`,
+  `archiveProject` and `deleteProject` each say what they close; `events.md`, `agents.md`, `authentication.md`, `frontend.md`.
+- **FE-40 CONFIRMED by Rich** — recorded in its section, Task 13's block, ORIENTATION §8 *Decided* and the roadmap.
+
+Commits: `d894b8e`, `2a26547` (Task 4); `4bac1cf`, `9ac609d` (Task 5); `84d485a` (the final fix wave); and the close-out.
+
+**Findings** (each with what found it):
+1. **F1 Task 4's premise was false**: a failed deploy's instance IS stamped `lastSeenAt` at its health verdict (`releases/release.ts:811`,
+   the column's only writer), and the list is `last_seen_at desc nulls last` (`projects/repository.ts:334`) — so a real failed deploy B
+   lists FIRST, and the plan's `list[0].id toBe(a.id)` could not hold. The one real state where age and published order disagree is an
+   instance a deploy has made and not yet seen; the test models B as that row. Found by the implementer's RED.
+2. **F2 Task 4's *Files* omitted `packages/contract/package.json`**, the version's third carrier (`document.ts`'s own comment names
+   three) — the pre-flight scan.
+3. **F3 The plan named test files and helpers that do not exist**: `src/releases/release.test.ts` (Task 4), `src/releases/lifecycle.test.ts`
+   and the `openStream`/`revoke`/`rename` helpers (Task 5) — the pre-flight scan; every FE-33 case lives in `api/events.test.ts`, which has a
+   listening server.
+4. **F4 Task 5's interface consumed `TokenActor.expiresAt`, which did not exist** — the pre-flight scan; added (epoch ms, as
+   `SessionActor`'s).
+5. **F5 `0041`'s backfill ran only against empty tables** (every Vitest run truncates) — the controller ran its exact statements on three
+   rows in a scratch schema, rolled back: each instance dated by its release, `NOT NULL`, `DEFAULT now()` on insert.
+6. **F6 Task 4's first test bounded the DATABASE's `now()` with the HOST's `Date.now()`** (±2 s) — ORIENTATION §4 trap 14. The task
+   review ranked it Minor (*"not flaky here"*); the controller raised it, because that is exactly the trap's shape. Now bounded by
+   `clock_timestamp()` read from the database (`2a26547`).
+7. **F7 That bound then compared the driver's millisecond `createdAt` with the database's microsecond floats exactly** — a flake if the
+   INSERT's `now()` fell within 1 ms of either reading (the re-review); `Math.floor`/`Math.ceil` (`9ac609d`).
+8. **F8 `getOpenApiDocument`'s published example still said `1.4.0`** (Task 4's review) — it now reads `CONTRACT_VERSION`.
+9. **F9 The widened `SOURCE_PROVIDER_MISMATCH` description omitted that a row older than `api_host` is answered by any host of the
+   provider** (Task 4's review; `notMadeByRunning`) — one clause.
+10. **F10 THE AUTHORIZATION → REGISTRATION WINDOW WAS REAL.** A revoke that committed after the upgrade's credential hook read the
+    token and before the stream registered called `closeToken` on nothing, and the stream stayed open FOR GOOD. Named by the pre-flight
+    scan (the front-end enablement plan's sitting 8 found three windows of this shape); the implementer drove it DETERMINISTICALLY
+    without a production hook — a second connection holds `UPDATE … revoked_at` uncommitted, the hook's own `touchToken` blocks on the
+    row, the test waits for the lock in `pg_stat_activity`, then commits — and watched it red before the fix. Fixed by registering
+    before the second authorization read and re-reading a token actor's token after registering; held by control (d) alone.
+11. **F11 The archive revokes inside a transaction**, so a close there would announce a revoke that could still roll back — the
+    pre-flight ruling: close the ids after the transaction resolves. By construction, not by a test (no seam rolls it back).
+12. **F12 The plan's delete test name (*"every stream on it, 4404"*) contradicted its own Step 3**, which routes a delete's tokens through
+    the shared switch-off that closes `4401` — ruled: token streams `4401` at the switch-off, the rest `4404` at the tombstone (the same
+    rule Task 8 states for a removed member).
+13. **F13 `@fastify/websocket` 11.3.0 lets `app.close()` resolve while a stream is still registered** — its `preClose` sends each socket
+    a close frame and calls `done()` at once. Measured by control (e) (`expected 1 to be +0`); the route's `onClose` hook stops every open
+    stream, so no entry or timer outlives a server (TRAPS.md).
+14. **F14 Review Focus 3's *"within one second of the revoke, and within one second of expiresAt"* was asserted by nothing** — the
+    expiry tests held only *not before* (Task 5's review, a Minor raised to Important by the controller as a stated requirement). All
+    four revoke tests and both expiry tests now bound the close under 1000 ms (a 5 ms early tolerance for Node's timers).
+15. **F15 The expiry tests fixed `expiresAt` 1.5 s ahead BEFORE the mint** — under Rich's Zoom-level load, setup alone could eat it
+    and read as a false red at the ready frame (Task 5's review); +2.5 s, the close awaited 4 s.
+16. **F16 The race test's lock poll was cluster-wide — and `datname = current_database()` alone would not have fixed it**, because the
+    dev control plane on 7100 shares `manifest_control` with the unit tier; scoped exactly by `$1 = ANY(pg_blocking_pids(pid))` on the
+    test's own lock connection.
+17. **F17 The plan's `4401` text was token-only** (*"Ask the person for a new one"*) while a session stream closes `4401` at its expiry
+    (the pre-flight ruling that armed sessions) — plan-mandated wording amended to cover both.
+18. **F18 A thrown `null` in the registry's report line threw a `TypeError` out of its catch**, aborting the remaining closes and turning
+    a revoke into a `500` (Task 5's review) — red first (*"Cannot read properties of null (reading 'code')"*), guarded.
+19. **F19 The mock never closes a stream `4401` or `4404`** — told to the front-end's session, not built (FE-40-shaped).
+20. **F20 The fix's own test repeated trap 14** — B's `createdAt` built from `rowA.lastSeenAt` (the host's `new Date()`) and compared with
+    A's database `createdAt` (the whole-branch review's M1; `84d485a`).
+21. **F21 `InstanceList` said *"newest first"*** — false against its `lastSeenAt` order since before this range, and now against
+    `createdAt` (M2; reworded, contract regenerated under `1.5.0`).
+22. **F22 Task 4 put the mock's instances BEFORE their release** (08:59 and 08:39 against the release's 09:00) — contradicting `0041`'s
+    own rule (M3; moved after it, order kept). **And, older than this range, the mock's failed instance has `lastSeenAt: null` where the
+    platform stamps a failed deploy** — told to the front-end, which judged it needs no FE-n (nothing of its reads the order any more).
+23. **F23 The stream route's catch read `.statusCode` off a thrown value before reporting** — a thrown `null` would escape AFTER
+    registration, leaving an entry and its timer until expiry (M7); null-safe, and the stream stopped in a `finally`.
+24. **F24 *"Hears nothing after the revoke"* was asserted on a socket already seen closed, so it could not fail** (M8) — MEASURED: with the
+    route's unsubscribe deferred and `send`'s guard removed it stayed green (a CLOSING socket refuses `send`), while `listenerCount` and
+    `closeToken(...) === 0` went red in three tests. Labelled with what holds the claim.
+25. **F25 Two stale texts**: `LifecycleDeps.streams`' *"a delete … every stream `4404`"* (M4) and the front-end's own guide's
+    `listInstances` paragraph not naming `createdAt` (M5).
+26. **F26 The fix wave's commit was about to carry the wrong model in its attribution trailer** — caught reading the report, corrected
+    before the commit.
+27. **F27 CLAUDE.md's *State*, ORIENTATION's top box and two of its §3 rows each said *"its sittings 1 and 2 have run"*** — a sitting
+    statement each of them says it never makes (Rich, 2026-09-24), stale the moment this sitting closed. Found by this sitting's sweep;
+    each now says the plan is in execution and points at its sittings table.
+
+**Rulings** (the ledger's, in order): the pre-flight scan's seven — no second version bump (`1.5.0` covers the plan); `package.json` and
+F13's description carried into Task 4; the implementers stop before a commit touching `packages/contract` or `packages/mock` and the
+controller tells the front-end; the archive closes after its transaction commits (F11); the race window closed by registering first
+and re-reading the token (F10); a session stream's expiry armed too; `closePerson` built now for Task 8. Then: Task 4's never-seen-B
+test shape accepted (F1); trap 14 raised from Minor to Important (F6); Task 4's contract minors folded into Task 5's regeneration
+(F8, F9); the delete's split codes (F12) and `closePerson` closing session streams only (Task 8's own test); the three description
+clauses and the registry-owned timer accepted; Review Focus 3's bound raised to Important (F14) with five cheap minors bundled into the
+same round because no `src/` edit may land while the Docker tier runs; the final wave's seven items, and M6 and the mock's `lastSeenAt`
+left (F22); the wave owed no Docker re-run (a comment in `releases/`, and neither Docker file that names the stream opens a socket);
+`litellm-orphans.sh --apply` NOT run — the same three as sittings 1 and 2, one mode deleting a person's and the platform's budgets.
+
+**Negative controls**, each after its commit and restored from git: Task 4 — `createdAt` mapped from `lastSeenAt` → red as PREDICTED,
+at the list request (`expected 500 to be 200`, `ResponseContractError … at: instances.1.createdAt`), not at `toBeGreaterThan`, because the
+representation refuses a null first; its fix round's two — a constant `createdAt` red at the order assertion, a −10 minute shift red
+at the database-clock window. Task 5 — (a) `closeToken` removed from `revokeToken` → 4 red; (b) `closeToken` closing the whole project →
+the 2 positive controls red, the single-stream tests green (the positive controls earn their place); (c) the timer dropped → both expiry
+tests red; (d) the post-registration re-read removed → ONLY the race-window test red; (e) the `onClose` hook removed → red, and a
+measurement (F13). The fix wave's M8 control stayed GREEN at the assertion it tried to break — which is the finding (F24), not a pass.
+**One control could not fail as written (F24); none other.**
+
+**Gates** (on the final tree, `84d485a`): `pnpm test` **2875 passed, 0 skipped, in 184 files**, twice (710 s and 703 s alone, load ~4–6.5;
+`deadlock detected` **0** in both; one `[retire]` line each, `retire.test.ts`'s deliberate one) — up from 2854 in 183 (+21 tests; +1 file,
+`observability/streams.test.ts`). `pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean. `pnpm test:docker` **248 in 41**, 1181 s,
+green FIRST run, alone (the task re-review and the whole-branch reviewer reading only, no Vitest beside it), on `9ac609d` — owed by
+`observability/` and `releases/`; the count did not move (two Docker files gained a `streams` line, no case); the fix wave after it
+owed no re-run (the rulings above). `make doctor` **20/0/0** and `make verify` **61/0/0** after the close's restart. Contract **`1.5.0`**;
+**42 migrations** (`0041_broad_power_man` newest).
+
+**The machine at the close** (queried 21:13–21:17, not remembered):
+- **THE CONTROL PLANE RUNNING ON REAL GITHUB** — PID 98101 on 7100, restarted 21:13 onto `84d485a` from the git-ignored
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged), boot line
+  `"source":"github","github":"api.github.com","githubOrg":"Manifest-local-dev"`, `sourceRepositoriesPrepared: 1`.
+- **The control database: EMPTY** — 0 projects, 0 users (the close's two unit runs truncated it; `gh-hooks` went at the first run, as
+  Rich allowed, after the open's dump). **The dump**: `.superpowers/sdd/2026-09-29-launch-path/manifest_control-before-sitting3-2026-09-29.dump`
+  (`pg_dump --format=custom`, 79 KB; `gh-hooks`, one user, 0 instances, 41 migration rows — a `--clean` restore needs `db:migrate`
+  after, and a data-only restore collides with today's 42-row migrations table).
+- **GitHub**: `Manifest-local-dev` holds exactly `lp-real-a`, owned by no project (`github-real-repos.sh`: `lp-real-a  NONE`) — left, at
+  Rich's word.
+- **Mirrors** `dead-app-resources.sh` names and never removes: `frontend-github.git`, `frontend-scratch-github.git` (the fake's) and
+  `lp-real-a.git` (real).
+- **Containers**: 33 `mf-` (`make verify`'s INFO: `mf- containers=33 networks=11 volumes=22`), unchanged from the open; **no runtime route
+  applied**.
+- **Cleanup**: `dead-app-resources.sh --apply` (the tier's 7 networks and 1 volume) and `app-images.sh --apply` (14 dead) — both ALLOWED,
+  both re-measured 0 dead; `litellm-orphans.sh` reads the same 3 as sittings 1 and 2 — **not applied** (ruling above).
+- **7102 and 7105 are the faculty front-end's** (node 35047 and 49070 — restarted by its session during this sitting, its mock on
+  `1.5.0`'s fixtures); **nothing on 7104**.
+- **Not this project's**: the `cwl-spike-*` containers and `openwebui-openwebui-1` (another session's). **Ollama moved 0.34.4 → 0.35.0**
+  during the sitting (its own updater — nothing here upgrades it; the Docker tier was green on it). **Free disk 114 → 95 GiB**: not
+  attributed — Docker's build cache holds 25 GB, 21 GB reclaimable, and `docker builder prune` is machine-wide, so it is Rich's.
+- Load 3–4.
+
+**The four shared HTML pages, checked, and unchanged**: none describes an event stream, a close code, the contract's version or an
+instance's time; their two *revoked* mentions are of tokens in general. No spec action was applied this sitting.
