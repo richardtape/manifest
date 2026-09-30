@@ -80,8 +80,9 @@ export interface StartFakeOptions {
   webhookUrl?: string
   /**
    * TEST-ONLY MISBEHAVIOUR, never set by `main.ts` (`FakeQuirks` says what each one does):
-   * `createPublic` (Task 7), `refusePrivatize` (Task 10), `notFoundAfterCreate` (FE-41). The
-   * object is read at each request, so a test may change it mid-run.
+   * `createPublic` (Task 7), `refusePrivatize` (Task 10), `notFoundAfterCreate`,
+   * `writeNotGrantedAfterCreate` and `protocolV2` (FE-41). The object is read at each request, so
+   * a test may change it mid-run.
    */
   quirks?: FakeQuirks
 }

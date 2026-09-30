@@ -86,6 +86,11 @@ const PRIMARIES: Record<string, { apiBase: string; path?: string }> = {
   // F9's pair: sent AT ONCE, so each must be decided by its own failure and not the router's last one.
   'pair-400': { apiBase: `${STUB}/pair/s400/v1`, path: '/pair/s400/v1/chat/completions' },
   'pair-503': { apiBase: `${STUB}/pair/s503/v1`, path: '/pair/s503/v1/chat/completions' },
+  // The whole-branch review's m3: the same refusal, asked for as a STREAM.
+  'stream-400': {
+    apiBase: `${STUB}/stream/s400/v1`,
+    path: '/stream/s400/v1/chat/completions',
+  },
 }
 // The fix round's: requests that share a client-supplied id, each pair on its own deployments (cooldown is per
 // deployment, and the stub counts each path apart).
@@ -306,7 +311,8 @@ describeDocker(
       expect([null, '0'], r.seen).toContain(r.fellBack)
       expect(r.text).not.toContain(UNDERLYING)
       expect(r.text).not.toContain('host.docker.internal')
-      expect(r.text).not.toContain(String(STUB_PORT))
+      // `:7199`, the port as an address carries it — a bare `7199` would match a run id that contains it.
+      expect(r.text).not.toContain(`:${STUB_PORT}`)
     }
 
     /** The fallback's answer: `200`, one fallback attempted, the fallback's group, the stub's `ok`. */
@@ -338,6 +344,19 @@ describeDocker(
         expect(stub!.hits(FALLBACK_PATH), 'the fallback was called').toBe(before)
       },
     )
+
+    /**
+     * A STREAMED REQUEST (the whole-branch review's m3, sitting 4): agents and the console ask
+     * `/v1/chat/completions` for a stream. The provider refuses before any stream begins, so the answer is the
+     * same refusal, as JSON — and the fallback is never called.
+     */
+    it('a STREAMED request the provider refuses as malformed (400) is answered as its refusal, never by the fallback', async () => {
+      const before = stub!.hits(FALLBACK_PATH)
+      const r = await chat(probe('stream-400'), {}, { stream: true })
+      expectTheProvidersRefusal(r, 400)
+      expect(stub!.hits(PRIMARIES['stream-400']!.path!)).toBe(1)
+      expect(stub!.hits(FALLBACK_PATH), 'the fallback was called').toBe(before)
+    })
 
     /**
      * KNOWN (F8): LITELLM 1.98.0 ANSWERS A PROVIDER'S 422 AS HTTP 200 WITH THE BODY `null` — measured at Task 1

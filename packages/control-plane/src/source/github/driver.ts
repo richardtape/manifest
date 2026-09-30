@@ -826,6 +826,10 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
 
     async createRepository(projectSlug, seed) {
       const mirror = pathFor(projectSlug)
+      // A REPOSITORY NOT MADE YET HAS NO VALID CACHED TOKEN (the whole-branch review's m2, sitting 4): the
+      // cache is keyed by name and GitHub binds a token to a repository's ID, so a token left by an
+      // earlier, failed create of this slug names the repository GitHub deleted.
+      tokens.forget(projectSlug)
       // Before ANYTHING is asked of GitHub (Task 11): once pushed, a value is on GitHub for ever.
       assertWritablePaths(Object.keys(seed))
       assertNoSecrets(Object.entries(seed).map(([p, content]) => ({ path: p, content })))

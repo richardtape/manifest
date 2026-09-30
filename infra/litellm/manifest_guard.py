@@ -19,9 +19,13 @@
 #
 # EACH REQUEST IS JUDGED BY ITS OWN FAILURE, READ FROM ITS OWN LOGGING OBJECT (fix round 1). The proxy makes one
 # logging object per request and hands it to every attempt, the fallback's included (router.py:~3005 passes
-# `litellm_logging_obj` through); the failed attempt's exception is stored on it (`model_call_details["exception"]`,
-# litellm_logging.py:~2875) BEFORE its failure reaches the router, and nothing between that attempt and the
-# fallback's pre-call hook replaces it (`update_environment_variables` updates the dict, and runs after the hook).
+# `litellm_logging_obj` through); a PROVIDER's failed attempt's exception is stored on it
+# (`model_call_details["exception"]`, litellm_logging.py:~2875) BEFORE its failure reaches the router, and nothing
+# between that attempt and the fallback's pre-call hook replaces it (`update_environment_variables` updates the
+# dict, and runs after the hook). A ROUTER-MADE rejection is not stored that way (the whole-branch review's O1,
+# sitting 4): `There are no healthy deployments for this model` (router.py:~10901, a `BadRequestError`, status 400)
+# is logged in the BACKGROUND — a thread and a task, router.py:~11221–11235 — so the fallback's hook may or may not
+# see it: seen, it is a 400 and the fallback is refused; not seen, there is no exception and the fallback is allowed.
 # Measured at the fix round, in a probe LiteLLM from the pinned image: the fallback's hook saw the SAME object as
 # the primary's attempt, holding the primary's exception and status (400, 401, 403, 404, 408, 413, 429, 503), and
 # two concurrent requests sharing one trace and session id saw two different objects.
@@ -34,6 +38,16 @@
 # The hook runs on the fallback deployment's call with `fallback_depth >= 1` ([M5]) and never on a first call.
 # When it cannot see a failure — no logging object, no exception on it, or a read that fails — it ALLOWS the
 # fallback: a failure it cannot see is treated as a failure.
+#
+# ITS KNOWN LIMITS (the whole-branch review, sitting 4) — named, not handled, and neither reachable today:
+#  - It refuses EVERY fallback of EVERY model after a 400, 413 or 422: the hook is not told which model's fallback
+#    list, or which TYPE of list, sent it. Today the platform sets only `general` fallbacks (`ai/capable.ts` never
+#    sets `context_window` or `content_policy` ones). A future `context_window_fallbacks` entry would be defeated by
+#    this file — LiteLLM names a context-window overflow `ContextWindowExceededError`, a 400 — and so would a
+#    `content_policy_fallbacks` one.
+#  - A 400 is not always the caller's. A provider may answer its OWN failure — a billing one, say — with 400; and
+#    `LiteLLMUnknownProvider`, a `BadRequestError`, is the PLATFORM's misconfiguration (a provider prefix LiteLLM
+#    does not know), which `ai/capable.ts` refuses to register. Either would be refused its fallback as malformed.
 #
 # WHAT THE CLIENT SEES WHEN REFUSED: the provider's refusal. When a fallback raises, the router answers the ORIGINAL
 # exception (router.py's async_function_with_fallbacks_common_utils) — the provider's status, LiteLLM's `type` for

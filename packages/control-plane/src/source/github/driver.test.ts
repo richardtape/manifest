@@ -1110,6 +1110,30 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
     }
   })
 
+  /**
+   * THE PRODUCTION SCHEDULE IS IN FORCE (the whole-branch review's m1, sitting 4): every other case here
+   * passes its own `createRetryDelaysMs`, so a default of `[]` or a broken `??` stayed green. This driver
+   * is built WITHOUT the option, and pays the default's first wait — about a second.
+   */
+  it('a driver built with no schedule of its own retries on the production one — retry 1 of 5, in 1000 ms', async () => {
+    const h = await harness({ quirks: { notFoundAfterCreate: { push: 1 } } })
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await h.driver.createRepository('chem-labs', SEED)
+      expect(await upstreamMain(h, 'chem-labs')).toBe(
+        await lsRemoteMain(h.fake, 'chem-labs'),
+      )
+      const lines = retries(said)
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain('the seed push')
+      expect(lines[0]).toContain('retry 1 of 5')
+      expect(lines[0]).toContain('in 1000 ms')
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  }, 15_000) // the default's first wait is a second; vitest's 5 s leaves too little under load
+
   it('a seed push answered with NO line for main — lp-starter-g’s `Done` — is tried again, and lands', async () => {
     const h = await harness({ quirks: { notFoundAfterCreate: { pushPack: 1 } } }, FAST)
     const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -1271,6 +1295,45 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       const lines = retries(said)
       expect(lines).toHaveLength(6)
       expect(lines.filter((l) => l.includes('retry 2 of 2'))).toHaveLength(3)
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  /**
+   * A NEW REPOSITORY NEVER STARTS WITH A TOKEN CACHED FOR AN EARLIER ONE OF ITS NAME (the whole-branch
+   * review's m2, sitting 4): the cache is keyed by NAME, while GitHub binds a token to a repository's
+   * ID — so a person retrying a slug within the hour after a failed create would have pushed, and
+   * protected `main`, with tokens for the repository GitHub had just deleted. The fake binds tokens by
+   * name and answers either way, so the MINTS say which token each create used.
+   */
+  it('a create after a failed create of the same slug mints its own tokens, never the deleted repository’s', async () => {
+    const quirks: NonNullable<StartFakeOptions['quirks']> = {
+      notFoundAfterCreate: { push: 1 },
+    }
+    // No retries: the first create fails at its seed push, AFTER minting its write token, and is undone.
+    const h = await harness({ quirks }, { createRetryDelaysMs: [] })
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await expect(h.driver.createRepository('chem-labs', SEED)).rejects.toMatchObject({
+        code: 'SOURCE_GIT_FAILED',
+        message: expect.stringContaining('Repository not found'),
+      })
+      expect(await getAsPerson(h.fake, 'chem-labs')).toBe(404)
+      const minted = () => ({
+        write: mintsFor(h, { contents: 'write' }),
+        administration: mintsFor(h, { administration: 'write' }),
+      })
+      // What the failed create minted: its seed push's write token, and its delete's administration one.
+      expect(minted()).toEqual({ write: 1, administration: 1 })
+      quirks.notFoundAfterCreate = {}
+      await h.driver.createRepository('chem-labs', SEED)
+      expect(await upstreamMain(h, 'chem-labs')).toBe(
+        await lsRemoteMain(h.fake, 'chem-labs'),
+      )
+      // Its own: the seed push's write token and protection's administration token, each minted afresh.
+      expect(minted()).toEqual({ write: 2, administration: 2 })
     } finally {
       said.mockRestore()
       await h.cleanup()
