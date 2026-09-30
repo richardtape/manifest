@@ -1831,6 +1831,12 @@ is needed FIRST.** The plan's sittings table is the other statement of it.
   itself during sitting 3). Free disk **95 GiB** (114 at sitting 3's open; Docker's build cache 25 GB, 21 GB reclaimable — Rich's).
 - Load 3–4.
 
+**AFTER SITTING 3'S CLOSE — the block above is already stale:** the faculty front-end's **F5 sitting 1 began on 7100** (at Rich's
+word; `manifest-app-a0`), building ONE project through its UI as `instructor` — a REAL private repository in `Manifest-local-dev` —
+and launching it to production. At its request, **and Rich's own yes to sitting 3**, `operator` (`opr000001`) was made a platform
+administrator with `scripts/admin-grant.sh` (read back: role `admin`). **It asks that sitting 4 CHECK WITH IT BEFORE ANY TRUNCATION**:
+its project is kept until its measurements are recorded, and then it can go. Its server on 7105 is in `edge` mode for it.
+
 **Query it again at open** — `docker exec manifest-postgres psql -U manifest -d manifest_control`, `docker ps`,
 `lsof -nP -iTCP:7100 -sTCP:LISTEN`, `bash scripts/github-real-repos.sh` (the network) — because Rich, or the front-end's sessions, will
 have used it since.
