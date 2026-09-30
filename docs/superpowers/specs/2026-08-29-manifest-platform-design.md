@@ -526,8 +526,9 @@ classification protects.
 
 **Its fallback is the on-premise model.** A second platform setting (§26) names a catalogue entry — `default-chat-onprem` by
 default, which is Ollama on a laptop and UBC's on-premise inference at UBC — that the gateway answers `default-chat-large` with
-whenever its provider fails, the network off included. A call the fallback answers is charged at the fallback's price to the same
-key. The fallback's `max_classification` must be at least the capable model's, and the platform refuses one that is not, because
+whenever its provider cannot be reached or fails — a refused connection, a timeout, a rate limit or a server error, the network
+off included — and never for a request the provider refused as malformed, which is answered as the provider's refusal so its
+caller can correct it. A call the fallback answers is charged at the fallback's price to the same key. The fallback's `max_classification` must be at least the capable model's, and the platform refuses one that is not, because
 the gateway falls back without consulting a key's list of models. A more capable model is a repoint of the capable model, never its
 fallback.
 

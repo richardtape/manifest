@@ -2004,8 +2004,9 @@ reasoning is recorded.**
 
 - **THE LAUNCH PATH PLAN'S SPEC ACTION 6 — OPTION (a)** (Rich, 2026-09-29, to sitting 3's session after its close: *"(a) is good"*,
   having read the words): the capable model's fallback answers only a provider that *"cannot be reached or fails — a refused
-  connection, a timeout, a rate limit or a server error … and never for a request the provider refused as malformed"*. **Not yet in
-  the spec: sitting 4 applies it to §7 before Task 6** (Branch G's guard), and sweeps what a spec action sweeps.
+  connection, a timeout, a rate limit or a server error … and never for a request the provider refused as malformed"*. **APPLIED to
+  §7 by sitting 4, before Task 6** (Branch G's guard) — the four shared pages checked: the schematic's sentence restates the unreachable
+  case and stays true, unchanged (the plan's Spec action 6 has the check).
 - **FE-41 AND FE-42 — CONFIRMED BY RICH TO A PLATFORM SESSION after the launch path plan's sitting 3's close** (2026-09-29; relayed
   *"at Rich's word"* by the faculty front-end's session `manifest-app-a0` from its F5 sitting 1 on 7100). **FE-41** — a project created
   WITH a starter fails `409 SOURCE_GIT_FAILED` on real GitHub, unlogged: *"Fold into sitting 4"* — Task 6a. **FE-42** — the project's

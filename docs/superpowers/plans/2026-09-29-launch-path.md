@@ -2437,7 +2437,7 @@ approval begins on the administrator's side, and a refused production deploy wri
 **Shared pages:** `manifest-schematic.html` (the approval step, if it describes who starts it — check); `manifest-phases.html`
 stage 2.
 
-### 6. §7 — what *"its provider fails"* means for the capable model's fallback (before sitting 4 — ONLY if Task 1's `[M5]` finds a guard can be built) — ✅ **OPTION (a) DECIDED BY RICH, 2026-09-29, after sitting 3's close** (*"(a) is good"*, having read the words below) — **NOT YET APPLIED**: sitting 4 applies it, as worded, before Task 6, and checks the four shared pages then
+### 6. §7 — what *"its provider fails"* means for the capable model's fallback (before sitting 4 — ONLY if Task 1's `[M5]` finds a guard can be built) — ✅ **OPTION (a) DECIDED BY RICH, 2026-09-29, after sitting 3's close** (*"(a) is good"*, having read the words below) — ✅ **APPLIED BY SITTING 4, 2026-09-29, before Task 6**, exactly as worded under *Proposed* (the bold, a diff marker, dropped); the four shared pages checked then (below)
 
 **Why.** FE-34. The spec says the gateway answers `default-chat-large` with the on-premise model *"whenever its provider fails,
 the network off included"*. LiteLLM 1.98.0 also answers a request the provider REFUSED as malformed. The client's own mistake
@@ -2457,7 +2457,7 @@ gateway also answers a request the provider refused as malformed**; a client tel
 - **(b) Branch D's words**;
 - **(c) no fallback for the capable model** — an unreachable provider fails loudly, which Spec action 8 chose against.
 
-**Shared pages:** none restates the fallback (checked by `grep` on 2026-09-29 — recheck at application).
+**Shared pages:** ~~none restates the fallback (checked by `grep` on 2026-09-29 — recheck at application).~~ **Rechecked at application (sitting 4): `manifest-schematic.html` DOES** — *"when that provider cannot be reached, the network off included, the platform's own on-premise model answers in its place"* — the 2026-09-29 grep missed it. It stays true under option (a) (it names the unreachable case and never claims a malformed request falls back), so it is **unchanged**; `manifest-decisions.html`'s one match is FIPPA's, and `manifest-phases.html` and `manifest-stories.html` carry none.
 
 ### 7. §9, §6, §13 and §20 — who may build: faculty, or an administrator named by a setting (FE-39; before sitting 5a) — ✅ FE-39 CONFIRMED AND ITS OPTIONS DECIDED BY RICH, 2026-09-29; ✅ **APPLIED AT HIS WORD THE SAME EVENING** (Rich, 2026-09-29: *"apply 7"*), as the four edits below, with one consequential phrase beyond them — §13's *collaborator* was *"invited TA or co-instructor"*, which the drafted *"only a person who may build is added"* made false; it reads *"an invited co-instructor (a TA once* who may build *includes TAs)"*. **Shared pages:** `manifest-schematic.html`'s *Signing in* step gains that Manifest is for faculty, for now; `manifest-decisions.html` (no D-number changed), `manifest-phases.html` and `manifest-stories.html` (their CWL and TA lines describe an APP's users) checked and unchanged
 

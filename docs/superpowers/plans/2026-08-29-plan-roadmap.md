@@ -109,7 +109,7 @@ no administrator's reason is required anywhere, and who acted is only half-recor
 newest open question. **The console's design: [`2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md)
 — written 2026-09-27 and drawn as a clickable mockup the same day; no plan, by Rich's choice.**
 
-### Spec actions raised by the launch path plan — SEVEN DRAFTED 2026-09-29; ✅ **7 APPLIED 2026-09-29** at Rich's *"apply 7"*; ✅ **6 DECIDED, option (a)**, 2026-09-29 after sitting 3's close (*"(a) is good"*) — applied by sitting 4; 1–5 wait for him
+### Spec actions raised by the launch path plan — SEVEN DRAFTED 2026-09-29; ✅ **7 APPLIED 2026-09-29** at Rich's *"apply 7"*; ✅ **6 DECIDED, option (a)**, 2026-09-29 after sitting 3's close (*"(a) is good"*), and ✅ **APPLIED by sitting 4** the same night, before Task 6; 1–5 wait for him
 
 The words are the plan's *Spec actions* ([`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md)). **7 — who may build (the faculty
 front-end's FE-39)**: relayed by its session as Rich's decision, then confirmed by him with three answers (*"1. YEs, PUID 2. YEs keep but
@@ -117,8 +117,12 @@ no new. 3. literally just those with 'faculty' as their affiliation"*). Applied 
 `eduPersonAffiliation`; only `faculty`, or an administrator, may start a project or an intake session or be added to one), §6 (`User.
 affiliations`), §13 (*Who may build* heads *Roles*), §20 (administrators may be named by a setting of PUIDs, authoritative when set,
 audited). One consequential phrase is beyond them: §13's *collaborator* no longer says *"TA"*. **Shared pages:** `manifest-schematic.html`'s
-*Signing in* step; the other three checked and unchanged. **1–6** — §7's trim, the member rule, the staging kind and the owner's
-submission, D19's package, the sign-off request, and the fallback's *"fails"* — wait for Rich, each before its sitting.
+*Signing in* step; the other three checked and unchanged. **6 — the fallback's *"fails"*** (FE-34): APPLIED by sitting 4 to §7's
+*Its fallback is the on-premise model*, exactly as worded (option (a), Branch G's words; the plan's bold, a diff marker, dropped). Shared
+pages: `manifest-schematic.html`'s *"when that provider cannot be reached … the platform's own on-premise model answers in its place"*
+DOES restate the fallback (the plan's *"none restates"* was wrong) and stays true under (a), so it is unchanged; the other three carry
+none. **1–5** — §7's trim, the member rule, the staging kind and the owner's submission, D19's package and the sign-off request — wait
+for Rich, each before its sitting.
 
 ### Spec actions raised by the front-end enablement plan — FOUR DRAFTED 2026-09-27, OVERNIGHT; ✅ **ALL FOUR DECIDED (a) AND APPLIED 2026-09-27**, before sitting 2 (`1d1afd7`) — **and 5, 6 and 7 applied the same day; 8, the capable model's fallback, DRAFTED 2026-09-28 by sitting 9a, approved (a) and APPLIED at its close; 9, §8's SP key in every environment (the faculty front-end's FE-37), DRAFTED by sitting 11 and approved (a) and APPLIED the same evening (`d82b3a2`); and 10, the building agent's models as a platform setting (FE-35 and FE-36), DRAFTED at sitting 11's close from Rich's words, approved (a) WITH its safeguard and APPLIED (`d9a1fa1`)**
 
