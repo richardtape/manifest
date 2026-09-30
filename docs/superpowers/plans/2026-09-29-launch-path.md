@@ -81,7 +81,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 1 | 1 | **The measurements this plan rests on — and THE CONTROL PLANE ON REAL GITHUB for the first time**: a project created through the platform becomes a real private repository in `Manifest-local-dev`; a commit through the API lands on github.com; a build and a deploy come from the mirror; a scratch project is deleted and its repository is gone. Also: LiteLLM 1.98.0's `/key/update` on a live key; which provider errors a `general` fallback answers, and whether a LiteLLM hook can see the original error; an open stream after a revoke; F26's rate; `saml-metadata-generator`'s output structure; where the blueprint's code reads each attribute; the gate numbers. **Alone, and first — the same session that wrote the plan, at Rich's word** | **No** — nothing under the owing paths changes | — | **DONE 2026-09-29**, the session that wrote the plan — the control plane on the real App end to end (create, read, commit, build, deploy, delete; `lp-real-a` kept); `/key/update` by alias narrows a live key at once; FE-33 reproduced; every provider error falls back, a `422` answers `200 null`, and a trace-id guard can be built (Branch G); UBC's metadata structure recorded; `[M]` blocks at Tasks 2, 6, 7, 9, 10, 11; **the split stands** |
 | 2 | 2, 3 | **What real GitHub found**, fixed: a repository left behind by a create that failed after GitHub made it; a project made against the fake refused on the real App, and the reverse (`source_repositories.api_host`); the demos refusing real GitHub by name; `scripts/github-real-repos.sh`; RUNBOOK's real-App section written from the run. **And F26**: every retirer and build runner a test builds, drained before `resetDatabase`'s `TRUNCATE` | **Yes** — `source/` | none | **DONE 2026-09-29**, after Rich approved the plan — subagent-driven: Step 0 first and alone (the tiers refuse a real GitHub, watched with the day's rows still in the tables); a failed create destroys what the driver made; `api_host` (migration `0040`, never published); the boot leaves another GitHub's mirror alone; the demos refuse real GitHub by name; `github-real-repos.sh`; F26 drained centrally (`delivery.test.ts` 1 of 8 red before, 0 of 8 after); **Step 6 on real GitHub green** (`lp-real-b` made with `api.github.com`, deleted, gone); one whole-branch review and its fix wave; Rich's demo paused it (F14) |
 | 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | **DONE 2026-09-29** — subagent-driven, after Rich's answers (FE-40 confirmed; the database dumped first): `0041` and `Instance.createdAt`, **contract `1.5.0`** (the plan's one bump); the stream registry — `4401` at a revoke, an archive's revoke and an expiry (token AND session), a delete's `4404` at the tombstone, **the authorization → registration race window closed and held by a deterministic lock test**; one fix round per task, one whole-branch review beside the Docker tier, one fix wave; the front-end told at every contract commit and adopted `1.5.0` |
-| 4 | 6 | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich | **Yes** — `ai/`, `infra/` | **Spec action 6** — needed: Task 1 measured the guard buildable (Branch G, `[M5]`) || ← **next** |
+| 4 | 6, 6a | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich. **And FE-41 (Task 6a, Rich's, after sitting 3's close): a project created WITH a starter on real GitHub — reproduced at his yes, logged, fixed on driver 2, held by a test** | **Yes** — `ai/`, `infra/`, `source/` | **Spec action 6** — needed: Task 1 measured the guard buildable (Branch G, `[M5]`); **Task 6a needs none, and may run first if Spec action 6 is still undecided** | ← **next** |
+| 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich | |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
@@ -167,6 +168,26 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
   waits on it; its F5b's acceptance would use it. **Relayed first, then CONFIRMED by Rich to a platform session** (2026-09-29, sitting 3's
   first message, answering ORIENTATION §7e's question: *"Confirm"*) — **Task 13 carries it.**
 
+## FE-41 and FE-42 — relayed at Rich's word after sitting 3's close, then CONFIRMED by him to sitting 3's session (2026-09-29)
+
+- **FE-41 — CREATING A PROJECT WITH A STARTER FAILS ON REAL GITHUB** (relayed by the faculty front-end's session `manifest-app-a0`,
+  *"AT RICH'S WORD"* — his *"Carry it now"*; its `docs/api-findings.md` FE-41). Found by its F5 sitting 1 on 7100 (control plane
+  98101 on `84d485a`, real GitHub): `createProject` from a person's session with `{ blueprint: 'node-ts-mongo@1', starter: 'proof-app',
+  audience }` answered `409 SOURCE_GIT_FAILED` twice, ~8 s after the press (04:20:36Z, slug `class-readings`; 04:22:07Z, `read-responses`) —
+  nothing left behind (slug free, no project, no mirror) — while the same call WITHOUT a starter answered `201` in 8.8 s (`f5-reading`,
+  04:22:53Z). **The control plane's log holds only its boot lines**: a create's `SOURCE_GIT_FAILED` writes no operator line, so the cause
+  is unseen. **Ruled out by sitting 3's session, reading only**: the App's missing `workflows` permission — `proof-app` is five small
+  files, no `.github/`, no symlink, nothing over 1 MB. It matters because the front-end's blueprint agent picks `proof-app` for almost
+  every class app. **CONFIRMED by Rich to sitting 3's session** (*"Fold into sitting 4"*): **Task 6a, in sitting 4**.
+- **FE-42 — THE PROJECT'S OWNER MAY RUN THE DRY RUN (D21's rehearsal)** (relayed the same way — his *"Both: row now, ask platform"*).
+  Today `runRehearsal` is `launch:record`, an administrator's alone (`authz-contract.ts`: owner `403 FORBIDDEN`, collaborator `403`), and
+  its published description does not say who may run it. The front-end shows the row as an administrator's now (its option (c)); it
+  asks the platform for option (a): the rehearsal deploys the candidate the owner already put on staging, behind the gate, with
+  production-shaped values — it proves a shape and decides nothing about UBC's records, unlike `launch:record`'s IAM and PIA rows. **The
+  spec calls the item *"Manifest, automated"*** (§13's checklist) and does not say who triggers it. **CONFIRMED by Rich to sitting 3's
+  session** (*"Yes, its own small sitting"*): **Task 6b, in sitting 4a** — placed by sitting 3's session right after sitting 4 and
+  before the spec-action sittings (a routine ruling; move it if he says otherwise).
+
 ---
 
 ## What Rich does, and when
@@ -179,7 +200,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
    guard can be built.** Each carries its exact wording, its options and a recommendation, and is applied to the spec only after he
    has read the words. A sitting that finds one undecided stops and asks.
 3. **The network, and his yes, for every call to real GitHub** — given for Task 1 in this plan's first message. **Task 2's real
-   check and Task 15's optional real leg each ask again.** Every repository created on the real App is PRIVATE, in
+   check, Task 6a's reproduction of FE-41 and Task 15's optional real leg each ask again.** Every repository created on the real App is PRIVATE, in
    `Manifest-local-dev`, and named `lp-…` (Decision 3). **Never install the App on UBC's organisation.**
 4. **Which driver the control plane runs at each sitting's close, and the faculty front-end's two driver-1 projects**
    (`my-weekly-thoughts`, `notes-and-answers`, made by its real-platform acceptance). On driver 2 they answer
@@ -1412,6 +1433,53 @@ sits beside.
   LiteLLM; read the config back.
 
 ---
+## Task 6a: FE-41 — a project created with a starter on real GitHub
+
+> **Added after sitting 3's close, confirmed by Rich** (the *FE-41* section above). **Real GitHub is called only at his yes, with the
+> network on** (*What Rich does* 3); every repository made is PRIVATE, in `Manifest-local-dev`, named `lp-…`, and deleted after.
+
+**Files** (to be confirmed by Step 1's cause): `packages/control-plane/src/source/github/*.ts` (the driver's `createRepository` and its
+seed push), `src/api/routes/projects.ts` (an operator line for a create's source failure — F-class: nothing was logged), a driver-2
+test in `src/source/github/*.test.ts` against the fake reproducing the cause, and — if the fake cannot show it — a Docker or conformance
+case; `packages/github-fake` if the fake must learn GitHub's real behaviour (then `make github-conformance` at Rich's yes).
+
+- [ ] **Step 1: Reproduce and SEE the cause.** First make the failure visible: a create whose source step fails writes one
+  `console.error` operator line naming the driver's error code and GitHub's status/message (never a token) — watched on the fake by
+  injecting a failure. Then, at Rich's yes and with the network on, restart nothing: call `createProject` with `starter: 'proof-app'`
+  as a person (slug `lp-starter-…`) against the running real-GitHub control plane and read the new line. Compare the seed commit a
+  starter makes with the blueprint-only seed (file modes, paths, sizes, the commit's tree) — the difference is the cause.
+- [ ] **Step 2: The failing test** on the fake (or the conformance leg), red for the cause Step 1 read.
+- [ ] **Step 3: Fix the seed on driver 2**, green; driver 1 unchanged and its starter tests still green.
+- [ ] **Step 4: The real check, at Rich's yes**: the same create with `proof-app` answers `201`; the repository is private; delete it
+  (step-up) and see it gone (`bash scripts/github-real-repos.sh`).
+- [ ] **Step 5: Tell the front-end's session** (FE-41 fixed; nothing in the contract moves unless the fix does), then commit.
+- [ ] **Step 6: Negative control** — revert the fix, predict the named test red at the cause's assertion; restore.
+
+---
+
+## Task 6b: FE-42 — the project's owner may run D21's rehearsal
+
+> **Added after sitting 3's close, confirmed by Rich** (the *FE-42* section above), as **its own small sitting, 4a**.
+
+**Files** (to be confirmed by Step 1): `packages/control-plane/src/api/routes/launch.ts` (`runRehearsal`'s `capability`, today
+`launch:record`, and its description — which must say who may run it), `src/projects/authz.ts` (`CAPABILITIES`, the role grants,
+`PERSON_ONLY`), `src/projects/person-only.test.ts`, `src/api/authz-contract.ts` (the rehearsal row: owner allowed), the console's
+`everyCapability([...])` in `packages/console/src/screens/tokens.tsx` if a capability is added, `docs/api/` (*Launching* and the front-end
+guide), the mock if it scripts the rehearsal's refusal; then the four regeneration commands (contract stays `1.5.0`).
+
+- [ ] **Step 1: Read what decides it.** §13 (*Roles*, the checklist), §20 (credential classes) and D24: if any names who may trigger
+  the rehearsal, DRAFT a spec action with options and STOP for Rich. Then read Task 9's new capabilities (`launch:draft`, `launch:submit`,
+  sitting 6) and decide — recording why — whether the rehearsal gets its own capability (e.g. `launch:rehearse`, owner and admin,
+  PERSON-ONLY like `launch:record`, since it deploys production-shaped values) or rides on an existing one. Collaborator: follow §13's
+  *"same as owner except member management and deletion"* unless the reading says otherwise. Step-up: the rehearsal does not touch
+  production, so none unless the reading says so.
+- [ ] **Step 2: The failing tests** — the owner's `runRehearsal` answers as the administrator's does (a real rehearsal on the fixture);
+  a delegated token is refused its person-only code; a stranger `404`; the authz contract's row. Every refusal asserts its CODE.
+- [ ] **Step 3: Implement**, the description saying who may run it; regenerate; tell the front-end (its button returns); commit.
+- [ ] **Step 4: Negative control** — the grant removed from the owner's role; predict the owner's test red at its code.
+
+---
+
 ## Task 7: A session whose project no longer allows one of its models is narrowed in place
 
 > **`[M3]` (Task 1, 2026-09-29 — F5): `/key/update { key_alias, models }` narrows a live key by its ALIAS alone (`200`), and
@@ -2842,3 +2910,18 @@ owed no re-run (the rulings above). `make doctor` **20/0/0** and `make verify` *
 
 **The four shared HTML pages, checked, and unchanged**: none describes an event stream, a close code, the contract's version or an
 instance's time; their two *revoked* mentions are of tokens in general. No spec action was applied this sitting.
+
+### After sitting 3's close — 2026-09-29: F5 sitting 1 on 7100, an administrator granted at Rich's yes, and FE-41 and FE-42 confirmed
+
+- **The faculty front-end's F5 sitting 1 ran on 7100** (04:20–04:40Z, at Rich's word to it): ONE project, `f5-reading`, made through its
+  UI as `instructor` — a REAL private repository `Manifest-local-dev/f5-reading` — and LAUNCHED to production (04:39:16Z). It released
+  7100 needing none of it kept; **the repository is Rich's to remove**.
+- **`operator` (`opr000001`) was made a platform administrator** with `scripts/admin-grant.sh`, at the front-end's request and **Rich's own
+  yes to sitting 3's session** (a peer's relay is not his approval); read back `admin`.
+- **A spend-log read for its measurement** (*does an aborted stream stop billing?*): LiteLLM's `LiteLLM_SpendLogs` billed the cut
+  stream **594 completion tokens, $0.0014973** — what it streamed (~2,354 chars), not a whole answer; the three calls sum to the
+  session's `spentUsd` step exactly. LiteLLM's accounting, from the chunks it relayed; the provider's own is not visible here.
+- **FE-41 and FE-42 relayed at Rich's word, then CONFIRMED by him to sitting 3's session** (their section above): FE-41 → Task 6a in
+  sitting 4; FE-42 → Task 6b in a new sitting 4a. **18 tasks in 14 sittings.**
+28. **F28 The close-out's own**: the sittings table's row 4, edited at sitting 3's close, carried `||` before its marker — an empty
+  seventh cell — found while adding row 4a, and fixed.

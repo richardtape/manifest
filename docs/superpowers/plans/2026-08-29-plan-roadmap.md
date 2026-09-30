@@ -1289,7 +1289,9 @@ place rather than the session ended (measured first; a spec action for §7's sen
 
 **Approved by Rich as written, thirteen sittings (2026-09-29, sitting 2's first message)** — and, the same message: FE-28 to FE-32 are
 not in this plan; **FE-30 and FE-28 get a sitting of their own after it**. **FE-40** (the mock cannot play a launch) was relayed as his
-during sitting 2's close and CONFIRMED by him at sitting 3's open (*"Confirm"*) — Task 13 carries it.
+during sitting 2's close and CONFIRMED by him at sitting 3's open (*"Confirm"*) — Task 13 carries it. **FE-41** (a project created with a starter fails on real GitHub) and **FE-42** (the owner may run the rehearsal) were
+relayed as his after sitting 3's close and CONFIRMED by him to that session: FE-41 is Task 6a in sitting 4, FE-42 Task 6b in a new
+sitting 4a — **18 tasks in 14 sittings**.
 
 **Written from ORIENTATION §7e at Rich's word** (*"write the plan, then run its Task 1 (including the real-GitHub run) in the same
 session"*), carrying FE-6 and FE-25 — which absorbs **P8, launch package generation** (the Phase 2 table) — and his additions of
@@ -1680,7 +1682,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | **Front-end enablement, EXECUTED** | **18 of 18** | **259** | **14.4** |
 | Launch path Task 1 (sitting 1, the measurements — and the control plane's FIRST RUN ON REAL GITHUB, in the session that wrote the plan: create, read, commit, build, deploy and delete on the real App; `/key/update` by alias; FE-33 reproduced; every provider error falls back and a `422` answers `200 null`; a trace-id guard proved buildable; UBC's metadata structure recorded) | 1 | 17 | 17.0 |
 | Launch path Tasks 2–3 (sitting 2, what real GitHub found, and F26 — the plan's own `repositoryOf` interface not the code's, its F26 test unable to tell an awaited drain from one merely called, a guard's FAIL text that could defeat the guard, a *"a clash never reaches the destroy"* claim with no test, the fix wave's own deep import seen only by the whole suite, and Rich's demo meeting a mock-mode front-end) | 2 | 20 | 10.0 |
-| Launch path Tasks 4–5 (sitting 3, FE-38's `createdAt` and contract `1.5.0`, FE-33's stream registry — the plan's own premise false (a failed deploy IS seen, so it lists first), its test files and helpers absent, the host's clock bounding the database's twice (trap 14), **the authorization → registration race window real and held open for good** until a deterministic lock test drove it, `@fastify/websocket` 11.3.0's `app.close()` not waiting for sockets, Review Focus 3's one-second bound asserted by nothing, a cluster-wide lock poll, a thrown `null` aborting every close after it, a vacuous assertion measured unable to fail, and three status documents stating a sitting they say they never state) | 2 | 27 | 13.5 |
+| Launch path Tasks 4–5 (sitting 3, FE-38's `createdAt` and contract `1.5.0`, FE-33's stream registry — the plan's own premise false (a failed deploy IS seen, so it lists first), its test files and helpers absent, the host's clock bounding the database's twice (trap 14), **the authorization → registration race window real and held open for good** until a deterministic lock test drove it, `@fastify/websocket` 11.3.0's `app.close()` not waiting for sockets, Review Focus 3's one-second bound asserted by nothing, a cluster-wide lock poll, a thrown `null` aborting every close after it, a vacuous assertion measured unable to fail, and three status documents stating a sitting they say they never state; and, after the close, FE-41 and FE-42 confirmed and the close-out's own table cell) | 2 | 28 | 14.0 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each

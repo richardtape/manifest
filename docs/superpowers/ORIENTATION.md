@@ -233,7 +233,7 @@ docs/superpowers/
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
-│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 16 tasks in 13 proposed sittings (8a/5a: FE-39, confirmed by Rich), seven spec actions drafted (7 applied, 1–6 not); IN EXECUTION — its sittings table says how far
+│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 18 tasks in 14 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich), seven spec actions drafted (7 applied, 1–6 not); IN EXECUTION — its sittings table says how far
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1762,17 +1762,20 @@ named in the row below.*
 | **D5 driver 2** | [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — **EXECUTED 2026-09-25**, all eight sittings | `make demo-github` (driver 2) — green fresh, re-use and from a `make reset` machine; step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1; **clicked by a person on both drivers**; the real conformance leg 17 of 17 | **Sitting 8's F11 and F12 are the ones to read**, found by the plan's one fresh whole-branch review: a path into a worktree's own `.git` could be written on both drivers (`core.fsmonitor` is code execution — latent until the authoring API supplies paths), and a push a read synced first was never validated. **Sitting 8's F15/F16**: `make demo` and `make demo-token` were red for five days after P6a's step-up because nothing ran them. **Sitting 1's F6**: one rewrite of GitHub's `main` froze a non-forced mirror's `main` for ever — the two-refspec mirror is its fix. **Sitting 4's F6**: without `repositoryOf`, a GitHub-mode control plane BUILT a driver-1 project. |
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
-### 7e. The launch path plan's sitting 4 (Task 6 — FE-34, the capable model's fallback) ← **START HERE**
+### 7e. The launch path plan's sitting 4 (Tasks 6a and 6 — FE-41's starter on real GitHub, FE-34's fallback) ← **START HERE**
 
 **The launch path plan** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md)) is **APPROVED BY RICH AS WRITTEN,
 THIRTEEN SITTINGS** (2026-09-29) — FE-6's three clocks with D19's drafts and FE-25's sign-off request feeding §26's queue, plus Rich's
-additions (real GitHub, the key trim, member removal), FE-33, FE-34, FE-38, F26 and FE-39. **16 tasks in 13 sittings; seven spec
-actions — 7 APPLIED, 1–6 wait for him.** Fourteen plans are executed (§2's table); this is the fifteenth. **Sittings 1, 2 and 3 are
+additions (real GitHub, the key trim, member removal), FE-33, FE-34, FE-38, F26 and FE-39. **18 tasks in 14 sittings** (FE-41's Task 6a and FE-42's
+Task 6b/sitting 4a added after sitting 3's close, confirmed by Rich)**; seven spec actions — 7 APPLIED, 1–6 wait for him.** Fourteen plans are executed (§2's table); this is the fifteenth. **Sittings 1, 2 and 3 are
 DONE** — the measurements and the first run on REAL GitHub; what real GitHub found, and F26; and **sitting 3: FE-38 (`Instance.createdAt`,
 migration `0041`, contract `1.5.0` — the plan's ONE bump) and FE-33 (a stream whose credential is gone is closed at the moment it goes,
 `4401`/`4404`)**. The plan's *Sitting 3* is the record.
 
-**THE NEXT JOB: the plan's sitting 4 — Task 6** (FE-34, **Branch G**, as Task 1's `[M5]` measured it buildable): a LiteLLM guard
+**THE NEXT JOB: the plan's sitting 4 — Task 6a AND Task 6.** **Task 6a (FE-41, Rich's, confirmed after sitting 3's close)**: creating a
+project WITH a starter (`proof-app`) fails `409 SOURCE_GIT_FAILED` on real GitHub, unlogged — make the failure visible, reproduce it at
+Rich's yes, fix the seed on driver 2 with a test (the plan's *FE-41* section and Task 6a); **it needs no spec action, so it may run FIRST
+while Spec action 6 is undecided.** **Then Task 6** (FE-34, **Branch G**, as Task 1's `[M5]` measured it buildable): a LiteLLM guard
 (`infra/litellm/manifest_guard.py`, loaded by `config.yaml`'s `callbacks`, mounted by `compose.yaml`) that refuses a FALLBACK call
 when the capable model's provider refused the request as malformed (a `4xx` other than `408`/`429`), and leaves every unreachable,
 timed-out, rate-limited or failing provider falling back to the on-premise model; `make verify` gains a check that LiteLLM loaded it
@@ -1780,6 +1783,9 @@ timed-out, rate-limited or failing provider falling back to the on-premise model
 is needed FIRST.** The plan's sittings table is the other statement of it.
 
 **ASK RICH IN THE FIRST MESSAGE:**
+0. **Real GitHub, for Task 6a** — the network on, and his yes to create (and delete) a private `lp-starter-…` repository in
+   `Manifest-local-dev` to reproduce FE-41 and check its fix (*What Rich does* 3). Without it, Task 6a stops after making the failure
+   visible on the fake.
 1. **Spec action 6 — needed BEFORE Task 6** (the plan's *Spec actions*, 6): what *"its provider fails"* means for the capable model's
    fallback. **(a)** Branch G's words — *"cannot be reached or fails — a refused connection, a timeout, a rate limit or a server error
    … and never for a request the provider refused as malformed"* (recommended; `[M5]` measured the guard buildable); (b) Branch D's
@@ -1850,9 +1856,9 @@ asks, standing: **message it before any commit to `packages/contract` or `packag
 every promised message**; heads-up, read that it was delivered, THEN commit. Its server on 7105 runs in MOCK mode (asking 7102) unless
 it says otherwise.
 
-**WHERE SITTING 4 STOPS, AND HOW IT ENDS**: after Task 6 — the plan's *How this plan is to be executed*: the four gates twice on the
-final tree, `pnpm test:docker` (owed), the record, the sittings table, and ORIENTATION §6's sweep. **Sitting 5 is not started**, whatever
-the skill says.
+**WHERE SITTING 4 STOPS, AND HOW IT ENDS**: after Tasks 6a and 6 — the plan's *How this plan is to be executed*: the four gates twice on the
+final tree, `pnpm test:docker` (owed), the record, the sittings table, and ORIENTATION §6's sweep. **Sitting 4a (Task 6b — FE-42, the owner may run the
+rehearsal, Rich's *"its own small sitting"*) is next and is not started**, whatever the skill says.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -1994,6 +2000,11 @@ reasoning is recorded.**
 
 ### Decided
 
+- **FE-41 AND FE-42 — CONFIRMED BY RICH TO A PLATFORM SESSION after the launch path plan's sitting 3's close** (2026-09-29; relayed
+  *"at Rich's word"* by the faculty front-end's session `manifest-app-a0` from its F5 sitting 1 on 7100). **FE-41** — a project created
+  WITH a starter fails `409 SOURCE_GIT_FAILED` on real GitHub, unlogged: *"Fold into sitting 4"* — Task 6a. **FE-42** — the project's
+  OWNER may run D21's rehearsal (today `launch:record`, an administrator's): option (a), *"Yes, its own small sitting"* — Task 6b, sitting
+  4a (placed by sitting 3's session). The plan's *FE-41 and FE-42* section has both in full.
 - **FE-40 — THE MOCK PLAYS A FIRST LAUNCH, BEHIND FOUR OPT-IN SWITCHES** (relayed by the faculty front-end's session `manifest-app-ce`
   *"at Rich's word"* during the launch path plan's sitting 2's close, then CONFIRMED by Rich to a platform session at sitting 3's open,
   2026-09-29, answering §7e's question: *"Confirm"*): a ready first launch; step-up enforced; `getApproval` `404` before a decision; a
