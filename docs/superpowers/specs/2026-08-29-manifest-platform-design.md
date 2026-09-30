@@ -337,7 +337,7 @@ admin-ui/       React admin front-end
 | **IamRegistration** | `id`, `project_id`, `entity_id`, `acs_url`, `slo_url`, `cert_fingerprint`, `cert_expires_at`, `registered_attributes`, `state` (`draft` \| `submitted` \| `active` \| `change_requested` \| `expired`), `external_ticket_ref` |
 | **PrivacyAssessment** | `id`, `project_id`, `generated_draft`, `state` (`draft` \| `submitted` \| `approved`), `reviewer`, `approved_at` |
 | **LaunchReadiness** | `project_id`, checklist state across IAM registration, PIA, rehearsal, security scan, admin approval |
-| **DelegatedToken** | `id`, `user_id`, `project_id`, `name`, `token_hash`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `revoked_at`, `last_used_at`, `rate_limit` — the plaintext exists only at minting and is never stored, so `token_hash` is what authenticates a presented token, `name` is what makes one reviewable in a list, and `revoked_at` is how one is ended **before** its expiry. Revocation is not optional for a credential an agent holds, which is why a delegated token has a server-side record where a Phase 1 session does not (§20) |
+| **DelegatedToken** | `id`, `user_id`, `project_id`, `name`, `token_hash`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `revoked_at`, `last_used_at`, `rate_limit` — the plaintext exists only at minting and is never stored, so `token_hash` is what authenticates a presented token, `name` is what makes one reviewable in a list, and `revoked_at` is how one is ended **before** its expiry. **A token is revoked when its minter is removed from its project**, because it acts for that person there and nowhere else. Revocation is not optional for a credential an agent holds, which is why a delegated token has a server-side record where a Phase 1 session does not (§20) |
 | **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `expires_at`, `resolved_by`, `resolved_at`, `consumed_at` — `expires_at` is what makes the `expired` state reachable rather than decorative, and `consumed_at` records that a confirmation has been **spent**, so confirming grants exactly one retry rather than a standing permission. `consumed_at` is a column and not a fifth state: "confirmed but not yet retried" and "confirmed and used" are one decision at two moments |
 | **AgentSession** | `id`, `project_id`, `user_id` (the person it works for, and is charged to), `instance_id` (the sandbox it runs in — null for an agent outside Manifest), `requested_by_token` (null when a person started it in a session), `litellm_key_id`, `cap_usd`, `expires_at`, `ended_at` — a session outlives neither its `expires_at` nor the credential that started it, and its key is answered once, when it starts, and never stored |
 | **IntakeSession** | `id`, `user_id` (the person who started it, who is never charged), `model`, `cap_usd`, `expires_at`, `created_at`, `ended_at`. It has no project and no token: only an interactive session starts one, before a project exists, and it is paid from the platform's intake budget (§10). Its key is answered once and never stored. The row is the record that the key was issued, because there is no project stream to publish on |
@@ -519,8 +519,10 @@ Whether data of a given classification may reach a provider outside Canada is th
 
 **The agent that BUILDS an app is governed by a platform setting of its own (§26)**: whether an agent session on a `confidential`
 project may call the capable model as well as the on-premise models — **yes by default**, because writing an app is the work a small
-model cannot do. Set to on-premise only, every such session gets the on-premise models alone, and the sessions already holding more
-are ended. The app's own `ai.models` stays on-premise either way. **While the setting allows it, a delegated token on a
+model cannot do. Set to on-premise only, every such session gets the on-premise models alone. Whenever a project's classification or
+this setting withdraws a model from a live agent session, the session is narrowed in place: its key keeps the models the project still
+allows and loses the rest at once, the session goes on, and its event says what was withdrawn. A session left with nothing it may use
+is ended. The app's own `ai.models` stays on-premise either way. **While the setting allows it, a delegated token on a
 `confidential` project is refused staging's and production's Incident log tails**, which can carry the input of the people the
 classification protects.
 
@@ -970,7 +972,7 @@ single port.
 | Key | Scope | Lifetime | Budget source |
 |---|---|---|---|
 | **App key** | app + environment | one key per instance: minted before the instance starts; revoked when that instance is retired, after its drain (§11), or discarded if it never became ready; revoked on archive | `ai.budget.project_monthly_usd`, held on the LiteLLM *user* rather than the key, so it survives key rotation |
-| **Agent key** | one `AgentSession`: one person's agent, on one project | carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete`; revoked when its session is ended, when the delegated token that started it is revoked, and when the project is archived; never outlives that token. Inside a sandbox (Phase 3) it also dies with the sandbox | the session's own hard cap, inside **the person's** monthly agent budget — held on a LiteLLM user for that person, independent of every app budget |
+| **Agent key** | one `AgentSession`: one person's agent, on one project | carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete`; revoked when its session is ended, when the delegated token that started it is revoked, when the person it works for is removed from the project, and when the project is archived; never outlives that token. Inside a sandbox (Phase 3) it also dies with the sandbox | the session's own hard cap, inside **the person's** monthly agent budget — held on a LiteLLM user for that person, independent of every app budget |
 | **Intake key** | one `IntakeSession`: one person describing an app, before any project exists | carries a `duration` TTL of 30 minutes by default, and never past the expiry of the interactive session that started it, so it expires even if the control plane never calls `/key/delete`; revoked when its session is ended. No token starts one, so no token's revocation reaches it | the key's own hard cap ($0.25 by default), inside **the platform's** monthly intake budget. That budget is held on one LiteLLM user for the platform, independent of every person's and every app's. A person may start a bounded number a day (10 by default) |
 | **End user** | app passes `hash(ubcEduCwlPuid ‖ project ‖ environment)` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` — **validated, not enforced, in Phase 1** (below) |
 
@@ -1920,7 +1922,9 @@ A delegated token can **never** hold production promotion, secret read, quota ch
 or member management, regardless of how it was minted. Requesting one of those
 produces a `PendingAction` that a human resolves in an interactive session. This is
 enforced centrally at the authorization layer, not per-route, so a new privileged
-route cannot accidentally omit it.
+route cannot accidentally omit it. **Removing a person from a project revokes every token
+they minted on it, ends their agent sessions there, and closes their open streams** — a
+removal that left their agent working would not be a removal.
 
 **An agent key or an intake key (§10) is neither class.** Each authenticates to
 LiteLLM's model routes and nothing else, carries no capability on the control plane,

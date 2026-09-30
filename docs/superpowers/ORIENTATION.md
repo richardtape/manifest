@@ -153,8 +153,8 @@ each sitting left them, dated, and they deliberately do not move.
 
 **The spec is current, and runs AHEAD of the code in one place** — **the launch path plan's Spec action 8**, **APPLIED at Rich's word, 2026-09-30** (*"apply 8"*): D24 now names
 FOUR person-only actions, the rehearsal among them (the code's `PERSON_ONLY` since `fa02bbc`); **but §20's step-up for the rehearsal and
-§9's take-down before it records are not in the code until Task 6c (sitting 5b)**. Spec actions 1–5 are drafted and wait
-for him; nothing they change is built yet. Every spec change has been applied only after Rich approved it —
+§9's take-down before it records are not in the code until Task 6c (sitting 5b)**. **Spec actions 1 and 2 were APPLIED as worded at sitting 5's open (2026-09-30)** — §7's narrowing, and §10/§6/§20's member rule —
+and are built by that sitting's Tasks 7 and 8; 3–5 are drafted and wait for him; nothing they change is built yet. Every spec change has been applied only after Rich approved it —
 **most recently the launch path plan's Spec action 8** (above; D24, §20 twice and §9, and `manifest-decisions.html`'s D24 and D21 and
 `manifest-schematic.html`'s rehearsal line) — **before it Spec action 6** (option (a), Rich's *"(a) is good"*; applied by its sitting 4 before Task 6,
 `0ebe514`): §7's capable-model fallback answers a provider that *"cannot be reached or fails — a refused connection, a timeout, a rate
@@ -240,7 +240,7 @@ docs/superpowers/
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
-│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 15 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), eight spec actions drafted (6 and 7 applied, 8 applied, 1–5 not); IN EXECUTION — its sittings table says how far
+│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 15 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), eight spec actions drafted (6 and 7 applied, 8, 1 and 2 applied, 3–5 not); IN EXECUTION — its sittings table says how far
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1796,7 +1796,7 @@ named in the row below.*
 ### 7e. The launch path plan's sitting 5 (Tasks 7 and 8 — a session narrowed in place; removing a member) ← **START HERE**
 
 **The launch path plan** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md)) is **APPROVED BY RICH AS WRITTEN**
-(2026-09-29) — **19 tasks in 15 sittings; eight spec actions — 6 and 7 APPLIED, 8 APPLIED ((b) and (c), *"apply 8"*), 1–5 wait for him.** Fourteen plans are
+(2026-09-29) — **19 tasks in 15 sittings; eight spec actions — 6 and 7 APPLIED, 8 APPLIED ((b) and (c), *"apply 8"*), 1 and 2 APPLIED as worded at sitting 5's open, 3–5 wait for him.** Fourteen plans are
 executed (§2's table); this is the fifteenth. **Sittings 1, 2, 3, 4 and 4a are DONE**; the plan's *Sitting 4a* is the newest record:
 **Task 6b** built `launch:rehearse` — the project's owner, a collaborator or an administrator may run D21's rehearsal from their own
 session; person-only (a token is refused it at the mint, centrally and at the route); not step-up; `launch:record` still an
@@ -1816,7 +1816,7 @@ plan's Tasks 7 and 8 in full, and Task 1's `[M3]` at Task 7's head (the mechanis
 **ASK RICH IN THE FIRST MESSAGE:**
 0. ~~**Spec action 8**~~ — **DECIDED (b) and (c) and APPLIED at Rich's word, 2026-09-30** (*"apply 8"*): D24, §20 twice and §9, and
    the shared pages. **Sitting 5 does not build it**: Task 6c is sitting 5b.
-1. **Spec actions 1 and 2 — read the words, decide, and apply before Tasks 7 and 8** (each recommended (a); 2 is *"Rich's choice"* on
+1. ~~**Spec actions 1 and 2**~~ — ✅ **APPLIED as worded at sitting 5's open, 2026-09-30** (Rich read each text). *As it stood:* **Spec actions 1 and 2 — read the words, decide, and apply before Tasks 7 and 8** (each recommended (a); 2 is *"Rich's choice"* on
    the feature, still his to read as words).
 2. **Sitting 5's first Vitest run TRUNCATES** whatever the platform holds — at sitting 4a's close it held **nothing** (0 projects, 0 users — the close's own unit runs truncated it).
 3. **Two orphaned GitHub repositories, `lp-real-a` AND `f5-reading`, read `NONE`** — removing them is his (github.com, or `bash
