@@ -73,7 +73,9 @@ export const InstanceList = representation(
           'True when the environment has had more than 50 instances and only the 50 seen most recently are listed.',
         ),
     })
-    .describe('An environment’s instances (§11), newest first.'),
+    .describe(
+      'An environment’s instances (§11), the one seen most recently first; `createdAt` says which attempt is newest.',
+    ),
 )
 
 const OutputLine = z

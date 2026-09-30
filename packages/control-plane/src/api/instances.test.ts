@@ -166,7 +166,7 @@ describe('listInstances — an environment’s instances (Task 3)', () => {
         releaseId: a.releaseId,
         state: 'failed',
         handle: null,
-        createdAt: new Date(rowA!.lastSeenAt!.getTime() + 60_000),
+        createdAt: new Date(rowA!.createdAt.getTime() + 60_000),
       })
       const res = await ctx.app.inject({
         method: 'GET',

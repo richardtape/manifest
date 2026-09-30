@@ -541,6 +541,10 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     const revokedAt = Date.now()
     const res = await revoke(server, token.row.id)
     expect(res.statusCode, res.body).toBe(200)
+    // The rename is published AFTER the revoke's answer and BEFORE the client sees the close: the
+    // server stops the stream inside the revoke request, so a stream still subscribed here would
+    // be sent it while the socket is not yet CLOSED (M8 — asserted on a closed socket it could not fail).
+    await rename(server, 'Renamed after the revoke')
     const close = await closed
     expect(close).toMatchObject({
       code: 4401,
@@ -548,7 +552,9 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     })
     // AT THE MOMENT IT GOES — not at some later sweep.
     expect(close.at - revokedAt).toBeLessThan(WITHIN_MS)
-    await rename(server, 'Renamed after the revoke')
+    // M8 control (deferred unsubscribe + no `stopped` guard in `send`): this line STAYED green — once
+    // `close()` is called the socket is CLOSING and `send` refuses, so it cannot fail alone. What holds
+    // the claim is the two counts below (they went red under that break).
     expect(eventTypesOf(frames)).not.toContain('project.renamed')
     // UNSUBSCRIBED, and UNREGISTERED: nothing of the stream is left for a later revoke to find.
     expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
@@ -562,11 +568,12 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     const closed = closeOf(revoked.socket)
     const revokedAt = Date.now()
     expect((await revoke(server, revoked.token.row.id)).statusCode).toBe(200)
+    // Published before the client sees the close (see the test above), so the claim can fail.
+    // THE POSITIVE CONTROL for the test above: the same rename, heard by the stream still open.
+    await rename(server, 'Renamed while the second token watches')
     const close = await closed
     expect(close.code).toBe(4401)
     expect(close.at - revokedAt).toBeLessThan(WITHIN_MS)
-    // THE POSITIVE CONTROL for the test above: the same rename, heard by the stream still open.
-    await rename(server, 'Renamed while the second token watches')
     await waitUntil(
       () => eventTypesOf(kept.frames).includes('project.renamed'),
       'project.renamed on the second token’s stream',

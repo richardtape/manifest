@@ -14345,7 +14345,7 @@
         "additionalProperties": false
       },
       "InstanceList": {
-        "description": "An environment’s instances (§11), newest first.",
+        "description": "An environment’s instances (§11), the one seen most recently first; `createdAt` says which attempt is newest.",
         "type": "object",
         "properties": {
           "environmentId": {

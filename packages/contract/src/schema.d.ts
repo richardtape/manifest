@@ -4250,7 +4250,7 @@ export interface components {
              */
             createdAt: string;
         };
-        /** @description An environment’s instances (§11), newest first. */
+        /** @description An environment’s instances (§11), the one seen most recently first; `createdAt` says which attempt is newest. */
         InstanceList: {
             /**
              * Format: uuid

@@ -198,13 +198,17 @@ async function streamProject(
   } catch (error) {
     if (
       error instanceof AuthorizationError ||
-      (error as { statusCode?: number }).statusCode === 401
+      (error as { statusCode?: number } | null | undefined)?.statusCode === 401
     ) {
       stop(CLOSE_NOT_FOUND, 'not found')
       return
     }
-    reportStreamFailure('the event stream could not authorize a connection', error)
-    stop(CLOSE_INTERNAL_ERROR, 'the stream could not be opened')
+    // `finally`: whatever the report does, this stream is stopped and unregistered (M7).
+    try {
+      reportStreamFailure('the event stream could not authorize a connection', error)
+    } finally {
+      stop(CLOSE_INTERNAL_ERROR, 'the stream could not be opened')
+    }
     return
   }
   // Ended while it was being authorized — its client left, or its credential went.
@@ -276,7 +280,9 @@ function reportStreamFailure(msg: string, error: unknown, projectId?: string): v
       level: 'error',
       msg,
       ...(projectId === undefined ? {} : { projectId }),
-      error: (error as { code?: string }).code ?? (error as Error).name,
+      error:
+        (error as { code?: string } | null | undefined)?.code ??
+        (error as Error | null | undefined)?.name,
     }),
   )
 }

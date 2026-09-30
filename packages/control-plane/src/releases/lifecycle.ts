@@ -49,7 +49,8 @@ export interface LifecycleDeps {
   bus: EventBus
   /**
    * The open event streams (FE-33, the launch path plan's Task 5): an archive closes its revoked
-   * tokens' `4401`, and a delete every stream on the project `4404`.
+   * tokens' `4401`; a delete closes its tokens' streams `4401` at the switch-off and the remaining
+   * (session) streams `4404` at the tombstone.
    */
   streams: StreamRegistry
   driver: Driver
