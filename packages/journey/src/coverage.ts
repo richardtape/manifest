@@ -115,16 +115,24 @@ export const JOURNEY: readonly JourneyStep[] = [
     who: 'person',
     operations: ['confirmPendingAction', 'rejectPendingAction'],
   },
+  // THREE ROWS, NOT ONE (the launch path plan's sitting 4a, the whole-branch review's M1): the
+  // row said `either` over all five, so the public journey offered an agent the rehearsal and
+  // both records — each session-only (`TOKEN_CREDENTIAL_REFUSED`), and the records an
+  // administrator's alone.
   {
-    step: 'See what a first launch needs, rehearse, and record UBC’s answers',
+    step: 'See what a first launch needs',
     who: 'either',
-    operations: [
-      'getLaunchReadiness',
-      'getLaunchRecords',
-      'runRehearsal',
-      'recordIamRegistration',
-      'recordPrivacyAssessment',
-    ],
+    operations: ['getLaunchReadiness', 'getLaunchRecords'],
+  },
+  {
+    step: 'Rehearse the CWL sign-in before launch',
+    who: 'person',
+    operations: ['runRehearsal'],
+  },
+  {
+    step: 'Record what UBC IAM and the Privacy Office said',
+    who: 'administrator',
+    operations: ['recordIamRegistration', 'recordPrivacyAssessment'],
   },
   {
     step: 'Approve a release from a stored preview',

@@ -42,9 +42,12 @@ export interface RehearsalDeps {
  * D21'S PRE-PRODUCTION REHEARSAL, AS R2 REDEFINES IT (P6a Task 14), in five steps, each of
  * which can fail and each of which is recorded.
  *
- * 1. **Deploy the candidate digest into PRODUCTION, behind the gate.** Not a copy and not
- *    a simulation: §13 says production runs the exact digest staging ran, and a rehearsal
- *    against anything else rehearses something else. It calls `deployRelease` directly —
+ * 1. **Deploy the candidate digest into PRODUCTION, behind the gate** — behind the deploy
+ *    route's APPROVAL gate, which it goes round; never behind a barrier: the instance serves
+ *    production's public listener, and nothing here retires it (Decision 16's comment below).
+ *    Not a copy and not a simulation: §13 says production runs the exact digest staging
+ *    ran, and a rehearsal against anything else rehearses something else. It calls
+ *    `deployRelease` directly —
  *    the INTERNAL function, not the route — because the route's gate is what this item
  *    exists to help satisfy, and a rehearsal that needed the gate open would be circular.
  *    It passes `purpose: 'rehearsal'` for the same reason one step further in: §13 binds a
@@ -87,8 +90,12 @@ export async function runRehearsal(
    */
   if (project === undefined) throw new Error(`no project '${projectId}'`)
   /**
-   * **A LAUNCHED APP IS NOT REHEARSED** (P6b Task 4, Decision 16). Before a launch nothing is
-   * public, which is why the rehearsal may deploy an unapproved candidate into production.
+   * **A LAUNCHED APP IS NOT REHEARSED** (P6b Task 4, Decision 16). Before a launch no student
+   * has been sent the address, which is why the rehearsal may deploy an unapproved candidate into
+   * production. **That is a premise about students, not a barrier** (sitting 4a's whole-branch
+   * review, I1): the instance serves production's hostname on the PUBLIC listener, and nothing
+   * retires it — it serves until the launch or a later deploy. Whether it should, and who may
+   * leave it there, is the launch path plan's Spec action 8, open and Rich's.
    * After one, the same deploy puts that candidate in front of real students with no
    * approval record — `[M7]` measured it, and `make demo-production`'s re-use path did it
    * for about a second on every run. Refused BEFORE the candidate is looked for, so the

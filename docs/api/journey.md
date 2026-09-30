@@ -22,7 +22,9 @@ Every step from an idea to a launched app, who takes it, and the operations that
 | Give an agent model access, charged to you, and see what it has spent | either | `startAgentSession`, `listAgentSessions`, `endAgentSession`, `getAgentBudget` |
 | Ask for a privileged action and wait for a person | agent | `listPendingActions`, `getPendingAction` |
 | Answer an agent’s question | person | `confirmPendingAction`, `rejectPendingAction` |
-| See what a first launch needs, rehearse, and record UBC’s answers | either | `getLaunchReadiness`, `getLaunchRecords`, `runRehearsal`, `recordIamRegistration`, `recordPrivacyAssessment` |
+| See what a first launch needs | either | `getLaunchReadiness`, `getLaunchRecords` |
+| Rehearse the CWL sign-in before launch | person | `runRehearsal` |
+| Record what UBC IAM and the Privacy Office said | administrator | `recordIamRegistration`, `recordPrivacyAssessment` |
 | Approve a release from a stored preview | administrator | `createApprovalPreview`, `getApprovalPreview`, `approveRelease`, `rejectRelease`, `getApproval` |
 | Manage who works on the project | person | `listMembers`, `addMember`, `removeMember`, `listProjects`, `getProject` |
 | Change who the app is for | person | *Not yet — the administrators’ queue (§26):* raising an audience is a request an administrator approves (§24) |

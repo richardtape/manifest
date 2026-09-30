@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { count, eq } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -6,10 +7,13 @@ import { z } from 'zod/v4'
 import { delegatedTokens, pendingActions } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
-import { assertCapability, type Capability } from '../projects/index.js'
+import { assertCapability, PERSON_ONLY, type Capability } from '../projects/index.js'
 import { mintTestToken } from '../tokens/testing.js'
+import { openApiDocument } from './contract/document.js'
 import { defineRoute, NO_QUERY, registerRoutes } from './contract/route.js'
 import { representation, request } from './contract/schemas.js'
+import { ERROR_CODES } from './error-codes.js'
+import { ROUTE_DEFINITIONS } from './routes/index.js'
 import { buildServer, type ServerDeps } from './server.js'
 import { loginAs, mutationHeaders, projectBody, refusal, testDeps } from './testing.js'
 
@@ -243,8 +247,10 @@ describe('the person-only class on a route (D24, §20)', () => {
 
   /**
    * THE OWNER HOLDS `launch:rehearse` (Task 6b), so step 3 of the mint — *no more than the minter
-   * holds* — would let it through: the person-only rule is the ONLY thing refusing this request,
-   * which is what makes it the row that sees that rule for this capability.
+   * holds* — would let it through, and the person-only rule alone refuses. The administrator's loop
+   * above already sees that rule alone for every person-only capability; what this case adds is
+   * the OWNER's side — a project member who is no administrator, holding a person-only capability
+   * (as they hold `project:delete`), is refused its mint exactly as an administrator is.
    */
   it('refuses the OWNER’s mint of launch:rehearse too — they hold it, and a token still may not', async () => {
     await withServer(async (ctx) => {
@@ -266,5 +272,87 @@ describe('the person-only class on a route (D24, §20)', () => {
       expect(res.statusCode, res.body).toBe(201)
       expect(await tokenCount(ctx)).toBe(1)
     })
+  })
+})
+
+/**
+ * THE PUBLISHED PERSON-ONLY LISTS, HELD TO `PERSON_ONLY` (the launch path plan's sitting 4a, the
+ * whole-branch review's I2). Four texts name the set BY HAND — `mintToken`'s description,
+ * `MintTokenRequest.capabilities`' description, `TOKEN_PERSON_ONLY`'s summary and the *Agents*
+ * guide — and nothing checked them: `project:delete` was missing from two for a whole plan, and
+ * the guide never named the rehearsal. The set is read from `PERSON_ONLY` itself, so a member
+ * added there (Task 9's `launch:submit`) is red here until every text says it.
+ *
+ * The descriptions are checked by capability NAME, in the document GENERATED FROM THE ROUTES
+ * (`openApiDocument`, as `contract/docs.test.ts` builds it), so an edit to a route's source is seen
+ * without `contract:write`. The summary and the guide are prose, so they are checked by the phrase
+ * each capability is written as — and a member with NO phrase here is red too, so adding one to
+ * the set means writing its phrase and putting it in both.
+ */
+const PERSON_ONLY_PHRASES: Readonly<Record<string, string>> = {
+  'release:approve': 'approving a release',
+  'launch:record': 'recording UBC’s IAM',
+  'launch:rehearse': 'running the pre-production rehearsal',
+  'project:delete': 'switching an app off, bringing it back or deleting it',
+}
+
+const AGENTS_GUIDE = new URL('../../../../docs/api/agents.md', import.meta.url)
+
+describe('the published person-only lists name every PERSON_ONLY capability', () => {
+  type Json = Record<string, unknown>
+  const doc = openApiDocument(ROUTE_DEFINITIONS) as Json
+  const members = [...PERSON_ONLY].sort()
+
+  it('reads a set that has members — so every rule below has cases', () => {
+    expect(members.length).toBeGreaterThan(0)
+  })
+
+  it('names each in mintToken’s description', () => {
+    const operation = Object.values(doc.paths as Record<string, Record<string, Json>>)
+      .flatMap((item) => Object.values(item))
+      .find((o) => o.operationId === 'mintToken')
+    const text = operation?.description
+    expect(text, 'mintToken is in the document with a description').toEqual(
+      expect.stringContaining('person-only'),
+    )
+    expect(members.filter((c) => !(text as string).includes(c))).toEqual([])
+  })
+
+  it('names each in MintTokenRequest.capabilities’ description', () => {
+    const schemas = (doc.components as { schemas: Record<string, Json> }).schemas
+    const text = (
+      schemas.MintTokenRequest?.properties as Record<string, Json> | undefined
+    )?.capabilities?.description
+    expect(text, 'MintTokenRequest.capabilities has a description').toEqual(
+      expect.stringContaining('person-only'),
+    )
+    expect(members.filter((c) => !(text as string).includes(c))).toEqual([])
+  })
+
+  it('has a phrase for each, and none for a capability that is not person-only', () => {
+    expect(members.filter((c) => PERSON_ONLY_PHRASES[c] === undefined)).toEqual([])
+    expect(Object.keys(PERSON_ONLY_PHRASES).sort()).toEqual(members)
+  })
+
+  it('says each in TOKEN_PERSON_ONLY’s summary', () => {
+    const summary = ERROR_CODES.TOKEN_PERSON_ONLY.summary
+    expect(
+      members.filter(
+        (c) => !summary.includes(PERSON_ONLY_PHRASES[c] ?? `(no phrase for ${c})`),
+      ),
+    ).toEqual([])
+  })
+
+  it('says each in the Agents guide’s list of what is a person’s alone', async () => {
+    const guide = await readFile(AGENTS_GUIDE, 'utf8')
+    const list = guide
+      .split('\n')
+      .find((line) => line.startsWith('Some things are a person’s alone'))
+    expect(list, 'agents.md has its "a person’s alone" paragraph').toBeDefined()
+    expect(
+      members.filter(
+        (c) => !list!.includes(PERSON_ONLY_PHRASES[c] ?? `(no phrase for ${c})`),
+      ),
+    ).toEqual([])
   })
 })

@@ -97,6 +97,17 @@ export const CAPABILITIES = [
    * token — it deploys a candidate into production with production-shaped values. The route calls
    * `requireSession` first (`403 TOKEN_CREDENTIAL_REFUSED`), and the central rule refuses a token
    * holding it whatever the route does. NOT step-up guarded: §20's list does not name it.
+   *
+   * **WHAT IT LEAVES SERVING** (sitting 4a's whole-branch review, I1): the candidate is UNAPPROVED
+   * (`purpose: 'rehearsal'` skips the digest check, `releases/release.ts`), production's listener is
+   * PUBLIC (`routing/hostnames.ts`), and nothing retires the instance afterwards
+   * (`releases/launched.ts`) — so until the launch or a later deploy the candidate serves
+   * production's hostname on the public listener. P6b Decision 16's *"before a launch nothing is
+   * public"* is a premise about students (nobody has been sent the address), not a barrier;
+   * `REHEARSAL_LAUNCHED` is what refuses it once they have been. **Whether an owner's or a
+   * collaborator's session may do this with no step-up is OPEN, and Rich's**: the launch path
+   * plan's Spec action 8 (accept it; a step-up; the rehearsal retiring its production instance once
+   * its probe is recorded; an administrator alone).
    */
   'launch:rehearse',
   'quota:set',
@@ -153,7 +164,8 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
  *
  * **AND RUNNING D21'S REHEARSAL, `launch:rehearse`, SINCE THE LAUNCH PATH PLAN'S TASK 6b** — by
  * Rich's option (a) on 2026-09-29 (the faculty front-end's FE-42): persons only. It is not a record
- * of a decision — it is a measurement that deploys into production — so the reason above is not
+ * of a decision — it is a measurement that deploys into production, and leaves an unapproved
+ * candidate serving there (`launch:rehearse` in `CAPABILITIES`) — so the reason above is not
  * its reason; *a person runs it, in their own session* is. **D24's clause naming it is DRAFTED for
  * his approval and not yet applied**, so until it is this set is D24's three plus this one, and
  * `person-only.test.ts` names it apart from them.
@@ -405,7 +417,12 @@ const OWNER: readonly Capability[] = [
 
 // §13: "same as owner except member management and deletion" — and not promotion,
 // which is the owner's decision about their own students (D24, P5b Task 2). The rehearsal
-// STAYS (Task 6b): it puts nothing in front of students, which is why promotion is filtered.
+// STAYS (Task 6b), by §13's rule — NOT because it puts nothing in front of anyone: it leaves an
+// UNAPPROVED candidate serving production's hostname on the public listener until the launch or a
+// later deploy (`launch:rehearse` in `CAPABILITIES`). Before a launch no student has been sent
+// that address (P6b Decision 16's premise) and after one `REHEARSAL_LAUNCHED` refuses it; whether a
+// collaborator's or an owner's session may do it with no step-up is OPEN, and Rich's (the launch
+// path plan's Spec action 8).
 const COLLABORATOR: readonly Capability[] = OWNER.filter(
   (cap) =>
     cap !== 'members:manage' && cap !== 'project:delete' && cap !== 'release:promote',

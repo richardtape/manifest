@@ -1537,46 +1537,81 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
    * THE RECORDS ARE UNCHANGED (§9): what UBC IAM and the Privacy Office decided is still recorded by
    * an administrator alone — the rehearsal was given its own capability rather than riding in on
    * `launch:record`, and this is the case that would see the other choice. The administrator's
-   * record is the positive control, on the same project.
+   * records are the positive control, on the same project and with the SAME bodies — both of
+   * them, since sitting 4a's whole-branch review (m5) found the IAM refusal had none — so the
+   * owner's `403` is WHO asked, never a body the validator would refuse anyway. The IAM body is
+   * `launchedCwlProject`'s shape (`api/testing.ts`): the harness's own `spEntityBase` and the
+   * production environment's hostname, never a hardcoded one.
    */
   it('still refuses the OWNER both records — 403 FORBIDDEN naming launch:record — and the administrator records', async () => {
     const { app, deps, cookies, project } = await projectFor('bio_prof')
     try {
-      const iam = await app.inject({
-        method: 'POST',
-        url: `/v1/projects/${project.id}/launch-records/iam-registration`,
-        payload: {
-          entityId: `https://manifest.internal/sp/${project.slug}/production`,
-          acsUrl: `https://${project.slug}.manifest.internal/auth/ubcshib/callback`,
-          sloUrl: `https://${project.slug}.manifest.internal/auth/logout`,
-          registeredAttributes: [...CWL_LAUNCH_ATTRIBUTES],
-          state: 'submitted',
-          externalTicketRef: 'IAM-FE42',
-        },
-        cookies,
-        headers: mutationHeaders(deps),
-      })
-      const pia = await app.inject({
-        method: 'POST',
-        url: `/v1/projects/${project.id}/launch-records/privacy-assessment`,
-        payload: { state: 'submitted', externalTicketRef: 'PIA-FE42' },
-        cookies,
-        headers: mutationHeaders(deps),
-      })
-      for (const res of [iam, pia]) {
+      const production = (
+        project.environments as { kind: string; hostname: string }[]
+      ).find((e) => e.kind === 'production')!
+      const iamBody = {
+        entityId: `${deps.config.idp.spEntityBase}/sp/${project.slug}/production`,
+        acsUrl: `https://${production.hostname}/auth/ubcshib/callback`,
+        sloUrl: `https://${production.hostname}/auth/logout`,
+        registeredAttributes: [...CWL_LAUNCH_ATTRIBUTES],
+        state: 'submitted',
+        externalTicketRef: 'IAM-FE42',
+      }
+      const piaBody = { state: 'submitted', externalTicketRef: 'PIA-FE42' }
+      const record = (
+        kind: 'iam-registration' | 'privacy-assessment',
+        as: Record<string, string>,
+      ) =>
+        app.inject({
+          method: 'POST',
+          url: `/v1/projects/${project.id}/launch-records/${kind}`,
+          payload: kind === 'iam-registration' ? iamBody : piaBody,
+          cookies: as,
+          headers: mutationHeaders(deps),
+        })
+      const records = async () =>
+        (
+          await app.inject({
+            method: 'GET',
+            url: `/v1/projects/${project.id}/launch-records`,
+            cookies,
+          })
+        ).json() as {
+          iamRegistration: Record<string, unknown> | null
+          privacyAssessment: Record<string, unknown> | null
+        }
+
+      for (const res of [
+        await record('iam-registration', cookies),
+        await record('privacy-assessment', cookies),
+      ]) {
         expect(refusal(res)).toEqual({ status: 403, code: 'FORBIDDEN' })
         expect((res.json() as { error: { message: string } }).error.message).toContain(
           "may not 'launch:record'",
         )
       }
-      const recorded = await app.inject({
-        method: 'POST',
-        url: `/v1/projects/${project.id}/launch-records/privacy-assessment`,
-        payload: { state: 'submitted', externalTicketRef: 'PIA-FE42' },
-        cookies: await loginAs(deps, 'platform_admin'),
-        headers: mutationHeaders(deps),
+      // Refused, and nothing written.
+      expect(await records()).toMatchObject({
+        iamRegistration: null,
+        privacyAssessment: null,
       })
-      expect(refusal(recorded)).toEqual({ status: 200, code: undefined })
+
+      const admin = await loginAs(deps, 'platform_admin')
+      const iam = await record('iam-registration', admin)
+      expect(refusal(iam)).toEqual({ status: 200, code: undefined })
+      const pia = await record('privacy-assessment', admin)
+      expect(refusal(pia)).toEqual({ status: 200, code: undefined })
+      // And it reads back, as the project sees it — the administrator's values, not a default.
+      expect(await records()).toMatchObject({
+        iamRegistration: {
+          entityId: iamBody.entityId,
+          acsUrl: iamBody.acsUrl,
+          sloUrl: iamBody.sloUrl,
+          state: 'submitted',
+          externalTicketRef: 'IAM-FE42',
+        },
+        privacyAssessment: { state: 'submitted', externalTicketRef: 'PIA-FE42' },
+      })
     } finally {
       await deps.builds.idle()
       await app.close()

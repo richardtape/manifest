@@ -19,7 +19,7 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
  * `console.log` (§14 — an operator line with a credential in it is a defect this project
  * names four times).
  *
- * **(b) The privileged four are not offerable, nor the person-only two** — see `PRIVILEGED`
+ * **(b) The privileged four are not offerable, nor the person-only set** — see `PRIVILEGED`
  * and `PERSON_ONLY` below, and the D22 finding recorded with them.
  *
  * **(c) `expired` is the PLATFORM's computed field and is NOT `revokedAt !== null`** (P5b
@@ -109,7 +109,7 @@ const CAPABILITIES = everyCapability([
  * D24's PRIVILEGED FOUR — **RESTATED HERE, AND THAT IS A FINDING ABOUT THE API, NOT A
  * DECISION THIS SCREEN IS HAPPY WITH.**
  *
- * `MintTokenRequest.capabilities` is a flat enum of all eleven and marks none of them
+ * `MintTokenRequest.capabilities` is a flat enum of every capability and marks none of them
  * privileged; the four are named only in the schema's prose `description`, which no client
  * can read at runtime. So a console that tells a person which boxes cannot work has to say it
  * itself — and this plan forbids exactly that elsewhere (*"the console never restates the
@@ -145,7 +145,7 @@ const PRIVILEGED_REASON =
  *
  * Stricter than the four: an agent asking for one of these is refused `403
  * TOKEN_PERSON_ONLY` with NO question for anybody to confirm, because each is a person's to do
- * in their own session. The mint route refuses all four `400 TOKEN_CAPABILITY_FORBIDDEN`;
+ * in their own session. The mint route refuses every one of them `400 TOKEN_CAPABILITY_FORBIDDEN`;
  * `disabled` is an explanation, never the control.
  */
 const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
