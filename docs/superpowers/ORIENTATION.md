@@ -151,12 +151,12 @@ each sitting left them, dated, and they deliberately do not move.
   access arrives, and no code does.
 - **§8's open questions.**
 
-**The spec is current but for ONE follow-up** — **the launch path plan's Spec action 8** (drafted by sitting 4a, 2026-09-30): the code's
-`PERSON_ONLY` holds the rehearsal (`launch:rehearse`, `fa02bbc`) while D24 names three person-only actions, and the question behind it —
-who may run a rehearsal, and what it leaves serving — was re-asked of Rich and **DECIDED 2026-09-30: (b) and (c) together** (a step-up,
-and the rehearsal takes its production instance down — Task 6c, sitting 5b); its combined words wait for him to read (§8 *Decided*). Spec actions 1–5 are drafted and wait
+**The spec is current, and runs AHEAD of the code in one place** — **the launch path plan's Spec action 8**, **APPLIED at Rich's word, 2026-09-30** (*"apply 8"*): D24 now names
+FOUR person-only actions, the rehearsal among them (the code's `PERSON_ONLY` since `fa02bbc`); **but §20's step-up for the rehearsal and
+§9's take-down before it records are not in the code until Task 6c (sitting 5b)**. Spec actions 1–5 are drafted and wait
 for him; nothing they change is built yet. Every spec change has been applied only after Rich approved it —
-**most recently the launch path plan's Spec action 6** (option (a), Rich's *"(a) is good"*; applied by its sitting 4 before Task 6,
+**most recently the launch path plan's Spec action 8** (above; D24, §20 twice and §9, and `manifest-decisions.html`'s D24 and D21 and
+`manifest-schematic.html`'s rehearsal line) — **before it Spec action 6** (option (a), Rich's *"(a) is good"*; applied by its sitting 4 before Task 6,
 `0ebe514`): §7's capable-model fallback answers a provider that *"cannot be reached or fails — a refused connection, a timeout, a rate
 limit or a server error, the network off included — and never for a request the provider refused as malformed"*; the gateway keeps it
 through `infra/litellm/manifest_guard.py`. Before it **the launch path plan's Spec action 7** (the faculty front-end's FE-39, relayed and then confirmed by Rich with his three
@@ -240,7 +240,7 @@ docs/superpowers/
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
-│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 15 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), eight spec actions drafted (6 and 7 applied, 8 decided and its words to be read, 1–5 not); IN EXECUTION — its sittings table says how far
+│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 15 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), eight spec actions drafted (6 and 7 applied, 8 applied, 1–5 not); IN EXECUTION — its sittings table says how far
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1796,7 +1796,7 @@ named in the row below.*
 ### 7e. The launch path plan's sitting 5 (Tasks 7 and 8 — a session narrowed in place; removing a member) ← **START HERE**
 
 **The launch path plan** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md)) is **APPROVED BY RICH AS WRITTEN**
-(2026-09-29) — **19 tasks in 15 sittings; eight spec actions — 6 and 7 APPLIED, 8 DECIDED ((b) and (c)) with its words to read, 1–5 wait for him.** Fourteen plans are
+(2026-09-29) — **19 tasks in 15 sittings; eight spec actions — 6 and 7 APPLIED, 8 APPLIED ((b) and (c), *"apply 8"*), 1–5 wait for him.** Fourteen plans are
 executed (§2's table); this is the fifteenth. **Sittings 1, 2, 3, 4 and 4a are DONE**; the plan's *Sitting 4a* is the newest record:
 **Task 6b** built `launch:rehearse` — the project's owner, a collaborator or an administrator may run D21's rehearsal from their own
 session; person-only (a token is refused it at the mint, centrally and at the route); not step-up; `launch:record` still an
@@ -1814,11 +1814,8 @@ plan's Tasks 7 and 8 in full, and Task 1's `[M3]` at Task 7's head (the mechanis
 (Task 8), the plan's *Spec actions* 1 and 2. The plan's sittings table is the other statement of it.
 
 **ASK RICH IN THE FIRST MESSAGE:**
-0. **Spec action 8 — DECIDED, (b) and (c) together (2026-09-30); only its COMBINED WORDS are still his to read** (the plan's *Spec
-   actions*, 8, at its end — two phrases changed from the draft, each marked). **If they are not yet applied** (check the spec's D24 for
-   *"Four actions are stricter still"*), ask him to read them — they must be applied before sitting 5b, not before this one. Apply only
-   the words he approves, to D24, §20 (twice) and §9 (the classifier has refused spec edits before and cleared on retry after Rich allowed
-   it in chat — never work around it), and sweep the shared pages the action names. **Sitting 5 does not build it**: Task 6c is sitting 5b.
+0. ~~**Spec action 8**~~ — **DECIDED (b) and (c) and APPLIED at Rich's word, 2026-09-30** (*"apply 8"*): D24, §20 twice and §9, and
+   the shared pages. **Sitting 5 does not build it**: Task 6c is sitting 5b.
 1. **Spec actions 1 and 2 — read the words, decide, and apply before Tasks 7 and 8** (each recommended (a); 2 is *"Rich's choice"* on
    the feature, still his to read as words).
 2. **Sitting 5's first Vitest run TRUNCATES** whatever the platform holds — at sitting 4a's close it held **nothing** (0 projects, 0 users — the close's own unit runs truncated it).
@@ -2055,8 +2052,9 @@ reasoning is recorded.**
 
 - **THE LAUNCH PATH PLAN'S SPEC ACTION 8 — (b) AND (c) TOGETHER** (Rich, 2026-09-30, after sitting 4a's close, the premise re-asked at
   developer level from the code: *"b and c together, in its own small sitting after 5"*): running D21's rehearsal needs a step-up, and
-  the rehearsal takes its production instance down before it records. **Task 6c, sitting 5b — after 5, before 5a.** **NOT APPLIED**:
-  its combined words (the plan's Spec action 8, at its end — two phrases changed from the draft) are his to read first. The plan's
+  the rehearsal takes its production instance down before it records. **Task 6c, sitting 5b — after 5, before 5a.** **APPLIED at Rich's word, 2026-09-30** (*"apply 8"*),
+  as the combined words (the plan's Spec action 8, at its end — two phrases changed from the draft), to D24, §20 twice and §9, with
+  `manifest-decisions.html`'s D24 and D21 and `manifest-schematic.html`'s rehearsal line; phases and stories checked, unchanged. The plan's
   *After sitting 4a's close* is the record.
 - **THE LAUNCH PATH PLAN'S SPEC ACTION 6 — OPTION (a)** (Rich, 2026-09-29, to sitting 3's session after its close: *"(a) is good"*,
   having read the words): the capable model's fallback answers only a provider that *"cannot be reached or fails — a refused

@@ -109,7 +109,7 @@ no administrator's reason is required anywhere, and who acted is only half-recor
 newest open question. **The console's design: [`2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md)
 — written 2026-09-27 and drawn as a clickable mockup the same day; no plan, by Rich's choice.**
 
-### Spec actions raised by the launch path plan — SEVEN DRAFTED 2026-09-29, AN EIGHTH BY SITTING 4a (2026-09-30); ✅ **7 APPLIED 2026-09-29** at Rich's *"apply 7"*; ✅ **6 DECIDED, option (a)**, 2026-09-29 after sitting 3's close (*"(a) is good"*), and ✅ **APPLIED by sitting 4** the same night, before Task 6; 1–5 wait for him; **8 — who may run D21's rehearsal, and what it leaves serving — RE-ASKED** (its premise, as put to him, was wrong) — ✅ **DECIDED 2026-09-30: (b) AND (c) TOGETHER**, its combined words to be read before they are applied
+### Spec actions raised by the launch path plan — SEVEN DRAFTED 2026-09-29, AN EIGHTH BY SITTING 4a (2026-09-30); ✅ **7 APPLIED 2026-09-29** at Rich's *"apply 7"*; ✅ **6 DECIDED, option (a)**, 2026-09-29 after sitting 3's close (*"(a) is good"*), and ✅ **APPLIED by sitting 4** the same night, before Task 6; 1–5 wait for him; **8 — who may run D21's rehearsal, and what it leaves serving — RE-ASKED** (its premise, as put to him, was wrong) — ✅ **DECIDED 2026-09-30: (b) AND (c) TOGETHER, AND APPLIED AT RICH'S WORD THE SAME DAY** (*"apply 8"*)
 
 The words are the plan's *Spec actions* ([`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md)). **7 — who may build (the faculty
 front-end's FE-39)**: relayed by its session as Rich's decision, then confirmed by him with three answers (*"1. YEs, PUID 2. YEs keep but
@@ -131,7 +131,9 @@ production instance once its sign-in is recorded (recommended)**; back to an adm
 §20's token row in the words. `fa02bbc` stands meanwhile; no shared page moves until it is applied. **✅ DECIDED by Rich, 2026-09-30,
 after 4a's close — (b) and (c) together** (*"b and c together, in its own small sitting after 5"*): a step-up before a rehearsal,
 and the rehearsal takes its production instance down before it records. **Task 6c, sitting 5b, after 5 and before 5a.** Its combined
-words (the plan's Spec action 8, at its end — two phrases changed from the draft) are NOT applied until he has read them.
+words (the plan's Spec action 8, at its end — two phrases changed from the draft) **APPLIED at his word the same day** (*"apply 8"*):
+D24, §20 twice and §9; `manifest-decisions.html`'s D24 and D21 and `manifest-schematic.html`'s rehearsal line; phases and stories
+checked, unchanged. **The spec runs ahead of the code until Task 6c.**
 
 ### Spec actions raised by the front-end enablement plan — FOUR DRAFTED 2026-09-27, OVERNIGHT; ✅ **ALL FOUR DECIDED (a) AND APPLIED 2026-09-27**, before sitting 2 (`1d1afd7`) — **and 5, 6 and 7 applied the same day; 8, the capable model's fallback, DRAFTED 2026-09-28 by sitting 9a, approved (a) and APPLIED at its close; 9, §8's SP key in every environment (the faculty front-end's FE-37), DRAFTED by sitting 11 and approved (a) and APPLIED the same evening (`d82b3a2`); and 10, the building agent's models as a platform setting (FE-35 and FE-36), DRAFTED at sitting 11's close from Rich's words, approved (a) WITH its safeguard and APPLIED (`d9a1fa1`)**
 
@@ -1329,7 +1331,7 @@ session"*), carrying FE-6 and FE-25 — which absorbs **P8, launch package gener
 - An owner's sign-off request is its own row, feeding `listQueue`, §26's queue, derived and oldest first.
 - A draft never gates a build.
 
-**Eight spec actions drafted — the seventh APPLIED at Rich's word (Rich, 2026-09-29: *"apply 7"*), 6 DECIDED (option (a), after sitting 3's close) and APPLIED by sitting 4 (`0ebe514`), the eighth drafted by sitting 4a (2026-09-30), its premise RE-ASKED and DECIDED the same day — (b) and (c) together, its words to be read — 1–5 not** (the seventh, FE-39's, added after sitting 1's close with Task 8a in a sitting 5a — relayed, then CONFIRMED by Rich the same evening: administrators by PUID, a person who stops being faculty keeps their projects and starts nothing new, exactly `faculty`): §7's trim; §10/§6/§20's member rule; §9/§6/§13/§19/D24's staging kind and owner
+**Eight spec actions drafted — the seventh APPLIED at Rich's word (Rich, 2026-09-29: *"apply 7"*), 6 DECIDED (option (a), after sitting 3's close) and APPLIED by sitting 4 (`0ebe514`), the eighth drafted by sitting 4a (2026-09-30), its premise RE-ASKED and DECIDED and APPLIED the same day — (b) and (c) together, *"apply 8"* — 1–5 not** (the seventh, FE-39's, added after sitting 1's close with Task 8a in a sitting 5a — relayed, then CONFIRMED by Rich the same evening: administrators by PUID, a person who stops being faculty keeps their projects and starts nothing new, exactly `faculty`): §7's trim; §10/§6/§20's member rule; §9/§6/§13/§19/D24's staging kind and owner
 submission; §9's package wording; §6/§13/§26's `ApprovalRequest`; and §7's *"fails"*.
 
 **Sitting 1 — Task 1 — ran 2026-09-29, in the same session** ([`spikes/launch-baseline/`](../spikes/launch-baseline/README.md)):
