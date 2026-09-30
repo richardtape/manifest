@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -24,8 +23,7 @@ import { mintTestToken } from '../tokens/testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { AI_CODES, AiError, disabledCatalogue, type ModelCatalogue } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
-import { gitWithToken } from '../source/github/git.js'
-import { pushAsPerson, writeFiles } from '../source/testing.js'
+import { lsRemoteMainAsPerson, pushAsPerson, writeFiles } from '../source/testing.js'
 
 // These drive a real server, so they cannot use withRollback. Each test starts
 // from an empty database; without this they collide on the unique project slug.
@@ -59,15 +57,6 @@ async function asPerson(fake: StartedFake, slug: string): Promise<number> {
     headers: { authorization: `token ${fake.developerToken}` },
   })
   return res.status
-}
-
-/** `refs/heads/main`'s commit on the fake, read as the PERSON (a git wire read, not the driver's). */
-async function lsRemoteMain(fake: StartedFake, slug: string): Promise<string> {
-  const out = await gitWithToken(
-    ['ls-remote', `${fake.gitUrl}/${fake.org}/${slug}.git`, 'refs/heads/main'],
-    { cwd: tmpdir(), token: fake.developerToken },
-  )
-  return out.split('\t')[0]!.trim()
 }
 
 async function signedIn(puid: TestUserPuid = 'bio_prof') {
@@ -359,7 +348,7 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
         const res = await post('lp-theirs')
         expect(refusal(res).code).toBe('SOURCE_REPOSITORY_EXISTS')
         expect(await asPerson(fake, 'lp-theirs')).toBe(200) // still on "GitHub"
-        expect(await lsRemoteMain(fake, 'lp-theirs')).toBe(theirs) // with their commit
+        expect(await lsRemoteMainAsPerson(fake, 'lp-theirs')).toBe(theirs) // with their commit
         expect(await deps.db.select().from(projects)).toEqual([])
         // THE POSITIVE CONTROL: a name nobody holds creates.
         const ok = await post('lp-nobody')

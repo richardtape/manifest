@@ -31,6 +31,15 @@ const PERSON = [
   'commit.gpgsign=false',
 ]
 
+/** `refs/heads/main`'s commit on GitHub, read as a PERSON over the git wire (not the driver's read). */
+export async function lsRemoteMainAsPerson(fake: Github, slug: string): Promise<string> {
+  const out = await gitWithToken(
+    ['ls-remote', `${fake.gitUrl}/${fake.org}/${slug}.git`, 'refs/heads/main'],
+    asPerson(fake, tmpdir()),
+  )
+  return out.split('\t')[0]!.trim()
+}
+
 /** A person pushing straight to GitHub. Returns the commit. */
 export async function pushAsPerson(
   fake: Github,
