@@ -53,11 +53,15 @@ export interface GitContext {
    */
   onPushed(route: GitRoute, pusher: Grant, before: Map<string, string>): Promise<void>
   /**
-   * TEST-ONLY (the `notFoundAfterCreate` quirk; FE-41): whether this request, to a repository that
-   * IS there, is answered as GitHub answered one it had made seconds before — not found. Asked once
-   * the request is known to be a valid one of `service`, before its permissions.
+   * TEST-ONLY (the `notFoundAfterCreate` and `writeNotGrantedAfterCreate` quirks; FE-41): whether
+   * this request, to a repository that IS there, is refused as GitHub refused one it had made
+   * seconds before — `404` not found, or `403` write not granted — and which. Asked once the
+   * request is known to be a valid one of `service`, before its permissions.
    */
-  notYetFound?(route: GitRoute, service: 'git-upload-pack' | 'git-receive-pack'): boolean
+  notYetReady?(
+    route: GitRoute,
+    service: 'git-upload-pack' | 'git-receive-pack',
+  ): 'not-found' | 'write-not-granted' | undefined
   /**
    * TEST-ONLY (the `protocolV2` quirk; FE-41's fix round 2): a fetch whose client asks for protocol
    * v2 is served v2, as GitHub serves it. Without it the fake speaks v0 to everyone.
@@ -121,9 +125,12 @@ export function serveGit(
   if ((route.op === 'info/refs') !== (req.method === 'GET')) {
     return plain(res, 405, 'Method not allowed.\n')
   }
-  if (ctx.notYetFound?.(route, service) === true) {
+  const notReady = ctx.notYetReady?.(route, service)
+  if (notReady !== undefined) {
     req.resume() // a refused push's pack is drained, never read
-    return plain(res, 404, 'Repository not found.\n')
+    return notReady === 'not-found'
+      ? plain(res, 404, 'Repository not found.\n')
+      : plain(res, 403, 'Write access to repository not granted.\n')
   }
   const held = grant.permissions.contents
   const allowed = service === 'git-upload-pack' ? held !== undefined : held === 'write'

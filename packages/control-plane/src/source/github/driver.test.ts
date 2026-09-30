@@ -27,7 +27,7 @@ import {
   tryForcePushMainAsPerson,
   writeFiles,
 } from '../testing.js'
-import { createGithubSourceDriver } from './driver.js'
+import { createGithubSourceDriver, refusedWhileNew } from './driver.js'
 import { gitWithToken } from './git.js'
 
 const run = promisify(execFile)
@@ -1090,7 +1090,7 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       expect(lines).toHaveLength(2)
       expect(lines[0]).toContain(`${h.fake.org}/chem-labs`)
       expect(lines[0]).toContain(
-        'the seed push of a repository GitHub made seconds ago was not found',
+        'the seed push of a repository GitHub made seconds ago was refused',
       )
       expect(lines[0]).toContain('retry 1 of 5')
       expect(lines[0]).toContain('remote: Repository not found.')
@@ -1196,6 +1196,31 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       expect(lines[0]).toContain(
         'error: RPC failed; HTTP 404 curl 22 The requested URL returned error: 404 | fatal: expected flush after ref listing',
       )
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  /**
+   * 403 WHILE NEW (FE-41's fix round 3, measured on github.com 2026-09-29, lp-starter-p — a 409
+   * before this): GitHub refused the seed push `403`, `Write access to repository not granted.`,
+   * while the App's fresh token was not yet granted the new repository — the same propagation in a
+   * third shape, so the retry keys on the STATUS, 403 or 404, whatever git's words.
+   */
+  it('a seed push GitHub refuses 403 `Write access to repository not granted.` (lp-starter-p) is tried again, and lands', async () => {
+    const h = await harness({ quirks: { writeNotGrantedAfterCreate: 1 } }, FAST)
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await h.driver.createRepository('chem-labs', SEED)
+      expect(await upstreamMain(h, 'chem-labs')).toBe(
+        await lsRemoteMain(h.fake, 'chem-labs'),
+      )
+      const lines = retries(said)
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain('the seed push')
+      expect(lines[0]).toContain('remote: Write access to repository not granted.')
+      expect(lines[0]).toContain('The requested URL returned error: 403')
     } finally {
       said.mockRestore()
       await h.cleanup()
@@ -1356,5 +1381,54 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
       said.mockRestore()
       await h.cleanup()
     }
+  })
+})
+
+/**
+ * THE CLASSIFIER, over git's words (FE-41's fix rounds): GitHub refusing a NEW repository 403 or
+ * 404, by STATUS, in every shape real GitHub gave on 2026-09-29 — and nothing else. A 401 is
+ * `withToken`'s (one re-mint); a 400, a 5xx, the network and a moved branch are never GitHub's
+ * propagation after a create.
+ */
+describe('refusedWhileNew — git’s answer that GitHub refused a NEW repository 403 or 404, by status (FE-41)', () => {
+  const failed = (message: string) => new SourceError('SOURCE_GIT_FAILED', message)
+
+  it('is true for every shape measured on github.com 2026-09-29', () => {
+    for (const measured of [
+      // lp-starter-c, -e, -f: the seed push's advertisement, 404.
+      "git --git-dir failed: remote: Repository not found. | fatal: repository 'https://github.com/Manifest-local-dev/lp-starter-c.git/' not found",
+      // lp-starter-a: the first fetch's advertisement, 404.
+      "git fetch failed: remote: Repository not found. | fatal: repository 'https://github.com/Manifest-local-dev/lp-starter-a.git/' not found",
+      // lp-starter-m: the first fetch's `ls-refs` (protocol v2), 404.
+      'git fetch failed: error: RPC failed; HTTP 404 curl 22 The requested URL returned error: 404 | fatal: expected flush after ref listing',
+      // lp-starter-p: the seed push, 403, the fresh token not yet granted the repository.
+      "git --git-dir failed: remote: Write access to repository not granted. | fatal: unable to access 'https://github.com/Manifest-local-dev/lp-starter-p.git/': The requested URL returned error: 403",
+    ]) {
+      expect(refusedWhileNew(failed(measured)), measured).toBe(true)
+    }
+  })
+
+  it('is false for a 401, a 400, a 5xx, a status that only BEGINS 403 or 404, and any code but SOURCE_GIT_FAILED', () => {
+    for (const other of [
+      // A 401, in git's words measured against the fake (git.ts, 2026-09-24): `withToken` re-mints.
+      "git fetch failed: fatal: could not read Username for 'https://github.com': terminal prompts disabled",
+      // The rest in git's own format — not measured on GitHub, and never its propagation.
+      'git fetch failed: error: RPC failed; HTTP 401 curl 22 The requested URL returned error: 401 | fatal: expected flush after ref listing',
+      'git fetch failed: error: RPC failed; HTTP 400 curl 22 The requested URL returned error: 400 | fatal: expected flush after ref listing',
+      'git fetch failed: error: RPC failed; HTTP 500 curl 22 The requested URL returned error: 500 | fatal: the remote end hung up unexpectedly',
+      "git --git-dir failed: fatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 502",
+      // Boundaries: 4040 and 4030 are not 404 and 403.
+      'git fetch failed: error: RPC failed; HTTP 4040 curl 22 The requested URL returned error: 4040',
+      "git --git-dir failed: fatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 4030",
+    ]) {
+      expect(refusedWhileNew(failed(other)), other).toBe(false)
+    }
+    // GitHub's own words under any other code, or on no SourceError at all.
+    const words = 'remote: Repository not found. | The requested URL returned error: 404'
+    expect(refusedWhileNew(new SourceError('SOURCE_UNREACHABLE', words))).toBe(false)
+    expect(refusedWhileNew(new SourceError('SOURCE_CONFLICT', words))).toBe(false)
+    expect(refusedWhileNew(new Error(words))).toBe(false)
+    // The positive control: the same words as SOURCE_GIT_FAILED.
+    expect(refusedWhileNew(failed(words))).toBe(true)
   })
 })

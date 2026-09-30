@@ -105,6 +105,24 @@ export interface FakeQuirks {
    * second-leg 404 in git's words, measured on github.com 2026-09-29 (lp-starter-m).
    */
   protocolV2?: boolean
+  /**
+   * FE-41's fix round 3 (measured on github.com 2026-09-29, lp-starter-p): how many pushes to each
+   * repository made through `POST /orgs/{org}/repos` in this process are refused at their
+   * advertisement `403`, `Write access to repository not granted.` — GitHub's answer while the App's
+   * fresh token was not yet granted the new repository. git prints `remote: Write access to
+   * repository not granted.` and `The requested URL returned error: 403`, and exits 128. Asked
+   * after `notFoundAfterCreate`'s `push`, as a repository is first found and then writable.
+   */
+  writeNotGrantedAfterCreate?: number
+}
+
+/** A new repository's refusals made so far, per kind (FE-41's quirks). */
+interface RefusedSinceCreate {
+  push: number
+  pushPack: number
+  fetch: number
+  fetchPack: number
+  writeNotGranted: number
 }
 
 /** The App's permissions — exactly what `Manifest (local dev)` is registered with. */
@@ -210,11 +228,8 @@ export function createFakeServer(config: FakeConfig): FakeServer {
 
   const sameOrg = (org: string) => org.toLowerCase() === state.org.toLowerCase()
   const repoOf = (name: string): FakeRepo | undefined => state.repos[name.toLowerCase()]
-  /** The `notFoundAfterCreate` quirk's refusals made so far, per repository created in this process. */
-  const refusedSinceCreate = new Map<
-    string,
-    Record<keyof NonNullable<FakeQuirks['notFoundAfterCreate']>, number>
-  >()
+  /** FE-41's quirks' refusals made so far, per repository created in this process. */
+  const refusedSinceCreate = new Map<string, RefusedSinceCreate>()
 
   const appJson = () => {
     const u = config.urls()
@@ -461,6 +476,7 @@ export function createFakeServer(config: FakeConfig): FakeServer {
       pushPack: 0,
       fetch: 0,
       fetchPack: 0,
+      writeNotGranted: 0,
     })
     save()
     return repoJson(repo, g)
@@ -726,10 +742,10 @@ export function createFakeServer(config: FakeConfig): FakeServer {
             fullName: `${state.org}/${repo.name}`,
           }
         },
-        notYetFound: (r, service) => {
-          const counts = config.quirks?.notFoundAfterCreate
+        notYetReady: (r, service) => {
           const made = refusedSinceCreate.get(r.repo.toLowerCase())
-          if (counts === undefined || made === undefined) return false
+          if (made === undefined) return undefined
+          const counts = config.quirks?.notFoundAfterCreate ?? {}
           const advertisement = r.op === 'info/refs'
           const kind =
             service === 'git-receive-pack'
@@ -739,9 +755,17 @@ export function createFakeServer(config: FakeConfig): FakeServer {
               : advertisement
                 ? 'fetch'
                 : 'fetchPack'
-          if (made[kind] >= (counts[kind] ?? 0)) return false
-          made[kind] += 1
-          return true
+          if (made[kind] < (counts[kind] ?? 0)) {
+            made[kind] += 1
+            return 'not-found'
+          }
+          // Found, and not yet writable: a push's advertisement alone (lp-starter-p).
+          const forbid = config.quirks?.writeNotGrantedAfterCreate ?? 0
+          if (kind === 'push' && made.writeNotGranted < forbid) {
+            made.writeNotGranted += 1
+            return 'write-not-granted'
+          }
+          return undefined
         },
         onPushed: async (r, pusher, previous) => {
           const repo = repoOf(r.repo)

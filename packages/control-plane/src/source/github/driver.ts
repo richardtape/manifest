@@ -66,7 +66,7 @@ export interface GithubDriverOptions {
    */
   scanLimits?: ScanLimits
   /**
-   * The waits before a NEW repository's retries while GitHub has not yet found it (FE-41,
+   * The waits before a NEW repository's retries while GitHub has not yet made it ready (FE-41,
    * `createRepository`) — ONE schedule per creation, which its seed push and then its first fetch
    * draw on in turn — `CREATE_RETRY_DELAYS_MS` unless a test makes them short.
    */
@@ -88,18 +88,22 @@ interface RetryBudget {
 }
 
 /**
- * GitHub's own answer to a repository it cannot find, as git prints it — its `Repository not
- * found.` relayed as `remote:`, and git's `fatal: repository '<url>' not found` (both measured on
- * real GitHub in FE-41, and reproduced with real git against the fake's `notFoundAfterCreate`) —
- * and the SECOND LEG (FE-41's fix rounds): the advertisement answered and a later request 404'd,
- * which git reports as `error: RPC failed; HTTP 404 …` — keyed on THAT ALONE, because what git says
- * next depends on the request that was refused: `fatal: expected flush after ref listing` for
- * protocol v2's `ls-refs` (measured on github.com 2026-09-29, lp-starter-m), `fatal: the remote end
- * hung up unexpectedly` for v0's pack (the fake), `fatal: expected 'packfile'` for v2's `fetch`
- * (measured against a v2 server). A push's second leg exits 1 with `Done` (lp-starter-g).
+ * GITHUB REFUSING A NEW REPOSITORY, 403 OR 404, as git prints it — keyed on the STATUS, in whatever
+ * words git uses (FE-41's fix round 3). The cause is GitHub's propagation after a create, measured
+ * on github.com 2026-09-29 in several shapes:
+ *  - `404` at the advertisement: `remote: Repository not found.` and `fatal: repository '<url>' not
+ *    found` (lp-starter-a, -c, -e, -f);
+ *  - a SECOND-LEG `404`, the advertisement answered and a later request refused: `error: RPC failed;
+ *    HTTP 404`, then whatever git says of the request that failed — v2's `expected flush after ref
+ *    listing` (lp-starter-m), v0's `the remote end hung up unexpectedly` (the fake), v2's `expected
+ *    'packfile'` — or, for a push, exit 1 with `Done` and no line (lp-starter-g, which `whileNew`'s
+ *    `unanswered` reads, not this);
+ *  - `403` while the App's fresh token is not yet granted the repository: `remote: Write access to
+ *    repository not granted.` and `The requested URL returned error: 403` (lp-starter-p).
+ * `\b` keeps 4030 and 4040 out. Never a 401 — `withToken` re-mints once on that — a 400 or a 5xx.
  */
-const NOT_FOUND =
-  /remote: Repository not found|fatal: repository '[^']*' not found|error: RPC failed; HTTP 404\b/i
+const NEW_REPOSITORY_REFUSED =
+  /The requested URL returned error: 40[34]\b|RPC failed; HTTP 40[34]\b|remote: Repository not found|fatal: repository '[^']*' not found|remote: Write access to repository not granted/i
 
 /** §7's slug rule, re-stated as driver 1 does: the traversal defence depends on no other module. */
 const SLUG = /^[a-z][a-z0-9-]{2,38}$/
@@ -536,12 +540,13 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
   }
 
   /**
-   * A REPOSITORY GITHUB HAS JUST MADE IS NOT YET FOUND EVERYWHERE (FE-41; the launch path plan's Task
-   * 6a, measured on real GitHub 2026-09-29): for roughly 2–4 s after its `201`, git may be answered
-   * not found — the seed push or the creation's first fetch, with a starter or without — and the
-   * same token's next try lands. So `createRepository`'s two git steps, and NOTHING ELSE, try again
-   * on exactly that answer, out of ONE `budget` for the creation (the fix round's item 2): outside
-   * the creation, not found means the repository is gone or out of reach, and a retry would hide it.
+   * A REPOSITORY GITHUB HAS JUST MADE IS NOT YET READY EVERYWHERE (FE-41; the launch path plan's Task
+   * 6a, measured on real GitHub 2026-09-29): for a few seconds after its `201`, GitHub's
+   * propagation may refuse git `404` or `403` (`NEW_REPOSITORY_REFUSED` names the shapes) — the seed
+   * push or the creation's first fetch, with a starter or without — and the same token's next try
+   * lands. So `createRepository`'s two git steps, and NOTHING ELSE, try again on exactly that
+   * answer, out of ONE `budget` for the creation (the fix round's item 2): outside the creation, a
+   * 404 or 403 means the repository is gone or out of reach, and a retry would hide it.
    * `unanswered` names a RESULT that is the same lag — a push whose second request GitHub could not
    * find exits 1 with `Done` and no line for `main` (lp-starter-g) — and a line for `main`, a
    * verdict, is never retried. Every retry is an operator line saying what was seen, so the lag is
@@ -564,8 +569,8 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         if (words === null || budget.spent >= delays.length) return result
         seen = `GitHub answered ${step} of a repository it made seconds ago without a verdict for main (git said ${words})`
       } catch (error) {
-        if (!notYetFound(error) || budget.spent >= delays.length) throw error
-        seen = `${step} of a repository GitHub made seconds ago was not found (${error.message})`
+        if (!refusedWhileNew(error) || budget.spent >= delays.length) throw error
+        seen = `${step} of a repository GitHub made seconds ago was refused (${error.message})`
       }
       const delay = delays[budget.spent]!
       budget.spent += 1
@@ -1166,15 +1171,17 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
 }
 
 /**
- * FE-41: GitHub, over git, could not find the repository — `SOURCE_GIT_FAILED` in its own words.
- * Never `SOURCE_UNREACHABLE` (the network, which has its own meaning), `SOURCE_CONFLICT`, or any
- * other code.
+ * FE-41: git's answer that GitHub refused the repository `403` or `404` (`NEW_REPOSITORY_REFUSED`) —
+ * `SOURCE_GIT_FAILED` alone, never `SOURCE_UNREACHABLE` (the network, which has its own meaning),
+ * `SOURCE_CONFLICT`, or any other code. While the repository is NEW that is GitHub's propagation
+ * after a create; `whileNew` is its one caller, and it is exported for its unit test over the
+ * strings measured on github.com.
  */
-function notYetFound(error: unknown): error is SourceError {
+export function refusedWhileNew(error: unknown): error is SourceError {
   return (
     error instanceof SourceError &&
     error.code === 'SOURCE_GIT_FAILED' &&
-    NOT_FOUND.test(error.message)
+    NEW_REPOSITORY_REFUSED.test(error.message)
   )
 }
 

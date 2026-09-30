@@ -30,6 +30,7 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
   beforeEach(async () => {
     delete quirks.notFoundAfterCreate
     delete quirks.protocolV2
+    delete quirks.writeNotGrantedAfterCreate
     fake = await startFake({ quirks })
     work = mkdtempSync(join(tmpdir(), 'github-fake-git-'))
   })
@@ -286,5 +287,31 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
     const served = await fetch()
     expect(served.code).toBe(0)
     expect(served.stdout).toContain(`${sha} refs/heads/main`)
+  })
+
+  /**
+   * 403 WHILE NEW (FE-41's fix round 3): GitHub refused lp-starter-p's seed push `403` — `Write
+   * access to repository not granted.` — while the App's fresh token was not yet granted the new
+   * repository (measured on github.com 2026-09-29). Real git prints both of GitHub's lines.
+   */
+  it('writeNotGrantedAfterCreate: a new repository’s push is answered 403 `Write access to repository not granted.`, as GitHub did for lp-starter-p — then served', async () => {
+    quirks.writeNotGrantedAfterCreate = 1
+    await createRepo('app')
+    await localCommit('src', 'hello\n')
+    const t = await token({ repositories: ['app'], permissions: { contents: 'write' } })
+    const push = () =>
+      git(['push', '--porcelain', remote('app'), 'main'], {
+        cwd: join(work, 'src'),
+        token: t,
+      })
+    const forbidden = await push()
+    expect(forbidden.code).toBe(128)
+    expect(forbidden.stderr).toContain('remote: Write access to repository not granted.')
+    expect(forbidden.stderr).toContain(
+      `fatal: unable to access '${remote('app')}/': The requested URL returned error: 403`,
+    )
+    const landed = await push()
+    expect(landed.code).toBe(0)
+    expect(landed.stdout).toMatch(/^\*\t\S+:refs\/heads\/main\t\[new branch\]$/m)
   })
 })
