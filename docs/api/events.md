@@ -95,7 +95,7 @@ The stream closes with a code that says what to do:
 | `1006` | The upgrade was refused — unauthenticated, not found, or a session from another origin — or the connection dropped. A WebSocket client is shown no status. | `GET` the same URL with the same credential to see the refusal; otherwise reconnect. |
 | `1011` | The stream could not be opened. | Reconnect. |
 | `1013` | The client fell behind — more than 1 MiB queued. | Reconnect, to be replayed. |
-| `4401` | The credential was revoked or expired while the stream was open — a token revoked, every token of an app switched off, or a token or session past its expiry. | Sign the person in again, or ask them for a new token: reconnecting with the same credential is refused. |
+| `4401` | The credential was revoked or expired while the stream was open — a token revoked, every token of an app switched off, or a token or session past its expiry. | Get a new one — sign the person in again, or ask them for a new token; reconnecting with the same credential is refused. |
 | `4403` | The upgrade carried a session from another origin. | Send the console’s origin. |
 | `4404` | Not found — or not yours. | Check the project id and the credential. |
 

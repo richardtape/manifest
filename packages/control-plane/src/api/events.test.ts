@@ -462,6 +462,20 @@ function closeOf(socket: WebSocket, timeoutMs = 3_000) {
   })
 }
 
+/**
+ * "At the moment it goes" as a number (the review's Focus 3): a close observed within a second of the
+ * moment its credential went. A close is sent before the revoke answers, so this is slack for a loaded
+ * machine, never a wait the route relies on.
+ */
+const WITHIN_MS = 1_000
+/**
+ * How EARLY an expiry's close may be seen against `Date.now()`: Node's timers run on a monotonic clock
+ * and round to whole milliseconds, so a timer armed for `expiresAt − now` can fire a millisecond or so
+ * before `Date.now()` reaches `expiresAt`. A timer armed at nought — the defect the lower bound is
+ * for — is 2.5 s early, far outside it.
+ */
+const TIMER_EARLY_MS = 5
+
 const eventTypesOf = (frames: StreamFrame[]) =>
   frames.flatMap((f) => (f.kind === 'event' ? [f.type] : []))
 
@@ -524,12 +538,16 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     const server = await streamServer()
     const { token, socket, frames } = await tokenStream(server)
     const closed = closeOf(socket)
+    const revokedAt = Date.now()
     const res = await revoke(server, token.row.id)
     expect(res.statusCode, res.body).toBe(200)
-    expect(await closed).toMatchObject({
+    const close = await closed
+    expect(close).toMatchObject({
       code: 4401,
       reason: expect.stringContaining('revoked'),
     })
+    // AT THE MOMENT IT GOES — not at some later sweep.
+    expect(close.at - revokedAt).toBeLessThan(WITHIN_MS)
     await rename(server, 'Renamed after the revoke')
     expect(eventTypesOf(frames)).not.toContain('project.renamed')
     // UNSUBSCRIBED, and UNREGISTERED: nothing of the stream is left for a later revoke to find.
@@ -542,8 +560,11 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     const revoked = await tokenStream(server)
     const kept = await tokenStream(server)
     const closed = closeOf(revoked.socket)
+    const revokedAt = Date.now()
     expect((await revoke(server, revoked.token.row.id)).statusCode).toBe(200)
-    expect((await closed).code).toBe(4401)
+    const close = await closed
+    expect(close.code).toBe(4401)
+    expect(close.at - revokedAt).toBeLessThan(WITHIN_MS)
     // THE POSITIVE CONTROL for the test above: the same rename, heard by the stream still open.
     await rename(server, 'Renamed while the second token watches')
     await waitUntil(
@@ -560,8 +581,11 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     const session = await sessionStream(server)
     const { token, socket } = await tokenStream(server)
     const closed = closeOf(socket)
+    const revokedAt = Date.now()
     expect((await revoke(server, token.row.id)).statusCode).toBe(200)
-    expect((await closed).code).toBe(4401)
+    const close = await closed
+    expect(close.code).toBe(4401)
+    expect(close.at - revokedAt).toBeLessThan(WITHIN_MS)
     await rename(server, 'Renamed while the owner watches')
     await waitUntil(
       () => eventTypesOf(session.frames).includes('project.renamed'),
@@ -571,24 +595,27 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
   })
 
   it('an expired token’s stream closes 4401 at its expiry', async () => {
-    // A REAL timer, not a fake one: the route arms it from the token's own `expires_at`.
+    // A REAL timer, not a fake one: the registry arms it from the token's own `expires_at`. 2.5 s
+    // ahead, fixed before the mint, so a loaded machine's setup (mint, upgrade, authorization,
+    // replay) still ends well before it.
     const server = await streamServer()
-    const expiresAt = new Date(Date.now() + 1_500)
+    const expiresAt = new Date(Date.now() + 2_500)
     const { socket } = await tokenStream(server, { expiresAt })
-    const closed = await closeOf(socket, 3_000)
+    const closed = await closeOf(socket, 4_000)
     expect(closed).toMatchObject({
       code: 4401,
       reason: expect.stringContaining('expired'),
     })
-    // AT its expiry, not before: a timer armed at nought closes at once, which this refuses.
-    expect(closed.at).toBeGreaterThanOrEqual(expiresAt.getTime())
+    // AT its expiry: not before it (a timer armed at nought closes at once) and within a second of it.
+    expect(closed.at).toBeGreaterThanOrEqual(expiresAt.getTime() - TIMER_EARLY_MS)
+    expect(closed.at - expiresAt.getTime()).toBeLessThan(WITHIN_MS)
   }, 10_000)
 
   it('a session’s stream closes 4401 when the session expires — a session is armed too', async () => {
     // A Phase 1 session cannot be revoked (§20), so its expiry is the bound this stream can enforce.
     const server = await streamServer()
     const owner = await ensureTestUser(server.deps.db, 'bio_prof')
-    const expiresAt = Date.now() + 1_500
+    const expiresAt = Date.now() + 2_500
     const cookies = testSessionCookies(
       owner,
       server.deps.config.sessionSecret,
@@ -597,12 +624,13 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     const socket = await server.connect({ cookies })
     const frames = recorder(socket)
     await waitUntil(() => frames.some(isReady), 'the ready frame')
-    const closed = await closeOf(socket, 3_000)
+    const closed = await closeOf(socket, 4_000)
     expect(closed).toMatchObject({
       code: 4401,
       reason: expect.stringContaining('expired'),
     })
-    expect(closed.at).toBeGreaterThanOrEqual(expiresAt)
+    expect(closed.at).toBeGreaterThanOrEqual(expiresAt - TIMER_EARLY_MS)
+    expect(closed.at - expiresAt).toBeLessThan(WITHIN_MS)
   }, 10_000)
 
   it('a revoked token’s stream closes even when ending its sessions fails', async () => {
@@ -626,6 +654,7 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     const closed = closeOf(socket)
     const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     let res: Awaited<ReturnType<typeof revoke>>
+    const revokedAt = Date.now()
     try {
       // The control plane restarted with AI off while the session's key is still live.
       server.deps.llm = undefined
@@ -635,10 +664,12 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
       logged.mockRestore()
     }
     expect(refusal(res)).toEqual({ status: 503, code: 'AI_CATALOGUE_DISABLED' })
-    expect(await closed).toMatchObject({
+    const close = await closed
+    expect(close).toMatchObject({
       code: 4401,
       reason: expect.stringContaining('revoked'),
     })
+    expect(close.at - revokedAt).toBeLessThan(WITHIN_MS)
   })
 
   it('a token revoked after its upgrade authenticated, and before its stream registered, is closed 4401 by the stream’s own second read', async () => {
@@ -660,6 +691,9 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     })
     const lock = await admin.connect()
     try {
+      const { rows: held } = await lock.query<{ pid: number }>(
+        'SELECT pg_backend_pid() AS pid',
+      )
       await lock.query('BEGIN')
       await lock.query('UPDATE delegated_tokens SET revoked_at = now() WHERE id = $1', [
         token.row.id,
@@ -667,10 +701,16 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
       const socket = await server.connect({ bearer: token.plaintext })
       const frames = recorder(socket)
       const outcome = closeOf(socket, 5_000)
+      // Waiting on THIS test's lock, in this database: the dev control plane on 7100 shares
+      // `manifest_control`, so the database alone would not tell its lock waits from the hook's.
       await waitUntil(async () => {
         const { rows } = await admin.query<{ waiting: string }>(
           `SELECT count(*) AS waiting FROM pg_stat_activity
-            WHERE wait_event_type = 'Lock' AND query ILIKE '%delegated_tokens%'`,
+            WHERE datname = current_database()
+              AND wait_event_type = 'Lock'
+              AND query ILIKE '%delegated_tokens%'
+              AND $1 = ANY(pg_blocking_pids(pid))`,
+          [held[0]!.pid],
         )
         return Number(rows[0]!.waiting) > 0
       }, 'the hook’s last_used_at stamp waiting on the token’s row')

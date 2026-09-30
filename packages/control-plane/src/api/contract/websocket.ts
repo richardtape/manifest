@@ -93,9 +93,10 @@ export function streamPathItem(): Record<string, unknown> {
           '1011': 'The stream could not be opened; the operator log says why. Reconnect.',
           '1013':
             'The client fell behind (more than maxBufferedBytes queued). Reconnect to be replayed.',
-          // FE-33 (the launch path plan's Task 5): a revoke, an archive or an expiry, while it is open.
+          // FE-33 (the launch path plan's Task 5): a revoke, an archive or an expiry — a token's or a
+          // session's — while it is open.
           '4401':
-            'The credential was revoked or expired. Ask the person for a new one; reconnecting with the same credential is refused.',
+            'The credential was revoked or expired. Get a new one — sign the person in again, or ask them for a new token; reconnecting with the same credential is refused.',
           '4403': 'The upgrade carried a session from another origin.',
           '4404': 'Not found — or not yours.',
         },

@@ -186,8 +186,11 @@ describe('listInstances — an environment’s instances (Task 3)', () => {
       expect(listedB.lastSeenAt).toBeNull()
       expect(Date.parse(listedB.createdAt)).toBeGreaterThan(Date.parse(listedA.createdAt))
       // …and the time is when the DEPLOY made it, not a constant: inside the window the deploy ran in.
-      expect(Date.parse(listedA.createdAt)).toBeGreaterThanOrEqual(before)
-      expect(Date.parse(listedA.createdAt)).toBeLessThanOrEqual(after)
+      // The window is WIDENED TO WHOLE MILLISECONDS, OUTWARD: the column holds microseconds and the
+      // driver's `Date` TRUNCATES them, so a row stamped just after `before`, in the same millisecond,
+      // reads back BELOW it — a false red that depended only on where in its millisecond `before` fell.
+      expect(Date.parse(listedA.createdAt)).toBeGreaterThanOrEqual(Math.floor(before))
+      expect(Date.parse(listedA.createdAt)).toBeLessThanOrEqual(Math.ceil(after))
       expect(listedB.createdAt).toBe(b.createdAt.toISOString())
     })
   })

@@ -71,6 +71,18 @@ const EXPIRED = 'the credential expired'
 const DELETED = 'the project was deleted'
 const NOT_A_MEMBER = 'no longer a member of the project'
 
+/**
+ * What was thrown, for an operator line: an error's code, or its class — never its message — and for
+ * anything that is not an object, its KIND. Reading `.code` off a thrown `null` would throw again, out
+ * of the catch that reports it, and abort every close after it (the review's finding); and a thrown
+ * string's content is a message.
+ */
+function kindOf(error: unknown): string {
+  if (error === null) return 'null'
+  if (typeof error !== 'object') return typeof error
+  return (error as { code?: string }).code ?? (error as Error).name ?? 'object'
+}
+
 interface Registration {
   entry: StreamEntry
   close: (code: StreamCloseCode, reason: string) => void
@@ -105,7 +117,7 @@ export function createStreamRegistry(): StreamRegistry {
           msg: 'an event stream could not be closed; it is unregistered, and hears nothing more',
           projectId: registration.entry.projectId,
           code,
-          error: (error as { code?: string }).code ?? (error as Error).name,
+          error: kindOf(error),
         }),
       )
       return false

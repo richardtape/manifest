@@ -195,4 +195,27 @@ describe('the stream registry (FE-33)', () => {
     // And it is gone from the registry all the same.
     expect(streams.closeToken('t-a')).toBe(0)
   })
+
+  it('a close that throws something that is not an Error — null, a string — is reported too, and the others still close', () => {
+    // Reading `.code` off a thrown `null` threw a TypeError out of the catch, which aborted the
+    // remaining closes and made the revoke that called them a 500 (the review's finding).
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const streams = createStreamRegistry()
+    const after = recording()
+    streams.register(entry({ tokenId: 't-a' }), () => {
+      throw null as unknown as Error
+    })
+    streams.register(entry({ tokenId: 't-a' }), () => {
+      throw 'a thrown string could carry anything' as unknown as Error
+    })
+    streams.register(entry({ tokenId: 't-a' }), after.close)
+    expect(streams.closeToken('t-a')).toBe(1)
+    expect(after.calls).toHaveLength(1)
+    const lines = logged.mock.calls.map(
+      (call) => JSON.parse(String(call[0])) as Record<string, unknown>,
+    )
+    // What was thrown, by KIND — never a thrown string's content.
+    expect(lines.map((line) => line.error)).toEqual(['null', 'string'])
+    expect(JSON.stringify(lines)).not.toContain('could carry anything')
+  })
 })
