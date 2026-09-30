@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { AddressInfo } from 'node:net'
-import { createFakeServer } from './server.js'
+import { createFakeServer, type FakeQuirks } from './server.js'
 import type { Delivery } from './webhooks.js'
 
 /**
@@ -79,12 +79,11 @@ export interface StartFakeOptions {
   /** (Task 9) The control plane's `/webhooks/github`; none, and nothing is delivered until `setWebhookUrl`. */
   webhookUrl?: string
   /**
-   * TEST-ONLY MISBEHAVIOUR, never set by `main.ts`. `createPublic` makes every repository
-   * PUBLIC whatever was asked — the answer Decision 12's check must refuse (Task 7).
-   * `refusePrivatize` refuses a change TO private `422`, as an organisation's policy could
-   * (Task 10). The object is read at each request, so a test may change it mid-run.
+   * TEST-ONLY MISBEHAVIOUR, never set by `main.ts` (`FakeQuirks` says what each one does):
+   * `createPublic` (Task 7), `refusePrivatize` (Task 10), `notFoundAfterCreate` (FE-41). The
+   * object is read at each request, so a test may change it mid-run.
    */
-  quirks?: { createPublic?: boolean; refusePrivatize?: boolean }
+  quirks?: FakeQuirks
 }
 
 export async function startFake(options: StartFakeOptions = {}): Promise<StartedFake> {

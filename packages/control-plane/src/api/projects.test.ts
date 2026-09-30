@@ -257,6 +257,61 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
   })
 
   /**
+   * FE-41 (the launch path plan's Task 6a): a create whose repository failed answered 409 and wrote
+   * NOTHING for the operator, so GitHub's lag was found only by probing real GitHub by hand. One
+   * line now names the slug, the code and the driver's words — and no laptop path: driver 1's
+   * message carries git's whole command line, the repository's path in it.
+   */
+  it('writes ONE operator line for a create whose repository failed — slug, code, the driver’s words, no laptop path — and none for a create that succeeded', async () => {
+    const deps = await testDeps()
+    const root = deps.config.reposRoot
+    let fail = true
+    const failing = {
+      ...deps,
+      source: {
+        ...deps.source,
+        createRepository: (...args: Parameters<typeof deps.source.createRepository>) =>
+          fail
+            ? Promise.reject(
+                new SourceError(
+                  'SOURCE_GIT_FAILED',
+                  `git init failed: Error: Command failed: git init --bare ${join(root, 'chem-labs.git')}`,
+                ),
+              )
+            : deps.source.createRepository(...args),
+      },
+    }
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const createLines = () =>
+      said.mock.calls
+        .map((c) => c.map(String).join(' '))
+        .filter((line) => line.startsWith('POST /v1/projects'))
+    const app = await buildServer(failing)
+    try {
+      const cookies = await loginAs(failing, 'bio_prof')
+      const post = () =>
+        app.inject({ ...create('chem-labs'), cookies, headers: mutationHeaders(failing) })
+      expect(refusal(await post())).toEqual({ status: 409, code: 'SOURCE_GIT_FAILED' })
+      const lines = createLines()
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain('chem-labs')
+      expect(lines[0]).toContain('SOURCE_GIT_FAILED')
+      expect(lines[0]).toContain('git init failed')
+      expect(lines[0]).toContain('<repos>/chem-labs.git')
+      expect(lines[0]).not.toContain(root)
+      // The positive control: the same create, succeeding, says nothing.
+      fail = false
+      said.mockClear()
+      const made = await post()
+      expect(made.statusCode, made.body).toBe(201)
+      expect(createLines()).toEqual([])
+    } finally {
+      said.mockRestore()
+      await app.close()
+    }
+  })
+
+  /**
    * A CREATE THAT FAILS AFTER THE DRIVER MADE THE REPOSITORY (the launch path plan's Task 2,
    * *Read this first* 13): the route records the row and reads the seed back AFTER
    * `createRepository` returned, and a failure there used to delete only the project row — the
@@ -392,8 +447,9 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
       })
       expect(refusal(res)).toEqual({ status: 409, code: 'SOURCE_GIT_FAILED' })
       const lines = said.mock.calls.map((c) => c.map(String).join(' '))
-      expect(lines).toContainEqual(expect.stringContaining('lp-cleanup-fails'))
-      const line = lines.find((l) => l.includes('lp-cleanup-fails'))!
+      // The cleanup's own line — since FE-41 the failure it follows is said first, on its own.
+      const line = lines.find((l) => l.includes('could not be destroyed'))!
+      expect(line).toContain('lp-cleanup-fails')
       expect(line).toContain('local')
       expect(line).toContain('the destroy failed too')
       // The project row goes whatever the repository did: the slug is not held by a ghost.

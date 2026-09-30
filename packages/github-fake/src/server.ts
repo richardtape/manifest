@@ -69,7 +69,29 @@ export interface FakeConfig {
   urls: () => Urls
   now?: () => Date
   /** TEST-ONLY misbehaviour (`testing.ts`); `main.ts` never sets it. */
-  quirks?: { createPublic?: boolean; refusePrivatize?: boolean }
+  quirks?: FakeQuirks
+}
+
+/**
+ * TEST-ONLY MISBEHAVIOUR, never set by `main.ts` — so conformance never sees it. The object is
+ * read at each request, so a test may change it mid-run.
+ */
+export interface FakeQuirks {
+  /** Every repository is made PUBLIC whatever was asked — the answer Decision 12's check must refuse (Task 7). */
+  createPublic?: boolean
+  /** A change TO private is refused `422`, as an organisation's policy could (Task 10). */
+  refusePrivatize?: boolean
+  /**
+   * FE-41 (the launch path plan's Task 6a, measured on real GitHub 2026-09-29): a repository GitHub
+   * made seconds before is answered NOT FOUND over git — `404`, `Repository not found.` — for 2–4
+   * s. Each count is how many requests of one kind, to each repository made through `POST
+   * /orgs/{org}/repos` in this process, are answered so: `push` the push's first request (its
+   * advertisement — git prints `remote: Repository not found.` and exits 128), `pushPack` its
+   * second (the pack — git exits 1 with `Done` and no line for the ref: lp-starter-g's answer), and
+   * `fetch` a fetch's or an ls-remote's first. The refusals MADE are counted, so a count raised
+   * mid-run refuses the next requests of that kind.
+   */
+  notFoundAfterCreate?: { push?: number; pushPack?: number; fetch?: number }
 }
 
 /** The App's permissions — exactly what `Manifest (local dev)` is registered with. */
@@ -175,6 +197,11 @@ export function createFakeServer(config: FakeConfig): FakeServer {
 
   const sameOrg = (org: string) => org.toLowerCase() === state.org.toLowerCase()
   const repoOf = (name: string): FakeRepo | undefined => state.repos[name.toLowerCase()]
+  /** The `notFoundAfterCreate` quirk's refusals made so far, per repository created in this process. */
+  const refusedSinceCreate = new Map<
+    string,
+    Record<keyof NonNullable<FakeQuirks['notFoundAfterCreate']>, number>
+  >()
 
   const appJson = () => {
     const u = config.urls()
@@ -416,6 +443,7 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     // it refuses nothing until a rule is PUT.
     await installProtectionHook(dir)
     state.repos[repo.name.toLowerCase()] = repo
+    refusedSinceCreate.set(repo.name.toLowerCase(), { push: 0, pushPack: 0, fetch: 0 })
     save()
     return repoJson(repo, g)
   }
@@ -474,6 +502,7 @@ export function createFakeServer(config: FakeConfig): FakeServer {
       throw new HttpError(403, 'Must have admin rights to Repository.')
     }
     delete state.repos[repo.name.toLowerCase()]
+    refusedSinceCreate.delete(repo.name.toLowerCase())
     save()
     await rm(repoDir(config.dataDir, state.org, repo.name), {
       recursive: true,
@@ -677,6 +706,22 @@ export function createFakeServer(config: FakeConfig): FakeServer {
             dir: repoDir(config.dataDir, state.org, repo.name),
             fullName: `${state.org}/${repo.name}`,
           }
+        },
+        notYetFound: (r, service) => {
+          const counts = config.quirks?.notFoundAfterCreate
+          const made = refusedSinceCreate.get(r.repo.toLowerCase())
+          if (counts === undefined || made === undefined) return false
+          const kind =
+            service === 'git-receive-pack'
+              ? r.op === 'info/refs'
+                ? 'push'
+                : 'pushPack'
+              : r.op === 'info/refs'
+                ? 'fetch'
+                : undefined
+          if (kind === undefined || made[kind] >= (counts[kind] ?? 0)) return false
+          made[kind] += 1
+          return true
         },
         onPushed: async (r, pusher, previous) => {
           const repo = repoOf(r.repo)

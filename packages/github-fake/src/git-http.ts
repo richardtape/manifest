@@ -52,6 +52,12 @@ export interface GitContext {
    * only after this resolves, so a push that has returned has its deliveries in flight.
    */
   onPushed(route: GitRoute, pusher: Grant, before: Map<string, string>): Promise<void>
+  /**
+   * TEST-ONLY (the `notFoundAfterCreate` quirk; FE-41): whether this request, to a repository that
+   * IS there, is answered as GitHub answered one it had made seconds before — not found. Asked once
+   * the request is known to be a valid one of `service`, before its permissions.
+   */
+  notYetFound?(route: GitRoute, service: 'git-upload-pack' | 'git-receive-pack'): boolean
 }
 
 const pkt = (s: string) => (s.length + 4).toString(16).padStart(4, '0') + s
@@ -105,6 +111,10 @@ export function serveGit(
   }
   if ((route.op === 'info/refs') !== (req.method === 'GET')) {
     return plain(res, 405, 'Method not allowed.\n')
+  }
+  if (ctx.notYetFound?.(route, service) === true) {
+    req.resume() // a refused push's pack is drained, never read
+    return plain(res, 404, 'Repository not found.\n')
   }
   const held = grant.permissions.contents
   const allowed = service === 'git-upload-pack' ? held !== undefined : held === 'write'

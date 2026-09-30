@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os'
+import { resolve } from 'node:path'
 import { z } from 'zod/v4'
 import { appSpecs } from '../../db/index.js'
 import type { ModelCatalogue } from '../../ai/index.js'
@@ -14,7 +16,7 @@ import {
   recordRepository,
   renameProject,
 } from '../../projects/index.js'
-import type { RepoRef, RepositoryLink } from '../../source/index.js'
+import { SourceError, type RepoRef, type RepositoryLink } from '../../source/index.js'
 import { declaresModels, validateSpec } from '../../spec/index.js'
 import type { ValidationContext } from '../../spec/index.js'
 import { requireSession } from '../actor.js'
@@ -66,6 +68,28 @@ export async function modelPolicy(
   }
   const { models, unclassified } = await catalogue.get()
   return { aiEnabled: true, modelCatalogue: models, unclassifiedModels: unclassified }
+}
+
+/**
+ * An operator line's copy of a message, with this machine's paths replaced (FE-41, the launch path
+ * plan's Task 6a): a `SourceError` is NOT path-free — driver 1's git failure carries git's whole
+ * command line, the repository's path in it (`local-driver.ts`), and driver 2's local git names its
+ * mirror or its scratch directory. The repository root and the temporary directory, each in both of
+ * macOS's spellings (`/var/…`, `/private/var/…`), longest first; never a bare `/`.
+ */
+function withoutLaptopPaths(text: string, reposRoot: string): string {
+  const paths: [string, string][] = []
+  for (const [dir, as] of [
+    [resolve(reposRoot), '<repos>'],
+    [tmpdir(), '<tmp>'],
+  ] as const) {
+    if (dir.length > 1) paths.push([dir, as], [`/private${dir}`, as])
+  }
+  let out = text
+  for (const [dir, as] of paths.sort((a, b) => b[0].length - a[0].length)) {
+    out = out.split(dir).join(as)
+  }
+  return out
 }
 
 /**
@@ -297,6 +321,13 @@ export const projectWriteRoutes = [
         commitSha = await deps.source.headCommit(repo)
         yamlText = (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
       } catch (error) {
+        // SAID FIRST, before a cleanup that could fail in its place (FE-41, the launch path plan's
+        // Task 6a): a `SourceError` is answered 409 or 503, which the error handler does not log, so
+        // a create GitHub failed left no trace but the client's. Driver 2's messages are redacted of
+        // every token it holds; the paths go here.
+        console.error(
+          `POST /v1/projects: ${body.slug} was not created; its repository step failed (${error instanceof SourceError ? error.code : error instanceof Error ? error.name : typeof error}): ${withoutLaptopPaths(error instanceof Error ? error.message : String(error), deps.config.reposRoot)}`,
+        )
         if (made !== undefined) {
           const repo = made
           // Never swallowed, and never answered in place of the failure that caused it: a

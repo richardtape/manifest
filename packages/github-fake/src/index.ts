@@ -3,6 +3,11 @@
  * NOT GitHub. Tests start one in process through `@manifest/github-fake/testing`; the
  * container runs `main.ts`.
  */
-export { createFakeServer, type FakeConfig, type FakeServer } from './server.js'
+export {
+  createFakeServer,
+  type FakeConfig,
+  type FakeQuirks,
+  type FakeServer,
+} from './server.js'
 export type { FakeRepo, FakeState, Protection } from './state.js'
 export type { Grant, Permission } from './app-auth.js'

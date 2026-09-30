@@ -7,7 +7,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { describe, expect, it, vi } from 'vitest'
-import { startFake, type StartedFake } from '@manifest/github-fake/testing'
+import {
+  startFake,
+  type StartedFake,
+  type StartFakeOptions,
+} from '@manifest/github-fake/testing'
 import { assembleContext, runMandatoryGates } from '../../build/index.js'
 import { SAMPLE_SECRETS } from '../../build/testing.js'
 import { describeSourceDriver } from '../driver-contract.js'
@@ -55,6 +59,11 @@ interface Harness {
    * and every call with a token this process already holds answers `401`, so the driver mints again.
    */
   refuseMints(answer: { status: number; message: string } | undefined): void
+  /**
+   * Runs once GitHub has answered `201` to a repository's creation, before the driver hears it —
+   * where a test does to the new repository what nothing else can reach in time (FE-41's Task 6a).
+   */
+  onCreated(run: ((name: string) => Promise<void>) | undefined): void
   /** The same GitHub, restarted: same data, same App key, same port — and a new token key. */
   restart(): Promise<void>
   cleanup(): Promise<void>
@@ -62,7 +71,10 @@ interface Harness {
 
 async function harness(
   options: Parameters<typeof startFake>[0] = {},
-  driverOptions: { scanLimits?: ScanLimits } = {},
+  driverOptions: {
+    scanLimits?: ScanLimits
+    createRetryDelaysMs?: readonly number[]
+  } = {},
 ): Promise<Harness> {
   const dataDir = await mkdtemp(join(tmpdir(), 'github-fake-data-'))
   const mirrorRoot = await mkdtemp(join(tmpdir(), 'manifest-mirror-'))
@@ -72,6 +84,7 @@ async function harness(
   const observer = recordingObserver()
   let repositoryReadsFail = false
   let mintRefusal: { status: number; message: string } | undefined
+  let created: ((name: string) => Promise<void>) | undefined
   // A spy on the wire. It never changes an answer — unless a test fails the repository read.
   const spyFetch: typeof fetch = async (input, init) => {
     if (
@@ -94,6 +107,14 @@ async function harness(
       })
     }
     const res = await fetch(input, init)
+    if (
+      created !== undefined &&
+      res.status === 201 &&
+      init?.method === 'POST' &&
+      String(input).endsWith(`/orgs/${fake.org}/repos`)
+    ) {
+      await created((JSON.parse(String(init.body)) as { name: string }).name)
+    }
     if (String(input).endsWith('/access_tokens')) {
       const asked = JSON.parse(String(init?.body ?? '{}')) as Partial<Mint>
       if (res.status === 201) {
@@ -133,6 +154,9 @@ async function harness(
     },
     refuseMints: (answer) => {
       mintRefusal = answer
+    },
+    onCreated: (run) => {
+      created = run
     },
     async restart() {
       const port = Number(new URL(fake.url).port)
@@ -1013,6 +1037,222 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
         .find((l) => l.includes('bio-labs.git'))
       expect(line).toContain('127.0.0.1:1')
       expect(line).toContain(new URL(h.fake.gitUrl).host)
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+})
+
+/**
+ * FE-41 (the launch path plan's Task 6a, measured on real GitHub 2026-09-29): a repository GitHub
+ * had created seconds before was answered NOT FOUND over git — the seed push, or the creation's
+ * first fetch, with or without a starter — for roughly 2–4 s, and the same token's next try landed.
+ * The fake's `notFoundAfterCreate` quirk answers the same way, in git's same words. The driver's
+ * CREATION tries those two steps again, bounded, and says so each time — and nothing else does.
+ */
+describe('the GitHub driver absorbs GitHub’s lag on a repository it has just made — and only there (FE-41, Task 6a)', () => {
+  const SEED = { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' }
+  /** Six attempts and no waiting: the default's shape without its 30 s. */
+  const FAST = { createRetryDelaysMs: [0, 0, 0, 0, 0] }
+  const AUTHOR = { name: 'person', email: 'person@example.org' }
+  /** The retry's operator lines — each one names FE-41. */
+  const retries = (said: { mock: { calls: unknown[][] } }) =>
+    said.mock.calls
+      .map((c) => c.map(String).join(' '))
+      .filter((line) => line.includes('FE-41'))
+  const upstreamMain = (h: Harness, slug: string) =>
+    run('git', [
+      '--git-dir',
+      join(h.mirrorRoot, `${slug}.git`),
+      'rev-parse',
+      'refs/manifest/upstream/main',
+    ]).then((r) => r.stdout.trim())
+  const codeOf = (p: Promise<unknown>) =>
+    p.then(
+      () => 'resolved',
+      (e: unknown) => (e instanceof SourceError ? e.code : String(e)),
+    )
+
+  it('a seed push GitHub answers not found TWICE is tried again: the repository is made, seeded and mirrored, and the lag is said', async () => {
+    const h = await harness({ quirks: { notFoundAfterCreate: { push: 2 } } }, FAST)
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      const { ref } = await h.driver.createRepository('chem-labs', SEED)
+      const onGithub = await lsRemoteMain(h.fake, 'chem-labs')
+      expect(onGithub).toMatch(/^[0-9a-f]{40}$/)
+      // Synced by the creation itself, before anything else asked.
+      expect(await upstreamMain(h, 'chem-labs')).toBe(onGithub)
+      expect(await h.driver.readFile(ref, onGithub, 'manifest.yaml')).toBe(
+        SEED['manifest.yaml'],
+      )
+      const lines = retries(said)
+      expect(lines).toHaveLength(2)
+      expect(lines[0]).toContain(`${h.fake.org}/chem-labs`)
+      expect(lines[0]).toContain('the seed push')
+      expect(lines[0]).toContain('attempt 1 of 6')
+      expect(lines[0]).toContain('remote: Repository not found.')
+      expect(lines[1]).toContain('attempt 2 of 6')
+      expect(h.minted.length).toBeGreaterThan(0)
+      for (const token of h.minted) expect(lines.join('\n')).not.toContain(token)
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  it('a seed push answered with NO line for main — lp-starter-g’s `Done` — is tried again, and lands', async () => {
+    const h = await harness({ quirks: { notFoundAfterCreate: { pushPack: 1 } } }, FAST)
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      const { ref } = await h.driver.createRepository('chem-labs', SEED)
+      const onGithub = await lsRemoteMain(h.fake, 'chem-labs')
+      expect(await upstreamMain(h, 'chem-labs')).toBe(onGithub)
+      expect(await h.driver.headCommit(ref)).toBe(onGithub)
+      const lines = retries(said)
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain('the seed push')
+      expect(lines[0]).toContain('no line for refs/heads/main')
+      expect(lines[0]).toContain('Done')
+      // Absorbed, so never reported as the refusal it would have been.
+      expect(
+        said.mock.calls.flat().some((l) => String(l).includes('refused Manifest')),
+      ).toBe(false)
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  it('a first fetch GitHub answers not found is tried again, and the mirror holds what GitHub has', async () => {
+    const h = await harness({ quirks: { notFoundAfterCreate: { fetch: 1 } } }, FAST)
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await h.driver.createRepository('chem-labs', SEED)
+      expect(await upstreamMain(h, 'chem-labs')).toBe(
+        await lsRemoteMain(h.fake, 'chem-labs'),
+      )
+      const lines = retries(said)
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain(`${h.fake.org}/chem-labs`)
+      expect(lines[0]).toContain('the first fetch')
+      expect(lines[0]).toContain('attempt 1 of 6')
+      expect(lines[0]).toContain('remote: Repository not found.')
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  it('past the bound it fails as it always did — SOURCE_GIT_FAILED — and leaves nothing on GitHub or here', async () => {
+    const quirks: NonNullable<StartFakeOptions['quirks']> = {
+      notFoundAfterCreate: { push: 99 },
+    }
+    const h = await harness({ quirks }, { createRetryDelaysMs: [0, 0] })
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      // The seed push: git's own words, from the LAST attempt.
+      await expect(h.driver.createRepository('chem-labs', SEED)).rejects.toMatchObject({
+        code: 'SOURCE_GIT_FAILED',
+        message: expect.stringContaining('Repository not found'),
+      })
+      // The first fetch: the mirror was made before it, and goes with the repository.
+      quirks.notFoundAfterCreate = { fetch: 99 }
+      await expect(h.driver.createRepository('bio-labs', SEED)).rejects.toMatchObject({
+        code: 'SOURCE_GIT_FAILED',
+        message: expect.stringContaining('Repository not found'),
+      })
+      // The push that never answers for main: its refusal, exactly as before.
+      quirks.notFoundAfterCreate = { pushPack: 99 }
+      await expect(h.driver.createRepository('geo-labs', SEED)).rejects.toMatchObject({
+        code: 'SOURCE_GIT_FAILED',
+        message: 'GitHub refused the push; nothing was committed',
+      })
+      for (const slug of ['chem-labs', 'bio-labs', 'geo-labs']) {
+        expect(await getAsPerson(h.fake, slug)).toBe(404)
+        expect(existsSync(join(h.mirrorRoot, `${slug}.git`))).toBe(false)
+      }
+      // Two retries each (attempts 1 and 2 of 3); the third attempt's failure is the answer.
+      const lines = retries(said)
+      expect(lines).toHaveLength(6)
+      expect(lines.filter((l) => l.includes('attempt 2 of 3'))).toHaveLength(3)
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  it('ONLY a creation is retried: the same answer to a later read or commit fails at once, and is not said as a retry', async () => {
+    const quirks: NonNullable<StartFakeOptions['quirks']> = {}
+    const h = await harness({ quirks }, FAST)
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      const { ref } = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(ref)
+      // Outside the creation, not found means gone or out of reach — never waited out.
+      quirks.notFoundAfterCreate = { fetch: 1 }
+      await expect(h.driver.headCommit(ref)).rejects.toMatchObject({
+        code: 'SOURCE_GIT_FAILED',
+        message: expect.stringContaining('Repository not found'),
+      })
+      expect(await h.driver.headCommit(ref)).toBe(head) // the one refusal is spent
+      quirks.notFoundAfterCreate = { fetch: 1, push: 1 }
+      const change = {
+        base: head,
+        changes: [{ op: 'write' as const, path: 'b.txt', content: 'b\n' }],
+        message: 'b',
+        author: AUTHOR,
+      }
+      await expect(h.driver.commit(ref, change)).rejects.toMatchObject({
+        code: 'SOURCE_GIT_FAILED',
+        message: expect.stringContaining('Repository not found'),
+      })
+      expect((await h.driver.commit(ref, change)).commitSha).toMatch(/^[0-9a-f]{40}$/)
+      expect(retries(said)).toEqual([])
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
+  /**
+   * A REFUSAL WITH A VERDICT IS A VERDICT: a line for `main` — `[remote rejected]`, GH006, GH013 —
+   * is GitHub deciding, not GitHub not yet knowing the repository, and is never tried again. The
+   * fake's own hook refuses only a rewrite or a deletion, which a first push is not, so the test
+   * puts a refusing `pre-receive` — the mechanism the fake's GH006 is made of — into the new
+   * repository the moment GitHub answers `201`; the line is real git's.
+   */
+  it('a seed push GitHub REFUSES with a line for main is not tried again — it fails at once, and is undone', async () => {
+    const h = await harness({}, FAST)
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      h.onCreated(async (name) => {
+        await writeFile(
+          join(
+            h.fake.dataDir,
+            h.fake.org.toLowerCase(),
+            `${name}.git`,
+            'hooks',
+            'pre-receive',
+          ),
+          '#!/bin/sh\necho "error: GH013: Repository rule violations found for refs/heads/main." >&2\nexit 1\n',
+          { mode: 0o755 },
+        )
+      })
+      expect(await codeOf(h.driver.createRepository('chem-labs', SEED))).toBe(
+        'SOURCE_GIT_FAILED',
+      )
+      const refused = said.mock.calls
+        .map((c) => c.map(String).join(' '))
+        .filter((l) => l.includes('refused Manifest'))
+      expect(refused).toHaveLength(1)
+      expect(refused[0]).toContain('[remote rejected]')
+      expect(retries(said)).toEqual([])
+      expect(await getAsPerson(h.fake, 'chem-labs')).toBe(404)
+      expect(existsSync(join(h.mirrorRoot, 'chem-labs.git'))).toBe(false)
+      // The positive control: the same driver, the hook gone, creates.
+      h.onCreated(undefined)
+      expect(await codeOf(h.driver.createRepository('bio-labs', SEED))).toBe('resolved')
     } finally {
       said.mockRestore()
       await h.cleanup()

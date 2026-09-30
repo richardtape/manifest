@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { startFake, type StartedFake } from './testing.js'
+import { startFake, type StartedFake, type StartFakeOptions } from './testing.js'
 
 // Git over HTTP, driven by the host's real git. **Tokens travel through `GIT_CONFIG_*` in
 // these tests too** — never an argument or a URL — because a test that puts a token in a
@@ -25,8 +25,11 @@ const IDENTITY = [
 describe('the fake serves git over HTTP with GitHub’s scope and permission rules', () => {
   let fake: StartedFake
   let work: string
+  /** Read by the fake at each request: a test sets one, and the next test starts with none. */
+  const quirks: NonNullable<StartFakeOptions['quirks']> = {}
   beforeEach(async () => {
-    fake = await startFake()
+    delete quirks.notFoundAfterCreate
+    fake = await startFake({ quirks })
     work = mkdtempSync(join(tmpdir(), 'github-fake-git-'))
   })
   afterEach(async () => {
@@ -191,5 +194,45 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
     expect(
       (await git(['ls-remote', remote('app'), 'main'], { token: t })).stdout,
     ).toContain(sha)
+  })
+
+  /**
+   * FE-41 (the launch path plan's Task 6a, measured on real GitHub 2026-09-29): a repository GitHub
+   * created seconds before was answered NOT FOUND over git for 2–4 s. The test-only quirk answers a
+   * new repository's first requests the way GitHub did, and REAL git must then say what the driver
+   * matches — GitHub's `Repository not found.` relayed as `remote:` and git's own
+   * `fatal: repository '…' not found` — or, when only a push's SECOND request is refused, exit 1
+   * with `Done` and no line for the ref, which is lp-starter-g's answer from real GitHub.
+   */
+  it('notFoundAfterCreate: a new repository’s first git requests are answered Repository not found, as GitHub did in FE-41 — and then served', async () => {
+    quirks.notFoundAfterCreate = { push: 1, pushPack: 1, fetch: 1 }
+    await createRepo('app')
+    const sha = await localCommit('src', 'hello\n')
+    const t = await token({ repositories: ['app'], permissions: { contents: 'write' } })
+    const push = () =>
+      git(['push', '--porcelain', remote('app'), 'main'], {
+        cwd: join(work, 'src'),
+        token: t,
+      })
+    const notFound = await push()
+    expect(notFound.code).toBe(128)
+    expect(notFound.stderr).toContain('remote: Repository not found.')
+    expect(notFound.stderr).toContain(`fatal: repository '${remote('app')}/' not found`)
+    // The advertisement answered, the pack refused: no line for the ref at all.
+    expect(await push()).toMatchObject({ code: 1, stdout: 'Done\n' })
+    const landed = await push()
+    expect(landed.code).toBe(0)
+    expect(landed.stdout).toMatch(/^\*\t\S+:refs\/heads\/main\t\[new branch\]$/m)
+
+    const ls = () => git(['ls-remote', remote('app')], { token: t })
+    const unseen = await ls()
+    expect(unseen.code).toBe(128)
+    expect(unseen.stderr).toContain('remote: Repository not found.')
+    expect(unseen.stderr).toContain(`fatal: repository '${remote('app')}/' not found`)
+    expect((await ls()).stdout).toContain(`${sha}\trefs/heads/main`)
+    // Read at each request: raised mid-run, it refuses the NEXT one — then serves again.
+    quirks.notFoundAfterCreate.fetch = 2
+    expect((await ls()).code).toBe(128)
+    expect((await ls()).stdout).toContain(`${sha}\trefs/heads/main`)
   })
 })
