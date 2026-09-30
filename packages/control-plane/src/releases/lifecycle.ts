@@ -17,7 +17,12 @@ import {
   withProjectLock,
   type Db,
 } from '../db/index.js'
-import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import {
+  makeRedactor,
+  publishEvent,
+  type EventBus,
+  type StreamRegistry,
+} from '../observability/index.js'
 import {
   personName,
   ProjectStateError,
@@ -42,6 +47,11 @@ import { retireInstanceRow } from './retire.js'
 export interface LifecycleDeps {
   db: Db
   bus: EventBus
+  /**
+   * The open event streams (FE-33, the launch path plan's Task 5): an archive closes its revoked
+   * tokens' `4401`, and a delete every stream on the project `4404`.
+   */
+  streams: StreamRegistry
   driver: Driver
   /** Ends agent sessions (`endSessionsOf`); `undefined` with AI switched off. */
   llm: LiteLlmClient | undefined
@@ -101,7 +111,11 @@ const STEP: Record<TeardownStep, (t: Teardown) => Promise<unknown>> = {
   'end-agent-sessions': (t) =>
     endSessionsOf(t.deps, { projectId: t.projectId }, 'project_archived', t.by),
 
-  'revoke-tokens': (t) => revokeTokensOf(t.deps.db, t.projectId),
+  // On the pool, so the revoke has committed when its streams close (FE-33). Normally none: the
+  // archive's own transaction revoked them, and closed theirs, before the first step.
+  'revoke-tokens': async (t) => {
+    t.deps.streams.closeTokens(await revokeTokensOf(t.deps.db, t.projectId))
+  },
 
   'expire-pending-actions': (t) =>
     expirePendingActions(t.deps.db, EVERY_QUESTION, { projectId: t.projectId }),
@@ -408,7 +422,7 @@ async function switchOffUnderLock(
   // three are the database's alone, so no failure after this — the gateway's included — can leave
   // an archived project with a live token that a restore would revive. The steps below revoke and
   // expire again, idempotently, for a boot finishing an archive.
-  await deps.db.transaction(async (tx) => {
+  const revoked = await deps.db.transaction(async (tx) => {
     await tx
       .update(projects)
       .set({
@@ -417,9 +431,14 @@ async function switchOffUnderLock(
         archivedBy: actor.userId,
       })
       .where(and(eq(projects.id, projectId), eq(projects.state, 'active')))
-    await revokeTokensOf(tx, projectId)
+    const ids = await revokeTokensOf(tx, projectId)
     await expirePendingActions(tx, EVERY_QUESTION, { projectId })
+    return ids
   })
+  // THEIR STREAMS, `4401`, ONCE THE TRANSACTION HAS COMMITTED (FE-33) — never inside it, where a close
+  // would announce a revoke that could still roll back. A member's session stream stays open:
+  // `project:read` is allowed on an archived project, so a person may still watch it.
+  deps.streams.closeTokens(revoked)
   await runTeardown(deps, { projectId, by }, { deleteData: false })
   return by
 }
@@ -686,6 +705,10 @@ export async function deleteProject(
       .set({ state: 'deleted', deletedAt: sql`now()` })
       .where(eq(projects.id, input.projectId))
       .returning({ deletedAt: projects.deletedAt })
+    // EVERY STREAM STILL OPEN ON IT, `4404`, once the tombstone has committed (FE-33) — a member's,
+    // which the switch-off left open because an archived project may still be read. Its tokens'
+    // closed `4401` when the switch-off revoked them, at the moment each credential went.
+    deps.streams.closeProject(input.projectId)
     return { id: input.projectId, slug: project.slug, deletedAt: tombstone!.deletedAt! }
   })
 }

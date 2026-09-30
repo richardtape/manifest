@@ -47,7 +47,7 @@ A token acts as the person who minted it, on that project alone, with only the c
 
 **Four capabilities are never a token’s** — deploying to production (`release:promote`), reading a secret (`secret:read`), changing a quota (`quota:set`) and managing members (`members:manage`). A token that asks for one of those is answered `403 TOKEN_ACTION_PENDING` with a `pendingAction`: a question the person who minted it confirms or rejects in the console. A confirmation grants one retry of that identical request. *For an AI agent* has the loop.
 
-Every token has its own rate limit, fixed when it is minted: past it, a request is `429 RATE_LIMITED` with `Retry-After`. `listTokens` shows a project’s tokens — never their secrets — and `revokeToken` ends one at once. An expired or revoked token is `401 UNAUTHENTICATED`.
+Every token has its own rate limit, fixed when it is minted: past it, a request is `429 RATE_LIMITED` with `Retry-After`. `listTokens` shows a project’s tokens — never their secrets — and `revokeToken` ends one at once. An expired or revoked token is `401 UNAUTHENTICATED`, and an event stream it holds open closes `4401` the moment it is revoked or expires.
 
 ## A Node client on the laptop
 

@@ -21,7 +21,11 @@ import { loadBlueprints } from '../blueprints/index.js'
 import { loadConfig } from '../config.js'
 import { appSpecs, db, events, projects, secrets, users } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
-import { createEventBus, type EventBus } from '../observability/index.js'
+import {
+  createEventBus,
+  createStreamRegistry,
+  type EventBus,
+} from '../observability/index.js'
 import { checkSlug, createProject, recordRepository } from '../projects/index.js'
 import { sessionActor, testAudience, testReservedLabels } from '../projects/testing.js'
 import type { Driver } from '../runtime/index.js'
@@ -279,6 +283,8 @@ describeDocker('delete against the real platform (Task 12)', () => {
     deleteDeps = {
       db,
       bus,
+      // No socket is open in this tier: the route's tests hold the streams (`api/events.test.ts`).
+      streams: createStreamRegistry(),
       driver,
       llm,
       sso,

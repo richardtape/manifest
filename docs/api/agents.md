@@ -113,7 +113,7 @@ export async function waitForAPerson(
 
 ## When something goes wrong
 
-- `401 UNAUTHENTICATED` — your token expired or was revoked — or the person switched the app off, which revokes every token of it. Ask the person for a new one; if they switched the app off, it has to be brought back first.
+- `401 UNAUTHENTICATED` — your token expired or was revoked — or the person switched the app off, which revokes every token of it. Ask the person for a new one; if they switched the app off, it has to be brought back first. The event stream you hold closes `4401` at the same moment, for the same reasons.
 - `403 FORBIDDEN` — your token does not hold the capability. Ask for one that does; do not look for another route.
 - `404 NOT_FOUND` — the id is wrong, or the resource is another project’s. A token sees one project.
 - `429 RATE_LIMITED` — wait the seconds `Retry-After` gives, then retry. Your token’s limit was fixed when it was minted.

@@ -30,6 +30,7 @@ const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
     'project:delete',
   ]),
   rateLimit: 60,
+  expiresAt: Date.now() + 86_400_000,
   ...overrides,
 })
 

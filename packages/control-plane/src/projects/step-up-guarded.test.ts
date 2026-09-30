@@ -47,6 +47,7 @@ function tokenActor(grant?: PrivilegedCapability): Actor {
     projectId: 'b1f0c0de-0000-4000-8000-000000000003',
     capabilities: new Set(['project:read']),
     rateLimit: 60,
+    expiresAt: NOW + 86_400_000,
     // `grant` is only ever a `Capability`; `secret:read` is not one, which is why the
     // cast is here and not in the signature.
     ...(grant === undefined ? {} : { grant: grant as 'members:manage' }),

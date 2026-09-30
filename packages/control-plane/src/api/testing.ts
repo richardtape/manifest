@@ -36,7 +36,12 @@ import {
   type SpKeypair,
 } from '../sso/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
-import { createEventBus, makeRedactor, publishEvent } from '../observability/index.js'
+import {
+  createEventBus,
+  createStreamRegistry,
+  makeRedactor,
+  publishEvent,
+} from '../observability/index.js'
 import { createPrivateKey, randomUUID } from 'node:crypto'
 import { chmod, mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -813,6 +818,8 @@ export async function testDeps(): Promise<ServerDeps> {
     catalogue: declaredCatalogue(),
     // The REAL bus, one per server: a test subscribes to exactly what its routes publish.
     bus,
+    // The REAL registry, one per server (FE-33): a test's revoke closes exactly its own streams.
+    streams: createStreamRegistry(),
     /**
      * A REAL RETIRER (P4c Task 8), not a stub. A stub would let a deploy that never
      * schedules a retire pass every API test, and the schedule is half of what this

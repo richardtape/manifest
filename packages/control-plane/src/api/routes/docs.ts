@@ -1,5 +1,6 @@
 import { z } from 'zod/v4'
 import { DOC_SLUG, DOC_SLUG_MAX } from '../../docs/index.js'
+import { CONTRACT_VERSION } from '../contract/document.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { DocNotFoundError } from '../errors.js'
 import {
@@ -104,7 +105,8 @@ export const docRoutes = [
     examples: {
       response: {
         openapi: '3.1.0',
-        info: { title: 'Manifest', version: '1.4.0' },
+        // The constant, not a copy of it: a restated version drifts (Task 4's review).
+        info: { title: 'Manifest', version: CONTRACT_VERSION },
         paths: {},
       },
     },

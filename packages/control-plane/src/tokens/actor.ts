@@ -43,11 +43,7 @@ export async function tokenActor(
   if (found === undefined) return undefined
   const row = found.token
   if (!secretMatches(parsed.secret, row.tokenHash)) return undefined
-  if (row.revokedAt !== null) return undefined
-  if (row.expiresAt.getTime() <= now) return undefined
-  // §11: a token of a project that is not active is no credential at all — the same one answer,
-  // so an agent learns nothing it could not learn from a revoked token (Task 11, Decision 27).
-  if (found.projectState !== 'active') return undefined
+  if (!stillACredential(found, now)) return undefined
 
   // AWAITED, not fire-and-forget: an unawaited promise is a floating promise ESLint
   // refuses, and a write that outlives the request can land after the test that reset the
@@ -67,7 +63,41 @@ export async function tokenActor(
     // time the list changes.
     capabilities: new Set(row.capabilities as Capability[]),
     rateLimit: row.rateLimit,
+    // What the event stream closes `4401` at (the launch path plan's Task 5, FE-33).
+    expiresAt: row.expiresAt.getTime(),
   }
+}
+
+/**
+ * THE THREE WAYS A TOKEN WHOSE SECRET MATCHES IS STILL NO CREDENTIAL — the one statement of them, read
+ * by `tokenActor` above and by `tokenStillACredential` below.
+ */
+function stillACredential(
+  found: { token: { revokedAt: Date | null; expiresAt: Date }; projectState: string },
+  now: number,
+): boolean {
+  if (found.token.revokedAt !== null) return false
+  if (found.token.expiresAt.getTime() <= now) return false
+  // §11: a token of a project that is not active is no credential at all — the same one answer,
+  // so an agent learns nothing it could not learn from a revoked token (Task 11, Decision 27).
+  return found.projectState === 'active'
+}
+
+/**
+ * Whether a token that authenticated a moment ago IS STILL a credential, read again by id — for the
+ * event stream (the launch path plan's Task 5, FE-33), its only caller. The credential hook reads the
+ * token BEFORE the stream registers; a revoke that commits in between closes nothing, because nothing
+ * is registered yet. So the stream registers first and then asks this: a revoke that committed before
+ * the read is seen here, and one after it finds the stream registered. One indexed read per token
+ * stream's upgrade, and no `last_used_at` stamp — the hook's own read already made that.
+ */
+export async function tokenStillACredential(
+  db: Db,
+  tokenId: string,
+  now: number = Date.now(),
+): Promise<boolean> {
+  const found = await tokenForAuthentication(db, tokenId)
+  return found !== undefined && stillACredential(found, now)
 }
 
 /**

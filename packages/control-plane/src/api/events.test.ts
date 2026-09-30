@@ -3,16 +3,22 @@ import type { AddressInfo } from 'node:net'
 import pg from 'pg'
 import WebSocket from 'ws'
 import type { FastifyInstance } from 'fastify'
-import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { and, asc, eq } from 'drizzle-orm'
+import { fakeLiteLlm } from '../ai/testing.js'
 import { events } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
-import { SESSION_COOKIE } from '../identity/index.js'
-import type { TestUserPuid } from '../identity/testing.js'
+import { SESSION_COOKIE, SESSION_TTL_MS } from '../identity/index.js'
+import {
+  ensureTestUser,
+  testSessionCookies,
+  type TestUserPuid,
+} from '../identity/testing.js'
 import { eventFrame, recordEvent, type StreamFrame } from '../observability/index.js'
 import { EXAMPLE_DETAILS } from '../observability/testing.js'
-import { buildServer } from './server.js'
-import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
+import { mintTestToken } from '../tokens/testing.js'
+import { buildServer, type ServerDeps } from './server.js'
+import { loginAs, mutationHeaders, projectBody, refusal, testDeps } from './testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -34,8 +40,11 @@ afterEach(async () => {
  * A LISTENING server, because `app.inject` cannot perform a WebSocket upgrade — which
  * is the whole reason the route has an HTTP half.
  */
-async function streamServer() {
-  const deps = await testDeps()
+async function streamServer(
+  /** Laid over `testDeps()`'s — `{ llm: fakeLiteLlm() }` for a test that starts an agent session. */
+  overrides: Partial<ServerDeps> = {},
+) {
+  const deps = { ...(await testDeps()), ...overrides }
   const app = await buildServer(deps)
   opened.apps.push(app)
   const owner = await loginAs(deps, 'bio_prof')
@@ -63,17 +72,35 @@ async function streamServer() {
    * sends on every handshake (P5a Task 4); `null` sends none at all.
    */
   const connect = async (
-    puid: TestUserPuid | 'anonymous',
+    /**
+     * A person by PUID, a session cookie already made (one close to its expiry), or a delegated
+     * token's plaintext (the launch path plan's Task 5).
+     */
+    who:
+      | TestUserPuid
+      | 'anonymous'
+      | { cookies: Record<string, string> }
+      | { bearer: string },
     id = projectId,
     origin: string | null = deps.config.sp.origin,
     /** The `Host` the handshake ARRIVES on (the front-end enablement plan's Task 8). */
     host?: string,
   ) => {
+    const bearer = typeof who === 'object' && 'bearer' in who ? who.bearer : undefined
+    const cookie =
+      typeof who === 'object'
+        ? 'cookies' in who
+          ? who.cookies[SESSION_COOKIE]
+          : undefined
+        : who === 'anonymous'
+          ? undefined
+          : (await loginAs(deps, who))[SESSION_COOKIE]
     const headers = {
-      ...(puid === 'anonymous'
-        ? {}
-        : { cookie: `${SESSION_COOKIE}=${(await loginAs(deps, puid))[SESSION_COOKIE]}` }),
-      ...(origin === null ? {} : { origin }),
+      ...(cookie === undefined ? {} : { cookie: `${SESSION_COOKIE}=${cookie}` }),
+      ...(bearer === undefined ? {} : { authorization: `Bearer ${bearer}` }),
+      // A TOKEN SENDS NO ORIGIN, as `packages/contract`'s `subscribe` sends none for one: §20's
+      // origin check is for a credential a browser sends by itself.
+      ...(origin === null || bearer !== undefined ? {} : { origin }),
       ...(host === undefined ? {} : { host }),
     }
     const socket = new WebSocket(urlFor(id), { headers })
@@ -95,9 +122,14 @@ function recorder(socket: WebSocket) {
 }
 
 // Shorter than Vitest's 5 s test timeout, so a wait that fails names what it waited for.
-async function waitUntil(condition: () => boolean, what: string, timeoutMs = 3_000) {
+async function waitUntil(
+  // A database read too (Task 5's window test), so a promise is awaited rather than read as truthy.
+  condition: () => boolean | Promise<boolean>,
+  what: string,
+  timeoutMs = 3_000,
+) {
   const deadline = Date.now() + timeoutMs
-  while (!condition()) {
+  while (!(await condition())) {
     if (Date.now() > deadline)
       throw new Error(`timed out after ${timeoutMs} ms waiting for ${what}`)
     await new Promise((resolve) => setTimeout(resolve, 10))
@@ -409,5 +441,322 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
     expect(deps.bus.listenerCount(projectId)).toBe(1)
     socket.close()
     await waitUntil(() => deps.bus.listenerCount(projectId) === 0, 'the unsubscribe')
+  })
+})
+
+/**
+ * How the server closed a stream that was OPEN — its code, its reason, and when — or a named
+ * timeout. Listen BEFORE the action that should close it: a close already seen is never seen again.
+ */
+function closeOf(socket: WebSocket, timeoutMs = 3_000) {
+  return new Promise<{ code: number; reason: string; at: number }>((resolve, reject) => {
+    const timer = setTimeout(
+      () =>
+        reject(new Error(`the server did not close the stream within ${timeoutMs} ms`)),
+      timeoutMs,
+    )
+    socket.on('close', (code, reason) => {
+      clearTimeout(timer)
+      resolve({ code, reason: String(reason), at: Date.now() })
+    })
+  })
+}
+
+const eventTypesOf = (frames: StreamFrame[]) =>
+  frames.flatMap((f) => (f.kind === 'event' ? [f.type] : []))
+
+/**
+ * FE-33 (the launch path plan's Task 5): a stream whose credential is gone is CLOSED, at the moment
+ * it goes. Task 1 measured a revoked token's socket open 30 s later and still hearing
+ * `project.renamed` — the credential gone, the project still heard. `4401` for a revoked, expired or
+ * archived credential; `4404` for a deleted project.
+ */
+describe('a stream whose credential is gone is closed, at the moment it goes (FE-33)', () => {
+  type Server = Awaited<ReturnType<typeof streamServer>>
+
+  /** A token of the project's owner, on it, and its stream — open, and past its replay. */
+  async function tokenStream(
+    server: Server,
+    options: { capabilities?: string[]; expiresAt?: Date } = {},
+  ) {
+    const owner = await ensureTestUser(server.deps.db, 'bio_prof')
+    const token = await mintTestToken(server.deps.db, {
+      userId: owner.id,
+      projectId: server.projectId,
+      capabilities: options.capabilities ?? ['project:read'],
+      ...(options.expiresAt === undefined ? {} : { expiresAt: options.expiresAt }),
+    })
+    const socket = await server.connect({ bearer: token.plaintext })
+    const frames = recorder(socket)
+    await waitUntil(() => frames.some(isReady), 'the token stream’s ready frame')
+    return { token, socket, frames }
+  }
+
+  /** The owner's own session stream — open, and past its replay. */
+  async function sessionStream(server: Server) {
+    const socket = await server.connect('bio_prof')
+    const frames = recorder(socket)
+    await waitUntil(() => frames.some(isReady), 'the session stream’s ready frame')
+    return { socket, frames }
+  }
+
+  const revoke = (server: Server, tokenId: string) =>
+    server.app.inject({
+      method: 'DELETE',
+      url: `/v1/tokens/${tokenId}`,
+      cookies: server.owner,
+      headers: mutationHeaders(server.deps),
+    })
+
+  /** `updateProject`, which publishes `project.renamed` — what Task 1 measured a revoked stream hear. */
+  async function rename(server: Server, name: string) {
+    const res = await server.app.inject({
+      method: 'PATCH',
+      url: `/v1/projects/${server.projectId}`,
+      payload: { name },
+      cookies: server.owner,
+      headers: mutationHeaders(server.deps),
+    })
+    expect(res.statusCode, res.body).toBe(200)
+  }
+
+  it('a revoked token’s open stream closes 4401, and hears nothing after the revoke', async () => {
+    const server = await streamServer()
+    const { token, socket, frames } = await tokenStream(server)
+    const closed = closeOf(socket)
+    const res = await revoke(server, token.row.id)
+    expect(res.statusCode, res.body).toBe(200)
+    expect(await closed).toMatchObject({
+      code: 4401,
+      reason: expect.stringContaining('revoked'),
+    })
+    await rename(server, 'Renamed after the revoke')
+    expect(eventTypesOf(frames)).not.toContain('project.renamed')
+    // UNSUBSCRIBED, and UNREGISTERED: nothing of the stream is left for a later revoke to find.
+    expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
+    expect(server.deps.streams.closeToken(token.row.id)).toBe(0)
+  })
+
+  it('a second token’s stream on the same project stays open — closing is per token', async () => {
+    const server = await streamServer()
+    const revoked = await tokenStream(server)
+    const kept = await tokenStream(server)
+    const closed = closeOf(revoked.socket)
+    expect((await revoke(server, revoked.token.row.id)).statusCode).toBe(200)
+    expect((await closed).code).toBe(4401)
+    // THE POSITIVE CONTROL for the test above: the same rename, heard by the stream still open.
+    await rename(server, 'Renamed while the second token watches')
+    await waitUntil(
+      () => eventTypesOf(kept.frames).includes('project.renamed'),
+      'project.renamed on the second token’s stream',
+    )
+    expect(kept.socket.readyState).toBe(WebSocket.OPEN)
+    expect(eventTypesOf(revoked.frames)).not.toContain('project.renamed')
+    expect(server.deps.bus.listenerCount(server.projectId)).toBe(1)
+  })
+
+  it('a session stream stays open when a token on the project is revoked', async () => {
+    const server = await streamServer()
+    const session = await sessionStream(server)
+    const { token, socket } = await tokenStream(server)
+    const closed = closeOf(socket)
+    expect((await revoke(server, token.row.id)).statusCode).toBe(200)
+    expect((await closed).code).toBe(4401)
+    await rename(server, 'Renamed while the owner watches')
+    await waitUntil(
+      () => eventTypesOf(session.frames).includes('project.renamed'),
+      'project.renamed on the session stream',
+    )
+    expect(session.socket.readyState).toBe(WebSocket.OPEN)
+  })
+
+  it('an expired token’s stream closes 4401 at its expiry', async () => {
+    // A REAL timer, not a fake one: the route arms it from the token's own `expires_at`.
+    const server = await streamServer()
+    const expiresAt = new Date(Date.now() + 1_500)
+    const { socket } = await tokenStream(server, { expiresAt })
+    const closed = await closeOf(socket, 3_000)
+    expect(closed).toMatchObject({
+      code: 4401,
+      reason: expect.stringContaining('expired'),
+    })
+    // AT its expiry, not before: a timer armed at nought closes at once, which this refuses.
+    expect(closed.at).toBeGreaterThanOrEqual(expiresAt.getTime())
+  }, 10_000)
+
+  it('a session’s stream closes 4401 when the session expires — a session is armed too', async () => {
+    // A Phase 1 session cannot be revoked (§20), so its expiry is the bound this stream can enforce.
+    const server = await streamServer()
+    const owner = await ensureTestUser(server.deps.db, 'bio_prof')
+    const expiresAt = Date.now() + 1_500
+    const cookies = testSessionCookies(
+      owner,
+      server.deps.config.sessionSecret,
+      expiresAt - SESSION_TTL_MS,
+    )
+    const socket = await server.connect({ cookies })
+    const frames = recorder(socket)
+    await waitUntil(() => frames.some(isReady), 'the ready frame')
+    const closed = await closeOf(socket, 3_000)
+    expect(closed).toMatchObject({
+      code: 4401,
+      reason: expect.stringContaining('expired'),
+    })
+    expect(closed.at).toBeGreaterThanOrEqual(expiresAt)
+  }, 10_000)
+
+  it('a revoked token’s stream closes even when ending its sessions fails', async () => {
+    // Ending an agent session needs the model gateway; closing a stream does not — so the close comes
+    // FIRST, and a gateway outage never leaves a revoked token listening.
+    const lite = fakeLiteLlm()
+    const server = await streamServer({ llm: lite })
+    const { token, socket } = await tokenStream(server, {
+      capabilities: ['project:read', 'agent:session'],
+    })
+    const started = await server.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${server.projectId}/agent-sessions`,
+      payload: { name: 'Build the bulletin board' },
+      headers: {
+        authorization: `Bearer ${token.plaintext}`,
+        'idempotency-key': randomUUID(),
+      },
+    })
+    expect(started.statusCode, started.body).toBe(201)
+    const closed = closeOf(socket)
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    let res: Awaited<ReturnType<typeof revoke>>
+    try {
+      // The control plane restarted with AI off while the session's key is still live.
+      server.deps.llm = undefined
+      res = await revoke(server, token.row.id)
+    } finally {
+      server.deps.llm = lite
+      logged.mockRestore()
+    }
+    expect(refusal(res)).toEqual({ status: 503, code: 'AI_CATALOGUE_DISABLED' })
+    expect(await closed).toMatchObject({
+      code: 4401,
+      reason: expect.stringContaining('revoked'),
+    })
+  })
+
+  it('a token revoked after its upgrade authenticated, and before its stream registered, is closed 4401 by the stream’s own second read', async () => {
+    // THE WINDOW (the controller's ruling): the credential hook reads the token, then the stream
+    // registers. A revoke that commits in between calls `closeToken` on NOTHING — so the stream
+    // reads the token again once it is registered. Made deterministic: a second connection holds
+    // the token's row with the revoke written and not committed, so the hook's read sees it live
+    // and its `last_used_at` stamp waits on the row; the revoke commits while it waits. No
+    // `closeToken` is called here at all — the one the route would call found nothing registered.
+    const server = await streamServer()
+    const owner = await ensureTestUser(server.deps.db, 'bio_prof')
+    const token = await mintTestToken(server.deps.db, {
+      userId: owner.id,
+      projectId: server.projectId,
+      capabilities: ['project:read'],
+    })
+    const admin = new pg.Pool({
+      connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL,
+    })
+    const lock = await admin.connect()
+    try {
+      await lock.query('BEGIN')
+      await lock.query('UPDATE delegated_tokens SET revoked_at = now() WHERE id = $1', [
+        token.row.id,
+      ])
+      const socket = await server.connect({ bearer: token.plaintext })
+      const frames = recorder(socket)
+      const outcome = closeOf(socket, 5_000)
+      await waitUntil(async () => {
+        const { rows } = await admin.query<{ waiting: string }>(
+          `SELECT count(*) AS waiting FROM pg_stat_activity
+            WHERE wait_event_type = 'Lock' AND query ILIKE '%delegated_tokens%'`,
+        )
+        return Number(rows[0]!.waiting) > 0
+      }, 'the hook’s last_used_at stamp waiting on the token’s row')
+      await lock.query('COMMIT')
+      expect(await outcome).toMatchObject({ code: 4401 })
+      // Never subscribed: it was closed before its replay, and heard nothing of the project.
+      expect(frames).toEqual([])
+      expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
+      expect(server.deps.streams.closeToken(token.row.id)).toBe(0)
+    } finally {
+      await lock.query('ROLLBACK')
+      lock.release()
+      await admin.end()
+    }
+  }, 15_000)
+
+  it('archiving closes the streams of the tokens it revoked, 4401, and leaves a member’s session stream open', async () => {
+    // `project:read` is allowed on an archived project (§11, Decision 27): a person may still watch
+    // it. Closing their stream would be a second, unstated rule.
+    const server = await streamServer()
+    const session = await sessionStream(server)
+    const { socket, frames } = await tokenStream(server)
+    const closed = closeOf(socket)
+    const archived = await server.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${server.projectId}/archive`,
+      cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
+      headers: mutationHeaders(server.deps),
+      payload: {},
+    })
+    expect(archived.statusCode, archived.body).toBe(200)
+    expect(await closed).toMatchObject({
+      code: 4401,
+      reason: expect.stringContaining('revoked'),
+    })
+    // The member's stream hears the archive end — it is open, and live — and the token's never did:
+    // it was closed when the revoke committed, before the teardown that ends in `project.archived`.
+    await waitUntil(
+      () => eventTypesOf(session.frames).includes('project.archived'),
+      'project.archived on the member’s session stream',
+    )
+    expect(session.socket.readyState).toBe(WebSocket.OPEN)
+    expect(eventTypesOf(frames)).not.toContain('project.archived')
+    expect(server.deps.bus.listenerCount(server.projectId)).toBe(1)
+  }, 15_000)
+
+  it('deleting a project closes every stream on it: a session’s 4404 at the tombstone, a token’s 4401 when the switch-off revoked it', async () => {
+    const server = await streamServer()
+    const session = await sessionStream(server)
+    const token = await tokenStream(server)
+    const sessionClosed = closeOf(session.socket, 10_000)
+    const tokenClosed = closeOf(token.socket, 10_000)
+    const deleted = await server.app.inject({
+      method: 'DELETE',
+      url: `/v1/projects/${server.projectId}`,
+      cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
+      headers: mutationHeaders(server.deps),
+    })
+    expect(deleted.statusCode, deleted.body).toBe(200)
+    expect(await sessionClosed).toMatchObject({ code: 4404 })
+    expect(await tokenClosed).toMatchObject({
+      code: 4401,
+      reason: expect.stringContaining('revoked'),
+    })
+    // The session's stream heard the delete itself before it closed: closed AFTER the tombstone's
+    // event, not before it.
+    expect(eventTypesOf(session.frames)).toContain('project.deleted')
+    expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
+    expect(server.deps.streams.closeProject(server.projectId)).toBe(0)
+  }, 15_000)
+
+  it('closing the server unregisters every stream it holds — nothing is left for the next test', async () => {
+    // An entry left registered keeps its expiry timer, and the timer keeps the socket's closure.
+    const server = await streamServer()
+    const session = await sessionStream(server)
+    const { token } = await tokenStream(server)
+    opened.apps.splice(opened.apps.indexOf(server.app), 1)
+    await server.app.close()
+    // Unregistered by the close itself, whether or not each socket's own `close` has fired yet.
+    expect(server.deps.streams.closeToken(token.row.id)).toBe(0)
+    expect(server.deps.streams.closeProject(server.projectId)).toBe(0)
+    expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
+    // And the sockets were closed, not merely forgotten.
+    await waitUntil(
+      () => session.socket.readyState === WebSocket.CLOSED,
+      'the session stream closed by the server’s close',
+    )
   })
 })

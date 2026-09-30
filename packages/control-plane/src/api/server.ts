@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import cookie from '@fastify/cookie'
 import websocket from '@fastify/websocket'
-import type { EventBus } from '../observability/index.js'
+import type { EventBus, StreamRegistry } from '../observability/index.js'
 import { registerEventRoutes } from './routes/events.js'
 import Fastify, {
   type FastifyInstance,
@@ -121,6 +121,12 @@ export interface ServerDeps {
    * socket meet on the same instance.
    */
   bus: EventBus
+  /**
+   * FE-33 (the launch path plan's Task 5): every open event stream, with the credential it was
+   * opened with — so a revoke, an archive, an expiry and a delete close the streams that credential
+   * held, at the moment it goes. ONE per process, built at boot beside the bus, for the bus's reason.
+   */
+  streams: StreamRegistry
   /**
    * THE CONTROL PLANE'S FIRST BACKGROUND WORK (P4c Task 7): what drains and removes
    * the instances a deploy replaced. ONE per process, like the bus, and built at boot

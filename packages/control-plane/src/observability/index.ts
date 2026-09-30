@@ -57,3 +57,11 @@ export {
   type Incident,
   type IncidentSource,
 } from './incidents.js'
+export {
+  CLOSE_CREDENTIAL_GONE,
+  CLOSE_NOT_FOUND,
+  createStreamRegistry,
+  type StreamCloseCode,
+  type StreamEntry,
+  type StreamRegistry,
+} from './streams.js'

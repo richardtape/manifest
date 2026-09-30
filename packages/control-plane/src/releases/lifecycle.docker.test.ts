@@ -22,7 +22,7 @@ import { loadBlueprints } from '../blueprints/index.js'
 import { loadConfig } from '../config.js'
 import { appSpecs, db, users } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
-import { createEventBus } from '../observability/index.js'
+import { createEventBus, createStreamRegistry } from '../observability/index.js'
 import { createProject } from '../projects/index.js'
 import { sessionActor, testAudience, testReservedLabels } from '../projects/testing.js'
 import { createCaddyClient, removeRoute } from '../routing/index.js'
@@ -276,6 +276,8 @@ describeDocker('archive and restore against the real platform (Task 11)', () => 
     lifecycle = {
       db,
       bus,
+      // No socket is open in this tier: the route's tests hold the streams (`api/events.test.ts`).
+      streams: createStreamRegistry(),
       driver,
       llm,
       sso,

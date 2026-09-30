@@ -28,7 +28,7 @@ import { expirePendingActions } from './tokens/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSpFor } from './identity/index.js'
-import { createEventBus } from './observability/index.js'
+import { createEventBus, createStreamRegistry } from './observability/index.js'
 import { NullReviewer } from './launch/index.js'
 import {
   capableModelAtBoot,
@@ -232,6 +232,9 @@ const idpPool = createIdpPool(config.idpDatabaseUrl)
 // by design; a second control-plane process would need Postgres LISTEN/NOTIFY, and
 // `createEventBus` is the seam.
 const bus = createEventBus()
+// FE-33's registry (the launch path plan's Task 5), beside the bus and for its reason: ONE for this
+// process, so the stream that registers and the revoke, archive or delete that closes it meet on it.
+const streams = createStreamRegistry()
 
 const sso = createSsoRegistrar(
   idpPool,
@@ -367,6 +370,7 @@ const app = await buildServer({
   // The same bus the registrar above publishes to, and `WS /v1/projects/:projectId/events`
   // subscribes to.
   bus,
+  streams,
   retirer,
   builds,
   sourceSync,
@@ -412,6 +416,9 @@ const recovery = await recoverAtBoot({
     finishTeardowns({
       db,
       bus,
+      // Nothing is listening before `listen` below; carried because the archive's steps close what
+      // they revoke, whichever run gets there.
+      streams,
       driver,
       llm,
       sso,

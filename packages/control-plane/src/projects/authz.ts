@@ -345,6 +345,12 @@ export interface TokenActor {
   /** §20's per-token limit, off the row. Task 9 is its only reader. */
   rateLimit: number
   /**
+   * When the token stops being accepted — its row's `expires_at`, in epoch ms: the SAME unit as
+   * `SessionActor.expiresAt`, so `Actor['expiresAt']` is one type (the launch path plan's Task 5,
+   * FE-33). The event stream closes `4401` at it, as it does at a session's.
+   */
+  expiresAt: number
+  /**
    * Set by the route wrapper, from a `confirmed` PendingAction whose fingerprint matches
    * THIS request (Task 7, Decision 6). Absent on every ordinary request, and nothing but
    * that wrapper can produce it. It is the single-use permission a human granted.

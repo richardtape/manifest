@@ -282,7 +282,7 @@ export const tokenRoutes = [
     tag: 'tokens',
     summary: 'Revoke a delegated token',
     description:
-      'Stops the token authenticating, from the next request onwards, and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.',
+      'Stops the token authenticating, from the next request onwards, closes every event stream it holds open (`4401`), and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.',
     params: TokenParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -322,6 +322,11 @@ export const tokenRoutes = [
         throw new AuthorizationError('NOT_FOUND', `no token '${params.tokenId}'`)
       }
       await revokeToken(deps.db, params.tokenId, actor.userId)
+      // EVERY EVENT STREAM IT HOLDS OPEN, `4401` (the launch path plan's Task 5, FE-33) — after the
+      // revoke has committed, and BEFORE the sessions below: ending a session needs the model gateway
+      // and can answer `503`, closing a stream needs nothing, and an outage must never leave a revoked
+      // token listening. On a retry it finds nothing left to close.
+      deps.streams.closeToken(params.tokenId)
       // THEN EVERY AGENT SESSION IT STARTED (the front-end enablement plan's Task 10, Decision 25):
       // a model key never outlives the credential that asked for it. REACHED ON A RETRY TOO — the
       // token is already revoked then, and this is how the sessions a failed first attempt could

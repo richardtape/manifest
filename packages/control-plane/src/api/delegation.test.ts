@@ -410,6 +410,7 @@ describe('D24’s central refusal', () => {
         projectId: ctx.projectId,
         capabilities: new Set(['quota:set'] as const),
         rateLimit: 60,
+        expiresAt: Date.now() + 86_400_000,
       }
       await expect(
         assertCapability(ctx.db, actor, ctx.projectId, 'quota:set'),
