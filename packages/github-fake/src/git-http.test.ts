@@ -29,6 +29,7 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
   const quirks: NonNullable<StartFakeOptions['quirks']> = {}
   beforeEach(async () => {
     delete quirks.notFoundAfterCreate
+    delete quirks.protocolV2
     fake = await startFake({ quirks })
     work = mkdtempSync(join(tmpdir(), 'github-fake-git-'))
   })
@@ -252,5 +253,38 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
     quirks.notFoundAfterCreate.fetch = 2
     expect((await ls()).code).toBe(128)
     expect((await ls()).stdout).toContain(`${sha}\trefs/heads/main`)
+  })
+
+  /**
+   * PROTOCOL V2, AS GITHUB SPEAKS IT (FE-41's fix round 2): the fake speaks v0 unless this test-only
+   * quirk passes git's `Git-Protocol` through, as `git http-backend` does. Under v2 a fetch's FIRST
+   * POST is `ls-refs`, and GitHub's 404 there reached git as `fatal: expected flush after ref
+   * listing` (lp-starter-m, measured on github.com 2026-09-29) — where v0 says the remote hung up.
+   */
+  it('protocolV2: a fetch speaks v2, and its ls-refs refused is git’s `expected flush after ref listing`, as on github.com — then served', async () => {
+    quirks.protocolV2 = true
+    quirks.notFoundAfterCreate = { fetchPack: 1 }
+    await createRepo('app')
+    const sha = await localCommit('src', 'hello\n')
+    const t = await token({ repositories: ['app'], permissions: { contents: 'write' } })
+    const pushed = await git(['push', '-q', remote('app'), 'main'], {
+      cwd: join(work, 'src'),
+      token: t,
+    })
+    expect(pushed.code).toBe(0)
+    const into = join(work, 'into.git')
+    expect((await git(['init', '-q', '--bare', '-b', 'main', into])).code).toBe(0)
+    const fetch = () =>
+      git(['fetch', '--porcelain', remote('app'), 'refs/heads/*:refs/heads/*'], {
+        cwd: into,
+        token: t,
+      })
+    const unlisted = await fetch()
+    expect(unlisted.code).toBe(128)
+    expect(unlisted.stderr).toContain('error: RPC failed; HTTP 404')
+    expect(unlisted.stderr).toContain('fatal: expected flush after ref listing')
+    const served = await fetch()
+    expect(served.code).toBe(0)
+    expect(served.stdout).toContain(`${sha} refs/heads/main`)
   })
 })

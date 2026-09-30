@@ -91,12 +91,15 @@ interface RetryBudget {
  * GitHub's own answer to a repository it cannot find, as git prints it — its `Repository not
  * found.` relayed as `remote:`, and git's `fatal: repository '<url>' not found` (both measured on
  * real GitHub in FE-41, and reproduced with real git against the fake's `notFoundAfterCreate`) —
- * and the SECOND LEG (FE-41's fix round): the advertisement answered and the next request 404'd,
- * which git reports as `error: RPC failed; HTTP 404 …` and `fatal: the remote end hung up
- * unexpectedly` (a fetch exits 128 with it; lp-starter-g's push, measured on real GitHub, exited 1).
+ * and the SECOND LEG (FE-41's fix rounds): the advertisement answered and a later request 404'd,
+ * which git reports as `error: RPC failed; HTTP 404 …` — keyed on THAT ALONE, because what git says
+ * next depends on the request that was refused: `fatal: expected flush after ref listing` for
+ * protocol v2's `ls-refs` (measured on github.com 2026-09-29, lp-starter-m), `fatal: the remote end
+ * hung up unexpectedly` for v0's pack (the fake), `fatal: expected 'packfile'` for v2's `fetch`
+ * (measured against a v2 server). A push's second leg exits 1 with `Done` (lp-starter-g).
  */
 const NOT_FOUND =
-  /remote: Repository not found|fatal: repository '[^']*' not found|error: RPC failed; HTTP 404\b.*fatal: the remote end hung up unexpectedly/i
+  /remote: Repository not found|fatal: repository '[^']*' not found|error: RPC failed; HTTP 404\b/i
 
 /** §7's slug rule, re-stated as driver 1 does: the traversal defence depends on no other module. */
 const SLUG = /^[a-z][a-z0-9-]{2,38}$/

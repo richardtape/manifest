@@ -58,6 +58,11 @@ export interface GitContext {
    * the request is known to be a valid one of `service`, before its permissions.
    */
   notYetFound?(route: GitRoute, service: 'git-upload-pack' | 'git-receive-pack'): boolean
+  /**
+   * TEST-ONLY (the `protocolV2` quirk; FE-41's fix round 2): a fetch whose client asks for protocol
+   * v2 is served v2, as GitHub serves it. Without it the fake speaks v0 to everyone.
+   */
+  protocolV2?: boolean
 }
 
 const pkt = (s: string) => (s.length + 4).toString(16).padStart(4, '0') + s
@@ -72,12 +77,16 @@ function plain(
   res.end(text)
 }
 
-/** git's environment: no system config, no global config, nothing of the caller's. */
-function gitEnv(): NodeJS.ProcessEnv {
+/**
+ * git's environment: no system config, no global config, nothing of the caller's — and, under the
+ * `protocolV2` quirk, `GIT_PROTOCOL=version=2`, the one value it ever has (never the header's text).
+ */
+function gitEnv(v2 = false): NodeJS.ProcessEnv {
   return {
     PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin',
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_CONFIG_GLOBAL: '/dev/null',
+    ...(v2 ? { GIT_PROTOCOL: 'version=2' } : {}),
   }
 }
 
@@ -131,15 +140,23 @@ export function serveGit(
     )
   }
 
+  // PROTOCOL V2 for a fetch, under the test-only quirk alone (FE-41's fix round 2), as GitHub and
+  // `git http-backend` speak it: `GIT_PROTOCOL=version=2` when the client's `Git-Protocol` asks for
+  // it, and no `# service=` header before v2's capabilities. A fetch is then three requests — the
+  // advertisement, `ls-refs`, `fetch` — where v0's is two. A push stays v0: git has no v2 push.
+  const v2 =
+    ctx.protocolV2 === true &&
+    service === 'git-upload-pack' &&
+    /(^|:)version=2(:|$)/.test(String(req.headers['git-protocol'] ?? ''))
   const verb = service.slice(4)
   if (route.op === 'info/refs') {
     res.writeHead(200, {
       'content-type': `application/x-${service}-advertisement`,
       'cache-control': 'no-cache',
     })
-    res.write(pkt(`# service=${service}\n`) + '0000')
+    if (!v2) res.write(pkt(`# service=${service}\n`) + '0000')
     const p = spawn('git', [verb, '--stateless-rpc', '--advertise-refs', found.dir], {
-      env: gitEnv(),
+      env: gitEnv(v2),
     })
     wire(p, res, `${verb} --advertise-refs`)
     p.stdout.pipe(res)
@@ -154,7 +171,7 @@ export function serveGit(
     'content-type': `application/x-${service}-result`,
     'cache-control': 'no-cache',
   })
-  const p = spawn('git', [verb, '--stateless-rpc', found.dir], { env: gitEnv() })
+  const p = spawn('git', [verb, '--stateless-rpc', found.dir], { env: gitEnv(v2) })
   wire(p, res, verb)
   bodyOf(req).pipe(p.stdin)
   p.stdout.pipe(res)

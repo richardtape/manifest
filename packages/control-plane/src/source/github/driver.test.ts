@@ -1173,6 +1173,35 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
     }
   })
 
+  /**
+   * THE SECOND LEG IN GITHUB'S OWN WORDS (FE-41's fix round 2): git speaks protocol v2 to GitHub, so
+   * a fetch's first POST is `ls-refs`, and GitHub's 404 there reached git as `fatal: expected flush
+   * after ref listing` — measured on github.com 2026-09-29 (lp-starter-m, a 409 before this) — not
+   * the v0 "hung up" above. So the retry keys on `RPC failed; HTTP 404` alone, whatever follows it.
+   */
+  it('a first fetch whose ls-refs GitHub answers 404 — `expected flush after ref listing`, as on github.com (lp-starter-m) — is tried again', async () => {
+    const h = await harness(
+      { quirks: { protocolV2: true, notFoundAfterCreate: { fetchPack: 1 } } },
+      FAST,
+    )
+    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await h.driver.createRepository('chem-labs', SEED)
+      expect(await upstreamMain(h, 'chem-labs')).toBe(
+        await lsRemoteMain(h.fake, 'chem-labs'),
+      )
+      const lines = retries(said)
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain('the first fetch')
+      expect(lines[0]).toContain(
+        'error: RPC failed; HTTP 404 curl 22 The requested URL returned error: 404 | fatal: expected flush after ref listing',
+      )
+    } finally {
+      said.mockRestore()
+      await h.cleanup()
+    }
+  })
+
   it('past the bound it fails as it always did — SOURCE_GIT_FAILED — and leaves nothing on GitHub or here', async () => {
     const quirks: NonNullable<StartFakeOptions['quirks']> = {
       notFoundAfterCreate: { push: 99 },

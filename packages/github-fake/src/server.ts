@@ -98,6 +98,13 @@ export interface FakeQuirks {
     fetch?: number
     fetchPack?: number
   }
+  /**
+   * A fetch is served git's PROTOCOL V2 when its client asks — as GitHub serves it — where the fake
+   * otherwise speaks v0 (FE-41's fix round 2). Under v2 a fetch's first POST is `ls-refs`, so
+   * `fetchPack` refuses THAT, and git says `fatal: expected flush after ref listing`: GitHub's own
+   * second-leg 404 in git's words, measured on github.com 2026-09-29 (lp-starter-m).
+   */
+  protocolV2?: boolean
 }
 
 /** The App's permissions — exactly what `Manifest (local dev)` is registered with. */
@@ -709,6 +716,7 @@ export function createFakeServer(config: FakeConfig): FakeServer {
       serveGit(req, res, url, route, {
         grant,
         authorizationPresent: req.headers.authorization !== undefined,
+        protocolV2: config.quirks?.protocolV2 === true,
         resolve: (r, g) => {
           const repo = repoOf(r.repo)
           if (!sameOrg(r.org) || repo === undefined || !canSee(g, repo.name))
