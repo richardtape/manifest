@@ -50,11 +50,15 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * and two `OutputError` codes. This bump covers every additive change that plan makes, once,
  * because nothing is published between its tasks.
  *
+ * **`1.5.0` SINCE THE LAUNCH PATH PLAN'S TASK 4 (2026-09-29)**, as that plan predicted: `Instance.createdAt`
+ * (FE-38) is first, and Task 5's close code `4401` and every later additive change that plan makes ride
+ * on this one bump, once, because nothing is published between its tasks.
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.4.0'
+export const CONTRACT_VERSION = '1.5.0'
 
 type JsonSchema = Record<string, unknown>
 

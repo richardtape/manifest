@@ -315,6 +315,13 @@ export const instances = pgTable(
     state: instanceState('state').notNull().default('pending'),
     handle: text('handle'),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+    /**
+     * WHEN THE DEPLOY MADE IT (FE-38, the launch path plan's Task 4). `lastSeenAt` orders the list
+     * and is null before an instance starts, so it cannot say how old an instance is; this can, and
+     * is never null. Rows from before the column were backfilled from their release's
+     * `created_at` — the earliest the instance could have been made.
+     */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('instances_environment_idx').on(t.environmentId)],
 )

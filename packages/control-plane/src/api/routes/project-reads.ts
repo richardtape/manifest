@@ -307,6 +307,7 @@ export const projectReadRoutes = [
           kind: 'web',
           state: 'healthy',
           lastSeenAt: '2026-09-26T21:51:54.793Z',
+          createdAt: '2026-09-26T21:51:54.741Z',
         },
       },
     },

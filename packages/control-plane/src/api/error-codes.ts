@@ -558,8 +558,8 @@ export const ERROR_CODES = {
     'Check the path against `getTree` at the same commit; paths are case-sensitive.',
   ),
   SOURCE_PROVIDER_MISMATCH: source(
-    'The project’s repository was made by a different source driver from the one this control plane runs; the message names both.',
-    'Use a control plane running the project’s own driver: a project stays with the driver that created its repository.',
+    'The project’s repository was not made by the source driver this control plane runs: either a different driver made it (driver 1’s local repository, or driver 2’s GitHub one), or the same GitHub driver made it against another GitHub — the fake or the real App, told apart by the API host recorded when the repository was made; the message names both the driver or host that made it and the one running.',
+    'Use a control plane running the project’s own driver, and for driver 2 the same GitHub (`MANIFEST_GITHUB_API_URL`): a project stays with the driver, and the GitHub, that created its repository.',
   ),
   SOURCE_REF_NOT_FOUND: source(
     'No branch has that name.',

@@ -41,6 +41,7 @@ const EXAMPLE_LIST: z.input<typeof InstanceList> = {
       kind: 'web',
       state: 'failed',
       lastSeenAt: '2026-09-27T16:34:54.739Z',
+      createdAt: '2026-09-27T16:34:54.702Z',
       serving: false,
     },
     {
@@ -50,6 +51,7 @@ const EXAMPLE_LIST: z.input<typeof InstanceList> = {
       kind: 'web',
       state: 'healthy',
       lastSeenAt: '2026-09-27T16:34:54.691Z',
+      createdAt: '2026-09-27T16:34:54.655Z',
       serving: true,
     },
   ],

@@ -22,7 +22,10 @@ export const Instance = representation(
           'Where it is in its life (§11): `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.',
         ),
       lastSeenAt: Timestamp.nullable().describe(
-        'When the platform last saw it running; null before it started.',
+        'When the platform last saw it running; null before it started. The list is ordered by this, so it says nothing of how old an instance is (`createdAt`).',
+      ),
+      createdAt: Timestamp.describe(
+        'When the deploy made it — never null, and fixed for the instance’s life. Unlike `lastSeenAt` it is set for an instance that never started, so a newer attempt is always newer, whatever order the list is in. An instance from before the platform recorded this reads as old as its release.',
       ),
     })
     .describe(
@@ -39,6 +42,7 @@ export function toInstance(row: typeof instances.$inferSelect): z.input<typeof I
     kind: row.kind,
     state: row.state,
     lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
   }
 }
 

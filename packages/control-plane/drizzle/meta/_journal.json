@@ -288,6 +288,13 @@
       "when": 1790721689169,
       "tag": "0040_keen_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790735632758,
+      "tag": "0041_broad_power_man",
+      "breakpoints": true
     }
   ]
 }

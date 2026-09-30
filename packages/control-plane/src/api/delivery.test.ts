@@ -976,6 +976,7 @@ describe('releases, deploys and incidents answer representations (P5a Task 14)',
     })
     expect(res.statusCode, res.body).toBe(200)
     expect(Object.keys(res.json()).sort()).toEqual([
+      'createdAt',
       'environmentId',
       'id',
       'kind',

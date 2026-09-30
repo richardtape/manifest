@@ -4242,8 +4242,13 @@ export interface components {
              * @enum {string}
              */
             state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
-            /** @description When the platform last saw it running; null before it started. */
+            /** @description When the platform last saw it running; null before it started. The list is ordered by this, so it says nothing of how old an instance is (`createdAt`). */
             lastSeenAt: string | null;
+            /**
+             * Format: date-time
+             * @description When the deploy made it — never null, and fixed for the instance’s life. Unlike `lastSeenAt` it is set for an instance that never started, so a newer attempt is always newer, whatever order the list is in. An instance from before the platform recorded this reads as old as its release.
+             */
+            createdAt: string;
         };
         /** @description An environment’s instances (§11), newest first. */
         InstanceList: {
@@ -4333,8 +4338,13 @@ export interface components {
              * @enum {string}
              */
             state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
-            /** @description When the platform last saw it running; null before it started. */
+            /** @description When the platform last saw it running; null before it started. The list is ordered by this, so it says nothing of how old an instance is (`createdAt`). */
             lastSeenAt: string | null;
+            /**
+             * Format: date-time
+             * @description When the deploy made it — never null, and fixed for the instance’s life. Unlike `lastSeenAt` it is set for an instance that never started, so a newer attempt is always newer, whatever order the list is in. An instance from before the platform recorded this reads as old as its release.
+             */
+            createdAt: string;
             /** @description Whether the environment’s hostname reaches this instance now. At most one instance of an environment serves, and a failed one never does. */
             serving: boolean;
         };
@@ -5972,7 +5982,8 @@ export interface operations {
                      *         "releaseId": "8e4d08ba-37d8-4b96-8981-e6a13722e42f",
                      *         "kind": "web",
                      *         "state": "healthy",
-                     *         "lastSeenAt": "2026-09-26T21:51:54.793Z"
+                     *         "lastSeenAt": "2026-09-26T21:51:54.793Z",
+                     *         "createdAt": "2026-09-26T21:51:54.741Z"
                      *       }
                      *     }
                      */
@@ -6027,7 +6038,8 @@ export interface operations {
                      *       "releaseId": "87155b5c-f7d8-4519-9042-cc5fa8e2d352",
                      *       "kind": "web",
                      *       "state": "healthy",
-                     *       "lastSeenAt": "2026-09-26T21:47:31.749Z"
+                     *       "lastSeenAt": "2026-09-26T21:47:31.749Z",
+                     *       "createdAt": "2026-09-26T21:47:31.702Z"
                      *     }
                      */
                     "application/json": components["schemas"]["Instance"];
@@ -6123,6 +6135,7 @@ export interface operations {
                      *           "kind": "web",
                      *           "state": "failed",
                      *           "lastSeenAt": "2026-09-27T16:34:54.739Z",
+                     *           "createdAt": "2026-09-27T16:34:54.702Z",
                      *           "serving": false
                      *         },
                      *         {
@@ -6132,6 +6145,7 @@ export interface operations {
                      *           "kind": "web",
                      *           "state": "healthy",
                      *           "lastSeenAt": "2026-09-27T16:34:54.691Z",
+                     *           "createdAt": "2026-09-27T16:34:54.655Z",
                      *           "serving": true
                      *         }
                      *       ],

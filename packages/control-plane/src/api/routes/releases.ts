@@ -1041,6 +1041,7 @@ export const releaseRoutes = [
         kind: 'web',
         state: 'healthy',
         lastSeenAt: '2026-09-26T21:47:31.749Z',
+        createdAt: '2026-09-26T21:47:31.702Z',
       },
     },
     handler: async ({ deps, actor, params, body }) => {

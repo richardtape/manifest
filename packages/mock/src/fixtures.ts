@@ -108,6 +108,8 @@ export const INSTANCE: Schemas['Instance'] = {
   kind: 'web',
   state: 'healthy',
   lastSeenAt: ISO,
+  // FE-38: when the deploy made it — never null, so unlike `lastSeenAt` a failed attempt has one too.
+  createdAt: '2026-09-18T08:59:00.000Z',
 }
 
 /**
@@ -163,6 +165,7 @@ export const INSTANCE_LISTS: Record<string, Schemas['InstanceList']> = {
         id: SANDBOX_FAILED_INSTANCE_ID,
         state: 'failed',
         lastSeenAt: '2026-09-18T08:40:00.000Z',
+        createdAt: '2026-09-18T08:39:00.000Z',
         serving: false,
       },
     ],

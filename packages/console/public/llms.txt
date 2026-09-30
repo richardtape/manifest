@@ -23,7 +23,7 @@ Each page below is served by the API as Markdown at `GET /v1/docs/{slug}` (any c
 - [Error codes](/v1/docs/reference-errors): Every code the API answers in its error envelope, with the status it always comes with, what it means and what to do next — and every code a `SPEC_INVALID` answer lists in `details`, one per problem in manifest.yaml.
 - [Event types](/v1/docs/reference-events): Every event the project’s stream carries, in the order the platform defines them: what each says happened, and an example of its `machineDetail`.
 - [manifest.yaml](/v1/docs/reference-manifest-yaml): Every field an app’s manifest.yaml may declare, as a table: its path, its type, whether it is required, its default, and what it means.
-- [Operations](/v1/docs/reference-operations): Every operation of Manifest’s API, version 1.4.0, grouped by what it is about: its method and path, who may call it, its parameters, an example of what it sends and answers, and every error code it can answer with what to do about each.
+- [Operations](/v1/docs/reference-operations): Every operation of Manifest’s API, version 1.5.0, grouped by what it is about: its method and path, who may call it, its parameters, an example of what it sends and answers, and every error code it can answer with what to do about each.
 
 ## The document
 

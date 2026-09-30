@@ -64,6 +64,7 @@ async function instanceRow(
     state: (typeof instances.$inferInsert)['state']
     handle: string | null
     lastSeenAt?: Date
+    createdAt?: Date
   },
 ) {
   const [row] = await ctx.db
@@ -136,6 +137,47 @@ describe('listInstances — an environment’s instances (Task 3)', () => {
       expect(body.instances).toEqual([
         expect.objectContaining({ id: failed.id, serving: false }),
       ])
+    })
+  })
+
+  // FE-38 (the launch path plan's Task 4). The ORDER is by `lastSeenAt` and the AGE is `createdAt`:
+  // they answer different questions, so the test holds both. A DEPLOY cannot tell them apart —
+  // a failed deploy is stamped seen too (`release.ts`), so the newer attempt is also the one seen
+  // last — so the second instance is a row written directly: made later, never seen.
+  it('an instance says when it was made, and a newer one is newer whatever the list order', async () => {
+    await withProjectServer(async (ctx) => {
+      const before = Date.now()
+      const a = await deployToStaging(ctx)
+      const after = Date.now()
+      const [rowA] = await ctx.db.select().from(instances).where(eq(instances.id, a.id))
+      const b = await instanceRow(ctx, {
+        environmentId: ctx.stagingEnvironmentId,
+        releaseId: a.releaseId,
+        state: 'failed',
+        handle: null,
+        createdAt: new Date(rowA!.lastSeenAt!.getTime() + 60_000),
+      })
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/environments/${ctx.stagingEnvironmentId}/instances`,
+        cookies: ctx.ownerCookies,
+      })
+      expect(res.statusCode, res.body).toBe(200)
+      const list = (
+        res.json() as {
+          instances: { id: string; createdAt: string; lastSeenAt: string | null }[]
+        }
+      ).instances
+      // The PUBLISHED order is unchanged: the one seen most recently first, a never-seen one last.
+      expect(list.map((i) => i.id)).toEqual([a.id, b.id])
+      const listedA = list[0]!
+      const listedB = list[1]!
+      expect(listedB.lastSeenAt).toBeNull()
+      expect(Date.parse(listedB.createdAt)).toBeGreaterThan(Date.parse(listedA.createdAt))
+      // …and the time is when the DEPLOY made it, not a constant: inside the window the deploy ran in.
+      expect(Date.parse(listedA.createdAt)).toBeGreaterThanOrEqual(before - 2000)
+      expect(Date.parse(listedA.createdAt)).toBeLessThanOrEqual(after + 2000)
+      expect(listedB.createdAt).toBe(b.createdAt.toISOString())
     })
   })
 
