@@ -24,7 +24,7 @@ Your front-end is served at `app.<zone>` — `https://app.manifest.internal` on 
 `startAgentSession` gives your agent a model key for one project — its token must hold `agent:session` — **charged to the person the token acts for**: capped for the session (`capUsd`), inside that person’s monthly agent budget, short-lived (`durationMinutes`, never past the token that asks), and limited to the models the project’s data classification allows. **The key is in that answer and nowhere else.** Keep it in memory for the session; never store or log it. The key calls models and nothing else — it is not a Manifest credential.
 
 - **Read the model names from the session’s `models`, and never assume one.** `default-chat-large` is the capable model, for work a small model cannot do well, such as writing an app, and every call costs the person real money; it is listed wherever the platform offers one — on a `confidential` project too, while the platform lets the agent that BUILDS an app use it (its default), after the on-premise models. **It builds the app; it never becomes the app’s own AI**: a `confidential` app’s `ai.models` must name on-premise models, which validation enforces. `default-chat` is small, and answers offline. A name never changes when the platform moves it to another provider.
-- **When the capable model’s provider cannot answer**, the platform’s on-premise model answers in its place, at its own price. The answer carries the header `x-litellm-attempted-fallbacks: 1` and its `model` names the on-premise model: record which model answered, and do not rely on a smaller model’s work as though it were the capable one’s.
+- **When the capable model’s provider cannot be reached or fails** — a refused connection, a timeout, a rate limit or a server error — the platform’s on-premise model answers in its place, at its own price. The answer carries the header `x-litellm-attempted-fallbacks: 1` and its `model` names the on-premise model: record which model answered, and do not rely on a smaller model’s work as though it were the capable one’s. **A request the provider refuses as malformed is never answered that way**: it reaches your agent as the provider’s refusal — `400`, or `413` for a request too large, `error.type` `invalid_request_error`, no fallback header — to correct rather than send again unchanged. **A `200` whose body is `null` is a refusal as well**, the gateway’s answer to a request the provider could not process (`422`): never show it as an empty answer.
 - **Show the person what it costs, always.** `listAgentSessions` gives each session’s `spentUsd`, and `getAgentBudget` the month’s — *“$0.40 so far · $9.60 left this month”*. Either is `null` with a reason when the gateway cannot say, and never `0` for unknown. Spend lands a few seconds after a call.
 - **End the session when the work ends** (`endAgentSession`). It is also ended when the token that started it is revoked, when the project is switched off or deleted, and — `models_withdrawn` — when the project no longer allows a model it holds: a commit raised its classification, or a production deploy of a release classified higher did — a launch, or the pre-launch rehearsal (each ends it before it answers), or the platform, restarted, no longer lets a `confidential` project’s agent use the capable model. Each session says why. Its key then stops working for every model, so start a new session and show the person the new list. A key also stops working when it expires, whether or not anybody ended it (its `state` reads `expired`); a session that has spent its cap still reads `active`.
 - **Refusals.** `409 AGENT_BUDGET_EXHAUSTED` — the month is spent; say so, and say when it resets. `409 AGENT_SESSION_ALREADY_STARTED` — this `Idempotency-Key` already started a session, and its key is never shown again: end the session the refusal names and start another with a new key. `409 AGENT_NO_MODEL_FOR_CLASSIFICATION` — no model is approved for this project’s data. `503 AI_BACKEND_UNAVAILABLE` and `503 AI_CATALOGUE_DISABLED` — the gateway is not answering, or AI is switched off.
@@ -126,7 +126,9 @@ export async function startAModelSession(
 /**
  * Ask the model: an OpenAI-compatible request at the session's `baseUrl`, the key as a Bearer.
  * When the capable model's provider cannot answer, the platform's on-premise model answers in
- * its place — a smaller model's work, at its own price — and says so in a header.
+ * its place — a smaller model's work, at its own price — and says so in a header. A request the
+ * provider refused as malformed is never answered that way: it is the provider's refusal, to
+ * correct — and so is a `200` whose body is `null`.
  */
 export async function askTheModel(
   session: { baseUrl: string; key: string; model: string },
@@ -147,7 +149,9 @@ export async function askTheModel(
   const answer = (await response.json()) as {
     model: string
     choices: { message: { content: string } }[]
-  }
+  } | null
+  if (answer === null)
+    throw new Error('the model gateway refused the request: correct it')
   return {
     text: answer.choices[0]?.message.content ?? '',
     answeredBy: answer.model,

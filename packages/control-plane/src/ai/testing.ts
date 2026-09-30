@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { createServer as createHttpServer, type Server } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { parse } from 'yaml'
 import { createCatalogueCache, type ModelCatalogue } from './catalogue.js'
@@ -617,6 +618,107 @@ export function fakeLiteLlm(): FakeLiteLlm {
     deployments,
     price: (model, usd) => {
       prices.set(model, usd)
+    },
+  }
+}
+
+/** What `startStubProvider` answered, and how to stop it. */
+export interface StubProvider {
+  /** How many requests arrived on `path` — e.g. `/s400/v1/chat/completions`, `/ok/v1/chat/completions`. */
+  hits(path: string): number
+  close(): Promise<void>
+}
+
+/**
+ * AN OPENAI-SHAPED PROVIDER THAT ANSWERS WHAT IT IS TOLD (the launch path plan's Task 6, FE-34): Task 1's
+ * `t1-stub-provider.mjs` (`[M5]`) as a fixture. LiteLLM's container reaches it as
+ * `host.docker.internal:<port>`, so a deployment's `api_base` picks the answer by its path — optionally after
+ * one tag segment of the caller's (`/fallback/ok/v1`), so two deployments with the same answer count apart:
+ *
+ * - `/s<status>/v1` — that status, with an OpenAI-shaped error body. Its `type` is `invalid_request_error` for
+ *   every 4xx but 429 — as the probe's was — which LiteLLM 1.98.0 names `BadRequestError` WHATEVER the status
+ *   (measured at Task 6: 401, 403, 404, 408, 413 and 422 all), so a guard that read only the class name could
+ *   not tell a malformed request from a failed credential. That is the case the fallback guard must get right.
+ * - `/ok/v1` — a valid completion whose content is `ok`.
+ * - `/slow/v1` — a valid completion after 20 s, for a deployment's `timeout`.
+ *
+ * Bound to 127.0.0.1 (Docker Desktop's `host.docker.internal` reaches the host's loopback — measured at
+ * Task 1), on a port the caller names inside the platform's 7100–7199 block. It logs nothing: a test reads
+ * `hits`.
+ */
+export async function startStubProvider(port: number): Promise<StubProvider> {
+  const hits = new Map<string, number>()
+  const timers = new Set<NodeJS.Timeout>()
+  const completion = () => ({
+    id: 'chatcmpl-stub',
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: 'stub',
+    choices: [
+      { index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' },
+    ],
+    usage: { prompt_tokens: 5, completion_tokens: 1, total_tokens: 6 },
+  })
+  const server: Server = createHttpServer((req, res) => {
+    const path = (req.url ?? '').split('?')[0]!
+    hits.set(path, (hits.get(path) ?? 0) + 1)
+    const answer = (status: number, json: unknown) => {
+      res.writeHead(status, { 'content-type': 'application/json' })
+      res.end(JSON.stringify(json))
+    }
+    // Drained before answering: a provider that answers before reading the body is not what LiteLLM meets.
+    req.resume()
+    req.on('end', () => {
+      const m = /^\/(?:[a-z0-9-]+\/)?(s(\d{3})|ok|slow)\/v1\//.exec(path)
+      if (m === null) {
+        answer(404, {
+          error: { message: 'no such stub path', type: 'invalid_request_error' },
+        })
+        return
+      }
+      if (m[1] === 'ok') return answer(200, completion())
+      if (m[1] === 'slow') {
+        const timer = setTimeout(() => {
+          timers.delete(timer)
+          answer(200, completion())
+        }, 20_000)
+        timers.add(timer)
+        return
+      }
+      const status = Number(m[2])
+      const type =
+        status === 429
+          ? 'rate_limit_exceeded'
+          : status >= 500
+            ? 'server_error'
+            : 'invalid_request_error'
+      answer(status, {
+        error: {
+          message: `the stub refused this request with ${status}`,
+          type,
+          param: null,
+          code: `stub_${status}`,
+        },
+      })
+    })
+  })
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(port, '127.0.0.1', () => {
+      server.off('error', reject)
+      resolve()
+    })
+  })
+  return {
+    hits: (path) => hits.get(path) ?? 0,
+    close: async () => {
+      for (const timer of timers) clearTimeout(timer)
+      timers.clear()
+      // The slow path's socket would otherwise hold `close` open until LiteLLM gave up on it.
+      server.closeAllConnections()
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      )
     },
   }
 }

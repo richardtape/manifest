@@ -373,6 +373,22 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
     expect(await endTheSession(origin, TOKEN, started.sessionId)).toBe('ended')
   })
 
+  it('example-agent-session: a refusal is never read as an answer — the provider’s 400, and a 200 whose body is null', async () => {
+    const session = { key: fixtures.MOCK_MODEL_KEY, model: 'default-chat-large' }
+    const refused = { error: { type: 'invalid_request_error', code: '400' } }
+    await withStandIn([{ status: 400, body: refused }], async (gateway) => {
+      await expect(
+        askTheModel({ ...session, baseUrl: `${gateway}/v1` }, 'Say hello.'),
+      ).rejects.toThrow('the model gateway answered 400')
+    })
+    // The gateway's answer to a request the provider refused as unprocessable.
+    await withStandIn([{ status: 200, body: null }], async (gateway) => {
+      await expect(
+        askTheModel({ ...session, baseUrl: `${gateway}/v1` }, 'Say hello.'),
+      ).rejects.toThrow('the model gateway refused the request: correct it')
+    })
+  })
+
   it('example-agent-session: a spent month is said plainly and no key is asked for; unknown spend is never $0', async () => {
     await withMock({ agentBudget: 'exhausted' }, async (spent) => {
       expect(

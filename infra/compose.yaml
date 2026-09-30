@@ -239,6 +239,10 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./litellm/config.yaml:/app/config.yaml:ro
+      # FE-34's fallback guard (the launch path plan's Task 6), named by config.yaml's `callbacks`. BESIDE the
+      # config, in /app — LiteLLM resolves a callback module from the config file's directory. A single-file
+      # bind mount, like the config: edit in place, and a new mount needs `make up`.
+      - ./litellm/manifest_guard.py:/app/manifest_guard.py:ro
     ports:
       - "127.0.0.1:7106:4000"
     # NOT --detailed_debug: it writes full prompt text to stdout and hence into

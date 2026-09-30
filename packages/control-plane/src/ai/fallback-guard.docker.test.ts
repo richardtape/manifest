@@ -1,0 +1,333 @@
+import { randomUUID } from 'node:crypto'
+import { afterAll, beforeAll, expect, it } from 'vitest'
+import { describeDocker } from '../runtime/testing.js'
+import { CAPABLE_MODEL_NAME } from './capable.js'
+import { createLiteLlmClient, type LiteLlmClient } from './client.js'
+import { AiError } from './errors.js'
+import {
+  litellmMasterKey,
+  litellmUrl,
+  startStubProvider,
+  type StubProvider,
+} from './testing.js'
+
+/**
+ * FE-34 — THE CAPABLE MODEL'S FALLBACK ANSWERS A PROVIDER THAT FAILED, NEVER A REQUEST IT REFUSED (the launch
+ * path plan's Task 6, Branch G). §7, as Spec action 6 amended it: the on-premise model answers
+ * `default-chat-large` *"whenever its provider cannot be reached or fails — a refused connection, a timeout, a
+ * rate limit or a server error, the network off included — and never for a request the provider refused as
+ * malformed, which is answered as the provider's refusal so its caller can correct it."*
+ *
+ * Driven against the RUNNING LiteLLM, whose guard (`infra/litellm/manifest_guard.py`) is what is under test —
+ * without it, LiteLLM 1.98.0 falls back from EVERY provider error, `400` included (`[M5]`, F7). Each case is a
+ * probe primary the stub answers, with a `general` fallback to a stub deployment that answers `ok` — set PER
+ * MODEL through `/fallback`, exactly as `ai/capable.ts` sets the capable model's, never router-wide, so the
+ * platform's own `default-chat-large` fallback is never touched (asserted in `afterAll`). No Ollama, no network,
+ * no money: the stub is on the host, the refused connection is inside LiteLLM's own container.
+ *
+ * WHAT *MALFORMED* MEANS HERE (the controller's ruling 1 — the spec's words): the provider answered `400`, `413`
+ * or `422`. A `401`, `403` or `404` is the PLATFORM's credential, permission or model name failing, and falls
+ * back like `408`, `429`, every `5xx`, a timeout and a refused connection. The stub's bodies say
+ * `invalid_request_error` for every 4xx but 429, which LiteLLM names `BadRequestError` whatever the status
+ * (measured at Task 6) — so these cases also prove the guard follows the provider's STATUS, not the class name.
+ *
+ * Every primary is called ONCE per run under a name of its own: a `401` or `404` puts its deployment in
+ * LiteLLM's cooldown, and a second call is then answered `RouterRateLimitError` without reaching the provider
+ * (measured at Task 6).
+ */
+
+/** Inside the 7100–7199 block, and not one of `infra/lib/common.sh`'s assigned ports — `[M5]`'s own. */
+const STUB_PORT = 7199
+const STUB = `http://host.docker.internal:${STUB_PORT}`
+const RUN = randomUUID().slice(0, 8)
+const probe = (c: string): string => `probe-fg-${c}-${RUN}`
+
+const FALLBACK = probe('fallback')
+const FALLBACK_PATH = '/fallback/ok/v1/chat/completions'
+const USER = probe('user')
+const KEY_ALIAS = probe('key')
+
+/** The provider refused the request as malformed: answered as its refusal. */
+const REFUSED = [400, 413] as const
+/** The provider failed, or could not be reached: answered by the fallback. */
+const FAILED = [
+  '401',
+  '403',
+  '404',
+  '408',
+  '429',
+  '500',
+  '502',
+  '503',
+  'timeout',
+  'refused',
+]
+
+/** Each probe primary: where the stub answers it, and the stub path it arrives on (none for a refused connection). */
+const PRIMARIES: Record<string, { apiBase: string; path?: string }> = {
+  ok: { apiBase: `${STUB}/ok/v1`, path: '/ok/v1/chat/completions' },
+  timeout: { apiBase: `${STUB}/slow/v1`, path: '/slow/v1/chat/completions' },
+  // Nothing listens on port 9 inside LiteLLM's container — `capable.docker.test.ts`'s unreachable provider.
+  refused: { apiBase: 'http://127.0.0.1:9/v1' },
+  // F9's pair: sent AT ONCE, so each must be decided by its own failure and not the router's last one.
+  'pair-400': { apiBase: `${STUB}/pair/s400/v1`, path: '/pair/s400/v1/chat/completions' },
+  'pair-503': { apiBase: `${STUB}/pair/s503/v1`, path: '/pair/s503/v1/chat/completions' },
+}
+for (const s of [400, 401, 403, 404, 408, 413, 422, 429, 500, 502, 503]) {
+  PRIMARIES[String(s)] = {
+    apiBase: `${STUB}/s${s}/v1`,
+    path: `/s${s}/v1/chat/completions`,
+  }
+}
+
+interface Answer {
+  status: number
+  fellBack: string | null
+  group: string | null
+  text: string
+  body: {
+    choices?: { message?: { content?: unknown } }[]
+    error?: { type?: unknown; code?: unknown }
+  } | null
+  /** What drifted, readable in a failure: the status, the header and LiteLLM's `type` — never the message. */
+  seen: string
+}
+
+/** What the router answers `default-chat-large` with; `[]` for none, which 1.98.0 answers `404` (measured). */
+async function fallbackOf(client: LiteLlmClient, model: string): Promise<string[]> {
+  try {
+    const body = await client.get<{ fallback_models?: unknown }>(`/fallback/${model}`, {
+      fallback_type: 'general',
+    })
+    return Array.isArray(body.fallback_models) ? (body.fallback_models as string[]) : []
+  } catch (error) {
+    if (error instanceof AiError && error.status === 404) return []
+    throw error
+  }
+}
+
+describeDocker(
+  'the capable model’s fallback, by the provider’s error (FE-34, Task 6)',
+  () => {
+    const client = createLiteLlmClient({
+      baseUrl: litellmUrl(),
+      masterKey: litellmMasterKey(),
+    })
+    let stub: StubProvider | undefined
+    let key = ''
+    let capableBefore: string[] = []
+    const made = {
+      models: [] as string[],
+      fallbacks: [] as string[],
+      user: false,
+      key: false,
+    }
+
+    async function register(name: string, apiBase: string): Promise<void> {
+      await client.post('/model/new', {
+        model_name: name,
+        litellm_params: {
+          model: 'openai/stub',
+          api_base: apiBase,
+          api_key: 'probe-not-a-key',
+          // One attempt, so a status is never retried into a different answer; 5 s for the timeout case.
+          num_retries: 0,
+          timeout: 5,
+          input_cost_per_token: 1e-6,
+          output_cost_per_token: 1e-6,
+        },
+        model_info: { id: name },
+      })
+      made.models.push(name)
+    }
+
+    async function chat(model: string): Promise<Answer> {
+      const res = await fetch(`${litellmUrl()}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          max_tokens: 5,
+          messages: [{ role: 'user', content: 'Answer with the single word ok.' }],
+        }),
+      })
+      const text = await res.text()
+      let body: Answer['body'] = null
+      try {
+        body = JSON.parse(text) as Answer['body']
+      } catch {
+        body = null
+      }
+      const fellBack = res.headers.get('x-litellm-attempted-fallbacks')
+      return {
+        status: res.status,
+        fellBack,
+        group: res.headers.get('x-litellm-model-group'),
+        text,
+        body,
+        seen: `${res.status} attempted-fallbacks=${fellBack} type=${String(body?.error?.type ?? '(none)')} null-body=${text === 'null'}`,
+      }
+    }
+
+    beforeAll(async () => {
+      stub = await startStubProvider(STUB_PORT)
+      capableBefore = await fallbackOf(client, CAPABLE_MODEL_NAME)
+      await register(FALLBACK, `${STUB}/fallback/ok/v1`)
+      for (const [c, { apiBase }] of Object.entries(PRIMARIES)) {
+        await register(probe(c), apiBase)
+        await client.post('/fallback', {
+          model: probe(c),
+          fallback_models: [FALLBACK],
+          fallback_type: 'general',
+        })
+        made.fallbacks.push(probe(c))
+      }
+      await client.post('/user/new', {
+        user_id: USER,
+        max_budget: 1,
+        auto_create_key: false,
+      })
+      made.user = true
+      // ONLY the primaries: the gateway falls back without consulting a key's list of models (measured at the
+      // front-end enablement plan's sitting 9a), which is what makes the fallback the platform's to govern.
+      const generated = await client.post<{ key: string }>('/key/generate', {
+        user_id: USER,
+        key_alias: KEY_ALIAS,
+        models: Object.keys(PRIMARIES).map(probe),
+        allowed_routes: ['/v1/chat/completions'],
+        duration: '900s',
+        max_budget: 0.5,
+      })
+      made.key = true
+      key = generated.key
+    })
+
+    afterAll(async () => {
+      // EVERY step attempted whatever the one before it did, and every failure reported — never swallowed.
+      const failures: unknown[] = []
+      const attempt = async (
+        what: string,
+        step: () => Promise<unknown>,
+      ): Promise<void> => {
+        try {
+          await step()
+        } catch (error) {
+          console.error(`fallback-guard.docker.test: removing ${what} failed`)
+          failures.push(error)
+        }
+      }
+      for (const name of made.fallbacks) {
+        await attempt(`the fallback of ${name}`, () =>
+          client.delete(`/fallback/${name}`, { fallback_type: 'general' }),
+        )
+      }
+      for (const id of made.models) {
+        await attempt(`model ${id}`, () => client.post('/model/delete', { id }))
+      }
+      // Deleting the user deletes its keys (measured at sitting 9) — the key's own delete first, all the same.
+      if (made.key) {
+        await attempt('the probe key', () =>
+          client.post('/key/delete', { key_aliases: [KEY_ALIAS] }),
+        )
+      }
+      if (made.user) {
+        await attempt('the probe user', () =>
+          client.post('/user/delete', { user_ids: [USER] }),
+        )
+      }
+      if (stub !== undefined) await attempt('the stub provider', () => stub!.close())
+      if (failures.length > 0) {
+        throw new AggregateError(
+          failures,
+          'fallback-guard: the probe objects were not all removed',
+        )
+      }
+      // Nothing of this run is left, and the platform's own capable fallback is exactly as it was.
+      const left = await client.get<{ data: { model_name: string }[] }>('/model/info')
+      expect(left.data.map((d) => d.model_name).filter((n) => n.includes(RUN))).toEqual(
+        [],
+      )
+      expect(await fallbackOf(client, CAPABLE_MODEL_NAME)).toEqual(capableBefore)
+    })
+
+    it('a healthy provider answers itself — 200, no fallback attempted (the positive control)', async () => {
+      const before = stub!.hits(FALLBACK_PATH)
+      const r = await chat(probe('ok'))
+      expect(r.status, r.seen).toBe(200)
+      expect(r.fellBack, r.seen).toBe('0')
+      expect(r.group).toBe(probe('ok'))
+      expect(r.body?.choices?.[0]?.message?.content).toBe('ok')
+      expect(stub!.hits(PRIMARIES.ok!.path!)).toBe(1)
+      expect(stub!.hits(FALLBACK_PATH)).toBe(before)
+    })
+
+    it.each(REFUSED)(
+      '%i — the provider refused the request as malformed: answered as its refusal, never by the fallback',
+      async (status) => {
+        const before = stub!.hits(FALLBACK_PATH)
+        const r = await chat(probe(String(status)))
+        expect(r.status, r.seen).toBe(status)
+        // The provider's refusal, as LiteLLM answers it: its `type`, and the status as `code` (measured at
+        // Task 6). The message is NOT asserted — LiteLLM appends its fallback debug text to it (`[M5]`).
+        expect(r.body?.error?.type, r.seen).toBe('invalid_request_error')
+        expect(r.body?.error?.code, r.seen).toBe(String(status))
+        // Measured absent on a refusal; `0` would say the same thing.
+        expect([null, '0'], r.seen).toContain(r.fellBack)
+        expect(stub!.hits(`/s${status}/v1/chat/completions`)).toBe(1)
+        expect(stub!.hits(FALLBACK_PATH), 'the fallback was called').toBe(before)
+      },
+    )
+
+    /**
+     * KNOWN (F8): LITELLM 1.98.0 ANSWERS A PROVIDER'S 422 AS HTTP 200 WITH THE BODY `null` — measured at Task 1
+     * and again at Task 6, with the guard loaded and without it. With `drop_params: true` (config.yaml keeps it),
+     * its OpenAI provider answers a 422 by dropping params and retrying once (`llms/openai/openai.py`,
+     * `for _ in range(2)`); when the retry is refused too, the loop ends without returning, and the proxy answers
+     * the `None` it got. No exception is raised, so no fallback runs and the guard is never asked. The guides say
+     * a `200` whose body is `null` is a refusal, not an answer.
+     *
+     * THIS CASE ASSERTS THE DEFECT, so that a LiteLLM which fixes it turns it red: then it becomes the refusal case
+     * above with `422`, and this comment goes.
+     */
+    it('KNOWN (F8): 422 — LiteLLM 1.98.0 answers 200 with a null body, and the fallback is never asked', async () => {
+      const before = stub!.hits(FALLBACK_PATH)
+      const r = await chat(probe('422'))
+      expect(r.status, r.seen).toBe(200)
+      expect(r.text, r.seen).toBe('null')
+      expect(r.fellBack, r.seen).toBeNull()
+      // The drop-params retry: the provider is asked twice.
+      expect(stub!.hits('/s422/v1/chat/completions')).toBe(2)
+      expect(stub!.hits(FALLBACK_PATH), 'the fallback was called').toBe(before)
+    })
+
+    it.each(FAILED)(
+      '%s — the provider failed or could not be reached: answered 200 by the fallback, attempted-fallbacks 1',
+      async (c) => {
+        const before = stub!.hits(FALLBACK_PATH)
+        const r = await chat(probe(c))
+        expect(r.status, r.seen).toBe(200)
+        expect(r.fellBack, r.seen).toBe('1')
+        expect(r.group).toBe(FALLBACK)
+        expect(r.body?.choices?.[0]?.message?.content).toBe('ok')
+        expect(stub!.hits(FALLBACK_PATH)).toBe(before + 1)
+        const { path } = PRIMARIES[c]!
+        if (path !== undefined)
+          expect(stub!.hits(path), 'the primary was not called').toBe(1)
+      },
+    )
+
+    it('a 400 and a 503 sent AT ONCE are each decided by their own failure, not the router’s last one (F9)', async () => {
+      const before = stub!.hits(FALLBACK_PATH)
+      const [refused, failed] = await Promise.all([
+        chat(probe('pair-400')),
+        chat(probe('pair-503')),
+      ])
+      expect(refused.status, refused.seen).toBe(400)
+      expect(refused.body?.error?.type, refused.seen).toBe('invalid_request_error')
+      expect([null, '0'], refused.seen).toContain(refused.fellBack)
+      expect(failed.status, failed.seen).toBe(200)
+      expect(failed.fellBack, failed.seen).toBe('1')
+      expect(stub!.hits(FALLBACK_PATH)).toBe(before + 1)
+    })
+  },
+)

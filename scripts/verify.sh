@@ -440,6 +440,22 @@ litellm_logical_names_only() {
 }
 check "only logical model names are exposed (§7)"  litellm_logical_names_only
 
+# FE-34's FALLBACK GUARD (the launch path plan's Task 6; §7 as Spec action 6 amended it), REGISTERED in the running
+# LiteLLM. Read from its callback lists rather than its startup line: `litellm.callbacks` is the list the fallback's
+# pre-call hook is dispatched from, and `litellm._async_failure_callback` the one that records each failure's
+# status — a module imported but not registered would print its startup line and guard nothing. Without it, a
+# request the provider refused as malformed is answered by the on-premise model (LiteLLM 1.98.0 falls back from
+# every error — Task 1's [M5]). fallback-guard.docker.test.ts is the behaviour; this is the configuration.
+litellm_fallback_guard_loaded() {
+  local out pre fail
+  out=$(curl -sS "http://127.0.0.1:$PORT_LITELLM/active/callbacks" -H "Authorization: Bearer $LITELLM_MASTER_KEY")
+  pre=$(echo "$out" | grep -o '"litellm.callbacks":\[[^]]*\]' | grep -c 'manifest_guard.ManifestFallbackGuard')
+  fail=$(echo "$out" | grep -o '"litellm._async_failure_callback":\[[^]]*\]' | grep -c 'manifest_guard.ManifestFallbackGuard')
+  echo "manifest_guard.ManifestFallbackGuard in litellm.callbacks: $pre, in litellm._async_failure_callback: $fail (want 1 and 1)"
+  [ "$pre" = "1" ] && [ "$fail" = "1" ]
+}
+check "LiteLLM runs the fallback guard — a malformed request is never answered by the fallback"  litellm_fallback_guard_loaded
+
 # THE CHECK THAT CATCHES A THINKING MODEL. A completion alone would pass; only a
 # STREAM with non-empty content proves the console will work (S3).
 litellm_streams_content() {

@@ -92,7 +92,9 @@ export async function startAModelSession(
 /**
  * Ask the model: an OpenAI-compatible request at the session's `baseUrl`, the key as a Bearer.
  * When the capable model's provider cannot answer, the platform's on-premise model answers in
- * its place — a smaller model's work, at its own price — and says so in a header.
+ * its place — a smaller model's work, at its own price — and says so in a header. A request the
+ * provider refused as malformed is never answered that way: it is the provider's refusal, to
+ * correct — and so is a `200` whose body is `null`.
  */
 export async function askTheModel(
   session: { baseUrl: string; key: string; model: string },
@@ -113,7 +115,9 @@ export async function askTheModel(
   const answer = (await response.json()) as {
     model: string
     choices: { message: { content: string } }[]
-  }
+  } | null
+  if (answer === null)
+    throw new Error('the model gateway refused the request: correct it')
   return {
     text: answer.choices[0]?.message.content ?? '',
     answeredBy: answer.model,

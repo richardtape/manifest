@@ -84,6 +84,12 @@ model_list:
 
 litellm_settings:
   drop_params: true
+  # THE FALLBACK GUARD (FE-34 — the launch path plan's Task 6; §7 as Spec action 6 amended it): a fallback answers
+  # a provider that failed or could not be reached, never a request the provider refused as malformed (400, 413,
+  # 422), which reaches its caller as the provider's refusal. manifest_guard.py, mounted beside this file by
+  # compose.yaml. Without this line LiteLLM 1.98.0 falls back from every error (Task 1's [M5]) — `make verify`'s
+  # guard check and fallback-guard.docker.test.ts go red.
+  callbacks: manifest_guard.proxy_handler_instance
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
