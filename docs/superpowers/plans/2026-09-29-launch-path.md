@@ -22,6 +22,11 @@
 > starter — so driver 2's create retries its seed push and first fetch (by status, ≤30 s, a fresh token each time); 5 of 5 on
 > github.com. Spec action 6 applied; FE-34's guard keeps §7's words in the gateway (`make verify` 62). *Sitting 4* is the record.
 
+> **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
+> small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
+> result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8, and are applied only once
+> he has read them. *After sitting 4a's close* is the record.
+
 > **WRITTEN 2026-09-29, AT RICH'S INSTRUCTION, FROM ORIENTATION §7e** (*"Yes: write the plan, then run its Task 1 (including the
 > real-GitHub run) in the same session"*). **Reviewed and APPROVED by Rich as written, thirteen sittings, 2026-09-29** (sitting 2's first message). Its sitting 1 — Task 1, the measurements and THE FIRST
 > RUN OF THE CONTROL PLANE AGAINST REAL GITHUB — runs in the same session, before his review, exactly as the front-end enablement
@@ -69,7 +74,9 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 **One sitting per session, with a check-in at each boundary.** This pattern has carried every plan since P4a. It means a session limit never lands in the middle of a task. This plan commits after every task: a stop *between* tasks is recoverable, a stop *inside* one is not.
 
 > **THIRTEEN SITTINGS — APPROVED BY RICH AS WRITTEN, 2026-09-29 (sitting 2's first message) — the thirteenth, 5a (Task 8a, FE-39),
-> added after sitting 1's close from the front-end's relay and confirmed by Rich the same evening.** The order puts the **measured, small and self-contained** work first,
+> added after sitting 1's close from the front-end's relay and confirmed by Rich the same evening; the fourteenth, 4a (Task 6b,
+> FE-42), after sitting 3's close; the fifteenth, 5b (Task 6c, Spec action 8's (b) and (c)), after sitting 4a's — Rich, 2026-09-30:
+> *"in its own small sitting after 5"*. 5b runs BEFORE 5a: the letter says what it was added after, not its place in the order.** The order puts the **measured, small and self-contained** work first,
 > so the suite is stable (F26) and real GitHub's fixes land before anything is built on driver 2 again. It then puts **the spec
 > actions as LATE as possible**: sittings 2–4 need none (Spec action 6, the fallback's words, before sitting 4 only if Task 1
 > finds a guard can be built), so Rich can decide Spec actions 1–2 before sitting 5, 3 before sitting 6, 4 before sitting 7 and
@@ -88,6 +95,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 4 | 6, 6a | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich. **And FE-41 (Task 6a, Rich's, after sitting 3's close): a project created WITH a starter on real GitHub — reproduced at his yes, logged, fixed on driver 2, held by a test** | **Yes** — `ai/`, `infra/`, `source/` | **Spec action 6** — ✅ **DECIDED by Rich: option (a)** (2026-09-29, after sitting 3's close: *"(a) is good"*); **APPLIED by sitting 4 before Task 6** (`0ebe514`); Task 6a needs none | **DONE 2026-09-29/30** — subagent-driven: **FE-41's premise false** (not the starter — real GitHub refuses a repository it made seconds ago, 403/404 in four measured shapes); driver 2's create retries its seed push and first fetch by STATUS, one ≤30 s budget, a fresh token per retry, and forgets a slug's stale tokens first; a failed create logged; on github.com 6 of 7 failed before, 5 of 5 after (2 retried). **Spec action 6 applied**; the **fallback guard** (`manifest_guard.py`) refuses a fallback after a provider's 400/413/422, read from the request's own logging object, lets 401/403/404/408/429/5xx fall back — streamed too; `make verify` 62. F8 (`422` → `200 null`) stands, LiteLLM's — for Rich |
 | 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich. **A TOKEN MAY NOT RUN IT — Rich's (a), PERSONS ONLY** (relayed by `manifest-73`, his session for 4a, 2026-09-29: owner, collaborators and administrators from an interactive session; a delegated token stays refused, SESSION_ONLY as today; one D24 clause is DRAFTED as a spec action for his later approval — it does not block 4a); **Spec action 8 drafted by 4a — its premise RE-ASKED** (the rehearsal leaves the unapproved candidate on production's public listener) | **DONE 2026-09-30** — subagent-driven: Step 1 read by the controller (no spec text names who triggers it — no stop); **`launch:rehearse`**, in `OWNER` (collaborator and administrator inherit it), person-only, not step-up; `runRehearsal`'s description says who may run it and drops `FORBIDDEN`; the owner still refused `launch:record`; contract `1.5.0` (the enum gains it); the front-end told first; **the whole-branch review found the rehearsal leaves an UNAPPROVED candidate serving production's public listener until the launch — Rich's (a) had rested on the controller's wrong *"nothing is public"*, so Spec action 8 re-asks it** (`fa02bbc` stands meanwhile); one wave: the published person-only lists held by a test, the journey's launch row split, comments made true |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** | ← **next** |
+| 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; its combined words read and applied first | |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** | |
@@ -190,7 +198,9 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
   production-shaped values — it proves a shape and decides nothing about UBC's records, unlike `launch:record`'s IAM and PIA rows. **The
   spec calls the item *"Manifest, automated"*** (§13's checklist) and does not say who triggers it. **CONFIRMED by Rich to sitting 3's
   session** (*"Yes, its own small sitting"*): **Task 6b, in sitting 4a** — placed by sitting 3's session right after sitting 4 and
-  before the spec-action sittings (a routine ruling; move it if he says otherwise).
+  before the spec-action sittings (a routine ruling; move it if he says otherwise). **Its *"behind the gate"* was the premise that
+  proved false** (the rehearsal skips the approval gate and serves production's PUBLIC listener): **Spec action 8** re-asked it, and
+  Rich decided **(b) and (c) together** (2026-09-30) — **Task 6c, sitting 5b**.
 
 ---
 
@@ -199,8 +209,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 **Ten things in this plan are Rich's hands, not an agent's.** Each is asked at the sitting that needs it, never assumed.
 
 1. ~~**Review this plan, and approve or re-cut the sittings split**~~ **DONE — approved as written, thirteen sittings** (Rich, 2026-09-29, sitting 2's first message).
-2. **Read and decide the spec actions** (the seventh, FE-39's, relayed — item 9; the eighth, drafted by sitting 4a, re-asks FE-42's premise) (*Spec actions*, below), each **before the sitting that builds it**: **1 and 2 before
-   sitting 5; 3 before sitting 6; 4 before sitting 7; 5 before sitting 9; 6 before sitting 4, and only if Task 1's `[M5]` finds a
+2. **Read and decide the spec actions** (the seventh, FE-39's, relayed — item 9; the eighth, drafted by sitting 4a, re-asked FE-42's premise — **DECIDED 2026-09-30, (b) and (c) together; its combined words to be read before sitting 5b**) (*Spec actions*, below), each **before the sitting that builds it**: **1 and 2 before
+   sitting 5; 8's words before sitting 5b; 3 before sitting 6; 4 before sitting 7; 5 before sitting 9; 6 before sitting 4, and only if Task 1's `[M5]` finds a
    guard can be built.** Each carries its exact wording, its options and a recommendation, and is applied to the spec only after he
    has read the words. A sitting that finds one undecided stops and asks.
 3. **The network, and his yes, for every call to real GitHub** — given for Task 1 in this plan's first message. **Task 2's real
@@ -1470,6 +1480,9 @@ case; `packages/github-fake` if the fake must learn GitHub's real behaviour (the
 > deploys the unapproved candidate onto production's PUBLIC listener and nothing retires it until the launch (the whole-branch review's
 > I1; the record's F1) — so **Spec action 8 re-asks Rich who may run it and whether it should take itself down**; the published
 > description and `launching.md` step 2 still say *"behind the gate"* and change with his answer.
+>
+> **Answered (Rich, 2026-09-30): (b) and (c) together — Task 6c, directly below, in sitting 5b.** Step 1's *"Step-up: the rehearsal
+> does not touch production, so none"* is superseded by it.
 
 **Files** (to be confirmed by Step 1): `packages/control-plane/src/api/routes/launch.ts` (`runRehearsal`'s `capability`, today
 `launch:record`, and its description — which must say who may run it), `src/projects/authz.ts` (`CAPABILITIES`, the role grants,
@@ -1487,6 +1500,95 @@ guide), the mock if it scripts the rehearsal's refusal; then the four regenerati
   a delegated token is refused its person-only code; a stranger `404`; the authz contract's row. Every refusal asserts its CODE.
 - [ ] **Step 3: Implement**, the description saying who may run it; regenerate; tell the front-end (its button returns); commit.
 - [ ] **Step 4: Negative control** — the grant removed from the owner's role; predict the owner's test red at its code.
+
+---
+
+## Task 6c: Spec action 8 — a rehearsal needs a step-up, and takes its production instance down before it records
+
+> **Rich, 2026-09-30, after sitting 4a's close: *"b and c together, in its own small sitting after 5"*** — Spec action 8's options
+> (b) and (c), taken together. **Sitting 5b, after sitting 5 and before 5a.** Written the same day by the session that put the
+> question to him, from the code at `09e3d7b` (every claim below was read there, and the file references are that tree's).
+> **Spec action 8's combined words are read by Rich and applied BEFORE Step 2** (the *Spec actions* section, 8).
+
+**Why both.** (c) alone leaves the stolen-session case open, because nothing bounds how often a rehearsal runs: a stolen owner
+session can commit, build, deploy to staging (none of that is step-up) and then loop the rehearsal, keeping its code up on production's
+hostname for most of each run. (b) alone leaves an honest owner's rehearsal serving an unapproved candidate on the public listener
+until the launch. Together, a rehearsal needs a fresh CWL round trip and leaves nothing serving, and every run is a
+`rehearsal.completed` Event naming who ran it. **And (b) closes a hole older than FE-42**: before `fa02bbc` an administrator ran it
+under `launch:record`, which is not in `STEP_UP_GUARDED` either — so a stolen ADMIN session could already do it, against §20's
+*"A stolen admin session must not be sufficient to put an app on the public internet."*
+
+**What the code does today** (read at `09e3d7b`): the route (`api/routes/launch.ts:334`) calls `requireSession` and
+`assertCapability(…, 'launch:rehearse')` and never `assertStepUp`; `runRehearsal` (`launch/rehearsal.ts:149`) calls
+`deployRelease(…, purpose: 'rehearsal')`, which skips `productionApprovalFor` (`releases/release.ts:284`), injects PRODUCTION's app
+secrets (`:331`) and points the app at the rehearsal IdP (`spec/injection.ts:450` — the Manifest IdP here,
+`authentication.stg.id.ubc.ca` at UBC); the listener is `public` (`routing/hostnames.ts:24`); and nothing retires the instance —
+`retireEnvironment` reaps only instances that are NOT serving (`releases/retire.ts:56`).
+
+**Files:** `packages/control-plane/src/projects/authz.ts` (`STEP_UP_GUARDED` gains `launch:rehearse`, with a §20 comment in the
+style of its `secret:write` and `project:delete` lines), `src/projects/step-up-guarded.test.ts` (its literal list — it names the set
+a second time on purpose), `src/api/routes/launch.ts` (`assertStepUp(actor, 'launch:rehearse')` after `assertCapability`; the
+declared errors gain `403 STEP_UP_REQUIRED`; the description rewritten), `src/launch/rehearsal.ts` (the take-down, and every comment
+that says the instance stays), `src/releases/retire.ts` (if the take-down needs an export — see Step 3), `src/api/authz-contract.ts`
+(the rehearsal rows: un-stepped `403 STEP_UP_REQUIRED`, stepped `200`, a token still `TOKEN_PERSON_ONLY`),
+`src/releases/production.docker.test.ts` (where the rehearsal's Docker tests live), `src/launch/rehearsal.test.ts`,
+`packages/journey/src/production.ts` and `scripts/demo-production.sh` (the admin phase runs the rehearsal BEFORE step 7's step-up — it
+must step up first, and the refusal before it is a check worth keeping, like step 6's), `packages/console/src/api.ts` and the screen
+that presses it (the console already handles `STEP_UP_REQUIRED` for approvals and deploys — reuse it), `docs/api/launching.md` step 2,
+and `rehearsalItem`'s `why` (it says the app *"was deployed to its production hostname on the … listener"* — say it was taken down
+again). Then the four regeneration commands; **the contract stays `1.5.0`**, and the front-end is told before each contract commit.
+
+**Decisions this task makes, recommended, and the sitting may re-decide with its reasons:**
+
+1. **The ORDER: deploy → probe → take-down → row → Event → answer.** The row is written only after the take-down, so §13's
+   `rehearsal` item can never read `met` while the candidate still serves, and a launch cannot start in between.
+2. **The take-down is ARCHIVE'S PATTERN, for one environment** (`releases/lifecycle.ts`'s `switch-off-names` and `retire-instances`):
+   under `withEnvironmentLock(production.id)`, **the name first** — `driver.removeName(hostname, 'production')`
+   (`runtime/docker/driver.ts:747` → `routing/routes.ts:132`) and the `routes` row deleted — **then the instance**, marked `destroying`
+   and retired by `retireInstanceRow` (`releases/retire.ts:200`, which takes no lock itself, exported for exactly this). Name first
+   because the driver refuses to retire an instance any live route dials (`INSTANCE_SERVING`, `runtime/docker/driver.ts:592`).
+   **Under the lock, remove the name only if the route still names THE REHEARSAL'S instance** (`instanceIdOf`/`servingRoute`,
+   `routing/routes.ts`): the environment lock is the one a deploy holds from its instance row to its Route row, so this is what makes a
+   deploy racing the take-down safe.
+3. **What the hostname answers afterwards: NOTHING of the app's — the public listener's wildcard**, `manifest OK host=<host> …
+   listener=public` (`infra/caddy/Caddyfile`'s `:8443` block), **exactly as before any rehearsal**. So no switched-off page, no new
+   Route kind, and no change to `releases/recover.ts`: a deleted `routes` row is one the boot never puts back. *(The session that put
+   the question to Rich had told him a static page and a `recover.ts` change would be needed; reading the Caddyfile corrected it.)*
+4. **What the API reads afterwards — unchanged shapes, said in the descriptions:** `listInstances(production)` lists the rehearsal's
+   instance `gone`, `serving: false`; **`getEnvironment(production).instance` is that `gone` instance, NOT `null`**, because
+   `servingInstanceOf` falls back to the latest instance when no route names one (`projects/repository.ts:299`) — the shape an archived
+   environment already has. *Rejected:* making it `null` (a second rule for one read, and an archive would then disagree). The faculty
+   front-end was told this on 2026-09-30 and reads `instance === null || instance.state === 'gone'` as nothing serving.
+5. **A take-down that fails is LOUD and writes no row**: a coded refusal (`REHEARSAL_TEARDOWN_FAILED` proposed — registered, declared,
+   its message naming what is left serving), an `instance.retire_failed` Event from `retireInstanceRow`, and a `console.error` operator
+   line. Running the rehearsal again is the remedy, because it deploys and takes down afresh. **Never a `.catch(() => undefined)`.**
+6. **A rehearsal that fails part-way still takes down what it deployed** — a `try`/`finally` around the probe; a deploy that never
+   became healthy has no route to remove, and its instance goes the way a failed deploy's always has (check which, and test it).
+7. **What stays, deliberately:** the production SERVICES the deploy provisioned (internal, never on the public listener; the launch
+   reuses them), and the production SP row in the Manifest IdP (a delete's `deregister-production-sp` removes it; at UBC the rehearsal
+   IdP's registration is UBC's). Neither is exposure. **The `Rehearsal` representation gains no field.**
+8. **The mock is not in this task.** It has no step-up refusal for ANY operation (no `STEP_UP_REQUIRED` under `packages/mock/src`), so
+   refusing one would mean modelling step-up for every guarded operation — sitting 10's mock work, or an FE-n. Told to the front-end.
+
+- [ ] **Step 1: Read what decides it**, confirm the facts above still hold at the sitting's `HEAD`, and confirm Spec action 8's words
+  are applied (if not, stop and ask Rich).
+- [ ] **Step 2: The failing tests.** (i) An owner's session that has not stepped up is refused `403 STEP_UP_REQUIRED` — assert the
+  CODE — and nothing is deployed (no production instance row); stepped up, `200`. The same for an administrator. A token still
+  `TOKEN_PERSON_ONLY`. (ii) Docker tier: after a rehearsal that passed, production's hostname on the PUBLIC listener answers the
+  wildcard — **assert the body's `manifest OK host=` prefix and `listener=public`, never the status: the wildcard answers `200`** — and
+  the rehearsal's instance is `gone`, and the container is not running. (iii) The same after a rehearsal whose probe FAILED.
+  (iv) The race: a route naming another instance (a deploy's) under the lock is left alone — deterministic, with the lock, never a
+  `Promise.all`. (v) The row's `ranAt` is after the instance's retirement, from the database's clock (ORIENTATION §4 trap 14).
+- [ ] **Step 3: Implement**; regenerate; the published description and `launching.md` step 2 say what it does now (*"deployed to
+  production's public listener for as long as its sign-in takes, then taken down; a second sign-in (step-up) first"*); tell the
+  front-end before the contract commit; commit.
+- [ ] **Step 4: The demos.** The journey's admin phase steps up before the rehearsal, keeping the un-stepped refusal as a check;
+  `make demo-production` green fresh and re-use; `make demo-frontend` if it presses the rehearsal.
+- [ ] **Step 5: Negative controls — commit, break, watch the NAMED test go red, restore:** (a) `assertStepUp` removed from the
+  route → (i) red at its code; (b) `launch:rehearse` removed from `STEP_UP_GUARDED` → `step-up-guarded.test.ts` red, and predict
+  whether (i) is too (does `assertStepUp` consult the set, or trust its caller?); (c) the take-down removed → (ii) red on the BODY;
+  (d) the route check in the take-down removed → (iv) red. **A control that stays green is a question, not a result** (the memory
+  *a green control is a question*).
 
 ---
 
@@ -2318,7 +2420,7 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Spec actions
 
-**SIX, DRAFTED 2026-09-29 WITH THIS PLAN — AND A SEVENTH, FROM FE-39, DRAFTED AFTER SITTING 1'S CLOSE, ITS OPTIONS DECIDED BY RICH THE SAME EVENING AND APPLIED AT HIS WORD (Rich, 2026-09-29: *"apply 7"*); 6 APPLIED BY SITTING 4 (`0ebe514`); AND AN EIGHTH, FROM FE-42, DRAFTED BY SITTING 4a (2026-09-30) — ITS PREMISE RE-ASKED OF RICH (who may run the rehearsal, and what it leaves serving); 1–5 AND 8 NOT APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
+**SIX, DRAFTED 2026-09-29 WITH THIS PLAN — AND A SEVENTH, FROM FE-39, DRAFTED AFTER SITTING 1'S CLOSE, ITS OPTIONS DECIDED BY RICH THE SAME EVENING AND APPLIED AT HIS WORD (Rich, 2026-09-29: *"apply 7"*); 6 APPLIED BY SITTING 4 (`0ebe514`); AND AN EIGHTH, FROM FE-42, DRAFTED BY SITTING 4a (2026-09-30) — ITS PREMISE RE-ASKED OF RICH (who may run the rehearsal, and what it leaves serving), AND DECIDED BY HIM THE SAME DAY: (b) AND (c) TOGETHER, ITS COMBINED WORDS TO BE READ BEFORE SITTING 5b; 1–5 AND 8 NOT APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
 only after he has read the words. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §6,
 §7, §9, §10, §13, §20, §26 and D24 in plain language, and each action below names the pages it moves.
 
@@ -2506,7 +2608,7 @@ affiliations). *Declined:* building open to every CWL holder.
 **Shared pages:** `manifest-decisions.html` — a sentence on who may build; `manifest-schematic.html`, where it describes who signs
 in; check the others.
 
-### 8. D24 and §20 — who may run D21's rehearsal, and what it leaves serving (drafted by sitting 4a, 2026-09-30) — NOT APPLIED; ITS PREMISE RE-ASKED
+### 8. D24 and §20 — who may run D21's rehearsal, and what it leaves serving (drafted by sitting 4a, 2026-09-30) — ITS PREMISE RE-ASKED; ✅ **DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own small sitting after 5"*) — Task 6c, sitting 5b; NOT APPLIED until he has read the combined words at the end of this action
 
 **Why.** FE-42 (the faculty front-end's F5 sitting 1): a project's owner pressing *Run the dry run* was refused `403 FORBIDDEN`,
 *"role 'owner' may not 'launch:record'"*. Rich carried option (a) (*"Both: row now, ask platform"*; *"Yes, its own small sitting"*),
@@ -2566,6 +2668,40 @@ refusal (`api/routes/tokens.ts`).
 decided: …"* — becomes four, with the rehearsal's own reason; for (b) and (c) its §9/§20 sentences too); `manifest-schematic.html`
 where it describes the launch checklist (check whether it says who runs the rehearsal or that it stays up); `manifest-phases.html` and
 `manifest-stories.html` (check, and say so).
+
+**DECIDED — (b) AND (c) TOGETHER (Rich, 2026-09-30, answering a developer-level account of the code: the route, the skipped digest
+check, the production secrets, the rehearsal IdP, the public listener, the missing retire). The combined words, for him to read before
+they are applied** — the drafted words above with two phrases changed, each marked here and said why:
+
+- **D24**, the person-only sentence (quoted above, as the spec reads at `09e3d7b`), becomes:
+
+  > *"**Four actions are stricter still — *person-only*: approving a release (§13), recording UBC's IAM registration or Privacy
+  > Office assessment (§9), running D21's pre-production rehearsal (§9), and archiving or deleting a project (§11).** A delegated
+  > token can never be minted holding any of them, and a token that asks is refused outright rather than given a pending action:
+  > three of them are records that a named person decided — and a confirmed retry would let the token make that record — and the
+  > rehearsal puts an unapproved release on production's public listener **while its sign-in runs**, past anything a token deploys
+  > (§20)."*
+
+  *Changed:* **"while its sign-in runs"** added — under (c) it is no longer there afterwards.
+- **§20**, *Credential classes*, the delegated token's row — **as drafted**: *"**Not project creation, archiving or deletion, or
+  D21's rehearsal**, which need an interactive session (D24, §9, §11)"*.
+- **§20**, the step-up bullet: after *"… plus archiving or deleting a project, which take an app away from its students (§11),"*
+  insert *"plus running D21's rehearsal, which puts an unapproved release on production's public listener **while its sign-in runs
+  (§9)**,"* — before *"plus the admin-only actions of changing the model catalogue and publishing a blueprint"*.
+  *Changed:* **"while its sign-in runs (§9)"** added, for D24's reason.
+- **§9**, *Pre-production rehearsal (D21)*: after *"… attributes and certificate, before anything is public."* insert:
+
+  > *"The rehearsal takes its production instance down once its sign-in is measured, **before its result is recorded**; nothing it
+  > deployed keeps serving."*
+
+  *Changed:* the draft's *"retired once its sign-in is recorded"* → **"once its sign-in is measured, before its result is recorded"**
+  — Task 6c's Decision 1 writes the row only after the take-down, so §13's item can never read met while the candidate serves, and the
+  draft's words would have said the opposite order.
+- **§13** unchanged, as drafted. *Spec action 3* composes with the D24 edit as drafted (*Coordination*, above).
+
+**Shared pages**, as drafted for (b) and (c): `manifest-decisions.html` D24 (three → four, with the rehearsal's reason, and its
+§9/§20 sentences); `manifest-schematic.html`'s launch checklist (check); `manifest-phases.html` and `manifest-stories.html` (check, and
+say so).
 
 ---
 
@@ -3297,3 +3433,35 @@ after the close's restart; contract **`1.5.0`**.
 
 **The four shared HTML pages, checked**: no spec action was applied, so none moved; `manifest-decisions.html`'s D24 (*"Three things are
 stricter still …"*) moves only when Spec action 8 is applied, and says so in the action.
+
+### After sitting 4a's close — 2026-09-30: Spec action 8 decided — (b) and (c) together, as Task 6c in a new sitting 5b
+
+*Not a sitting: a session Rich opened to ask where the project stood. It changed no code and ran no test.*
+
+- **The question was put again at developer level, and every claim in it was read from the code at `09e3d7b` first** (the memory
+  *verify a question's premise first*). The route is `requireSession` plus `assertCapability`, with no `assertStepUp`.
+  `purpose: 'rehearsal'` skips `productionApprovalFor`, injects production's app secrets and points the app at the rehearsal IdP
+  (the Manifest IdP here, `authentication.stg.id.ubc.ca` at UBC). The listener is `public`, and `retireEnvironment` reaps only
+  instances that are not serving, so the rehearsal's instance stays.
+- **One fact the draft had not said, and it went into the question**: the hole is older than FE-42. Before `fa02bbc` the rehearsal
+  was `launch:record`'s, which is not in `STEP_UP_GUARDED` either, so a stolen ADMIN session could already do it. That makes option
+  (d) no cure for §20's sentence. **And one limit of (c) alone**: nothing bounds how often a rehearsal runs, so a stolen session could
+  loop it. Hence the session's recommendation of (b) and (c) together, which Rich took: *"b and c together, in its own small sitting
+  after 5"*.
+- **A correction made before anything was written down**: the session had told Rich that (c) would need a static page on the name
+  and a `releases/recover.ts` change, because the edge's wildcard answers `200` for any name. Reading `infra/caddy/Caddyfile`
+  showed that the public listener's wildcard (`manifest OK … listener=public`) is exactly what a production hostname answered
+  before any rehearsal. So removing the route and its `routes` row restores the prior state: no new page, and nothing for the boot to
+  put back. Task 6c's Decision 3.
+- **Written in**: **Task 6c**, with eight decisions and five negative controls, all read from the code; **sitting 5b**, after 5 and
+  **before 5a** (the letter says when it was added, not where it runs); Spec action 8's header and **its combined words** (two
+  phrases changed from the draft, each marked). **Not applied**: Rich reads the combined words first. **19 tasks in 15 sittings.**
+- **The faculty front-end** (`manifest-app-f1`, its F5 sitting 6) wrote in during the session, at Rich's word, with five questions,
+  and was answered from the code. The answers: the step-up refusal is a production deploy's `403 STEP_UP_REQUIRED`, byte for
+  byte except `message`. The answer comes after the take-down. Afterwards `getEnvironment(production).instance` is the `gone`
+  instance and not `null`, because `servingInstanceOf` falls back to the latest instance. `Rehearsal` gains no field. The mock
+  gains no step-up in 5b. F8 is unchanged and Rich's. **It accepted the order 5 → 5b → its real-platform walk on 7100 → 5a**, and
+  asks for a message when sitting 5 closes (it adopts `agent_session.narrowed` and `member_removed` before its walk) and when 5b
+  closes (with the final take-down refusal code, and whether `getEnvironment` answers `null` after all). **Its walk needs a quiet
+  7100**: no platform Vitest, no control-plane restart, and `scripts/admin-grant.sh grant opr000001` once `operator` has signed in.
+  It creates a real private repository, at Rich's word.

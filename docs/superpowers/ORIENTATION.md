@@ -153,7 +153,8 @@ each sitting left them, dated, and they deliberately do not move.
 
 **The spec is current but for ONE follow-up** — **the launch path plan's Spec action 8** (drafted by sitting 4a, 2026-09-30): the code's
 `PERSON_ONLY` holds the rehearsal (`launch:rehearse`, `fa02bbc`) while D24 names three person-only actions, and the question behind it —
-who may run a rehearsal, and what it leaves serving — is RE-ASKED of Rich (§8 *Open*, first). Spec actions 1–5 are drafted and wait
+who may run a rehearsal, and what it leaves serving — was re-asked of Rich and **DECIDED 2026-09-30: (b) and (c) together** (a step-up,
+and the rehearsal takes its production instance down — Task 6c, sitting 5b); its combined words wait for him to read (§8 *Decided*). Spec actions 1–5 are drafted and wait
 for him; nothing they change is built yet. Every spec change has been applied only after Rich approved it —
 **most recently the launch path plan's Spec action 6** (option (a), Rich's *"(a) is good"*; applied by its sitting 4 before Task 6,
 `0ebe514`): §7's capable-model fallback answers a provider that *"cannot be reached or fails — a refused connection, a timeout, a rate
@@ -239,7 +240,7 @@ docs/superpowers/
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
-│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 18 tasks in 14 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich), eight spec actions drafted (6 and 7 applied, 8 re-asked, 1–5 not); IN EXECUTION — its sittings table says how far
+│   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 15 sittings (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), eight spec actions drafted (6 and 7 applied, 8 decided and its words to be read, 1–5 not); IN EXECUTION — its sittings table says how far
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1142,8 +1143,9 @@ defect even when every test is green.**
   `TOKEN_CREDENTIAL_REFUSED` first), **not step-up**. `launch:record` — recording what UBC decided — stays an administrator's alone.
   **The rehearsal deploys the UNAPPROVED candidate into production, on the PUBLIC listener, and nothing retires it** until the launch or a
   later deploy (`releases/launched.ts`: *"a rehearsal, whose instance serves production too"*); P6b's Decision 16 (*"Before a launch
-  nothing is public"*) is a premise about students, not a barrier. **Whether a person other than an administrator may leave that up —
-  and whether the rehearsal should take itself down — is Spec action 8, Rich's (§8 *Open*).** The published person-only lists (the two
+  nothing is public"*) is a premise about students, not a barrier. **Spec action 8, DECIDED by Rich 2026-09-30 — (b) and (c) together:
+  a step-up before a rehearsal, and the rehearsal takes its production instance down before it records — is Task 6c, sitting 5b; until
+  it lands, this paragraph describes the code.** The published person-only lists (the two
   token descriptions, the `TOKEN_PERSON_ONLY` summary, `agents.md`'s list) are held to `PERSON_ONLY` by `api/person-only.test.ts`.
 - **ONCE AN APP HAS LAUNCHED, ITS CHECKLIST IS D9's SECOND CLAUSE** (P6b Tasks 4–6). `projects.launched_at` is
   written once, by the first production deploy for purpose `launch` that becomes healthy, and
@@ -1794,12 +1796,15 @@ named in the row below.*
 ### 7e. The launch path plan's sitting 5 (Tasks 7 and 8 — a session narrowed in place; removing a member) ← **START HERE**
 
 **The launch path plan** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md)) is **APPROVED BY RICH AS WRITTEN**
-(2026-09-29) — **18 tasks in 14 sittings; eight spec actions — 6 and 7 APPLIED, 8 RE-ASKED, 1–5 wait for him.** Fourteen plans are
+(2026-09-29) — **19 tasks in 15 sittings; eight spec actions — 6 and 7 APPLIED, 8 DECIDED ((b) and (c)) with its words to read, 1–5 wait for him.** Fourteen plans are
 executed (§2's table); this is the fifteenth. **Sittings 1, 2, 3, 4 and 4a are DONE**; the plan's *Sitting 4a* is the newest record:
 **Task 6b** built `launch:rehearse` — the project's owner, a collaborator or an administrator may run D21's rehearsal from their own
 session; person-only (a token is refused it at the mint, centrally and at the route); not step-up; `launch:record` still an
 administrator's — and **its whole-branch review found the rehearsal leaves the UNAPPROVED candidate serving production's PUBLIC
-listener until the launch**, which the question Rich answered had denied. So **Spec action 8 re-asks him** (§8 *Open*, first).
+listener until the launch**, which the question Rich answered had denied. So **Spec action 8 re-asked him — and he DECIDED (b) and (c)
+together** (2026-09-30, after 4a's close: *"b and c together, in its own small sitting after 5"*): a step-up before a rehearsal, and
+the rehearsal takes its production instance down before it records — **the plan's Task 6c, in a new sitting 5b, AFTER this one and
+BEFORE 5a** (the plan's *After sitting 4a's close*). `fa02bbc` stands until then.
 
 **THE NEXT JOB: the plan's sitting 5 — Task 7 AND Task 8** (Rich's two decisions of 2026-09-29): a session whose project no longer
 allows one of its models is **narrowed in place** (`/key/update` by alias, `agent_session.narrowed`) and ended only when nothing is left;
@@ -1809,13 +1814,11 @@ plan's Tasks 7 and 8 in full, and Task 1's `[M3]` at Task 7's head (the mechanis
 (Task 8), the plan's *Spec actions* 1 and 2. The plan's sittings table is the other statement of it.
 
 **ASK RICH IN THE FIRST MESSAGE:**
-0. **Spec action 8 — FIRST, because its premise was wrong when he answered it** (the plan's *Spec actions*, 8, and §8 *Open*): who may run
-   D21's rehearsal, and what it leaves serving. *(a)* accept as built; *(b)* step-up before a rehearsal; ***(c)* the rehearsal retires its
-   production instance once its sign-in is recorded — recommended**; *(d)* back to an administrator alone. **Sitting 5 does not build
-   it** — whatever he chooses other than (a) is a small task of its own (say where he wants it), and the published description
-   (*"behind the gate"*) and `docs/api/launching.md` step 2 change with it (a contract commit under `1.5.0`; tell the front-end first).
-   Then apply the words he approves to D24 and §20 (the classifier has refused spec edits before and cleared on retry after Rich allowed
-   it in chat — never work around it), and sweep the shared pages the action names.
+0. **Spec action 8 — DECIDED, (b) and (c) together (2026-09-30); only its COMBINED WORDS are still his to read** (the plan's *Spec
+   actions*, 8, at its end — two phrases changed from the draft, each marked). **If they are not yet applied** (check the spec's D24 for
+   *"Four actions are stricter still"*), ask him to read them — they must be applied before sitting 5b, not before this one. Apply only
+   the words he approves, to D24, §20 (twice) and §9 (the classifier has refused spec edits before and cleared on retry after Rich allowed
+   it in chat — never work around it), and sweep the shared pages the action names. **Sitting 5 does not build it**: Task 6c is sitting 5b.
 1. **Spec actions 1 and 2 — read the words, decide, and apply before Tasks 7 and 8** (each recommended (a); 2 is *"Rich's choice"* on
    the feature, still his to read as words).
 2. **Sitting 5's first Vitest run TRUNCATES** whatever the platform holds — at sitting 4a's close it held **nothing** (0 projects, 0 users — the close's own unit runs truncated it).
@@ -1877,11 +1880,17 @@ whichever is busy before any commit to `packages/contract` or `packages/mock`**,
 5a)**. **A session name changes at every handover — `ListAgents` immediately before every promised message.** Sitting 4a told it:
 `fa02bbc` (`launch:rehearse`; `runRehearsal` drops `FORBIDDEN`; the owner's press answers `200`), which it checked green against its own
 code; and at the close that **Spec action 8 may change who presses the dry run, or make the rehearsal take itself down** — so its Task 7
-(the owner's press) should wait on Rich's answer.
+(the owner's press) should wait on Rich's answer. **Answered 2026-09-30** — (b) and (c) — to its session **`manifest-app-f1`** (F5 sitting
+6), which was told the planned shapes from the code (the plan's *After sitting 4a's close*) and **asked for three things**: **a message
+when sitting 5 closes** (it adopts `agent_session.narrowed` and `member_removed` before its walk); **a message when sitting 5b closes**,
+with the take-down refusal's final code and whether `getEnvironment(production).instance` answers `null` after all (planned: the `gone`
+instance); and **a quiet 7100 window BETWEEN 5b's close and 5a's first Vitest run** for its real-platform walk and Rich's click — no
+platform Vitest, no control-plane restart, and `scripts/admin-grant.sh grant opr000001` once `operator` has signed in (it creates a real
+private repository, at Rich's word). Sitting 5's first Vitest run truncating 7100 is fine by it.
 
 **WHERE SITTING 5 STOPS, AND HOW IT ENDS**: after Tasks 7 and 8 — the plan's *How this plan is to be executed*: the four gates twice on
-the final tree, `pnpm test:docker` (owed), the record, the sittings table, and ORIENTATION §6's sweep. **Sitting 5a (Task 8a — FE-39,
-who may build) is next and is not started**, whatever the skill says.
+the final tree, `pnpm test:docker` (owed), the record, the sittings table, and ORIENTATION §6's sweep. **Sitting 5b (Task 6c — Spec
+action 8's step-up and take-down) is next and is not started**, whatever the skill says; then the front-end's 7100 window; then 5a.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -1903,19 +1912,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **SPEC ACTION 8 — WHO MAY RUN D21's REHEARSAL, AND WHAT IT LEAVES SERVING — RAISED 2026-09-30 by the launch path plan's sitting 4a
-  (its F1; the whole-branch review's I1). ITS PREMISE IS RE-ASKED: Rich's (a) of 2026-09-29 answered a question that was WRONG.**
-  Sitting 4a's session asked *"may a delegated token run it too?"* and described the rehearsal as deploying *"into production, behind
-  the gate, so nothing is public"*. In fact it deploys the UNAPPROVED candidate onto production's PUBLIC listener and nothing retires
-  it, so it serves the production hostname until the launch or a later deploy. Before `fa02bbc` only an administrator could do that;
-  now an owner's or a collaborator's session can, with no step-up, repeatedly — an owner could keep an unapproved app at its production
-  address with no approval, registration or assessment, and a stolen owner session could put one there (§20: *"A stolen admin
-  session must not be sufficient to put an app on the public internet"*). `fa02bbc` STANDS until he answers (a laptop — nothing is
-  exposed; the faculty front-end has not built its press). *Options* (the plan's Spec action 8, with the D24 and §20 words):
-  **(a)** accept as built; **(b)** step-up before a rehearsal; **(c)** the rehearsal retires its production instance once its sign-in is
-  recorded — *recommended*: nothing unapproved stays public whoever runs it; a later sitting's code change in `launch/rehearsal.ts`;
-  **(d)** back to an administrator alone. **Two published sentences wait on the answer**: `runRehearsal`'s description (*"behind the
-  gate"*, *"on the live listener"*) and `docs/api/launching.md` step 2 (*"deployed behind the gate"*) — a contract commit, 1.5.0.
 - **A PROVIDER'S `422` IS ANSWERED `200` WITH A BODY OF `null` — RAISED 2026-09-30 by the launch path plan's sitting 4 (F16; Task 1's
   F8, measured again under the guard).** LiteLLM 1.98.0's `drop_params` retry loop returns `None` before any fallback, so a request a
   provider refuses as unprocessable reaches the client as success with nothing in it — on every model, the capable model's included.
@@ -2057,6 +2053,11 @@ reasoning is recorded.**
 
 ### Decided
 
+- **THE LAUNCH PATH PLAN'S SPEC ACTION 8 — (b) AND (c) TOGETHER** (Rich, 2026-09-30, after sitting 4a's close, the premise re-asked at
+  developer level from the code: *"b and c together, in its own small sitting after 5"*): running D21's rehearsal needs a step-up, and
+  the rehearsal takes its production instance down before it records. **Task 6c, sitting 5b — after 5, before 5a.** **NOT APPLIED**:
+  its combined words (the plan's Spec action 8, at its end — two phrases changed from the draft) are his to read first. The plan's
+  *After sitting 4a's close* is the record.
 - **THE LAUNCH PATH PLAN'S SPEC ACTION 6 — OPTION (a)** (Rich, 2026-09-29, to sitting 3's session after its close: *"(a) is good"*,
   having read the words): the capable model's fallback answers only a provider that *"cannot be reached or fails — a refused
   connection, a timeout, a rate limit or a server error … and never for a request the provider refused as malformed"*. **APPLIED to
@@ -2067,7 +2068,7 @@ reasoning is recorded.**
   WITH a starter fails `409 SOURCE_GIT_FAILED` on real GitHub, unlogged: *"Fold into sitting 4"* — Task 6a. **FE-42** — the project's
   OWNER may run D21's rehearsal (then `launch:record`, an administrator's): option (a), *"Yes, its own small sitting"* — Task 6b, sitting
   4a (placed by sitting 3's session) — **BUILT by sitting 4a (`fa02bbc`, `launch:rehearse`), and its premise RE-ASKED as Spec action 8
-  (§8 *Open*)**. The plan's *FE-41 and FE-42* section has both in full.
+  — decided (b) and (c) together, 2026-09-30 (below)**. The plan's *FE-41 and FE-42* section has both in full.
 - **FE-40 — THE MOCK PLAYS A FIRST LAUNCH, BEHIND FOUR OPT-IN SWITCHES** (relayed by the faculty front-end's session `manifest-app-ce`
   *"at Rich's word"* during the launch path plan's sitting 2's close, then CONFIRMED by Rich to a platform session at sitting 3's open,
   2026-09-29, answering §7e's question: *"Confirm"*): a ready first launch; step-up enforced; `getApproval` `404` before a decision; a
