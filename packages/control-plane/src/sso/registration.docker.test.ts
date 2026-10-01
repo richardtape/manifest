@@ -16,7 +16,7 @@ import {
 import { SpEntityError } from './entity.js'
 import { idpDatabaseUrl, idpSigningCertPath } from './testing.js'
 import { createEventBus, type StreamFrame } from '../observability/index.js'
-import { assemblePackage } from '../launch/package.js'
+import { assemblePackage } from '../launch/index.js'
 
 /** D23.2's bus (P4b Task 15). §9's two events reach the stream as well as the table. */
 const bus = createEventBus()
