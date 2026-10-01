@@ -509,14 +509,14 @@ export const ERROR_CODES = {
   ),
   // Spec action 8 (c), the launch path plan's Task 6c: the rehearsal could not take its production
   // instance down. A 500, like PROJECT_TEARDOWN_INCOMPLETE — the request is not at fault, and the
-  // platform could not finish — and no result is recorded, so §13's item cannot read met meanwhile.
+  // platform could not finish — and no result is recorded, so this run cannot make §13's item read met.
   REHEARSAL_TEARDOWN_FAILED: {
     status: 500,
     families: ['RehearsalError'],
     summary:
       'The rehearsal ran, but could not take its production instance down afterwards (the message says what is left), so its result was not recorded.',
     remedy:
-      'Run the rehearsal again: it deploys the candidate afresh and takes it down again. If it keeps failing, tell a platform administrator — the project’s events name the step that failed.',
+      'Run the rehearsal again: it deploys the candidate afresh and takes it down again. If it keeps failing, tell a platform administrator: the control plane’s operator log names the step that failed.',
   },
 
   // source/ — every one is 409 but SOURCE_UNREACHABLE, a 503 (the D5 plan's Task 8).

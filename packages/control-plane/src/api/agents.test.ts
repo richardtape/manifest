@@ -1735,8 +1735,10 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
 
   /**
    * THE OTHER PRODUCTION CALLER OF `deployRelease` (the whole-branch review's I2): D21's rehearsal
-   * deploys the candidate into production itself, and a rehearsal's instance is what production's
-   * route then serves — so it floors the classification exactly as a launch does. A CWL app, because
+   * deploys the candidate into production itself, and a rehearsal's instance is what production reads
+   * as its instance — serving while its sign-in runs, `gone` after its take-down (the launch path plan's
+   * Task 6c), which `servingInstanceOf` still falls back to — so it floors the classification exactly as
+   * a launch does. Were production's instance ever read as `null` once `gone`, this would go red. A CWL app, because
    * only one is rehearsed: over `cwlFakes`, the unit tier's two labelled fakes, and for their reason.
    */
   it('a rehearsal that deploys a confidential release into production narrows the sessions holding what it no longer allows, before it answers (the whole-branch review’s I2)', async () => {

@@ -352,14 +352,18 @@ async function publicAnswer(
   return { status: Number(stdout.slice(at + 1)), body: stdout.slice(0, at) }
 }
 
-/** Production's app containers of this suite's project that are RUNNING — by label, never by name. */
-async function runningInProduction(s: ProductionSuite): Promise<string[]> {
+/**
+ * The rehearsal's OWN container, in ANY state (`-a`) — by its `manifest.instance` label, the one only
+ * an app container carries. NOT by slug and environment: production's egress proxy carries both of
+ * those and is meant to stay (Decision 7), which is what sitting 5b's first tier run measured
+ * (`mf-prod-rehearse-production-egress`). Empty means removed, not merely stopped.
+ */
+async function containersOf(instanceId: string): Promise<string[]> {
   const { stdout } = await run('docker', [
     'ps',
+    '-a',
     '--filter',
-    `label=manifest.slug=${s.slug}`,
-    '--filter',
-    `label=manifest.environment=${KIND}`,
+    `label=manifest.instance=${instanceId}`,
     '--format',
     '{{.Names}}',
   ])
@@ -673,7 +677,7 @@ describeDocker(
         .from(instances)
         .where(eq(instances.id, row.evidence.instanceId!))
       expect(rehearsed?.state).toBe('gone')
-      expect(await runningInProduction(s)).toEqual([])
+      expect(await containersOf(row.evidence.instanceId!)).toEqual([])
     }, 900_000)
 
     /**
@@ -685,6 +689,7 @@ describeDocker(
      */
     it('a rehearsal that PASSED served production’s name while its sign-in ran, and nothing afterwards', async () => {
       let during: { status: number; instance: string | undefined } | undefined
+      let containerDuring: string[] = []
       const startedAt = Date.now()
       const row = await runRehearsal(
         {
@@ -695,6 +700,7 @@ describeDocker(
           signIn: {
             signIn: async () => {
               during = await askEdge(s, PUBLIC_PORT)
+              containerDuring = await containersOf(during.instance ?? 'none')
               return {
                 status: 302,
                 attributesReleased: ['ubcEduCwlPuid', 'mail'],
@@ -711,6 +717,8 @@ describeDocker(
       console.log(`[rehearsal] passed=${row.passed} in ${Date.now() - startedAt} ms`)
       expect(row.passed).toBe(true)
       expect(during).toEqual({ status: 200, instance: row.evidence.instanceId })
+      // The label lookup FINDS the container while it serves — so "none" below is removal.
+      expect(containerDuring).toHaveLength(1)
 
       const after = await publicAnswer(s)
       expect(after.body.startsWith(`manifest OK host=${s.host}`), after.body).toBe(true)
@@ -720,7 +728,7 @@ describeDocker(
         .from(instances)
         .where(eq(instances.id, row.evidence.instanceId!))
       expect(rehearsed?.state).toBe('gone')
-      expect(await runningInProduction(s)).toEqual([])
+      expect(await containersOf(row.evidence.instanceId!)).toEqual([])
       expect(await db.select().from(routes).where(eq(routes.hostname, s.host))).toEqual(
         [],
       )

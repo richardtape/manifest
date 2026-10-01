@@ -161,6 +161,8 @@ const bus = createEventBus()
 
 /** No archived project in these fixtures: §11's teardowns are `api/lifecycle.test.ts`'s. */
 const noTeardowns = () => Promise.resolve({ finished: [], failed: [] })
+/** No rehearsal left serving — the launch path plan's Task 6c's pass, which `api/delivery.test.ts` drives. */
+const noRehearsals = () => Promise.resolve({ takenDown: [], failed: [] })
 
 const recorder = () => {
   const scheduled: string[] = []
@@ -168,6 +170,7 @@ const recorder = () => {
     scheduled,
     retirer: { schedule: (id: string) => void scheduled.push(id) },
     finishTeardowns: noTeardowns,
+    takeDownLeftRehearsals: noRehearsals,
   }
 }
 
@@ -311,6 +314,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         bus,
         retirer,
         finishTeardowns: noTeardowns,
+        takeDownLeftRehearsals: noRehearsals,
       })
 
       expect(scheduled.sort()).toEqual([first.environmentId, second.environmentId].sort())
@@ -335,6 +339,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         driver,
         bus,
         finishTeardowns: noTeardowns,
+        takeDownLeftRehearsals: noRehearsals,
         retirer: { schedule: (id: string) => void scheduled.push(id) },
       })
       expect(scheduled).toEqual([])
@@ -363,6 +368,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         driver,
         bus,
         finishTeardowns: noTeardowns,
+        takeDownLeftRehearsals: noRehearsals,
         retirer: {
           schedule: () => {
             // Synchronous, like the real `schedule`: read what the edge holds now.

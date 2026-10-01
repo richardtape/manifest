@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm'
 import type { Config } from '../config.js'
 import {
   environments,
@@ -92,8 +92,10 @@ export interface RehearsalDeps {
  *    action 8 amended it: *"The rehearsal takes its production instance down once its sign-in is
  *    measured, before its result is recorded; nothing it deployed keeps serving."*; the launch path
  *    plan's Task 6c). Whether the sign-in passed, failed or threw. `takeDown` says how.
- * 6. **Pass or fail is recorded with the evidence** — only now, so §13's `rehearsal` item can never
- *    read `met` while the candidate still serves, and a launch cannot start in between.
+ * 6. **Pass or fail is recorded with the evidence** — only now, so THIS run's result can never make
+ *    §13's `rehearsal` item read `met` while its candidate still serves. (An EARLIER passing run's row
+ *    keeps the item met through a re-run, so a launch may start during the sign-in; it takes the name,
+ *    and the take-down's first guard leaves it — `takeDown`.)
  *
  * **ONE AT A TIME PER PROJECT, AND A SECOND IS REFUSED** (`409 REHEARSAL_RUNNING`; the faculty
  * front-end's FE-43): `tryWithRehearsalLock`. Two at once would probe each other's instance, and a
@@ -198,18 +200,28 @@ async function rehearse(
   // registration and answered "recorded no Service Provider registration" — eight times in
   // one `pnpm test` run and never in the next. One clock on both sides of a comparison.
   const startedAt = await databaseNow(deps.db)
-  const instance = await deployRelease(deps.db, deps.driver, deps.config, deps.deploy, {
-    releaseId: candidate.release.id,
-    environmentId: production.id,
-    purpose: 'rehearsal',
-  }).catch((cause: unknown) => {
+  let instance: Instance
+  try {
+    instance = await deployRelease(deps.db, deps.driver, deps.config, deps.deploy, {
+      releaseId: candidate.release.id,
+      environmentId: production.id,
+      purpose: 'rehearsal',
+    })
+  } catch (cause) {
+    /**
+     * A DEPLOY THAT THREW MAY STILL HAVE MOVED THE NAME (sitting 5b's whole-branch review, I2(b)):
+     * `ensureInstance` points production's name at the new container before its health is read, and
+     * a throw after that returns no instance for the take-down to take down. So the name is released
+     * first — or the refusal says it could not be.
+     */
+    await releaseUnlaunchedName(deps, production)
     throw new RehearsalError(
       'REHEARSAL_DEPLOY_FAILED',
       `the candidate release could not be deployed to production: ${
         cause instanceof Error ? cause.message : String(cause)
       }`,
     )
-  })
+  }
 
   /**
    * STEPS 2–4 IN A `try`, STEP 5 AFTER IT WHATEVER THEY DID (Decision 6 of the launch path plan's
@@ -282,7 +294,8 @@ async function rehearse(
     if (!measured.ok)
       console.error(
         `[rehearsal] ${project.slug}: the measurement had already failed before the take-down did: ${
-          (measured.error as { code?: string }).code ?? (measured.error as Error).name
+          (measured.error as { code?: string } | null)?.code ??
+          (measured.error as Error | null)?.name
         }`,
       )
     throw failure
@@ -338,6 +351,100 @@ async function rehearse(
 }
 
 /**
+ * BEFORE A LAUNCH, PRODUCTION'S NAME REACHES NOTHING BUT A RUNNING REHEARSAL — made true where a
+ * rehearsal's deploy THREW and left no instance to take down (sitting 5b's whole-branch review, I2(b)).
+ * Under the environment's lock: a project that has launched, or is not `active` (an archive's
+ * switched-off page is `finishTeardowns`'), is left exactly as it is; otherwise the name is removed if
+ * it reaches any instance, and production's Route record goes, so a boot never puts it back. The
+ * container stays where the failed deploy left it — on no listener — for the next deploy's retirer,
+ * which lists the name's containers. A failure is `REHEARSAL_TEARDOWN_FAILED`, as `takeDown`'s is.
+ */
+async function releaseUnlaunchedName(
+  deps: TakeDownDeps,
+  production: typeof environments.$inferSelect,
+): Promise<void> {
+  try {
+    await withEnvironmentLock(production.id, async () => {
+      const [project] = await deps.db
+        .select({ launchedAt: projects.launchedAt, state: projects.state })
+        .from(projects)
+        .where(eq(projects.id, production.projectId))
+      if (
+        project === undefined ||
+        project.launchedAt !== null ||
+        project.state !== 'active'
+      )
+        return
+      if ((await deps.driver.servingInstance(production.hostname)) !== undefined)
+        await deps.driver.removeName(production.hostname, production.kind)
+      await deps.db.delete(routes).where(eq(routes.hostname, production.hostname))
+    })
+  } catch (error) {
+    const code =
+      (error as { code?: string } | null)?.code ?? (error as Error | null)?.name
+    console.error(
+      `[rehearsal] ${production.hostname} could not be released after a failed deploy: ${code}`,
+    )
+    throw new RehearsalError(
+      'REHEARSAL_TEARDOWN_FAILED',
+      `the candidate release could not be deployed to production, and ${production.hostname} ` +
+        'could not be released afterwards: it may still reach the candidate on the public ' +
+        'listener. Nothing was recorded. Run the rehearsal again.',
+    )
+  }
+}
+
+/**
+ * THE BOOT'S HALF OF "NOTHING IT DEPLOYED KEEPS SERVING" (sitting 5b's whole-branch review, I2(a)). A
+ * control plane that stopped between a rehearsal's deploy and its take-down leaves the candidate on
+ * production's public listener: the edge is its own process and keeps the route, and an edge that
+ * restarted too is given it back from the Route record (`recoverAtBoot`'s pass 1). At boot no rehearsal
+ * is running, and before a launch nothing else serves production — so every production Route record of
+ * an `active` project that has not launched is a rehearsal's, left behind, and is taken down here with
+ * `takeDown` itself: the name, the record, the instance. A rehearsal from before the launch path plan's
+ * Task 6c, which never took itself down, is the same leftover. An archived project's names are
+ * `finishTeardowns`'; a launched one's production is its own.
+ *
+ * NEVER THROWS FOR ONE ENVIRONMENT — `takeDown` writes the operator line, and the report counts it —
+ * so one stuck name does not stop the boot. Bound by the boot (`src/index.ts`) and run by
+ * `recoverAtBoot` after its pass 1 and the archived projects' teardowns.
+ */
+export async function takeDownLeftRehearsals(
+  deps: TakeDownDeps,
+): Promise<{ takenDown: string[]; failed: string[] }> {
+  const left = await deps.db
+    .select({ environment: environments, instance: instances })
+    .from(routes)
+    .innerJoin(instances, eq(routes.instanceId, instances.id))
+    .innerJoin(environments, eq(instances.environmentId, environments.id))
+    .innerJoin(projects, eq(environments.projectId, projects.id))
+    .where(
+      and(
+        eq(environments.kind, 'production'),
+        isNull(projects.launchedAt),
+        eq(projects.state, 'active'),
+      ),
+    )
+  const takenDown: string[] = []
+  const failed: string[] = []
+  for (const { environment, instance } of left) {
+    try {
+      await takeDown(deps, environment, instance)
+      takenDown.push(environment.hostname)
+    } catch {
+      // `takeDown` has written the operator line, naming the step; the boot line counts it.
+      failed.push(environment.hostname)
+    }
+  }
+  return { takenDown, failed }
+}
+
+/** What taking a rehearsal down needs — a subset of `RehearsalDeps`, so the boot can do it too. */
+export type TakeDownDeps = Pick<RehearsalDeps, 'db' | 'driver' | 'config'> & {
+  deploy: Pick<DeployDeps, 'ai' | 'appSecrets' | 'bus'>
+}
+
+/**
  * STEP 5 — THE REHEARSAL'S PRODUCTION INSTANCE TAKEN DOWN: THE NAME FIRST, THEN THE INSTANCE (§9, as
  * Spec action 8 amended it; the launch path plan's Task 6c, Decisions 2, 3 and 5). §11's archive's
  * `switch-off-names` and `retire-instances`, for ONE environment and one instance.
@@ -367,7 +474,7 @@ async function rehearse(
  * what is left. Running the rehearsal again is the remedy: it deploys and takes down afresh.
  */
 async function takeDown(
-  deps: RehearsalDeps,
+  deps: TakeDownDeps,
   production: typeof environments.$inferSelect,
   deployed: Instance,
 ): Promise<void> {
@@ -420,7 +527,8 @@ async function takeDown(
     })
   } catch (error) {
     // THE CODE, never the message: a driver's or the gateway's text is third-party (§14).
-    const code = (error as { code?: string }).code ?? (error as Error).name
+    const code =
+      (error as { code?: string } | null)?.code ?? (error as Error | null)?.name
     console.error(
       `[rehearsal] instance ${deployed.id} of ${production.hostname} could not be taken down (${step}): ${code}`,
     )

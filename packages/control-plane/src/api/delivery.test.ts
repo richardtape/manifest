@@ -8,6 +8,7 @@ import {
   events,
   incidents,
   instances,
+  projects,
   rehearsals,
   releases,
   routes,
@@ -18,7 +19,13 @@ import { mintTestToken } from '../tokens/testing.js'
 import type { StreamFrame } from '../observability/index.js'
 import { registerBackgroundWork, resetDatabase } from '../db/testing.js'
 import { createFakeDriver, type Driver, type FakeDriver } from '../runtime/index.js'
-import { createBuildRunner, createRetirer, deployRelease } from '../releases/index.js'
+import {
+  createBuildRunner,
+  createRetirer,
+  deployRelease,
+  recoverAtBoot,
+} from '../releases/index.js'
+import { takeDownLeftRehearsals } from '../launch/index.js'
 import type { CwlSignInProbe } from '../sso/index.js'
 import { buildServer, type ServerDeps } from './server.js'
 import {
@@ -1862,6 +1869,126 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
     })
 
     /**
+     * SITTING 5b's WHOLE-BRANCH REVIEW, I2(b): A DEPLOY THAT THROWS AFTER `ensureInstance` MOVED THE
+     * NAME — here its health could not be read — never returned an instance, so there was nothing for
+     * the take-down to take down, and the candidate went on answering production's public listener.
+     * The name is released before the refusal: before a launch, production's name reaches nothing but
+     * a running rehearsal. The positive half: the name DID reach the new container when it threw.
+     */
+    it('a deploy that THROWS after production’s name moved still releases the name — 409 REHEARSAL_DEPLOY_FAILED, and nothing of the app’s answers it', async () => {
+      const ctx = await stagedCwlProject('tk-deploythrew')
+      const driver = ctx.deps.driver
+      const status = driver.status.bind(driver)
+      const hostname = productionOf(ctx).hostname
+      let named: string | undefined
+      driver.status = async () => {
+        named = await driver.servingInstance(hostname)
+        throw Object.assign(new Error('the engine stopped answering'), {
+          code: 'ENGINE_GONE',
+        })
+      }
+      try {
+        const res = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(res)).toEqual({ status: 409, code: 'REHEARSAL_DEPLOY_FAILED' })
+        expect(named).toEqual(expect.any(String))
+        expect(await driver.servingInstance(hostname)).toBeUndefined()
+        expect(await productionRoutes(ctx)).toEqual([])
+        expect(await rehearsalCount(ctx)).toBe(0)
+      } finally {
+        driver.status = status
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    /**
+     * SITTING 5b's WHOLE-BRANCH REVIEW, I2(a): A CONTROL PLANE THAT STOPPED BETWEEN A REHEARSAL'S DEPLOY
+     * AND ITS TAKE-DOWN left the candidate serving — the edge is its own process, and a restarted edge
+     * is given the name back from the Route record by the boot's pass 1. The boot now takes down every
+     * production Route record of an active project that has not launched. The stop is the deploy
+     * exactly as `runRehearsal` makes it, and nothing after it. THE NEGATIVE HALF FIRST, on the same
+     * project: while it reads as launched, the boot leaves production serving.
+     */
+    it('the BOOT takes down a rehearsal a stopped control plane left serving — and leaves a launched app’s production serving', async () => {
+      const ctx = await stagedCwlProject('tk-boot')
+      try {
+        const production = productionOf(ctx)
+        const left = await deployRelease(
+          ctx.deps.db,
+          ctx.deps.driver,
+          ctx.deps.config,
+          {
+            secrets: ctx.deps.secrets,
+            appSecrets: ctx.deps.appSecrets,
+            sso: ctx.deps.sso,
+            blueprints: ctx.deps.blueprints,
+            ai: ctx.deps.ai,
+            catalogue: ctx.deps.catalogue,
+            bus: ctx.deps.bus,
+            retirer: ctx.deps.retirer,
+          },
+          {
+            releaseId: ctx.releaseId,
+            environmentId: production.id,
+            purpose: 'rehearsal',
+          },
+        )
+        expect(await ctx.deps.driver.servingInstance(production.hostname)).toBe(
+          left.handle,
+        )
+        const boot = () =>
+          recoverAtBoot({
+            db: ctx.deps.db,
+            driver: ctx.deps.driver,
+            bus: ctx.deps.bus,
+            retirer: { schedule: () => undefined },
+            finishTeardowns: () => Promise.resolve({ finished: [], failed: [] }),
+            takeDownLeftRehearsals: () =>
+              takeDownLeftRehearsals({
+                db: ctx.deps.db,
+                driver: ctx.deps.driver,
+                config: ctx.deps.config,
+                deploy: {
+                  ai: ctx.deps.ai,
+                  appSecrets: ctx.deps.appSecrets,
+                  bus: ctx.deps.bus,
+                },
+              }),
+          })
+
+        // LAUNCHED: production is the app's own, and the boot leaves it serving.
+        await ctx.deps.db
+          .update(projects)
+          .set({ launchedAt: new Date() })
+          .where(eq(projects.id, ctx.project.id))
+        expect((await boot()).rehearsalsTakenDown).toEqual({ takenDown: [], failed: [] })
+        expect(await ctx.deps.driver.servingInstance(production.hostname)).toBe(
+          left.handle,
+        )
+
+        // NOT LAUNCHED: a rehearsal's leftover, taken down — the name, the record, the instance.
+        await ctx.deps.db
+          .update(projects)
+          .set({ launchedAt: null })
+          .where(eq(projects.id, ctx.project.id))
+        expect((await boot()).rehearsalsTakenDown).toEqual({
+          takenDown: [production.hostname],
+          failed: [],
+        })
+        expect(await ctx.deps.driver.servingInstance(production.hostname)).toBeUndefined()
+        expect(await productionRoutes(ctx)).toEqual([])
+        expect(
+          (await productionInstances(ctx)).map((i) => ({ id: i.id, state: i.state })),
+        ).toEqual([{ id: left.id, state: 'gone' }])
+        // And a second boot finds nothing left to take down.
+        expect((await boot()).rehearsalsTakenDown).toEqual({ takenDown: [], failed: [] })
+      } finally {
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    /**
      * (iv) A DEPLOY RACING THE TAKE-DOWN — made deterministic by running it INSIDE the sign-in, in
      * order: the deploy takes production's name for its own instance, and the retirer it scheduled
      * reaps the rehearsal's instance BEFORE the take-down runs. The take-down then finds its instance
@@ -2008,7 +2135,16 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
      * deploys and takes down afresh. The failure is injected where the EXPOSURE is: the name.
      */
     it('a take-down whose name removal FAILS answers 500 REHEARSAL_TEARDOWN_FAILED naming what still serves, writes no row — and running it again is the remedy', async () => {
-      const ctx = await stagedCwlProject('tk-teardown')
+      // THE RETIRER FIRST, every run (sitting 5b's whole-branch review, M4(c)): the re-run's deploy
+      // schedules a pass that reaps the first, failed run's instance — and it must take the
+      // environment's lock BEFORE the re-run's take-down does, or it finds nothing serving and skips
+      // it. Awaited inside the sign-in, so the order is the test's and never the scheduler's.
+      const ctx = await stagedCwlProject('tk-teardown', (inner, deps) => ({
+        signIn: async (input) => {
+          await deps.retirer.idle()
+          return inner.signIn(input)
+        },
+      }))
       const driver = ctx.deps.driver
       const removeName = driver.removeName.bind(driver)
       driver.removeName = () =>

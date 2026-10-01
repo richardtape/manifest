@@ -281,7 +281,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Run the pre-production rehearsal',
     description:
-      'Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone`. The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.',
+      'Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone` (or `failed`, when the candidate never started). The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -345,9 +345,11 @@ export const launchRoutes = [
       assertStepUp(actor, 'launch:rehearse')
       /**
        * FE-36 AFTER THE REHEARSAL'S PRODUCTION DEPLOY (the whole-branch review's I2), as the
-       * `deploy` route runs it after a production deploy: a rehearsal's instance is what
-       * production's route then serves, and `classificationFloor` floors every agent session by
-       * that release — so the rehearsal may have RAISED the classification, and every session
+       * `deploy` route runs it after a production deploy: a rehearsal's instance is what production
+       * reads as its instance — serving while the sign-in ran, then `gone` after the take-down, which
+       * `servingInstanceOf` still falls back to (the launch path plan's Task 6c, Decision 4) — and
+       * `classificationFloor` floors every agent session by that release. So the rehearsal may have
+       * RAISED the classification, and every session
        * holding what the project no longer allows is ended before this answers. In `finally`,
        * because the deploy may have landed although the rehearsal then failed (a registration it
        * could not read back, a sign-in that threw); on a rehearsal refused before its deploy the

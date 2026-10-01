@@ -29,7 +29,7 @@ import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/i
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSpFor } from './identity/index.js'
 import { createEventBus, createStreamRegistry } from './observability/index.js'
-import { NullReviewer } from './launch/index.js'
+import { NullReviewer, takeDownLeftRehearsals } from './launch/index.js'
 import {
   capableModelAtBoot,
   createAiKeyService,
@@ -426,6 +426,10 @@ const recovery = await recoverAtBoot({
       appSecrets,
       drainMs: config.drainTimeoutMs,
     }),
+  // D21's rehearsals a stopped process left serving production, taken down (the launch path plan's
+  // Task 6c): the edge kept the name through the stop, or pass 1 just gave it back.
+  takeDownLeftRehearsals: () =>
+    takeDownLeftRehearsals({ db, driver, config, deploy: { ai, appSecrets, bus } }),
 })
 
 /**
@@ -559,6 +563,8 @@ console.log(
     // (the front-end enablement plan's Task 11) — each also has its own operator line.
     teardownsFinished: recovery.teardowns.finished.length,
     teardownsFailed: recovery.teardowns.failed.length,
+    rehearsalsTakenDown: recovery.rehearsalsTakenDown.takenDown.length,
+    rehearsalsNotTakenDown: recovery.rehearsalsTakenDown.failed.length,
     // Task 10: how many questions nobody answered in time. A sweep nobody can see is
     // indistinguishable from one that never ran, which is what the line above says
     // about the recovery and is why this is beside it.

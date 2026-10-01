@@ -190,7 +190,8 @@ export async function retireEnvironment(
  * ONE INSTANCE, RETIRED: the drain, the removal, its key revoked after the drain, its row moved to
  * `gone` — with `instance.retiring` before and `instance.retired` after, or `instance.retire_failed`
  * naming the code and THEN a throw. The part `retireEnvironment` runs after its lock is released,
- * exported for §11's archive (the front-end enablement plan's Task 11) so there is one path, not two.
+ * exported for §11's archive (the front-end enablement plan's Task 11) — and a rehearsal's take-down
+ * (`launch/rehearsal.ts`, the launch path plan's Task 6c) — so there is one path, not three.
  *
  * **IT TAKES NO LOCK ITSELF, and that is load-bearing**: `pg_advisory_lock` is per CONNECTION and
  * `withEnvironmentLock` takes a fresh pool client, so a retire that took the lock, called from inside

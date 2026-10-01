@@ -376,8 +376,10 @@ export interface Driver {
    * §11's DELETE (the front-end enablement plan's Task 12, Decision 31): the hostname's route
    * REMOVED — the switched-off page included — so the name answers nothing of this project's and
    * falls through to the edge's wildcard, as a name nobody holds does: a deleted project's slug may
-   * be the next project's. Idempotent; a name with no route answers at once. Only a delete calls it,
-   * after every instance of the name is retired — an archive keeps the page (`switchOff`).
+   * be the next project's. Idempotent; a name with no route answers at once. A delete calls it after
+   * every instance of the name is retired — an archive keeps the page (`switchOff`) — and a rehearsal's
+   * take-down calls it while the name reaches the rehearsal's own instance, which it retires next
+   * (`launch/rehearsal.ts`; the launch path plan's Task 6c).
    */
   removeName(hostname: string, kind: 'sandbox' | 'staging' | 'production'): Promise<void>
   stopInstance(id: string): Promise<void>

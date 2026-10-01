@@ -18,6 +18,11 @@ export interface RecoveryReport {
   scheduled: string[]
   /** §11's archived projects, their teardown run again (the front-end enablement plan's Task 11). */
   teardowns: TeardownsFinished
+  /**
+   * Never-launched projects' production names a rehearsal left serving, taken down (the launch path
+   * plan's Task 6c; its whole-branch review's I2(a)) — the hostnames, and the ones that could not be.
+   */
+  rehearsalsTakenDown: { takenDown: string[]; failed: string[] }
 }
 
 /** §11's three states a deploy can be interrupted in, straight from the machine. */
@@ -53,6 +58,14 @@ export async function recoverAtBoot(deps: {
    * an archived app's names answer the wildcard until somebody archives it again.
    */
   finishTeardowns: () => Promise<TeardownsFinished>
+  /**
+   * D21's rehearsals a stopped control plane left serving production, taken down (the launch path
+   * plan's Task 6c): `launch/rehearsal.ts`'s `takeDownLeftRehearsals`, bound by the boot. REQUIRED, for
+   * `finishTeardowns`' reason — the edge outlives this process, and a restarted edge is given the name
+   * back by pass 1, so without it an unapproved candidate serves production's public listener until
+   * somebody happens to rehearse or launch again.
+   */
+  takeDownLeftRehearsals: () => Promise<{ takenDown: string[]; failed: string[] }>
 }): Promise<RecoveryReport> {
   /**
    * PASS 0 — THE BUILDS this process's predecessor was running when it stopped (P5a Task
@@ -160,6 +173,14 @@ export async function recoverAtBoot(deps: {
   const teardowns = await deps.finishTeardowns()
 
   /**
+   * PASS 2¾ — A REHEARSAL A STOPPED PROCESS LEFT SERVING (the launch path plan's Task 6c). AFTER pass 1,
+   * which may just have given the edge the name back, and after the archived projects', whose names are
+   * theirs; BEFORE pass 3, so the retire passes it schedules see the environment as it now is. Never
+   * throws for one environment: each failure is an operator line and a hostname in the report.
+   */
+  const rehearsalsTakenDown = await deps.takeDownLeftRehearsals()
+
+  /**
    * PASS 3 — AND IT RUNS LAST, WHICH IS LOAD-BEARING (Decision 20, and sitting 5's
    * correction to it).
    *
@@ -188,5 +209,6 @@ export async function recoverAtBoot(deps: {
     interrupted,
     scheduled,
     teardowns,
+    rehearsalsTakenDown,
   }
 }

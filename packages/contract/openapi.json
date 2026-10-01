@@ -5044,7 +5044,7 @@
           "launch"
         ],
         "summary": "Run the pre-production rehearsal",
-        "description": "Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone`. The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.",
+        "description": "Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone` (or `failed`, when the candidate never started). The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.",
         "security": [
           {
             "session": []
@@ -18117,7 +18117,7 @@
     "REHEARSAL_TEARDOWN_FAILED": {
       "status": 500,
       "summary": "The rehearsal ran, but could not take its production instance down afterwards (the message says what is left), so its result was not recorded.",
-      "remedy": "Run the rehearsal again: it deploys the candidate afresh and takes it down again. If it keeps failing, tell a platform administrator — the project’s events name the step that failed."
+      "remedy": "Run the rehearsal again: it deploys the candidate afresh and takes it down again. If it keeps failing, tell a platform administrator: the control plane’s operator log names the step that failed."
     },
     "RELEASE_AI_BUDGET_MISSING": {
       "status": 409,
