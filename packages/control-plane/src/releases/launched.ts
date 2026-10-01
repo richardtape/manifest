@@ -30,7 +30,8 @@ export interface RecordLaunchInput {
  * True when THIS call recorded it; false when the project had already launched.
  *
  * **Caller:** `deployRelease`, in its healthy branch, for a production deploy whose
- * purpose is `launch` — never a rehearsal, whose instance serves production too.
+ * purpose is `launch` — never a rehearsal, whose instance serves production too while its
+ * sign-in runs (and is taken down again before it records, the launch path plan's Task 6c).
  */
 export async function recordLaunch(
   db: Db,

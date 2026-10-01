@@ -320,6 +320,52 @@ const askEdge = (s: ProductionSuite, port?: number) =>
     ...(port === undefined ? {} : { port }),
   })()
 
+/**
+ * What production's name answers on the PUBLIC listener — the BODY, not just the status, because
+ * the wildcard answers `200` for any name (ORIENTATION §4 trap 16). From a container on the platform
+ * network, with the platform's CA and resolver, on `:8443` — the public listener inside the edge
+ * (`PUBLIC_PORT`). `releases/delete.docker.test.ts`'s `throughEdge`, aimed at the other listener.
+ */
+async function publicAnswer(
+  s: ProductionSuite,
+): Promise<{ status: number; body: string }> {
+  const { stdout } = await run('docker', [
+    'run',
+    '--rm',
+    '--network',
+    'manifest-platform',
+    '--dns',
+    '10.89.0.53',
+    '-v',
+    `${CA_CERT}:/ca.crt:ro`,
+    'curlimages/curl:8.11.1',
+    '--cacert',
+    '/ca.crt',
+    '-sS',
+    '-m',
+    '10',
+    '-w',
+    '\n%{http_code}',
+    `https://${s.host}:${PUBLIC_PORT}/healthz`,
+  ])
+  const at = stdout.lastIndexOf('\n')
+  return { status: Number(stdout.slice(at + 1)), body: stdout.slice(0, at) }
+}
+
+/** Production's app containers of this suite's project that are RUNNING — by label, never by name. */
+async function runningInProduction(s: ProductionSuite): Promise<string[]> {
+  const { stdout } = await run('docker', [
+    'ps',
+    '--filter',
+    `label=manifest.slug=${s.slug}`,
+    '--filter',
+    `label=manifest.environment=${KIND}`,
+    '--format',
+    '{{.Names}}',
+  ])
+  return stdout.split('\n').filter((line) => line.trim() !== '')
+}
+
 /** The project's staging environment — what a candidate is deployed to (§13). */
 const stagingOf = (s: ProductionSuite) =>
   db
@@ -612,8 +658,75 @@ describeDocker(
       const item = view.items.find((i) => i.id === 'rehearsal')!
       expect(item.state).toBe('unmet')
       expect(item.why).toContain('CWL login form')
-      // And a rehearsal is not a launch: its instance serves production, and yet.
+      // And a rehearsal is not a launch.
       expect(await launchedAt(db, s.project.id)).toBeNull()
+
+      // (iii) TAKEN DOWN ALL THE SAME, though the sign-in did not pass (Spec action 8 (c), the
+      // launch path plan's Task 6c): the public listener answers production's name with the
+      // WILDCARD — the body, never the status, which is `200` either way — the instance is `gone`
+      // and its container is not running.
+      const after = await publicAnswer(s)
+      expect(after.body.startsWith(`manifest OK host=${s.host}`), after.body).toBe(true)
+      expect(after.body).toContain('listener=public')
+      const [rehearsed] = await db
+        .select({ state: instances.state })
+        .from(instances)
+        .where(eq(instances.id, row.evidence.instanceId!))
+      expect(rehearsed?.state).toBe('gone')
+      expect(await runningInProduction(s)).toEqual([])
+    }, 900_000)
+
+    /**
+     * (ii) A rehearsal that PASSED, over the real deploy, the real registration and the real edge —
+     * with the SIGN-IN faked, because this suite's app has no CWL login form (above). The fake does
+     * what the real probe does first: it asks the PUBLIC listener for production's name, and the
+     * instance's own identity header answers — the positive control that the take-down below took
+     * down something that WAS serving. Afterwards, the wildcard.
+     */
+    it('a rehearsal that PASSED served production’s name while its sign-in ran, and nothing afterwards', async () => {
+      let during: { status: number; instance: string | undefined } | undefined
+      const startedAt = Date.now()
+      const row = await runRehearsal(
+        {
+          db,
+          driver: s.driver,
+          config,
+          deploy: s.deps,
+          signIn: {
+            signIn: async () => {
+              during = await askEdge(s, PUBLIC_PORT)
+              return {
+                status: 302,
+                attributesReleased: ['ubcEduCwlPuid', 'mail'],
+                reason: 'the Docker tier’s labelled fake sign-in, after reading the edge',
+              }
+            },
+          },
+          bus: s.deps.bus,
+        },
+        s.project.id,
+        { userId: s.userId, puid: `puid-${s.slug}` },
+      )
+      // The front-end's question (FE-43's neighbour): how long a rehearsal takes WITH its take-down.
+      console.log(`[rehearsal] passed=${row.passed} in ${Date.now() - startedAt} ms`)
+      expect(row.passed).toBe(true)
+      expect(during).toEqual({ status: 200, instance: row.evidence.instanceId })
+
+      const after = await publicAnswer(s)
+      expect(after.body.startsWith(`manifest OK host=${s.host}`), after.body).toBe(true)
+      expect(after.body).toContain('listener=public')
+      const [rehearsed] = await db
+        .select({ state: instances.state })
+        .from(instances)
+        .where(eq(instances.id, row.evidence.instanceId!))
+      expect(rehearsed?.state).toBe('gone')
+      expect(await runningInProduction(s)).toEqual([])
+      expect(await db.select().from(routes).where(eq(routes.hostname, s.host))).toEqual(
+        [],
+      )
+      // And §13's item reads it met, from the row written AFTER the take-down.
+      const view = await computeLaunchReadiness(db, s.project.id)
+      expect(view.items.find((i) => i.id === 'rehearsal')?.state).toBe('met')
     }, 900_000)
   },
 )

@@ -96,18 +96,17 @@ export const CAPABILITIES = [
    * **PERSON-ONLY** (`PERSON_ONLY` below), by the same decision: persons only, never a delegated
    * token — it deploys a candidate into production with production-shaped values. The route calls
    * `requireSession` first (`403 TOKEN_CREDENTIAL_REFUSED`), and the central rule refuses a token
-   * holding it whatever the route does. NOT step-up guarded: §20's list does not name it.
+   * holding it whatever the route does.
    *
-   * **WHAT IT LEAVES SERVING** (sitting 4a's whole-branch review, I1): the candidate is UNAPPROVED
-   * (`purpose: 'rehearsal'` skips the digest check, `releases/release.ts`), production's listener is
-   * PUBLIC (`routing/hostnames.ts`), and nothing retires the instance afterwards
-   * (`releases/launched.ts`) — so until the launch or a later deploy the candidate serves
-   * production's hostname on the public listener. P6b Decision 16's *"before a launch nothing is
-   * public"* is a premise about students (nobody has been sent the address), not a barrier;
-   * `REHEARSAL_LAUNCHED` is what refuses it once they have been. **Whether an owner's or a
-   * collaborator's session may do this with no step-up is OPEN, and Rich's**: the launch path
-   * plan's Spec action 8 (accept it; a step-up; the rehearsal retiring its production instance once
-   * its probe is recorded; an administrator alone).
+   * **STEP-UP GUARDED, AND IT TAKES ITSELF DOWN** (Spec action 8, Rich's (b) and (c), 2026-09-30; the
+   * launch path plan's Task 6c). The candidate is UNAPPROVED (`purpose: 'rehearsal'` skips the digest
+   * check, `releases/release.ts`) and production's listener is PUBLIC (`routing/hostnames.ts`), so for
+   * as long as its sign-in runs the candidate answers production's hostname on the public listener.
+   * (c): `runRehearsal` takes the instance down — the name first, then the instance — before it records
+   * its result, so nothing it deployed keeps serving. (b): a stolen session alone must not be able to
+   * do even that (§20: *"A stolen admin session must not be sufficient to put an app on the public
+   * internet"*), and nothing else bounds how often a rehearsal runs — so `STEP_UP_GUARDED` below names
+   * it, and the route calls `assertStepUp`.
    */
   'launch:rehearse',
   'quota:set',
@@ -164,11 +163,11 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
  *
  * **AND RUNNING D21'S REHEARSAL, `launch:rehearse`, SINCE THE LAUNCH PATH PLAN'S TASK 6b** — by
  * Rich's option (a) on 2026-09-29 (the faculty front-end's FE-42): persons only. It is not a record
- * of a decision — it is a measurement that deploys into production, and leaves an unapproved
- * candidate serving there (`launch:rehearse` in `CAPABILITIES`) — so the reason above is not
- * its reason; *a person runs it, in their own session* is. **D24's clause naming it is DRAFTED for
- * his approval and not yet applied**, so until it is this set is D24's three plus this one, and
- * `person-only.test.ts` names it apart from them.
+ * of a decision — it is a measurement that puts an unapproved release on production's public
+ * listener while its sign-in runs — so the reason above is not its reason; D24 gives it its own
+ * (*"Four actions are stricter still"*, Spec action 8, applied 2026-09-30): *"the rehearsal puts an
+ * unapproved release on production's public listener while its sign-in runs, past anything a token
+ * deploys (§20)"*.
  */
 export const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
   'release:approve',
@@ -196,7 +195,7 @@ export function isPersonOnly(capability: PrivilegedCapability): boolean {
  * mint route refuses it and `assertCapability` refuses any token holding it.
  *
  * LITERALS, like `privileged.test.ts`'s D24 list, so nothing can be quietly added or
- * removed — and `step-up-guarded.test.ts` names the same five a second time rather than
+ * removed — and `step-up-guarded.test.ts` names the same set a second time rather than
  * deriving them from this constant, which would make the test agree with itself whatever
  * the constant said.
  *
@@ -235,6 +234,10 @@ export const STEP_UP_GUARDED: ReadonlySet<PrivilegedCapability> = new Set([
   // for it; `restoreProject` asserts the same capability and does NOT step up — bringing an app
   // back takes nothing from anyone (Decision 30).
   'project:delete',
+  // §20, since Spec action 8 (the launch path plan's Task 6c): *"plus running D21's rehearsal,
+  // which puts an unapproved release on production's public listener while its sign-in runs
+  // (§9)"*. `runRehearsal`'s route asks for it, for the owner, a collaborator and an administrator.
+  'launch:rehearse',
 ])
 
 /**
@@ -417,12 +420,11 @@ const OWNER: readonly Capability[] = [
 
 // §13: "same as owner except member management and deletion" — and not promotion,
 // which is the owner's decision about their own students (D24, P5b Task 2). The rehearsal
-// STAYS (Task 6b), by §13's rule — NOT because it puts nothing in front of anyone: it leaves an
-// UNAPPROVED candidate serving production's hostname on the public listener until the launch or a
-// later deploy (`launch:rehearse` in `CAPABILITIES`). Before a launch no student has been sent
-// that address (P6b Decision 16's premise) and after one `REHEARSAL_LAUNCHED` refuses it; whether a
-// collaborator's or an owner's session may do it with no step-up is OPEN, and Rich's (the launch
-// path plan's Spec action 8).
+// STAYS (Task 6b), by §13's rule — NOT because it puts nothing in front of anyone: it puts an
+// UNAPPROVED candidate on production's hostname on the public listener while its sign-in runs
+// (`launch:rehearse` in `CAPABILITIES`). So since the launch path plan's Task 6c (its Spec action 8)
+// it needs a step-up, and takes itself down before it records; and after a launch
+// `REHEARSAL_LAUNCHED` refuses it.
 const COLLABORATOR: readonly Capability[] = OWNER.filter(
   (cap) =>
     cap !== 'members:manage' && cap !== 'project:delete' && cap !== 'release:promote',

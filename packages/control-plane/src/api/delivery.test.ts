@@ -1,14 +1,24 @@
 import { randomUUID } from 'node:crypto'
 import { beforeEach, afterAll, describe, expect, it, vi } from 'vitest'
-import { asc, count, eq } from 'drizzle-orm'
-import { appSpecs, builds, events, rehearsals, releases } from '../db/index.js'
+import { and, asc, count, eq, sql } from 'drizzle-orm'
+import {
+  appSpecs,
+  builds,
+  environments,
+  events,
+  instances,
+  rehearsals,
+  releases,
+  routes,
+} from '../db/index.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { addMember } from '../projects/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import type { StreamFrame } from '../observability/index.js'
 import { registerBackgroundWork, resetDatabase } from '../db/testing.js'
-import { createFakeDriver, type Driver } from '../runtime/index.js'
-import { createBuildRunner, createRetirer } from '../releases/index.js'
+import { createFakeDriver, type Driver, type FakeDriver } from '../runtime/index.js'
+import { createBuildRunner, createRetirer, deployRelease } from '../releases/index.js'
+import type { CwlSignInProbe } from '../sso/index.js'
 import { buildServer, type ServerDeps } from './server.js'
 import {
   approvedProject,
@@ -705,7 +715,9 @@ describe('the delivery routes', () => {
     const refused = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/rehearsal`,
-      cookies: await loginAs(deps, 'platform_admin'),
+      // Stepped up since the launch path plan's Task 6c (§20): an ordinary session is refused
+      // `STEP_UP_REQUIRED` before the candidate is looked for.
+      cookies: await loginAs(deps, 'platform_admin', { steppedUp: true }),
       headers: mutationHeaders(deps),
     })
     expect(refused.statusCode, refused.body).toBe(409)
@@ -1336,10 +1348,20 @@ describe('a build uses the validation of the commit it builds (Task 7)', () => {
  * sign-in themselves, which the Docker tier measures.
  */
 describe('who may run D21’s rehearsal (§13, D24)', () => {
-  /** A CWL app whose release is serving staging — the rehearsal's candidate — through the routes. */
-  async function stagedCwlProject(slug: string) {
+  /**
+   * A CWL app whose release is serving staging — the rehearsal's candidate — through the routes.
+   * `probe`, when given, WRAPS the unit tier's fake sign-in: it runs while the rehearsal's instance
+   * is (or should be) serving production, which is the one moment Task 6c's take-down tests need to
+   * look at — or change — what production's name reaches, deterministically and in order.
+   */
+  async function stagedCwlProject(
+    slug: string,
+    probe?: (inner: CwlSignInProbe, deps: ServerDeps) => CwlSignInProbe,
+  ) {
     const base = await testDeps()
-    const deps: ServerDeps = { ...base, ...cwlFakes(base) }
+    const fakes = cwlFakes(base)
+    const deps: ServerDeps = { ...base, ...fakes }
+    if (probe !== undefined) deps.signIn = probe(fakes.signIn, deps)
     const app = await buildServer(deps)
     const cookies = await loginAs(deps, 'bio_prof')
     const created = await app.inject({
@@ -1356,7 +1378,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
     const project = created.json() as {
       id: string
       slug: string
-      environments: { id: string; kind: string }[]
+      environments: { id: string; kind: string; hostname: string }[]
     }
     await commitManifest(
       { app, deps, cookies, project },
@@ -1439,11 +1461,28 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
     return row?.n ?? -1
   }
 
+  /** Production's environment, as creating the project answered it. */
+  function productionOf(ctx: Awaited<ReturnType<typeof stagedCwlProject>>) {
+    return ctx.project.environments.find((e) => e.kind === 'production')!
+  }
+
+  /** Every instance production has had, oldest first — the rows, not what the edge says. */
+  async function productionInstances(ctx: Awaited<ReturnType<typeof stagedCwlProject>>) {
+    return ctx.deps.db
+      .select({ id: instances.id, state: instances.state, handle: instances.handle })
+      .from(instances)
+      .where(eq(instances.environmentId, productionOf(ctx).id))
+      .orderBy(asc(instances.createdAt), asc(instances.id))
+  }
+
   it('the OWNER’s rehearsal answers as the administrator’s does — a real rehearsal, 200 and passed, which meets the checklist item', async () => {
     const ctx = await stagedCwlProject('fe42-owner')
     try {
-      // The owner's ORDINARY session — no step-up: §20's list does not include the rehearsal.
-      const owner = await rehearse(ctx, { cookies: ctx.cookies })
+      // STEPPED UP since the launch path plan's Task 6c (Spec action 8 (b), §20: *"plus running
+      // D21's rehearsal"*). The refusal of an ORDINARY session is the next case's.
+      const owner = await rehearse(ctx, {
+        cookies: await loginAs(ctx.deps, 'bio_prof', { steppedUp: true }),
+      })
       expect(refusal(owner)).toEqual({ status: 200, code: undefined })
       expect(owner.json()).toMatchObject({
         projectId: ctx.project.id,
@@ -1470,11 +1509,36 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
       // THE ADMINISTRATOR'S, ON THE SAME CANDIDATE — the comparison the brief names: the same
       // measurement, whoever pressed the button.
       const admin = await rehearse(ctx, {
-        cookies: await loginAs(ctx.deps, 'platform_admin'),
+        cookies: await loginAs(ctx.deps, 'platform_admin', { steppedUp: true }),
       })
       expect(refusal(admin)).toEqual({ status: 200, code: undefined })
       expect(measured(owner.json())).toEqual(measured(admin.json()))
       expect(await rehearsalCount(ctx)).toBe(2)
+    } finally {
+      await ctx.deps.builds.idle()
+      await ctx.app.close()
+    }
+  })
+
+  /**
+   * §20's STEP-UP, since the launch path plan's Task 6c (Spec action 8 (b)): a rehearsal puts an
+   * unapproved release on production's PUBLIC listener while its sign-in runs, so a stolen session —
+   * an owner's, a collaborator's, or an administrator's — must not be enough to run one. Refused
+   * `403 STEP_UP_REQUIRED` BEFORE anything is deployed: no production instance row, no rehearsal row.
+   * The positive control is the case above (and the collaborator's below): the same people,
+   * stepped up, on the same kind of project, answer `200`.
+   */
+  it('refuses an ORDINARY session — owner, collaborator and administrator alike — 403 STEP_UP_REQUIRED, and deploys nothing', async () => {
+    const ctx = await stagedCwlProject('fe42-stepup')
+    try {
+      const user = await ensureTestUser(ctx.deps.db, 'bio_student')
+      await addMember(ctx.deps.db, ctx.project.id, user.id, 'collaborator')
+      for (const puid of ['bio_prof', 'bio_student', 'platform_admin'] as const) {
+        const res = await rehearse(ctx, { cookies: await loginAs(ctx.deps, puid) })
+        expect(refusal(res), puid).toEqual({ status: 403, code: 'STEP_UP_REQUIRED' })
+      }
+      expect(await rehearsalCount(ctx)).toBe(0)
+      expect(await productionInstances(ctx)).toEqual([])
     } finally {
       await ctx.deps.builds.idle()
       await ctx.app.close()
@@ -1486,7 +1550,9 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
     try {
       const user = await ensureTestUser(ctx.deps.db, 'bio_student')
       await addMember(ctx.deps.db, ctx.project.id, user.id, 'collaborator')
-      const res = await rehearse(ctx, { cookies: await loginAs(ctx.deps, 'bio_student') })
+      const res = await rehearse(ctx, {
+        cookies: await loginAs(ctx.deps, 'bio_student', { steppedUp: true }),
+      })
       expect(refusal(res)).toEqual({ status: 200, code: undefined })
       expect(res.json()).toMatchObject({ releaseId: ctx.releaseId, passed: true })
     } finally {
@@ -1616,5 +1682,372 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
       await deps.builds.idle()
       await app.close()
     }
+  })
+
+  /**
+   * SPEC ACTION 8 (c) — THE REHEARSAL TAKES ITS PRODUCTION INSTANCE DOWN BEFORE IT RECORDS (§9: *"The
+   * rehearsal takes its production instance down once its sign-in is measured, before its result is
+   * recorded; nothing it deployed keeps serving."*; the launch path plan's Task 6c). Until it, the
+   * unapproved candidate kept serving production's PUBLIC listener until the launch.
+   *
+   * Over the unit tier's fake driver, whose `servingInstance` is the edge's route by hostname — the same
+   * question the take-down asks. The Docker tier (`releases/production.docker.test.ts`) reads the real
+   * edge's BODY afterwards.
+   */
+  describe('and takes its production instance down before it records (§9, Spec action 8 (c))', () => {
+    type Ctx = Awaited<ReturnType<typeof stagedCwlProject>>
+    const stepped = (ctx: Ctx) => loginAs(ctx.deps, 'bio_prof', { steppedUp: true })
+
+    /** `instance.retired` Events for one instance — how many, and the first one's id. */
+    async function retiredEvents(ctx: Ctx, instanceId: string) {
+      return ctx.deps.db
+        .select({ id: events.id })
+        .from(events)
+        .where(
+          and(
+            eq(events.subject, `instance:${instanceId}`),
+            eq(events.type, 'instance.retired'),
+          ),
+        )
+    }
+
+    async function productionRoutes(ctx: Ctx) {
+      return ctx.deps.db
+        .select({ instanceId: routes.instanceId })
+        .from(routes)
+        .where(eq(routes.hostname, productionOf(ctx).hostname))
+    }
+
+    it('after a rehearsal that PASSED nothing serves production — though its sign-in met its instance — and the row is written after the retirement', async () => {
+      let during: string | undefined | 'never asked' = 'never asked'
+      const ctx = await stagedCwlProject('tk-passed', (inner, deps) => ({
+        signIn: async (input) => {
+          during = await deps.driver.servingInstance(input.hostname)
+          return inner.signIn(input)
+        },
+      }))
+      try {
+        const res = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(res)).toEqual({ status: 200, code: undefined })
+        const body = res.json() as {
+          id: string
+          passed: boolean
+          evidence: { instanceId: string }
+        }
+        expect(body.passed).toBe(true)
+        const all = await productionInstances(ctx)
+        expect(all).toEqual([
+          { id: body.evidence.instanceId, state: 'gone', handle: expect.any(String) },
+        ])
+        // THE POSITIVE HALF, IN THE SAME TEST: while the sign-in ran, production's name reached
+        // exactly this instance — so "nothing serves" below is the take-down, not a deploy that
+        // never routed.
+        expect(during).toBe(all[0]!.handle)
+        const production = productionOf(ctx)
+        expect(await ctx.deps.driver.servingInstance(production.hostname)).toBeUndefined()
+        expect(await productionRoutes(ctx)).toEqual([])
+        expect(await retiredEvents(ctx, body.evidence.instanceId)).toHaveLength(1)
+        // (v) THE ORDER, on the DATABASE's clock (ORIENTATION §4 trap 14) and at its full
+        // precision: the row's `ran_at` is no earlier than the instance's retirement.
+        const order = await ctx.deps.db.execute<{ after: boolean }>(
+          sql`select r.ran_at >= e.created_at as after
+                from rehearsals r, audit.events e
+               where r.id = ${body.id}
+                 and e.subject = ${`instance:${body.evidence.instanceId}`}
+                 and e.type = 'instance.retired'`,
+        )
+        expect(order.rows).toEqual([{ after: true }])
+        // DECISION 4: production's environment reads that `gone` instance — never `null` — exactly as
+        // an archived environment does; a client reads it as nothing serving.
+        const read = await ctx.app.inject({
+          method: 'GET',
+          url: `/v1/environments/${production.id}`,
+          cookies: ctx.cookies,
+        })
+        expect(read.json()).toMatchObject({
+          instance: { id: body.evidence.instanceId, state: 'gone' },
+        })
+      } finally {
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    it('after a rehearsal whose sign-in did NOT pass it is taken down all the same, and the row records the failure', async () => {
+      const ctx = await stagedCwlProject('tk-unpassed', () => ({
+        signIn: () =>
+          Promise.resolve({
+            status: 500,
+            attributesReleased: [],
+            reason: 'the unit tier’s probe was told the app answered 500',
+          }),
+      }))
+      try {
+        const res = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(res)).toEqual({ status: 200, code: undefined })
+        const body = res.json() as { passed: boolean; evidence: { instanceId: string } }
+        expect(body.passed).toBe(false)
+        expect(await productionInstances(ctx)).toEqual([
+          { id: body.evidence.instanceId, state: 'gone', handle: expect.any(String) },
+        ])
+        expect(
+          await ctx.deps.driver.servingInstance(productionOf(ctx).hostname),
+        ).toBeUndefined()
+        expect(await productionRoutes(ctx)).toEqual([])
+      } finally {
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    it('a sign-in that THROWS still takes down what it deployed — and records nothing', async () => {
+      const ctx = await stagedCwlProject('tk-threw', () => ({
+        signIn: () => Promise.reject(new Error('the probe container could not start')),
+      }))
+      const lines = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        const res = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(res)).toEqual({ status: 500, code: 'INTERNAL' })
+        expect(await rehearsalCount(ctx)).toBe(0)
+        expect((await productionInstances(ctx)).map((i) => i.state)).toEqual(['gone'])
+        expect(
+          await ctx.deps.driver.servingInstance(productionOf(ctx).hostname),
+        ).toBeUndefined()
+        expect(await productionRoutes(ctx)).toEqual([])
+      } finally {
+        lines.mockRestore()
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    /**
+     * (iv) A DEPLOY RACING THE TAKE-DOWN — made deterministic by running it INSIDE the sign-in, in
+     * order: the deploy takes production's name for its own instance, and the retirer it scheduled
+     * reaps the rehearsal's instance BEFORE the take-down runs. The take-down then finds its instance
+     * on its way out (another deploy's doing) and touches neither the name nor the instance.
+     */
+    it('a DEPLOY that took the name during the sign-in keeps it — the take-down leaves what it did not deploy', async () => {
+      let raced: { id: string; handle: string | null } | undefined
+      const ctx = await stagedCwlProject('tk-raced', (inner, deps) => ({
+        signIn: async (input) => {
+          const answer = await inner.signIn(input)
+          const [production] = await deps.db
+            .select()
+            .from(environments)
+            .where(eq(environments.hostname, input.hostname))
+          const [rehearsing] = await deps.db
+            .select()
+            .from(instances)
+            .where(eq(instances.environmentId, production!.id))
+          const deployed = await deployRelease(
+            deps.db,
+            deps.driver,
+            deps.config,
+            {
+              secrets: deps.secrets,
+              appSecrets: deps.appSecrets,
+              sso: deps.sso,
+              blueprints: deps.blueprints,
+              ai: deps.ai,
+              catalogue: deps.catalogue,
+              bus: deps.bus,
+              retirer: deps.retirer,
+            },
+            {
+              releaseId: rehearsing!.releaseId,
+              environmentId: production!.id,
+              purpose: 'rehearsal',
+            },
+          )
+          await deps.retirer.idle()
+          raced = { id: deployed.id, handle: deployed.handle }
+          return answer
+        },
+      }))
+      try {
+        const res = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(res)).toEqual({ status: 200, code: undefined })
+        const ours = (res.json() as { evidence: { instanceId: string } }).evidence
+          .instanceId
+        expect(raced).toBeDefined()
+        // THE OTHER DEPLOY'S INSTANCE STILL HAS THE NAME, and the route record names it.
+        expect(await ctx.deps.driver.servingInstance(productionOf(ctx).hostname)).toBe(
+          raced!.handle,
+        )
+        expect(await productionRoutes(ctx)).toEqual([{ instanceId: raced!.id }])
+        expect(
+          (await productionInstances(ctx)).map((i) => ({ id: i.id, state: i.state })),
+        ).toEqual([
+          { id: ours, state: 'gone' },
+          { id: raced!.id, state: 'healthy' },
+        ])
+        // Retired ONCE — by the retirer the other deploy scheduled, never a second time by the take-down.
+        expect(await retiredEvents(ctx, ours)).toHaveLength(1)
+      } finally {
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    /**
+     * (iv') THE ROUTE CHECK ALONE: the rehearsal's instance is still `healthy` — nothing marked it — but
+     * production's name answers something that is not it: here §11's switched-off page, as an archive
+     * racing the rehearsal puts there. The take-down removes the name ONLY when it reaches its own
+     * instance, so the page stays; its own instance is retired all the same.
+     */
+    it('a switched-off page put on the name during the sign-in stays — the take-down removes only a route to its own instance', async () => {
+      const ctx = await stagedCwlProject('tk-switched', (inner, deps) => ({
+        signIn: async (input) => {
+          const answer = await inner.signIn(input)
+          await deps.driver.switchOff(input.hostname, 'production')
+          return answer
+        },
+      }))
+      try {
+        const res = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(res)).toEqual({ status: 200, code: undefined })
+        const ours = (res.json() as { evidence: { instanceId: string } }).evidence
+          .instanceId
+        expect(
+          (ctx.deps.driver as FakeDriver).isSwitchedOff(productionOf(ctx).hostname),
+        ).toBe(true)
+        expect(
+          (await productionInstances(ctx)).map((i) => ({ id: i.id, state: i.state })),
+        ).toEqual([{ id: ours, state: 'gone' }])
+        expect(await retiredEvents(ctx, ours)).toHaveLength(1)
+      } finally {
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    /**
+     * FE-43 (the faculty front-end's): a second press — a reload, a second tab — while a rehearsal
+     * runs is REFUSED, not queued: `409 REHEARSAL_RUNNING`, and it deploys nothing. Made deterministic
+     * by pressing it INSIDE the first one's sign-in. The positive control is the third press, after
+     * the first has finished, which runs.
+     */
+    it('a SECOND rehearsal while one runs is refused 409 REHEARSAL_RUNNING and deploys nothing — the next, after it, runs', async () => {
+      const holder: { ctx?: Ctx; second?: { statusCode: number; body: string } } = {}
+      let pressed = false
+      const ctx = await stagedCwlProject('tk-running', (inner) => ({
+        signIn: async (input) => {
+          if (!pressed) {
+            pressed = true
+            holder.second = await rehearse(holder.ctx!, {
+              cookies: await stepped(holder.ctx!),
+            })
+          }
+          return inner.signIn(input)
+        },
+      }))
+      holder.ctx = ctx
+      try {
+        const first = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(first)).toEqual({ status: 200, code: undefined })
+        expect(refusal(holder.second!)).toEqual({
+          status: 409,
+          code: 'REHEARSAL_RUNNING',
+        })
+        expect(await rehearsalCount(ctx)).toBe(1)
+        expect(await productionInstances(ctx)).toHaveLength(1)
+
+        const third = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(third)).toEqual({ status: 200, code: undefined })
+        expect(await rehearsalCount(ctx)).toBe(2)
+      } finally {
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    /**
+     * DECISION 5: A TAKE-DOWN THAT FAILS IS LOUD AND WRITES NO ROW — a coded refusal naming what is
+     * left serving, and an operator line — and running the rehearsal again is the remedy, because it
+     * deploys and takes down afresh. The failure is injected where the EXPOSURE is: the name.
+     */
+    it('a take-down whose name removal FAILS answers 500 REHEARSAL_TEARDOWN_FAILED naming what still serves, writes no row — and running it again is the remedy', async () => {
+      const ctx = await stagedCwlProject('tk-teardown')
+      const driver = ctx.deps.driver
+      const removeName = driver.removeName.bind(driver)
+      driver.removeName = () =>
+        Promise.reject(
+          Object.assign(new Error('the edge refused'), { code: 'EDGE_REFUSED' }),
+        )
+      const lines = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const hostname = productionOf(ctx).hostname
+      try {
+        const failed = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(failed)).toEqual({
+          status: 500,
+          code: 'REHEARSAL_TEARDOWN_FAILED',
+        })
+        expect((failed.json() as { error: { message: string } }).error.message).toContain(
+          hostname,
+        )
+        expect(lines.mock.calls.map((call) => String(call[0])).join('\n')).toContain(
+          '[rehearsal]',
+        )
+        expect(await rehearsalCount(ctx)).toBe(0)
+        // WHAT IS LEFT, as the message says: the name still reaches the rehearsal's instance.
+        const [left] = await productionInstances(ctx)
+        expect(await driver.servingInstance(hostname)).toBe(left!.handle)
+
+        driver.removeName = removeName
+        const again = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(again)).toEqual({ status: 200, code: undefined })
+        await ctx.deps.retirer.idle()
+        expect(await rehearsalCount(ctx)).toBe(1)
+        expect(await driver.servingInstance(hostname)).toBeUndefined()
+        expect((await productionInstances(ctx)).map((i) => i.state)).toEqual([
+          'gone',
+          'gone',
+        ])
+      } finally {
+        driver.removeName = removeName
+        lines.mockRestore()
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    it('a take-down whose RETIRE fails answers 500 REHEARSAL_TEARDOWN_FAILED with the name already released, and an instance.retire_failed Event', async () => {
+      const ctx = await stagedCwlProject('tk-retire')
+      const driver = ctx.deps.driver
+      const retireInstance = driver.retireInstance.bind(driver)
+      driver.retireInstance = () =>
+        Promise.reject(
+          Object.assign(new Error('the engine refused'), { code: 'ENGINE_REFUSED' }),
+        )
+      const lines = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        const failed = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(failed)).toEqual({
+          status: 500,
+          code: 'REHEARSAL_TEARDOWN_FAILED',
+        })
+        expect(await rehearsalCount(ctx)).toBe(0)
+        // The EXPOSURE is gone — the name went first — and the instance says it is still there.
+        expect(await driver.servingInstance(productionOf(ctx).hostname)).toBeUndefined()
+        const [left] = await productionInstances(ctx)
+        expect(left?.state).toBe('destroying')
+        const [failure] = await ctx.deps.db
+          .select({ detail: events.machineDetail })
+          .from(events)
+          .where(
+            and(
+              eq(events.subject, `instance:${left!.id}`),
+              eq(events.type, 'instance.retire_failed'),
+            ),
+          )
+        expect(failure?.detail).toMatchObject({ error: 'ENGINE_REFUSED' })
+      } finally {
+        driver.retireInstance = retireInstance
+        lines.mockRestore()
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
   })
 })

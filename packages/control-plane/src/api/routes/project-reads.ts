@@ -529,7 +529,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Remove a member',
     description:
-      'Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes nothing, and ends any agent session of theirs still live there. The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.',
+      'Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes no `member.removed`, and ends any agent session of theirs still live there (each an `agent_session.ended`). The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.',
     params: MemberParams,
     query: NO_QUERY,
     body: NO_BODY,

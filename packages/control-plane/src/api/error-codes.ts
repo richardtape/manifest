@@ -501,6 +501,23 @@ export const ERROR_CODES = {
     'The app has launched, so a rehearsal would put an unapproved candidate on its live production listener. A registration change is proved by UBC IAM’s change request.',
     'Nothing to rehearse: a launched app’s registration change goes to UBC IAM as a change request (§9), which an administrator records (`recordIamRegistration`).',
   ),
+  // The launch path plan's Task 6c (the faculty front-end's FE-43): one rehearsal per project at a
+  // time, a second REFUSED rather than queued — it would deploy and take down again for nobody.
+  REHEARSAL_RUNNING: rehearsal(
+    'A rehearsal of this project is already running, so this one was not started and nothing was deployed.',
+    'Wait for the running rehearsal to answer — up to about two minutes — then read the launch checklist (`getLaunchReadiness`): its `rehearsal` item says how it went.',
+  ),
+  // Spec action 8 (c), the launch path plan's Task 6c: the rehearsal could not take its production
+  // instance down. A 500, like PROJECT_TEARDOWN_INCOMPLETE — the request is not at fault, and the
+  // platform could not finish — and no result is recorded, so §13's item cannot read met meanwhile.
+  REHEARSAL_TEARDOWN_FAILED: {
+    status: 500,
+    families: ['RehearsalError'],
+    summary:
+      'The rehearsal ran, but could not take its production instance down afterwards (the message says what is left), so its result was not recorded.',
+    remedy:
+      'Run the rehearsal again: it deploys the candidate afresh and takes it down again. If it keeps failing, tell a platform administrator — the project’s events name the step that failed.',
+  },
 
   // source/ — every one is 409 but SOURCE_UNREACHABLE, a 503 (the D5 plan's Task 8).
   // `SOURCE_FOREIGN_REPO` retired in the D5 plan's Task 2: a
@@ -846,7 +863,7 @@ export const ERROR_CODES = {
     families: ['CatalogueError'],
     summary: 'AI is switched off on this control plane.',
     remedy:
-      'Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on.',
+      'Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left.',
   },
 } as const satisfies Record<string, Entry>
 

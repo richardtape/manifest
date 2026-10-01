@@ -7,7 +7,7 @@ import {
   recordPrivacyAssessment,
   runRehearsal,
 } from '../../launch/index.js'
-import { assertCapability } from '../../projects/index.js'
+import { assertCapability, assertStepUp } from '../../projects/index.js'
 import { requireSession } from '../actor.js'
 import { withdrawWhatItNoLongerAllows } from '../spec-validation.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
@@ -281,7 +281,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Run the pre-production rehearsal',
     description:
-      'Deploys the candidate release to production behind the launch gate, registers its Service Provider with production-shaped values, completes one CWL sign-in, and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The owner, a collaborator or a platform administrator runs it in their own session, with no step-up; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. Refused once the app has launched (`REHEARSAL_LAUNCHED`). Up to ~90 s.',
+      'Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone`. The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -299,10 +299,15 @@ export const launchRoutes = [
     errors: [
       'NOT_FOUND',
       'TOKEN_CREDENTIAL_REFUSED',
+      // §20, since Spec action 8 (b) — the launch path plan's Task 6c.
+      'STEP_UP_REQUIRED',
       'REHEARSAL_NO_CANDIDATE',
       'REHEARSAL_NOT_CWL',
       'REHEARSAL_DEPLOY_FAILED',
       'REHEARSAL_LAUNCHED',
+      // FE-43 and Spec action 8 (c) — Task 6c.
+      'REHEARSAL_RUNNING',
+      'REHEARSAL_TEARDOWN_FAILED',
       'RELEASE_DIGEST_MISSING',
     ],
     examples: {
@@ -333,6 +338,11 @@ export const launchRoutes = [
       // token learns nothing about which projects exist (P6a Task 6's measured ordering).
       const actor = requireSession(request)
       await assertCapability(deps.db, actor, params.projectId, 'launch:rehearse')
+      // §20's STEP-UP, since Spec action 8 (b) — the launch path plan's Task 6c: the rehearsal puts
+      // an unapproved release on production's public listener while its sign-in runs, and a stolen
+      // session alone must not be enough to do that. AFTER the capability, so a stranger is still
+      // `404` and learns nothing; BEFORE anything is read or deployed.
+      assertStepUp(actor, 'launch:rehearse')
       /**
        * FE-36 AFTER THE REHEARSAL'S PRODUCTION DEPLOY (the whole-branch review's I2), as the
        * `deploy` route runs it after a production deploy: a rehearsal's instance is what

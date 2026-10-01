@@ -181,7 +181,7 @@ Answer, `200`:
 | Error | Status | What to do |
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
-| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
+| `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -222,7 +222,7 @@ Answer, `201`:
 | Error | Status | What to do |
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
-| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
+| `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -265,7 +265,7 @@ Answer, `200`:
 | Error | Status | What to do |
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
-| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
+| `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -422,7 +422,7 @@ Answer, `201`:
 | `AGENT_NO_MODEL_FOR_CLASSIFICATION` | 409 | Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release. |
 | `AGENT_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
-| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
+| `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -2279,7 +2279,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/rehearsal` · a session only — a delegated token is refused
 
-Deploys the candidate release to production behind the launch gate, registers its Service Provider with production-shaped values, completes one CWL sign-in, and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The owner, a collaborator or a platform administrator runs it in their own session, with no step-up; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. Refused once the app has launched (`REHEARSAL_LAUNCHED`). Up to ~90 s.
+Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone`. The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2327,10 +2327,13 @@ Answer, `200`:
 | `REHEARSAL_LAUNCHED` | 409 | Nothing to rehearse: a launched app’s registration change goes to UBC IAM as a change request (§9), which an administrator records (`recordIamRegistration`). |
 | `REHEARSAL_NOT_CWL` | 409 | Nothing to do: the launch checklist’s rehearsal item is already met for an app with no CWL sign-in. |
 | `REHEARSAL_NO_CANDIDATE` | 409 | Deploy a release to staging and let it become healthy, then rehearse again. |
+| `REHEARSAL_RUNNING` | 409 | Wait for the running rehearsal to answer — up to about two minutes — then read the launch checklist (`getLaunchReadiness`): its `rehearsal` item says how it went. |
+| `REHEARSAL_TEARDOWN_FAILED` | 500 | Run the rehearsal again: it deploys the candidate afresh and takes it down again. If it keeps failing, tell a platform administrator — the project’s events name the step that failed. |
 | `RELEASE_DIGEST_MISSING` | 409 | Build the commit again (`startBuild`) and create the release from the new build (`createRelease`). |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `STEP_UP_REQUIRED` | 403 | Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up. |
 | `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
@@ -3169,7 +3172,7 @@ Answer, `201`:
 
 `DELETE /v1/projects/{projectId}/members/{userId}` · a session or a delegated token
 
-Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes nothing, and ends any agent session of theirs still live there. The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.
+Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes no `member.removed`, and ends any agent session of theirs still live there (each an `agent_session.ended`). The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3193,7 +3196,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
+| `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -4056,7 +4059,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `AI_CATALOGUE_DISABLED` | 503 | Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on. |
+| `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |

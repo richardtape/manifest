@@ -651,7 +651,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         .int()
         .nonnegative()
         .describe(
-          'How many delegated tokens they had minted on the project were revoked with the removal — every one still live; a token of theirs on another project is not touched.',
+          'How many delegated tokens they had minted on the project were revoked with the removal — every one not already revoked, an expired one included; a token of theirs on another project is not touched.',
         ),
       sessionsEnded: z
         .number()
@@ -700,11 +700,13 @@ export const EVENT_DETAIL_SCHEMAS = {
       sessionId: Uuid.describe('The session — `listAgentSessions` names it.'),
       withdrawn: z
         .array(z.string())
+        .min(1)
         .describe(
-          'The logical models its key may no longer call — the gateway refuses them from now on.',
+          'The logical models its key may no longer call — the gateway refuses them from now on. Never empty.',
         ),
       models: z
         .array(z.string())
+        .min(1)
         .describe(
           'The logical models its key still holds: what it held that the project still allows. Never empty — a session left with nothing it may use is ended instead.',
         ),

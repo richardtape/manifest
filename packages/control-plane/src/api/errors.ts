@@ -744,15 +744,23 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
     }
   }
 
+  // D21's rehearsal (P6a Task 14): each code's status the REGISTRY's, since the launch path plan's
+  // Task 6c — every refusal is a state conflict (no candidate, not a CWL app, a deploy that did not
+  // happen, launched, one already running), and `REHEARSAL_TEARDOWN_FAILED` is a `500`: the request
+  // is not at fault, the platform could not finish. `NOT_FOUND` is raised as an `AuthorizationError`
+  // by the route before this, so it is not in this family.
+  if (error instanceof RehearsalError) {
+    return {
+      status: ERROR_CODES[error.code].status,
+      body: { error: { code: error.code, message: error.message } },
+    }
+  }
+
   // The state-conflict family.
   if (
     error instanceof ReleaseError ||
     error instanceof SourceError ||
-    error instanceof ConfigError ||
-    // D21's rehearsal (P6a Task 14): every refusal it raises is a state conflict — no
-    // candidate, not a CWL app, or a deploy that did not happen. `NOT_FOUND` is raised as
-    // an `AuthorizationError` by the route before this, so it is not in this family.
-    error instanceof RehearsalError
+    error instanceof ConfigError
   ) {
     return { status: 409, body: { error: { code: error.code, message: error.message } } }
   }

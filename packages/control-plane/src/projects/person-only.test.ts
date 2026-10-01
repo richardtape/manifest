@@ -13,18 +13,17 @@ import {
  * §20 and D24's row (applied 2026-09-22): approving a release, and recording UBC's IAM
  * registration or Privacy Office assessment — and, since Spec action 3 (applied 2026-09-27; the
  * front-end enablement plan's Task 11, Decision 30), archiving or deleting a project (§11), whose
- * capability is `project:delete`. LITERALS, so this file cannot agree with the constant whatever
- * it says — `privileged.test.ts`'s rule for D24's four.
+ * capability is `project:delete` — and, since Spec action 8 (applied 2026-09-30; Rich's option (a) of
+ * 2026-09-29, the faculty front-end's FE-42, built by the launch path plan's Task 6b), running D21's
+ * rehearsal (§9), `launch:rehearse`: D24's *"Four actions are stricter still"*. LITERALS, so this file
+ * cannot agree with the constant whatever it says — `privileged.test.ts`'s rule for D24's four.
  */
-const D24_PERSON_ONLY = ['release:approve', 'launch:record', 'project:delete'] as const
-
-/**
- * AND RUNNING D21'S REHEARSAL, by Rich's option (a) on 2026-09-29 (the faculty front-end's FE-42;
- * the launch path plan's Task 6b): the owner, a collaborator or an administrator, in their own
- * session — never a token. Kept apart from D24's three because D24's clause for it is DRAFTED for
- * his approval, not applied: until it is, the set is D24's three plus this one.
- */
-const PERSON_ONLY_LITERALS = [...D24_PERSON_ONLY, 'launch:rehearse'] as const
+const PERSON_ONLY_LITERALS = [
+  'release:approve',
+  'launch:record',
+  'project:delete',
+  'launch:rehearse',
+] as const
 
 const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
   credential: 'token',
@@ -44,7 +43,7 @@ const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
 })
 
 describe('the person-only class (D24, §20)', () => {
-  it('is exactly D24’s three and the rehearsal, and nothing has been quietly added', () => {
+  it('is exactly D24’s four, and nothing has been quietly added', () => {
     expect([...PERSON_ONLY].sort()).toEqual([...PERSON_ONLY_LITERALS].sort())
   })
 

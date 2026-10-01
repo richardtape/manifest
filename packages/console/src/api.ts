@@ -672,8 +672,11 @@ export function createApi(options: ApiOptions) {
     /**
      * D21's rehearsal as R2 redefines it: the candidate is deployed to its PRODUCTION
      * hostname on the public listener, its Service Provider registered with production
-     * values, and one real CWL sign-in completed against the Manifest IdP. **~6 s against the
-     * platform and instant against the mock**, so the caller shows a pending state.
+     * values, and one real CWL sign-in completed against the Manifest IdP — then, since the
+     * launch path plan's Task 6c, the deployment taken down again before the result is
+     * recorded. **~6 s against the platform and instant against the mock**, so the caller
+     * shows a pending state. It needs a step-up (`403 STEP_UP_REQUIRED`, whose `<Refusal>` is
+     * the link that does it), and a second press while one runs is `409 REHEARSAL_RUNNING`.
      *
      * **`passed: false` IS A `200`** — a measurement that came out badly is not a request
      * error, and `evidence.reason` says which hop failed. A caller that switched on the HTTP

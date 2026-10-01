@@ -37,7 +37,7 @@ Some operations take a session and nothing else — among them `getMe`, `createP
 
 ## Step-up — signing in again, for the most privileged actions
 
-A few actions need the person to prove it is them again, within the last ten minutes: approving a release, deploying to production, managing members, changing a quota, setting a production secret’s value, switching an app off and deleting one — and confirming an agent’s request for any of them. Without it they are refused `403 STEP_UP_REQUIRED`. Send the person’s browser to `GET /auth/step-up?returnTo=<the page they are on>`; they complete CWL’s prompt and come back, and the same request succeeds for ten minutes. A token can never step up.
+A few actions need the person to prove it is them again, within the last ten minutes: approving a release, deploying to production, running the pre-production rehearsal, managing members, changing a quota, setting a production secret’s value, switching an app off and deleting one — and confirming an agent’s request for any of them. Without it they are refused `403 STEP_UP_REQUIRED`. Send the person’s browser to `GET /auth/step-up?returnTo=<the page they are on>`; they complete CWL’s prompt and come back, and the same request succeeds for ten minutes. A token can never step up.
 
 ## A delegated token — an agent, a script or CI
 

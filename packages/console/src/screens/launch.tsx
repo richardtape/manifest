@@ -115,6 +115,7 @@ function adminActions(projectId: string): Partial<Record<LaunchItemId, React.Rea
  * D21's rehearsal, for EVERYONE who can read this checklist (the launch path plan's Task 6b): the
  * owner, a collaborator and an administrator hold `launch:rehearse`. An affordance like the rest —
  * the platform refuses a delegated token, and a launched app has no `rehearsal` item to act on.
+ * Since Task 6c it needs a step-up, which `RunRehearsal`'s `<Refusal>` offers as a link.
  */
 function rehearsalAction({
   api,
@@ -316,8 +317,8 @@ function RunRehearsal({
       </button>{' '}
       {running && (
         <span className="hint">
-          deploying the candidate to its production hostname and completing one CWL
-          sign-in — a few seconds
+          deploying the candidate to its production hostname, completing one CWL sign-in
+          and taking it down again — a few seconds
         </span>
       )}
       <Refusal error={error} />

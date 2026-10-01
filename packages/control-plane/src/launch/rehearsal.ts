@@ -1,20 +1,44 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import type { Config } from '../config.js'
-import { environments, events, projects, rehearsals, type Db } from '../db/index.js'
+import {
+  environments,
+  events,
+  instances,
+  projects,
+  rehearsals,
+  routes,
+  tryWithRehearsalLock,
+  withEnvironmentLock,
+  type Db,
+} from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { personName } from '../projects/index.js'
 import { listenerFor } from '../routing/index.js'
-import { deployRelease, type DeployDeps } from '../releases/index.js'
-import type { Driver } from '../runtime/index.js'
+import {
+  deployRelease,
+  retireInstanceRow,
+  type DeployDeps,
+  type Instance,
+} from '../releases/index.js'
+import { nextState, type Driver } from '../runtime/index.js'
 import type { CwlSignInProbe } from '../sso/index.js'
 import { candidateFor } from './candidate.js'
 import type { LaunchItem } from './readiness.js'
 
 export type RehearsalRow = typeof rehearsals.$inferSelect
 
+/** Every code a rehearsal refuses with — each in `api/error-codes.ts`, whose status `api/errors.ts` reads. */
+export type RehearsalCode =
+  | 'REHEARSAL_NO_CANDIDATE'
+  | 'REHEARSAL_NOT_CWL'
+  | 'REHEARSAL_DEPLOY_FAILED'
+  | 'REHEARSAL_LAUNCHED'
+  | 'REHEARSAL_RUNNING'
+  | 'REHEARSAL_TEARDOWN_FAILED'
+
 export class RehearsalError extends Error {
   constructor(
-    readonly code: string,
+    readonly code: RehearsalCode,
     message: string,
   ) {
     super(message)
@@ -39,12 +63,13 @@ export interface RehearsalDeps {
 }
 
 /**
- * D21'S PRE-PRODUCTION REHEARSAL, AS R2 REDEFINES IT (P6a Task 14), in five steps, each of
+ * D21'S PRE-PRODUCTION REHEARSAL, AS R2 REDEFINES IT (P6a Task 14), in six steps, each of
  * which can fail and each of which is recorded.
  *
  * 1. **Deploy the candidate digest into PRODUCTION, behind the gate** — behind the deploy
  *    route's APPROVAL gate, which it goes round; never behind a barrier: the instance serves
- *    production's public listener, and nothing here retires it (Decision 16's comment below).
+ *    production's public listener until step 5 takes it down (the launch path plan's Spec
+ *    action 8, below).
  *    Not a copy and not a simulation: §13 says production runs the exact digest staging
  *    ran, and a rehearsal against anything else rehearses something else. It calls
  *    `deployRelease` directly —
@@ -63,7 +88,16 @@ export interface RehearsalDeps {
  * 4. **The attributes the assertion actually released are read**, out of the assertion, and
  *    compared with what was registered — §9's `core:AttributeLimit` enforcement measured
  *    rather than assumed, which is what S2 paid for.
- * 5. **Pass or fail is recorded with the evidence.**
+ * 5. **The production instance is taken down — the name first, then the instance** (§9, as Spec
+ *    action 8 amended it: *"The rehearsal takes its production instance down once its sign-in is
+ *    measured, before its result is recorded; nothing it deployed keeps serving."*; the launch path
+ *    plan's Task 6c). Whether the sign-in passed, failed or threw. `takeDown` says how.
+ * 6. **Pass or fail is recorded with the evidence** — only now, so §13's `rehearsal` item can never
+ *    read `met` while the candidate still serves, and a launch cannot start in between.
+ *
+ * **ONE AT A TIME PER PROJECT, AND A SECOND IS REFUSED** (`409 REHEARSAL_RUNNING`; the faculty
+ * front-end's FE-43): `tryWithRehearsalLock`. Two at once would probe each other's instance, and a
+ * second press — a reload, a second tab — would deploy and take down again for nobody.
  *
  * **WHAT IT PROVES AND WHAT IT DOES NOT.** It proves the SHAPE of the registration — the
  * entityID, the ACS URL, the attribute release and the certificate all working together.
@@ -72,6 +106,24 @@ export interface RehearsalDeps {
  * obligation (§9). The checklist item below says so in those words, and has a test.
  */
 export async function runRehearsal(
+  deps: RehearsalDeps,
+  projectId: string,
+  actor: { userId: string; puid: string },
+): Promise<RehearsalRow> {
+  const row = await tryWithRehearsalLock(projectId, () =>
+    rehearse(deps, projectId, actor),
+  )
+  if (row === undefined)
+    throw new RehearsalError(
+      'REHEARSAL_RUNNING',
+      'a rehearsal of this project is already running, so this one was not started and ' +
+        'nothing was deployed. Its answer is due within about two minutes; the launch checklist ' +
+        'then says how it went.',
+    )
+  return row
+}
+
+async function rehearse(
   deps: RehearsalDeps,
   projectId: string,
   actor: { userId: string; puid: string },
@@ -93,10 +145,10 @@ export async function runRehearsal(
    * **A LAUNCHED APP IS NOT REHEARSED** (P6b Task 4, Decision 16). Before a launch no student
    * has been sent the address, which is why the rehearsal may deploy an unapproved candidate into
    * production. **That is a premise about students, not a barrier** (sitting 4a's whole-branch
-   * review, I1): the instance serves production's hostname on the PUBLIC listener, and nothing
-   * retires it — it serves until the launch or a later deploy. Whether it should, and who may
-   * leave it there, is the launch path plan's Spec action 8, open and Rich's.
-   * After one, the same deploy puts that candidate in front of real students with no
+   * review, I1): the instance serves production's hostname on the PUBLIC listener while the
+   * sign-in runs — which is why, since Spec action 8 (Rich's (b) and (c), the launch path plan's
+   * Task 6c), the person must have stepped up and the rehearsal takes the instance down before it
+   * records. After one, the same deploy puts that candidate in front of real students with no
    * approval record — `[M7]` measured it, and `make demo-production`'s re-use path did it
    * for about a second on every run. Refused BEFORE the candidate is looked for, so the
    * answer is the launch whatever else is true. `deployRelease` refuses the exemption as
@@ -160,49 +212,83 @@ export async function runRehearsal(
   })
 
   /**
-   * **THE EVIDENCE DESCRIBES WHAT HAPPENED, NOT WHAT WAS INTENDED** (P6a sitting 9's
-   * control (c), which did NOT fire until this changed). Both values used to be read off
-   * the production environment row two statements up — so a rehearsal that deployed
-   * somewhere else would still have recorded *"production, public listener"*, and the
-   * Docker test asserting exactly that would have stayed green. They are now read back off
-   * the environment the INSTANCE says it is in, which is the only thing that knows.
+   * STEPS 2–4 IN A `try`, STEP 5 AFTER IT WHATEVER THEY DID (Decision 6 of the launch path plan's
+   * Task 6c): a registration that cannot be read back, or a sign-in probe that throws, must not leave
+   * the candidate on production's public listener. The take-down's own failure is the one that wins —
+   * it is the one that leaves something serving — and the measurement's failure is an operator line.
    */
-  const [deployed] = await deps.db
-    .select()
-    .from(environments)
-    .where(eq(environments.id, instance.environmentId))
-  const listener = listenerFor(deployed!.kind)
-  const hostname = deployed!.hostname
+  let measured:
+    | {
+        ok: true
+        listener: ReturnType<typeof listenerFor>
+        hostname: string
+        registration: { entityId: string; acsUrl: string; attributes: string[] }
+        signIn: { status: number | null; attributesReleased: string[]; reason: string }
+      }
+    | { ok: false; error: unknown }
+  try {
+    /**
+     * **THE EVIDENCE DESCRIBES WHAT HAPPENED, NOT WHAT WAS INTENDED** (P6a sitting 9's
+     * control (c), which did NOT fire until this changed). Both values used to be read off
+     * the production environment row two statements up — so a rehearsal that deployed
+     * somewhere else would still have recorded *"production, public listener"*, and the
+     * Docker test asserting exactly that would have stayed green. They are now read back off
+     * the environment the INSTANCE says it is in, which is the only thing that knows.
+     */
+    const [deployed] = await deps.db
+      .select()
+      .from(environments)
+      .where(eq(environments.id, instance.environmentId))
+    const listener = listenerFor(deployed!.kind)
+    const hostname = deployed!.hostname
 
-  const registration = await latestRegistration(
-    deps.db,
-    projectId,
-    `sp:${project.slug}:${deployed!.kind}`,
-    startedAt,
-  )
-  if (registration === undefined)
-    throw new RehearsalError(
-      'REHEARSAL_DEPLOY_FAILED',
-      'the deploy recorded no Service Provider registration, so there is nothing to ' +
-        'rehearse against',
+    const registration = await latestRegistration(
+      deps.db,
+      projectId,
+      `sp:${project.slug}:${deployed!.kind}`,
+      startedAt,
     )
-  /**
-   * A sign-in is only worth attempting against an instance that is actually serving. A
-   * failed deploy is a `200` whose state is `failed` (P4c), and the previous instance —
-   * if any — keeps serving, so the probe would measure something other than this release.
-   */
-  const signIn =
-    instance.state === 'healthy'
-      ? await deps.signIn.signIn({
-          hostname,
-          acsUrl: registration.acsUrl,
-          ...(listener === 'public' ? { port: deps.config.edgePublicPort } : {}),
-        })
-      : {
-          status: null,
-          attributesReleased: [],
-          reason: `the candidate release did not become healthy in ${deployed!.kind}: the instance is '${instance.state}'`,
-        }
+    if (registration === undefined)
+      throw new RehearsalError(
+        'REHEARSAL_DEPLOY_FAILED',
+        'the deploy recorded no Service Provider registration, so there is nothing to ' +
+          'rehearse against',
+      )
+    /**
+     * A sign-in is only worth attempting against an instance that is actually serving. A
+     * failed deploy is a `200` whose state is `failed` (P4c), and the previous instance —
+     * if any — keeps serving, so the probe would measure something other than this release.
+     */
+    const signIn =
+      instance.state === 'healthy'
+        ? await deps.signIn.signIn({
+            hostname,
+            acsUrl: registration.acsUrl,
+            ...(listener === 'public' ? { port: deps.config.edgePublicPort } : {}),
+          })
+        : {
+            status: null,
+            attributesReleased: [],
+            reason: `the candidate release did not become healthy in ${deployed!.kind}: the instance is '${instance.state}'`,
+          }
+    measured = { ok: true, listener, hostname, registration, signIn }
+  } catch (error) {
+    measured = { ok: false, error }
+  }
+
+  try {
+    await takeDown(deps, production, instance)
+  } catch (failure) {
+    if (!measured.ok)
+      console.error(
+        `[rehearsal] ${project.slug}: the measurement had already failed before the take-down did: ${
+          (measured.error as { code?: string }).code ?? (measured.error as Error).name
+        }`,
+      )
+    throw failure
+  }
+  if (!measured.ok) throw measured.error
+  const { listener, hostname, registration, signIn } = measured
 
   const verdict = judge(signIn, registration.attributes)
   const [row] = await deps.db
@@ -249,6 +335,106 @@ export async function runRehearsal(
     makeRedactor([]),
   )
   return row!
+}
+
+/**
+ * STEP 5 — THE REHEARSAL'S PRODUCTION INSTANCE TAKEN DOWN: THE NAME FIRST, THEN THE INSTANCE (§9, as
+ * Spec action 8 amended it; the launch path plan's Task 6c, Decisions 2, 3 and 5). §11's archive's
+ * `switch-off-names` and `retire-instances`, for ONE environment and one instance.
+ *
+ * UNDER THE ENVIRONMENT'S LOCK — the one a deploy holds from its instance row to its Route row, and
+ * the retirer while it chooses — with two guards, each read under it:
+ *
+ * 1. **The instance must still be `healthy`.** Anything else is not this take-down's: `failed` is a
+ *    start the deploy already removed (§11, with its Incident); `destroying` or `gone` is a LATER
+ *    deploy's doing, which took the name and handed this instance to the retirer.
+ * 2. **The name is removed only while it reaches THIS instance** (`servingInstance`, the edge's own
+ *    route by hostname — the question the retirer asks). Anything else on it — another instance, an
+ *    archive's switched-off page — is left exactly as it is.
+ *
+ * Then the Route record naming THIS instance goes, so a boot never puts it back, and the instance is
+ * retired — drained, removed, its key revoked, `gone` — by `retireInstanceRow`, the retirer's own
+ * path, which takes no lock itself (it is called from inside this one).
+ *
+ * **WHAT THE NAME ANSWERS AFTERWARDS: the public listener's wildcard**, `manifest OK host=… listener=
+ * public` — exactly as before any rehearsal (Decision 3). No switched-off page: nothing was switched
+ * off, nothing was ever launched. **What stays, deliberately** (Decision 7): production's services —
+ * internal, never on the public listener, and the launch reuses them — and the production SP row in
+ * the Manifest IdP, which a delete's `deregister-production-sp` removes.
+ *
+ * **A FAILURE IS LOUD AND WRITES NO ROW** (Decision 5): an operator line, `instance.retire_failed`
+ * from `retireInstanceRow` when the retire is what failed, and `REHEARSAL_TEARDOWN_FAILED` naming
+ * what is left. Running the rehearsal again is the remedy: it deploys and takes down afresh.
+ */
+async function takeDown(
+  deps: RehearsalDeps,
+  production: typeof environments.$inferSelect,
+  deployed: Instance,
+): Promise<void> {
+  let step: 'name' | 'instance' = 'name'
+  try {
+    await withEnvironmentLock(production.id, async () => {
+      const [current] = await deps.db
+        .select()
+        .from(instances)
+        .where(eq(instances.id, deployed.id))
+      if (current === undefined || current.state !== 'healthy' || current.handle === null)
+        return
+      if ((await deps.driver.servingInstance(production.hostname)) === current.handle)
+        await deps.driver.removeName(production.hostname, production.kind)
+      await deps.db
+        .delete(routes)
+        .where(
+          and(
+            eq(routes.hostname, production.hostname),
+            eq(routes.instanceId, current.id),
+          ),
+        )
+      step = 'instance'
+      await deps.db
+        .update(instances)
+        .set({ state: nextState(current.state, 'destroy_requested') })
+        .where(eq(instances.id, current.id))
+      await retireInstanceRow(
+        {
+          db: deps.db,
+          driver: deps.driver,
+          ai: deps.deploy.ai,
+          appSecrets: deps.deploy.appSecrets,
+          bus: deps.deploy.bus,
+          drainMs: deps.config.drainTimeoutMs,
+        },
+        {
+          environment: production,
+          handle: current.handle,
+          row: current,
+          marked: true,
+          redact: makeRedactor(
+            await deps.deploy.appSecrets.secretValues(deps.db, {
+              projectId: production.projectId,
+              environmentKind: production.kind,
+            }),
+          ),
+        },
+      )
+    })
+  } catch (error) {
+    // THE CODE, never the message: a driver's or the gateway's text is third-party (§14).
+    const code = (error as { code?: string }).code ?? (error as Error).name
+    console.error(
+      `[rehearsal] instance ${deployed.id} of ${production.hostname} could not be taken down (${step}): ${code}`,
+    )
+    throw new RehearsalError(
+      'REHEARSAL_TEARDOWN_FAILED',
+      step === 'name'
+        ? `the rehearsal ran, but ${production.hostname} could not be released: the candidate ` +
+            'still answers it on the public listener. Nothing was recorded. Run the rehearsal ' +
+            'again — it deploys afresh and takes itself down again.'
+        : `the rehearsal ran and ${production.hostname} no longer reaches the candidate, but its ` +
+            'instance could not be removed. Nothing was recorded. Run the rehearsal again — it ' +
+            'deploys afresh and takes itself down again.',
+    )
+  }
 }
 
 /**
@@ -446,7 +632,7 @@ export async function rehearsalItem(
     return {
       ...base,
       state: 'unmet',
-      why: 'D21: before an app is public, Manifest deploys the candidate release to its production hostname, registers its Service Provider with production values and completes one CWL sign-in. Nobody has run it for this project yet.',
+      why: 'D21: before an app is public, Manifest deploys the candidate release to its production hostname, registers its Service Provider with production values, completes one CWL sign-in and takes the deployment down again. Nobody has run it for this project yet.',
     }
   if (!row.passed)
     return {
@@ -470,6 +656,6 @@ export async function rehearsalItem(
   return {
     ...base,
     state: 'met',
-    why: `A production-shaped rehearsal passed on ${row.ranAt.toISOString().slice(0, 10)}: the app was deployed to its production hostname on the ${row.evidence.listener} listener, its Service Provider was registered with production values, and one CWL sign-in completed releasing ${row.evidence.attributesReleased.length} attribute(s). This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).`,
+    why: `A production-shaped rehearsal passed on ${row.ranAt.toISOString().slice(0, 10)}: the app was deployed to its production hostname on the ${row.evidence.listener} listener, its Service Provider was registered with production values, one CWL sign-in completed releasing ${row.evidence.attributesReleased.length} attribute(s), and the deployment was taken down again. This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).`,
   }
 }

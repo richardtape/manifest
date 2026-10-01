@@ -1360,28 +1360,24 @@ const ROUTES: RouteCase[] = [
    * and every token is still refused for its credential class. Until Task 6b this was
    * `launch:record`'s third route, and the owner and collaborator rows read `403`.
    *
-   * **THE `409` IS `REHEARSAL_NO_CANDIDATE`, and that is a fact about WHERE THIS ROW SITS.**
-   * Nothing in this suite deploys to staging before it — the deploy rows are below — so no
-   * release is serving and there is no candidate to rehearse. If a later change deploys
-   * first, this row goes red naming the other code (`REHEARSAL_NOT_CWL`), which is the
-   * suite telling the truth about what changed rather than passing on a status.
+   * **STEP_UP SINCE TASK 6c, WHERE ALL THREE WERE `409 REHEARSAL_NO_CANDIDATE`** (Spec action 8
+   * (b), §20: *"plus running D21's rehearsal"*). This suite's sessions are ordinary ones, so each
+   * person who holds the capability is refused for freshness BEFORE the project's state is read —
+   * and the stranger is still `404`, because the capability is asked first. That a STEPPED-UP
+   * person reaches the rehearsal is `api/delivery.test.ts`'s *who may run D21's rehearsal*, which
+   * asserts `200` for the owner, a collaborator and an administrator.
    */
   {
     method: 'POST',
     url: '/v1/projects/:projectId/rehearsal',
     request: (f) => ({ url: `/v1/projects/${f.projectId}/rehearsal` }),
     expect: {
-      // THE SAME ANSWER AS THE ADMINISTRATOR'S, NAMED for the reason given there: each reaches the
-      // candidate check, which is the proof that the capability let them through.
-      owner: { status: 409, code: 'REHEARSAL_NO_CANDIDATE' },
-      collaborator: { status: 409, code: 'REHEARSAL_NO_CANDIDATE' },
+      // STEP_UP for all three: the capability let each through (a stranger is `404`), and §20's
+      // freshness is what refuses them — the proof the guard is asked of every role that holds it.
+      owner: STEP_UP,
+      collaborator: STEP_UP,
       stranger: 404,
-      // **NAMED, because a bare `409` in this table means `RELEASE_PRODUCTION_GATE_
-      // UNAVAILABLE`** — `REFUSAL_CODE` maps one code per status, so a bare number here
-      // would assert the launch gate's code against the rehearsal's refusal. This is the
-      // first row to expect a code from a family other than `api`, and it is what found
-      // that `error-codes.test.ts` was reading this file's EXPECTATIONS as throws.
-      admin: { status: 409, code: 'REHEARSAL_NO_CANDIDATE' },
+      admin: STEP_UP,
       anonymous: 401,
       // Refused for the CREDENTIAL CLASS before any capability is read, like the two
       // records above — and `token-capable` holds `launch:rehearse` (Task 6b), which is what

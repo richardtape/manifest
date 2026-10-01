@@ -4858,7 +4858,7 @@
           "projects"
         ],
         "summary": "Remove a member",
-        "description": "Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes nothing, and ends any agent session of theirs still live there. The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.",
+        "description": "Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes no `member.removed`, and ends any agent session of theirs still live there (each an `agent_session.ended`). The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.",
         "parameters": [
           {
             "name": "projectId",
@@ -5044,7 +5044,7 @@
           "launch"
         ],
         "summary": "Run the pre-production rehearsal",
-        "description": "Deploys the candidate release to production behind the launch gate, registers its Service Provider with production-shaped values, completes one CWL sign-in, and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The owner, a collaborator or a platform administrator runs it in their own session, with no step-up; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. Refused once the app has launched (`REHEARSAL_LAUNCHED`). Up to ~90 s.",
+        "description": "Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone`. The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.",
         "security": [
           {
             "session": []
@@ -5110,7 +5110,7 @@
             }
           },
           "default": {
-            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, REHEARSAL_RUNNING, REHEARSAL_TEARDOWN_FAILED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5132,10 +5132,13 @@
           "REHEARSAL_LAUNCHED",
           "REHEARSAL_NOT_CWL",
           "REHEARSAL_NO_CANDIDATE",
+          "REHEARSAL_RUNNING",
+          "REHEARSAL_TEARDOWN_FAILED",
           "RELEASE_DIGEST_MISSING",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "STEP_UP_REQUIRED",
           "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
@@ -9334,6 +9337,8 @@
           "REHEARSAL_LAUNCHED",
           "REHEARSAL_NOT_CWL",
           "REHEARSAL_NO_CANDIDATE",
+          "REHEARSAL_RUNNING",
+          "REHEARSAL_TEARDOWN_FAILED",
           "RELEASE_AI_BUDGET_MISSING",
           "RELEASE_AI_DISABLED",
           "RELEASE_BLUEPRINT_NOT_FOUND",
@@ -9464,6 +9469,8 @@
           "REHEARSAL_LAUNCHED": "The app has launched, so a rehearsal would put an unapproved candidate on its live production listener. A registration change is proved by UBC IAM’s change request.",
           "REHEARSAL_NOT_CWL": "The app signs nobody in with CWL, so it registers no Service Provider and there is nothing to rehearse. Its checklist item is met.",
           "REHEARSAL_NO_CANDIDATE": "Nothing is serving staging, so there is no candidate release to rehearse (§13).",
+          "REHEARSAL_RUNNING": "A rehearsal of this project is already running, so this one was not started and nothing was deployed.",
+          "REHEARSAL_TEARDOWN_FAILED": "The rehearsal ran, but could not take its production instance down afterwards (the message says what is left), so its result was not recorded.",
           "RELEASE_AI_BUDGET_MISSING": "The release declares models and no AI budget.",
           "RELEASE_AI_DISABLED": "The release declares models and AI is switched off on this control plane.",
           "RELEASE_BLUEPRINT_NOT_FOUND": "The project’s blueprint is no longer in the registry.",
@@ -13259,7 +13266,7 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
                   },
                   "tokensRevoked": {
-                    "description": "How many delegated tokens they had minted on the project were revoked with the removal — every one still live; a token of theirs on another project is not touched.",
+                    "description": "How many delegated tokens they had minted on the project were revoked with the removal — every one not already revoked, an expired one included; a token of theirs on another project is not touched.",
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 9007199254740991
@@ -13489,7 +13496,8 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
                   },
                   "withdrawn": {
-                    "description": "The logical models its key may no longer call — the gateway refuses them from now on.",
+                    "description": "The logical models its key may no longer call — the gateway refuses them from now on. Never empty.",
+                    "minItems": 1,
                     "type": "array",
                     "items": {
                       "type": "string"
@@ -13497,6 +13505,7 @@
                   },
                   "models": {
                     "description": "The logical models its key still holds: what it held that the project still allows. Never empty — a session left with nothing it may use is ended instead.",
+                    "minItems": 1,
                     "type": "array",
                     "items": {
                       "type": "string"
@@ -17833,7 +17842,7 @@
     "AI_CATALOGUE_DISABLED": {
       "status": 503,
       "summary": "AI is switched off on this control plane.",
-      "remedy": "Remove `ai.models` from manifest.yaml to go on without AI, or ask an administrator to switch AI on."
+      "remedy": "Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left."
     },
     "AI_CATALOGUE_EMPTY": {
       "status": 503,
@@ -18099,6 +18108,16 @@
       "status": 409,
       "summary": "Nothing is serving staging, so there is no candidate release to rehearse (§13).",
       "remedy": "Deploy a release to staging and let it become healthy, then rehearse again."
+    },
+    "REHEARSAL_RUNNING": {
+      "status": 409,
+      "summary": "A rehearsal of this project is already running, so this one was not started and nothing was deployed.",
+      "remedy": "Wait for the running rehearsal to answer — up to about two minutes — then read the launch checklist (`getLaunchReadiness`): its `rehearsal` item says how it went."
+    },
+    "REHEARSAL_TEARDOWN_FAILED": {
+      "status": 500,
+      "summary": "The rehearsal ran, but could not take its production instance down afterwards (the message says what is left), so its result was not recorded.",
+      "remedy": "Run the rehearsal again: it deploys the candidate afresh and takes it down again. If it keeps failing, tell a platform administrator — the project’s events name the step that failed."
     },
     "RELEASE_AI_BUDGET_MISSING": {
       "status": 409,

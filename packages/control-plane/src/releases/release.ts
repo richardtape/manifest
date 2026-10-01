@@ -939,7 +939,8 @@ export async function deployRelease(
       )
       // §13 D9: THE LAUNCH IS RECORDED BY THE DEPLOY THAT MAKES IT TRUE (P6b Decision 1). A
       // production deploy for purpose 'launch' that reached healthy — never a rehearsal,
-      // whose instance serves production too and must not read as a launch. Once per
+      // whose instance serves production too while its sign-in runs, and must not read as a
+      // launch. Once per
       // project, by `recordLaunch`'s own WHERE clause.
       if (environment.kind === 'production' && (input.purpose ?? 'launch') === 'launch')
         await recordLaunch(db, deps.bus, {

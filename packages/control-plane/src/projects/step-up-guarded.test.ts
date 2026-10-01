@@ -16,9 +16,11 @@ import { sessionActor } from './testing.js'
  * a quota, changing project membership"* — *"plus setting the value of a production secret"*
  * (Spec action 2 of the authoring API plan, applied 2026-09-26) — *"plus archiving or deleting a
  * project, which take an app away from its students (§11)"* (Spec action 3 of the front-end
- * enablement plan, applied 2026-09-27; `project:delete` is both routes' capability).
+ * enablement plan, applied 2026-09-27; `project:delete` is both routes' capability) — *"plus running
+ * D21's rehearsal, which puts an unapproved release on production's public listener while its sign-in
+ * runs (§9)"* (Spec action 8 of the launch path plan, applied 2026-09-30; `launch:rehearse`, Task 6c).
  *
- * The seven are named here as LITERALS, exactly as `privileged.test.ts` names D24's four
+ * The eight are named here as LITERALS, exactly as `privileged.test.ts` names D24's four
  * and for the same reason: deriving them from the constant under test would make this
  * file agree with itself no matter what the constant said.
  */
@@ -30,6 +32,7 @@ const STEP_UP_SET: readonly PrivilegedCapability[] = [
   'secret:read',
   'secret:write',
   'project:delete',
+  'launch:rehearse',
 ]
 
 const NOW = 1_700_000_000_000
@@ -55,7 +58,7 @@ function tokenActor(grant?: PrivilegedCapability): Actor {
 }
 
 describe('§20’s step-up guard (P6a Task 9)', () => {
-  it('is exactly D24’s four plus release:approve, secret:write and project:delete, and nothing has been quietly added', () => {
+  it('is exactly D24’s four plus release:approve, secret:write, project:delete and launch:rehearse, and nothing has been quietly added', () => {
     expect([...STEP_UP_GUARDED].sort()).toEqual([...STEP_UP_SET].sort())
   })
 
@@ -88,14 +91,14 @@ describe('§20’s step-up guard (P6a Task 9)', () => {
   it('is a strict superset of D24’s privileged four', () => {
     for (const capability of PRIVILEGED)
       expect(STEP_UP_GUARDED.has(capability)).toBe(true)
-    expect(STEP_UP_GUARDED.size).toBe(PRIVILEGED.size + 3)
+    expect(STEP_UP_GUARDED.size).toBe(PRIVILEGED.size + 4)
   })
 
   /**
    * THE POSITIVE CONTROL. Without it this file is a set of refusals that a function
    * throwing for everything would satisfy (P5c sitting 9, F16).
    */
-  it('lets a stepped-up session through — every one of the seven', () => {
+  it('lets a stepped-up session through — every one of the eight', () => {
     for (const capability of STEP_UP_SET)
       expect(() => assertStepUp(steppedUp, capability, NOW)).not.toThrow()
   })
