@@ -6,6 +6,7 @@ import {
   builds,
   environments,
   events,
+  incidents,
   instances,
   rehearsals,
   releases,
@@ -1357,8 +1358,9 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
   async function stagedCwlProject(
     slug: string,
     probe?: (inner: CwlSignInProbe, deps: ServerDeps) => CwlSignInProbe,
+    driver?: Driver,
   ) {
-    const base = await testDeps()
+    const base = driver === undefined ? await testDeps() : await depsWithDriver(driver)
     const fakes = cwlFakes(base)
     const deps: ServerDeps = { ...base, ...fakes }
     if (probe !== undefined) deps.signIn = probe(fakes.signIn, deps)
@@ -1816,6 +1818,44 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
         expect(await productionRoutes(ctx)).toEqual([])
       } finally {
         lines.mockRestore()
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    /**
+     * DECISION 6: A START THAT FAILS INSIDE THE REHEARSAL is not the take-down's — the deploy already
+     * removed it, and captured its Incident, before it answered (§11, §14). So the rehearsal records a
+     * `200` with `passed: false`, the instance stays `failed`, its Incident is on production naming it
+     * — the faculty front-end reads exactly that — and nothing else is retired.
+     */
+    it('a start that FAILS inside the rehearsal stays failed with its Incident on production — the take-down retires nothing', async () => {
+      const ctx = await stagedCwlProject(
+        'tk-unstarted',
+        undefined,
+        createFakeDriver({ neverReady: (spec) => spec.environmentKind === 'production' }),
+      )
+      try {
+        const res = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(res)).toEqual({ status: 200, code: undefined })
+        const body = res.json() as {
+          passed: boolean
+          evidence: { instanceId: string; signInStatus: number | null }
+        }
+        expect(body).toMatchObject({ passed: false, evidence: { signInStatus: null } })
+        expect(
+          (await productionInstances(ctx)).map((i) => ({ id: i.id, state: i.state })),
+        ).toEqual([{ id: body.evidence.instanceId, state: 'failed' }])
+        const recorded = await ctx.deps.db
+          .select({ instanceId: incidents.instanceId })
+          .from(incidents)
+          .where(eq(incidents.instanceId, body.evidence.instanceId))
+        expect(recorded).toHaveLength(1)
+        expect(await retiredEvents(ctx, body.evidence.instanceId)).toEqual([])
+        expect(
+          await ctx.deps.driver.servingInstance(productionOf(ctx).hostname),
+        ).toBeUndefined()
+      } finally {
         await ctx.deps.builds.idle()
         await ctx.app.close()
       }
