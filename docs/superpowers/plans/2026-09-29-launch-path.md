@@ -4336,7 +4336,8 @@ lists instead of unregistered rows: RED 1. **Every one red exactly where predict
   `litellm-orphans.sh` lists **18** orphaned — **not applied**, for sitting 5's reason (a budget's deletion resets its month).
 - `make doctor` **21/0/0**, `make verify` **64/0/0** (Mailpit's counts).
 - **The S5 spike's, not this sitting's**: its `s5-*` containers and images, and **32 anonymous volumes** created 23:08–23:31 PDT — in pairs,
-  a MongoDB container's two; 2 used by its running `s5-A2-mongo`, 30 by nothing. Left alone; the spike told.
+  a MongoDB container's two; 2 used by its running `s5-A2-mongo`, 30 by nothing. Left alone; the spike told — **and it removed the
+  30 itself at 00:46** (re-measured: of the 32, the 2 in use remain), its scripts now `docker rm -f -v`.
 - **7102 and 7105 are the faculty front-end's** (node 26430 and 26458). **Nothing on 7104.**
 - Ollama **0.35.0** (the S5 spike is loading `qwen3.8:27b` from 00:35, evicting the 4B, and re-warms it after); **free disk 63 GiB** (68 at
   open). Load ~4.
