@@ -2430,3 +2430,16 @@ and F8). `packages/journey/src/docs.test.ts` calls a camelCase name led by a ver
 (fixed: a property the document declares is not one). And `api/contract/docs.test.ts`'s internal-name pattern reads `F0` — a hex pair
 in a certificate fingerprint — as a finding number (exempted by the field's PATH). When a gate goes red naming something that IS in the
 document, read the gate's classifier before the text.
+
+**A SCHEMA DEFAULT READS AS THE OWNER'S DECISION** (the launch path plan's sitting 8, F1 and F11, measured: the CWL test manifest writes no
+`data:` block, and its stored spec said `retention_days: 365` and `classification: internal` exactly as one that wrote them). The manifest
+schema fills both (`spec/schema.ts`), so `app_specs.parsed` — and every release frozen from it — cannot say whether anybody CHOSE them. A
+reader that must not present a default as a choice (the privacy assessment's draft) reads the YAML at the spec's own commit:
+`spec/`'s `declaredData` (the precedent is `declaresModels`). The same holds for any field with `.default(…)` — check the schema before
+you trust a stored value as a statement.
+
+**THE AUTHORIZATION MATRIX RUNS ONE FIXTURE, ROW BY ROW, IN ORDER** (sitting 8, F6): `api/authz-contract.ts`'s `beforeAll` builds the
+fixture once, and the rows run in the order they are written — so a row's answer depends on what every row ABOVE it did to the project
+(the administrator's record rows move the fixture's privacy assessment to `submitted`, so a draft row below them is `409
+LAUNCH_RECORD_SUBMITTED` for every holder, not a pass). Predict a new row from the fixture's state at that point, assert the code, and put
+a row that CREATES state below the rows that must not see it.

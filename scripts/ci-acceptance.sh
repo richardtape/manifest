@@ -167,8 +167,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `sso/registration-xml.test.ts` (5, new), `launch/usage.test.ts` (5, new), `launch/package.test.ts` (8, new),
 # `api/launch.test.ts` (13), the matrix's draft row (9), `launch/readiness.test.ts` (4), `sso/keypair.test.ts` (2) and
 # `config.test.ts` (1).
-EXPECT_TESTS=3071
-EXPECT_FILES=189
+# Then its sitting 8 (2026-10-01, D19's privacy-assessment draft, and its fix wave): +36 and two files —
+# `launch/assessment.test.ts` (14, new), `spec/declares.test.ts` (2, new), `api/launch.test.ts` (11) and the matrix's
+# assessment-draft row (9).
+EXPECT_TESTS=3107
+EXPECT_FILES=191
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 

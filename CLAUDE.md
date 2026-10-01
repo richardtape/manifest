@@ -41,7 +41,8 @@ written and approved; then FE-32's plan; then the vulnerability database in the 
 - **the second-machine clean clone**;
 - **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-06**; past seven days `make doctor` warns and
   §13's `scans` item refuses every production launch;
-- **any real repository in `Manifest-local-dev` that no project owns** — none on 2026-09-30 (`bash scripts/github-real-repos.sh`);
+- **any real repository in `Manifest-local-dev` that no project owns** — ONE on 2026-10-01, `f6-watch` (the faculty front-end's F6 sitting 1;
+  its rows truncated by the launch path plan's sitting 8) (`bash scripts/github-real-repos.sh`);
   removing one is his;
 - **the UBC external track — DEFERRED by Rich, 2026-09-30** (*"I have to get all of this working first locally. And then show
   demos"*): not a blocker; do not raise it as urgent;

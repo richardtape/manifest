@@ -54,6 +54,13 @@
 > `draftGeneratedAt` and `409 LAUNCH_DRAFT_CHANGED`). The checklist says when a draft no longer matches the release serving staging.
 > Contract still `1.5.0`. *Sitting 7* is the record; **sitting 8 (Task 11) is next.**
 
+> **SITTING 8 — TASK 11 — DONE 2026-10-01** (Spec action 4). D19's privacy-assessment draft: `draftPrivacyAssessment` (`launch:draft`,
+> mintable) stores §9's six rows — facts with where Manifest read them, the gaps only the owner can fill, a text to paste — drawn from the
+> launch candidate's manifest; it says only what the platform does today (a default named as one, no backup, no scheduled deletion,
+> Manifest's own Incident logs); kept as sent (`LAUNCH_RECORD_SUBMITTED`); its send-day the draft's; the checklist says when the draft is
+> not what launches. Contract still `1.5.0`. *Sitting 8* is the record; **sitting 9 (Task 12) is next — after Rich answers §8's
+> `change_requested` question.**
+
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
@@ -140,8 +147,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | **DONE 2026-09-30** — INLINE, by `manifest-74`, after the front-end's 7100 window (the database dumped first): the affiliation asked for and written at every sign-in (`0044`), `[]` when absent; `mayBuild` (admin, or `faculty` exactly); the three refusals, `addMember`'s for a NEWCOMER only, decided under a membership row lock; `MANIFEST_ADMIN_PUIDS` authoritative when set, each change a `RoleChange`; `TEST_USERS` with affiliations and a fifth, `bio_colleague`; the IdP's `colleague`; `make demo-token` and `make demo-frontend` green on driver 1; the mock's `MANIFEST_MOCK_MAY_BUILD=0`; one whole-branch review beside the Docker tier, one fix wave (a removal racing a role change re-added the person; the Docker pins; the published example; the hint); contract `1.5.0`; the front-end told before each contract commit |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | **DONE 2026-09-30/10-01** — INLINE, by `manifest-92`, after Mailpit (the database dumped first; the front-end's 7100 window in the middle, migration held until it closed): `0045` (the staging kind, the submission columns, the CHECK on a registered row only); `launch:submit` (person-only) and the two submission routes, refused in UBC's order — **the assessment first for EITHER registration (the spec's words, wider than `[S9]`)**, staging before production — with a draft required and a real day; the build reads only production's registered row; `since` on the checklist; `[M8]`'s administrator hint; one whole-branch review beside the Docker tier (270/270), one fix wave (one locked transaction per submission, held by two deterministic lock tests; `z.iso.date()`; the kept reference; the mock in UBC's order; examples captured); contract `1.5.0`; the front-end told before each contract commit |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | **DONE 2026-10-01** — INLINE, by `manifest-8e`, beside the faculty front-end's F6 (mock-only — 7100 the sitting's throughout): `draftIamRegistration` (`launch:draft`, mintable) and `IamRegistration.package` — the entity, the certificate's public half through the registrar, every attribute justified by where the app reads it (the bridge skipped, bounded), the contacts (`MANIFEST_LAUNCH_CONTACTS`), the PIA number, the metadata in the tool's structure (`[M6]`); production from the candidate; `LAUNCH_RECORD_SUBMITTED`, `LAUNCH_NOT_CWL`; Review Focus 1's checklist half; `cwlFakes` on the real keypair store; ten controls red as predicted; one whole-branch review beside the Docker tier (271/271), one fix wave (`dec71d8`: one mint per environment under a lock; `LAUNCH_DRAFT_STALE`; `draftGeneratedAt` and `LAUNCH_DRAFT_CHANGED`) with six more controls; contract `1.5.0`; the front-end told before each contract commit |
-| 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | ← **next** — read Task 11's `[S7]` block first |
-| 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30 | |
+| 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | **DONE 2026-10-01** — INLINE, by `manifest-8d`, beside the faculty front-end's F6 (7100 handed over at open; its sitting 2 mock-only): `draftPrivacyAssessment` (`launch:draft`, mintable) and `PrivacyAssessment.draft` — §9's six rows as facts with their source and the owner's gaps, a text to paste, drawn from the candidate's manifest; the YAML read for what the owner WROTE (`declaredData`); kept as sent; the send-day the draft's; one whole-branch review beside the Docker tier (271/271), one fix wave (`4aaf0ef`: only what the platform does — retention and classification defaults named, no backup or deletion claimed, Manifest's Incident logs, breach and GitHub gaps; the driver-2 route test; the checklist's drift sentence); contract `1.5.0`; the front-end told before each contract commit |
+| 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30 | ← **next** — §8 *Open*'s `change_requested` question is Rich's FIRST; read Task 12's `[S6]` block |
 | 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | |
 | 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | |
 
@@ -2431,6 +2438,19 @@ lands, the submission routes have no client that can meet their precondition** �
 >   serving staging (*"The draft no longer matches the release serving staging: it asks for sn, which the draft does not. Draft it again
 >   before you send it."*). The launch screen shows it as it is.
 
+> **`[S8]` (sitting 8, 2026-10-01 — Task 11, `81892d4`): THE ASSESSMENT'S DRAFT, AS THE CONSOLE AND THE MOCK MEET IT.**
+> - **`draftPrivacyAssessment` is parked** in `DELIBERATELY_UNCALLED` beside the three above, naming this task.
+> - **The mock's `PRIVACY_ASSESSMENT` carries `draft: null`** although its owner submitted it — a state the platform cannot produce (a
+>   person's submission needs a draft). Script a real draft; until then `draftPrivacyAssessment` answers from its DOCUMENT EXAMPLE
+>   (`ASSESSMENT_DRAFTED_EXAMPLE`, captured).
+> - **What the records screen shows of a draft** is `PrivacyAssessmentDraft`: the six `sections` in order — each `title`, its `facts`
+>   (`label`, `value`, and `source`, which says where Manifest read it) and its `gaps` (what only the owner can add — show them as a
+>   to-do, never hide an empty list's absence); the `warnings`; and `text` with *Copy* — the whole draft as plain text for the Privacy
+>   Office's form. *"I've sent it"* sends the draft's `generatedAt` as `draftGeneratedAt`.
+> - **The checklist's `privacy-assessment` item** says, while the assessment is a draft, when the draft was not made from the release
+>   serving staging (*"…draft it again before you send it."*). **Its no-record sentence predates drafting** — it still says an
+>   administrator records it (the sitting's review, M7): the owner's first step is now *Draft it*; reword it here or in Task 14.
+
 > **FE-40 (relayed 2026-09-29, CONFIRMED by Rich at sitting 3's open — its section above)**: four OPT-IN mock switches so the mock
 > can play a first launch — ready, step-up enforced, `getApproval` `404` before a decision, a failed rehearsal. They are this
 > task's, beside the defaults, which do not move.
@@ -2480,6 +2500,17 @@ lands, the submission routes have no client that can meet their precondition** �
 > checklist's drift sentence; and, for operators, `MANIFEST_LAUNCH_CONTACTS` (RUNBOOK). Task 10's NEW descriptions carry no section,
 > decision or plan number; the older ones it sat beside (`IamRegistration`'s fields, `LAUNCH_RECORD_INVALID`'s summary) are this task's
 > published-text pass.
+
+> **`[S8]` (sitting 8, 2026-10-01 — Task 11, `81892d4`): WHAT *LAUNCHING* MUST NOW SAY ABOUT THE ASSESSMENT — AND ONE STREAM FACT.**
+> `draftPrivacyAssessment` — FIRST in UBC's order, `launch:draft` (MINTABLE); its six questions as facts with their source and the gaps
+> the owner fills (what the app keeps in its own database; where UBC will host it; disposal at sunset; staging's use by real people; a
+> retention the manifest does not declare, stated as Manifest's default); drawn from the release serving staging, so draft it once the
+> release you will launch serves staging; drafting again until it is sent, then `409 LAUNCH_RECORD_SUBMITTED` while `submitted` or
+> `approved`, until the Privacy Office sends it back; `text` to paste; the earliest `sentAt` is the draft's `generatedAt`; send
+> `draftGeneratedAt`. **And from the faculty front-end's F6 sitting 1** (relayed to sitting 8): a TOKEN's stream is closed `4401` at an
+> archive or a delete BEFORE `project.archived` / `project.deleted` reaches it — the *Events* guide must say a token client learns it
+> from the close code, not the event; and archive's `STEP_UP_REQUIRED` message names `project:delete` (the capability archive and delete
+> share) — the published-text pass words it for a person archiving.
 
 > **`[S10]` (Rich, 2026-09-30 — *"One of the things that we don't need to see in the API docs is things like section or plan
 > numbers. They're irrelevant to the person reading the docs … This needs to be looked at for all the docs"*; placed HERE, *"In the
@@ -2534,6 +2565,10 @@ lands, the submission routes have no client that can meet their precondition** �
 > to end what the unit tier holds through a labelled fake and the Docker tier through the real registrar alone: **the staging package's
 > certificate fingerprint is the one `sso.registered` publishes when staging deploys** (Review Focus 2). On driver 2 the draft reads the
 > app's tree through the mirror, at the commit it is drawn from.
+
+> **`[S8]` (sitting 8, 2026-10-01 — Task 11, `81892d4`):** the demo drafts the ASSESSMENT first (UBC's order), reads its gaps, and says
+> it was sent naming its `generatedAt`; on driver 2 its *where it flows* names the organisation the people who change the app are sent
+> to as authors (`[M1]`). The route has been driven only by the unit tier (`inject`); this demo is its first run over HTTP.
 
 **ALONE, AND LAST.**
 
@@ -4607,3 +4642,144 @@ exemption; the examples recaptured; the lock inside `ensureSpKeypair`, not aroun
 - Not Manifest's, left alone: `cwl-spike-*` (4 up, 1 exited) and `openwebui-openwebui-1`, made 2026-09-29.
 - `scripts/snapshot-machine.sh` at open and close: identical but for the uptimes, the free disk, the edge (restarted by the Docker tier)
   and the host name.
+
+### Sitting 8 — 2026-10-01: Task 11 — D19's privacy-assessment draft: §9's six rows, saying only what the platform does, and naming what it cannot know
+
+**Run by session `manifest-8d`, INLINE** (`superpowers:executing-plans`: one context, TDD per step, one fresh whole-branch review beside
+the Docker tier, one fix wave) on `main`, from `3cc9129`. **Rich's word, in this session's chat**: *"read ORIENTATION.md and proceed with
+the next sitting … check in with the agent working on manifest-app to ensure that your work won't impact them, and co-ordinate between you"*.
+They did: the front-end's F6 sitting 1 (`manifest-app-34`) had finished on 7100 at 17:10Z and HANDED IT OVER (*"7100 is yours"*), declining a
+dump of its `f6-watch`; its F6 sitting 2 (`manifest-app-28`, from 11:00) was mock-only throughout. Its one ask — keep `packages/contract` and
+`packages/mock` typecheck-clean AS A UNIT, since its tests read them live — was met: the fixture and `contract:generate` landed in one step,
+and it was told before regenerating, before each of the two contract commits and after (*"OK, commit"*; it adopted `81892d4` and `4aaf0ef`
+with no change, its 1671 tests green on our tree). §7e's two questions: the database held the front-end's `f6-watch` (LAUNCHED, a real
+repository) and `f6-draft` (deleted) — dumped anyway (`manifest_control-before-sitting8-2026-10-01.dump`, 110K) and truncated by the first
+Vitest run; `make refresh-vulndb` is due after 2026-10-06.
+
+**What it made true** (`81892d4`, and the fix wave's `4aaf0ef`):
+- **`draftPrivacyAssessment`** — `POST /v1/projects/{projectId}/launch-records/privacy-assessment/draft`, capability **`launch:draft`**
+  (owner, collaborator, administrator; MINTABLE). Manifest generates and STORES on the record (`generated_draft`) what the owner completes
+  and sends the Privacy Office, and `PrivacyAssessment.draft` answers it (`PrivacyAssessmentDraft`): §9's six rows — `collected`, `stored`,
+  `flows`, `retention`, `accountable`, `hosting` — each a list of facts `{ label, value, source }` and the `gaps` only the owner can fill;
+  the `warnings`; and one plain-text rendering, `text`, to paste. `launch/assessment.ts` is pure (`assembleAssessment`,
+  `renderAssessmentText`, `readAssessmentDraft`).
+- **Drawn from the launch candidate's manifest** (the release's own app spec), else the newest valid with a warning — production's rule,
+  since a PIA is per production app; the YAML read at that spec's own commit for what the owner WROTE (`spec/`'s `declaredData`).
+- **It says only what the platform does today** (the fix wave): a retention the manifest declares is the manifest's statement, never a
+  period Manifest enforces (nothing reads `data.retention_days` yet), with *"Manifest deletes nothing it keeps for the app on a schedule"*;
+  a retention or classification the manifest does not write is said to be Manifest's default and named as a gap — the schema's 365 is never
+  stated; no environment is said to be backed up, cleared or thrown away; Manifest's own copies are a fact (an Incident keeps the last 200
+  lines of output); on GitHub, the people who change the app are named as sent there as authors (`[M1]`).
+- **The gaps it names**: what the app keeps in its own database; staging's use by real people (§19); a retention or classification not
+  declared; how the app removes old data; disposal at sunset; breach response and notification; where UBC will host it; whether an
+  off-premise model, or GitHub, may hold data outside Canada; a model the catalogue lacks or AI switched off; no platform contact.
+- **Kept as it was sent**: `409 LAUNCH_RECORD_SUBMITTED` while `submitted` or `approved` (its words widened to both records), drafted again
+  once the Office sends it back; written under the record's `FOR UPDATE`, as a submission takes it; `submitPrivacyAssessment` refuses a row
+  whose draft does not read back, and its earliest day is the DRAFT's `generatedAt` (Task 10's review M4, for the assessment).
+- **The checklist's `privacy-assessment` item says, while it is a draft, when the draft was not made from the release serving staging** —
+  draft it again (the assessment's twin of Task 10's drift sentence).
+- `privacy_assessment.drafted` (`{ fromCommit, gapCount }`; migration `0047_true_masked_marvel`, the CHECK only); `contactsFor` split into
+  exported `membersOf` and `platformContacts`; the newest-valid rule shared; the authz row; the journey's and console's parking lines (Task
+  13); the mock's `PRIVACY_ASSESSMENT.draft: null`; examples CAPTURED from one flow (draft → submission naming it → approval). **Contract
+  still `1.5.0`.**
+
+**What sitting 8 found** (the count is derived by the command at the head of this section):
+
+**F1 The plan's retention gap could never fire.** `data.retention_days` has a schema default (365), so the stored spec always carries a
+number: *"or the gap 'no retention declared'"* was unreachable, and the draft would have stated 365 days as the owner's choice. The draft
+reads the YAML at the spec's commit (`declaredData`).
+
+**F2 The design's backups are not built.** §11/§12 back production up nightly; the Docker driver's `snapshotService` throws
+`DRIVER_UNSUPPORTED`. The draft says what the platform does — *"not backed up on this platform yet"*.
+
+**F3 The plan's `driver: string` was two inputs.** `[M1]`'s GitHub-author fact needs the REPOSITORY's provider and organisation; *hosting*
+needs the RUNTIME driver's name.
+
+**F4 The plan's draft had no `warnings`**, and production's assessment drawn without a candidate needs the registration's warning.
+
+**F5 The plan's `renderAssessmentText(draft)` could not name the app** — the draft carries `project`.
+
+**F6 My own prediction for the authz matrix row was wrong**: the matrix runs ONE fixture in order, and the administrator's record row above
+leaves its assessment `submitted` — every holder is `409 LAUNCH_RECORD_SUBMITTED`, now asserted by code.
+
+**F7 Two published examples implied a draft they did not carry** — the submission's and the record's (a person's submission needs one).
+Recaptured as one flow; `RECORDS_EXAMPLE`'s administrator-recorded assessment keeps `draft: null`, a state the platform produces.
+
+**F8 Control (e) went red by a different mechanism than predicted**: without `FOR UPDATE` the re-draft read `draft` before the submission
+landed and waited at its UPDATE instead — overwriting the sent record (`200`). The property went red; the prediction's path did not.
+
+**F9 Control (f) turned three red where I predicted two** — the always-true mutation also breaks *"false for anything that does not parse"*.
+
+**F10 The review's I1: the draft stated a retention nothing enforces** — *"The app keeps its data for 180 days"*, and the default as
+*"Manifest's"*, while nothing reads the field, an archive keeps every volume and a launched project cannot be deleted.
+
+**F11 The review's I2: a classification default stated as the manifest's own** — `data.classification` defaults to `internal`, and decides
+whether the app's AI may be answered off-premise.
+
+**F12 The review's I3: the driver-2 path was held by no route test** — and Rich's `.env` runs driver 2. A route test over the in-process
+GitHub fake now holds the mirror read and the organisation; control (h).
+
+**F13 The review's I4: a draft was never compared with what launches** — drafted in week one, the app changed, the week-one draft sent.
+The checklist's item now says so while it is a draft; control (i).
+
+**F14 The review's M1, re-graded Important: two environment sentences claimed deletion nothing does** — staging *"resettable — cleared at
+any time"* (no route clears it), sandbox *"thrown away"* (no reaper runs `IDLE_POLICY`).
+
+**F15 The review's M5, re-graded Important: Manifest's own copies were left out** — an Incident keeps the app's last 200 output lines,
+redacted of secrets, at any failed deploy, deleted by nothing — and breach response and GitHub's jurisdiction were not named as gaps.
+
+**F16 The review's M2: the YAML was read at the build's commit, not the spec's**, with `readText` (stricter than validation's `readFile`,
+its codes undeclared). Folded into F11's fix; its control (l) cannot fail (below).
+
+**F17 The review's M4: the published example said *"Under Manifest's fake driver"*** — recaptured with the runtime driver named as a
+deployment's.
+
+**F18 Relayed by the faculty front-end (F6 sitting 1): a TOKEN's stream is closed `4401` at an archive or a delete BEFORE `project.archived`
+/ `project.deleted` reaches it** — the revoke closes the credential's streams first (Task 5's design). Not a defect of the stream registry;
+the *Events* guide must say a token client learns it from the close code — carried to Task 14 (`[S8]`).
+
+**F19 Relayed by the front-end: archive's `STEP_UP_REQUIRED` message names `project:delete`** — accurate (archive and delete share the
+capability, §13) and confusing to a person archiving. Minor, carried to Task 14's published-text pass.
+
+**The negative controls** (each predicted in the ledger before it ran, applied with its diff read, restored by `git checkout` of a
+committed file):
+- On `81892d4`: **(a)** the flows row's AI models dropped → RED 2; **(b)** an undeclared retention rendered with `null` (the plan's (b),
+  adapted — the default means retention is never ABSENT) → RED 2, the forbidden-token test among them; **(c)** the send-day from the row's
+  `createdAt` again → RED 1; **(d)** drafting while `submitted`/`approved` → RED 2; **(e)** no `FOR UPDATE` → RED 1 (F8); **(f)**
+  `declaresRetention` always true → RED 3 (F9); **(g)** the GitHub-author fact dropped → RED 1.
+- On `4aaf0ef`: **(h)** the repository forced local → RED 1; **(i)** no drift sentence → RED 1; **(j)** classification always declared →
+  RED 3; **(k)** the old retention sentence → RED 2; **(m)** the Incident-logs fact dropped → RED 1; **(l)** the YAML read at the build's
+  commit again → GREEN, **CANNOT FAIL in either tier**: every release made since `9372f06` (2026-09-23) pairs its build's commit with its own
+  spec's, so the two are equal in every test; it guards only an older release, which no machine in use holds.
+
+**Rulings** (each in the ledger with its cost): the YAML read for what the owner wrote; no backup claimed; two inputs for the drivers;
+`warnings`; `project` on the draft; on-premise derived from `max_classification`; the catalogue read only when a model is declared (a failed
+read is validation's `503`, declared); `membersOf`/`platformContacts`; the authz row's `LAUNCH_RECORD_SUBMITTED`; `RECORDS_EXAMPLE`'s
+`null`; M1 and M5 re-graded Important; M2 and M4 folded into the fix wave.
+
+**Carried — named so it is not lost:**
+- **To Task 13** (its `[S8]`): `draftPrivacyAssessment` parked; the mock's `PRIVACY_ASSESSMENT.draft: null`; the draft on the records screen.
+- **To Task 14** (its `[S8]`): what *Launching* must say about the assessment's draft; F18's stream fact; F19's wording.
+- **To Task 15** (its `[S8]`): the demo drafts the assessment first and sends it naming its draft; the route's first run over HTTP.
+- **Minors deferred** (the review's): `assessment.ts` imports a value from `records.ts`, a cycle that loads `db/client` (M3); a CWL app that
+  asks for no attribute gets an empty *collected* row (M6); the checklist's no-record sentence predates drafting — it still says an
+  administrator records it (M7, to Task 13/14). And from the review's *declined to judge*: an app changed after its PIA is approved
+  launches without re-assessment (the spec gates only on `approved`).
+
+**Gates on the final tree** (`4aaf0ef` code):
+- `pnpm test` **3107 passed, 0 skipped, in 191 files (950 s, load ~5, 0 `deadlock detected`)**, then **3107 / 191 (914 s, 0 `deadlock
+  detected`)** — twice, alone, identical. Up 36 from 3071 and two files (`launch/assessment.test.ts`, `spec/declares.test.ts`);
+  `EXPECT_TESTS`/`EXPECT_FILES` moved.
+- `pnpm test:docker` — the whole tier on `81892d4`: **271 passed, 0 failed, 271 in 42 files**, 1300 s (load ~5) — unchanged; the fix wave
+  `4aaf0ef` ruled untouched BY GREP (no `*.docker.test.ts` writes an assessment draft or reaches `declaredData`; the checklist's new
+  sentence needs a stored draft). **271 in 42**, ORIENTATION §2's row.
+- `pnpm lint`, `typecheck` (all six packages) and `format:check` clean.
+- `make verify` **64 / 0 / 0**, `make doctor` **21 / 0 / 0** (after the restart and the cleanup).
+- The shared HTML pages checked — they describe the design (*"Manifest drafts it from what the app already holds"*), which this sitting made
+  truer, not staler: unchanged. WALKTHROUGH, RUNBOOK and README: unchanged (no command, setting or demo moved). CLAUDE.md's *Outstanding*
+  line on real repositories moves (`f6-watch`); TRAPS gains two traps (a schema default read as a decision; the matrix's one fixture).
+
+**The machine at the close**, queried at 11:42 on 2026-10-01 — ORIENTATION §7e has it in full: the control plane PID 32498 on 7100, on
+`4aaf0ef`, REAL GitHub, the capable model registered; the database EMPTY, 48 migrations; `Manifest-local-dev` holding `f6-watch` owned by no
+project (Rich's to delete); 0 `mf-` containers, 12 Docker networks, `f6-watch`'s six orphaned containers and their networks, volumes and
+image removed; doctor 21/0/0, verify 64/0/0; free disk 60 GiB; the faculty front-end on 7102 and 7105.
