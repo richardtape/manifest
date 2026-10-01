@@ -1,6 +1,8 @@
-import { createSign, createVerify, X509Certificate } from 'node:crypto'
+import { createSign, createVerify, randomUUID, X509Certificate } from 'node:crypto'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-import { getSecret } from '../secrets/index.js'
+import { db, projects, users } from '../db/index.js'
+import { generateMasterKeypair, getSecret } from '../secrets/index.js'
 import { withSecretScope } from '../secrets/testing.js'
 import { ensureSpCertificate, ensureSpKeypair } from './index.js'
 
@@ -44,6 +46,51 @@ describe('per-app SP keypairs (§9, D20)', () => {
       expect(Object.keys(certificate)).not.toContain('privateKeyPem')
       expect(JSON.stringify(certificate)).not.toMatch(/PRIVATE KEY/)
     })
+  })
+
+  it('two FIRST mints at once store ONE pair, and both callers are answered it (Task 10’s review, I1)', async () => {
+    // ON SEPARATE CONNECTIONS, so committed rows, never `withSecretScope`'s one rolled-back transaction:
+    // a draft and a deploy are two requests, and a lock that one connection takes twice serialises nothing.
+    const unique = randomUUID().slice(0, 8)
+    const [owner] = await db
+      .insert(users)
+      .values({
+        ubcCwlPuid: `puid-${unique}`,
+        email: `o-${unique}@example.ubc.ca`,
+        displayName: 'O',
+      })
+      .returning()
+    const [project] = await db
+      .insert(projects)
+      .values({
+        slug: `race-${unique}`,
+        name: 'race',
+        ownerId: owner!.id,
+        blueprintRef: 'fixture-node@1',
+      })
+      .returning()
+    try {
+      const keys = await generateMasterKeypair()
+      const scope = scopeFor(project!.id, 'staging')
+      // A draft's certificate and a deploy's keypair, minted together (each RSA-4096 takes 0.15–0.5 s).
+      const [drafted, deployed] = await Promise.all([
+        ensureSpCertificate(db, keys, scope),
+        ensureSpKeypair(db, keys, scope),
+      ])
+      expect(drafted.fingerprint).toBe(deployed.fingerprint)
+      // And what is STORED is that one pair, matched: the key signs what the certificate verifies.
+      const stored = await ensureSpKeypair(db, keys, scope)
+      expect(stored.fingerprint).toBe(drafted.fingerprint)
+      const signature = createSign('sha256').update('probe').sign(stored.privateKeyPem)
+      expect(
+        createVerify('sha256')
+          .update('probe')
+          .verify(new X509Certificate(stored.certificatePem).publicKey, signature),
+      ).toBe(true)
+    } finally {
+      await db.delete(projects).where(eq(projects.id, project!.id))
+      await db.delete(users).where(eq(users.id, owner!.id))
+    }
   })
 
   it('is idempotent — the second call returns the SAME key', async () => {

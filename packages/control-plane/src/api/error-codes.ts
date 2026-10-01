@@ -541,6 +541,23 @@ export const ERROR_CODES = {
     remedy:
       'To change what UBC IAM was sent, ask UBC IAM. Once an administrator records that it asked for changes (`change_requested`) or that the registration lapsed (`expired`), draft it again.',
   },
+  // Task 10's whole-branch review: what is sent is the draft the person read, carrying what UBC asks for.
+  LAUNCH_DRAFT_STALE: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'The registration’s draft does not carry the privacy assessment’s PIA number, which UBC IAM asks for: it was drafted before the assessment was approved with it, or the number has changed since. Nothing was recorded.',
+    remedy:
+      'Draft the registration again (`draftIamRegistration`) — the new draft carries the PIA number — send that one, then say it was sent.',
+  },
+  LAUNCH_DRAFT_CHANGED: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'The draft was made again after the one the request names (`draftGeneratedAt`), so what Manifest holds is not what was sent. Nothing was recorded.',
+    remedy:
+      'Read the current draft (`getLaunchRecords`). If it is what you sent, say so again with its `generatedAt`; if you sent the earlier one, send the current draft instead and say so.',
+  },
   LAUNCH_NOT_CWL: {
     status: 409,
     families: ['LaunchRecordError'],

@@ -16,7 +16,12 @@ import { requireSession } from '../actor.js'
 import { withdrawWhatItNoLongerAllows } from '../spec-validation.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
-import { DRAFTED_EXAMPLE, RECORDS_EXAMPLE, SUBMITTED_EXAMPLE } from './launch-examples.js'
+import {
+  DRAFTED_EXAMPLE,
+  RECORDS_EXAMPLE,
+  SUBMIT_REQUEST_EXAMPLE,
+  SUBMITTED_EXAMPLE,
+} from './launch-examples.js'
 import {
   IamRegistration,
   LaunchReadiness,
@@ -326,7 +331,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Say a registration request was sent to UBC IAM',
     description:
-      'The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
+      'The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). What is sent must be the draft the person read — name it with `draftGeneratedAt`, or a draft made since is `409 LAUNCH_DRAFT_CHANGED` — and it must carry the assessment’s PIA number: a draft made before the assessment was approved is `409 LAUNCH_DRAFT_STALE`, to be drafted again. It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
     params: z.strictObject({
       projectId: PATH.projectId,
       environment: z
@@ -350,9 +355,11 @@ export const launchRoutes = [
       'LAUNCH_TRANSITION_INVALID',
       'LAUNCH_PIA_NOT_APPROVED',
       'LAUNCH_STAGING_NOT_REGISTERED',
+      'LAUNCH_DRAFT_CHANGED',
+      'LAUNCH_DRAFT_STALE',
       'LAUNCH_SENT_AT_INVALID',
     ],
-    examples: { request: { reference: 'IAM-2026-0500' }, response: SUBMITTED_EXAMPLE },
+    examples: { request: SUBMIT_REQUEST_EXAMPLE, response: SUBMITTED_EXAMPLE },
     handler: async ({ deps, request, params, body }) => {
       // A PERSON, in their own session (D24: *"saying that a request to either was sent"*).
       // `requireSession` first, so a token is answered the same for every project id and learns
@@ -365,6 +372,7 @@ export const launchRoutes = [
         actor: { id: actor.userId, puid: actor.puid },
         sentAt: body.sentAt,
         reference: body.reference,
+        draftGeneratedAt: body.draftGeneratedAt,
       })
       return toIamRegistration(row, await submitterOf(deps.db, row.submittedBy))
     },
@@ -377,7 +385,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Say the privacy assessment was sent to the Privacy Office',
     description:
-      'The project’s owner, a collaborator or a platform administrator, in their own session, says the privacy impact assessment was sent to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent), with the Office’s `reference` when they have one. It comes first in UBC’s order, so nothing else gates it. The record moves to `submitted`, and the launch checklist says how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, and a second submission is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded by an administrator (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
+      'The project’s owner, a collaborator or a platform administrator, in their own session, says the privacy impact assessment was sent to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent), with the Office’s `reference` when they have one. It comes first in UBC’s order, so nothing else gates it. The record moves to `submitted`, and the launch checklist says how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second submission is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded by an administrator (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: SubmitLaunchRecordRequest,
@@ -392,6 +400,7 @@ export const launchRoutes = [
       'TOKEN_CREDENTIAL_REFUSED',
       'LAUNCH_DRAFT_REQUIRED',
       'LAUNCH_TRANSITION_INVALID',
+      'LAUNCH_DRAFT_CHANGED',
       'LAUNCH_SENT_AT_INVALID',
     ],
     examples: {
@@ -420,6 +429,7 @@ export const launchRoutes = [
         actor: { id: actor.userId, puid: actor.puid },
         sentAt: body.sentAt,
         reference: body.reference,
+        draftGeneratedAt: body.draftGeneratedAt,
       })
       return toPrivacyAssessment(row, await submitterOf(deps.db, row.submittedBy))
     },

@@ -462,9 +462,12 @@ export const SubmitLaunchRecordRequest = request(
         .max(128)
         .optional()
         .describe('UBC’s reference for the request, when you have one yet.'),
+      draftGeneratedAt: Timestamp.optional().describe(
+        'The `generatedAt` of the draft you sent, as you read it. If it has been drafted again since, the request is refused `409 LAUNCH_DRAFT_CHANGED` rather than recording a draft you never saw. Send it whenever you show a person the draft they send.',
+      ),
     })
     .describe(
-      'That a request to UBC was sent: the day, and its reference if there is one.',
+      'That a request to UBC was sent: the day, its reference if there is one, and which draft was sent.',
     ),
 )
 

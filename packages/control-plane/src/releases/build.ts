@@ -312,9 +312,9 @@ async function finishBuild(
  * PRODUCTION registration, and only once `registered_at` is set. An owner's draft, a request sent
  * and not yet answered, and the staging registration all gate nothing — so a faculty member can
  * draft the registration in week one and the agent can still add an attribute in week three. That
- * the draft then no longer covers the app is for the checklist's `iam-registration` item to say —
- * which it will once the launch path plan's Task 10 gives a draft its attribute list; until then it
- * says only that the registration is not yet registered.
+ * the draft then no longer covers the app is for the checklist's `iam-registration` item to say — and
+ * since the launch path plan's Task 10 it does, from the draft's package (`launch/readiness.ts`'s
+ * `draftDrift`): *"The draft no longer matches the release serving staging… Draft it again"*.
  *
  * **`iam_registrations` IS READ HERE THROUGH `db/`, NOT THROUGH `launch/`'s
  * `getIamRegistration`**, and that is a decision: `launch/readiness.ts` imports `releases/`

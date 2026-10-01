@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { events, iamRegistrations, privacyAssessments, type Db } from '../db/index.js'
 import { withProject } from '../db/testing.js'
@@ -88,7 +88,12 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
       })
       expect(active.state).toBe('active')
       // ONE ROW, not two: the record is per project (§9), upserted on that.
-      expect(await db.select().from(iamRegistrations)).toHaveLength(1)
+      expect(
+        await db
+          .select()
+          .from(iamRegistrations)
+          .where(eq(iamRegistrations.projectId, projectId)),
+      ).toHaveLength(1)
     })
   })
 
@@ -235,7 +240,12 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
       const [event] = await db
         .select()
         .from(events)
-        .where(eq(events.type, 'iam_registration.recorded'))
+        .where(
+          and(
+            eq(events.type, 'iam_registration.recorded'),
+            eq(events.projectId, projectId),
+          ),
+        )
       expect(event?.machineDetail).toEqual({
         state: 'submitted',
         // Task 9: two registrations a project may have, so the event says which.
@@ -528,7 +538,12 @@ describe('§9’s privacy assessment, as an administrator records it (R1)', () =
       })
       expect(reopened.state).toBe('draft')
       expect(reopened.approvedAt).toBeNull()
-      expect(await db.select().from(privacyAssessments)).toHaveLength(1)
+      expect(
+        await db
+          .select()
+          .from(privacyAssessments)
+          .where(eq(privacyAssessments.projectId, projectId)),
+      ).toHaveLength(1)
     })
   })
 
@@ -544,7 +559,12 @@ describe('§9’s privacy assessment, as an administrator records it (R1)', () =
       const [event] = await db
         .select()
         .from(events)
-        .where(eq(events.type, 'privacy_assessment.recorded'))
+        .where(
+          and(
+            eq(events.type, 'privacy_assessment.recorded'),
+            eq(events.projectId, projectId),
+          ),
+        )
       expect(event?.machineDetail).toEqual({
         state: 'submitted',
         externalTicketRef: 'PIA-2026-0088',
@@ -712,11 +732,16 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
       await expect(
         submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
       ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
-      // THE POSITIVE CONTROL: the same submission once a draft exists.
+      // A package that is not one (`readPackage` reads none) is no draft either.
       await db
         .update(iamRegistrations)
         .set({ generatedPackage: { placeholder: true } })
         .where(eq(iamRegistrations.projectId, projectId))
+      await expect(
+        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
+      // THE POSITIVE CONTROL: the same submission once a draft exists (Task 10's real package).
+      await withDraft(db, { projectId, environment: 'staging' })
       const sent = await submitIamRegistration(db, bus, {
         projectId,
         environment: 'staging',
@@ -824,13 +849,16 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
       await recordPrivacyAssessment(db, bus, { projectId, state: 'approved', actor })
       await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
       expect((await getIamRegistration(db, projectId, 'staging'))?.state).toBe('draft')
-      // THE POSITIVE CONTROL: approved, with its reference.
+      // THE POSITIVE CONTROL: approved, with its reference — and drafted again, so the package carries
+      // it (Task 10's review, I2: the week-one draft has none, and is refused LAUNCH_DRAFT_STALE).
       await recordPrivacyAssessment(db, bus, {
         projectId,
         state: 'approved',
         externalTicketRef: 'PIA-2026-0088',
         actor,
       })
+      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_STALE' })
+      await withDraft(db, { projectId, environment: 'staging' })
       expect((await submit()).state).toBe('submitted')
     })
   })
@@ -880,8 +908,10 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
         submitIamRegistration(db, bus, { projectId, environment: 'production', actor })
       await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
       expect((await getIamRegistration(db, projectId, 'production'))?.state).toBe('draft')
-      // THE POSITIVE CONTROL: the assessment approved, with its reference.
+      // THE POSITIVE CONTROL: the assessment approved, with its reference — and the draft made again
+      // to carry it (Task 10's review, I2).
       await piaApproved(db, projectId, actor)
+      await withDraft(db, { projectId, environment: 'production' })
       expect((await submit()).state).toBe('submitted')
     })
   })
@@ -950,7 +980,12 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
       const [event] = await db
         .select()
         .from(events)
-        .where(eq(events.type, 'iam_registration.submitted'))
+        .where(
+          and(
+            eq(events.type, 'iam_registration.submitted'),
+            eq(events.projectId, projectId),
+          ),
+        )
       expect(event?.machineDetail).toEqual({
         environment: 'staging',
         sentAt: '2026-09-29',
@@ -1040,7 +1075,12 @@ describe('the owner’s “I’ve sent it” for the privacy assessment (Task 9)
       const [event] = await db
         .select()
         .from(events)
-        .where(eq(events.type, 'privacy_assessment.submitted'))
+        .where(
+          and(
+            eq(events.type, 'privacy_assessment.submitted'),
+            eq(events.projectId, projectId),
+          ),
+        )
       expect(event?.machineDetail).toEqual({
         sentAt: vancouverToday(),
         externalTicketRef: 'PIA-2026-0101',

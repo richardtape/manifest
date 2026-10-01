@@ -439,6 +439,34 @@ export interface SubmitInput {
   sentAt?: string | undefined
   /** UBC's reference for the request, when the person has one yet. */
   reference?: string | undefined
+  /**
+   * The `generatedAt` of the draft the person sent, as they read it (Task 10's review, I3). When the
+   * draft has been made again since, the submission is refused rather than recording a draft they never
+   * saw. Absent, the draft on the record is taken as the one sent.
+   */
+  draftGeneratedAt?: string | undefined
+}
+
+/** When a stored draft was generated — a registration's package or (Task 11) the assessment's draft. */
+function draftedAtOf(draft: unknown): string | undefined {
+  const at = (draft as { generatedAt?: unknown } | null)?.generatedAt
+  return typeof at === 'string' ? at : undefined
+}
+
+/**
+ * THE DRAFT SENT IS THE DRAFT HELD (Task 10's whole-branch review, I3): `launch:draft` is mintable and a
+ * collaborator holds it, so the draft can be made again between a person reading it and saying they sent
+ * it — and the record would then keep a document they never saw. Compared as instants.
+ */
+function assertDraftRead(what: string, stored: unknown, read: string | undefined): void {
+  if (read === undefined) return
+  const held = draftedAtOf(stored)
+  if (held !== undefined && Date.parse(held) === Date.parse(read)) return
+  throw new LaunchRecordError(
+    'LAUNCH_DRAFT_CHANGED',
+    `${what} was drafted again (${held ?? 'at an unknown time'}) after the draft you read (${read}): what Manifest holds is not what you sent, so nothing was recorded`,
+    'Read the current draft. If it is what you sent, say so again with its generatedAt; if you sent the earlier one, send the current draft instead and say so.',
+  )
 }
 
 /**
@@ -525,7 +553,8 @@ export async function submitIamRegistration(
         ),
       )
       .for('update')
-    if (existing === undefined || existing.generatedPackage === null)
+    const sent = readPackage(existing?.generatedPackage)
+    if (existing === undefined || sent === null)
       throw noDraft(`this app's ${input.environment} registration`)
     if (!SUBMIT_ARROWS.iam.has(existing.state))
       refuseSubmission('an IAM registration', existing.state, SUBMIT_ARROWS.iam)
@@ -563,14 +592,27 @@ export async function submitIamRegistration(
           'Send the staging registration first; once an administrator records it active and the app is tested at staging, send production’s.',
         )
     }
+    assertDraftRead(
+      `this app's ${input.environment} registration`,
+      existing.generatedPackage,
+      input.draftGeneratedAt,
+    )
+    // WHAT UBC IAM ASKS FOR IS IN WHAT IS SENT (§9: the request *"is sent only once the privacy
+    // assessment is approved, and its package carries the assessment's reference"*; Task 10's review,
+    // I2): a package drafted in week one, before the Privacy Office answered, carries no PIA number —
+    // and one drafted before the number changed carries the old one.
+    if (sent.privacyAssessmentReference !== pia.externalTicketRef)
+      throw new LaunchRecordError(
+        'LAUNCH_DRAFT_STALE',
+        sent.privacyAssessmentReference === null
+          ? `the draft of this app's ${input.environment} registration was made before the privacy assessment was approved, so it does not carry the PIA number UBC IAM asks for (${pia.externalTicketRef})`
+          : `the draft of this app's ${input.environment} registration carries PIA number ${sent.privacyAssessmentReference}, and the approved assessment's is ${pia.externalTicketRef}`,
+        'Draft it again — the new draft carries the PIA number — send that one, then say it was sent.',
+      )
 
     // THE DRAFT THAT WAS SENT is the newest (the whole-branch review's M4): after a re-draft the
     // row's `created_at` is the FIRST draft's day, and the package carries its own.
-    const drafted = readPackage(existing.generatedPackage)?.generatedAt
-    const day = sentDay(
-      input.sentAt,
-      drafted === undefined ? existing.createdAt : new Date(drafted),
-    )
+    const day = sentDay(input.sentAt, new Date(sent.generatedAt))
     const [row] = await tx
       .update(iamRegistrations)
       .set({
@@ -626,6 +668,11 @@ export async function submitPrivacyAssessment(
       throw noDraft("this app's privacy assessment")
     if (!SUBMIT_ARROWS.pia.has(existing.state))
       refuseSubmission('a privacy assessment', existing.state, SUBMIT_ARROWS.pia)
+    assertDraftRead(
+      "this app's privacy assessment",
+      existing.generatedDraft,
+      input.draftGeneratedAt,
+    )
 
     const day = sentDay(input.sentAt, existing.createdAt)
     const [row] = await tx
@@ -831,8 +878,8 @@ export interface DraftDeps {
  *     the environment's certificate (the public half, D20), where the app reads each attribute, the
  *     contacts and the PIA number — the assessment's reference once it is approved.
  *  4. **Written under the record's row lock**, as a submission takes it (Task 9's I1): a submission
- *     that landed meanwhile refuses the draft (`LAUNCH_RECORD_SUBMITTED`), and one that waits sends
- *     this draft. A record not yet registered takes the package's entity, ACS and SLO; **one UBC has
+ *     that landed meanwhile refuses the draft (`LAUNCH_RECORD_SUBMITTED`); one that waits finds this
+ *     draft, and is refused `LAUNCH_DRAFT_CHANGED` if it names the draft read before it. A record not yet registered takes the package's entity, ACS and SLO; **one UBC has
  *     registered keeps what UBC registered** — the checklist and the build read those columns as
  *     UBC's, and only the package is new.
  *  5. `iam_registration.drafted`, after the commit, naming no attribute (as `recorded` does).

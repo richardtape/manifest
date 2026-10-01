@@ -299,6 +299,14 @@ describe('an owner says “I’ve sent it” (Task 9)', () => {
         status: 409,
         code: 'LAUNCH_STAGING_NOT_REGISTERED',
       })
+      // Task 10's review, I2: these drafts were made before the assessment was approved, so they do
+      // not carry the PIA number UBC IAM asks for — drafted again, they do.
+      expect(refusal(await submit(ctx, 'staging', {}, as))).toEqual({
+        status: 409,
+        code: 'LAUNCH_DRAFT_STALE',
+      })
+      await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
+      await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'production' })
       expect(refusal(await submit(ctx, 'staging', {}, as))).toEqual({
         status: 200,
         code: undefined,
@@ -657,11 +665,11 @@ async function cwlPiaApproved(ctx: CwlProject): Promise<void> {
 }
 
 /** The owner's *"I've sent it"* for the staging registration, today, with UBC's reference. */
-const cwlSubmitStaging = (ctx: CwlProject) =>
+const cwlSubmitStaging = (ctx: CwlProject, body: Json = {}) =>
   ctx.app.inject({
     method: 'POST',
     url: `/v1/projects/${ctx.project.id}/launch-records/iam-registration/staging/submission`,
-    payload: { reference: 'IAM-2026-0500' },
+    payload: { reference: 'IAM-2026-0500', ...body },
     cookies: ctx.ownerCookies,
     headers: mutationHeaders(ctx.deps),
   })
@@ -821,9 +829,12 @@ describe('D19’s registration package (Task 10)', () => {
 
   it('a submitted package is never regenerated — LAUNCH_RECORD_SUBMITTED — and a change_requested one is', async () => {
     await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
-      const first = packageOf((await draft(ctx, 'staging')).json())
+      // The assessment first, so the draft carries its PIA number (Task 10's review, I2).
       await cwlPiaApproved(ctx)
-      const sent = await cwlSubmitStaging(ctx)
+      const drafted = await draft(ctx, 'staging')
+      const first = packageOf(drafted.json())
+      // As a client sends it: naming the draft it showed the person (Task 10's review, I3).
+      const sent = await cwlSubmitStaging(ctx, { draftGeneratedAt: first.generatedAt })
       expect(sent.statusCode, sent.body).toBe(200)
       expect(refusal(await draft(ctx, 'staging'))).toEqual({
         status: 409,
@@ -870,7 +881,7 @@ describe('D19’s registration package (Task 10)', () => {
       const redrafted = packageOf(again.json())
       expect(redrafted.generatedAt > first.generatedAt).toBe(true)
       expect(redrafted.acsUrl).toBe(first.acsUrl)
-      // And now it carries the PIA number the assessment was approved with.
+      // And it still carries the PIA number the assessment was approved with.
       expect(redrafted.privacyAssessmentReference).toBe('PIA-2026-0088')
       expect(redrafted.warnings).not.toContain(NO_PIA_NUMBER)
     })
@@ -879,13 +890,14 @@ describe('D19’s registration package (Task 10)', () => {
   it('no answer carries a private key', async () => {
     await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
       const bodies: string[] = []
+      await cwlPiaApproved(ctx)
       for (const environment of ['staging', 'production'] as const) {
         const res = await draft(ctx, environment)
         expect(res.statusCode, res.body).toBe(200)
         bodies.push(res.body)
       }
-      await cwlPiaApproved(ctx)
       const sent = await cwlSubmitStaging(ctx)
+      expect(sent.statusCode, sent.body).toBe(200)
       bodies.push(sent.body)
       await stage(ctx)
       for (const url of ['launch-records', 'launch-readiness']) {
@@ -1052,6 +1064,51 @@ describe('D19’s registration package (Task 10)', () => {
       )
       expect(refusal(answered!)).toEqual({ status: 409, code: 'LAUNCH_RECORD_SUBMITTED' })
       expect(await eventsOf(ctx, 'iam_registration.drafted')).toHaveLength(1)
+    })
+  })
+})
+
+describe('what is sent is the draft the person read (Task 10’s whole-branch review, I2 and I3)', () => {
+  it('a registration drafted before the assessment was approved is not sent — LAUNCH_DRAFT_STALE — until it is drafted again', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      // Week one: drafted before the Privacy Office answered, so without the PIA number.
+      const early = packageOf((await draft(ctx, 'staging')).json())
+      expect(early.privacyAssessmentReference).toBeNull()
+      await cwlPiaApproved(ctx)
+      expect(refusal(await cwlSubmitStaging(ctx))).toEqual({
+        status: 409,
+        code: 'LAUNCH_DRAFT_STALE',
+      })
+      expect((await cwlRecords(ctx)).stagingRegistration).toMatchObject({
+        state: 'draft',
+      })
+      expect(await eventsOf(ctx, 'iam_registration.submitted')).toHaveLength(0)
+      // THE POSITIVE CONTROL: drafted again, it carries the number — and is sent.
+      const current = packageOf((await draft(ctx, 'staging')).json())
+      expect(current.privacyAssessmentReference).toBe('PIA-2026-0088')
+      const sent = await cwlSubmitStaging(ctx)
+      expect(sent.statusCode, sent.body).toBe(200)
+      expect(packageOf(sent.json()).privacyAssessmentReference).toBe('PIA-2026-0088')
+    })
+  })
+
+  it('a submission names the draft it sent: one drafted since refuses it — LAUNCH_DRAFT_CHANGED — and the current one is accepted', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      await cwlPiaApproved(ctx)
+      // Read on Monday and sent; drafted again on Wednesday by the agent.
+      const read = packageOf((await draft(ctx, 'staging')).json())
+      const since = packageOf((await draft(ctx, 'staging')).json())
+      expect(since.generatedAt > read.generatedAt).toBe(true)
+      expect(
+        refusal(await cwlSubmitStaging(ctx, { draftGeneratedAt: read.generatedAt })),
+      ).toEqual({ status: 409, code: 'LAUNCH_DRAFT_CHANGED' })
+      expect((await cwlRecords(ctx)).stagingRegistration).toMatchObject({
+        state: 'draft',
+      })
+      // THE POSITIVE CONTROL: the draft the person read is the one Manifest holds.
+      const sent = await cwlSubmitStaging(ctx, { draftGeneratedAt: since.generatedAt })
+      expect(sent.statusCode, sent.body).toBe(200)
+      expect(packageOf(sent.json()).generatedAt).toBe(since.generatedAt)
     })
   })
 })

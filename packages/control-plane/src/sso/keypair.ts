@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { X509Certificate } from 'node:crypto'
 import { promisify } from 'node:util'
+import { sql } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import {
   getSecret,
@@ -182,12 +183,21 @@ export async function mintSpKeypair(scope: SpKeypairScope): Promise<SpKeypair> {
  * app no longer holds, and S2 Evidence 8 measured what the IdP then says —
  * *"Invalid certificate signature"*, on a login that worked yesterday.
  *
- * If exactly one of the two secrets is present — a crash between the two writes
- * — both are regenerated and stored. That is a rotation rather than a repair,
- * and it is safe here for one reason: the only caller is
- * `registerServiceProvider`, which upserts the metadata row from the keypair it
- * gets back, so the row and the app move together. A partial pair cannot be
- * repaired, since neither half can be recovered from the other.
+ * **ONE MINT PER ENVIRONMENT, EVER — SERIALISED HERE** (the launch path plan's Task 10, its whole-branch
+ * review's I1). Until Task 10 the only caller was `registerServiceProvider` inside a deploy, under the
+ * environment's lock; D19's draft is a second caller that holds none. Two first calls at once — a draft
+ * beside the first deploy, two drafts, a draft beside a rehearsal — would each read nothing, each mint
+ * (RSA-4096, 0.15–0.5 s), and each write: one package naming a certificate the app never signs with, or
+ * a key from one mint stored beside the other's certificate, every later signature then failing. So the
+ * read, the mint and both writes are ONE transaction under a transaction-scoped advisory lock on the
+ * scope: the second caller waits, reads the committed pair, and answers it. A deploy takes the
+ * environment's lock and then this one; nothing takes them the other way round.
+ *
+ * If exactly one of the two secrets is present — a row written before both writes shared a transaction —
+ * both are regenerated and stored. That is a rotation rather than a repair, and it is safe: no caller
+ * was ever answered a whole pair from it, and `registerServiceProvider` upserts the metadata row from
+ * the keypair it gets back, so the row and the app move together. A partial pair cannot be repaired,
+ * since neither half can be recovered from the other.
  */
 export async function ensureSpKeypair(
   db: Db,
@@ -200,20 +210,25 @@ export async function ensureSpKeypair(
     environmentKind: scope.environmentKind,
     name,
   })
-  const [privateKeyPem, certificatePem] = await Promise.all([
-    getSecret(db, at(names.privateKey), keys),
-    getSecret(db, at(names.certificate), keys),
-  ])
-  if (privateKeyPem !== undefined && certificatePem !== undefined) {
-    return describeKeypair(privateKeyPem, certificatePem)
-  }
+  return db.transaction(async (transaction) => {
+    // The secret store takes a `Db`; a drizzle transaction answers the same queries on its one
+    // connection (`db/testing.ts`'s `withRollback` passes one the same way).
+    const tx = transaction as unknown as Db
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`manifest:sp-keypair:${scope.projectId}:${scope.environmentKind}`}, 0))`,
+    )
+    const privateKeyPem = await getSecret(tx, at(names.privateKey), keys)
+    const certificatePem = await getSecret(tx, at(names.certificate), keys)
+    if (privateKeyPem !== undefined && certificatePem !== undefined) {
+      return describeKeypair(privateKeyPem, certificatePem)
+    }
 
-  const minted = await mintSpKeypair(scope)
-  // Sequential, not Promise.all: two writes to one table through one transaction
-  // handle, and drizzle's transaction is a single connection.
-  await putSecret(db, { ...at(names.privateKey), value: minted.privateKeyPem }, keys)
-  await putSecret(db, { ...at(names.certificate), value: minted.certificatePem }, keys)
-  return minted
+    const minted = await mintSpKeypair(scope)
+    // Sequential, not Promise.all: two writes on one transaction's one connection.
+    await putSecret(tx, { ...at(names.privateKey), value: minted.privateKeyPem }, keys)
+    await putSecret(tx, { ...at(names.certificate), value: minted.certificatePem }, keys)
+    return minted
+  })
 }
 
 /**

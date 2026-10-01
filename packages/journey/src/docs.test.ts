@@ -12,6 +12,12 @@ interface Names {
   events: Set<string>
   /** manifest.yaml's field paths — `ai.models` is a field, and `ai.key_rotated` an event. */
   fields: Set<string>
+  /**
+   * Every property name any schema in the document has — a request's or an answer's field. Since the
+   * launch path plan's Task 10 `draft` leads an operation (`draftIamRegistration`), so a field led by
+   * it (`draftGeneratedAt`) has an operation's SHAPE; the document saying it is a field settles it.
+   */
+  properties: Set<string>
 }
 
 type Schema = { properties?: Record<string, Schema>; items?: Schema }
@@ -37,7 +43,7 @@ async function namesInTheDocument(): Promise<Names> {
     >
     'x-manifest-errors': Record<string, unknown>
     'x-manifest-spec-errors': Record<string, unknown>
-    components: { schemas: { ManifestYaml: Schema } }
+    components: { schemas: { ManifestYaml: Schema } & Record<string, Schema> }
   }
   const operations = new Set<string>()
   const events = new Set<string>()
@@ -54,6 +60,11 @@ async function namesInTheDocument(): Promise<Names> {
     ]),
     events,
     fields: pathsOf(document.components.schemas.ManifestYaml, '', new Set()),
+    properties: new Set(
+      Object.values(document.components.schemas).flatMap((schema) =>
+        [...pathsOf(schema, '', new Set())].map((path) => path.split('.').pop()!),
+      ),
+    ),
   }
 }
 
@@ -79,7 +90,12 @@ function unknownNames(markdown: string, names: Names): string[] {
     const name = m[1]!
     const lead = /^[a-z]+/.exec(name)?.[0]
     if (/^[a-z]+[A-Z][A-Za-z]*$/.test(name) && lead !== undefined && verbs.has(lead)) {
-      if (!names.operations.has(name) && !clientNames.has(name)) unknown.push(name)
+      if (
+        !names.operations.has(name) &&
+        !clientNames.has(name) &&
+        !names.properties.has(name)
+      )
+        unknown.push(name)
     } else if (/^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$|^[A-Z]{4,}$/.test(name)) {
       if (codeWords.has(name.split('_')[0]!) && !names.codes.has(name)) unknown.push(name)
     } else if (

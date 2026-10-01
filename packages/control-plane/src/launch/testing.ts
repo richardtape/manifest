@@ -46,6 +46,12 @@ export async function withDraft(
     sloUrl?: string
   },
 ): Promise<IamRegistrationRow> {
+  // The PIA number a draft made NOW carries, as `draftIamRegistration` reads it: the approved
+  // assessment's reference, else none (Task 10's review, I2).
+  const [pia] = await db
+    .select()
+    .from(privacyAssessments)
+    .where(eq(privacyAssessments.projectId, input.projectId))
   const [project] = await db
     .select({ slug: projects.slug })
     .from(projects)
@@ -72,9 +78,11 @@ export async function withDraft(
     ),
     usedAtTruncated: false,
     contacts: { technical: [], support: [] },
-    privacyAssessmentReference: null,
+    privacyAssessmentReference: pia?.state === 'approved' ? pia.externalTicketRef : null,
     warnings: [],
   })
+  // DRAFTED AGAIN when the record exists — the package replaced, the row's first day kept — as a
+  // person drafts again after the assessment is approved.
   const [row] = await db
     .insert(iamRegistrations)
     .values({
@@ -88,6 +96,10 @@ export async function withDraft(
       ...(input.createdAt === undefined
         ? {}
         : { createdAt: input.createdAt, updatedAt: input.createdAt }),
+    })
+    .onConflictDoUpdate({
+      target: [iamRegistrations.projectId, iamRegistrations.environmentKind],
+      set: { generatedPackage, updatedAt: new Date() },
     })
     .returning()
   return row!
