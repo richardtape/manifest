@@ -17,6 +17,7 @@ import {
   vancouverDayInWords,
   type IamRegistrationRow,
 } from './records.js'
+import { readAssessmentDraft } from './assessment.js'
 import { readPackage } from './package.js'
 import { rehearsalItem } from './rehearsal.js'
 
@@ -159,7 +160,7 @@ export async function computeLaunchReadiness(
     const items: LaunchItem[] = [
       { ...DOMAIN_ITEM },
       await liveRegistrationItem(db, projectId, usesCwl, would),
-      await piaItem(db, projectId),
+      await piaItem(db, projectId, candidate?.build.commitSha),
       scans,
       approval.item,
       ...loadRehearsalItems(audience),
@@ -180,7 +181,7 @@ export async function computeLaunchReadiness(
   const items: LaunchItem[] = [
     { ...DOMAIN_ITEM },
     await iamItem(db, projectId, usesCwl, would),
-    await piaItem(db, projectId),
+    await piaItem(db, projectId, candidate?.build.commitSha),
     // D21, as R2 redefines it (P6a Task 14): met by the MEASUREMENT `runRehearsal` wrote,
     // and `unmet` again the moment the candidate would register something else.
     await rehearsalItem(
@@ -812,7 +813,31 @@ async function releaseApprovalItem(
  * `approvedAt` is set when the record reaches `approved` and cleared when it leaves
  * (sitting 4's decision 4), so a date here is always a date this state was reached on.
  */
-async function piaItem(db: Db, projectId: string): Promise<LaunchItem> {
+/**
+ * WHEN THE DRAFT IS NOT WHAT LAUNCHES (Task 11; sitting 8's whole-branch review, I4) — the assessment's
+ * twin of the registration's drift sentence: while the assessment is still a `draft`, a draft drawn from
+ * any commit but the release serving staging's is to be drafted again before it is sent. Once sent, the
+ * draft is what the Privacy Office has, and nothing is said.
+ */
+function assessmentDrift(
+  row: { state: string; generatedDraft: unknown },
+  candidateCommit: string | undefined,
+): string {
+  const draft = row.state === 'draft' ? readAssessmentDraft(row.generatedDraft) : null
+  if (
+    draft === null ||
+    candidateCommit === undefined ||
+    draft.fromCommit === candidateCommit
+  )
+    return ''
+  return ` The draft was made from commit ${draft.fromCommit.slice(0, 12)}, and the release serving staging is built from ${candidateCommit.slice(0, 12)}: draft it again before you send it.`
+}
+
+async function piaItem(
+  db: Db,
+  projectId: string,
+  candidateCommit: string | undefined,
+): Promise<LaunchItem> {
   const base = {
     id: 'privacy-assessment' as const,
     title: 'Privacy Impact Assessment approved',
@@ -844,9 +869,10 @@ async function piaItem(db: Db, projectId: string): Promise<LaunchItem> {
     // BOTH CLAUSES (P6b sitting 4, F14): §9 blocks production until the PIA is approved, so
     // a launched app whose PIA went back to `draft` stops shipping too — not only a first launch.
     why:
-      since === null
+      (since === null
         ? `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production (§9).`
-        : `It was sent to the UBC Privacy Office on ${vancouverDayInWords(new Date(since))}. The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`,
+        : `It was sent to the UBC Privacy Office on ${vancouverDayInWords(new Date(since))}. The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`) +
+      assessmentDrift(row, candidateCommit),
     since,
   }
 }

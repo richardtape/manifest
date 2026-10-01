@@ -14,7 +14,7 @@ import {
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { personName, repositoryOf } from '../projects/index.js'
 import { SourceError, type RepoRef, type SourceDriver } from '../source/index.js'
-import { declaresRetention, type ManifestSpec } from '../spec/index.js'
+import { declaredData, type ManifestSpec } from '../spec/index.js'
 import { deriveSpEntity, type Contact, type SsoCertificates } from '../sso/index.js'
 import { candidateFor } from './candidate.js'
 import type { ModelCatalogue, ModelEntry } from '../ai/index.js'
@@ -844,28 +844,37 @@ async function drawnFrom(
 /**
  * WHAT THE PRIVACY ASSESSMENT IS DRAWN FROM (Task 11): production's rule — a PIA is per production app
  * (C4) — so the launch candidate's manifest, the one its release was made from, and its build's commit;
- * with nothing serving staging, the newest valid manifest, and the draft says so.
+ * with nothing serving staging, the newest valid manifest, and the draft says so. `specCommit` is the
+ * commit THAT MANIFEST was validated at — where its YAML is read for what it writes (the whole-branch
+ * review's M2: a release made before 2026-09-23 could pair one commit's build with another's spec).
  */
 async function assessedFrom(
   db: Db,
   projectId: string,
-): Promise<{ spec: ManifestSpec; commit: string; warnings: string[] }> {
+): Promise<{
+  spec: ManifestSpec
+  commit: string
+  specCommit: string
+  warnings: string[]
+}> {
   const candidate = await candidateFor(db, projectId)
   if (candidate !== undefined) {
     const [made] = await db
-      .select({ parsed: appSpecs.parsed })
+      .select({ parsed: appSpecs.parsed, commitSha: appSpecs.commitSha })
       .from(appSpecs)
       .where(eq(appSpecs.id, candidate.release.appSpecId))
     if (made !== undefined)
       return {
         spec: made.parsed as ManifestSpec,
         commit: candidate.build.commitSha,
+        specCommit: made.commitSha,
         warnings: [],
       }
   }
   const newest = await newestValidSpec(db, projectId, 'a privacy assessment')
   return {
     ...newest,
+    specCommit: newest.commit,
     warnings: [
       'Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.',
     ],
@@ -1173,7 +1182,10 @@ export async function draftPrivacyAssessment(
   if (project === undefined) throw new Error(`no project ${input.projectId}`)
   const drawn = await assessedFrom(db, input.projectId)
   const repo = await repositoryOf(deps, project)
-  const manifest = await deps.source.readText(repo, drawn.commit, 'manifest.yaml')
+  // The YAML validation read, the way it read it (`api/spec-validation.ts`): only it says whether the
+  // owner WROTE a value the schema would otherwise default.
+  const manifest =
+    (await deps.source.readFile(repo, drawn.specCommit, 'manifest.yaml')) ?? ''
   const catalogue: readonly ModelEntry[] | null =
     drawn.spec.ai.models.length === 0
       ? []
@@ -1184,7 +1196,7 @@ export async function draftPrivacyAssessment(
     generatedAt: new Date(),
     fromCommit: drawn.commit,
     spec: drawn.spec,
-    retentionDeclared: declaresRetention(manifest.content),
+    declared: declaredData(manifest),
     project: { slug: project.slug, name: project.name },
     members: await membersOf(db, input.projectId),
     platformContacts: await platformContacts(db, deps.config.launchContacts),

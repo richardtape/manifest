@@ -2563,24 +2563,24 @@ Answer, `200`:
 
 ```json
 {
-  "id": "c671b13d-a815-4598-ba17-864e795022d3",
-  "projectId": "629eafac-3c20-45f2-8cf2-00891a3ac55a",
+  "id": "7eb7baa8-5a73-4f0e-a57f-7e776e40419f",
+  "projectId": "0429adab-74d1-45eb-81fe-44de4829ee63",
   "state": "approved",
   "reviewer": "K. Privacy",
-  "approvedAt": "2026-10-01T17:27:02.664Z",
+  "approvedAt": "2026-10-01T18:03:26.544Z",
   "externalTicketRef": "PIA-2026-0101",
   "submittedAt": "2026-10-01T19:00:00.000Z",
   "submittedBy": {
-    "id": "8386642f-2b1a-4958-9314-522514c92dd6",
+    "id": "7fdf38c3-b751-4bb0-8199-dbec140b0a9e",
     "displayName": "Bio Prof"
   },
   "draft": {
     "project": {
-      "slug": "cwl-db0ea7d1",
-      "name": "cwl-db0ea7d1"
+      "slug": "cwl-0bcfc989",
+      "name": "cwl-0bcfc989"
     },
-    "generatedAt": "2026-10-01T17:27:02.621Z",
-    "fromCommit": "be9c870f7374a4145e3f81e4a1671329cb03c8a8",
+    "generatedAt": "2026-10-01T18:03:26.508Z",
+    "fromCommit": "7d394009ba57cc955f8273581182e1090925a8a6",
     "sections": [
       {
         "id": "collected",
@@ -2612,18 +2612,23 @@ Answer, `200`:
           },
           {
             "label": "Sandbox",
-            "value": "Where the app is built and tried: its data is thrown away when the sandbox is.",
+            "value": "Where the app is built and tried: its own copy of each database, never backed up.",
             "source": "Manifest’s environments"
           },
           {
             "label": "Staging",
-            "value": "Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time.",
+            "value": "Where the app is tested before launch: its own copy of each database, never backed up.",
             "source": "Manifest’s environments"
           },
           {
             "label": "Production",
-            "value": "Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet.",
+            "value": "Where people use the app: its own copy of each database, not backed up on this platform yet.",
             "source": "Manifest’s environments"
+          },
+          {
+            "label": "Incident logs",
+            "value": "When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it.",
+            "source": "the platform"
           }
         ],
         "gaps": [
@@ -2658,11 +2663,17 @@ Answer, `200`:
         "facts": [
           {
             "label": "How long",
-            "value": "The app keeps its data for 365 days.",
+            "value": "The manifest says the app keeps its data for 365 days.",
             "source": "manifest.yaml: data.retention_days"
+          },
+          {
+            "label": "Deletion",
+            "value": "Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet.",
+            "source": "the platform"
           }
         ],
         "gaps": [
+          "How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.",
           "How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it."
         ]
       },
@@ -2681,7 +2692,9 @@ Answer, `200`:
             "source": "the platform’s contacts"
           }
         ],
-        "gaps": []
+        "gaps": [
+          "Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile."
+        ]
       },
       {
         "id": "hosting",
@@ -2689,7 +2702,7 @@ Answer, `200`:
         "facts": [
           {
             "label": "Where the app runs",
-            "value": "Under Manifest’s fake driver.",
+            "value": "In containers on the machine Manifest runs on, under its Docker driver.",
             "source": "the platform’s runtime driver"
           },
           {
@@ -2712,10 +2725,10 @@ Answer, `200`:
     "warnings": [
       "Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again."
     ],
-    "text": "Privacy impact assessment — draft\ncwl-db0ea7d1 (cwl-db0ea7d1)\nDrafted by Manifest on October 1, 2026, from commit be9c870f7374.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its data is thrown away when the sandbox is. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time. (from Manifest’s environments)\n  - Production: Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet. (from Manifest’s environments)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Internal — every AI model the app uses must be approved for internal data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  For you to add:\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n\n6. Hosting and jurisdiction\n  - Where the app runs: Under Manifest’s fake driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for internal data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s internal data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n"
+    "text": "Privacy impact assessment — draft\ncwl-0bcfc989 (cwl-0bcfc989)\nDrafted by Manifest on October 1, 2026, from commit 7d394009ba57.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Production: Where people use the app: its own copy of each database, not backed up on this platform yet. (from Manifest’s environments)\n  - Incident logs: When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it. (from the platform)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Internal — every AI model the app uses must be approved for internal data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The manifest says the app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  - Deletion: Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet. (from the platform)\n  For you to add:\n  - How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n  For you to add:\n  - Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.\n\n6. Hosting and jurisdiction\n  - Where the app runs: In containers on the machine Manifest runs on, under its Docker driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for internal data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s internal data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n"
   },
-  "createdAt": "2026-10-01T17:27:02.631Z",
-  "updatedAt": "2026-10-01T17:27:02.664Z"
+  "createdAt": "2026-10-01T18:03:26.518Z",
+  "updatedAt": "2026-10-01T18:03:26.544Z"
 }
 ```
 
@@ -2750,8 +2763,8 @@ Answer, `200`:
 
 ```json
 {
-  "id": "c671b13d-a815-4598-ba17-864e795022d3",
-  "projectId": "629eafac-3c20-45f2-8cf2-00891a3ac55a",
+  "id": "7eb7baa8-5a73-4f0e-a57f-7e776e40419f",
+  "projectId": "0429adab-74d1-45eb-81fe-44de4829ee63",
   "state": "draft",
   "reviewer": null,
   "approvedAt": null,
@@ -2760,11 +2773,11 @@ Answer, `200`:
   "submittedBy": null,
   "draft": {
     "project": {
-      "slug": "cwl-db0ea7d1",
-      "name": "cwl-db0ea7d1"
+      "slug": "cwl-0bcfc989",
+      "name": "cwl-0bcfc989"
     },
-    "generatedAt": "2026-10-01T17:27:02.621Z",
-    "fromCommit": "be9c870f7374a4145e3f81e4a1671329cb03c8a8",
+    "generatedAt": "2026-10-01T18:03:26.508Z",
+    "fromCommit": "7d394009ba57cc955f8273581182e1090925a8a6",
     "sections": [
       {
         "id": "collected",
@@ -2796,18 +2809,23 @@ Answer, `200`:
           },
           {
             "label": "Sandbox",
-            "value": "Where the app is built and tried: its data is thrown away when the sandbox is.",
+            "value": "Where the app is built and tried: its own copy of each database, never backed up.",
             "source": "Manifest’s environments"
           },
           {
             "label": "Staging",
-            "value": "Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time.",
+            "value": "Where the app is tested before launch: its own copy of each database, never backed up.",
             "source": "Manifest’s environments"
           },
           {
             "label": "Production",
-            "value": "Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet.",
+            "value": "Where people use the app: its own copy of each database, not backed up on this platform yet.",
             "source": "Manifest’s environments"
+          },
+          {
+            "label": "Incident logs",
+            "value": "When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it.",
+            "source": "the platform"
           }
         ],
         "gaps": [
@@ -2842,11 +2860,17 @@ Answer, `200`:
         "facts": [
           {
             "label": "How long",
-            "value": "The app keeps its data for 365 days.",
+            "value": "The manifest says the app keeps its data for 365 days.",
             "source": "manifest.yaml: data.retention_days"
+          },
+          {
+            "label": "Deletion",
+            "value": "Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet.",
+            "source": "the platform"
           }
         ],
         "gaps": [
+          "How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.",
           "How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it."
         ]
       },
@@ -2865,7 +2889,9 @@ Answer, `200`:
             "source": "the platform’s contacts"
           }
         ],
-        "gaps": []
+        "gaps": [
+          "Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile."
+        ]
       },
       {
         "id": "hosting",
@@ -2873,7 +2899,7 @@ Answer, `200`:
         "facts": [
           {
             "label": "Where the app runs",
-            "value": "Under Manifest’s fake driver.",
+            "value": "In containers on the machine Manifest runs on, under its Docker driver.",
             "source": "the platform’s runtime driver"
           },
           {
@@ -2896,10 +2922,10 @@ Answer, `200`:
     "warnings": [
       "Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again."
     ],
-    "text": "Privacy impact assessment — draft\ncwl-db0ea7d1 (cwl-db0ea7d1)\nDrafted by Manifest on October 1, 2026, from commit be9c870f7374.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its data is thrown away when the sandbox is. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time. (from Manifest’s environments)\n  - Production: Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet. (from Manifest’s environments)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Internal — every AI model the app uses must be approved for internal data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  For you to add:\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n\n6. Hosting and jurisdiction\n  - Where the app runs: Under Manifest’s fake driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for internal data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s internal data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n"
+    "text": "Privacy impact assessment — draft\ncwl-0bcfc989 (cwl-0bcfc989)\nDrafted by Manifest on October 1, 2026, from commit 7d394009ba57.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Production: Where people use the app: its own copy of each database, not backed up on this platform yet. (from Manifest’s environments)\n  - Incident logs: When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it. (from the platform)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Internal — every AI model the app uses must be approved for internal data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The manifest says the app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  - Deletion: Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet. (from the platform)\n  For you to add:\n  - How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n  For you to add:\n  - Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.\n\n6. Hosting and jurisdiction\n  - Where the app runs: In containers on the machine Manifest runs on, under its Docker driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for internal data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s internal data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n"
   },
-  "createdAt": "2026-10-01T17:27:02.631Z",
-  "updatedAt": "2026-10-01T17:27:02.631Z"
+  "createdAt": "2026-10-01T18:03:26.518Z",
+  "updatedAt": "2026-10-01T18:03:26.518Z"
 }
 ```
 
@@ -2940,7 +2966,7 @@ Request:
 ```json
 {
   "reference": "PIA-2026-0101",
-  "draftGeneratedAt": "2026-10-01T17:27:02.621Z"
+  "draftGeneratedAt": "2026-10-01T18:03:26.508Z"
 }
 ```
 
@@ -2948,24 +2974,24 @@ Answer, `200`:
 
 ```json
 {
-  "id": "c671b13d-a815-4598-ba17-864e795022d3",
-  "projectId": "629eafac-3c20-45f2-8cf2-00891a3ac55a",
+  "id": "7eb7baa8-5a73-4f0e-a57f-7e776e40419f",
+  "projectId": "0429adab-74d1-45eb-81fe-44de4829ee63",
   "state": "submitted",
   "reviewer": null,
   "approvedAt": null,
   "externalTicketRef": "PIA-2026-0101",
   "submittedAt": "2026-10-01T19:00:00.000Z",
   "submittedBy": {
-    "id": "8386642f-2b1a-4958-9314-522514c92dd6",
+    "id": "7fdf38c3-b751-4bb0-8199-dbec140b0a9e",
     "displayName": "Bio Prof"
   },
   "draft": {
     "project": {
-      "slug": "cwl-db0ea7d1",
-      "name": "cwl-db0ea7d1"
+      "slug": "cwl-0bcfc989",
+      "name": "cwl-0bcfc989"
     },
-    "generatedAt": "2026-10-01T17:27:02.621Z",
-    "fromCommit": "be9c870f7374a4145e3f81e4a1671329cb03c8a8",
+    "generatedAt": "2026-10-01T18:03:26.508Z",
+    "fromCommit": "7d394009ba57cc955f8273581182e1090925a8a6",
     "sections": [
       {
         "id": "collected",
@@ -2997,18 +3023,23 @@ Answer, `200`:
           },
           {
             "label": "Sandbox",
-            "value": "Where the app is built and tried: its data is thrown away when the sandbox is.",
+            "value": "Where the app is built and tried: its own copy of each database, never backed up.",
             "source": "Manifest’s environments"
           },
           {
             "label": "Staging",
-            "value": "Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time.",
+            "value": "Where the app is tested before launch: its own copy of each database, never backed up.",
             "source": "Manifest’s environments"
           },
           {
             "label": "Production",
-            "value": "Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet.",
+            "value": "Where people use the app: its own copy of each database, not backed up on this platform yet.",
             "source": "Manifest’s environments"
+          },
+          {
+            "label": "Incident logs",
+            "value": "When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it.",
+            "source": "the platform"
           }
         ],
         "gaps": [
@@ -3043,11 +3074,17 @@ Answer, `200`:
         "facts": [
           {
             "label": "How long",
-            "value": "The app keeps its data for 365 days.",
+            "value": "The manifest says the app keeps its data for 365 days.",
             "source": "manifest.yaml: data.retention_days"
+          },
+          {
+            "label": "Deletion",
+            "value": "Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet.",
+            "source": "the platform"
           }
         ],
         "gaps": [
+          "How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.",
           "How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it."
         ]
       },
@@ -3066,7 +3103,9 @@ Answer, `200`:
             "source": "the platform’s contacts"
           }
         ],
-        "gaps": []
+        "gaps": [
+          "Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile."
+        ]
       },
       {
         "id": "hosting",
@@ -3074,7 +3113,7 @@ Answer, `200`:
         "facts": [
           {
             "label": "Where the app runs",
-            "value": "Under Manifest’s fake driver.",
+            "value": "In containers on the machine Manifest runs on, under its Docker driver.",
             "source": "the platform’s runtime driver"
           },
           {
@@ -3097,10 +3136,10 @@ Answer, `200`:
     "warnings": [
       "Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again."
     ],
-    "text": "Privacy impact assessment — draft\ncwl-db0ea7d1 (cwl-db0ea7d1)\nDrafted by Manifest on October 1, 2026, from commit be9c870f7374.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its data is thrown away when the sandbox is. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time. (from Manifest’s environments)\n  - Production: Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet. (from Manifest’s environments)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Internal — every AI model the app uses must be approved for internal data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  For you to add:\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n\n6. Hosting and jurisdiction\n  - Where the app runs: Under Manifest’s fake driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for internal data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s internal data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n"
+    "text": "Privacy impact assessment — draft\ncwl-0bcfc989 (cwl-0bcfc989)\nDrafted by Manifest on October 1, 2026, from commit 7d394009ba57.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Production: Where people use the app: its own copy of each database, not backed up on this platform yet. (from Manifest’s environments)\n  - Incident logs: When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it. (from the platform)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Internal — every AI model the app uses must be approved for internal data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The manifest says the app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  - Deletion: Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet. (from the platform)\n  For you to add:\n  - How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n  For you to add:\n  - Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.\n\n6. Hosting and jurisdiction\n  - Where the app runs: In containers on the machine Manifest runs on, under its Docker driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for internal data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s internal data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n"
   },
-  "createdAt": "2026-10-01T17:27:02.631Z",
-  "updatedAt": "2026-10-01T17:27:02.651Z"
+  "createdAt": "2026-10-01T18:03:26.518Z",
+  "updatedAt": "2026-10-01T18:03:26.536Z"
 }
 ```
 

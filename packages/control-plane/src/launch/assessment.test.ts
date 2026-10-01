@@ -16,6 +16,10 @@ import { ATTRIBUTE_PURPOSES } from './package.js'
  * accountable, where it is hosted — each a list of facts with where Manifest read them, and the gaps
  * only the owner can fill, named rather than left out. Pure: the caller reads the manifest, the
  * people, the catalogue and the drivers.
+ *
+ * **Every fact is what the platform does TODAY** (sitting 8's whole-branch review, I1, I2, M1): no
+ * retention Manifest does not enforce, no default stated as the owner's choice, no deletion that does
+ * not happen.
  */
 
 const SPEC = manifestSchema.parse({
@@ -40,7 +44,7 @@ const input = (over: Partial<AssessmentInput> = {}): AssessmentInput => ({
   generatedAt: new Date('2026-10-01T15:00:00.000Z'),
   fromCommit: 'a'.repeat(40),
   spec: SPEC,
-  retentionDeclared: true,
+  declared: { retention: true, classification: true },
   project: { slug: 'lp-sample', name: 'Lab Sample' },
   members: [
     { name: 'Bio Prof', email: 'bio.prof@example.ubc.ca', role: 'owner' },
@@ -65,11 +69,29 @@ const BARE = manifestSchema.parse({
   blueprint: 'fixture-node@1',
   runtime: { port: 3000 },
 })
+const UNDECLARED = { retention: false, classification: false }
 
 const section = (draft: { sections: Section[] }, id: Section['id']): Section =>
   draft.sections.find((s) => s.id === id)!
 
 const valueOf = (s: Section, label: string) => s.facts.find((f) => f.label === label)
+
+const INCIDENT_LOGS = {
+  label: 'Incident logs',
+  value:
+    'When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it.',
+  source: 'the platform',
+}
+const DELETION = {
+  label: 'Deletion',
+  value:
+    'Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet.',
+  source: 'the platform',
+}
+const SUNSET =
+  'How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.'
+const BREACH =
+  'Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.'
 
 describe('assembleAssessment (Task 11)', () => {
   it('is §9’s six rows, in its order, each with a title, drawn from one commit', () => {
@@ -87,6 +109,7 @@ describe('assembleAssessment (Task 11)', () => {
       expect(s.facts.length).toBeGreaterThan(0)
     }
     expect(draft).toMatchObject({
+      project: { slug: 'lp-sample', name: 'Lab Sample' },
       generatedAt: '2026-10-01T15:00:00.000Z',
       fromCommit: 'a'.repeat(40),
       warnings: [],
@@ -123,7 +146,7 @@ describe('assembleAssessment (Task 11)', () => {
     expect(none.gaps).toEqual(collected.gaps)
   })
 
-  it('stored: each service, and the three environments — staging never backed up and resettable — with staging’s use by real people as a gap', () => {
+  it('stored: each service, each environment’s copy — none backed up — Manifest’s own Incident logs, and staging’s use by real people as a gap', () => {
     const stored = section(assembleAssessment(input()), 'stored')
     expect(valueOf(stored, 'db')).toEqual({
       label: 'db',
@@ -131,17 +154,35 @@ describe('assembleAssessment (Task 11)', () => {
         'A mongo database, version 7, which Manifest runs for the app — one in each environment.',
       source: 'manifest.yaml: services',
     })
-    expect(valueOf(stored, 'Sandbox')?.value).toMatch(/thrown away/)
-    expect(valueOf(stored, 'Staging')?.value).toMatch(/never backed up/)
-    expect(valueOf(stored, 'Staging')?.value).toMatch(/resettable/)
-    // What the platform does TODAY: no backup is taken, whatever the design says.
-    expect(valueOf(stored, 'Production')?.value).toMatch(/not backed up/)
-    for (const kind of ['Sandbox', 'Staging', 'Production'])
-      expect(valueOf(stored, kind)?.source).toBe('Manifest’s environments')
+    expect(stored.facts.filter((f) => f.source === 'Manifest’s environments')).toEqual([
+      {
+        label: 'Sandbox',
+        value:
+          'Where the app is built and tried: its own copy of each database, never backed up.',
+        source: 'Manifest’s environments',
+      },
+      {
+        label: 'Staging',
+        value:
+          'Where the app is tested before launch: its own copy of each database, never backed up.',
+        source: 'Manifest’s environments',
+      },
+      {
+        label: 'Production',
+        value:
+          'Where people use the app: its own copy of each database, not backed up on this platform yet.',
+        source: 'Manifest’s environments',
+      },
+    ])
+    // What the platform does not do is not said: nothing clears staging, nothing reaps a sandbox.
+    for (const f of stored.facts)
+      expect(f.value).not.toMatch(/thrown away|resettable|cleared/)
+    // What Manifest keeps ITSELF, whatever the app declares.
+    expect(valueOf(stored, 'Incident logs')).toEqual(INCIDENT_LOGS)
     expect(stored.gaps).toEqual([
       expect.stringMatching(/staging.*real people.*Privacy Office/s),
     ])
-    // No service: no database, and no environment's data to describe.
+    // No service: no database, and no environment's copy to describe — the logs still.
     const bare = section(assembleAssessment(input({ spec: BARE })), 'stored')
     expect(bare.facts).toEqual([
       {
@@ -149,6 +190,7 @@ describe('assembleAssessment (Task 11)', () => {
         value: 'The app declares no service, so Manifest keeps no database for it.',
         source: 'manifest.yaml: services',
       },
+      INCIDENT_LOGS,
     ])
     expect(bare.gaps).toEqual(stored.gaps)
   })
@@ -180,6 +222,22 @@ describe('assembleAssessment (Task 11)', () => {
     // On the platform's own repositories, a commit's author goes nowhere else.
     expect(valueOf(flows, 'Changes to the app')).toBeUndefined()
     expect(flows.gaps).toEqual([])
+  })
+
+  it('flows: a classification the manifest does not declare is Manifest’s default — said, and named as a gap', () => {
+    const flows = section(
+      assembleAssessment(input({ declared: { retention: true, classification: false } })),
+      'flows',
+    )
+    expect(valueOf(flows, 'Classification')).toEqual({
+      label: 'Classification',
+      value:
+        'Internal — Manifest’s default, because the manifest does not say: every AI model the app uses must be approved for internal data.',
+      source: 'Manifest’s default',
+    })
+    expect(flows.gaps).toEqual([
+      'No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as internal, which allows AI models that may be answered off-premise.',
+    ])
   })
 
   it('flows: on GitHub, the names of the people who change the app are sent there as each change’s author', () => {
@@ -219,32 +277,42 @@ describe('assembleAssessment (Task 11)', () => {
     expect(off.gaps).toHaveLength(1)
   })
 
-  it('retention: the days the manifest declares — or Manifest’s default, named as a gap — and disposal at sunset always a gap', () => {
+  it('retention: what the manifest says, never a period Manifest enforces — Manifest deletes nothing on a schedule — and the gaps that follow', () => {
     const declared = section(assembleAssessment(input()), 'retention')
-    expect(valueOf(declared, 'How long')).toEqual({
-      label: 'How long',
-      value: 'The app keeps its data for 180 days.',
-      source: 'manifest.yaml: data.retention_days',
-    })
-    expect(declared.gaps).toEqual([expect.stringMatching(/retired.*sunset/s)])
+    expect(declared.facts).toEqual([
+      {
+        label: 'How long',
+        value: 'The manifest says the app keeps its data for 180 days.',
+        source: 'manifest.yaml: data.retention_days',
+      },
+      DELETION,
+    ])
+    expect(declared.gaps).toEqual([
+      'How the app removes its data once it is older than 180 days — Manifest does not remove it for the app.',
+      SUNSET,
+    ])
 
-    const defaulted = section(
-      assembleAssessment(input({ spec: BARE, retentionDeclared: false })),
+    const undeclared = section(
+      assembleAssessment(input({ spec: BARE, declared: UNDECLARED })),
       'retention',
     )
-    expect(valueOf(defaulted, 'How long')).toEqual({
-      label: 'How long',
-      value:
-        'The app keeps its data for 365 days — Manifest’s default, because the manifest does not say.',
-      source: 'Manifest’s default',
-    })
-    expect(defaulted.gaps).toEqual([
+    // The schema's 365 is no one's decision, and nothing enforces it: not stated at all.
+    expect(undeclared.facts).toEqual([
+      {
+        label: 'How long',
+        value: 'The manifest gives no retention period.',
+        source: 'manifest.yaml: data.retention_days',
+      },
+      DELETION,
+    ])
+    for (const f of undeclared.facts) expect(f.value).not.toMatch(/365/)
+    expect(undeclared.gaps).toEqual([
       'No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.',
-      ...declared.gaps,
+      SUNSET,
     ])
   })
 
-  it('accountable: the owners, the collaborators and the platform’s contacts — and none of the platform’s named as a gap', () => {
+  it('accountable: the owners, the collaborators and the platform’s contacts — breach response always a gap, and no platform contact one', () => {
     const accountable = section(assembleAssessment(input()), 'accountable')
     expect(accountable.facts).toEqual([
       {
@@ -263,13 +331,13 @@ describe('assembleAssessment (Task 11)', () => {
         source: 'the platform’s contacts',
       },
     ])
-    expect(accountable.gaps).toEqual([])
+    expect(accountable.gaps).toEqual([BREACH])
     const alone = section(
       assembleAssessment(input({ platformContacts: [] })),
       'accountable',
     )
     expect(alone.facts.map((f) => f.label)).toEqual(['Owner', 'Collaborator'])
-    expect(alone.gaps).toEqual([expect.stringMatching(/No platform contact/)])
+    expect(alone.gaps).toEqual([expect.stringMatching(/No platform contact/), BREACH])
   })
 
   it('hosting: where Manifest runs the app and keeps its code, each model’s ceiling, and where UBC will host it as a gap', () => {
@@ -301,6 +369,11 @@ describe('assembleAssessment (Task 11)', () => {
     expect(valueOf(github, 'Where its code is kept')?.value).toBe(
       'In a private repository in the GitHub organisation Manifest-local-dev.',
     )
+    // On GitHub, the people's names are a second flow whose jurisdiction is the Office's question.
+    expect(github.gaps).toEqual([
+      ...hosting.gaps,
+      'Whether people’s names may be sent to GitHub, which may hold them outside Canada, is the Privacy Office’s to say.',
+    ])
     // Only on-premise models: no provider outside Canada to ask about.
     const onPrem = section(
       assembleAssessment(
@@ -324,7 +397,7 @@ describe('renderAssessmentText (Task 11)', () => {
   const SPARSE = assembleAssessment(
     input({
       spec: BARE,
-      retentionDeclared: false,
+      declared: UNDECLARED,
       catalogue: null,
       platformContacts: [],
       repository: { provider: 'github', organisation: 'Manifest-local-dev' },

@@ -15,11 +15,13 @@ import {
 } from '../launch/testing.js'
 import { vancouverNoon } from '../launch/index.js'
 import { mintTestToken } from '../tokens/testing.js'
+import { startFake } from '@manifest/github-fake/testing'
 import { buildServer, type ServerDeps } from './server.js'
 import {
   commitManifest,
   cwlFakes,
   cwlManifest,
+  githubTestDeps,
   loginAs,
   mutationHeaders,
   projectBody,
@@ -1302,11 +1304,22 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
         'ubcEduCwlPuid',
         'mail',
       ])
-      // The CWL manifest writes no data block: the default is Manifest's, and named as a gap.
-      expect(factsOf(draft, 'retention')[0]!.source).toBe('Manifest’s default')
+      // The CWL manifest writes no data block: no period is claimed, the classification is said to
+      // be Manifest's default, and both are named as gaps (the whole-branch review's I1 and I2).
+      expect(factsOf(draft, 'retention')[0]).toEqual({
+        label: 'How long',
+        value: 'The manifest gives no retention period.',
+        source: 'manifest.yaml: data.retention_days',
+      })
       expect(draft.sections.find((s) => s.id === 'retention')!.gaps).toContain(
         NO_RETENTION,
       )
+      expect(
+        factsOf(draft, 'flows').find((f) => f.label === 'Classification')!.source,
+      ).toBe('Manifest’s default')
+      expect(draft.sections.find((s) => s.id === 'flows')!.gaps).toEqual([
+        expect.stringMatching(/^No classification declared/),
+      ])
       expect(factsOf(draft, 'accountable')).toEqual([
         {
           label: 'Owner',
@@ -1340,14 +1353,14 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
     })
   })
 
-  it('a retention the manifest writes is the owner’s, and is no gap', async () => {
+  it('a retention and a classification the manifest writes are the manifest’s, and no gap', async () => {
     await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
       await commitManifest(
         { app: ctx.app, deps: ctx.deps, cookies: ctx.ownerCookies, project: ctx.project },
         cwlManifest(
           ctx.project.slug,
           ['ubcEduCwlPuid', 'mail'],
-          ['data:', '  retention_days: 90'],
+          ['data:', '  classification: internal', '  retention_days: 90'],
         ),
         'feat: keep data for a term',
       )
@@ -1358,12 +1371,16 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
       )!
       expect(factsOf(draft, 'retention')[0]).toEqual({
         label: 'How long',
-        value: 'The app keeps its data for 90 days.',
+        value: 'The manifest says the app keeps its data for 90 days.',
         source: 'manifest.yaml: data.retention_days',
       })
       expect(draft.sections.find((s) => s.id === 'retention')!.gaps).not.toContain(
         NO_RETENTION,
       )
+      expect(
+        factsOf(draft, 'flows').find((f) => f.label === 'Classification')!.source,
+      ).toBe('manifest.yaml: data.classification')
+      expect(draft.sections.find((s) => s.id === 'flows')!.gaps).toEqual([])
     })
   })
 
@@ -1581,6 +1598,91 @@ describe('the day a person may say they sent the assessment is its newest draft�
         { cookies: ctx.ownerCookies },
       )
       expect(sent.statusCode, sent.body).toBe(200)
+    })
+  })
+})
+
+describe('the assessment’s draft against what launches, and on GitHub (Task 11; sitting 8’s whole-branch review, I3 and I4)', () => {
+  it('on driver 2 the draft is read through the mirror, and names the organisation the people who change the app are sent to', async () => {
+    await resetDatabase()
+    const fake = await startFake({ plan: 'team' })
+    const deps = await githubTestDeps(fake)
+    const app = await buildServer(deps)
+    try {
+      const cookies = await loginAs(deps, 'bio_prof')
+      const created = await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        payload: projectBody('assess-gh'),
+        cookies,
+        headers: mutationHeaders(deps),
+      })
+      expect(created.statusCode, created.body).toBe(201)
+      const res = await draftAssessment({ app, deps }, created.json().id, { cookies })
+      expect(res.statusCode, res.body).toBe(200)
+      const draft = assessmentOf(res.json())!
+      expect(
+        factsOf(draft, 'flows').find((f) => f.label === 'Changes to the app'),
+      ).toEqual({
+        label: 'Changes to the app',
+        value: `The names of the people who change the app through Manifest are sent to GitHub (${fake.org}), as the author of each change.`,
+        source: 'the project’s repository',
+      })
+      expect(
+        factsOf(draft, 'hosting').find((f) => f.label === 'Where its code is kept')!
+          .value,
+      ).toBe(`In a private repository in the GitHub organisation ${fake.org}.`)
+      // Read at the commit it was drawn from, through the mirror: the fixture writes no data block.
+      expect(draft.sections.find((s) => s.id === 'retention')!.gaps).toContain(
+        NO_RETENTION,
+      )
+    } finally {
+      await deps.sourceSync.idle()
+      await deps.builds.idle()
+      await app.close()
+      await fake.stop()
+    }
+  })
+
+  it('the checklist says when the draft is not drawn from the release serving staging — and stops once it is drafted again', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const why = async () => {
+        const res = await ctx.app.inject({
+          method: 'GET',
+          url: `/v1/projects/${ctx.project.id}/launch-readiness`,
+          cookies: ctx.ownerCookies,
+        })
+        expect(res.statusCode, res.body).toBe(200)
+        return (res.json() as { items: { id: string; why: string }[] }).items.find(
+          (i) => i.id === 'privacy-assessment',
+        )!.why
+      }
+      const first = assessmentOf(
+        (
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies })
+        ).json(),
+      )!
+      await stage(ctx)
+      // Staging serves the commit the draft was drawn from: nothing to say.
+      expect(await why()).not.toMatch(/draft it again/)
+      // The agent adds an attribute, and THAT release goes to staging.
+      const newer = await commitManifest(
+        { app: ctx.app, deps: ctx.deps, cookies: ctx.ownerCookies, project: ctx.project },
+        cwlManifest(ctx.project.slug, ['ubcEduCwlPuid', 'mail', 'givenName']),
+        'feat: greet people by name',
+      )
+      await stage(ctx)
+      expect(await why()).toContain(
+        `The draft was made from commit ${first.fromCommit.slice(0, 12)}, and the release serving staging is built from ${newer.commitSha.slice(0, 12)}: draft it again before you send it.`,
+      )
+      // THE POSITIVE CONTROL: drafted again, from what launches, it says nothing.
+      const again = assessmentOf(
+        (
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies })
+        ).json(),
+      )!
+      expect(again.fromCommit).toBe(newer.commitSha)
+      expect(await why()).not.toMatch(/draft it again/)
     })
   })
 })

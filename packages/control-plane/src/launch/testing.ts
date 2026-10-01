@@ -136,7 +136,7 @@ export async function withAssessmentDraft(
       blueprint: 'fixture-node@1',
       runtime: { port: 3000 },
     }),
-    retentionDeclared: false,
+    declared: { retention: false, classification: false },
     project: { slug: project.slug, name: project.name },
     members: [],
     platformContacts: [],

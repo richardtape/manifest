@@ -57,11 +57,11 @@ export interface AssessmentInput {
   fromCommit: string
   spec: ManifestSpec
   /**
-   * Whether `manifest.yaml` WRITES `data.retention_days`. The schema defaults it, so the stored spec
-   * always carries a number — and a draft that stated the default as the owner's choice would say
-   * something nobody decided.
+   * Which of `data`'s fields `manifest.yaml` WRITES. The schema defaults both, so the stored spec always
+   * carries them — and a draft that stated a default as the owner's choice would say something nobody
+   * decided (sitting 8's whole-branch review, I1 and I2).
    */
-  retentionDeclared: boolean
+  declared: { retention: boolean; classification: boolean }
   project: { slug: string; name: string }
   members: { name: string; email: string; role: 'owner' | 'collaborator' }[]
   /** The platform's contacts — configured, or else its longest-serving administrator. */
@@ -124,6 +124,23 @@ function collected(spec: ManifestSpec): Section {
   }
 }
 
+/**
+ * WHAT MANIFEST ITSELF KEEPS of what the app prints, whatever the app declares: an Incident's log tail,
+ * captured whenever a deploy fails to start (`releases/release.ts`), redacted of secrets — and deleted
+ * by nothing.
+ */
+const INCIDENT_LOGS: Fact = {
+  label: 'Incident logs',
+  value:
+    'When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it.',
+  source: 'the platform',
+}
+
+/**
+ * Each environment's copy, as the platform keeps it TODAY (sitting 8's whole-branch review, M1): no
+ * backup is taken anywhere yet, nothing clears staging and nothing reaps a sandbox — so the draft says
+ * neither.
+ */
 function stored(spec: ManifestSpec): Section {
   const facts: Fact[] =
     spec.services.length === 0
@@ -143,26 +160,26 @@ function stored(spec: ManifestSpec): Section {
           {
             label: 'Sandbox',
             value:
-              'Where the app is built and tried: its data is thrown away when the sandbox is.',
+              'Where the app is built and tried: its own copy of each database, never backed up.',
             source: ENVIRONMENTS,
           },
           {
             label: 'Staging',
             value:
-              'Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time.',
+              'Where the app is tested before launch: its own copy of each database, never backed up.',
             source: ENVIRONMENTS,
           },
           {
             label: 'Production',
             value:
-              'Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet.',
+              'Where people use the app: its own copy of each database, not backed up on this platform yet.',
             source: ENVIRONMENTS,
           },
         ]
   return {
     id: 'stored',
     title: TITLES.stored,
-    facts,
+    facts: [...facts, INCIDENT_LOGS],
     gaps: [
       'Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.',
     ],
@@ -186,15 +203,22 @@ function modelFlow(name: string, catalogue: readonly ModelEntry[] | null): Fact 
 function flows(input: AssessmentInput): Section {
   const { spec, catalogue } = input
   const ceiling = spec.data.classification
+  const rule =
+    ceiling === 'confidential'
+      ? 'every AI model the app uses must run on on-premise hardware.'
+      : `every AI model the app uses must be approved for ${ceiling} data.`
   const facts: Fact[] = [
-    {
-      label: 'Classification',
-      value:
-        ceiling === 'confidential'
-          ? 'Confidential — every AI model the app uses must run on on-premise hardware.'
-          : `${capitalised(ceiling)} — every AI model the app uses must be approved for ${ceiling} data.`,
-      source: 'manifest.yaml: data.classification',
-    },
+    input.declared.classification
+      ? {
+          label: 'Classification',
+          value: `${capitalised(ceiling)} — ${rule}`,
+          source: 'manifest.yaml: data.classification',
+        }
+      : {
+          label: 'Classification',
+          value: `${capitalised(ceiling)} — Manifest’s default, because the manifest does not say: ${rule}`,
+          source: 'Manifest’s default',
+        },
     ...(spec.egress.allow.length === 0
       ? [
           {
@@ -236,13 +260,32 @@ function flows(input: AssessmentInput): Section {
     id: 'flows',
     title: TITLES.flows,
     facts,
-    gaps:
-      unknown.length === 0
+    gaps: [
+      ...(input.declared.classification
+        ? []
+        : [
+            `No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as ${ceiling}, which allows AI models that may be answered off-premise.`,
+          ]),
+      ...(unknown.length === 0
         ? []
         : [
             `Where ${unknown.join(', ')} sends the app’s data could not be read when this was drafted: ask an administrator, then draft this again.`,
-          ],
+          ]),
+    ],
   }
+}
+
+/**
+ * HOW LONG, AS THE MANIFEST SAYS AND AS THE PLATFORM DOES (sitting 8's whole-branch review, I1): nothing
+ * reads `data.retention_days` yet — no backup is taken, an archive keeps every volume, and a launched
+ * project cannot be deleted — so the draft states the manifest's period as the manifest's, never as a
+ * period Manifest enforces, and never states the schema's default at all.
+ */
+const DELETION: Fact = {
+  label: 'Deletion',
+  value:
+    'Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet.',
+  source: 'the platform',
 }
 
 function retention(input: AssessmentInput): Section {
@@ -251,24 +294,23 @@ function retention(input: AssessmentInput): Section {
     id: 'retention',
     title: TITLES.retention,
     facts: [
-      input.retentionDeclared
+      input.declared.retention
         ? {
             label: 'How long',
-            value: `The app keeps its data for ${days} days.`,
+            value: `The manifest says the app keeps its data for ${days} days.`,
             source: 'manifest.yaml: data.retention_days',
           }
         : {
             label: 'How long',
-            value: `The app keeps its data for ${days} days — Manifest’s default, because the manifest does not say.`,
-            source: 'Manifest’s default',
+            value: 'The manifest gives no retention period.',
+            source: 'manifest.yaml: data.retention_days',
           },
+      DELETION,
     ],
     gaps: [
-      ...(input.retentionDeclared
-        ? []
-        : [
-            'No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.',
-          ]),
+      input.declared.retention
+        ? `How the app removes its data once it is older than ${days} days — Manifest does not remove it for the app.`
+        : 'No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.',
       'How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.',
     ],
   }
@@ -292,12 +334,15 @@ function accountable(input: AssessmentInput): Section {
         source: 'the platform’s contacts',
       })),
     ],
-    gaps:
-      input.platformContacts.length === 0
+    gaps: [
+      ...(input.platformContacts.length === 0
         ? [
             'No platform contact is set, and the platform has no administrator to name: ask who answers for the platform, and add them.',
           ]
-        : [],
+        : []),
+      // §19: incident response ownership "to be assigned"; breach notification the Privacy Office's.
+      'Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.',
+    ],
   }
 }
 
@@ -344,6 +389,11 @@ function hosting(input: AssessmentInput): Section {
         : [
             `Whether the app’s ${spec.data.classification} data may reach an AI provider outside Canada is the Privacy Office’s to say: ${offPremise.map((e) => e.name).join(', ')} may be answered off-premise.`,
           ]),
+      ...(input.repository.provider === 'github'
+        ? [
+            'Whether people’s names may be sent to GitHub, which may hold them outside Canada, is the Privacy Office’s to say.',
+          ]
+        : []),
     ],
   }
 }
