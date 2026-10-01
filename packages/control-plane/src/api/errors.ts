@@ -301,7 +301,11 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           code: error.code,
           message: error.code === 'NOT_FOUND' ? 'not found' : error.message,
           ...(error.code === 'FORBIDDEN'
-            ? { hint: 'Ask a project owner to grant you the role this action needs.' }
+            ? {
+                hint:
+                  error.hint ??
+                  'Ask a project owner to grant you the role this action needs.',
+              }
             : {}),
         },
       },
@@ -688,14 +692,18 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
   }
 
   /**
-   * The other `launch/` refusal (P6a Task 6), and a 400 rather than a 409: nothing about
-   * the record's STATE is in conflict — the request's own fields cannot be accepted. Two
-   * codes, two statuses, because a client switches on the code and these need different
-   * behaviour: one is "move it a step at a time", the other is "send different fields".
+   * The other `launch/` refusal (P6a Task 6). It began as a 400 alone — the request's own fields
+   * cannot be accepted — and since the launch path plan's Task 9 it also says a record is not in a
+   * condition to be sent (no draft yet; UBC's order not met), which is a 409. A client switches on
+   * the code, and the registry says each code's status once.
    */
   if (error instanceof LaunchRecordError) {
     return {
-      status: 400,
+      // THE REGISTRY'S STATUS, since the launch path plan's Task 9: the family now carries state
+      // conflicts too (`409 LAUNCH_DRAFT_REQUIRED`, `LAUNCH_PIA_NOT_APPROVED`,
+      // `LAUNCH_STAGING_NOT_REGISTERED`) beside its request errors (`400 LAUNCH_RECORD_INVALID`,
+      // `LAUNCH_SENT_AT_INVALID`) — one class, the code decides, as `ReleaseError`'s does.
+      status: ERROR_CODES[error.code as keyof typeof ERROR_CODES]?.status ?? 400,
       body: {
         error: {
           code: error.code,

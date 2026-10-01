@@ -643,6 +643,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       blocking: true,
       state: 'met',
       why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
+      since: null,
     },
     {
       id: 'iam-registration',
@@ -651,6 +652,8 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       blocking: true,
       state: 'met',
       why: 'Registered as https://manifest.internal/sp/mock-app/production, active (ticket IAM-2026-0412), releasing 4 attribute(s).',
+      // Met since UBC registered it — `IAM_REGISTRATION.registeredAt` (the launch path plan's Task 9).
+      since: '2026-09-15T00:00:00.000Z',
     },
     {
       id: 'privacy-assessment',
@@ -658,7 +661,10 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       owner: 'UBC Privacy Office, recorded by a platform administrator (§9)',
       blocking: true,
       state: 'unmet',
-      why: "The assessment is 'submitted' (ticket PIA-2026-0088) and must be 'approved' before anything goes to production (§9).",
+      // Waiting on the Privacy Office since the day it was sent — `PRIVACY_ASSESSMENT.submittedAt` —
+      // in `launch/readiness.ts`'s words for a dated submission (the launch path plan's Task 9).
+      why: "It was sent to the UBC Privacy Office on September 10, 2026. The assessment is 'submitted' (ticket PIA-2026-0088) and must be 'approved' before anything goes to production.",
+      since: '2026-09-10T19:00:00.000Z',
     },
     {
       id: 'rehearsal',
@@ -667,6 +673,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       blocking: true,
       state: 'met',
       why: "A production-shaped rehearsal passed on 2026-09-20: the app was deployed to its production hostname on the public listener, its Service Provider was registered with production values, and one CWL sign-in completed releasing 3 attribute(s). This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).",
+      since: null,
     },
     {
       id: 'scans',
@@ -675,6 +682,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       blocking: true,
       state: 'met',
       why: 'Its secret and lockfile gates passed and no finding it introduced has a published fix. 0 finding(s) with no published fix are recorded on the release (§12).',
+      since: null,
     },
     {
       id: 'admin-approval',
@@ -683,6 +691,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       blocking: true,
       state: 'met',
       why: 'Approved by an administrator on 2026-09-20, bound to image digest sha256:9b2c1d0e3f4a…',
+      since: null,
     },
     {
       id: 'code-review',
@@ -692,6 +701,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       state: 'not_built',
       builtBy: 'a tracked hardening item (SemgrepReviewer), not a plan',
       why: 'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code (§13), and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20). A reviewer interface exists with no implementation behind it (D33, §15), so this item does not block a launch.',
+      since: null,
     },
   ],
 }
@@ -716,6 +726,7 @@ export const SELF_SERVE_READINESS: Schemas['LaunchReadiness'] = {
           ...i,
           state: 'met' as const,
           why: 'Approved by the UBC Privacy Office on 2026-09-21 (ticket PIA-2026-0088).',
+          since: '2026-09-21T00:00:00.000Z',
         }
       : i.id === 'admin-approval'
         ? {
@@ -724,6 +735,7 @@ export const SELF_SERVE_READINESS: Schemas['LaunchReadiness'] = {
               'Release approved by a platform administrator — only when a sensitive field changed (D9)',
             state: 'met' as const,
             why: 'No sensitive field (§7) changed since the last approved release, so this release goes to production self-serve (D9). Its code is not reviewed: that is §13’s residual risk, and containment is its control (§20).',
+            since: null,
           }
         : i,
   ),
@@ -1040,6 +1052,7 @@ export const FLEET: Schemas['Fleet'] = [
 export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   id: '99999999-9999-4999-8999-999999999991',
   projectId: PROJECT_ID,
+  environment: 'production',
   // THE MOCK'S OWN PROJECT (`mock-app`), in `sso/entity.ts`'s shapes. These said
   // `chem-labs` — a slug no other fixture uses — so the records screen named one app and
   // the project screen above it another.
@@ -1057,7 +1070,35 @@ export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   registeredAt: '2026-09-15T00:00:00.000Z',
   state: 'active',
   externalTicketRef: 'IAM-2026-0412',
+  // The launch path plan's Task 9: when its owner said it was sent, and who.
+  submittedAt: '2026-09-12T19:00:00.000Z',
+  submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  createdAt: '2026-09-11T00:00:00.000Z',
   updatedAt: '2026-09-20T00:00:00.000Z',
+}
+
+/**
+ * The STAGING registration (the launch path plan's Task 9) — `active`, because UBC registers staging
+ * before production is sent, and production's above is registered.
+ */
+export const STAGING_REGISTRATION: Schemas['IamRegistration'] = {
+  id: '99999999-9999-4999-8999-999999999993',
+  projectId: PROJECT_ID,
+  environment: 'staging',
+  entityId: 'https://manifest.internal/sp/mock-app/staging',
+  acsUrl: 'https://mock-app.staging.manifest.internal/auth/callback',
+  sloUrl: 'https://mock-app.staging.manifest.internal/auth/logout',
+  certFingerprint: null,
+  certExpiresAt: null,
+  registeredAttributes: ['givenName', 'mail', 'sn', 'ubcEduCwlPuid'],
+  requestedAttributes: null,
+  registeredAt: '2026-09-11T00:00:00.000Z',
+  state: 'active',
+  externalTicketRef: 'IAM-2026-0398',
+  submittedAt: '2026-09-04T19:00:00.000Z',
+  submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  createdAt: '2026-09-03T00:00:00.000Z',
+  updatedAt: '2026-09-11T00:00:00.000Z',
 }
 
 export const PRIVACY_ASSESSMENT: Schemas['PrivacyAssessment'] = {
@@ -1067,12 +1108,16 @@ export const PRIVACY_ASSESSMENT: Schemas['PrivacyAssessment'] = {
   reviewer: 'UBC Privacy Office',
   approvedAt: null,
   externalTicketRef: 'PIA-2026-0088',
+  submittedAt: '2026-09-10T19:00:00.000Z',
+  submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  createdAt: '2026-09-02T00:00:00.000Z',
   updatedAt: '2026-09-20T00:00:00.000Z',
 }
 
 export const LAUNCH_RECORDS: Schemas['LaunchRecords'] = {
   projectId: PROJECT_ID,
   iamRegistration: IAM_REGISTRATION,
+  stagingRegistration: STAGING_REGISTRATION,
   privacyAssessment: PRIVACY_ASSESSMENT,
 }
 

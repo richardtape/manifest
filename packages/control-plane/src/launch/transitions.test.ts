@@ -3,6 +3,7 @@ import {
   iamTransition,
   LaunchTransitionError,
   piaTransition,
+  SUBMIT_ARROWS,
   type IamState,
   type PiaState,
 } from './transitions.js'
@@ -130,5 +131,30 @@ describe('the two machines are separate, and say so', () => {
     // message has to know WHICH record they just failed to move.
     expect(() => iamTransition('draft', 'active')).toThrow(/IAM registration/)
     expect(() => piaTransition('approved', 'submitted')).toThrow(/privacy assessment/)
+  })
+})
+
+/**
+ * WHERE AN OWNER'S *"I'VE SENT IT"* MAY MOVE A RECORD FROM (the launch path plan's Task 9, Decision
+ * 8) — LITERALS, for the reason the states above are. A registration is sent from a draft, again
+ * after UBC asked for changes, and again once it lapsed; a privacy assessment from a draft. Never
+ * from what UBC decides (`active`, `approved`) and never from `submitted`: a second "I've sent it"
+ * would move the day the clock started.
+ */
+describe('SUBMIT_ARROWS — the moves launch:submit may make', () => {
+  it('is exactly draft, change_requested and expired for a registration, and draft for an assessment', () => {
+    expect([...SUBMIT_ARROWS.iam].sort()).toEqual([
+      'change_requested',
+      'draft',
+      'expired',
+    ])
+    expect([...SUBMIT_ARROWS.pia]).toEqual(['draft'])
+  })
+
+  it('names only states the machines can move to submitted from', () => {
+    for (const from of SUBMIT_ARROWS.iam)
+      expect(iamTransition(from, 'submitted')).toBe('submitted')
+    for (const from of SUBMIT_ARROWS.pia)
+      expect(piaTransition(from, 'submitted')).toBe('submitted')
   })
 })

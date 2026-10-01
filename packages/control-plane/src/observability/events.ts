@@ -76,6 +76,13 @@ export const EVENT_TYPES = [
   'iam_registration.recorded',
   /** §9 and R1 (P6a Task 6): an administrator recorded what the Privacy Office said. */
   'privacy_assessment.recorded',
+  /**
+   * §9 (Spec action 3; the launch path plan's Task 9): a person said a registration's request was
+   * SENT to UBC IAM — the day, the environment and the ticket, never the package.
+   */
+  'iam_registration.submitted',
+  /** The same for the privacy assessment, sent to the Privacy Office (Task 9). */
+  'privacy_assessment.submitted',
   /** D21 as R2 redefines it (P6a Task 14): a production-shaped rehearsal ran, and passed or did not. */
   'rehearsal.completed',
   /** §13 (P6a Task 10): an administrator approved this release for production, bound to its digest. */

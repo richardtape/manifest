@@ -134,12 +134,22 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
   },
   'iam_registration.recorded': {
     state: 'submitted',
+    environment: 'production',
     entityId: 'https://manifest.internal/sp/chem-labs/production',
     externalTicketRef: 'IAM-2026-0412',
     attributeCount: 2,
   },
   'privacy_assessment.recorded': {
     state: 'submitted',
+    externalTicketRef: 'PIA-2026-0088',
+  },
+  'iam_registration.submitted': {
+    environment: 'staging',
+    sentAt: '2026-09-29',
+    externalTicketRef: 'IAM-2026-0500',
+  },
+  'privacy_assessment.submitted': {
+    sentAt: '2026-09-22',
     externalTicketRef: 'PIA-2026-0088',
   },
   'rehearsal.completed': {

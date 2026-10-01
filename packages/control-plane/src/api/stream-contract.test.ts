@@ -43,6 +43,10 @@ const PUBLISHED_ELSEWHERE = {
   // never records an external launch object — an administrator does that, out of band.
   'iam_registration.recorded': 'launch/records.test.ts — recordIamRegistration',
   'privacy_assessment.recorded': 'launch/records.test.ts — recordPrivacyAssessment',
+  // The launch path plan's Task 9: an owner's "I've sent it", which needs a draft this lifecycle
+  // never makes (Tasks 10 and 11 generate them).
+  'iam_registration.submitted': 'launch/records.test.ts — submitIamRegistration',
+  'privacy_assessment.submitted': 'launch/records.test.ts — submitPrivacyAssessment',
   // Moved here from NO_PUBLISHER_YET by P6b Task 4, which found all three there although
   // their publishers have existed since P6a Tasks 10 and 14: the list's own rule said the
   // publishing task removes the entry, and nothing went red to make it, because this

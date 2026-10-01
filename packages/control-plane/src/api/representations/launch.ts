@@ -7,7 +7,7 @@ import {
   type RehearsalRow,
 } from '../../launch/index.js'
 import { SENSITIVE_FIELDS } from '../../spec/index.js'
-import { representation, request, Uuid } from '../contract/schemas.js'
+import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
 
 export const LaunchReadinessItem = representation(
   'LaunchReadinessItem',
@@ -39,6 +39,9 @@ export const LaunchReadinessItem = representation(
         .string()
         .optional()
         .describe('For a `not_built` item: what will build it. Absent otherwise.'),
+      since: Timestamp.nullable().describe(
+        'When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”.',
+      ),
     })
     .describe('One item of the launch checklist (§13), computed from what exists.'),
 )
@@ -88,12 +91,25 @@ export const LaunchReadiness = representation(
  * something derived here. P8 generates the submission; the shape does not change when it
  * does, which is §9's whole argument for modelling the submission state now.
  */
+/** Who said a record was sent, by name (the launch path plan's Task 9). */
+const Submitter = z
+  .object({
+    id: Uuid.describe('Their user id.'),
+    displayName: z.string().describe('Their name, as CWL gave it.'),
+  })
+  .describe('The person who said it was sent.')
+
 export const IamRegistration = representation(
   'IamRegistration',
   z
     .object({
       id: Uuid.describe('The record.'),
       projectId: Uuid.describe('Its project.'),
+      environment: z
+        .enum(['staging', 'production'])
+        .describe(
+          'Which registration: the staging one, sent second, or production’s, sent last. A project has at most one of each.',
+        ),
       entityId: z
         .string()
         .describe(
@@ -141,10 +157,17 @@ export const IamRegistration = representation(
         .describe(
           'UBC IAM’s own reference for the request; null when none was recorded.',
         ),
+      submittedAt: Timestamp.nullable().describe(
+        'When the request now with UBC IAM was sent — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. How long it has waited is measured from here. Null until it is sent.',
+      ),
+      submittedBy: Submitter.nullable().describe(
+        'Who said it was sent; null until it is.',
+      ),
+      createdAt: Timestamp.describe('When the record was first written.'),
       updatedAt: z.iso.datetime().describe('When the record last changed.'),
     })
     .describe(
-      'What UBC IAM registered for the app’s production CWL sign-in (§9), as an administrator recorded it.',
+      'One of the app’s two UBC IAM registrations, staging’s or production’s: what Manifest drafted, when a person said it was sent, and what UBC IAM registered, as an administrator recorded it.',
     ),
 )
 
@@ -171,11 +194,20 @@ export const PrivacyAssessment = representation(
       externalTicketRef: z
         .string()
         .nullable()
-        .describe('The Privacy Office’s own reference; null when none was recorded.'),
+        .describe(
+          'The Privacy Office’s own reference — the PIA number, which the staging registration needs before it is sent; null when none was recorded.',
+        ),
+      submittedAt: Timestamp.nullable().describe(
+        'When the assessment was sent to the Privacy Office — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. Null until it is sent.',
+      ),
+      submittedBy: Submitter.nullable().describe(
+        'Who said it was sent; null until it is.',
+      ),
+      createdAt: Timestamp.describe('When the record was first written.'),
       updatedAt: z.iso.datetime().describe('When the record last changed.'),
     })
     .describe(
-      'What UBC’s Privacy Office said of the app’s privacy impact assessment (§9), as an administrator recorded it.',
+      'The app’s privacy impact assessment: when a person said it was sent, and what UBC’s Privacy Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval.',
     ),
 )
 
@@ -192,19 +224,28 @@ export const LaunchRecords = representation(
     .object({
       projectId: Uuid.describe('The project.'),
       iamRegistration: IamRegistration.nullable().describe(
-        'What UBC IAM registered; null until an administrator records something.',
+        'The PRODUCTION registration; null until it is drafted or recorded.',
+      ),
+      stagingRegistration: IamRegistration.nullable().describe(
+        'The STAGING registration — sent after the privacy assessment is approved, and before production’s; null until it is drafted or recorded.',
       ),
       privacyAssessment: PrivacyAssessment.nullable().describe(
-        'What the Privacy Office said; null until an administrator records something.',
+        'The privacy assessment; null until it is drafted or recorded.',
       ),
     })
-    .describe('The two external records a first production launch waits on (§9).'),
+    .describe(
+      'The three records a first production launch waits on, in the order UBC works through them: the privacy assessment, the staging registration, then production’s.',
+    ),
 )
 
 export const RecordIamRegistrationRequest = request(
   'RecordIamRegistrationRequest',
   z
     .strictObject({
+      environment: z
+        .enum(['staging', 'production'])
+        .optional()
+        .describe('Which registration this records; production’s when absent.'),
       entityId: z
         .string()
         .min(1)
@@ -260,7 +301,34 @@ export const RecordIamRegistrationRequest = request(
         .describe('When that certificate expires (D20).'),
     })
     .describe(
-      'What UBC IAM registered for the app’s production sign-in, as an administrator records it from the ticket (§9).',
+      'What UBC IAM registered for the app’s staging or production sign-in, as an administrator records it from the ticket. UBC’s answer is recorded whatever order it arrives in.',
+    ),
+)
+
+/**
+ * AN OWNER'S *"I'VE SENT IT"* (the launch path plan's Task 9). Both fields are optional: a person
+ * who sent it today, and has no ticket number yet, says only that.
+ */
+export const SubmitLaunchRecordRequest = request(
+  'SubmitLaunchRecordRequest',
+  z
+    .strictObject({
+      sentAt: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe(
+          'The day it was sent, `YYYY-MM-DD` — today or earlier, and not before the draft was made. Today in Vancouver when absent.',
+        ),
+      reference: z
+        .string()
+        .min(1)
+        .max(128)
+        .optional()
+        .describe('UBC’s reference for the request, when you have one yet.'),
+    })
+    .describe(
+      'That a request to UBC was sent: the day, and its reference if there is one.',
     ),
 )
 
@@ -295,19 +363,26 @@ export const RecordPrivacyAssessmentRequest = request(
  * signature returning `| null` made `defineRoute` reject the handler, which is how this
  * was found rather than shipped.
  */
+/** Who a record says sent it, by name — read by the route, which has the database (Task 9). */
+export type SubmitterOf = z.infer<typeof Submitter> | null
+
 export function toIamRegistration(
   row: IamRegistrationRow,
+  submittedBy: SubmitterOf,
 ): z.infer<typeof IamRegistration>
 export function toIamRegistration(
   row: IamRegistrationRow | undefined,
+  submittedBy: SubmitterOf,
 ): z.infer<typeof IamRegistration> | null
 export function toIamRegistration(
   row: IamRegistrationRow | undefined,
+  submittedBy: SubmitterOf,
 ): z.infer<typeof IamRegistration> | null {
   if (row === undefined) return null
   return {
     id: row.id,
     projectId: row.projectId,
+    environment: row.environmentKind,
     entityId: row.entityId,
     acsUrl: row.acsUrl,
     sloUrl: row.sloUrl,
@@ -318,18 +393,24 @@ export function toIamRegistration(
     registeredAt: row.registeredAt === null ? null : row.registeredAt.toISOString(),
     state: row.state,
     externalTicketRef: row.externalTicketRef,
+    submittedAt: row.submittedAt === null ? null : row.submittedAt.toISOString(),
+    submittedBy,
+    createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
 }
 
 export function toPrivacyAssessment(
   row: PrivacyAssessmentRow,
+  submittedBy: SubmitterOf,
 ): z.infer<typeof PrivacyAssessment>
 export function toPrivacyAssessment(
   row: PrivacyAssessmentRow | undefined,
+  submittedBy: SubmitterOf,
 ): z.infer<typeof PrivacyAssessment> | null
 export function toPrivacyAssessment(
   row: PrivacyAssessmentRow | undefined,
+  submittedBy: SubmitterOf,
 ): z.infer<typeof PrivacyAssessment> | null {
   if (row === undefined) return null
   return {
@@ -339,6 +420,9 @@ export function toPrivacyAssessment(
     reviewer: row.reviewer,
     approvedAt: row.approvedAt === null ? null : row.approvedAt.toISOString(),
     externalTicketRef: row.externalTicketRef,
+    submittedAt: row.submittedAt === null ? null : row.submittedAt.toISOString(),
+    submittedBy,
+    createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
 }

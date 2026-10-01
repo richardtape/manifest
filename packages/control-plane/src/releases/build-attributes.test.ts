@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { appSpecs, events, iamRegistrations, projects, type Db } from '../db/index.js'
 import { withProject } from '../db/testing.js'
+import { withDraft } from '../launch/testing.js'
 import { createEventBus, readBuildLog } from '../observability/index.js'
 import { createFakeDriver, type Driver } from '../runtime/index.js'
 import { buildToEnd } from './testing.js'
@@ -43,6 +44,9 @@ async function buildOf(
       sloUrl: `https://${project!.slug}.manifest.internal/auth/logout`,
       registeredAttributes: registered,
       state: 'active',
+      // REGISTERED (the launch path plan's Task 9): only a registration UBC has registered is
+      // checked, so a row this helper calls registered says when UBC registered it.
+      registeredAt: new Date(),
       externalTicketRef: 'IAM-4471',
       recordedBy: project!.ownerId,
     })
@@ -151,6 +155,82 @@ describe('attribute drift fails the BUILD (§7, §9 — P6a Task 13)', () => {
         ['ubcEduCwlPuid'],
       )
       expect(build.status, build.error ?? '').toBe('succeeded')
+    })
+  })
+})
+
+/**
+ * **A DRAFT NEVER GATES THE BUILD LOOP** (the launch path plan's Task 9, Review Focus 1). An owner
+ * drafts the production registration in week one; in week three the agent adds an attribute.
+ * Only a registration UBC has REGISTERED — the production row with `registered_at` set — is
+ * checked; a draft, a submission and the staging row gate nothing. Each case's positive control
+ * is in the same test: the same build fails once UBC has registered less than it asks for, so
+ * the green half cannot be a runner that checks nothing.
+ */
+describe('only a registration UBC has registered gates a build (the launch path plan’s Task 9)', () => {
+  it('a draft never fails a build, and a registered production row still does', async () => {
+    await withProject(async (tx, { projectId }) => {
+      const draft = await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid'],
+      })
+      const auth = { provider: 'cwl' as const, attributes: ['ubcEduCwlPuid', 'mail'] }
+      const before = await buildOf(tx, projectId, auth, null)
+      expect(before.build.status, before.build.error ?? '').toBe('succeeded')
+
+      // UBC registers ONE attribute, and an administrator records it: now it is checked.
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'active',
+          registeredAttributes: ['ubcEduCwlPuid'],
+          registeredAt: new Date(),
+          externalTicketRef: 'IAM-4471',
+        })
+        .where(eq(iamRegistrations.id, draft.id))
+      const after = await buildOf(tx, projectId, auth, null)
+      expect(after.build.status).toBe('failed')
+      expect(after.build.error).toMatch(/^SPEC_ATTRIBUTE_NOT_REGISTERED: /)
+      expect(after.build.error).toContain(': mail.')
+    })
+  })
+
+  it('a submitted production registration, not yet registered, never fails a build', async () => {
+    await withProject(async (tx, { projectId }) => {
+      const draft = await withDraft(tx, { projectId, environment: 'production' })
+      await tx
+        .update(iamRegistrations)
+        .set({ state: 'submitted', submittedAt: new Date() })
+        .where(eq(iamRegistrations.id, draft.id))
+      const { build } = await buildOf(
+        tx,
+        projectId,
+        { provider: 'cwl', attributes: ['ubcEduCwlPuid', 'mail', 'sn'] },
+        null,
+      )
+      expect(build.status, build.error ?? '').toBe('succeeded')
+    })
+  })
+
+  it('a staging registration, even active, never fails a build', async () => {
+    await withProject(async (tx, { projectId }) => {
+      const staging = await withDraft(tx, { projectId, environment: 'staging' })
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'active',
+          registeredAttributes: ['ubcEduCwlPuid'],
+          registeredAt: new Date(),
+        })
+        .where(eq(iamRegistrations.id, staging.id))
+      const auth = { provider: 'cwl' as const, attributes: ['ubcEduCwlPuid', 'mail'] }
+      const { build } = await buildOf(tx, projectId, auth, null)
+      expect(build.status, build.error ?? '').toBe('succeeded')
+      // THE POSITIVE CONTROL: the same attributes against a REGISTERED production row fail.
+      const refused = await buildOf(tx, projectId, auth, ['ubcEduCwlPuid'])
+      expect(refused.build.status).toBe('failed')
+      expect(refused.build.error).toContain(': mail.')
     })
   })
 })

@@ -304,7 +304,7 @@ export const ERROR_CODES = {
    */
   TOKEN_PERSON_ONLY: api(
     403,
-    'A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.',
+    'A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, saying a request to UBC IAM or the Privacy Office was sent, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.',
     'A person does this, in the console, in their own session. No token can hold it and no confirmation grants it — do not ask for one.',
   ),
   // GET /v1/docs/{slug} (the authoring API plan's Task 11)
@@ -498,6 +498,39 @@ export const ERROR_CODES = {
       'An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.',
     remedy:
       'Correct the fields the message names — a registration lists at least one attribute — and record it again.',
+  },
+  // launch/records.ts — an owner's "I've sent it" (the launch path plan's Task 9)
+  LAUNCH_DRAFT_REQUIRED: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.',
+    remedy:
+      'Draft it first, send the draft to UBC, then say it was sent. Nothing was recorded.',
+  },
+  LAUNCH_SENT_AT_INVALID: {
+    status: 400,
+    families: ['LaunchRecordError'],
+    summary:
+      'The day given for when it was sent cannot be true: it is after today in Vancouver, or before the draft that was sent was made.',
+    remedy:
+      'Give the day you sent it, as YYYY-MM-DD — today or earlier, and not before the draft’s day — or leave it out for today.',
+  },
+  LAUNCH_PIA_NOT_APPROVED: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'The staging registration is sent only once the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.',
+    remedy:
+      'Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the staging registration and say so again.',
+  },
+  LAUNCH_STAGING_NOT_REGISTERED: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.',
+    remedy:
+      'Send the staging registration first. Once an administrator records it active and you have tested the app at staging, send the production registration and say so again.',
   },
 
   // launch/rehearsal.ts — D21's rehearsal as R2 redefines it (P6a Task 14). Every one of

@@ -518,6 +518,120 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
 })
 
 /**
+ * *WAITING SINCE* (the launch path plan's Task 9, Decision 10): the time an item's current state
+ * began, when Manifest knows it — the day the owner said a record was sent while it waits on UBC,
+ * the day UBC registered it or the Privacy Office approved it once met — and null otherwise. A new
+ * FIELD, never a new state: a client that switches on `state` reads exactly what it read before.
+ */
+describe('waiting since (Task 9)', () => {
+  const SENT = new Date('2026-09-22T19:00:00.000Z') // noon in Vancouver, 22 September
+  const item = async (tx: Db, projectId: string, id: string) =>
+    (await computeLaunchReadiness(tx, projectId)).items.find((i) => i.id === id)!
+
+  it('a submitted registration waits since the day it was sent, and says the day in words', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await recordIam(tx, projectId, ownerId, 'submitted', 'IAM-4471')
+      await tx
+        .update(iamRegistrations)
+        .set({ submittedAt: SENT })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const iam = await item(tx, projectId, 'iam-registration')
+      expect(iam).toMatchObject({ state: 'unmet', since: SENT.toISOString() })
+      expect(iam.why).toMatch(/sent to UBC IAM on September 22, 2026/)
+      expect(iam.why).toContain('IAM-4471')
+      expect(iam.why).toContain("'active'")
+    })
+  })
+
+  it('an active registration is met since UBC registered it', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      const [row] = await tx
+        .select()
+        .from(iamRegistrations)
+        .where(eq(iamRegistrations.projectId, projectId))
+      const iam = await item(tx, projectId, 'iam-registration')
+      expect(iam).toMatchObject({ state: 'met', since: row!.registeredAt!.toISOString() })
+    })
+  })
+
+  it('a draft, or nothing at all, waits on nobody yet: since is null', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      expect((await item(tx, projectId, 'iam-registration')).since).toBeNull()
+      expect((await item(tx, projectId, 'privacy-assessment')).since).toBeNull()
+      await recordIam(tx, projectId, ownerId, 'draft', null)
+      expect((await item(tx, projectId, 'iam-registration')).since).toBeNull()
+      // And every item Task 9 does not date reads null, never a missing field.
+      for (const i of (await computeLaunchReadiness(tx, projectId)).items)
+        expect(i.since === null || typeof i.since === 'string', i.id).toBe(true)
+      expect((await item(tx, projectId, 'domain')).since).toBeNull()
+    })
+  })
+
+  it('a submitted assessment waits since the day it was sent; an approved one is met since its approval', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await recordPia(tx, projectId, ownerId, 'submitted', null, null)
+      await tx
+        .update(privacyAssessments)
+        .set({ submittedAt: SENT })
+        .where(eq(privacyAssessments.projectId, projectId))
+      const waiting = await item(tx, projectId, 'privacy-assessment')
+      expect(waiting).toMatchObject({ state: 'unmet', since: SENT.toISOString() })
+      expect(waiting.why).toMatch(/sent to the UBC Privacy Office on September 22, 2026/)
+      const approvedAt = new Date('2026-09-28T17:04:00.000Z')
+      await tx
+        .update(privacyAssessments)
+        .set({ state: 'approved', approvedAt, reviewer: 'K. Lam' })
+        .where(eq(privacyAssessments.projectId, projectId))
+      expect(await item(tx, projectId, 'privacy-assessment')).toMatchObject({
+        state: 'met',
+        since: approvedAt.toISOString(),
+      })
+    })
+  })
+
+  it('reads the PRODUCTION registration only: an active staging registration does not meet it', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-STG-1')
+      await tx
+        .update(iamRegistrations)
+        .set({ environmentKind: 'staging' })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const iam = await item(tx, projectId, 'iam-registration')
+      expect(iam.state).toBe('unmet')
+      expect(iam.why).not.toContain('IAM-STG-1')
+      // THE POSITIVE CONTROL: the same row as production's is met.
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-PRD-1')
+      expect((await item(tx, projectId, 'iam-registration')).state).toBe('met')
+    })
+  })
+
+  it('a LAUNCHED app’s live registration reads the production row only, and is met since UBC registered it', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await tx
+        .update(projects)
+        .set({ launchedAt: new Date() })
+        .where(eq(projects.id, projectId))
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-STG-1')
+      await tx
+        .update(iamRegistrations)
+        .set({ environmentKind: 'staging' })
+        .where(eq(iamRegistrations.projectId, projectId))
+      expect((await item(tx, projectId, 'iam-registration')).state).toBe('unmet')
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-PRD-1')
+      const [production] = await tx
+        .select()
+        .from(iamRegistrations)
+        .where(eq(iamRegistrations.externalTicketRef, 'IAM-PRD-1'))
+      expect(await item(tx, projectId, 'iam-registration')).toMatchObject({
+        state: 'met',
+        since: production!.registeredAt!.toISOString(),
+      })
+    })
+  })
+})
+
+/**
  * R4's item, `code-review` (D33, §15, P6a Task 12) — and DECISION 13's control, which is the
  * one that keeps production reachable for ever.
  *

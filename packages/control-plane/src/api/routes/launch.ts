@@ -6,6 +6,9 @@ import {
   recordIamRegistration,
   recordPrivacyAssessment,
   runRehearsal,
+  submitIamRegistration,
+  submitPrivacyAssessment,
+  submitterOf,
 } from '../../launch/index.js'
 import { assertCapability, assertStepUp } from '../../projects/index.js'
 import { requireSession } from '../actor.js'
@@ -20,6 +23,7 @@ import {
   RecordIamRegistrationRequest,
   RecordPrivacyAssessmentRequest,
   Rehearsal,
+  SubmitLaunchRecordRequest,
   toIamRegistration,
   toPrivacyAssessment,
   toRehearsal,
@@ -58,6 +62,7 @@ export const launchRoutes = [
             blocking: true,
             state: 'met',
             why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
+            since: null,
           },
           {
             id: 'iam-registration',
@@ -65,7 +70,8 @@ export const launchRoutes = [
             owner: 'UBC IAM, recorded by a platform administrator (§9)',
             blocking: true,
             state: 'unmet',
-            why: 'Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference.',
+            why: "It was sent to UBC IAM on October 14, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
+            since: '2026-10-14T19:00:00.000Z',
           },
         ],
       },
@@ -80,15 +86,15 @@ export const launchRoutes = [
     method: 'GET',
     path: '/v1/projects/{projectId}/launch-records',
     tag: 'launch',
-    summary: 'The IAM registration and the privacy assessment, as recorded',
+    summary: 'The privacy assessment and the two IAM registrations',
     description:
-      'The IAM registration and the privacy assessment, as a platform administrator recorded what UBC IAM and the Privacy Office said, each with its ticket reference. Either may be absent — a state, not an error.',
+      'The three records a first production launch waits on — the privacy assessment, the staging registration and the production registration — each with when a person said it was sent and what UBC said, as a platform administrator recorded it. Any may be absent: a state, not an error.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
     success: {
       status: 200,
-      description: 'Both records, either of which may be null.',
+      description: 'The three records, any of which may be null.',
       schema: LaunchRecords,
     },
     capability: 'project:read',
@@ -97,19 +103,49 @@ export const launchRoutes = [
       response: {
         projectId: '11303e87-e32a-4264-9191-bc37307c218b',
         iamRegistration: {
+          id: '5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13',
+          projectId: '11303e87-e32a-4264-9191-bc37307c218b',
+          environment: 'production',
+          entityId: 'https://manifest.internal/sp/class-check-ins/production',
+          acsUrl: 'https://class-check-ins.manifest.internal/auth/ubcshib/callback',
+          sloUrl: 'https://class-check-ins.manifest.internal/auth/logout',
+          certFingerprint: null,
+          certExpiresAt: null,
+          registeredAttributes: [],
+          requestedAttributes: null,
+          registeredAt: null,
+          state: 'submitted',
+          externalTicketRef: 'IAM-2026-0500',
+          submittedAt: '2026-10-14T19:00:00.000Z',
+          submittedBy: {
+            id: 'a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d',
+            displayName: 'Bio Prof',
+          },
+          createdAt: '2026-10-09T17:22:41.508Z',
+          updatedAt: '2026-10-14T18:03:12.117Z',
+        },
+        stagingRegistration: {
           id: '77e7ddc9-7571-4de3-9ba7-6a4372526295',
           projectId: '11303e87-e32a-4264-9191-bc37307c218b',
-          entityId: 'https://manifest.internal/sp/iam-pending/production',
-          acsUrl: 'https://iam-pending.manifest.internal/auth/ubcshib/callback',
-          sloUrl: 'https://iam-pending.manifest.internal/auth/logout',
+          environment: 'staging',
+          entityId: 'https://manifest.internal/sp/class-check-ins/staging',
+          acsUrl:
+            'https://class-check-ins.staging.manifest.internal/auth/ubcshib/callback',
+          sloUrl: 'https://class-check-ins.staging.manifest.internal/auth/logout',
           certFingerprint: null,
           certExpiresAt: null,
           registeredAttributes: ['ubcEduCwlPuid', 'mail'],
-          requestedAttributes: ['ubcEduCwlPuid', 'mail'],
-          registeredAt: '2026-09-26T21:48:50.164Z',
-          state: 'change_requested',
-          externalTicketRef: 'IAM-CR-7',
-          updatedAt: '2026-09-26T21:48:50.262Z',
+          requestedAttributes: null,
+          registeredAt: '2026-10-07T21:48:50.164Z',
+          state: 'active',
+          externalTicketRef: 'IAM-2026-0480',
+          submittedAt: '2026-09-29T19:00:00.000Z',
+          submittedBy: {
+            id: 'a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d',
+            displayName: 'Bio Prof',
+          },
+          createdAt: '2026-09-28T16:10:05.902Z',
+          updatedAt: '2026-10-07T21:48:50.164Z',
         },
         privacyAssessment: {
           id: '04f0ba9a-51c7-449e-ab08-90969a0d6357',
@@ -117,7 +153,13 @@ export const launchRoutes = [
           state: 'approved',
           reviewer: 'K. Privacy',
           approvedAt: '2026-09-26T21:48:50.173Z',
-          externalTicketRef: 'PIA-iam-pending',
+          externalTicketRef: 'PIA-2026-0088',
+          submittedAt: '2026-09-15T19:00:00.000Z',
+          submittedBy: {
+            id: 'a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d',
+            displayName: 'Bio Prof',
+          },
+          createdAt: '2026-09-14T20:31:16.044Z',
           updatedAt: '2026-09-26T21:48:50.173Z',
         },
       },
@@ -127,13 +169,24 @@ export const launchRoutes = [
       // surfaced "the moment a project is created — not at the point the owner asks to go
       // live", and an owner who cannot see whether their PIA is in has no way to chase it.
       await assertCapability(deps.db, actor, params.projectId, 'project:read')
+      const [production, staging, pia] = await Promise.all([
+        getIamRegistration(deps.db, params.projectId, 'production'),
+        getIamRegistration(deps.db, params.projectId, 'staging'),
+        getPrivacyAssessment(deps.db, params.projectId),
+      ])
       return {
         projectId: params.projectId,
         iamRegistration: toIamRegistration(
-          await getIamRegistration(deps.db, params.projectId),
+          production,
+          await submitterOf(deps.db, production?.submittedBy ?? null),
+        ),
+        stagingRegistration: toIamRegistration(
+          staging,
+          await submitterOf(deps.db, staging?.submittedBy ?? null),
         ),
         privacyAssessment: toPrivacyAssessment(
-          await getPrivacyAssessment(deps.db, params.projectId),
+          pia,
+          await submitterOf(deps.db, pia?.submittedBy ?? null),
         ),
       }
     },
@@ -146,7 +199,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Record what UBC IAM registered',
     description:
-      'A platform administrator, in their own session, records the Service Provider registration UBC IAM made, with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`.',
+      'A platform administrator, in their own session, records the Service Provider registration UBC IAM made — the staging registration or production’s (`environment`, production’s when absent) — with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`. UBC’s answer is recorded whatever order it arrives in: this is never refused for the order the requests are sent in.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: RecordIamRegistrationRequest,
@@ -176,6 +229,7 @@ export const launchRoutes = [
       response: {
         id: '62169b5f-1961-406a-8ad3-f5de46143c6f',
         projectId: '9aa37d53-038d-4e78-9270-01c2ea085d21',
+        environment: 'production',
         entityId: 'https://manifest.internal/sp/iam-granted/production',
         acsUrl: 'https://iam-granted.manifest.internal/auth/ubcshib/callback',
         sloUrl: 'https://iam-granted.manifest.internal/auth/logout',
@@ -186,6 +240,12 @@ export const launchRoutes = [
         registeredAt: '2026-09-26T21:48:52.716Z',
         state: 'change_requested',
         externalTicketRef: 'IAM-iam-granted',
+        submittedAt: '2026-09-26T21:48:52.796Z',
+        submittedBy: {
+          id: '3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b',
+          displayName: 'Platform Admin',
+        },
+        createdAt: '2026-09-26T21:48:52.611Z',
         updatedAt: '2026-09-26T21:48:52.796Z',
       },
     },
@@ -201,22 +261,22 @@ export const launchRoutes = [
       // `token-other-project` said 404).
       const actor = requireSession(request)
       await assertCapability(deps.db, actor, params.projectId, 'launch:record')
-      return toIamRegistration(
-        await recordIamRegistration(deps.db, deps.bus, {
-          projectId: params.projectId,
-          entityId: body.entityId,
-          acsUrl: body.acsUrl,
-          sloUrl: body.sloUrl,
-          registeredAttributes: body.registeredAttributes,
-          requestedAttributes: body.requestedAttributes,
-          state: body.state,
-          externalTicketRef: body.externalTicketRef,
-          certFingerprint: body.certFingerprint,
-          certExpiresAt:
-            body.certExpiresAt === undefined ? undefined : new Date(body.certExpiresAt),
-          actor: { id: actor.userId, puid: actor.puid },
-        }),
-      )
+      const row = await recordIamRegistration(deps.db, deps.bus, {
+        projectId: params.projectId,
+        environment: body.environment,
+        entityId: body.entityId,
+        acsUrl: body.acsUrl,
+        sloUrl: body.sloUrl,
+        registeredAttributes: body.registeredAttributes,
+        requestedAttributes: body.requestedAttributes,
+        state: body.state,
+        externalTicketRef: body.externalTicketRef,
+        certFingerprint: body.certFingerprint,
+        certExpiresAt:
+          body.certExpiresAt === undefined ? undefined : new Date(body.certExpiresAt),
+        actor: { id: actor.userId, puid: actor.puid },
+      })
+      return toIamRegistration(row, await submitterOf(deps.db, row.submittedBy))
     },
   }),
   defineRoute({
@@ -256,21 +316,156 @@ export const launchRoutes = [
         reviewer: 'K. Privacy',
         approvedAt: '2026-09-26T21:47:36.002Z',
         externalTicketRef: 'PIA-DELIVERY-1',
+        submittedAt: '2026-09-26T21:47:35.912Z',
+        submittedBy: {
+          id: '3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b',
+          displayName: 'Platform Admin',
+        },
+        createdAt: '2026-09-26T21:47:35.912Z',
         updatedAt: '2026-09-26T21:47:36.002Z',
       },
     },
     handler: async ({ deps, request, params, body }) => {
       const actor = requireSession(request)
       await assertCapability(deps.db, actor, params.projectId, 'launch:record')
-      return toPrivacyAssessment(
-        await recordPrivacyAssessment(deps.db, deps.bus, {
-          projectId: params.projectId,
-          state: body.state,
-          reviewer: body.reviewer,
-          externalTicketRef: body.externalTicketRef,
-          actor: { id: actor.userId, puid: actor.puid },
-        }),
-      )
+      const row = await recordPrivacyAssessment(deps.db, deps.bus, {
+        projectId: params.projectId,
+        state: body.state,
+        reviewer: body.reviewer,
+        externalTicketRef: body.externalTicketRef,
+        actor: { id: actor.userId, puid: actor.puid },
+      })
+      return toPrivacyAssessment(row, await submitterOf(deps.db, row.submittedBy))
+    },
+  }),
+  defineRoute({
+    operationId: 'submitIamRegistration',
+    credential: 'session',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/submission',
+    tag: 'launch',
+    summary: 'Say a registration request was sent to UBC IAM',
+    description:
+      'The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: the staging registration is sent only once the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active (`409 LAUNCH_STAGING_NOT_REGISTERED`). It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
+    params: z.strictObject({
+      projectId: PATH.projectId,
+      environment: z
+        .enum(['staging', 'production'])
+        .describe('Which registration was sent: `staging` or `production`.'),
+    }),
+    query: NO_QUERY,
+    body: SubmitLaunchRecordRequest,
+    success: {
+      status: 200,
+      description: 'The registration, now submitted.',
+      schema: IamRegistration,
+    },
+    capability: 'launch:submit',
+    // NO `FORBIDDEN`: every role that can see the project holds `launch:submit`, a stranger is
+    // `NOT_FOUND`, and a token is refused first.
+    errors: [
+      'NOT_FOUND',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'LAUNCH_DRAFT_REQUIRED',
+      'LAUNCH_TRANSITION_INVALID',
+      'LAUNCH_PIA_NOT_APPROVED',
+      'LAUNCH_STAGING_NOT_REGISTERED',
+      'LAUNCH_SENT_AT_INVALID',
+    ],
+    examples: {
+      request: { sentAt: '2026-10-14', reference: 'IAM-2026-0500' },
+      response: {
+        id: '5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13',
+        projectId: '11303e87-e32a-4264-9191-bc37307c218b',
+        environment: 'production',
+        entityId: 'https://manifest.internal/sp/class-check-ins/production',
+        acsUrl: 'https://class-check-ins.manifest.internal/auth/ubcshib/callback',
+        sloUrl: 'https://class-check-ins.manifest.internal/auth/logout',
+        certFingerprint: null,
+        certExpiresAt: null,
+        registeredAttributes: [],
+        requestedAttributes: null,
+        registeredAt: null,
+        state: 'submitted',
+        externalTicketRef: 'IAM-2026-0500',
+        submittedAt: '2026-10-14T19:00:00.000Z',
+        submittedBy: {
+          id: 'a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d',
+          displayName: 'Bio Prof',
+        },
+        createdAt: '2026-10-09T17:22:41.508Z',
+        updatedAt: '2026-10-14T18:03:12.117Z',
+      },
+    },
+    handler: async ({ deps, request, params, body }) => {
+      // A PERSON, in their own session (D24: *"saying that a request to either was sent"*).
+      // `requireSession` first, so a token is answered the same for every project id and learns
+      // nothing; the central rule refuses a token holding `launch:submit` whatever this line does.
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'launch:submit')
+      const row = await submitIamRegistration(deps.db, deps.bus, {
+        projectId: params.projectId,
+        environment: params.environment,
+        actor: { id: actor.userId, puid: actor.puid },
+        sentAt: body.sentAt,
+        reference: body.reference,
+      })
+      return toIamRegistration(row, await submitterOf(deps.db, row.submittedBy))
+    },
+  }),
+  defineRoute({
+    operationId: 'submitPrivacyAssessment',
+    credential: 'session',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/launch-records/privacy-assessment/submission',
+    tag: 'launch',
+    summary: 'Say the privacy assessment was sent to the Privacy Office',
+    description:
+      'The project’s owner, a collaborator or a platform administrator, in their own session, says the privacy impact assessment was sent to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent), with the Office’s `reference` when they have one. It comes first in UBC’s order, so nothing else gates it. The record moves to `submitted`, and the launch checklist says how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, and a second submission is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded by an administrator (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
+    params: z.strictObject({ projectId: PATH.projectId }),
+    query: NO_QUERY,
+    body: SubmitLaunchRecordRequest,
+    success: {
+      status: 200,
+      description: 'The assessment, now submitted.',
+      schema: PrivacyAssessment,
+    },
+    capability: 'launch:submit',
+    errors: [
+      'NOT_FOUND',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'LAUNCH_DRAFT_REQUIRED',
+      'LAUNCH_TRANSITION_INVALID',
+      'LAUNCH_SENT_AT_INVALID',
+    ],
+    examples: {
+      request: { sentAt: '2026-09-15', reference: 'PIA-2026-0088' },
+      response: {
+        id: '04f0ba9a-51c7-449e-ab08-90969a0d6357',
+        projectId: '11303e87-e32a-4264-9191-bc37307c218b',
+        state: 'submitted',
+        reviewer: null,
+        approvedAt: null,
+        externalTicketRef: 'PIA-2026-0088',
+        submittedAt: '2026-09-15T19:00:00.000Z',
+        submittedBy: {
+          id: 'a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d',
+          displayName: 'Bio Prof',
+        },
+        createdAt: '2026-09-14T20:31:16.044Z',
+        updatedAt: '2026-09-15T17:40:09.330Z',
+      },
+    },
+    handler: async ({ deps, request, params, body }) => {
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'launch:submit')
+      const row = await submitPrivacyAssessment(deps.db, deps.bus, {
+        projectId: params.projectId,
+        actor: { id: actor.userId, puid: actor.puid },
+        sentAt: body.sentAt,
+        reference: body.reference,
+      })
+      return toPrivacyAssessment(row, await submitterOf(deps.db, row.submittedBy))
     },
   }),
   defineRoute({

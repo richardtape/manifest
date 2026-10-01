@@ -113,7 +113,7 @@ export const MintTokenRequest = request(
         .array(z.enum(PRIVILEGED_CAPABILITIES))
         .min(1)
         .describe(
-          'The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only and refused outright.',
+          'The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:submit, launch:rehearse or project:delete, which are person-only and refused outright.',
         ),
       expiresInDays: z
         .int()

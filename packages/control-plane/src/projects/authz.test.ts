@@ -134,6 +134,67 @@ describe('assertCapability', () => {
     })
   })
 
+  /**
+   * `[M8]` (the launch path plan's Task 1, F13): an owner refused `launch:record` was told to ask a
+   * project owner for the role — which no project role holds. A capability only a platform
+   * administrator holds says so; one a project role can grant keeps the old hint (its positive
+   * control, in the same test).
+   */
+  it('tells a member refused an ADMINISTRATOR’s capability that an administrator does it — not a project owner', async () => {
+    await withRollback(async (db) => {
+      const { owner, project } = await seed(db)
+      const refusedFor = async (capability: Parameters<typeof assertCapability>[3]) => {
+        try {
+          await assertCapability(
+            db,
+            sessionActor({ userId: owner.id }),
+            project.id,
+            capability,
+          )
+        } catch (error) {
+          return error as AuthorizationError
+        }
+        throw new Error(`expected '${capability}' to be refused`)
+      }
+      for (const capability of [
+        'launch:record',
+        'release:approve',
+        'quota:set',
+      ] as const) {
+        const error = await refusedFor(capability)
+        expect(error.code, capability).toBe('FORBIDDEN')
+        expect(error.hint, capability).toMatch(/platform administrator/)
+      }
+      // A collaborator refused what an owner holds is still sent to an owner.
+      const collaborator = await db
+        .insert(users)
+        .values({
+          ubcCwlPuid: 'collab',
+          email: 'c@ubc.ca',
+          displayName: 'C',
+          role: 'member',
+        })
+        .returning()
+      await db.insert(projectMembers).values({
+        projectId: project.id,
+        userId: collaborator[0]!.id,
+        role: 'collaborator',
+      })
+      try {
+        await assertCapability(
+          db,
+          sessionActor({ userId: collaborator[0]!.id }),
+          project.id,
+          'members:manage',
+        )
+        throw new Error('expected the check to refuse')
+      } catch (error) {
+        expect((error as AuthorizationError).code).toBe('FORBIDDEN')
+        expect((error as AuthorizationError).hint).toBeUndefined()
+      }
+    })
+  })
+
   it('returns NOT_FOUND for a project that does not exist', async () => {
     await withRollback(async (db) => {
       const { owner } = await seed(db)

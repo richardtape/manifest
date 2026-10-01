@@ -101,6 +101,11 @@ const CAPABILITIES = everyCapability([
    * below). Caught here by `tsc`, as every capability added to the contract is.
    */
   'launch:rehearse',
+  /**
+   * Saying a request to UBC IAM or the Privacy Office was sent (the launch path plan's Task 9): the
+   * owner's, a collaborator's and an administrator's — and PERSON-ONLY, so never mintable.
+   */
+  'launch:submit',
   'quota:set',
   'secret:read',
 ] as const)
@@ -153,6 +158,8 @@ const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
   'launch:record',
   'project:delete',
   'launch:rehearse',
+  // An owner's "I've sent it" (the launch path plan's Task 9).
+  'launch:submit',
 ])
 
 const PERSON_ONLY_REASON = 'A person does this — no token and no confirmation can.'

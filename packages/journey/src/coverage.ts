@@ -195,4 +195,9 @@ export const JOURNEY: readonly JourneyStep[] = [
 /** In the document, and deliberately in no faculty step — each with its reason. */
 export const OUTSIDE_THE_JOURNEY: Readonly<Record<string, string>> = {
   listFleet: 'An administrator’s view of every app (§26), not a step in building one.',
+  // The launch path plan's Task 9 — until its Task 15's `make demo-launch` makes them steps.
+  submitIamRegistration:
+    'Saying a registration request was sent needs Manifest’s draft of it, which is not generated yet; it becomes a step of the launch once it is.',
+  submitPrivacyAssessment:
+    'Saying the privacy assessment was sent needs Manifest’s draft of it, which is not generated yet; it becomes a step of the launch once it is.',
 }

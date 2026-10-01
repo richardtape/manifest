@@ -3887,9 +3887,10 @@
           },
           {
             "type": "iam_registration.recorded",
-            "description": "An administrator recorded what UBC IAM registered for the app’s production sign-in (§9).",
+            "description": "An administrator recorded what UBC IAM registered for the app’s staging or production sign-in.",
             "example": {
               "state": "submitted",
+              "environment": "production",
               "entityId": "https://manifest.internal/sp/chem-labs/production",
               "externalTicketRef": "IAM-2026-0412",
               "attributeCount": 2
@@ -3900,6 +3901,23 @@
             "description": "An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment (§9).",
             "example": {
               "state": "submitted",
+              "externalTicketRef": "PIA-2026-0088"
+            }
+          },
+          {
+            "type": "iam_registration.submitted",
+            "description": "A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records.",
+            "example": {
+              "environment": "staging",
+              "sentAt": "2026-09-29",
+              "externalTicketRef": "IAM-2026-0500"
+            }
+          },
+          {
+            "type": "privacy_assessment.submitted",
+            "description": "A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records.",
+            "example": {
+              "sentAt": "2026-09-22",
               "externalTicketRef": "PIA-2026-0088"
             }
           },
@@ -4341,7 +4359,8 @@
                       "owner": "project owner",
                       "blocking": true,
                       "state": "met",
-                      "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it."
+                      "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.",
+                      "since": null
                     },
                     {
                       "id": "iam-registration",
@@ -4349,7 +4368,8 @@
                       "owner": "UBC IAM, recorded by a platform administrator (§9)",
                       "blocking": true,
                       "state": "unmet",
-                      "why": "Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference."
+                      "why": "It was sent to UBC IAM on October 14, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
+                      "since": "2026-10-14T19:00:00.000Z"
                     }
                   ]
                 }
@@ -4382,8 +4402,8 @@
         "tags": [
           "launch"
         ],
-        "summary": "The IAM registration and the privacy assessment, as recorded",
-        "description": "The IAM registration and the privacy assessment, as a platform administrator recorded what UBC IAM and the Privacy Office said, each with its ticket reference. Either may be absent — a state, not an error.",
+        "summary": "The privacy assessment and the two IAM registrations",
+        "description": "The three records a first production launch waits on — the privacy assessment, the staging registration and the production registration — each with when a person said it was sent and what UBC said, as a platform administrator recorded it. Any may be absent: a state, not an error.",
         "parameters": [
           {
             "name": "projectId",
@@ -4400,7 +4420,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Both records, either of which may be null.",
+            "description": "The three records, any of which may be null.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4409,25 +4429,51 @@
                 "example": {
                   "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
                   "iamRegistration": {
+                    "id": "5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13",
+                    "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                    "environment": "production",
+                    "entityId": "https://manifest.internal/sp/class-check-ins/production",
+                    "acsUrl": "https://class-check-ins.manifest.internal/auth/ubcshib/callback",
+                    "sloUrl": "https://class-check-ins.manifest.internal/auth/logout",
+                    "certFingerprint": null,
+                    "certExpiresAt": null,
+                    "registeredAttributes": [],
+                    "requestedAttributes": null,
+                    "registeredAt": null,
+                    "state": "submitted",
+                    "externalTicketRef": "IAM-2026-0500",
+                    "submittedAt": "2026-10-14T19:00:00.000Z",
+                    "submittedBy": {
+                      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                      "displayName": "Bio Prof"
+                    },
+                    "createdAt": "2026-10-09T17:22:41.508Z",
+                    "updatedAt": "2026-10-14T18:03:12.117Z"
+                  },
+                  "stagingRegistration": {
                     "id": "77e7ddc9-7571-4de3-9ba7-6a4372526295",
                     "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
-                    "entityId": "https://manifest.internal/sp/iam-pending/production",
-                    "acsUrl": "https://iam-pending.manifest.internal/auth/ubcshib/callback",
-                    "sloUrl": "https://iam-pending.manifest.internal/auth/logout",
+                    "environment": "staging",
+                    "entityId": "https://manifest.internal/sp/class-check-ins/staging",
+                    "acsUrl": "https://class-check-ins.staging.manifest.internal/auth/ubcshib/callback",
+                    "sloUrl": "https://class-check-ins.staging.manifest.internal/auth/logout",
                     "certFingerprint": null,
                     "certExpiresAt": null,
                     "registeredAttributes": [
                       "ubcEduCwlPuid",
                       "mail"
                     ],
-                    "requestedAttributes": [
-                      "ubcEduCwlPuid",
-                      "mail"
-                    ],
-                    "registeredAt": "2026-09-26T21:48:50.164Z",
-                    "state": "change_requested",
-                    "externalTicketRef": "IAM-CR-7",
-                    "updatedAt": "2026-09-26T21:48:50.262Z"
+                    "requestedAttributes": null,
+                    "registeredAt": "2026-10-07T21:48:50.164Z",
+                    "state": "active",
+                    "externalTicketRef": "IAM-2026-0480",
+                    "submittedAt": "2026-09-29T19:00:00.000Z",
+                    "submittedBy": {
+                      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                      "displayName": "Bio Prof"
+                    },
+                    "createdAt": "2026-09-28T16:10:05.902Z",
+                    "updatedAt": "2026-10-07T21:48:50.164Z"
                   },
                   "privacyAssessment": {
                     "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
@@ -4435,7 +4481,13 @@
                     "state": "approved",
                     "reviewer": "K. Privacy",
                     "approvedAt": "2026-09-26T21:48:50.173Z",
-                    "externalTicketRef": "PIA-iam-pending",
+                    "externalTicketRef": "PIA-2026-0088",
+                    "submittedAt": "2026-09-15T19:00:00.000Z",
+                    "submittedBy": {
+                      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                      "displayName": "Bio Prof"
+                    },
+                    "createdAt": "2026-09-14T20:31:16.044Z",
                     "updatedAt": "2026-09-26T21:48:50.173Z"
                   }
                 }
@@ -4469,7 +4521,7 @@
           "launch"
         ],
         "summary": "Record what UBC IAM registered",
-        "description": "A platform administrator, in their own session, records the Service Provider registration UBC IAM made, with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`.",
+        "description": "A platform administrator, in their own session, records the Service Provider registration UBC IAM made — the staging registration or production’s (`environment`, production’s when absent) — with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`. UBC’s answer is recorded whatever order it arrives in: this is never refused for the order the requests are sent in.",
         "security": [
           {
             "session": []
@@ -4535,6 +4587,7 @@
                 "example": {
                   "id": "62169b5f-1961-406a-8ad3-f5de46143c6f",
                   "projectId": "9aa37d53-038d-4e78-9270-01c2ea085d21",
+                  "environment": "production",
                   "entityId": "https://manifest.internal/sp/iam-granted/production",
                   "acsUrl": "https://iam-granted.manifest.internal/auth/ubcshib/callback",
                   "sloUrl": "https://iam-granted.manifest.internal/auth/logout",
@@ -4551,6 +4604,12 @@
                   "registeredAt": "2026-09-26T21:48:52.716Z",
                   "state": "change_requested",
                   "externalTicketRef": "IAM-iam-granted",
+                  "submittedAt": "2026-09-26T21:48:52.796Z",
+                  "submittedBy": {
+                    "id": "3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b",
+                    "displayName": "Platform Admin"
+                  },
+                  "createdAt": "2026-09-26T21:48:52.611Z",
                   "updatedAt": "2026-09-26T21:48:52.796Z"
                 }
               }
@@ -4574,6 +4633,136 @@
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
           "LAUNCH_RECORD_INVALID",
+          "LAUNCH_TRANSITION_INVALID",
+          "NOT_FOUND",
+          "PROJECT_ARCHIVED",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/launch-records/iam-registration/{environment}/submission": {
+      "post": {
+        "operationId": "submitIamRegistration",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Say a registration request was sent to UBC IAM",
+        "description": "The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: the staging registration is sent only once the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active (`409 LAUNCH_STAGING_NOT_REGISTERED`). It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "environment",
+            "in": "path",
+            "description": "Which registration was sent: `staging` or `production`.",
+            "required": true,
+            "schema": {
+              "description": "Which registration was sent: `staging` or `production`.",
+              "type": "string",
+              "enum": [
+                "staging",
+                "production"
+              ]
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "One per user action, and the same key when retrying that action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitLaunchRecordRequest"
+              },
+              "example": {
+                "sentAt": "2026-10-14",
+                "reference": "IAM-2026-0500"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The registration, now submitted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamRegistration"
+                },
+                "example": {
+                  "id": "5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13",
+                  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                  "environment": "production",
+                  "entityId": "https://manifest.internal/sp/class-check-ins/production",
+                  "acsUrl": "https://class-check-ins.manifest.internal/auth/ubcshib/callback",
+                  "sloUrl": "https://class-check-ins.manifest.internal/auth/logout",
+                  "certFingerprint": null,
+                  "certExpiresAt": null,
+                  "registeredAttributes": [],
+                  "requestedAttributes": null,
+                  "registeredAt": null,
+                  "state": "submitted",
+                  "externalTicketRef": "IAM-2026-0500",
+                  "submittedAt": "2026-10-14T19:00:00.000Z",
+                  "submittedBy": {
+                    "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                    "displayName": "Bio Prof"
+                  },
+                  "createdAt": "2026-10-09T17:22:41.508Z",
+                  "updatedAt": "2026-10-14T18:03:12.117Z"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_REQUIRED, LAUNCH_PIA_NOT_APPROVED, LAUNCH_SENT_AT_INVALID, LAUNCH_STAGING_NOT_REGISTERED, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "LAUNCH_DRAFT_REQUIRED",
+          "LAUNCH_PIA_NOT_APPROVED",
+          "LAUNCH_SENT_AT_INVALID",
+          "LAUNCH_STAGING_NOT_REGISTERED",
           "LAUNCH_TRANSITION_INVALID",
           "NOT_FOUND",
           "PROJECT_ARCHIVED",
@@ -4653,6 +4842,12 @@
                   "reviewer": "K. Privacy",
                   "approvedAt": "2026-09-26T21:47:36.002Z",
                   "externalTicketRef": "PIA-DELIVERY-1",
+                  "submittedAt": "2026-09-26T21:47:35.912Z",
+                  "submittedBy": {
+                    "id": "3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b",
+                    "displayName": "Platform Admin"
+                  },
+                  "createdAt": "2026-09-26T21:47:35.912Z",
                   "updatedAt": "2026-09-26T21:47:36.002Z"
                 }
               }
@@ -4675,6 +4870,113 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
+          "LAUNCH_TRANSITION_INVALID",
+          "NOT_FOUND",
+          "PROJECT_ARCHIVED",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/launch-records/privacy-assessment/submission": {
+      "post": {
+        "operationId": "submitPrivacyAssessment",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Say the privacy assessment was sent to the Privacy Office",
+        "description": "The project’s owner, a collaborator or a platform administrator, in their own session, says the privacy impact assessment was sent to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent), with the Office’s `reference` when they have one. It comes first in UBC’s order, so nothing else gates it. The record moves to `submitted`, and the launch checklist says how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, and a second submission is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded by an administrator (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "One per user action, and the same key when retrying that action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitLaunchRecordRequest"
+              },
+              "example": {
+                "sentAt": "2026-09-15",
+                "reference": "PIA-2026-0088"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The assessment, now submitted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyAssessment"
+                },
+                "example": {
+                  "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
+                  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                  "state": "submitted",
+                  "reviewer": null,
+                  "approvedAt": null,
+                  "externalTicketRef": "PIA-2026-0088",
+                  "submittedAt": "2026-09-15T19:00:00.000Z",
+                  "submittedBy": {
+                    "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                    "displayName": "Bio Prof"
+                  },
+                  "createdAt": "2026-09-14T20:31:16.044Z",
+                  "updatedAt": "2026-09-15T17:40:09.330Z"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_REQUIRED, LAUNCH_SENT_AT_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "LAUNCH_DRAFT_REQUIRED",
+          "LAUNCH_SENT_AT_INVALID",
           "LAUNCH_TRANSITION_INVALID",
           "NOT_FOUND",
           "PROJECT_ARCHIVED",
@@ -5994,7 +6296,7 @@
           "tokens"
         ],
         "summary": "Mint a delegated token",
-        "description": "Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).",
+        "description": "Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:submit`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).",
         "security": [
           {
             "session": []
@@ -9327,7 +9629,11 @@
           "INTAKE_MODEL_UNAVAILABLE",
           "INTAKE_SESSION_ALREADY_STARTED",
           "INTERNAL",
+          "LAUNCH_DRAFT_REQUIRED",
+          "LAUNCH_PIA_NOT_APPROVED",
           "LAUNCH_RECORD_INVALID",
+          "LAUNCH_SENT_AT_INVALID",
+          "LAUNCH_STAGING_NOT_REGISTERED",
           "LAUNCH_TRANSITION_INVALID",
           "MEMBER_MAY_NOT_BUILD",
           "MEMBER_USER_AMBIGUOUS",
@@ -9461,7 +9767,11 @@
           "INTAKE_MODEL_UNAVAILABLE": "The platform’s intake model is not a catalogue model approved for internal data (D17), so intake is paused rather than sent to another model.",
           "INTAKE_SESSION_ALREADY_STARTED": "This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.",
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
+          "LAUNCH_DRAFT_REQUIRED": "There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.",
+          "LAUNCH_PIA_NOT_APPROVED": "The staging registration is sent only once the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
+          "LAUNCH_SENT_AT_INVALID": "The day given for when it was sent cannot be true: it is after today in Vancouver, or before the draft that was sent was made.",
+          "LAUNCH_STAGING_NOT_REGISTERED": "The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
           "MEMBER_MAY_NOT_BUILD": "The person named may not build on Manifest — only faculty members and platform administrators may, for now — so they cannot be added to a project. The message names them; nobody was added.",
           "MEMBER_USER_AMBIGUOUS": "More than one person who has signed in to Manifest has the email given, so it names nobody in particular. The answer names none of them.",
@@ -9542,7 +9852,7 @@
           "TOKEN_ALREADY_MINTED": "A mint was retried with its Idempotency-Key: the first request minted the token named, and its secret was shown to that request alone and is not kept.",
           "TOKEN_CAPABILITY_FORBIDDEN": "A mint asked for one of D24’s four privileged capabilities, or for a person-only one; the message names which.",
           "TOKEN_CREDENTIAL_REFUSED": "A valid delegated token asked for something D24 reserves to an interactive session.",
-          "TOKEN_PERSON_ONLY": "A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.",
+          "TOKEN_PERSON_ONLY": "A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, saying a request to UBC IAM or the Privacy Office was sent, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.",
           "UNAUTHENTICATED": "The request carries no valid credential — no session, or a delegated token that is unknown, revoked or expired.",
           "WEBHOOKS_NOT_CONFIGURED": "This control plane runs the local source driver, which receives no webhooks.",
           "WEBHOOK_PAYLOAD_INVALID": "A correctly signed delivery whose body is not a JSON object, or which lacks X-GitHub-Delivery or X-GitHub-Event.",
@@ -11600,7 +11910,7 @@
                 "type": "string"
               },
               "machineDetail": {
-                "description": "An administrator recorded what UBC IAM registered for the app’s production sign-in (§9).",
+                "description": "An administrator recorded what UBC IAM registered for the app’s staging or production sign-in.",
                 "type": "object",
                 "properties": {
                   "state": {
@@ -11614,8 +11924,16 @@
                       "expired"
                     ]
                   },
+                  "environment": {
+                    "description": "Which registration: the staging one, or production’s.",
+                    "type": "string",
+                    "enum": [
+                      "staging",
+                      "production"
+                    ]
+                  },
                   "entityId": {
-                    "description": "The production entity id registered.",
+                    "description": "The entity id registered.",
                     "type": "string"
                   },
                   "externalTicketRef": {
@@ -11638,6 +11956,7 @@
                 },
                 "required": [
                   "state",
+                  "environment",
                   "entityId",
                   "externalTicketRef",
                   "attributeCount"
@@ -11723,6 +12042,171 @@
                 },
                 "required": [
                   "state",
+                  "externalTicketRef"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "iam_registration.submitted"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records.",
+                "type": "object",
+                "properties": {
+                  "environment": {
+                    "description": "Which registration was sent: the staging one, or production’s.",
+                    "type": "string",
+                    "enum": [
+                      "staging",
+                      "production"
+                    ]
+                  },
+                  "sentAt": {
+                    "description": "The day it was sent, `YYYY-MM-DD`, as the person who sent it said.",
+                    "type": "string"
+                  },
+                  "externalTicketRef": {
+                    "description": "UBC IAM’s reference for the request; null when the person had none yet.",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "environment",
+                  "sentAt",
+                  "externalTicketRef"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "privacy_assessment.submitted"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records.",
+                "type": "object",
+                "properties": {
+                  "sentAt": {
+                    "description": "The day it was sent, `YYYY-MM-DD`, as the person who sent it said.",
+                    "type": "string"
+                  },
+                  "externalTicketRef": {
+                    "description": "The Privacy Office’s reference; null when the person had none yet.",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "sentAt",
                   "externalTicketRef"
                 ],
                 "additionalProperties": false
@@ -14217,7 +14701,7 @@
         }
       },
       "IamRegistration": {
-        "description": "What UBC IAM registered for the app’s production CWL sign-in (§9), as an administrator recorded it.",
+        "description": "One of the app’s two UBC IAM registrations, staging’s or production’s: what Manifest drafted, when a person said it was sent, and what UBC IAM registered, as an administrator recorded it.",
         "type": "object",
         "properties": {
           "id": {
@@ -14231,6 +14715,14 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "environment": {
+            "description": "Which registration: the staging one, sent second, or production’s, sent last. A project has at most one of each.",
+            "type": "string",
+            "enum": [
+              "staging",
+              "production"
+            ]
           },
           "entityId": {
             "description": "§9: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch.",
@@ -14324,6 +14816,55 @@
               }
             ]
           },
+          "submittedAt": {
+            "description": "When the request now with UBC IAM was sent — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. How long it has waited is measured from here. Null until it is sent.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submittedBy": {
+            "description": "Who said it was sent; null until it is.",
+            "anyOf": [
+              {
+                "description": "The person who said it was sent.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "Their user id.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "displayName": {
+                    "description": "Their name, as CWL gave it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "description": "When the record was first written.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
           "updatedAt": {
             "description": "When the record last changed.",
             "type": "string",
@@ -14334,6 +14875,7 @@
         "required": [
           "id",
           "projectId",
+          "environment",
           "entityId",
           "acsUrl",
           "sloUrl",
@@ -14344,6 +14886,9 @@
           "registeredAt",
           "state",
           "externalTicketRef",
+          "submittedAt",
+          "submittedBy",
+          "createdAt",
           "updatedAt"
         ],
         "additionalProperties": false
@@ -15008,6 +15553,20 @@
           "builtBy": {
             "description": "For a `not_built` item: what will build it. Absent otherwise.",
             "type": "string"
+          },
+          "since": {
+            "description": "When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -15016,12 +15575,13 @@
           "owner",
           "blocking",
           "state",
-          "why"
+          "why",
+          "since"
         ],
         "additionalProperties": false
       },
       "LaunchRecords": {
-        "description": "The two external records a first production launch waits on (§9).",
+        "description": "The three records a first production launch waits on, in the order UBC works through them: the privacy assessment, the staging registration, then production’s.",
         "type": "object",
         "properties": {
           "projectId": {
@@ -15031,7 +15591,18 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
           "iamRegistration": {
-            "description": "What UBC IAM registered; null until an administrator records something.",
+            "description": "The PRODUCTION registration; null until it is drafted or recorded.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IamRegistration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stagingRegistration": {
+            "description": "The STAGING registration — sent after the privacy assessment is approved, and before production’s; null until it is drafted or recorded.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/IamRegistration"
@@ -15042,7 +15613,7 @@
             ]
           },
           "privacyAssessment": {
-            "description": "What the Privacy Office said; null until an administrator records something.",
+            "description": "The privacy assessment; null until it is drafted or recorded.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/PrivacyAssessment"
@@ -15056,6 +15627,7 @@
         "required": [
           "projectId",
           "iamRegistration",
+          "stagingRegistration",
           "privacyAssessment"
         ],
         "additionalProperties": false
@@ -15842,7 +16414,7 @@
             "maxLength": 64
           },
           "capabilities": {
-            "description": "The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only and refused outright.",
+            "description": "The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:submit, launch:rehearse or project:delete, which are person-only and refused outright.",
             "minItems": 1,
             "type": "array",
             "items": {
@@ -15863,6 +16435,7 @@
                 "release:approve",
                 "launch:record",
                 "launch:rehearse",
+                "launch:submit",
                 "quota:set",
                 "secret:read"
               ]
@@ -16045,7 +16618,7 @@
         }
       },
       "PrivacyAssessment": {
-        "description": "What UBC’s Privacy Office said of the app’s privacy impact assessment (§9), as an administrator recorded it.",
+        "description": "The app’s privacy impact assessment: when a person said it was sent, and what UBC’s Privacy Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval.",
         "type": "object",
         "properties": {
           "id": {
@@ -16094,7 +16667,7 @@
             ]
           },
           "externalTicketRef": {
-            "description": "The Privacy Office’s own reference; null when none was recorded.",
+            "description": "The Privacy Office’s own reference — the PIA number, which the staging registration needs before it is sent; null when none was recorded.",
             "anyOf": [
               {
                 "type": "string"
@@ -16103,6 +16676,55 @@
                 "type": "null"
               }
             ]
+          },
+          "submittedAt": {
+            "description": "When the assessment was sent to the Privacy Office — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. Null until it is sent.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submittedBy": {
+            "description": "Who said it was sent; null until it is.",
+            "anyOf": [
+              {
+                "description": "The person who said it was sent.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "Their user id.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "displayName": {
+                    "description": "Their name, as CWL gave it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "description": "When the record was first written.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
           },
           "updatedAt": {
             "description": "When the record last changed.",
@@ -16118,6 +16740,9 @@
           "reviewer",
           "approvedAt",
           "externalTicketRef",
+          "submittedAt",
+          "submittedBy",
+          "createdAt",
           "updatedAt"
         ],
         "additionalProperties": false
@@ -16248,9 +16873,17 @@
         }
       },
       "RecordIamRegistrationRequest": {
-        "description": "What UBC IAM registered for the app’s production sign-in, as an administrator records it from the ticket (§9).",
+        "description": "What UBC IAM registered for the app’s staging or production sign-in, as an administrator records it from the ticket. UBC’s answer is recorded whatever order it arrives in.",
         "type": "object",
         "properties": {
+          "environment": {
+            "description": "Which registration this records; production’s when absent.",
+            "type": "string",
+            "enum": [
+              "staging",
+              "production"
+            ]
+          },
           "entityId": {
             "description": "The entityID UBC IAM registered — fixed once registered.",
             "type": "string",
@@ -17639,6 +18272,24 @@
           }
         ]
       },
+      "SubmitLaunchRecordRequest": {
+        "description": "That a request to UBC was sent: the day, and its reference if there is one.",
+        "type": "object",
+        "properties": {
+          "sentAt": {
+            "description": "The day it was sent, `YYYY-MM-DD` — today or earlier, and not before the draft was made. Today in Vancouver when absent.",
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "reference": {
+            "description": "UBC’s reference for the request, when you have one yet.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "additionalProperties": false
+      },
       "Token": {
         "description": "A delegated token (D24), scoped to one project and a capability set. Its secret is shown once, when it is minted, and is never readable again.",
         "type": "object",
@@ -18052,10 +18703,30 @@
       "summary": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
       "remedy": "Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation."
     },
+    "LAUNCH_DRAFT_REQUIRED": {
+      "status": 409,
+      "summary": "There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.",
+      "remedy": "Draft it first, send the draft to UBC, then say it was sent. Nothing was recorded."
+    },
+    "LAUNCH_PIA_NOT_APPROVED": {
+      "status": 409,
+      "summary": "The staging registration is sent only once the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
+      "remedy": "Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the staging registration and say so again."
+    },
     "LAUNCH_RECORD_INVALID": {
       "status": 400,
       "summary": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
       "remedy": "Correct the fields the message names — a registration lists at least one attribute — and record it again."
+    },
+    "LAUNCH_SENT_AT_INVALID": {
+      "status": 400,
+      "summary": "The day given for when it was sent cannot be true: it is after today in Vancouver, or before the draft that was sent was made.",
+      "remedy": "Give the day you sent it, as YYYY-MM-DD — today or earlier, and not before the draft’s day — or leave it out for today."
+    },
+    "LAUNCH_STAGING_NOT_REGISTERED": {
+      "status": 409,
+      "summary": "The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.",
+      "remedy": "Send the staging registration first. Once an administrator records it active and you have tested the app at staging, send the production registration and say so again."
     },
     "LAUNCH_TRANSITION_INVALID": {
       "status": 409,
@@ -18459,7 +19130,7 @@
     },
     "TOKEN_PERSON_ONLY": {
       "status": 403,
-      "summary": "A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.",
+      "summary": "A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, saying a request to UBC IAM or the Privacy Office was sent, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.",
       "remedy": "A person does this, in the console, in their own session. No token can hold it and no confirmation grants it — do not ask for one."
     },
     "UNAUTHENTICATED": {

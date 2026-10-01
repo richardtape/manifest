@@ -14,6 +14,7 @@ import { candidateFor, type LaunchCandidate } from './candidate.js'
 import {
   getIamRegistration,
   getPrivacyAssessment,
+  vancouverDayInWords,
   type IamRegistrationRow,
 } from './records.js'
 import { rehearsalItem } from './rehearsal.js'
@@ -52,6 +53,21 @@ export interface LaunchItem {
    * tracked hardening item, which is deliberately NOT a plan (R4e).
    */
   builtBy?: string
+  /**
+   * *WAITING SINCE* (the launch path plan's Task 9, Decision 10): when the item's current state
+   * began, as an ISO instant, when Manifest knows it — the day a record was said to be sent while
+   * it waits on UBC, the day UBC registered it or the Privacy Office approved it once met. An item
+   * that does not date itself leaves it out; the VIEW always carries it, null when unknown.
+   */
+  since?: string | null
+}
+
+/** An item as the view answers it: `since` always present (Task 9), null when nothing dates it. */
+export type DatedLaunchItem = LaunchItem & { since: string | null }
+
+/** Every item with `since` said, null where its maker gave none. */
+function dated(items: readonly LaunchItem[]): DatedLaunchItem[] {
+  return items.map((item) => ({ ...item, since: item.since ?? null }))
 }
 
 export interface LaunchReadinessView {
@@ -77,7 +93,7 @@ export interface LaunchReadinessView {
    * so the gate reads a fact rather than re-deciding one (P6b Decision 9).
    */
   reescalated: boolean
-  items: LaunchItem[]
+  items: DatedLaunchItem[]
 }
 
 /**
@@ -156,7 +172,7 @@ export async function computeLaunchReadiness(
       baselineReleaseId: approval.baselineReleaseId,
       sensitiveFields: approval.sensitiveFields,
       reescalated: approval.reescalated,
-      items,
+      items: dated(items),
     }
   }
 
@@ -190,7 +206,7 @@ export async function computeLaunchReadiness(
     baselineReleaseId: null,
     sensitiveFields: [],
     reescalated: false,
-    items,
+    items: dated(items),
   }
 }
 
@@ -346,7 +362,9 @@ async function iamItem(
   would: RegistrationShape | undefined,
 ): Promise<LaunchItem> {
   if (!usesCwl) return { ...NOT_CWL_ITEM }
-  const row = await getIamRegistration(db, projectId)
+  // PRODUCTION'S REGISTRATION, AND ONLY IT (Task 9): staging's gates signing in at staging, not a
+  // launch — it is `LaunchRecords.stagingRegistration`, never this item.
+  const row = await getIamRegistration(db, projectId, 'production')
   if (row === undefined)
     return {
       ...IAM_BASE,
@@ -375,14 +393,40 @@ async function iamItem(
       ...IAM_BASE,
       state: 'met',
       why: `Registered as ${row.entityId}, active${ticket(row.externalTicketRef)}, releasing ${row.registeredAttributes.length} attribute(s).`,
+      since: isoOrNull(row.registeredAt),
     }
   }
   return {
     ...IAM_BASE,
     state: 'unmet',
-    why: `The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch (§9).`,
+    why:
+      `${sentToIam(row)}The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch` +
+      (sentToIam(row) === '' ? ' (§9).' : '.'),
+    since: waitingOnUbc(row),
   }
 }
+
+/**
+ * WAITING ON UBC SINCE WHEN (Task 9): the day the request now with UBC was sent, while the record
+ * is `submitted` or `change_requested` — `submitted_at`, which the owner's *"I've sent it"*, an
+ * administrator's move into `submitted` and a filed change request stamp. Null otherwise.
+ */
+function waitingOnUbc(row: { state: string; submittedAt: Date | null }): string | null {
+  return (row.state === 'submitted' || row.state === 'change_requested') &&
+    row.submittedAt !== null
+    ? row.submittedAt.toISOString()
+    : null
+}
+
+/** *"It was sent to UBC IAM on September 22, 2026. "* — when it went, while it still waits. */
+function sentToIam(row: IamRegistrationRow): string {
+  const since = waitingOnUbc(row)
+  return since === null
+    ? ''
+    : `It was sent to UBC IAM on ${vancouverDayInWords(new Date(since))}. `
+}
+
+const isoOrNull = (at: Date | null) => (at === null ? null : at.toISOString())
 
 /**
  * §13's `iam-registration` for a LAUNCHED app (P6b Task 7, Decision 2) — the LIVE check, for
@@ -408,7 +452,7 @@ async function liveRegistrationItem(
   would: RegistrationShape | undefined,
 ): Promise<LaunchItem> {
   if (!usesCwl) return { ...NOT_CWL_ITEM }
-  const row = await getIamRegistration(db, projectId)
+  const row = await getIamRegistration(db, projectId, 'production')
   if (row === undefined)
     return {
       ...IAM_BASE,
@@ -419,7 +463,8 @@ async function liveRegistrationItem(
     return {
       ...IAM_BASE,
       state: 'unmet',
-      why: `UBC IAM has never been recorded registering this app: the registration is '${row.state}'${ticket(row.externalTicketRef)}. Nothing reaches production until an administrator records it 'active' (§9).`,
+      why: `${sentToIam(row)}UBC IAM has never been recorded registering this app: the registration is '${row.state}'${ticket(row.externalTicketRef)}. Nothing reaches production until an administrator records it 'active' (§9).`,
+      since: waitingOnUbc(row),
     }
   if (row.state === 'expired')
     return {
@@ -433,6 +478,7 @@ async function liveRegistrationItem(
       ...IAM_BASE,
       state: 'met',
       why: `Registered with UBC IAM as ${row.entityId} ${since}${ticket(row.externalTicketRef)}.${changeRequestOnFile(row)}`,
+      since: row.registeredAt.toISOString(),
     }
   const coverage = registrationCovers(row, would)
   if (!coverage.covers)
@@ -440,10 +486,13 @@ async function liveRegistrationItem(
       ...IAM_BASE,
       state: 'unmet',
       why: coverageGap(row, would, coverage, 'This release'),
+      // A change request on file waits on UBC since it was filed; a gap with none waits on nobody.
+      since: waitingOnUbc(row),
     }
   return {
     ...IAM_BASE,
     state: 'met',
+    since: row.registeredAt.toISOString(),
     why:
       `Registered as ${row.entityId} ${since}, releasing ${row.registeredAttributes.length} attribute(s): this release asks for nothing more, at the ACS and SLO UBC registered.` +
       (coverage.unused.length === 0
@@ -740,13 +789,20 @@ async function piaItem(db: Db, projectId: string): Promise<LaunchItem> {
         `Approved by ${row.reviewer ?? 'the UBC Privacy Office'}` +
         `${row.approvedAt === null ? '' : ` on ${row.approvedAt.toISOString().slice(0, 10)}`}` +
         `${ticket(row.externalTicketRef)}.`,
+      since: isoOrNull(row.approvedAt),
     }
+  // Waiting on the Privacy Office since the day it was sent (Task 9).
+  const since = row.state === 'submitted' ? isoOrNull(row.submittedAt) : null
   return {
     ...base,
     state: 'unmet',
     // BOTH CLAUSES (P6b sitting 4, F14): §9 blocks production until the PIA is approved, so
     // a launched app whose PIA went back to `draft` stops shipping too — not only a first launch.
-    why: `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production (§9).`,
+    why:
+      since === null
+        ? `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production (§9).`
+        : `It was sent to the UBC Privacy Office on ${vancouverDayInWords(new Date(since))}. The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`,
+    since,
   }
 }
 

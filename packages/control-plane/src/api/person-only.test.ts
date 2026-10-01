@@ -70,6 +70,8 @@ const PROBES = {
   // the two above — held by the OWNER too, so the mint route's "no more than you hold" rule cannot be
   // what refuses the owner's mint of it below.
   rehearse: probeFor('launch:rehearse', 'Rehearse'),
+  // An owner's "I've sent it" (the launch path plan's Task 9): person-only, and held by the OWNER.
+  submit: probeFor('launch:submit', 'Submit'),
   // THE COUNTER'S POSITIVE CONTROL: one of D24's privileged four, on a route of exactly
   // this shape, DOES record a question. Without it "no pending action" is a claim that is
   // equally true of a wrapper that never runs on these probes.
@@ -93,6 +95,7 @@ async function withServer(fn: (ctx: Ctx) => Promise<void>): Promise<void> {
     PROBES.approve,
     PROBES.record,
     PROBES.rehearse,
+    PROBES.submit,
     PROBES.promote,
   ])
   try {
@@ -199,6 +202,16 @@ describe('the person-only class on a route (D24, §20)', () => {
     })
   })
 
+  it('refuses a token holding launch:submit the same way — saying a request was sent is a person’s', async () => {
+    await withServer(async (ctx) => {
+      const plaintext = await holding(ctx, ['project:read', 'launch:submit'])
+      expect(await pendingCount(ctx)).toBe(0)
+      const res = await ask(ctx, 'submit', plaintext)
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_PERSON_ONLY' })
+      expect(await pendingCount(ctx)).toBe(0)
+    })
+  })
+
   it('the counter’s positive control: a PRIVILEGED capability on a probe of the same shape does record a question', async () => {
     await withServer(async (ctx) => {
       const plaintext = await holding(ctx, ['project:read'])
@@ -211,7 +224,7 @@ describe('the person-only class on a route (D24, §20)', () => {
 
   it('the positive control: a platform administrator’s SESSION passes the same route', async () => {
     await withServer(async (ctx) => {
-      for (const probe of ['approve', 'record', 'rehearse'] as const) {
+      for (const probe of ['approve', 'record', 'rehearse', 'submit'] as const) {
         const res = await ctx.app.inject({
           method: 'POST',
           url: `/v1/projects/${ctx.projectId}/zz-person-only-${probe}`,
@@ -224,15 +237,16 @@ describe('the person-only class on a route (D24, §20)', () => {
     })
   })
 
-  it('the mint route refuses release:approve, launch:record, project:delete and launch:rehearse: 400 TOKEN_CAPABILITY_FORBIDDEN, and writes no row', async () => {
+  it('the mint route refuses release:approve, launch:record, project:delete, launch:rehearse and launch:submit: 400 TOKEN_CAPABILITY_FORBIDDEN, and writes no row', async () => {
     await withServer(async (ctx) => {
       // `project:delete` since the front-end enablement plan's Task 11 (§11's archive and delete);
-      // `launch:rehearse` since the launch path plan's Task 6b.
+      // `launch:rehearse` since the launch path plan's Task 6b; `launch:submit` since its Task 9.
       for (const capability of [
         'release:approve',
         'launch:record',
         'project:delete',
         'launch:rehearse',
+        'launch:submit',
       ]) {
         const res = await mint(ctx, ['project:read', capability])
         expect(refusal(res)).toEqual({ status: 400, code: 'TOKEN_CAPABILITY_FORBIDDEN' })
@@ -293,6 +307,7 @@ const PERSON_ONLY_PHRASES: Readonly<Record<string, string>> = {
   'release:approve': 'approving a release',
   'launch:record': 'recording UBC’s IAM',
   'launch:rehearse': 'running the pre-production rehearsal',
+  'launch:submit': 'saying a request to UBC IAM or the Privacy Office was sent',
   'project:delete': 'switching an app off, bringing it back or deleting it',
 }
 

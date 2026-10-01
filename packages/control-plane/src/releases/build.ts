@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, isNotNull } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { appSpecs, builds, iamRegistrations } from '../db/index.js'
 import {
@@ -308,11 +308,17 @@ async function finishBuild(
  * `provider: none`, and no Service Provider is registered for such an app, so no attribute
  * is ever released to it; its list is inert and is not drift.
  *
+ * **ONLY WHAT UBC HAS REGISTERED IS CHECKED** (the launch path plan's Task 9, Decision 7): the
+ * PRODUCTION registration, and only once `registered_at` is set. An owner's draft, a request sent
+ * and not yet answered, and the staging registration all gate nothing — so a faculty member can
+ * draft the registration in week one and the agent can still add an attribute in week three, and
+ * the checklist's `iam-registration` item is what says the draft no longer covers the app.
+ *
  * **`iam_registrations` IS READ HERE THROUGH `db/`, NOT THROUGH `launch/`'s
  * `getIamRegistration`**, and that is a decision: `launch/readiness.ts` imports `releases/`
  * at runtime, so the reverse import would be this codebase's third runtime module cycle.
- * `project_id` is UNIQUE on that table, so this select cannot mean anything but what the
- * getter means.
+ * `(project_id, environment_kind)` is UNIQUE on that table, so this select finds production's
+ * row or nothing — what the getter would answer for `'production'`, and only when registered.
  */
 async function assertAttributesRegistered(db: Db, input: StartBuildInput): Promise<void> {
   const [registration] = await db
@@ -323,7 +329,13 @@ async function assertAttributesRegistered(db: Db, input: StartBuildInput): Promi
       requested: iamRegistrations.requestedAttributes,
     })
     .from(iamRegistrations)
-    .where(eq(iamRegistrations.projectId, input.projectId))
+    .where(
+      and(
+        eq(iamRegistrations.projectId, input.projectId),
+        eq(iamRegistrations.environmentKind, 'production'),
+        isNotNull(iamRegistrations.registeredAt),
+      ),
+    )
   if (registration === undefined) return
   const [spec] = await db
     .select({ parsed: appSpecs.parsed })

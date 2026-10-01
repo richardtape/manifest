@@ -109,6 +109,20 @@ export const CAPABILITIES = [
    * it, and the route calls `assertStepUp`.
    */
   'launch:rehearse',
+  /**
+   * SAYING A REQUEST TO UBC WAS SENT — an owner's *"I've sent it"* for a registration or the privacy
+   * assessment (§9, Spec action 3; the launch path plan's Task 9, Decision 8). The OWNER, a
+   * COLLABORATOR (§13: *"same as owner except member management, archiving and deletion"*) and an
+   * administrator hold it. **Its own capability, not `launch:record`**: what UBC DECIDES stays an
+   * administrator's record (a faculty member cannot assert their own PIA was approved), while that a
+   * request WENT is the owner's statement — it is what starts the clock.
+   *
+   * **PERSON-ONLY** (`PERSON_ONLY` below; D24 as Spec action 3 amended it — *"or saying that a request
+   * to either was sent"*): a record that a named person did something, and a token that could claim
+   * a person sent a document to UBC is D14 inverted. The routes call `requireSession` first. No
+   * step-up: it grants nothing.
+   */
+  'launch:submit',
   'quota:set',
 ] as const
 
@@ -174,6 +188,9 @@ export const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
   'launch:record',
   'project:delete',
   'launch:rehearse',
+  // SAYING A REQUEST TO UBC WAS SENT (Spec action 3, applied 2026-09-30; the launch path plan's Task 9):
+  // a record that a named person did something — D24's own reason, as for `launch:record`.
+  'launch:submit',
 ])
 
 export function isPersonOnly(capability: PrivilegedCapability): boolean {
@@ -416,6 +433,8 @@ const OWNER: readonly Capability[] = [
   'release:promote',
   // D21's rehearsal (Task 6b, FE-42): the owner's, so the collaborator's and the administrator's.
   'launch:rehearse',
+  // "I've sent it" (Task 9): the owner's, so the collaborator's and the administrator's.
+  'launch:submit',
 ]
 
 // §13: "same as owner except member management and deletion" — and not promotion,
@@ -646,6 +665,12 @@ export async function assertCapability(
     throw new AuthorizationError(
       'FORBIDDEN',
       `role '${projectRole ?? actor.platformRole}' may not '${capability}'`,
+      // `[M8]` (the launch path plan's Task 1, F13): a capability NO project role holds is never a
+      // project owner's to grant, so the remedy names who can act. The wire's default hint — ask a
+      // project owner — stays for everything a project role can be given.
+      OWNER.includes(capability)
+        ? undefined
+        : 'Only a platform administrator may do this. Ask one to do it, or to tell you who can.',
     )
   }
 

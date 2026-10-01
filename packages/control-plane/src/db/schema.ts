@@ -12,6 +12,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
@@ -691,11 +692,21 @@ export const iamRegistrations = pgTable(
   'iam_registrations',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // ONE per project (§9: one registration per production app).
+    // ONE PER ENVIRONMENT THAT SIGNS PEOPLE IN AGAINST UBC (§6, Spec action 3; the launch path plan's
+    // Task 9): the UNIQUE is `(project_id, environment_kind)`, below — a project has a staging
+    // registration and a production one, each with its own package, submission and state.
     projectId: uuid('project_id')
       .notNull()
-      .unique()
       .references(() => projects.id, { onDelete: 'cascade' }),
+    /**
+     * WHICH UBC WORLD THIS REGISTRATION IS FOR — `staging` or `production`, never `sandbox` (the
+     * sandbox registers itself with the Manifest IdP and nothing else, §9). Text with a CHECK rather
+     * than the `environment_kind` enum, because that enum carries `sandbox`. Every row before Task 9
+     * was production's (§9: one registration per production app), and the default says so.
+     */
+    environmentKind: text('environment_kind', { enum: ['staging', 'production'] })
+      .notNull()
+      .default('production'),
     entityId: text('entity_id').notNull(),
     acsUrl: text('acs_url').notNull(),
     sloUrl: text('slo_url').notNull(),
@@ -708,7 +719,12 @@ export const iamRegistrations = pgTable(
      * typed union, because `db/` must not import `spec/` — the dependency runs the other
      * way and the list is validated where it is written.
      */
-    registeredAttributes: jsonb('registered_attributes').notNull().$type<string[]>(),
+    registeredAttributes: jsonb('registered_attributes')
+      .notNull()
+      .$type<string[]>()
+      // A DRAFT REGISTERS NOTHING (Task 9): `[]` until UBC has registered something, which the
+      // CHECK below allows only while `registered_at` is null.
+      .default(sql`'[]'::jsonb`),
     /**
      * WHAT A CHANGE REQUEST ASKS UBC IAM FOR (§9, P6b Decision 11) — the registration's own
      * `change_requested` state IS the change request. Null when none is outstanding; cleared
@@ -726,21 +742,45 @@ export const iamRegistrations = pgTable(
     state: iamRegistrationState('state').notNull().default('draft'),
     /** §15's submission-state hook: "a human submits and pastes a ticket reference". */
     externalTicketRef: text('external_ticket_ref'),
+    /**
+     * WHEN THE REQUEST NOW WITH UBC WAS SENT, AND WHO SAID SO (§9, Spec action 3; Task 9) — stamped
+     * by the owner's *"I've sent it"* (the day they name, at noon in Vancouver), by an administrator's
+     * record that moves the registration into `submitted`, and by filing a change request; never by
+     * UBC's answer. What the checklist's *waiting since* reads.
+     */
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    submittedBy: uuid('submitted_by').references(() => users.id),
+    /**
+     * D19's REGISTRATION PACKAGE, as Manifest generated it (Task 10 renders it). Null until drafted —
+     * and a submission refuses a record with none (`LAUNCH_DRAFT_REQUIRED`): the package IS what
+     * the person sends. Never regenerated once sent.
+     */
+    generatedPackage: jsonb('generated_package'),
     recordedBy: uuid('recorded_by').references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    unique('iam_registrations_project_environment_key').on(
+      t.projectId,
+      t.environmentKind,
+    ),
+    check(
+      'iam_registrations_environment_kind',
+      sql`${t.environmentKind} IN ('staging', 'production')`,
+    ),
     /**
      * §9 measured the fail-open case and it is not theoretical: SimpleSAMLphp treats an
      * empty attribute list and a missing one identically and releases EVERYTHING. The same
      * emptiness here would make Task 13's subset check vacuously true — every set is a
-     * superset of nothing — so **the database refuses the half-written row**, exactly as
-     * §9 asks registration to.
+     * superset of nothing — so **the database refuses a REGISTERED row with no attributes**,
+     * exactly as §9 asks registration to. **A row UBC has not registered may hold `[]`** (the
+     * launch path plan's Task 9): an owner's draft registers nothing, and the build reads only a
+     * registered row.
      */
     check(
       'iam_registrations_attributes_present',
-      sql`jsonb_array_length(${t.registeredAttributes}) > 0`,
+      sql`${t.registeredAt} IS NULL OR jsonb_array_length(${t.registeredAttributes}) > 0`,
     ),
   ],
 )
@@ -752,12 +792,19 @@ export const privacyAssessments = pgTable('privacy_assessments', {
     .notNull()
     .unique()
     .references(() => projects.id, { onDelete: 'cascade' }),
-  /** P8's output. Null here, always, and the column exists so P8 adds no migration. */
+  /**
+   * D19's draft (the launch path plan's Task 11 renders it). Null until drafted — and a submission
+   * refuses an assessment with none (`LAUNCH_DRAFT_REQUIRED`).
+   */
   generatedDraft: jsonb('generated_draft'),
   state: privacyAssessmentState('state').notNull().default('draft'),
   reviewer: text('reviewer'),
   approvedAt: timestamp('approved_at', { withTimezone: true }),
+  /** The Privacy Office's reference — the PIA number, which UBC IAM asks for (§9). */
   externalTicketRef: text('external_ticket_ref'),
+  /** When the owner said it was sent, and who (Task 9) — the registration's columns, the same rule. */
+  submittedAt: timestamp('submitted_at', { withTimezone: true }),
+  submittedBy: uuid('submitted_by').references(() => users.id),
   recordedBy: uuid('recorded_by').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -1056,7 +1103,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
     ),
   ],
 )

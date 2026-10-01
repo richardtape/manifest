@@ -23,6 +23,9 @@ const PERSON_ONLY_LITERALS = [
   'launch:record',
   'project:delete',
   'launch:rehearse',
+  // Saying a request to UBC IAM or the Privacy Office was sent (Spec action 3, applied 2026-09-30;
+  // the launch path plan's Task 9) — a record that a named person did something.
+  'launch:submit',
 ] as const
 
 const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
@@ -36,6 +39,7 @@ const token = (overrides: Partial<TokenActor> = {}): TokenActor => ({
     'launch:record',
     'project:delete',
     'launch:rehearse',
+    'launch:submit',
   ]),
   rateLimit: 60,
   expiresAt: Date.now() + 86_400_000,
@@ -69,6 +73,10 @@ describe('the person-only class (D24, §20)', () => {
     // rule is the SECOND layer — seen on its own here and on `api/person-only.test.ts`'s probe.
     await expect(
       assertCapability(undefined as never, token(), 'p-1', 'launch:rehearse'),
+    ).rejects.toBeInstanceOf(PersonOnlyRefusedError)
+    // "I've sent it" (Task 9): the submission routes call `requireSession` first too.
+    await expect(
+      assertCapability(undefined as never, token(), 'p-1', 'launch:submit'),
     ).rejects.toBeInstanceOf(PersonOnlyRefusedError)
   })
 

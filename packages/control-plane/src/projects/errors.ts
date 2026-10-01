@@ -8,6 +8,11 @@ export class AuthorizationError extends Error {
   constructor(
     readonly code: 'FORBIDDEN' | 'NOT_FOUND',
     message: string,
+    /**
+     * What a refused person can do instead, when it is not the wire's default — today, that a
+     * platform administrator does what no project role can (the launch path plan's Task 1, `[M8]`).
+     */
+    readonly hint?: string,
   ) {
     super(message)
     this.name = 'AuthorizationError'

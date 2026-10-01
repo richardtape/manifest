@@ -128,8 +128,10 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `pending_action.created` | A delegated token asked for one of D24’s privileged actions, and a person must confirm or reject it in the console. |
 | `pending_action.confirmed` | A person confirmed a token’s pending action, which grants that one request exactly one retry (D24). |
 | `pending_action.rejected` | A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED` (D24). |
-| `iam_registration.recorded` | An administrator recorded what UBC IAM registered for the app’s production sign-in (§9). |
+| `iam_registration.recorded` | An administrator recorded what UBC IAM registered for the app’s staging or production sign-in. |
 | `privacy_assessment.recorded` | An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment (§9). |
+| `iam_registration.submitted` | A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records. |
+| `privacy_assessment.submitted` | A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records. |
 | `rehearsal.completed` | A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21). |
 | `release.approved` | An administrator approved a release for production, bound to the image digest it froze (§13). |
 | `release.approval_rejected` | An administrator rejected a release for production, which is final for that release (§13); the sentence carries their reason. |

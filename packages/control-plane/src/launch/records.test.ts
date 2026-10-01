@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-import { events, iamRegistrations, privacyAssessments } from '../db/index.js'
+import { events, iamRegistrations, privacyAssessments, type Db } from '../db/index.js'
 import { withProject } from '../db/testing.js'
 import { createEventBus } from '../observability/index.js'
 import { expectSqlState } from '../observability/testing.js'
@@ -10,7 +10,16 @@ import {
   LaunchRecordError,
   recordIamRegistration,
   recordPrivacyAssessment,
+  submitIamRegistration,
+  submitPrivacyAssessment,
+  vancouverNoon,
 } from './records.js'
+import {
+  vancouverDaysAgo,
+  vancouverToday,
+  withAssessmentDraft,
+  withDraft,
+} from './testing.js'
 import { LaunchTransitionError } from './transitions.js'
 
 const bus = createEventBus()
@@ -38,7 +47,7 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
       expect(row.state).toBe('submitted')
       expect(row.registeredAttributes).toEqual(['displayName', 'mail'])
       expect(row.externalTicketRef).toBe('IAM-2026-0412')
-      const read = await getIamRegistration(db, projectId)
+      const read = await getIamRegistration(db, projectId, 'production')
       expect(read?.id).toBe(row.id)
     })
   })
@@ -58,7 +67,7 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
       ).rejects.toThrow(LaunchTransitionError)
       // AND NOTHING WAS WRITTEN. A refusal that left a `draft` row behind would be a
       // half-written record the next request could walk forward from.
-      expect(await getIamRegistration(db, projectId)).toBeUndefined()
+      expect(await getIamRegistration(db, projectId, 'production')).toBeUndefined()
     })
   })
 
@@ -109,7 +118,9 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
         /can only become 'active' or 'change_requested'/,
       )
       // And the state did not move.
-      expect((await getIamRegistration(db, projectId))?.state).toBe('submitted')
+      expect((await getIamRegistration(db, projectId, 'production'))?.state).toBe(
+        'submitted',
+      )
     })
   })
 
@@ -166,11 +177,11 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
       expect((thrown as LaunchRecordError).code).toBe('LAUNCH_RECORD_INVALID')
       expect((thrown as LaunchRecordError).hint).toMatch(/as they appear in the ticket/)
       // And the refusal happens BEFORE anything is written.
-      expect(await getIamRegistration(db, projectId)).toBeUndefined()
+      expect(await getIamRegistration(db, projectId, 'production')).toBeUndefined()
     })
   })
 
-  it('and the DATABASE refuses it too, which is the guard that survives a code change', async () => {
+  it('and the DATABASE refuses it on a REGISTERED row too, which is the guard that survives a code change', async () => {
     await withProject(async (db, { projectId }) => {
       // `expectSqlState`, NOT `rejects.toThrow(/constraint name/)`: drizzle wraps every
       // driver error in its own, whose message is `Failed query: insert into …` and
@@ -185,11 +196,30 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
           acsUrl: IAM.acsUrl,
           sloUrl: IAM.sloUrl,
           registeredAttributes: [],
+          // REGISTERED (the launch path plan's Task 9): the CHECK holds a row UBC has registered
+          // to a non-empty list, and lets a DRAFT — which registers nothing — stand at `[]`.
+          registeredAt: new Date(),
         }),
         // 23514 is check_violation. A message match would accept a typo'd table name or
         // a rolled-back transaction as proof of the constraint.
         '23514',
       )
+    })
+  })
+
+  it('…and lets a DRAFT stand with nothing registered — its positive control (Task 9)', async () => {
+    await withProject(async (db, { projectId }) => {
+      const [row] = await db
+        .insert(iamRegistrations)
+        .values({
+          projectId,
+          entityId: IAM.entityId,
+          acsUrl: IAM.acsUrl,
+          sloUrl: IAM.sloUrl,
+        })
+        .returning()
+      expect(row?.registeredAttributes).toEqual([])
+      expect(row?.environmentKind).toBe('production')
     })
   })
 
@@ -208,6 +238,8 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
         .where(eq(events.type, 'iam_registration.recorded'))
       expect(event?.machineDetail).toEqual({
         state: 'submitted',
+        // Task 9: two registrations a project may have, so the event says which.
+        environment: 'production',
         entityId: IAM.entityId,
         externalTicketRef: 'IAM-2026-0412',
         attributeCount: 2,
@@ -310,7 +342,7 @@ describe('the change request (§9, Decision 11)', () => {
       expect(error.message).toContain('changes only when it registers it')
       expect(error.hint).toContain('requestedAttributes')
       // AND NOTHING MOVED: still active, still what UBC registered.
-      const row = await getIamRegistration(db, projectId)
+      const row = await getIamRegistration(db, projectId, 'production')
       expect(row?.state).toBe('active')
       expect(row?.registeredAttributes).toEqual(['displayName', 'mail'])
     })
@@ -330,7 +362,9 @@ describe('the change request (§9, Decision 11)', () => {
       )
       expect(error.code).toBe('LAUNCH_RECORD_INVALID')
       expect(error.message).toContain('requestedAttributes')
-      expect((await getIamRegistration(db, projectId))?.state).toBe('active')
+      expect((await getIamRegistration(db, projectId, 'production'))?.state).toBe(
+        'active',
+      )
     })
   })
 
@@ -399,7 +433,9 @@ describe('the change request (§9, Decision 11)', () => {
       )
       expect(error.code).toBe('LAUNCH_RECORD_INVALID')
       expect(error.message).toContain('entityID is fixed at registration')
-      expect((await getIamRegistration(db, projectId))?.entityId).toBe(IAM.entityId)
+      expect((await getIamRegistration(db, projectId, 'production'))?.entityId).toBe(
+        IAM.entityId,
+      )
     })
   })
 
@@ -529,7 +565,7 @@ describe('the two records are independent', () => {
         state: 'submitted',
         actor: { ...ACTOR, id: ownerId },
       })
-      expect(await getIamRegistration(db, projectId)).toBeDefined()
+      expect(await getIamRegistration(db, projectId, 'production')).toBeDefined()
       expect(await getPrivacyAssessment(db, projectId)).toBeUndefined()
     })
   })
@@ -560,10 +596,420 @@ describe('the launch records name the person who recorded them, never a PUID (Ta
         .from(events)
         .where(eq(events.projectId, projectId))
       expect(said.map((e) => e.message).sort()).toEqual([
-        "Test Owner recorded this app's UBC IAM registration as submitted.",
         "Test Owner recorded this app's privacy assessment as submitted.",
+        "Test Owner recorded this app's production UBC IAM registration as submitted.",
       ])
       expect(JSON.stringify(said)).not.toContain(ACTOR.puid)
+    })
+  })
+})
+
+/**
+ * THE THREE CLOCKS' RECORDS (the launch path plan's Task 9; Spec actions 3 and 9). An owner says
+ * *"I've sent it"*: the record moves to `submitted`, stamped with the day they sent it and who said
+ * so — and UBC's ORDER is gated on that statement only: the privacy assessment approved (with its
+ * reference) before the staging registration is sent, and staging registered before production's.
+ * UBC's answers stay an administrator's record, and are never refused for order.
+ */
+describe('the owner’s “I’ve sent it” (Task 9)', () => {
+  /** What an administrator records once the Privacy Office has approved the assessment. */
+  async function piaApproved(
+    db: Db,
+    projectId: string,
+    actor: typeof ACTOR,
+    ref = 'PIA-0001',
+  ) {
+    await recordPrivacyAssessment(db, bus, { projectId, state: 'submitted', actor })
+    await recordPrivacyAssessment(db, bus, {
+      projectId,
+      state: 'approved',
+      externalTicketRef: ref,
+      actor,
+    })
+  }
+  /** What an administrator records once UBC IAM has registered staging. */
+  async function stagingActive(db: Db, projectId: string, actor: typeof ACTOR) {
+    for (const state of ['submitted', 'active'] as const)
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        projectId,
+        state,
+        actor,
+      })
+  }
+
+  it('submits a drafted production registration: submitted, stamped with the day and the person', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await stagingActive(db, projectId, actor)
+      await withDraft(db, { projectId, environment: 'production' })
+      const today = vancouverToday()
+      const row = await submitIamRegistration(db, bus, {
+        projectId,
+        environment: 'production',
+        actor,
+        sentAt: today,
+        reference: 'IAM-2026-0500',
+      })
+      expect(row).toMatchObject({
+        environmentKind: 'production',
+        state: 'submitted',
+        submittedBy: ownerId,
+        externalTicketRef: 'IAM-2026-0500',
+      })
+      // THE DAY, NOT THE MOMENT: noon in Vancouver, so it is the same day in every zone.
+      expect(row.submittedAt?.toISOString()).toBe(vancouverNoon(today).toISOString())
+      // Staging's record is untouched: two rows, one per environment.
+      const staging = await getIamRegistration(db, projectId, 'staging')
+      expect(staging?.state).toBe('active')
+      expect(staging?.id).not.toBe(row.id)
+    })
+  })
+
+  it('defaults the day to today in Vancouver, stored as noon there', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      await withDraft(db, { projectId, environment: 'staging' })
+      const row = await submitIamRegistration(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      expect(row.submittedAt?.toISOString()).toBe(
+        vancouverNoon(vancouverToday()).toISOString(),
+      )
+    })
+  })
+
+  it('vancouverNoon is noon in Vancouver on either side of the clock change', () => {
+    expect(vancouverNoon('2026-10-01').toISOString()).toBe('2026-10-01T19:00:00.000Z')
+    expect(vancouverNoon('2026-12-01').toISOString()).toBe('2026-12-01T20:00:00.000Z')
+  })
+
+  it('refuses a record with no draft — 409 LAUNCH_DRAFT_REQUIRED — and writes nothing', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      await expect(
+        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
+      ).rejects.toMatchObject({
+        name: 'LaunchRecordError',
+        code: 'LAUNCH_DRAFT_REQUIRED',
+      })
+      expect(await getIamRegistration(db, projectId, 'staging')).toBeUndefined()
+      // A row an administrator recorded carries no package either: still nothing to send.
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        projectId,
+        state: 'draft',
+        actor,
+      })
+      await expect(
+        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
+      // THE POSITIVE CONTROL: the same submission once a draft exists.
+      await db
+        .update(iamRegistrations)
+        .set({ generatedPackage: { placeholder: true } })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const sent = await submitIamRegistration(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      expect(sent.state).toBe('submitted')
+    })
+  })
+
+  it('refuses a day after today, or before the draft was made — 400 LAUNCH_SENT_AT_INVALID', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      await withDraft(db, {
+        projectId,
+        environment: 'staging',
+        createdAt: new Date(Date.now() - 3 * 86_400_000),
+      })
+      const submit = (sentAt: string) =>
+        submitIamRegistration(db, bus, {
+          projectId,
+          environment: 'staging',
+          actor,
+          sentAt,
+        })
+      await expect(submit(vancouverDaysAgo(-1))).rejects.toMatchObject({
+        code: 'LAUNCH_SENT_AT_INVALID',
+      })
+      await expect(submit(vancouverDaysAgo(5))).rejects.toMatchObject({
+        code: 'LAUNCH_SENT_AT_INVALID',
+      })
+      expect((await getIamRegistration(db, projectId, 'staging'))?.state).toBe('draft')
+      // THE POSITIVE CONTROL: a day between the draft and today — "last Tuesday".
+      const row = await submit(vancouverDaysAgo(2))
+      expect(row.submittedAt?.toISOString()).toBe(
+        vancouverNoon(vancouverDaysAgo(2)).toISOString(),
+      )
+    })
+  })
+
+  it('refuses a second submission of a submitted record — 409 LAUNCH_TRANSITION_INVALID', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      await withDraft(db, { projectId, environment: 'staging' })
+      await submitIamRegistration(db, bus, { projectId, environment: 'staging', actor })
+      await expect(
+        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
+      ).rejects.toMatchObject({
+        name: 'LaunchTransitionError',
+        code: 'LAUNCH_TRANSITION_INVALID',
+      })
+      // Nor from `active`, which is UBC's answer: an owner cannot send what UBC has registered.
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        projectId,
+        state: 'active',
+        actor,
+      })
+      await expect(
+        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+    })
+  })
+
+  it('submits again from change_requested — a new request is the point', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      const draft = await withDraft(db, { projectId, environment: 'staging' })
+      await submitIamRegistration(db, bus, { projectId, environment: 'staging', actor })
+      // UBC came back with questions, and an administrator recorded it.
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        entityId: draft.entityId,
+        acsUrl: draft.acsUrl,
+        sloUrl: draft.sloUrl,
+        projectId,
+        state: 'change_requested',
+        actor,
+      })
+      const again = await submitIamRegistration(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      expect(again.state).toBe('submitted')
+    })
+  })
+
+  it('UBC’s order: a STAGING submission waits for an approved assessment with its reference — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await withDraft(db, { projectId, environment: 'staging' })
+      const submit = () =>
+        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor })
+      // No assessment at all.
+      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      // Submitted, not approved.
+      await recordPrivacyAssessment(db, bus, { projectId, state: 'submitted', actor })
+      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      // Approved, but with no reference — UBC IAM asks for the PIA number.
+      await recordPrivacyAssessment(db, bus, { projectId, state: 'approved', actor })
+      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      expect((await getIamRegistration(db, projectId, 'staging'))?.state).toBe('draft')
+      // THE POSITIVE CONTROL: approved, with its reference.
+      await recordPrivacyAssessment(db, bus, {
+        projectId,
+        state: 'approved',
+        externalTicketRef: 'PIA-2026-0088',
+        actor,
+      })
+      expect((await submit()).state).toBe('submitted')
+    })
+  })
+
+  it('UBC’s order: a PRODUCTION submission waits for staging to be registered — 409 LAUNCH_STAGING_NOT_REGISTERED', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      await withDraft(db, { projectId, environment: 'production' })
+      const submit = () =>
+        submitIamRegistration(db, bus, { projectId, environment: 'production', actor })
+      await expect(submit()).rejects.toMatchObject({
+        code: 'LAUNCH_STAGING_NOT_REGISTERED',
+      })
+      // Staging sent, not yet registered.
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      await expect(submit()).rejects.toMatchObject({
+        code: 'LAUNCH_STAGING_NOT_REGISTERED',
+      })
+      // THE POSITIVE CONTROL: staging `active`.
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        projectId,
+        state: 'active',
+        actor,
+      })
+      expect((await submit()).state).toBe('submitted')
+    })
+  })
+
+  it('an administrator’s record of UBC’s answer is never refused for order', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      // No assessment, no staging registration — and production recorded `active` all the same.
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(db, bus, { ...IAM, projectId, state, actor })
+      expect((await getIamRegistration(db, projectId, 'production'))?.state).toBe(
+        'active',
+      )
+      expect(await getIamRegistration(db, projectId, 'staging')).toBeUndefined()
+    })
+  })
+
+  it('publishes iam_registration.submitted naming the environment, the day and the person — never a PUID', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      // Drafted before the day it was sent, as a real one is.
+      await withDraft(db, {
+        projectId,
+        environment: 'staging',
+        createdAt: new Date('2026-09-20T17:00:00.000Z'),
+      })
+      await submitIamRegistration(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor,
+        sentAt: '2026-09-29',
+        reference: 'IAM-STG-7',
+      })
+      const [event] = await db
+        .select()
+        .from(events)
+        .where(eq(events.type, 'iam_registration.submitted'))
+      expect(event?.machineDetail).toEqual({
+        environment: 'staging',
+        sentAt: '2026-09-29',
+        externalTicketRef: 'IAM-STG-7',
+      })
+      expect(event?.humanMessage).toBe(
+        "Test Owner said this app's staging registration was sent to UBC IAM on September 29, 2026 (ticket IAM-STG-7).",
+      )
+      expect(JSON.stringify(event)).not.toContain(ACTOR.puid)
+    })
+  })
+
+  it('an administrator’s record that MOVES a registration into submitted stamps when and by whom; a ticket correction does not', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const sent = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      expect(sent.submittedAt).toBeInstanceOf(Date)
+      expect(sent.submittedBy).toBe(ownerId)
+      const corrected = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        externalTicketRef: 'IAM-LATER',
+        actor,
+      })
+      expect(corrected.submittedAt?.toISOString()).toBe(sent.submittedAt?.toISOString())
+      // A record that never reached `submitted` says nothing was sent.
+      const draft = await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        projectId,
+        state: 'draft',
+        actor,
+      })
+      expect(draft.submittedAt).toBeNull()
+      expect(draft.submittedBy).toBeNull()
+    })
+  })
+
+  it('filing a change request (active → change_requested) stamps when it went to UBC', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(db, bus, { ...IAM, projectId, state, actor })
+      const before = await getIamRegistration(db, projectId, 'production')
+      await db
+        .update(iamRegistrations)
+        .set({ submittedAt: new Date('2026-01-01T19:00:00.000Z') })
+        .where(eq(iamRegistrations.id, before!.id))
+      const filed = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        requestedAttributes: ['displayName', 'mail', 'sn'],
+        actor,
+      })
+      expect(filed.submittedAt!.getTime()).toBeGreaterThan(
+        new Date('2026-01-01T19:00:00.000Z').getTime(),
+      )
+    })
+  })
+})
+
+describe('the owner’s “I’ve sent it” for the privacy assessment (Task 9)', () => {
+  it('submits a drafted assessment: submitted, stamped with the day and the person', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await withAssessmentDraft(db, { projectId })
+      const row = await submitPrivacyAssessment(db, bus, {
+        projectId,
+        actor,
+        reference: 'PIA-2026-0101',
+      })
+      expect(row).toMatchObject({
+        state: 'submitted',
+        submittedBy: ownerId,
+        externalTicketRef: 'PIA-2026-0101',
+      })
+      expect(row.submittedAt?.toISOString()).toBe(
+        vancouverNoon(vancouverToday()).toISOString(),
+      )
+      const [event] = await db
+        .select()
+        .from(events)
+        .where(eq(events.type, 'privacy_assessment.submitted'))
+      expect(event?.machineDetail).toEqual({
+        sentAt: vancouverToday(),
+        externalTicketRef: 'PIA-2026-0101',
+      })
+    })
+  })
+
+  it('refuses one with no draft — 409 LAUNCH_DRAFT_REQUIRED — and a second submission — LAUNCH_TRANSITION_INVALID', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await expect(
+        submitPrivacyAssessment(db, bus, { projectId, actor }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
+      await withAssessmentDraft(db, { projectId })
+      expect((await submitPrivacyAssessment(db, bus, { projectId, actor })).state).toBe(
+        'submitted',
+      )
+      await expect(
+        submitPrivacyAssessment(db, bus, { projectId, actor }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
     })
   })
 })

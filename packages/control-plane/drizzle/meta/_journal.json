@@ -316,6 +316,13 @@
       "when": 1790827918006,
       "tag": "0044_big_black_panther",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790834937008,
+      "tag": "0045_organic_quasar",
+      "breakpoints": true
     }
   ]
 }

@@ -740,8 +740,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * The IAM registration and the privacy assessment, as recorded
-         * @description The IAM registration and the privacy assessment, as a platform administrator recorded what UBC IAM and the Privacy Office said, each with its ticket reference. Either may be absent — a state, not an error.
+         * The privacy assessment and the two IAM registrations
+         * @description The three records a first production launch waits on — the privacy assessment, the staging registration and the production registration — each with when a person said it was sent and what UBC said, as a platform administrator recorded it. Any may be absent: a state, not an error.
          */
         get: operations["getLaunchRecords"];
         put?: never;
@@ -763,9 +763,29 @@ export interface paths {
         put?: never;
         /**
          * Record what UBC IAM registered
-         * @description A platform administrator, in their own session, records the Service Provider registration UBC IAM made, with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`.
+         * @description A platform administrator, in their own session, records the Service Provider registration UBC IAM made — the staging registration or production’s (`environment`, production’s when absent) — with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`. UBC’s answer is recorded whatever order it arrives in: this is never refused for the order the requests are sent in.
          */
         post: operations["recordIamRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/launch-records/iam-registration/{environment}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Say a registration request was sent to UBC IAM
+         * @description The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: the staging registration is sent only once the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active (`409 LAUNCH_STAGING_NOT_REGISTERED`). It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+         */
+        post: operations["submitIamRegistration"];
         delete?: never;
         options?: never;
         head?: never;
@@ -786,6 +806,26 @@ export interface paths {
          * @description A platform administrator, in their own session, records the Privacy Office’s assessment, shaped like the IAM registration, over the states `draft`, `submitted` and `approved` (`409 LAUNCH_TRANSITION_INVALID` for a move they do not allow). A refused assessment goes back to `draft` with the reviewer’s note.
          */
         post: operations["recordPrivacyAssessment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/launch-records/privacy-assessment/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Say the privacy assessment was sent to the Privacy Office
+         * @description The project’s owner, a collaborator or a platform administrator, in their own session, says the privacy impact assessment was sent to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent), with the Office’s `reference` when they have one. It comes first in UBC’s order, so nothing else gates it. The record moves to `submitted`, and the launch checklist says how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, and a second submission is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded by an administrator (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+         */
+        post: operations["submitPrivacyAssessment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -959,7 +999,7 @@ export interface paths {
         put?: never;
         /**
          * Mint a delegated token
-         * @description Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).
+         * @description Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:submit`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).
          */
         post: operations["mintToken"];
         delete?: never;
@@ -1909,7 +1949,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_DRAFT_REQUIRED" | "LAUNCH_PIA_NOT_APPROVED" | "LAUNCH_RECORD_INVALID" | "LAUNCH_SENT_AT_INVALID" | "LAUNCH_STAGING_NOT_REGISTERED" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -2952,14 +2992,19 @@ export interface components {
             type: "iam_registration.recorded";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
-            /** @description An administrator recorded what UBC IAM registered for the app’s production sign-in (§9). */
+            /** @description An administrator recorded what UBC IAM registered for the app’s staging or production sign-in. */
             machineDetail: {
                 /**
                  * @description The registration’s state, as UBC IAM gave it (§9).
                  * @enum {string}
                  */
                 state: "draft" | "submitted" | "active" | "change_requested" | "expired";
-                /** @description The production entity id registered. */
+                /**
+                 * @description Which registration: the staging one, or production’s.
+                 * @enum {string}
+                 */
+                environment: "staging" | "production";
+                /** @description The entity id registered. */
                 entityId: string;
                 /** @description UBC IAM’s own reference for the request; null when none was given. */
                 externalTicketRef: string | null;
@@ -3004,6 +3049,85 @@ export interface components {
                  */
                 state: "draft" | "submitted" | "approved";
                 /** @description The Privacy Office’s own reference; null when none was given. */
+                externalTicketRef: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "iam_registration.submitted";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records. */
+            machineDetail: {
+                /**
+                 * @description Which registration was sent: the staging one, or production’s.
+                 * @enum {string}
+                 */
+                environment: "staging" | "production";
+                /** @description The day it was sent, `YYYY-MM-DD`, as the person who sent it said. */
+                sentAt: string;
+                /** @description UBC IAM’s reference for the request; null when the person had none yet. */
+                externalTicketRef: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "privacy_assessment.submitted";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records. */
+            machineDetail: {
+                /** @description The day it was sent, `YYYY-MM-DD`, as the person who sent it said. */
+                sentAt: string;
+                /** @description The Privacy Office’s reference; null when the person had none yet. */
                 externalTicketRef: string | null;
             };
             /**
@@ -4189,7 +4313,7 @@ export interface components {
                 latestIncidentAt: string | null;
             }[];
         }[];
-        /** @description What UBC IAM registered for the app’s production CWL sign-in (§9), as an administrator recorded it. */
+        /** @description One of the app’s two UBC IAM registrations, staging’s or production’s: what Manifest drafted, when a person said it was sent, and what UBC IAM registered, as an administrator recorded it. */
         IamRegistration: {
             /**
              * Format: uuid
@@ -4201,6 +4325,11 @@ export interface components {
              * @description Its project.
              */
             projectId: string;
+            /**
+             * @description Which registration: the staging one, sent second, or production’s, sent last. A project has at most one of each.
+             * @enum {string}
+             */
+            environment: "staging" | "production";
             /** @description §9: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch. */
             entityId: string;
             /** @description The assertion consumer URL registered — where sign-ins are sent. */
@@ -4224,6 +4353,23 @@ export interface components {
             state: "draft" | "submitted" | "active" | "change_requested" | "expired";
             /** @description UBC IAM’s own reference for the request; null when none was recorded. */
             externalTicketRef: string | null;
+            /** @description When the request now with UBC IAM was sent — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. How long it has waited is measured from here. Null until it is sent. */
+            submittedAt: string | null;
+            /** @description Who said it was sent; null until it is. */
+            submittedBy: {
+                /**
+                 * Format: uuid
+                 * @description Their user id.
+                 */
+                id: string;
+                /** @description Their name, as CWL gave it. */
+                displayName: string;
+            } | null;
+            /**
+             * Format: date-time
+             * @description When the record was first written.
+             */
+            createdAt: string;
             /**
              * Format: date-time
              * @description When the record last changed.
@@ -4509,17 +4655,21 @@ export interface components {
             why: string;
             /** @description For a `not_built` item: what will build it. Absent otherwise. */
             builtBy?: string;
+            /** @description When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”. */
+            since: string | null;
         };
-        /** @description The two external records a first production launch waits on (§9). */
+        /** @description The three records a first production launch waits on, in the order UBC works through them: the privacy assessment, the staging registration, then production’s. */
         LaunchRecords: {
             /**
              * Format: uuid
              * @description The project.
              */
             projectId: string;
-            /** @description What UBC IAM registered; null until an administrator records something. */
+            /** @description The PRODUCTION registration; null until it is drafted or recorded. */
             iamRegistration: components["schemas"]["IamRegistration"] | null;
-            /** @description What the Privacy Office said; null until an administrator records something. */
+            /** @description The STAGING registration — sent after the privacy assessment is approved, and before production’s; null until it is drafted or recorded. */
+            stagingRegistration: components["schemas"]["IamRegistration"] | null;
+            /** @description The privacy assessment; null until it is drafted or recorded. */
             privacyAssessment: components["schemas"]["PrivacyAssessment"] | null;
         };
         /** @description One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all. */
@@ -4870,8 +5020,8 @@ export interface components {
         MintTokenRequest: {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
-            /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only and refused outright. */
-            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "agent:session" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "launch:rehearse" | "quota:set" | "secret:read")[];
+            /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:submit, launch:rehearse or project:delete, which are person-only and refused outright. */
+            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "agent:session" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "launch:rehearse" | "launch:submit" | "quota:set" | "secret:read")[];
             /** @description How long the token lives, in days. D24: a token has an expiry, and at most 365 days of one. */
             expiresInDays: number;
         };
@@ -4938,7 +5088,7 @@ export interface components {
         };
         /** @description The questions agents have put to the people who own this project, newest first (§26). */
         PendingActionList: components["schemas"]["PendingAction"][];
-        /** @description What UBC’s Privacy Office said of the app’s privacy impact assessment (§9), as an administrator recorded it. */
+        /** @description The app’s privacy impact assessment: when a person said it was sent, and what UBC’s Privacy Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval. */
         PrivacyAssessment: {
             /**
              * Format: uuid
@@ -4959,8 +5109,25 @@ export interface components {
             reviewer: string | null;
             /** @description When it was approved; null until it is. */
             approvedAt: string | null;
-            /** @description The Privacy Office’s own reference; null when none was recorded. */
+            /** @description The Privacy Office’s own reference — the PIA number, which the staging registration needs before it is sent; null when none was recorded. */
             externalTicketRef: string | null;
+            /** @description When the assessment was sent to the Privacy Office — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. Null until it is sent. */
+            submittedAt: string | null;
+            /** @description Who said it was sent; null until it is. */
+            submittedBy: {
+                /**
+                 * Format: uuid
+                 * @description Their user id.
+                 */
+                id: string;
+                /** @description Their name, as CWL gave it. */
+                displayName: string;
+            } | null;
+            /**
+             * Format: date-time
+             * @description When the record was first written.
+             */
+            createdAt: string;
             /**
              * Format: date-time
              * @description When the record last changed.
@@ -5005,8 +5172,13 @@ export interface components {
         };
         /** @description Every project the caller is a member of — every project, for an administrator. */
         ProjectList: components["schemas"]["Project"][];
-        /** @description What UBC IAM registered for the app’s production sign-in, as an administrator records it from the ticket (§9). */
+        /** @description What UBC IAM registered for the app’s staging or production sign-in, as an administrator records it from the ticket. UBC’s answer is recorded whatever order it arrives in. */
         RecordIamRegistrationRequest: {
+            /**
+             * @description Which registration this records; production’s when absent.
+             * @enum {string}
+             */
+            environment?: "staging" | "production";
             /** @description The entityID UBC IAM registered — fixed once registered. */
             entityId: string;
             /** @description The assertion consumer URL registered. */
@@ -5482,6 +5654,13 @@ export interface components {
         };
         /** @description Every message on WS /v1/projects/{projectId}/events is one of these, as JSON. Switch on `kind`, then `type`. */
         StreamFrame: components["schemas"]["EventFrame"] | components["schemas"]["LogFrame"] | components["schemas"]["ControlFrame"];
+        /** @description That a request to UBC was sent: the day, and its reference if there is one. */
+        SubmitLaunchRecordRequest: {
+            /** @description The day it was sent, `YYYY-MM-DD` — today or earlier, and not before the draft was made. Today in Vancouver when absent. */
+            sentAt?: string;
+            /** @description UBC’s reference for the request, when you have one yet. */
+            reference?: string;
+        };
         /** @description A delegated token (D24), scoped to one project and a capability set. Its secret is shown once, when it is minted, and is never readable again. */
         Token: {
             /**
@@ -8099,7 +8278,8 @@ export interface operations {
                      *           "owner": "project owner",
                      *           "blocking": true,
                      *           "state": "met",
-                     *           "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it."
+                     *           "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.",
+                     *           "since": null
                      *         },
                      *         {
                      *           "id": "iam-registration",
@@ -8107,7 +8287,8 @@ export interface operations {
                      *           "owner": "UBC IAM, recorded by a platform administrator (§9)",
                      *           "blocking": true,
                      *           "state": "unmet",
-                     *           "why": "Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference."
+                     *           "why": "It was sent to UBC IAM on October 14, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
+                     *           "since": "2026-10-14T19:00:00.000Z"
                      *         }
                      *       ]
                      *     }
@@ -8138,7 +8319,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Both records, either of which may be null. */
+            /** @description The three records, any of which may be null. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -8148,25 +8329,51 @@ export interface operations {
                      * @example {
                      *       "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
                      *       "iamRegistration": {
+                     *         "id": "5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13",
+                     *         "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                     *         "environment": "production",
+                     *         "entityId": "https://manifest.internal/sp/class-check-ins/production",
+                     *         "acsUrl": "https://class-check-ins.manifest.internal/auth/ubcshib/callback",
+                     *         "sloUrl": "https://class-check-ins.manifest.internal/auth/logout",
+                     *         "certFingerprint": null,
+                     *         "certExpiresAt": null,
+                     *         "registeredAttributes": [],
+                     *         "requestedAttributes": null,
+                     *         "registeredAt": null,
+                     *         "state": "submitted",
+                     *         "externalTicketRef": "IAM-2026-0500",
+                     *         "submittedAt": "2026-10-14T19:00:00.000Z",
+                     *         "submittedBy": {
+                     *           "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                     *           "displayName": "Bio Prof"
+                     *         },
+                     *         "createdAt": "2026-10-09T17:22:41.508Z",
+                     *         "updatedAt": "2026-10-14T18:03:12.117Z"
+                     *       },
+                     *       "stagingRegistration": {
                      *         "id": "77e7ddc9-7571-4de3-9ba7-6a4372526295",
                      *         "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
-                     *         "entityId": "https://manifest.internal/sp/iam-pending/production",
-                     *         "acsUrl": "https://iam-pending.manifest.internal/auth/ubcshib/callback",
-                     *         "sloUrl": "https://iam-pending.manifest.internal/auth/logout",
+                     *         "environment": "staging",
+                     *         "entityId": "https://manifest.internal/sp/class-check-ins/staging",
+                     *         "acsUrl": "https://class-check-ins.staging.manifest.internal/auth/ubcshib/callback",
+                     *         "sloUrl": "https://class-check-ins.staging.manifest.internal/auth/logout",
                      *         "certFingerprint": null,
                      *         "certExpiresAt": null,
                      *         "registeredAttributes": [
                      *           "ubcEduCwlPuid",
                      *           "mail"
                      *         ],
-                     *         "requestedAttributes": [
-                     *           "ubcEduCwlPuid",
-                     *           "mail"
-                     *         ],
-                     *         "registeredAt": "2026-09-26T21:48:50.164Z",
-                     *         "state": "change_requested",
-                     *         "externalTicketRef": "IAM-CR-7",
-                     *         "updatedAt": "2026-09-26T21:48:50.262Z"
+                     *         "requestedAttributes": null,
+                     *         "registeredAt": "2026-10-07T21:48:50.164Z",
+                     *         "state": "active",
+                     *         "externalTicketRef": "IAM-2026-0480",
+                     *         "submittedAt": "2026-09-29T19:00:00.000Z",
+                     *         "submittedBy": {
+                     *           "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                     *           "displayName": "Bio Prof"
+                     *         },
+                     *         "createdAt": "2026-09-28T16:10:05.902Z",
+                     *         "updatedAt": "2026-10-07T21:48:50.164Z"
                      *       },
                      *       "privacyAssessment": {
                      *         "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
@@ -8174,7 +8381,13 @@ export interface operations {
                      *         "state": "approved",
                      *         "reviewer": "K. Privacy",
                      *         "approvedAt": "2026-09-26T21:48:50.173Z",
-                     *         "externalTicketRef": "PIA-iam-pending",
+                     *         "externalTicketRef": "PIA-2026-0088",
+                     *         "submittedAt": "2026-09-15T19:00:00.000Z",
+                     *         "submittedBy": {
+                     *           "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                     *           "displayName": "Bio Prof"
+                     *         },
+                     *         "createdAt": "2026-09-14T20:31:16.044Z",
                      *         "updatedAt": "2026-09-26T21:48:50.173Z"
                      *       }
                      *     }
@@ -8239,6 +8452,7 @@ export interface operations {
                      * @example {
                      *       "id": "62169b5f-1961-406a-8ad3-f5de46143c6f",
                      *       "projectId": "9aa37d53-038d-4e78-9270-01c2ea085d21",
+                     *       "environment": "production",
                      *       "entityId": "https://manifest.internal/sp/iam-granted/production",
                      *       "acsUrl": "https://iam-granted.manifest.internal/auth/ubcshib/callback",
                      *       "sloUrl": "https://iam-granted.manifest.internal/auth/logout",
@@ -8255,6 +8469,12 @@ export interface operations {
                      *       "registeredAt": "2026-09-26T21:48:52.716Z",
                      *       "state": "change_requested",
                      *       "externalTicketRef": "IAM-iam-granted",
+                     *       "submittedAt": "2026-09-26T21:48:52.796Z",
+                     *       "submittedBy": {
+                     *         "id": "3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b",
+                     *         "displayName": "Platform Admin"
+                     *       },
+                     *       "createdAt": "2026-09-26T21:48:52.611Z",
                      *       "updatedAt": "2026-09-26T21:48:52.796Z"
                      *     }
                      */
@@ -8262,6 +8482,77 @@ export interface operations {
                 };
             };
             /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submitIamRegistration: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per user action, and the same key when retrying that action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description Which registration was sent: `staging` or `production`. */
+                environment: "staging" | "production";
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "sentAt": "2026-10-14",
+                 *       "reference": "IAM-2026-0500"
+                 *     }
+                 */
+                "application/json": components["schemas"]["SubmitLaunchRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description The registration, now submitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13",
+                     *       "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                     *       "environment": "production",
+                     *       "entityId": "https://manifest.internal/sp/class-check-ins/production",
+                     *       "acsUrl": "https://class-check-ins.manifest.internal/auth/ubcshib/callback",
+                     *       "sloUrl": "https://class-check-ins.manifest.internal/auth/logout",
+                     *       "certFingerprint": null,
+                     *       "certExpiresAt": null,
+                     *       "registeredAttributes": [],
+                     *       "requestedAttributes": null,
+                     *       "registeredAt": null,
+                     *       "state": "submitted",
+                     *       "externalTicketRef": "IAM-2026-0500",
+                     *       "submittedAt": "2026-10-14T19:00:00.000Z",
+                     *       "submittedBy": {
+                     *         "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "createdAt": "2026-10-09T17:22:41.508Z",
+                     *       "updatedAt": "2026-10-14T18:03:12.117Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["IamRegistration"];
+                };
+            };
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_REQUIRED, LAUNCH_PIA_NOT_APPROVED, LAUNCH_SENT_AT_INVALID, LAUNCH_STAGING_NOT_REGISTERED, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8312,6 +8603,12 @@ export interface operations {
                      *       "reviewer": "K. Privacy",
                      *       "approvedAt": "2026-09-26T21:47:36.002Z",
                      *       "externalTicketRef": "PIA-DELIVERY-1",
+                     *       "submittedAt": "2026-09-26T21:47:35.912Z",
+                     *       "submittedBy": {
+                     *         "id": "3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b",
+                     *         "displayName": "Platform Admin"
+                     *       },
+                     *       "createdAt": "2026-09-26T21:47:35.912Z",
                      *       "updatedAt": "2026-09-26T21:47:36.002Z"
                      *     }
                      */
@@ -8319,6 +8616,68 @@ export interface operations {
                 };
             };
             /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submitPrivacyAssessment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per user action, and the same key when retrying that action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "sentAt": "2026-09-15",
+                 *       "reference": "PIA-2026-0088"
+                 *     }
+                 */
+                "application/json": components["schemas"]["SubmitLaunchRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description The assessment, now submitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
+                     *       "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                     *       "state": "submitted",
+                     *       "reviewer": null,
+                     *       "approvedAt": null,
+                     *       "externalTicketRef": "PIA-2026-0088",
+                     *       "submittedAt": "2026-09-15T19:00:00.000Z",
+                     *       "submittedBy": {
+                     *         "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "createdAt": "2026-09-14T20:31:16.044Z",
+                     *       "updatedAt": "2026-09-15T17:40:09.330Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PrivacyAssessment"];
+                };
+            };
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_REQUIRED, LAUNCH_SENT_AT_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

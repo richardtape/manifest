@@ -127,6 +127,13 @@ const CONFIDENTIAL_INCIDENTS = { status: 403, code: 'INCIDENT_LOG_CONFIDENTIAL' 
  */
 const BUILDING_NOT_OPEN = { status: 403, code: 'BUILDING_NOT_OPEN' } as const
 
+/**
+ * An owner's *"I've sent it"* (the launch path plan's Task 9) on a record with no draft to send —
+ * what every person who HOLDS `launch:submit` is answered on this fixture, which drafts nothing.
+ * A `409` naming its code, so the row cannot be green against `FORBIDDEN` or a missing route.
+ */
+const DRAFT_REQUIRED = { status: 409, code: 'LAUNCH_DRAFT_REQUIRED' } as const
+
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
   code: ErrorCode
@@ -1354,6 +1361,51 @@ const ROUTES: RouteCase[] = [
       collaborator: 403,
       stranger: 404,
       admin: 'pass',
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  /**
+   * AN OWNER'S *"I'VE SENT IT"* (the launch path plan's Task 9; Spec action 3): `launch:submit`, held
+   * by the owner, a collaborator and an administrator, in their own session — so all three reach
+   * the record and are told there is no draft to send (this fixture drafts nothing; the sent case
+   * is `api/launch.test.ts`'s). Person-only: every token is refused for its credential class before
+   * the project is read, exactly as `launch:record`'s rows above.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/launch-records/iam-registration/:environment/submission',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/launch-records/iam-registration/production/submission`,
+      payload: {},
+    }),
+    expect: {
+      owner: DRAFT_REQUIRED,
+      collaborator: DRAFT_REQUIRED,
+      stranger: 404,
+      admin: DRAFT_REQUIRED,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/launch-records/privacy-assessment/submission',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/launch-records/privacy-assessment/submission`,
+      payload: {},
+    }),
+    expect: {
+      owner: DRAFT_REQUIRED,
+      collaborator: DRAFT_REQUIRED,
+      stranger: 404,
+      admin: DRAFT_REQUIRED,
       anonymous: 401,
       'token-capable': SESSION_ONLY,
       'token-incapable': SESSION_ONLY,

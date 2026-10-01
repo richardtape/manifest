@@ -1,0 +1,16 @@
+ALTER TABLE "iam_registrations" DROP CONSTRAINT "iam_registrations_project_id_unique";--> statement-breakpoint
+ALTER TABLE "audit"."events" DROP CONSTRAINT "events_type_known";--> statement-breakpoint
+ALTER TABLE "iam_registrations" DROP CONSTRAINT "iam_registrations_attributes_present";--> statement-breakpoint
+ALTER TABLE "iam_registrations" ALTER COLUMN "registered_attributes" SET DEFAULT '[]'::jsonb;--> statement-breakpoint
+ALTER TABLE "iam_registrations" ADD COLUMN "environment_kind" text DEFAULT 'production' NOT NULL;--> statement-breakpoint
+ALTER TABLE "iam_registrations" ADD COLUMN "submitted_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "iam_registrations" ADD COLUMN "submitted_by" uuid;--> statement-breakpoint
+ALTER TABLE "iam_registrations" ADD COLUMN "generated_package" jsonb;--> statement-breakpoint
+ALTER TABLE "privacy_assessments" ADD COLUMN "submitted_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "privacy_assessments" ADD COLUMN "submitted_by" uuid;--> statement-breakpoint
+ALTER TABLE "iam_registrations" ADD CONSTRAINT "iam_registrations_submitted_by_users_id_fk" FOREIGN KEY ("submitted_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "privacy_assessments" ADD CONSTRAINT "privacy_assessments_submitted_by_users_id_fk" FOREIGN KEY ("submitted_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "iam_registrations" ADD CONSTRAINT "iam_registrations_project_environment_key" UNIQUE("project_id","environment_kind");--> statement-breakpoint
+ALTER TABLE "audit"."events" ADD CONSTRAINT "events_type_known" CHECK ("audit"."events"."type" IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted'));--> statement-breakpoint
+ALTER TABLE "iam_registrations" ADD CONSTRAINT "iam_registrations_environment_kind" CHECK ("iam_registrations"."environment_kind" IN ('staging', 'production'));--> statement-breakpoint
+ALTER TABLE "iam_registrations" ADD CONSTRAINT "iam_registrations_attributes_present" CHECK ("iam_registrations"."registered_at" IS NULL OR jsonb_array_length("iam_registrations"."registered_attributes") > 0);

@@ -288,11 +288,12 @@ A person rejected a token’s pending action; a retry of it is refused `TOKEN_AC
 
 ## `iam_registration.recorded`
 
-An administrator recorded what UBC IAM registered for the app’s production sign-in (§9).
+An administrator recorded what UBC IAM registered for the app’s staging or production sign-in.
 
 ```json
 {
   "state": "submitted",
+  "environment": "production",
   "entityId": "https://manifest.internal/sp/chem-labs/production",
   "externalTicketRef": "IAM-2026-0412",
   "attributeCount": 2
@@ -306,6 +307,29 @@ An administrator recorded what UBC’s Privacy Office said of the app’s privac
 ```json
 {
   "state": "submitted",
+  "externalTicketRef": "PIA-2026-0088"
+}
+```
+
+## `iam_registration.submitted`
+
+A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records.
+
+```json
+{
+  "environment": "staging",
+  "sentAt": "2026-09-29",
+  "externalTicketRef": "IAM-2026-0500"
+}
+```
+
+## `privacy_assessment.submitted`
+
+A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records.
+
+```json
+{
+  "sentAt": "2026-09-22",
   "externalTicketRef": "PIA-2026-0088"
 }
 ```

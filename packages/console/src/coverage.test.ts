@@ -44,6 +44,14 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   // before the decision. P6b Task 9's stored preview is that missing operation, and this
   // list being empty again is only half of the evidence; the other half is a person reading
   // the preview before deciding (Task 10's click, Task 11's clicked acceptance).
+  //
+  // THE LAUNCH PATH PLAN'S TASK 9 PARKS TWO, naming its Task 13 as their remover: until Tasks 10
+  // and 11 draft a package and an assessment, no client can meet their precondition (a draft), so
+  // a console button for them could only ever answer `409 LAUNCH_DRAFT_REQUIRED`.
+  submitIamRegistration:
+    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — after Task 10 drafts the package it sends',
+  submitPrivacyAssessment:
+    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — after Task 11 drafts the assessment it sends',
 }
 
 /**

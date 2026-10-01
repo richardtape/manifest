@@ -400,7 +400,10 @@ export const EVENT_DETAIL_SCHEMAS = {
       state: z
         .enum(iamRegistrationState.enumValues)
         .describe('The registration’s state, as UBC IAM gave it (§9).'),
-      entityId: z.string().describe('The production entity id registered.'),
+      environment: z
+        .enum(['staging', 'production'])
+        .describe('Which registration: the staging one, or production’s.'),
+      entityId: z.string().describe('The entity id registered.'),
       externalTicketRef: z
         .string()
         .nullable()
@@ -412,7 +415,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         .describe('How many attributes are registered; `getLaunchRecords` lists them.'),
     })
     .describe(
-      'An administrator recorded what UBC IAM registered for the app’s production sign-in (§9).',
+      'An administrator recorded what UBC IAM registered for the app’s staging or production sign-in.',
     ),
   /** The same shape for the other external record. No reviewer note — §14, and the row has it. */
   'privacy_assessment.recorded': z
@@ -427,6 +430,42 @@ export const EVENT_DETAIL_SCHEMAS = {
     })
     .describe(
       'An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment (§9).',
+    ),
+  /**
+   * AN OWNER'S *"I'VE SENT IT"* (the launch path plan's Task 9). The day, never the moment — a person
+   * says which day they sent it — and never the package: a project's stream carries that a request
+   * went, and `getLaunchRecords` is where a member reads what it said.
+   */
+  'iam_registration.submitted': z
+    .strictObject({
+      environment: z
+        .enum(['staging', 'production'])
+        .describe('Which registration was sent: the staging one, or production’s.'),
+      sentAt: z
+        .string()
+        .describe('The day it was sent, `YYYY-MM-DD`, as the person who sent it said.'),
+      externalTicketRef: z
+        .string()
+        .nullable()
+        .describe(
+          'UBC IAM’s reference for the request; null when the person had none yet.',
+        ),
+    })
+    .describe(
+      'A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records.',
+    ),
+  'privacy_assessment.submitted': z
+    .strictObject({
+      sentAt: z
+        .string()
+        .describe('The day it was sent, `YYYY-MM-DD`, as the person who sent it said.'),
+      externalTicketRef: z
+        .string()
+        .nullable()
+        .describe('The Privacy Office’s reference; null when the person had none yet.'),
+    })
+    .describe(
+      'A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records.',
     ),
   /**
    * D21 as R2 redefines it (P6a Task 14). The COUNT of attributes released, never the

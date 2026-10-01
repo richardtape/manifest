@@ -1,10 +1,12 @@
-import { eq } from 'drizzle-orm'
-import { iamRegistrations, privacyAssessments, type Db } from '../db/index.js'
+import { and, eq } from 'drizzle-orm'
+import { iamRegistrations, privacyAssessments, users, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { personName } from '../projects/index.js'
 import {
   iamTransition,
   piaTransition,
+  refuseSubmission,
+  SUBMIT_ARROWS,
   type IamState,
   type PiaState,
 } from './transitions.js'
@@ -26,10 +28,18 @@ export type IamRegistrationRow = typeof iamRegistrations.$inferSelect
 export type PrivacyAssessmentRow = typeof privacyAssessments.$inferSelect
 
 /**
- * `launch/`'s OTHER refusal — a record whose fields cannot be accepted, as distinct from
- * a state it cannot reach. A 400 rather than a 409: nothing about the record's state is
- * in conflict, the request itself is wrong. Same reasoning as `LaunchTransitionError`
- * about where it lives and why the code is a constructor argument.
+ * WHICH UBC WORLD A REGISTRATION IS FOR (§6, §9; the launch path plan's Task 9). A project has one
+ * per environment that signs people in against UBC: staging's, then production's, in UBC's order.
+ * Never the sandbox, which registers itself with the Manifest IdP alone.
+ */
+export type RegistrationEnvironment = 'staging' | 'production'
+
+/**
+ * `launch/`'s OTHER refusal — a record whose fields cannot be accepted (`400`), or, since the
+ * launch path plan's Task 9, one that cannot be sent yet (`409`: no draft, or UBC's order not
+ * met) — as distinct from a move its state machine does not have. The registry states each
+ * code's status; `api/errors.ts` reads it. Same reasoning as `LaunchTransitionError` about where
+ * it lives and why the code is a constructor argument.
  */
 export class LaunchRecordError extends Error {
   constructor(
@@ -44,6 +54,8 @@ export class LaunchRecordError extends Error {
 
 export interface RecordIamInput {
   projectId: string
+  /** Which registration — production's when absent, as every record before Task 9 was. */
+  environment?: RegistrationEnvironment | undefined
   entityId: string
   acsUrl: string
   sloUrl: string
@@ -69,14 +81,25 @@ export interface RecordPiaInput {
   actor: { id: string; puid: string }
 }
 
+/**
+ * ONE ENVIRONMENT'S REGISTRATION. **The environment is required, never defaulted**: since Task 9 a
+ * project may hold two rows, and a reader that meant production's and read "the" row would be
+ * answered staging's — so every caller says which, and `tsc` holds them to it.
+ */
 export async function getIamRegistration(
   db: Db,
   projectId: string,
+  environment: RegistrationEnvironment,
 ): Promise<IamRegistrationRow | undefined> {
   const [row] = await db
     .select()
     .from(iamRegistrations)
-    .where(eq(iamRegistrations.projectId, projectId))
+    .where(
+      and(
+        eq(iamRegistrations.projectId, projectId),
+        eq(iamRegistrations.environmentKind, environment),
+      ),
+    )
     .limit(1)
   return row
 }
@@ -114,7 +137,8 @@ export async function recordIamRegistration(
       'Record exactly the attributes UBC IAM registered, as they appear in the ticket.',
     )
 
-  const existing = await getIamRegistration(db, input.projectId)
+  const environment = input.environment ?? 'production'
+  const existing = await getIamRegistration(db, input.projectId, environment)
   /**
    * **THE ARROW IS CHECKED EVEN ON THE FIRST WRITE.** A record created straight into
    * `active` is the same hole as a transition into it, so a new record starts at `draft`
@@ -183,11 +207,30 @@ export async function recordIamRegistration(
     state === 'active' && (from !== 'active' || registeredValuesChange)
       ? new Date()
       : (existing?.registeredAt ?? null)
+  /**
+   * WHEN THE REQUEST NOW WITH UBC WENT, AND WHO SAID SO (Task 9; `submitted_at`'s column comment).
+   * An administrator's record stamps it when it MOVES the registration into `submitted` — the
+   * request was sent — and when it FILES A CHANGE REQUEST (`active → change_requested`, a new
+   * request to UBC). Nothing else moves it: a ticket correction is no new request, and UBC coming
+   * back with questions (`submitted → change_requested`) is UBC's answer to the request already
+   * stamped, which is what that record still waits on.
+   */
+  const sentNow =
+    state !== from &&
+    (state === 'submitted' || (state === 'change_requested' && from === 'active'))
+  const submitted = sentNow
+    ? { submittedAt: new Date(), submittedBy: input.actor.id }
+    : {
+        submittedAt: existing?.submittedAt ?? null,
+        submittedBy: existing?.submittedBy ?? null,
+      }
 
   const [row] = await db
     .insert(iamRegistrations)
     .values({
       projectId: input.projectId,
+      environmentKind: environment,
+      ...submitted,
       entityId: input.entityId,
       acsUrl: input.acsUrl,
       sloUrl: input.sloUrl,
@@ -207,8 +250,9 @@ export async function recordIamRegistration(
         : { certExpiresAt: input.certExpiresAt }),
     })
     .onConflictDoUpdate({
-      target: iamRegistrations.projectId,
+      target: [iamRegistrations.projectId, iamRegistrations.environmentKind],
       set: {
+        ...submitted,
         entityId: input.entityId,
         acsUrl: input.acsUrl,
         sloUrl: input.sloUrl,
@@ -239,12 +283,13 @@ export async function recordIamRegistration(
       type: 'iam_registration.recorded',
       machineDetail: {
         state,
+        environment,
         entityId: row!.entityId,
         externalTicketRef: row!.externalTicketRef ?? null,
         attributeCount: input.registeredAttributes.length,
       },
       humanMessage:
-        `${await personName(db, input.actor.id)} recorded this app's UBC IAM registration as ${state}` +
+        `${await personName(db, input.actor.id)} recorded this app's ${environment} UBC IAM registration as ${state}` +
         `${row!.externalTicketRef === null ? '' : ` (ticket ${row!.externalTicketRef})`}.`,
     },
     makeRedactor([]),
@@ -274,6 +319,15 @@ export async function recordPrivacyAssessment(
    * being rewritten, which is the kind of pair §13's gate would then read wrongly.
    */
   const approvedAt = state === 'approved' ? (existing?.approvedAt ?? new Date()) : null
+  // The registration's rule (Task 9): an administrator's record that MOVES the assessment into
+  // `submitted` says it was sent, now, by them; nothing else moves the stamp.
+  const submitted =
+    state !== from && state === 'submitted'
+      ? { submittedAt: new Date(), submittedBy: input.actor.id }
+      : {
+          submittedAt: existing?.submittedAt ?? null,
+          submittedBy: existing?.submittedBy ?? null,
+        }
 
   const [row] = await db
     .insert(privacyAssessments)
@@ -281,6 +335,7 @@ export async function recordPrivacyAssessment(
       projectId: input.projectId,
       state,
       approvedAt,
+      ...submitted,
       recordedBy: input.actor.id,
       ...(input.reviewer === undefined ? {} : { reviewer: input.reviewer }),
       ...(input.externalTicketRef === undefined
@@ -292,6 +347,7 @@ export async function recordPrivacyAssessment(
       set: {
         state,
         approvedAt,
+        ...submitted,
         reviewer: input.reviewer ?? null,
         externalTicketRef: input.externalTicketRef ?? null,
         recordedBy: input.actor.id,
@@ -318,4 +374,218 @@ export async function recordPrivacyAssessment(
     makeRedactor([]),
   )
   return row!
+}
+
+/**
+ * THE DAY A PERSON SAYS THEY SENT SOMETHING, AS AN INSTANT — noon in Vancouver on that day (the
+ * launch path plan's Task 9). Noon, so the day is the same day in every zone a client renders it
+ * in (the front-end enablement plan's F23: a midnight instant reads as the day before west of UTC).
+ * Found by asking what Vancouver's clock reads at 20:00 UTC on that day (noon in PST) and moving
+ * by the difference, so the answer is right on either side of a clock change.
+ */
+export function vancouverNoon(day: string): Date {
+  const [y, m, d] = day.split('-').map(Number) as [number, number, number]
+  const guess = new Date(Date.UTC(y, m - 1, d, 20, 0, 0))
+  const hour = Number(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Vancouver',
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).format(guess),
+  )
+  return new Date(guess.getTime() - (hour - 12) * 3_600_000)
+}
+
+/** An instant's day in Vancouver, `YYYY-MM-DD`. */
+export function vancouverDay(at: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver' }).format(at)
+}
+
+/** An instant's day in Vancouver, in words — *"September 29, 2026"* — for a sentence a person reads. */
+export function vancouverDayInWords(at: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    dateStyle: 'long',
+    timeZone: 'America/Vancouver',
+  }).format(at)
+}
+
+export interface SubmitInput {
+  projectId: string
+  actor: { id: string; puid: string }
+  /** The day it was sent, `YYYY-MM-DD`; today in Vancouver when absent. */
+  sentAt?: string | undefined
+  /** UBC's reference for the request, when the person has one yet. */
+  reference?: string | undefined
+}
+
+/**
+ * WHEN A PERSON MAY SAY THEY SENT IT: on a day that has happened, and not before the draft they
+ * sent existed — the package IS what is sent. Both bounds are days in Vancouver, compared as
+ * `YYYY-MM-DD` strings, which order as dates.
+ */
+function sentDay(sentAt: string | undefined, draftedAt: Date): string {
+  const today = vancouverDay(new Date())
+  const day = sentAt ?? today
+  if (day > today)
+    throw new LaunchRecordError(
+      'LAUNCH_SENT_AT_INVALID',
+      `sentAt ${day} is after today (${today} in Vancouver): say the day it was sent, once it has been`,
+      'Send it first, then say so — with the day you sent it, or no day for today.',
+    )
+  const drafted = vancouverDay(draftedAt)
+  if (day < drafted)
+    throw new LaunchRecordError(
+      'LAUNCH_SENT_AT_INVALID',
+      `sentAt ${day} is before the draft was made (${drafted}): what was sent is the draft, so it cannot have gone earlier`,
+      'Give the day you sent this draft — on or after the day it was made.',
+    )
+  return day
+}
+
+const noDraft = (what: string) =>
+  new LaunchRecordError(
+    'LAUNCH_DRAFT_REQUIRED',
+    `there is no draft of ${what} to have sent: Manifest drafts it first, and what is sent is that draft`,
+    'Draft it, send the draft, then say it was sent.',
+  )
+
+/**
+ * AN OWNER'S *"I'VE SENT IT"* FOR A REGISTRATION (§9, Spec actions 3 and 9; the launch path plan's
+ * Task 9). The record moves to `submitted`, stamped with the day the person names and with them —
+ * which is how Manifest can say how long it has waited — and UBC's answer stays an administrator's
+ * record (`recordIamRegistration`). In this order, each refusal before anything is written:
+ *
+ *  1. **A draft must exist** (`409 LAUNCH_DRAFT_REQUIRED`): the package is what the person sends.
+ *  2. **Along `SUBMIT_ARROWS`** (`409 LAUNCH_TRANSITION_INVALID`): from a draft, after UBC asked for
+ *     changes, or once it lapsed — never from what UBC has decided, never twice.
+ *  3. **In UBC's order** (Spec action 9, Rich's *"Gate each step"*): staging's only once the privacy
+ *     assessment is approved AND carries its reference, the PIA number UBC IAM asks for
+ *     (`409 LAUNCH_PIA_NOT_APPROVED`); production's only once staging's is `active`
+ *     (`409 LAUNCH_STAGING_NOT_REGISTERED` — *"tested"* is the owner's judgement, not measured).
+ *  4. **On a day that can be true** (`400 LAUNCH_SENT_AT_INVALID`).
+ *
+ * The caller is `submitIamRegistration`'s route, in a person's own session (`launch:submit`,
+ * person-only).
+ */
+export async function submitIamRegistration(
+  db: Db,
+  bus: EventBus,
+  input: SubmitInput & { environment: RegistrationEnvironment },
+): Promise<IamRegistrationRow> {
+  const existing = await getIamRegistration(db, input.projectId, input.environment)
+  if (existing === undefined || existing.generatedPackage === null)
+    throw noDraft(`this app's ${input.environment} registration`)
+  if (!SUBMIT_ARROWS.iam.has(existing.state))
+    refuseSubmission('an IAM registration', existing.state, SUBMIT_ARROWS.iam)
+
+  if (input.environment === 'staging') {
+    const pia = await getPrivacyAssessment(db, input.projectId)
+    if (pia?.state !== 'approved' || pia.externalTicketRef === null)
+      throw new LaunchRecordError(
+        'LAUNCH_PIA_NOT_APPROVED',
+        pia?.state === 'approved'
+          ? 'the privacy assessment is approved but carries no reference: UBC IAM asks for the PIA number, so the staging registration waits for it'
+          : `the privacy assessment is ${pia === undefined ? 'not yet recorded' : `'${pia.state}'`}: UBC's order is the assessment first, and the staging registration is sent once it is approved`,
+        'Send the privacy assessment first; once an administrator records it approved, with its PIA number, send the staging registration.',
+      )
+  } else {
+    const staging = await getIamRegistration(db, input.projectId, 'staging')
+    if (staging?.state !== 'active')
+      throw new LaunchRecordError(
+        'LAUNCH_STAGING_NOT_REGISTERED',
+        `the staging registration is ${staging === undefined ? 'not yet recorded' : `'${staging.state}'`}: UBC's order is staging first, and the production registration is sent once staging is registered and tested`,
+        'Send the staging registration first; once an administrator records it active and the app is tested at staging, send production’s.',
+      )
+  }
+
+  const day = sentDay(input.sentAt, existing.createdAt)
+  const [row] = await db
+    .update(iamRegistrations)
+    .set({
+      state: 'submitted',
+      submittedAt: vancouverNoon(day),
+      submittedBy: input.actor.id,
+      ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),
+      updatedAt: new Date(),
+    })
+    .where(eq(iamRegistrations.id, existing.id))
+    .returning()
+
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: input.projectId,
+      subject: `iam-registration:${row!.id}`,
+      type: 'iam_registration.submitted',
+      machineDetail: {
+        environment: input.environment,
+        sentAt: day,
+        externalTicketRef: row!.externalTicketRef ?? null,
+      },
+      humanMessage:
+        `${await personName(db, input.actor.id)} said this app's ${input.environment} registration was sent to UBC IAM on ${vancouverDayInWords(vancouverNoon(day))}` +
+        `${row!.externalTicketRef === null ? '' : ` (ticket ${row!.externalTicketRef})`}.`,
+    },
+    makeRedactor([]),
+  )
+  return row!
+}
+
+/**
+ * THE SAME FOR THE PRIVACY ASSESSMENT (Task 9). It comes first in UBC's order, so nothing gates it
+ * but its draft and its arrows.
+ */
+export async function submitPrivacyAssessment(
+  db: Db,
+  bus: EventBus,
+  input: SubmitInput,
+): Promise<PrivacyAssessmentRow> {
+  const existing = await getPrivacyAssessment(db, input.projectId)
+  if (existing === undefined || existing.generatedDraft === null)
+    throw noDraft("this app's privacy assessment")
+  if (!SUBMIT_ARROWS.pia.has(existing.state))
+    refuseSubmission('a privacy assessment', existing.state, SUBMIT_ARROWS.pia)
+
+  const day = sentDay(input.sentAt, existing.createdAt)
+  const [row] = await db
+    .update(privacyAssessments)
+    .set({
+      state: 'submitted',
+      submittedAt: vancouverNoon(day),
+      submittedBy: input.actor.id,
+      ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),
+      updatedAt: new Date(),
+    })
+    .where(eq(privacyAssessments.id, existing.id))
+    .returning()
+
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: input.projectId,
+      subject: `privacy-assessment:${row!.id}`,
+      type: 'privacy_assessment.submitted',
+      machineDetail: { sentAt: day, externalTicketRef: row!.externalTicketRef ?? null },
+      humanMessage:
+        `${await personName(db, input.actor.id)} said this app's privacy assessment was sent to the UBC Privacy Office on ${vancouverDayInWords(vancouverNoon(day))}` +
+        `${row!.externalTicketRef === null ? '' : ` (ticket ${row!.externalTicketRef})`}.`,
+    },
+    makeRedactor([]),
+  )
+  return row!
+}
+
+/** Who said a record was sent, by name — what `IamRegistration.submittedBy` and the assessment's answer. */
+export async function submitterOf(
+  db: Db,
+  userId: string | null,
+): Promise<{ id: string; displayName: string } | null> {
+  if (userId === null) return null
+  const [who] = await db
+    .select({ id: users.id, displayName: users.displayName })
+    .from(users)
+    .where(eq(users.id, userId))
+  return who ?? null
 }

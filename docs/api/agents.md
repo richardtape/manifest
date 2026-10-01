@@ -60,7 +60,7 @@ If you need a model, ask for a key with `startAgentSession` — your token must 
 - `rejected` is final; `pendingAction.reason` is their reason. Do not ask again for the same thing.
 - `expired` means nobody answered in time.
 
-Some things are a person’s alone, and a token that asks is refused outright with `403 TOKEN_CREDENTIAL_REFUSED` — no question is created, and none would change the answer: approving a release for production, recording UBC’s IAM registration or privacy assessment, running the pre-production rehearsal, minting a token, creating a project, switching an app off, bringing it back or deleting it, and setting a production secret’s value, which also asks the person to sign in again first (`STEP_UP_REQUIRED`). Reading who is signed in (`getMe`) and a project’s tokens (`listTokens`) are a session’s too. An operation’s description says when a token is refused.
+Some things are a person’s alone, and a token that asks is refused outright with `403 TOKEN_CREDENTIAL_REFUSED` — no question is created, and none would change the answer: approving a release for production, recording UBC’s IAM registration or privacy assessment, saying a request to UBC IAM or the Privacy Office was sent, running the pre-production rehearsal, minting a token, creating a project, switching an app off, bringing it back or deleting it, and setting a production secret’s value, which also asks the person to sign in again first (`STEP_UP_REQUIRED`). Reading who is signed in (`getMe`) and a project’s tokens (`listTokens`) are a session’s too. An operation’s description says when a token is refused.
 
 <!-- example: example-pending -->
 

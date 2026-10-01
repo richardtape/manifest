@@ -2074,7 +2074,8 @@ Answer, `200`:
       "owner": "project owner",
       "blocking": true,
       "state": "met",
-      "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it."
+      "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.",
+      "since": null
     },
     {
       "id": "iam-registration",
@@ -2082,7 +2083,8 @@ Answer, `200`:
       "owner": "UBC IAM, recorded by a platform administrator (§9)",
       "blocking": true,
       "state": "unmet",
-      "why": "Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference."
+      "why": "It was sent to UBC IAM on October 14, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
+      "since": "2026-10-14T19:00:00.000Z"
     }
   ]
 }
@@ -2096,11 +2098,11 @@ Answer, `200`:
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
-### `getLaunchRecords` — The IAM registration and the privacy assessment, as recorded
+### `getLaunchRecords` — The privacy assessment and the two IAM registrations
 
 `GET /v1/projects/{projectId}/launch-records` · a session or a delegated token
 
-The IAM registration and the privacy assessment, as a platform administrator recorded what UBC IAM and the Privacy Office said, each with its ticket reference. Either may be absent — a state, not an error.
+The three records a first production launch waits on — the privacy assessment, the staging registration and the production registration — each with when a person said it was sent and what UBC said, as a platform administrator recorded it. Any may be absent: a state, not an error.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2112,25 +2114,51 @@ Answer, `200`:
 {
   "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
   "iamRegistration": {
+    "id": "5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13",
+    "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+    "environment": "production",
+    "entityId": "https://manifest.internal/sp/class-check-ins/production",
+    "acsUrl": "https://class-check-ins.manifest.internal/auth/ubcshib/callback",
+    "sloUrl": "https://class-check-ins.manifest.internal/auth/logout",
+    "certFingerprint": null,
+    "certExpiresAt": null,
+    "registeredAttributes": [],
+    "requestedAttributes": null,
+    "registeredAt": null,
+    "state": "submitted",
+    "externalTicketRef": "IAM-2026-0500",
+    "submittedAt": "2026-10-14T19:00:00.000Z",
+    "submittedBy": {
+      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+      "displayName": "Bio Prof"
+    },
+    "createdAt": "2026-10-09T17:22:41.508Z",
+    "updatedAt": "2026-10-14T18:03:12.117Z"
+  },
+  "stagingRegistration": {
     "id": "77e7ddc9-7571-4de3-9ba7-6a4372526295",
     "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
-    "entityId": "https://manifest.internal/sp/iam-pending/production",
-    "acsUrl": "https://iam-pending.manifest.internal/auth/ubcshib/callback",
-    "sloUrl": "https://iam-pending.manifest.internal/auth/logout",
+    "environment": "staging",
+    "entityId": "https://manifest.internal/sp/class-check-ins/staging",
+    "acsUrl": "https://class-check-ins.staging.manifest.internal/auth/ubcshib/callback",
+    "sloUrl": "https://class-check-ins.staging.manifest.internal/auth/logout",
     "certFingerprint": null,
     "certExpiresAt": null,
     "registeredAttributes": [
       "ubcEduCwlPuid",
       "mail"
     ],
-    "requestedAttributes": [
-      "ubcEduCwlPuid",
-      "mail"
-    ],
-    "registeredAt": "2026-09-26T21:48:50.164Z",
-    "state": "change_requested",
-    "externalTicketRef": "IAM-CR-7",
-    "updatedAt": "2026-09-26T21:48:50.262Z"
+    "requestedAttributes": null,
+    "registeredAt": "2026-10-07T21:48:50.164Z",
+    "state": "active",
+    "externalTicketRef": "IAM-2026-0480",
+    "submittedAt": "2026-09-29T19:00:00.000Z",
+    "submittedBy": {
+      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+      "displayName": "Bio Prof"
+    },
+    "createdAt": "2026-09-28T16:10:05.902Z",
+    "updatedAt": "2026-10-07T21:48:50.164Z"
   },
   "privacyAssessment": {
     "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
@@ -2138,7 +2166,13 @@ Answer, `200`:
     "state": "approved",
     "reviewer": "K. Privacy",
     "approvedAt": "2026-09-26T21:48:50.173Z",
-    "externalTicketRef": "PIA-iam-pending",
+    "externalTicketRef": "PIA-2026-0088",
+    "submittedAt": "2026-09-15T19:00:00.000Z",
+    "submittedBy": {
+      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+      "displayName": "Bio Prof"
+    },
+    "createdAt": "2026-09-14T20:31:16.044Z",
     "updatedAt": "2026-09-26T21:48:50.173Z"
   }
 }
@@ -2156,7 +2190,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/launch-records/iam-registration` · a session only — a delegated token is refused
 
-A platform administrator, in their own session, records the Service Provider registration UBC IAM made, with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`.
+A platform administrator, in their own session, records the Service Provider registration UBC IAM made — the staging registration or production’s (`environment`, production’s when absent) — with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`. UBC’s answer is recorded whatever order it arrives in: this is never refused for the order the requests are sent in.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2188,6 +2222,7 @@ Answer, `200`:
 {
   "id": "62169b5f-1961-406a-8ad3-f5de46143c6f",
   "projectId": "9aa37d53-038d-4e78-9270-01c2ea085d21",
+  "environment": "production",
   "entityId": "https://manifest.internal/sp/iam-granted/production",
   "acsUrl": "https://iam-granted.manifest.internal/auth/ubcshib/callback",
   "sloUrl": "https://iam-granted.manifest.internal/auth/logout",
@@ -2204,6 +2239,12 @@ Answer, `200`:
   "registeredAt": "2026-09-26T21:48:52.716Z",
   "state": "change_requested",
   "externalTicketRef": "IAM-iam-granted",
+  "submittedAt": "2026-09-26T21:48:52.796Z",
+  "submittedBy": {
+    "id": "3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b",
+    "displayName": "Platform Admin"
+  },
+  "createdAt": "2026-09-26T21:48:52.611Z",
   "updatedAt": "2026-09-26T21:48:52.796Z"
 }
 ```
@@ -2216,6 +2257,73 @@ Answer, `200`:
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `LAUNCH_RECORD_INVALID` | 400 | Correct the fields the message names — a registration lists at least one attribute — and record it again. |
+| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `submitIamRegistration` — Say a registration request was sent to UBC IAM
+
+`POST /v1/projects/{projectId}/launch-records/iam-registration/{environment}/submission` · a session only — a delegated token is refused
+
+The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: the staging registration is sent only once the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active (`409 LAUNCH_STAGING_NOT_REGISTERED`). It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `environment` | path | yes | Which registration was sent: `staging` or `production`. |
+| `projectId` | path | yes | The project’s id, from `listProjects` or `createProject`. |
+
+Request:
+
+```json
+{
+  "sentAt": "2026-10-14",
+  "reference": "IAM-2026-0500"
+}
+```
+
+Answer, `200`:
+
+```json
+{
+  "id": "5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13",
+  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+  "environment": "production",
+  "entityId": "https://manifest.internal/sp/class-check-ins/production",
+  "acsUrl": "https://class-check-ins.manifest.internal/auth/ubcshib/callback",
+  "sloUrl": "https://class-check-ins.manifest.internal/auth/logout",
+  "certFingerprint": null,
+  "certExpiresAt": null,
+  "registeredAttributes": [],
+  "requestedAttributes": null,
+  "registeredAt": null,
+  "state": "submitted",
+  "externalTicketRef": "IAM-2026-0500",
+  "submittedAt": "2026-10-14T19:00:00.000Z",
+  "submittedBy": {
+    "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+    "displayName": "Bio Prof"
+  },
+  "createdAt": "2026-10-09T17:22:41.508Z",
+  "updatedAt": "2026-10-14T18:03:12.117Z"
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `LAUNCH_DRAFT_REQUIRED` | 409 | Draft it first, send the draft to UBC, then say it was sent. Nothing was recorded. |
+| `LAUNCH_PIA_NOT_APPROVED` | 409 | Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the staging registration and say so again. |
+| `LAUNCH_SENT_AT_INVALID` | 400 | Give the day you sent it, as YYYY-MM-DD — today or earlier, and not before the draft’s day — or leave it out for today. |
+| `LAUNCH_STAGING_NOT_REGISTERED` | 409 | Send the staging registration first. Once an administrator records it active and you have tested the app at staging, send the production registration and say so again. |
 | `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
@@ -2256,6 +2364,12 @@ Answer, `200`:
   "reviewer": "K. Privacy",
   "approvedAt": "2026-09-26T21:47:36.002Z",
   "externalTicketRef": "PIA-DELIVERY-1",
+  "submittedAt": "2026-09-26T21:47:35.912Z",
+  "submittedBy": {
+    "id": "3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b",
+    "displayName": "Platform Admin"
+  },
+  "createdAt": "2026-09-26T21:47:35.912Z",
   "updatedAt": "2026-09-26T21:47:36.002Z"
 }
 ```
@@ -2267,6 +2381,63 @@ Answer, `200`:
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
+| `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `submitPrivacyAssessment` — Say the privacy assessment was sent to the Privacy Office
+
+`POST /v1/projects/{projectId}/launch-records/privacy-assessment/submission` · a session only — a delegated token is refused
+
+The project’s owner, a collaborator or a platform administrator, in their own session, says the privacy impact assessment was sent to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent), with the Office’s `reference` when they have one. It comes first in UBC’s order, so nothing else gates it. The record moves to `submitted`, and the launch checklist says how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, and a second submission is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded by an administrator (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `projectId` | path | yes | The project’s id, from `listProjects` or `createProject`. |
+
+Request:
+
+```json
+{
+  "sentAt": "2026-09-15",
+  "reference": "PIA-2026-0088"
+}
+```
+
+Answer, `200`:
+
+```json
+{
+  "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
+  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+  "state": "submitted",
+  "reviewer": null,
+  "approvedAt": null,
+  "externalTicketRef": "PIA-2026-0088",
+  "submittedAt": "2026-09-15T19:00:00.000Z",
+  "submittedBy": {
+    "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+    "displayName": "Bio Prof"
+  },
+  "createdAt": "2026-09-14T20:31:16.044Z",
+  "updatedAt": "2026-09-15T17:40:09.330Z"
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `LAUNCH_DRAFT_REQUIRED` | 409 | Draft it first, send the draft to UBC, then say it was sent. Nothing was recorded. |
+| `LAUNCH_SENT_AT_INVALID` | 400 | Give the day you sent it, as YYYY-MM-DD — today or earlier, and not before the draft’s day — or leave it out for today. |
 | `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
@@ -3972,7 +4143,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/tokens` · a session only — a delegated token is refused
 
-Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).
+Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:submit`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|

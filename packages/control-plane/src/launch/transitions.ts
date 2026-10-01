@@ -89,3 +89,31 @@ export function piaTransition(from: PiaState, to: PiaState): PiaState {
     refuseArrow('a privacy assessment', from, to, PIA_ARROWS[from])
   return to
 }
+
+/**
+ * WHERE AN OWNER'S *"I'VE SENT IT"* MAY MOVE A RECORD FROM — `launch:submit`'s arrows (§9, Spec
+ * action 3; the launch path plan's Task 9, Decision 8). A registration is sent from a draft, again
+ * once UBC has asked for changes, and again once it lapsed; an assessment from a draft. **Never
+ * from what UBC decides** (`active`, `approved` — `launch:record`'s, an administrator's) **and never
+ * from `submitted`**: a second *"I've sent it"* would move the day the clock started.
+ *
+ * Each is a subset of the machine's own arrows into `submitted` (`transitions.test.ts` holds that),
+ * and THIS set is what `records.ts` decides by — so the rule a person is held to reads here.
+ */
+export const SUBMIT_ARROWS: { iam: ReadonlySet<IamState>; pia: ReadonlySet<PiaState> } = {
+  iam: new Set<IamState>(['draft', 'change_requested', 'expired']),
+  pia: new Set<PiaState>(['draft']),
+}
+
+/** A submission from a state `SUBMIT_ARROWS` does not hold — the machines' code, a person's words. */
+export function refuseSubmission(
+  what: string,
+  from: string,
+  allowed: ReadonlySet<string>,
+): never {
+  throw new LaunchTransitionError(
+    'LAUNCH_TRANSITION_INVALID',
+    `${what} that is '${from}' cannot be sent again — it is sent from ` +
+      `${[...allowed].map((s) => `'${s}'`).join(' or ')}`,
+  )
+}
