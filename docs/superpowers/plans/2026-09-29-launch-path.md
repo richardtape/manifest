@@ -27,6 +27,12 @@
 > revokes their tokens on the project, closes their streams and ends their sessions (`member_removed`), and neither a mint nor a session
 > start can race it into a live credential. Contract still `1.5.0`. *Sitting 5* is the record; **sitting 5b (Task 6c) is next.**
 
+> **SITTING 5b — TASK 6c — DONE 2026-09-30** (Spec action 8's (b) and (c)). A rehearsal needs a step-up, and takes its production
+> instance down — the name, the Route record, the instance — before it records; a second while one runs is `409 REHEARSAL_RUNNING`; a
+> take-down that fails is `500 REHEARSAL_TEARDOWN_FAILED`; a deploy that throws releases the name, and the boot takes down a rehearsal a
+> stopped control plane left serving. Contract still `1.5.0`. *Sitting 5b* is the record; **the faculty front-end's 7100 window, then
+> sitting 5a (Task 8a), are next** — 5a may start during the window, with no Vitest and no restart until the walk is done.
+
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
@@ -109,8 +115,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 4 | 6, 6a | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich. **And FE-41 (Task 6a, Rich's, after sitting 3's close): a project created WITH a starter on real GitHub — reproduced at his yes, logged, fixed on driver 2, held by a test** | **Yes** — `ai/`, `infra/`, `source/` | **Spec action 6** — ✅ **DECIDED by Rich: option (a)** (2026-09-29, after sitting 3's close: *"(a) is good"*); **APPLIED by sitting 4 before Task 6** (`0ebe514`); Task 6a needs none | **DONE 2026-09-29/30** — subagent-driven: **FE-41's premise false** (not the starter — real GitHub refuses a repository it made seconds ago, 403/404 in four measured shapes); driver 2's create retries its seed push and first fetch by STATUS, one ≤30 s budget, a fresh token per retry, and forgets a slug's stale tokens first; a failed create logged; on github.com 6 of 7 failed before, 5 of 5 after (2 retried). **Spec action 6 applied**; the **fallback guard** (`manifest_guard.py`) refuses a fallback after a provider's 400/413/422, read from the request's own logging object, lets 401/403/404/408/429/5xx fall back — streamed too; `make verify` 62. F8 (`422` → `200 null`) stands, LiteLLM's — for Rich |
 | 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich. **A TOKEN MAY NOT RUN IT — Rich's (a), PERSONS ONLY** (relayed by `manifest-73`, his session for 4a, 2026-09-29: owner, collaborators and administrators from an interactive session; a delegated token stays refused, SESSION_ONLY as today; one D24 clause is DRAFTED as a spec action for his later approval — it does not block 4a); **Spec action 8 drafted by 4a — its premise RE-ASKED** (the rehearsal leaves the unapproved candidate on production's public listener) | **DONE 2026-09-30** — subagent-driven: Step 1 read by the controller (no spec text names who triggers it — no stop); **`launch:rehearse`**, in `OWNER` (collaborator and administrator inherit it), person-only, not step-up; `runRehearsal`'s description says who may run it and drops `FORBIDDEN`; the owner still refused `launch:record`; contract `1.5.0` (the enum gains it); the front-end told first; **the whole-branch review found the rehearsal leaves an UNAPPROVED candidate serving production's public listener until the launch — Rich's (a) had rested on the controller's wrong *"nothing is public"*, so Spec action 8 re-asks it** (`fa02bbc` stands meanwhile); one wave: the published person-only lists held by a test, the journey's launch row split, comments made true |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** — ✅ **APPLIED as worded, 2026-09-30, at this sitting's open** | **DONE 2026-09-30** — subagent-driven, by `manifest-d4`: Spec actions 8, 1 and 2 applied first at Rich's word; **Task 7** (`d061ad7`): a session narrowed in place — `/key/update` by alias, then the row and `agent_session.narrowed` in one transaction, ended only when nothing is left (`0042`); **Task 8** (`baacc1c`, `0b4d50e`): a removal revokes the person's tokens on the project in its own transaction, closes their streams `4401`/`4404`, ends their sessions `member_removed` (`0043`), and a start or a mint racing it holds the membership row; one fix round (the mint race), one whole-branch review beside the Docker tier (269/269, no pool red — Rich removed the 42 orphan apps), one fix wave (`f27914e`: the seam guard's test, a false `409`); contract `1.5.0`, the front-end told before each commit |
-| 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; ✅ **APPLIED 2026-09-30** (*"apply 8"*) | ← **next** |
-| 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
+| 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; ✅ **APPLIED 2026-09-30** (*"apply 8"*) | **DONE 2026-09-30** — INLINE, by `manifest-e2`: the step-up (`STEP_UP_GUARDED`, `assertStepUp` at the route); the take-down under the environment lock — the name only while it reaches the rehearsal's own instance, the Route record, the instance — BEFORE the row; `500 REHEARSAL_TEARDOWN_FAILED`; FE-43's `409 REHEARSAL_RUNNING` (a try-lock); one whole-branch review beside the Docker tier, one fix wave (a deploy that throws releases the name; the boot takes down a rehearsal a stopped process left serving); sitting 5's contract bundle; contract `1.5.0`; the front-end told before each contract commit |
+| 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | ← **next** — after the faculty front-end's 7100 window (Task 6c's `[S5]`) |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | |
@@ -694,6 +700,13 @@ Every task's requirements implicitly include this section. Values are copied ver
   It must be REACHED by `api/stream-contract.test.ts`'s lifecycle or listed in its `PUBLISHED_ELSEWHERE`. **A payload never
   carries a secret's value, a model key, a token, a file's content, a person's free text (a request's `note`), or a laptop path.** A
   sentence names a person by name, never by PUID.
+- **PUBLISHED TEXT CARRIES NO SECTION, DECISION OR PLAN NUMBERS, AND NO MAINTAINER NOTES** (Rich, 2026-09-30, relayed by
+  `manifest-00` during sitting 5b: *"One of the things that we don't need to see in the API docs is things like section or plan
+  numbers. They're irrelevant to the person reading the docs."*) — no `§n`, `Dnn`, `Cn`, plan, sitting or FE names in a route or field
+  description, an error's meaning or remedy (`api/error-codes.ts`), an event description, a guide in `docs/api/` or the mock's text.
+  The gates hold only plan, sitting and FE names, and operation descriptions (`api/contract/docs.test.ts`) — hold the rest BY HAND
+  until sitting 10's pass, where Rich placed the cleanup of the existing references and the gate's widening; code comments get a plan
+  of their own later.
 - **EVERY REFUSAL ASSERTS ITS CODE, NEVER ITS STATUS ALONE** — `refusal()` from `api/testing.ts`. This plan adds:
   - **`409 LAUNCH_DRAFT_REQUIRED`**, **`409 LAUNCH_RECORD_SUBMITTED`** and **`400 LAUNCH_SENT_AT_INVALID`** (family
     `LaunchRecordError`, beside `LAUNCH_RECORD_INVALID` and `LAUNCH_TRANSITION_INVALID`; Tasks 9–10);
@@ -1524,6 +1537,12 @@ guide), the mock if it scripts the rehearsal's refusal; then the four regenerati
 > **Spec action 8's combined words were APPLIED at Rich's word on 2026-09-30** (*"apply 8"*; the *Spec actions* section, 8) — the
 > spec runs ahead of the code until this task lands. Step 3 also corrects `projects/authz.ts`'s `PERSON_ONLY` comment (*"D24's clause
 > naming it is DRAFTED … and not yet applied"*) and whatever in `person-only.test.ts` names the rehearsal apart from D24's others.
+>
+> **`[S5b]` (sitting 5b, 2026-09-30 — DONE, `3333acc`, `253a923`, `0b09efc`, `fff8a7f`):** built as below, with three departures recorded
+> in *Sitting 5b*: the route check asks the DRIVER (F1); a case only the route check can see was added, since a racing deploy is caught by
+> the first guard (F2); and the fix wave's two additions — a deploy that throws releases the name, and the boot takes down a rehearsal a
+> stopped control plane left serving (F10). FE-43 is answered `409 REHEARSAL_RUNNING`. Every `[S5]` item below was delivered or found
+> already done (`revokeToken`'s, F6).
 >
 > **`[S5]` (sitting 5, 2026-09-30 — what 5b inherits):**
 > - **THE CONTRACT BUNDLE — 5b's contract commit carries these five as well** (sitting 5's whole-branch review, triaged *"one contract
@@ -3743,3 +3762,166 @@ re-reads on `member.removed` too. No console test covers the trigger list.
 - Load ~4.4.
 - `scripts/snapshot-machine.sh` at open and close: identical in the must-survive containers, the ports, the loopback alias, the
   resolvers, Valet, the toolchain and the daemon. The rest of the diff is the containers, images, networks and volumes removed on purpose.
+
+### Sitting 5b — 2026-09-30: Task 6c — a rehearsal needs a step-up, and takes its production instance down before it records
+
+**Run by session `manifest-e2`, INLINE** (`superpowers:executing-plans`: one context, TDD per step, one fresh whole-branch review
+beside the Docker tier, one fix wave) on `main`, from `1c5d063` — opened only after the planning session `manifest-00` said its
+boundary pass had landed. **The database was EMPTY at open** (0 projects, users, instances, routes; 44 migrations), so nothing was
+dumped. Rich's three first-message questions (the truncation, his click after 5b, `make refresh-vulndb` after 2026-10-06) were asked
+and nothing waited on them.
+
+Peers:
+- **The faculty front-end** (`manifest-app-f1`, its F5 sitting 6, mock mode on 7102/7105): asked first what had changed since sitting 5
+  — nothing, plus one new question (a failed start's Incident) — and told before each contract commit. It adopted `500
+  REHEARSAL_TEARDOWN_FAILED`, `409 REHEARSAL_RUNNING` and *"any non-healthy production instance before a launch reads as nothing there"*.
+- **The planning session `manifest-00`**: finished `5246d4d`/`1c5d063` before this sitting began, asked to be told at its close, and
+  relayed two rulings of Rich's during it: published text carries no section, decision or plan numbers (now a *Global Constraints*
+  line; the cleanup is placed in sitting 10), and Mailpit moves to 5a's close.
+
+**What it made true** (`3333acc`, `253a923`, `0b09efc`, `fff8a7f`):
+- **(b) A rehearsal needs a step-up.** `launch:rehearse` is in `STEP_UP_GUARDED`; the route calls `assertStepUp` after the capability,
+  so an ordinary session — owner, collaborator or administrator — is refused `403 STEP_UP_REQUIRED` before anything is read or
+  deployed, and a stranger is still `404`. A token is still `TOKEN_CREDENTIAL_REFUSED` first.
+- **(c) It takes its production instance down before it records.** Deploy → measure (in a `try`) → `takeDown` → row → event → answer.
+  `takeDown`, under the environment's lock, with two guards each read under it: (1) the instance is still `healthy` (a later deploy, a
+  failed start or an archive has it otherwise); (2) the name is removed only while the edge's route dials THIS instance (an archive's
+  switched-off page, or another instance, stays). Then the Route record naming it goes and `retireInstanceRow` retires it. The name
+  answers the public wildcard afterwards; `getEnvironment(production).instance` is the rehearsal's instance, `gone` (`failed` when it
+  never started) — never `null` (Decision 4).
+- **A take-down that fails** is `500 REHEARSAL_TEARDOWN_FAILED` (registered, declared, its message naming what is left), an operator line,
+  no row. `RehearsalError`'s codes are a typed union, mapped by the registry's status (the other five stay `409`).
+- **FE-43**: a second rehearsal of a project while one runs is refused `409 REHEARSAL_RUNNING` and deploys nothing — `tryWithRehearsalLock`,
+  a Postgres advisory try-lock on its own connection (cross-process; released with a dead process).
+- **The fix wave** (the whole-branch review's I2): a deploy that THROWS after the name moved releases it (`releaseUnlaunchedName`); and the
+  boot takes down every production Route record of an active, never-launched project (`takeDownLeftRehearsals`, `recoverAtBoot`'s pass
+  2¾; boot line `rehearsalsTakenDown`/`rehearsalsNotTakenDown`) — a control plane that stopped mid-rehearsal, and any rehearsal from
+  before this task.
+- **Sitting 5's contract bundle**, four of five (the fifth was already done): `removeMember` *"publishes no `member.removed`"*;
+  `AI_CATALOGUE_DISABLED`'s remedy covers a removal or a revoke; `member.removed.tokensRevoked` counts an expired, unrevoked token;
+  `agent_session.narrowed`'s lists `minItems: 1`. **Contract still `1.5.0`.**
+- The guides (`launching.md` step 2, `authentication.md`'s step-up list), the console's wording (its `<Refusal>` already offered the
+  step-up link), `make demo-production`'s admin phase (refused un-stepped, nothing deployed, then stepped up; the wildcard and `gone`
+  after), RUNBOOK, WALKTHROUGH and ORIENTATION §3.
+
+**The timing the front-end asked for**: with the take-down, a PASSING rehearsal took **8.8 s** through the edge in `make demo-production`
+(fresh, load ~11) and **5.6 s** in the Docker tier (twice: 5597 ms, 5629 ms); sitting 1 measured ~7 s without one. The front-end's
+150 s client deadline stands with a wide margin.
+
+**What sitting 5b found** (the count is derived by the command at the head of this section):
+
+**F1 The plan's Decision 2 named routing/'s `instanceIdOf`/`servingRoute` for the route check; `launch/` holds a `Driver`, not
+`RoutingDeps`.** Ruled: `driver.servingInstance(hostname) === instance.handle` — the edge's own route by hostname, the question the
+retirer already asks, and one the fake driver answers.
+
+**F2 The plan's control (d) — *"the route check in the take-down removed → (iv) red"* — could not fail as the plan wrote (iv).** A racing
+DEPLOY marks the rehearsal's instance `destroying` in the same lock section it moves the name in, so guard (1) returns before the route
+check is read. A case only the route check sees was added — an archive's switched-off page put on the name during the sign-in — and (d)
+went red there alone; a separate control (d1) holds guard (1).
+
+**F3 A sign-in probe that THREW, or a registration the rehearsal could not read back, would have left the candidate serving**: both throw
+between the deploy and the row. Steps 2–4 now run in a `try` and the take-down after them whatever they did; the take-down's error wins
+(it is the one that leaves something serving), the measurement's becomes an operator line.
+
+**F4 FE-43, measured before the lock: a second press during the first rehearsal RAN** — `200`, with its own production deploy (the red
+run). Two rehearsals at once probe each other's instance.
+
+**F5 Decision 6's *"check which, and test it"*: a start that fails inside the rehearsal stays `failed`** — the deploy captured its Incident
+and removed the container before it answered — and the take-down retires nothing. The test was written after the code; its red is
+control (d1). It is exactly what the front-end reads (`passed: false`, `signInStatus: null`, the Incident on production).
+
+**F6 The `[S5]` contract bundle's `revokeToken` item was already done**: `manifest-00`'s boundary pass wrote its revoke-before-`503` sentence
+(`5246d4d`) after the block was written.
+
+**F7 WALKTHROUGH's clicked order changed**: an approval within ten minutes of the rehearsal's step-up is not refused, so its row 9 refusal
+is conditional now (and row 7 gains the step-up). Found while sweeping it, not by any gate.
+
+**F8 Two callers ran the rehearsal un-stepped**: `delivery.test.ts`'s `REHEARSAL_NO_CANDIDATE` case and `make demo-production`'s admin
+phase. Both step up now; the journey keeps the un-stepped refusal as a check, and asserts nothing was deployed by it.
+
+**F9 The first full Docker tier (on `0b09efc`): 268 of 270, the two new rehearsal cases RED at the container check** — the helper filtered
+`manifest.slug` + `manifest.environment=production`, which production's EGRESS PROXY also carries (`mf-prod-rehearse-production-egress`,
+meant to stay, Decision 7). A test defect, predicted by the whole-branch review (I1) before the tier answered; the BODY assertions passed.
+Now `manifest.instance`, `-a`, with a positive control while the instance serves.
+
+**F10 The whole-branch review's I2: the take-down ran only when `deployRelease` RETURNED.** (a) A control plane that stopped between the
+deploy and the take-down left the candidate on the public listener — the edge is its own process and keeps the route, and the boot's
+pass 1 restores the Route record — and so would every rehearsal from before this task; (b) a deploy that threw after `ensureInstance`
+moved the name returned no instance to take down. Both fixed (above), each with a test.
+
+**F11 Two sentences this sitting published were false in a branch** (the review's M1): *"reads the rehearsal's instance as `gone`"* (a
+failed start reads `failed`) and `REHEARSAL_TEARDOWN_FAILED`'s *"the project's events name the step"* (the name step publishes none).
+Corrected in the fix wave's contract commit.
+
+**F12 Comments the take-down falsified** (M2): the FE-36 floor comment (*"what production's route then serves"* — the floor now rests on
+`servingInstanceOf`'s fallback to the `gone` instance), `removeName`'s *"only a delete calls it"*, `retireInstanceRow`'s *"for the archive"*,
+and step 6's *"a launch cannot start in between"* (an earlier passing row keeps the item met through a re-run).
+
+**F13 The TEARDOWN re-run test rested on a race** (M4(c)): the re-run's take-down could take the lock before the retirer's pass, which
+then found nothing serving and left the first instance `destroying`, its container running. Made deterministic (the probe awaits the
+retirer); the leftover is carried.
+
+**F14 Process — the boot pass's code was written BEFORE its test**, a TDD breach; its reds are controls (g) and (h). **And restoring
+control (g) with `git checkout recover.ts` WIPED the uncommitted fix**: control (h)'s first run was red for that reason (`undefined`
+where the report belonged) and is not counted. Re-applied, committed (`fff8a7f`), and (h) re-run red at its own assertion. Commit BEFORE
+breaking — the plan's own order, which the fix wave skipped.
+
+**F15 Control (e)'s first edit matched nothing** — Prettier had wrapped the line — and the script's own assert stopped it before a run
+(ORIENTATION §4 trap 11's class, caught rather than recorded as "cannot fail").
+
+**The negative controls**, each predicted, applied (the diff read), run and restored:
+- (a) `assertStepUp` removed from the route → RED 1: the ORDINARY-session case (`bio_prof`: `200` where `403 STEP_UP_REQUIRED` belonged).
+- (b) `launch:rehearse` removed from `STEP_UP_GUARDED` → RED 3: `step-up-guarded.test.ts` ×2 AND the ORDINARY-session case — the plan's
+  question answered: `assertStepUp` consults the set (`if (!STEP_UP_GUARDED.has(capability)) return`), it does not trust its caller.
+- (c) `takeDown` removed → unit RED 6 (`healthy` where `gone` belonged); the deploy race and `REHEARSAL_RUNNING` GREEN, as predicted.
+  **Docker (`production.docker.test.ts` alone): RED 2 ON THE BODY** — `{"status":"ok"}` (the app) where `manifest OK host=… listener=public`
+  belonged.
+- (d) the route check removed → RED 1: the switched-off page only (F2).
+- (d1) the `healthy` guard removed → RED 2: the failed start (retired to `gone`) and the deploy race (`500` — `nextState('gone', …)` throws).
+- (e) the rehearsal lock bypassed → RED 1: `REHEARSAL_RUNNING` (a second `200`).
+- (f) the take-down moved after the row → RED 4: PASSED at the ORDER check (`ran_at >= instance.retired`, `after: false`), THROWS, both
+  TEARDOWN cases.
+- (g) the boot pass not called → RED 1 (`takenDown: []`). (h) the launched filter removed → RED 1 at the LAUNCHED half.
+
+**Carried, not fixed** (the review's minors and what the fix wave exposed; the ledger has each):
+- A failed take-down's `destroying` instance is retried by nothing until a re-run, a launch or an archive — and `instance.retire_failed`
+  says *"it will be tried again"*; `instance.retiring`/`retired` call the candidate *"the previous version"*.
+- `releaseUnlaunchedName` leaves the failed deploy's container on no listener, for the next deploy's retirer (it lists the name's containers).
+- Between a crash and the next boot, the edge still serves the candidate: the boot pass is the remedy, and it needs a boot.
+- `REHEARSAL_RUNNING`'s remedy assumes the running one answered `200` (a refused one writes no row).
+- `tryWithRehearsalLock` holds a pooled connection for the whole rehearsal (pool max 10, no connection timeout) — stated nowhere yet; an
+  unlock that throws replaces the answer's error (shared with `withAdvisoryLock`).
+- No test asserts the environment lock around `takeDown`, or the take-down-over-measurement error precedence.
+- **The mock's fixture `why` (`packages/mock/src/fixtures.ts:667`) still reads the old sentence** (no *"taken down again"*) — Decision 8;
+  sitting 10's mock work.
+
+**Gates on the final tree** (`fff8a7f` code; HEAD `02497dc` — `manifest-00`'s, its own two files — before this close-out):
+- `pnpm test` **2936 passed, 0 skipped, in 184 files (800 s, load ~4, 0 `deadlock detected`)**, then **2936 / 184 (801 s, 0 `deadlock
+  detected`)** — twice, alone. Up 12 from 2924, no new file (`api/delivery.test.ts`'s rehearsal cases); `EXPECT_TESTS` moved.
+- `pnpm test:docker` — the whole tier on `0b09efc` (code `3333acc`/`0b09efc`): **268 passed, 2 FAILED, 270 in 42 files**, 1238 s — the two
+  new rehearsal cases at the container check (F9). After the fix wave, the two files it reached, alone on `fff8a7f`:
+  `releases/production.docker.test.ts` **9/9** and `boot.docker.test.ts` **7/7**. **270 in 42**, ORIENTATION §2's row.
+- `pnpm lint`, `typecheck` and `format:check` clean.
+- `make verify` **62 / 0 / 0**, `make doctor` **20 / 0 / 0**.
+- `make demo-production` fresh (47 s) and re-use (4 s), and `make demo-releases` (124 s), green on driver 1 on `253a923`'s tree.
+
+**The machine at the close**, queried, not remembered: 
+- **The control plane: PID 21628 on 7100, on `fff8a7f`, REAL GitHub** (Rich's `.env`), restarted LAST, after the unit runs, by
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged; detached, `nohup`). Its boot line reads `"source":"github"`,
+  `"github":"api.github.com"`, `"githubOrg":"Manifest-local-dev"`, `capableModel: registered`, `capableFallback: set`,
+  `sourceRepositoriesPrepared: 2`, and the new `rehearsalsTakenDown: 0`, `rehearsalsNotTakenDown: 0`. **This sitting ran it on DRIVER 1**
+  (PID 52233, the driver and real-App settings unset) for `make demo-production` and `make demo-releases`, and restored Rich's choice at
+  the close.
+- **The control database: EMPTY** — 0 projects, users, instances, routes; **44 migrations** (none added).
+- **GitHub**: `Manifest-local-dev` holds **0 repositories** (`bash scripts/github-real-repos.sh`).
+- **Containers: 6 `mf-launch-app-*`** (both environments' app, database and egress proxy) — `make demo-production`'s, whose rows the final
+  unit runs truncated — with their **2 networks and 4 volumes** (`make verify`'s INFO: `mf- containers=6 networks=2 volumes=4`). The edge
+  holds no route to them (srv0 and srv1 read). **Their removal by name was REFUSED by the permission classifier**; a script naming the six,
+  then `dead-app-resources.sh --apply`, was handed to Rich. **14 Docker networks** in all.
+- **Cleanup**: `dead-app-resources.sh --apply` (7 networks + 1 volume) and `app-images.sh --apply` (22 images) applied by this session, and
+  re-measured: what is left is `launch-app`'s. `litellm-orphans.sh` lists **13** orphaned (people's agent budgets and the platform's intake
+  budget among them) — **not applied**, for sitting 5's reason: a budget's deletion resets its month, and the script's one mode takes all.
+- **7102 and 7105 are the faculty front-end's** (node 35047 and 15448). **Nothing on 7104.**
+- Ollama **0.35.0**; **free disk 70 GiB** (75 at open). Load ~5.5.
+- `scripts/snapshot-machine.sh` at open and close: identical but for the uptimes, the free disk, and `launch-app`'s containers, image and
+  network.

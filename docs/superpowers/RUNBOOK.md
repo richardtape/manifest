@@ -1600,9 +1600,10 @@ each of its calls is, for when you need to do one step by hand.*
 
 **Or click it** (P6a sitting 10): serve the console with `vite preview` (see *Running the
 reference console* above for why not `dev`), sign in as the administrator, open the project from **Fleet**,
-record both answers on its **Launch records** tab, press **Run the rehearsal** on the checklist,
-follow **Review this release**, press **Approve** — and follow **Confirm it is you, then try
-again** when it is refused — then **Deploy to production**. Every step below is what those
+record both answers on its **Launch records** tab, press **Run the rehearsal** on the checklist —
+and follow **Confirm it is you, then try again** when it is refused (a step-up since the launch
+path plan's Task 6c) — follow **Review this release**, press **Approve** — refused the same way
+once the ten minutes are up — then **Deploy to production**. Every step below is what those
 buttons send.
 
 **Every step is an administrator's**, signed in through the edge exactly as *The first administrator*
@@ -1619,11 +1620,21 @@ administrator, which is the cheapest starting point.
    **LIST EVERY ATTRIBUTE THE RELEASE ASKS FOR** in `registeredAttributes` — the item is `met`
    only when the candidate's list is a subset of it, and a short list reads like the rehearsal
    failing (P6a sitting 8, F9).
-3. **Run the rehearsal.** `POST /v1/projects/{id}/rehearsal` — ~6 s. It deploys the candidate to
-   the production hostname, registers its Service Provider with production values, completes a
-   real CWL sign-in and answers `200` with the evidence. **`passed: false` is a `200`** — a
-   measurement that came out badly is not a request error, and `evidence.reason` says which hop
-   failed.
+3. **Run the rehearsal.** `POST /v1/projects/{id}/rehearsal` — **step up first** (step 4 says how):
+   an ordinary session is refused `403 STEP_UP_REQUIRED` and nothing is deployed (§20, since the
+   launch path plan's Task 6c). ~9 s. It deploys the candidate to the production hostname,
+   registers its Service Provider with production values, completes a real CWL sign-in, **takes
+   the deployment down again** — the name first, then the instance — and only then answers `200`
+   with the evidence. Afterwards `127.0.0.3` answers the production name with the wildcard
+   (`manifest OK host=… listener=public`, no `x-manifest-instance`), and the environment reads the
+   rehearsal's instance `gone` (`failed` when the candidate never started). **`passed: false` is a `200`** — a measurement that came out badly
+   is not a request error, and `evidence.reason` says which hop failed. A second press while one
+   runs is `409 REHEARSAL_RUNNING`; a take-down that fails is `500 REHEARSAL_TEARDOWN_FAILED`,
+   records nothing, and is fixed by running it again. **A control plane stopped mid-rehearsal**
+   leaves the candidate serving — the edge keeps the route — until its next boot, which takes down
+   every production name of an active project that has not launched: read the boot line's
+   `rehearsalsTakenDown` and `rehearsalsNotTakenDown`, and a `[rehearsal] … could not be taken down`
+   line names the step for one that could not be.
 4. **Approve the release.** `POST /v1/releases/{releaseId}/approve` is refused `403
    STEP_UP_REQUIRED` first (§20). Navigate `GET /auth/step-up` on the SAME cookie jar, complete
    the IdP's prompt — it prompts again even though you are already signed in — and post the
@@ -1645,7 +1656,7 @@ administrator, which is the cheapest starting point.
 
 **An app in production on this laptop signs nobody in, and that is correct.** §8 points a
 production deploy at real UBC Shibboleth (`authentication.ubc.ca`), which C1 puts out of reach.
-The rehearsal is the one production deploy pointed at the Manifest IdP.
+The rehearsal is the one production deploy pointed at the Manifest IdP — and it does not stay up.
 
 ## Answering an agent's pending action
 
