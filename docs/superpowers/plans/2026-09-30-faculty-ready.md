@@ -311,6 +311,12 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Vitest strips types.** `pnpm typecheck` is the only gate that sees a type, and `exactOptionalPropertyTypes` is on.
 - **A route or envelope change is four commands, in order**: the definition, `pnpm contract:write`, `pnpm contract:generate`, `pnpm docs:write`. The generated files are never edited by hand.
 - **A migration is `pnpm --filter @manifest/control-plane db:generate`, then READ what it wrote**, then APPLY it before the unit tier. Drizzle rewrites `audit.events`'s CHECK itself. A backfill is `db:generate --custom`.
+- **PUBLISHED TEXT CITES NO SECTION, DECISION OR PLAN** (Rich, 2026-09-30: *"we don't need to see in the API docs … section or plan
+  numbers. They're irrelevant to the person reading the docs"*): every route, field, schema, tag, error and event description, and
+  every guide, says what is true now in its own words: no `§n`, `Dnn` or `Cn`, no plan, sitting or `FE-n`, no maintainer notes.
+  The launch path plan's sitting 10 removed the old ones and widened `api/contract/docs.test.ts` to hold it; this plan's new text
+  (the cookie names, `requestId`, `limit`, `session`, `ADMIN_REASON_REQUIRED`, `EventFrame.actor`) must pass it. **Code comments
+  are not covered**: a later plan of their own (Rich).
 - **EVERY REFUSAL ASSERTS ITS CODE** (`refusal()` from `api/testing.ts`). This plan adds `400 ADMIN_REASON_REQUIRED` (Task 10), with its meaning and remedy in `api/error-codes.ts`.
 - **A REFUSAL TEST NEEDS A POSITIVE CONTROL IN THE SAME FILE**, and so does a negative claim.
 - **Never accept a check you have not watched fail.** Each task ends by breaking what it built after committing, **predicting** what goes red, then restoring.

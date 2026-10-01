@@ -197,3 +197,18 @@ recommendation put to him. Recorded as he gave them.
     removeMember, confirmPendingAction, production deploy; rejectPendingAction person-only; revokeToken's partial
     failure); restore every dropped "never a delegated token" / person-only rule (archiveProject's, at least); re-diff
     runRehearsal (5b changes it) and mintToken's PERSON_ONLY list (launch:submit later).
+
+16. Rich, 2026-09-30 evening: "One of the things that we don't need to see in the API docs is things like section or plan
+    numbers. They're irrelevant to the person reading the docs. … There's several edits in there alone. This needs to be
+    looked at for all the docs. Later there will be a separate plan to remove all of this from code comments across the
+    app and platform as this is also unecessary." Measured: ~101 spec refs left in openapi.json (schemas, fields, tags,
+    errors, events), 187 in the generated reference pages (mostly the same text), 52 in the guides (events.md 48), and the
+    info paragraph's "Generated…; do not edit" (a maintainer note). Placement — Rich: "In the merged sitting 10
+    (Recommended)": the launch path's sitting 10 (Tasks 13+14) does the pass beside Task 14's guides rewrite, and widens
+    api/contract/docs.test.ts's new test to ALL published text (the document and docs/api/*.md). Until then every sitting
+    holds the rule by hand (5b told, and carries it into the plan's Global Constraints and §7e). CODE COMMENTS: a separate
+    plan, later (Rich) — tracked in the roadmap at the next boundary.
+    The order after 5b (Rich asked why "5a, then F4a"): the front-end's 7100 window (after 5b, whose shape its dry-run press
+    is built on; before 5a, whose first Vitest truncates 7100) → 5a (may read and write code during the window, no Vitest)
+    → F4a (needs Me.mayBuild, which 5a builds) in parallel with the platform's sitting 6. Mailpit moves to 5a's CLOSE
+    (nothing needs it until F6).
