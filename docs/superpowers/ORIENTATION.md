@@ -1819,8 +1819,16 @@ named in the row below.*
 rows (collected, stored, flows, retention, accountable, hosting) as facts with their sources and the gaps an owner fills, and one plain-text
 rendering to paste; `PrivacyAssessment.draft`; `privacy_assessment.drafted`. **`pnpm test:docker` is owed** (`launch/`).
 
+**FIRST, BEFORE ANYTHING THAT TOUCHES 7100 — THE FACULTY FRONT-END MAY HOLD IT.** At sitting 7's close the front-end's session
+(`manifest-app-34`, working in `~/Developer/manifest-app`) was given the real platform for its **F6 sitting 1**: it made `f6-watch` (a
+real private repository on GitHub), is taking it to LAUNCHED with `operator` granted administrator at Rich's word, and will delete a
+second project. **Run `ListAgents`; message whichever `manifest-app-…` session is live and ask whether its 7100 work is done** — and
+run no Vitest (it TRUNCATES the database), no Docker tier, no `make verify`, no `make reset` and no control-plane restart until it says
+so (the memory *a peer may open the next sitting*: agree who has 7100, then sequence). When it is done, `f6-watch`'s rows go at your
+first Vitest and its GitHub repository is then owned by no project — say so to Rich (deleting it on github.com is his).
+
 **ASK RICH IN 8's FIRST MESSAGE**:
-1. **The first Vitest run TRUNCATES** whatever exists by then — `psql` the counts first; dump if anything is real.
+1. **The first Vitest run TRUNCATES** whatever exists by then — `psql` the counts first; dump if anything is real (F6's `f6-watch` will be).
 2. **`make refresh-vulndb` — due after 2026-10-06** (the network on, ~1–3 minutes); past it, §13's `scans` refuses every launch.
 
 **CARRIED INTO SITTING 8 — READ BEFORE TASK 11:**
@@ -1870,7 +1878,8 @@ rendering to paste; `PrivacyAssessment.draft`; `privacy_assessment.drafted`. **`
 Rich and the front-end will have used it since.
 
 **THE PEER SESSIONS** (`ListAgents`; the memory *a peer may open the next sitting*):
-- **The faculty front-end, `manifest-app-34`** (or whichever `manifest-app-…`): writing F6 (*Running it*) against the mock; adopting
+- **The faculty front-end, `manifest-app-34`** (or whichever `manifest-app-…`; its repository is `~/Developer/manifest-app` — never edit
+  it): F6 (*Running it*) — its plan approved by Rich on 2026-10-01, its sitting 1 measuring on 7100 (above); adopting
   `6cbb489` and `dec71d8`; F5b will send `draftGeneratedAt` and handle `LAUNCH_DRAFT_CHANGED`/`LAUNCH_DRAFT_STALE`. It restarts its mock on
   7102 for each fixture change.
 - **The planning session** (`manifest-60` until 2026-09-30; not running on 2026-10-01): decisions and records;
