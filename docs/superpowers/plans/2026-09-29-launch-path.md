@@ -47,6 +47,13 @@
 > transaction; the build checks only production's REGISTERED row; `LaunchReadinessItem.since`; `LaunchRecords.stagingRegistration`.
 > Contract still `1.5.0`. *Sitting 6* is the record; **sitting 7 (Task 10) is next.**
 
+> **SITTING 7 — TASK 10 — DONE 2026-10-01** (Spec action 4). D19's registration package: `draftIamRegistration` (`launch:draft`,
+> mintable) stores what a person sends UBC IAM — the environment's entity, ACS and SLO; its certificate (the public half, minted once under
+> a lock); every attribute with its purpose and the lines that read it; the contacts; the PIA number; the metadata in UBC's structure.
+> `409 LAUNCH_RECORD_SUBMITTED`, `409 LAUNCH_NOT_CWL`; and what is sent is the draft read, carrying the PIA number (`409 LAUNCH_DRAFT_STALE`,
+> `draftGeneratedAt` and `409 LAUNCH_DRAFT_CHANGED`). The checklist says when a draft no longer matches the release serving staging.
+> Contract still `1.5.0`. *Sitting 7* is the record; **sitting 8 (Task 11) is next.**
+
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
@@ -132,8 +139,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; ✅ **APPLIED 2026-09-30** (*"apply 8"*) | **DONE 2026-09-30** — INLINE, by `manifest-e2`: the step-up (`STEP_UP_GUARDED`, `assertStepUp` at the route); the take-down under the environment lock — the name only while it reaches the rehearsal's own instance, the Route record, the instance — BEFORE the row; `500 REHEARSAL_TEARDOWN_FAILED`; FE-43's `409 REHEARSAL_RUNNING` (a try-lock); one whole-branch review beside the Docker tier, one fix wave (a deploy that throws releases the name; the boot takes down a rehearsal a stopped process left serving); sitting 5's contract bundle; contract `1.5.0`; the front-end told before each contract commit |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | **DONE 2026-09-30** — INLINE, by `manifest-74`, after the front-end's 7100 window (the database dumped first): the affiliation asked for and written at every sign-in (`0044`), `[]` when absent; `mayBuild` (admin, or `faculty` exactly); the three refusals, `addMember`'s for a NEWCOMER only, decided under a membership row lock; `MANIFEST_ADMIN_PUIDS` authoritative when set, each change a `RoleChange`; `TEST_USERS` with affiliations and a fifth, `bio_colleague`; the IdP's `colleague`; `make demo-token` and `make demo-frontend` green on driver 1; the mock's `MANIFEST_MOCK_MAY_BUILD=0`; one whole-branch review beside the Docker tier, one fix wave (a removal racing a role change re-added the person; the Docker pins; the published example; the hint); contract `1.5.0`; the front-end told before each contract commit |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | **DONE 2026-09-30/10-01** — INLINE, by `manifest-92`, after Mailpit (the database dumped first; the front-end's 7100 window in the middle, migration held until it closed): `0045` (the staging kind, the submission columns, the CHECK on a registered row only); `launch:submit` (person-only) and the two submission routes, refused in UBC's order — **the assessment first for EITHER registration (the spec's words, wider than `[S9]`)**, staging before production — with a draft required and a real day; the build reads only production's registered row; `since` on the checklist; `[M8]`'s administrator hint; one whole-branch review beside the Docker tier (270/270), one fix wave (one locked transaction per submission, held by two deterministic lock tests; `z.iso.date()`; the kept reference; the mock in UBC's order; examples captured); contract `1.5.0`; the front-end told before each contract commit |
-| 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | ← **next** — read Task 10's `[S6]` block first |
-| 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | |
+| 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | **DONE 2026-10-01** — INLINE, by `manifest-8e`, beside the faculty front-end's F6 (mock-only — 7100 the sitting's throughout): `draftIamRegistration` (`launch:draft`, mintable) and `IamRegistration.package` — the entity, the certificate's public half through the registrar, every attribute justified by where the app reads it (the bridge skipped, bounded), the contacts (`MANIFEST_LAUNCH_CONTACTS`), the PIA number, the metadata in the tool's structure (`[M6]`); production from the candidate; `LAUNCH_RECORD_SUBMITTED`, `LAUNCH_NOT_CWL`; Review Focus 1's checklist half; `cwlFakes` on the real keypair store; ten controls red as predicted; one whole-branch review beside the Docker tier (271/271), one fix wave (`dec71d8`: one mint per environment under a lock; `LAUNCH_DRAFT_STALE`; `draftGeneratedAt` and `LAUNCH_DRAFT_CHANGED`) with six more controls; contract `1.5.0`; the front-end told before each contract commit |
+| 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | ← **next** — read Task 11's `[S7]` block first |
 | 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30 | |
 | 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | |
 | 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | |
@@ -2218,6 +2225,35 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Task 11: D19's privacy-assessment draft — §9's six rows, what Manifest knows and what the owner must add
 
+> **`[S7]` (sitting 7, 2026-10-01 — Task 10, `6cbb489`): WHAT THE ASSESSMENT'S DRAFT INHERITS FROM THE REGISTRATION'S.**
+> - **`launch:draft` exists** (owner, collaborator, admin; MINTABLE) — the assessment's draft asserts it too, and its route is a sibling
+>   of `draftIamRegistration` (`api/routes/launch.ts`): no `requireSession`, the capability first.
+> - **The shape to mirror**: the draft STORED on the row (`generated_draft`), a `generatedAt` inside it, a guard that reads it back
+>   (`launch/package.ts`'s `readPackage`), precomputed OUTSIDE the transaction and written under the record's `FOR UPDATE` with the state
+>   re-checked there (`draftIamRegistration`; the lock test is `api/launch.test.ts`'s *"a re-draft waits for a submission holding the
+>   record…"*).
+> - **`submitPrivacyAssessment`'s `sentDay` still reads the row's `createdAt`** — Task 10 moved only the registration's to the package's
+>   `generatedAt` (the whole-branch review's M4). Move the assessment's to its draft's `generatedAt` in this task, with the same test
+>   shape (*"the day a person may say they sent it is the newest draft's"*).
+> - **`withAssessmentDraft` still writes a PLACEHOLDER** (`launch/testing.ts`) — Task 11 owns the real shape; `withDraft` shows how Task 10
+>   replaced its own (a real package from `assemblePackage`, a certificate minted once per process).
+> - **`409 LAUNCH_RECORD_SUBMITTED` exists**, registered with a registration's words (*"This registration is with UBC IAM…"*): reuse it
+>   for an assessment that is `submitted` or `approved`, and widen its summary and remedy to name both.
+> - **`PrivacyAssessment.draft` will be a REQUIRED field** — the mock's `PRIVACY_ASSESSMENT` fixture is typed `Schemas['…']`, so it needs
+>   `draft` in the same commit (Task 10's F10 twin: `IAM_REGISTRATION` and `STAGING_REGISTRATION` gained `package: null`).
+> - **Examples are CAPTURED** — `api/routes/launch-examples.ts` holds Task 10's (`satisfies z.input<…>`); and
+>   `api/contract/docs.test.ts`'s internal-name gate now exempts a package's `certificate.pem`, `certificate.fingerprint` and
+>   `metadataXml` BY PATH — extend `MACHINE_DATA` only for machine data, never for prose.
+> - **The registration's package carries the PIA number only once the assessment is `approved`** — so drafting the registrations after
+>   the assessment's approval is what puts it there (the package warns otherwise), and a registration drafted before it is refused
+>   `409 LAUNCH_DRAFT_STALE` when sent (the fix wave, `dec71d8`).
+> - **What to reuse, by name** (all in `launch/`): Task 10's source rule is `drawnFrom` and its contacts `contactsFor` — both PRIVATE in
+>   `records.ts`; export them rather than writing a second rule. The collected section's purposes are `ATTRIBUTE_PURPOSES`
+>   (`package.ts`). `Contact` is `sso/`'s.
+> - **A submission names the draft it sent** (`SubmitLaunchRecordRequest.draftGeneratedAt`, `409 LAUNCH_DRAFT_CHANGED`) — already on
+>   `submitPrivacyAssessment`, reading `generatedAt` off the stored draft; Task 11's draft must carry `generatedAt` for it to mean
+>   anything (until then no real assessment draft exists).
+
 > **`[M1]` (Task 1, 2026-09-29 — F2): on driver 2, GitHub shows the PERSON as the author of every commit made through the
 > API** (*"Test Instructor <…@users.manifest.internal>"*). So the **flows** section gains a fact whenever the project's
 > repository is on GitHub: *"The names of the people who change the app through Manifest are sent to GitHub (<organisation>),
@@ -2381,6 +2417,20 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Task 13: The console and the mock — every new operation called, the owner's half of the launch records, and a Queue
 
+> **`[S7]` (sitting 7, 2026-10-01 — Task 10, `6cbb489`): THE PACKAGE, AS THE CONSOLE AND THE MOCK MEET IT.**
+> - **`draftIamRegistration` is parked** in `DELIBERATELY_UNCALLED` (`packages/console/src/coverage.test.ts`) beside the two submissions,
+>   naming this task.
+> - **The mock's `IAM_REGISTRATION` and `STAGING_REGISTRATION` carry `package: null`** although an owner submitted both — a state the
+>   platform cannot produce (a submission needs a package). Script real packages for them. Until then `draftIamRegistration` and
+>   `submitIamRegistration` answer from their DOCUMENT EXAMPLES — a real captured staging package (`api/routes/launch-examples.ts`).
+> - **What the records screen shows of a package** is `RegistrationPackage`: each attribute's `justification`, `usedAt` and `unused`; the
+>   `warnings` (an unread attribute, a missing PIA number, production drawn without a release serving staging); `metadataXml` with
+>   *Copy*; the certificate's `fingerprint` and `expiresAt`; the `contacts`; `privacyAssessmentReference`. Never a private key: none is
+>   ever in the answer.
+> - **The checklist's `iam-registration` `why` gains a sentence** when a draft — or a request already sent — no longer matches the release
+>   serving staging (*"The draft no longer matches the release serving staging: it asks for sn, which the draft does not. Draft it again
+>   before you send it."*). The launch screen shows it as it is.
+
 > **FE-40 (relayed 2026-09-29, CONFIRMED by Rich at sitting 3's open — its section above)**: four OPT-IN mock switches so the mock
 > can play a first launch — ready, step-up enforced, `getApproval` `404` before a decision, a failed rehearsal. They are this
 > task's, beside the defaults, which do not move.
@@ -2422,6 +2472,14 @@ lands, the submission routes have no client that can meet their precondition** �
 ---
 
 ## Task 14: The guides — *Launching* rewritten around the three clocks
+
+> **`[S7]` (sitting 7, 2026-10-01 — Task 10, `6cbb489`): WHAT *LAUNCHING* MUST NOW SAY ABOUT A DRAFT.** `draftIamRegistration` per
+> environment; `launch:draft` is MINTABLE (an agent may prepare the draft its person reads and sends); the package's fields and its
+> `warnings`; production's drawn from the release serving staging — so draft production once the release you will launch serves staging;
+> drafting again until it is sent, then `409 LAUNCH_RECORD_SUBMITTED` until UBC asks for changes or it lapses; `409 LAUNCH_NOT_CWL`; the
+> checklist's drift sentence; and, for operators, `MANIFEST_LAUNCH_CONTACTS` (RUNBOOK). Task 10's NEW descriptions carry no section,
+> decision or plan number; the older ones it sat beside (`IamRegistration`'s fields, `LAUNCH_RECORD_INVALID`'s summary) are this task's
+> published-text pass.
 
 > **`[S10]` (Rich, 2026-09-30 — *"One of the things that we don't need to see in the API docs is things like section or plan
 > numbers. They're irrelevant to the person reading the docs … This needs to be looked at for all the docs"*; placed HERE, *"In the
@@ -2471,6 +2529,11 @@ lands, the submission routes have no client that can meet their precondition** �
 ---
 
 ## Task 15: The acceptance — `make demo-launch`, and a person clicking it
+
+> **`[S7]` (sitting 7, 2026-10-01 — Task 10, `6cbb489`):** the demo drafts BOTH registrations through `@manifest/contract`, and checks end
+> to end what the unit tier holds through a labelled fake and the Docker tier through the real registrar alone: **the staging package's
+> certificate fingerprint is the one `sso.registered` publishes when staging deploys** (Review Focus 2). On driver 2 the draft reads the
+> app's tree through the mirror, at the commit it is drawn from.
 
 **ALONE, AND LAST.**
 
@@ -4343,3 +4406,204 @@ lists instead of unregistered rows: RED 1. **Every one red exactly where predict
   open). Load ~4.
 - `scripts/snapshot-machine.sh` at open and close: identical but for the uptimes, the free disk and the S5 spike's containers, images and
   volumes.
+
+### Sitting 7 — 2026-10-01: Task 10 — D19's registration package: UBC's structure, the environment's own certificate, every attribute justified by where the app reads it
+
+**Run by session `manifest-8e`, INLINE** (`superpowers:executing-plans`: one context, TDD per step, one fresh whole-branch review beside
+the Docker tier, one fix wave) on `main`, from `0bb544c`. **Rich's word, in this session's chat**: *"proceed with the next sitting which I
+believe is sitting 7"*, with the faculty front-end's new session started beside it — *"Do you think they will be able to work in
+parallel with you?"*. They did: the front-end (`manifest-app-34`) was writing F6 against the MOCK, so 7100 was this sitting's for its whole
+length, and it was told before and after each of the two contract commits. §7e's two questions answered themselves: the database was
+EMPTY at open (0 projects, 0 users, 46 migrations — nothing to dump), and `make refresh-vulndb` is not due until after 2026-10-06.
+
+Peers:
+- **The faculty front-end, `manifest-app-34`** (F6, mock-only): *"OK, go ahead"* before both commits; it adopts `6cbb489` and `dec71d8`
+  in its own repository (`package` on every `IamRegistration`; `draftGeneratedAt`; four new codes for F5b). It relayed **FE-45**, a
+  decision of Rich's from its F6 design (ORIENTATION §8 *Open*).
+- **The S5 spike, `manifest-s5-b3`**: finished at 03:17, nothing running; told before the Docker tier (which removes the capable model).
+
+**What it made true** (`6cbb489`, the fix wave's `dec71d8`, and `06b5333`):
+- **`draftIamRegistration`** — `POST /v1/projects/{projectId}/launch-records/iam-registration/{environment}/draft`, capability
+  **`launch:draft`** (owner, collaborator, administrator; **MINTABLE** — an agent may prepare a draft for its person). Manifest generates
+  and STORES on the record (`generated_package`) what a person sends UBC IAM, and `IamRegistration.package` answers it
+  (`RegistrationPackage`):
+  - the environment's entity id, ACS and SLO — derived as a deploy registers them (`deriveSpEntity`, the environment row's hostname);
+  - **the certificate the environment signs with** — its PUBLIC half only, through the registrar that holds the master key
+    (`SsoCertificates.spCertificate` → `ensureSpCertificate`; the `SpCertificate` type has no field a private key could travel in);
+  - **every attribute with its purpose and the lines that read it** — `findAttributeUses` (a property read, `.name` or `['name']`), over
+    the commit's `.js/.mjs/.ts/.html`, the blueprint's own `auth/` bridge skipped, at most 200 files and 2 MiB, `usedAtTruncated` whenever
+    a file was not read; a read only under `public/` is *"shown to the person in the browser"*; an attribute nothing reads is `unused`,
+    with a warning to remove it before sending;
+  - the contacts — the project's owners then collaborators as technical, the platform's as support (**`MANIFEST_LAUNCH_CONTACTS`**,
+    `Name <email>`; unset, the oldest administrator);
+  - **the PIA number** (`privacyAssessmentReference`) once the assessment is approved with it — else null, and a warning;
+  - the SAML metadata in **`saml-metadata-generator`'s structure, never its code** (`sso/registration-xml.ts`, `[M6]`): SAML 2.0 alone,
+    one HTTP-POST ACS at index 1 (default), one HTTP-Redirect SLO, the tool's algorithm lists, both key descriptors, the organisation, one
+    `ContactPerson` per contact — every value escaped, the `ID` the entity's hash. Its element order is held against the tool's own output
+    (`src/sso/fixtures/ubc-structure.xml`, Task 1's probe) with `[M6]`'s changes applied in the test.
+- **Production's is drawn from the launch candidate** (the release serving staging — its frozen auth, its build's commit), else from the
+  newest valid manifest with a warning; **staging's from the newest valid manifest**.
+- **A record UBC holds is not drafted again** (`409 LAUNCH_RECORD_SUBMITTED`, `submitted` or `active`) — again from `change_requested`
+  or `expired`, where **a registered row keeps what UBC registered** (entity, ACS, SLO) and only the package changes. **`409
+  LAUNCH_NOT_CWL`** for an app that signs nobody in with CWL — or asks for no attribute, which no registration may. Written under the
+  record's `FOR UPDATE`, as a submission takes it; `iam_registration.drafted` (migration `0046_pink_proteus`, the CHECK only) names the
+  environment, the entity, the commit and the counts — never the attributes.
+- **What is SENT is the draft the person read, carrying what UBC asks for** (the fix wave): a registration whose package does not carry
+  the approved assessment's PIA number is **`409 LAUNCH_DRAFT_STALE`** — draft it again; a submission names the draft it sent
+  (`SubmitLaunchRecordRequest.draftGeneratedAt`, optional) and one drafted since is **`409 LAUNCH_DRAFT_CHANGED`**; the earliest day it can
+  have been sent is the package's `generatedAt`, not the row's first day (Task 9's review M4).
+- **One mint per environment, ever**: `ensureSpKeypair` reads, mints and writes in one transaction under an advisory lock on the scope —
+  a draft is a second caller beside a deploy.
+- **Review Focus 1's checklist half**: the first launch's `iam-registration` item says when a draft — or a request already sent — no
+  longer matches the release serving staging, in both directions and for the ACS and SLO (*"The draft no longer matches the release
+  serving staging: it asks for sn, which the draft does not. Draft it again before you send it."*).
+- The authz matrix's row; `launch:draft` in the console's capability list; `draftIamRegistration` parked for Task 13 and outside the
+  journey; the mock's two registration fixtures `package: null` (Task 13's `[S7]`); examples CAPTURED from the tests
+  (`api/routes/launch-examples.ts`). **Contract still `1.5.0`.**
+
+**What sitting 7 found** (the count is derived by the command at the head of this section):
+
+**F1 The plan's Step 3 contradicts its own measurement.** It renders the ACS *"at index 0"* with *"`NameIDFormat` transient"*; `[M6]` —
+the tool's own output, which Task 1 recorded — has the ACS at index 1 and no `NameIDFormat`. `[M6]` is the measurement that corrected the
+plan, so it wins.
+
+**F2 The plan's interface would have handed `launch/` the private key.** *Files* exports `ensureSpKeypair` to `launch/`, whose answer
+carries `privateKeyPem`, and `ServerDeps` holds no key material on purpose. The certificate comes through the registrar, which already
+binds the master key, as its public half — a type with no private-key field.
+
+**F3 The unit tier could not hold *"a package's certificate is the one the environment registers with"*.** `cwlFakes`' registrar
+registered ONE shared test keypair for every project and environment, so the plan's test would have been impossible, or green for the
+wrong reason. The fake now keeps its keypair with the real `ensureSpKeypair` under `testDeps()`'s master key (found through a `WeakMap`
+on its `appSecrets`); control (g) — the fake back on the shared keypair — turns the test red.
+
+**F4 The plan's package predates the PIA number** (`[S9]`, Spec action 4's bullet): `privacyAssessmentReference` added to the package,
+null with a warning until the assessment is approved with it.
+
+**F5 A CWL manifest may list no attributes, and `deriveSpEntity` then throws an unmapped `SpEntityError`** — a `500`. The draft refuses it
+first, `LAUNCH_NOT_CWL`, with its own message. (A DEPLOY of such an app is the same `500` today — pre-existing, not this task's.)
+
+**F6 The plan's control (d) predicted green a test its own fixture turns red.** *"…never inside a longer word stays green, because `\b`
+alone already stops `mailbox`"* — but the same test's bridge line, `mail: …`, matches a bare `\bmail\b`. Both usage tests go red, and so
+does the route's (the skeleton's `ai/*.js` take `ubcEduCwlPuid` as a parameter).
+
+**F7 Every existing launch example lacked `package` — and two of them, the submission's and the records', would have been examples of a
+state the platform cannot produce** had they been given `null`. Recaptured from the tests, as one flow. One `package: null` my own regex put
+into the PRIVACY ASSESSMENT's example was caught by `tsc` (the assessment has no package).
+
+**F8 The docs gate's internal-name pattern read a certificate fingerprint's hex pair `F0` as a finding number** (three hits in the
+captured examples). Exempt by PATH (`certificate.pem`, `certificate.fingerprint`, `metadataXml`), never by content; control (p).
+
+**F9 The mock's two registration fixtures were submitted by their owner and carry no package** — a state the platform cannot produce.
+`null` until Task 13 scripts real drafts (its `[S7]`).
+
+**F10 `withDraft`'s placeholder package could not test the checklist half** (`[S6]` said Task 10 owns its shape). It now writes the real
+package (`assemblePackage`, a certificate minted once per process), and is an UPSERT whose package carries the approved assessment's
+number — a person drafting again.
+
+**F11 Step 3 would have overwritten what UBC registered.** *"entity_id, acs_url and slo_url from the package"* applied to a re-draft of a
+REGISTERED row (from `change_requested` or `expired`) puts the app's new ACS where the checklist and the build read UBC's. Only the package
+changes on a registered row; control (j).
+
+**F12 Task 9's M4, fixed for the registration**: a submission's earliest day is the package's `generatedAt`; control (f). **The assessment's
+is still the row's first day** — Task 11's (its `[S7]`).
+
+**F13 A test defect of mine at RED**: the mint route's body lacked `expiresInDays`.
+
+**F14 The whole-branch review's I1: the draft was a new, UNLOCKED caller of `ensureSpKeypair`.** Until now its only caller ran inside a
+deploy, under the environment's lock. Two first mints of one environment at once — a draft beside the first deploy, two drafts, a draft
+beside a rehearsal — each read nothing, each mint, each write: a package naming a certificate the app never signs with, or a key from
+one mint stored beside the other's certificate, every later signature failing (*"Invalid certificate signature"*). My ruling had called
+the cost *"a wasted mint"*; the lost race's mint is WRITTEN. Fixed in `ensureSpKeypair` itself — one transaction under
+`pg_advisory_xact_lock` on the scope. **Held by a test on separate connections** (a rolled-back transaction's one connection would take the
+lock twice and serialise nothing): RED before, two fingerprints; control (k).
+
+**F15 The review's I2: a registration package without the PIA number could be SENT.** The spec says the request *"is sent only once the
+privacy assessment is approved, and its package carries the assessment's reference"*; the plan's own flow drafts in week one, before
+that, and the submission checked only the assessment's CURRENT state — so the published example showed a `submitted` record whose package
+told its reader to draft again. **`409 LAUNCH_DRAFT_STALE`**; control (l) turns three tests red, among them Task 9's own order test, which
+now drafts again.
+
+**F16 The review's I3: a submission was not tied to the draft the person read.** `launch:draft` is mintable and a collaborator holds it,
+so a re-draft between reading and *"I've sent it"* froze a package nobody saw — Review Focus 2's *"the package sent is the package kept"*,
+false. **`draftGeneratedAt` and `409 LAUNCH_DRAFT_CHANGED`**, on both submissions; control (m). A contract change made now rather than at
+Task 13, because the code is here and the front-end then only sends the field.
+
+**F17 Three `records.test.ts` cases read rows across the WHOLE database** from inside a rolled-back transaction — two row counts and
+four event reads — so committed rows left by the last `api/launch.test.ts` case (`withProjectServer` resets at a test's START) turned them
+red when the files ran in that order. Green alone; a pre-existing order dependency the file selection exposed. Scoped to the test's project.
+
+**F18 The journey's guides gate read `draftGeneratedAt` as an unknown OPERATION**: it decides an operation by its shape — camelCase led
+by a verb an operation begins with — and `draft` became one with this task. It now knows every property name the document declares;
+controls (n) and (o) — the second a guide naming `draftImaginaryRegistration`, which it still catches.
+
+**F19 My own deep import, caught only by the full suite.** The registration Docker case imported `../launch/package.js`; the
+module-boundary gate refuses a path past a module's `index`. Every file selection this sitting ran had left `module-boundaries.test.ts`
+out, so the first full run (3070/3071) was the first to see it — the second run was stopped, the import fixed (`06b5333`), and both runs
+started again on the final tree. **Run the whole suite before believing a selection.**
+
+**The negative controls** (each predicted in the ledger before it ran, applied with its diff read, restored by `git checkout` of a
+committed file):
+- On `6cbb489`: **(a)** staging's draft rendering production's entity → RED 1 (*drafts the staging package*); **(b)** drafting allowed in
+  `submitted`/`active` → RED 2 (*never regenerated*; the re-draft lock test); **(c)** the private key in the public half → RED 3 (the
+  keypair's public half; the package's *never its private key*; *no answer carries a private key*); **(d)** the search reduced to
+  `\bname\b` → RED 3 (F6); **(e)** the bridge not skipped → RED 1; **(f)** the day from the row again → RED 1; **(g)** the fake on the
+  shared keypair → RED 1; **(h)** the drift sentence never said → RED 3 (the fourth, nothing to compare, green by design); **(i)** the
+  draft's write without `FOR UPDATE` → RED 1 (it never waits); **(j)** a re-draft overwriting what UBC registered → RED 1.
+- On `dec71d8`: **(k)** no keypair lock → RED 1; **(l)** no STALE → RED 3; **(m)** no CHANGED → RED 1; **(n)** the guides gate without the
+  document's fields → RED 1; **(o)** a guide naming an operation the API lacks → RED 1; **(p)** the docs gate without its exemption → RED 1.
+
+**Rulings** (each in the ledger with its cost): `[M6]` over Step 3; the public half through the registrar; `cwlFakes` on the real keypair
+store; `privacyAssessmentReference`; `ContactPerson` with `EmailAddress` only, as the tool writes it; no-attribute CWL as `LAUNCH_NOT_CWL`;
+no valid manifest at all a plain `500` (unreachable through the API); a registered row keeps UBC's values; the draft precomputes outside the
+transaction and re-checks under the lock; the PIA number only once approved; the drift sentence in both directions; the docs gate's path
+exemption; the examples recaptured; the lock inside `ensureSpKeypair`, not around the draft; two new codes rather than overloading
+`LAUNCH_DRAFT_REQUIRED`; I3 fixed now rather than routed to Task 13; the guides gate learning the document's fields.
+
+**Deviation**: Step 4's Docker case drives the REAL registrar — `spCertificate`, then `registerServiceProvider`, then the IdP's row — not
+`draftIamRegistration` and a whole deploy; the seam between the draft's scope and a deploy's is the unit tier's real-`deployRelease` case
+(*"a package's certificate is the one the environment registers with"*).
+
+**Carried — named so it is not lost:**
+- **To Task 11** (its `[S7]`): the assessment's draft mirrors the registration's — stored, `generatedAt`, the same lock; its submission's day
+  still reads the row's first day; `withAssessmentDraft` is still a placeholder; reuse `LAUNCH_RECORD_SUBMITTED` (its words name only a
+  registration); `PrivacyAssessment.draft` breaks the mock's typed fixture.
+- **To Task 13** (its `[S7]`): the mock's two `package: null` fixtures; the package on the records screen; `draftGeneratedAt` always sent.
+- **To Task 14** (its `[S7]`), **and Task 15** (its `[S7]`): what *Launching* must say; the demo checks the package's fingerprint end to end.
+- **Minors deferred** (the review's): `LAUNCH_NOT_CWL`'s message names the newest manifest when it is the CANDIDATE that is not CWL (M2);
+  no support contact, silently, with no administrator and no setting (M3). And from the review's *declined to judge*: `.jsx/.tsx/.cjs`
+  are not searched; a property of the same name on another object counts as a read (the stated hint); a staging package drifting from the
+  newest manifest is surfaced nowhere; `usedAt` is unbounded by count; an `SpEntityError` from the draft is a `500`.
+
+**Gates on the final tree** (`06b5333` code):
+- `pnpm test` **3071 passed, 0 skipped, in 189 files (920 s, load ~4–5, 0 `deadlock detected`)**, then **3071 / 189 (881 s, 0 `deadlock
+  detected`)** — twice, alone, identical. Up 47 from 3024 and three files (`sso/registration-xml.test.ts`, `launch/usage.test.ts`,
+  `launch/package.test.ts`); `EXPECT_TESTS`/`EXPECT_FILES` moved. (The first full run on `dec71d8` was 3070/3071 — F19.)
+- `pnpm test:docker` — the whole tier on `6cbb489`: **271 passed, 0 failed, 271 in 42 files**, 1217 s (load ~4–6). The fix wave's ten Docker
+  files that reach the keypair or the registrar, alone on `dec71d8`: **46/46**, 413 s; and `sso/registration.docker.test.ts` alone on the
+  boundary fix: **9/9**. **271 in 42**, ORIENTATION §2's row.
+- `pnpm lint`, `typecheck` (all six packages) and `format:check` clean.
+- `make verify` **64 / 0 / 0**, `make doctor` **21 / 0 / 0** (after the restart and the cleanup).
+- The shared HTML pages checked — they describe the design (*"Manifest prepares the request"*), which this sitting made truer, not staler:
+  unchanged. WALKTHROUGH and CLAUDE.md: unchanged (no plan started or finished). RUNBOOK gains `MANIFEST_LAUNCH_CONTACTS`; TRAPS gains
+  F17's and F18's traps.
+
+**The machine at the close**, queried at 09:46 on 2026-10-01, not remembered:
+- **The control plane: PID 93832 on 7100, on `06b5333`, REAL GitHub** (Rich's `.env`), restarted LAST — after the two unit runs — by
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged; `nohup`, detached). Boot line: `"source":"github"`,
+  `"github":"api.github.com"`, `capableModel: registered`, `rehearsalsTakenDown: 0`. It was STOPPED from ~07:40 for the unit tier and the
+  Docker tier (one control plane per database), so the capable model was out of LiteLLM from the tier's start (08:09) to the restart.
+- **The control database: EMPTY** — 0 projects, 0 users, 0 registrations; **47 migrations** (`0046_pink_proteus` newest).
+  `MANIFEST_ADMIN_PUIDS` is NOT set in `.env` (the line is absent) — `operator` needs `scripts/admin-grant.sh` after its first sign-in.
+- **GitHub**: `Manifest-local-dev` holds **0 repositories** (`scripts/github-real-repos.sh`).
+- **Containers: 0 `mf-`**, 10 `manifest-`; `dead-app-resources.sh --apply` (7 networks, 1 volume) and `app-images.sh --apply` (18 images),
+  each re-measured to 0; `make verify`'s INFO `mf- containers=0 networks=0 volumes=0`; **12 Docker networks** in all.
+  `litellm-orphans.sh` lists **18** orphaned — **not applied**, for sitting 5's reason (a budget's deletion resets its month).
+- `make doctor` **21/0/0**, `make verify` **64/0/0**.
+- **7102 and 7105 are the faculty front-end's** (node 64522 — its mock, restarted by it after `6cbb489` — and 26458). **Nothing on 7104.**
+  **The front-end's F6 sitting 1 was given 7100 at this close** — it makes a project (`f6-watch`, a real private repository) and takes
+  it to LAUNCHED, and a second to delete, at Rich's word: **expect its rows and that repository when you open.**
+- Ollama **0.35.0**; **free disk 63 GiB** (67 at open). Load ~5–6. The Mac was on **UBC's VPN** at the close (`snapshot-machine.sh`'s
+  host: `host167-126.vpn.ubc.ca`).
+- Not Manifest's, left alone: `cwl-spike-*` (4 up, 1 exited) and `openwebui-openwebui-1`, made 2026-09-29.
+- `scripts/snapshot-machine.sh` at open and close: identical but for the uptimes, the free disk, the edge (restarted by the Docker tier)
+  and the host name.

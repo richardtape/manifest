@@ -2416,3 +2416,17 @@ nor an editor that saves by rename writes in place either. **To change a bind-mo
 `seek(0)`, `write`, `truncate()`, or a shell `cat new > file`), then check `ls -i` is unchanged and compare `docker exec … sha256sum`
 with the host's `shasum -a 256`. After any other edit, restart the container and read both back — the controller's control for the
 streamed-400 case did exactly that (inode 87966811 kept both ways).
+
+**A TEST THAT READS ROWS ACROSS THE WHOLE DATABASE PASSES OR FAILS BY WHICH FILE RAN BEFORE IT** (the launch path plan's sitting 7, F17,
+measured: three `launch/records.test.ts` cases — two `db.select().from(iamRegistrations)` counts and an event read by `type` alone — went
+red ONLY when `api/launch.test.ts` ran straight before them, and were green alone). `withProjectServer` and `resetDatabase` reset at a
+test's START, never its end, so the last route test's committed rows are still there when the next file runs, and a `withRollback`
+transaction SEES committed rows. A count that assumes an empty table is an order dependency waiting for the right neighbour. **Scope every
+read in a test to the rows the test made** (its project id), and treat a red that disappears when the file runs alone as this trap first.
+
+**THE DOCS GATES DECIDE WHAT A NAME IS BY ITS SHAPE — A NEW OPERATION CAN TURN A FIELD INTO AN "UNKNOWN OPERATION"** (sitting 7, F18
+and F8). `packages/journey/src/docs.test.ts` calls a camelCase name led by a verb some `operationId` begins with an OPERATION; adding
+`draftIamRegistration` made `draft` such a verb, and the field `draftGeneratedAt` in the reference read as an operation the API lacks
+(fixed: a property the document declares is not one). And `api/contract/docs.test.ts`'s internal-name pattern reads `F0` — a hex pair
+in a certificate fingerprint — as a finding number (exempted by the field's PATH). When a gate goes red naming something that IS in the
+document, read the gate's classifier before the text.

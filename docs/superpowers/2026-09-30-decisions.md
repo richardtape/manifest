@@ -242,3 +242,16 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     answers any Host header). make doctor 21/0/0, make verify 64/0/0 (EXPECT_ lines moved); the three new checks watched
     red with their causes named (Mailpit stopped; a relay and no tmpfs; an unpulled digest), then restored. The control
     plane was not restarted. The front-end (manifest-app-4d) and sitting 6 (manifest-92) told.
+
+# Rich's decisions — 2026-10-01, morning (the launch path plan's sitting 7, session manifest-8e)
+
+    FE-45 — "Yes, confirmed." (Rich, to manifest-8e, 2026-10-01), confirming the decision the faculty front-end's session
+    manifest-app-34 relayed from his words in its F6 design: "We can't allow folks to delete apps that have been actively
+    used. i.e. production databases can't be deleted. We'll need some way to 'mark as deleted' which removes it from all
+    paths, but we can't delete the data. That can only be an admin decision (due to data retention)" — recorded "so it
+    gets built in the future". Not urgent; no current plan's. The front-end's two options and what it needs next are in
+    ORIENTATION §8 Open (FE-45); its full text is manifest-app's docs/api-findings.md, FE-45.
+
+    Sitting 7's fix-wave contract change (409 LAUNCH_DRAFT_STALE; draftGeneratedAt and 409 LAUNCH_DRAFT_CHANGED) — made
+    by the sitting as a routine call and told to Rich after: "OK, the front-end agent will need to know that". The
+    front-end (manifest-app-34) had it before the commit, and holds it for its F5b.

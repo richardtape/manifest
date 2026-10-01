@@ -161,8 +161,14 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then Mailpit, §21's tenth container (2026-09-30, out of plan at Rich's word): no test moved; `make doctor` +1 (its
 # image, at the digest compose pins) and `make verify` +2 (an SMTP round trip through the inbox's API, and compose's
 # settings that keep it on the laptop).
-EXPECT_TESTS=3024
-EXPECT_FILES=186
+# Then the launch path plan's sitting 6 (2026-09-30/10-01, the three clocks' records): +62 and one file, `api/launch.test.ts`
+# (its record has the breakdown).
+# Then its sitting 7 (2026-10-01, D19's registration package, and its fix wave): +47 and three files —
+# `sso/registration-xml.test.ts` (5, new), `launch/usage.test.ts` (5, new), `launch/package.test.ts` (8, new),
+# `api/launch.test.ts` (13), the matrix's draft row (9), `launch/readiness.test.ts` (4), `sso/keypair.test.ts` (2) and
+# `config.test.ts` (1).
+EXPECT_TESTS=3071
+EXPECT_FILES=189
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 

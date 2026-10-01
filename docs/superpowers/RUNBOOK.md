@@ -1469,6 +1469,12 @@ does not name is undone at their next sign-in. **Unset (the default), nobody is 
 procedure. PUIDs, never CWL login names: a login can be given to somebody else. A stray comma refuses the boot
 (`CONFIG_INVALID`). Restart the control plane after changing it; it reaches each person at their next sign-in.
 
+**The platform's contacts in a registration package — `MANIFEST_LAUNCH_CONTACTS`** (the launch path plan's Task 10). `Name
+<email>`, comma-separated, in `.env`, read at boot: the SUPPORT contacts every drafted IAM registration package names
+(`draftIamRegistration`; the project's owners and collaborators are its technical contacts). **Unset (the default), a package
+names the oldest administrator**, read when it is drafted. An entry that is not a name and an address refuses the boot
+(`CONFIG_INVALID`). At UBC the names are Rich's to give.
+
 **Who may BUILD is not a role** (FE-39): a faculty member — `eduPersonAffiliation` exactly `faculty` at their last
 sign-in — or an administrator may create a project, start an intake session or be added to one; anyone else signs
 in and is refused `403 BUILDING_NOT_OPEN` / `409 MEMBER_MAY_NOT_BUILD`, and `GET /v1/me` answers `mayBuild: false`.
