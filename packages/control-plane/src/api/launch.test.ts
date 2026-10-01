@@ -1,3 +1,4 @@
+import pg from 'pg'
 import { describe, expect, it } from 'vitest'
 import { ensureTestUser } from '../identity/testing.js'
 import {
@@ -218,6 +219,13 @@ describe('an owner says “I’ve sent it” (Task 9)', () => {
         status: 400,
         code: 'REQUEST_INVALID',
       })
+      // The whole-branch review's I2: shaped like a day and not one — refused, never rolled over to
+      // March 2 (or to a month before the draft).
+      for (const impossible of ['2026-02-30', '2026-00-15', '2025-13-01'])
+        expect(
+          refusal(await submit(ctx, 'staging', { sentAt: impossible }, as)),
+          impossible,
+        ).toEqual({ status: 400, code: 'REQUEST_INVALID' })
       // Positive control: today.
       expect(
         refusal(await submit(ctx, 'staging', { sentAt: vancouverToday() }, as)),
@@ -259,7 +267,7 @@ describe('an owner says “I’ve sent it” (Task 9)', () => {
     })
   })
 
-  it('UBC’s order — staging waits for the assessment, production for staging — and each refusal names its code', async () => {
+  it('UBC’s order — both registrations wait for the assessment, production for staging too — and each refusal names its code', async () => {
     await withProjectServer(async (ctx) => {
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'production' })
@@ -268,11 +276,17 @@ describe('an owner says “I’ve sent it” (Task 9)', () => {
         status: 409,
         code: 'LAUNCH_PIA_NOT_APPROVED',
       })
+      // The whole-branch review's I3: "neither of an app's registrations is sent until the assessment
+      // is approved" — production's waits for it FIRST, before staging's.
+      expect(refusal(await submit(ctx, 'production', {}, as))).toEqual({
+        status: 409,
+        code: 'LAUNCH_PIA_NOT_APPROVED',
+      })
+      await piaApproved(ctx)
       expect(refusal(await submit(ctx, 'production', {}, as))).toEqual({
         status: 409,
         code: 'LAUNCH_STAGING_NOT_REGISTERED',
       })
-      await piaApproved(ctx)
       expect(refusal(await submit(ctx, 'staging', {}, as))).toEqual({
         status: 200,
         code: undefined,
@@ -354,3 +368,177 @@ describe('UBC’s answers stay an administrator’s record (Task 9)', () => {
     })
   })
 })
+
+/**
+ * THE SUBMISSION AND WHAT IT READS ARE ONE DECISION (the whole-branch review's I1). Each was a read,
+ * a check, then an UPDATE by id — so a write landing between them was overwritten (a second "I've sent
+ * it" moving the day the clock started) or let a submission through a gate that had just closed.
+ * DETERMINISTIC, as `api/members.test.ts`'s: a second connection holds the row the submission reads,
+ * the submission is sent, and the holder changes the row and COMMITS once the submission is seen
+ * waiting on it. Each case's positive control is the earlier tests' same submission, unheld.
+ */
+describe('a submission and an administrator’s write cannot interleave (the whole-branch review’s I1)', () => {
+  it('a registration moved to submitted while the owner’s submission waits is not submitted again — 409 LAUNCH_TRANSITION_INVALID, the first stamp kept', async () => {
+    await withProjectServer(async (ctx) => {
+      await piaApproved(ctx)
+      const draft = await withDraft(ctx.db, {
+        projectId: ctx.projectId,
+        environment: 'staging',
+      })
+      const first = '2026-09-01T19:00:00.000Z'
+      let answered: Awaited<ReturnType<typeof submit>> | undefined
+      await holdingThen(
+        'SELECT 1 FROM iam_registrations WHERE id = $1 FOR UPDATE',
+        [draft.id],
+        // What an administrator's record of the request does in the window.
+        `UPDATE iam_registrations SET state = 'submitted', submitted_at = '${first}' WHERE id = '${draft.id}'`,
+        async (lock) => {
+          const submitting = submit(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
+          await until(
+            () => lock.waitedOn('%iam_registrations%'),
+            'the submission waiting on the held registration',
+          )
+          await lock.commit()
+          answered = await submitting
+        },
+      )
+      expect(refusal(answered!)).toEqual({
+        status: 409,
+        code: 'LAUNCH_TRANSITION_INVALID',
+      })
+      const staging = (await records(ctx)).stagingRegistration
+      expect(staging).toMatchObject({ state: 'submitted', submittedAt: first })
+      expect(await submittedEvents(ctx)).toBe(0)
+    })
+  })
+
+  it('an assessment moved back to draft while the staging submission waits refuses it — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
+    await withProjectServer(async (ctx) => {
+      await piaApproved(ctx)
+      await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
+      let answered: Awaited<ReturnType<typeof submit>> | undefined
+      await holdingThen(
+        'SELECT 1 FROM privacy_assessments WHERE project_id = $1 FOR UPDATE',
+        [ctx.projectId],
+        // An administrator recording the Privacy Office reopening it (`approved → draft`).
+        `UPDATE privacy_assessments SET state = 'draft', approved_at = NULL WHERE project_id = '${ctx.projectId}'`,
+        async (lock) => {
+          const submitting = submit(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
+          await until(
+            () => lock.waitedOn('%privacy_assessments%'),
+            'the submission’s read of the assessment waiting on the held assessment',
+          )
+          await lock.commit()
+          answered = await submitting
+        },
+      )
+      expect(refusal(answered!)).toEqual({ status: 409, code: 'LAUNCH_PIA_NOT_APPROVED' })
+      expect((await records(ctx)).stagingRegistration).toMatchObject({ state: 'draft' })
+    })
+  })
+})
+
+describe('an administrator’s record keeps the owner’s reference (the whole-branch review’s M2)', () => {
+  it('recording UBC’s answer without a ticket keeps the reference the owner sent; one given replaces it', async () => {
+    await withProjectServer(async (ctx) => {
+      await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
+      const sent = await submit(
+        ctx,
+        'privacy-assessment',
+        { reference: 'PIA-2026-0101' },
+        { cookies: ctx.ownerCookies },
+      )
+      expect(sent.statusCode, sent.body).toBe(200)
+      const approved = await adminRecords(ctx, 'privacy-assessment', {
+        state: 'approved',
+      })
+      // Kept — so the staging gate still finds the PIA number the owner gave.
+      expect(approved).toMatchObject({
+        state: 'approved',
+        externalTicketRef: 'PIA-2026-0101',
+      })
+      const replaced = await adminRecords(ctx, 'privacy-assessment', {
+        state: 'approved',
+        externalTicketRef: 'PIA-2026-0102',
+      })
+      expect(replaced).toMatchObject({ externalTicketRef: 'PIA-2026-0102' })
+    })
+  })
+})
+
+/** How many `iam_registration.submitted` events the project has, read as the database's owner. */
+async function submittedEvents(ctx: TestProject): Promise<number> {
+  const admin = new pg.Pool({ connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL })
+  try {
+    const { rows } = await admin.query<{ n: string }>(
+      `SELECT count(*) AS n FROM audit.events WHERE project_id = $1 AND type = 'iam_registration.submitted'`,
+      [ctx.projectId],
+    )
+    return Number(rows[0]!.n)
+  } finally {
+    await admin.end()
+  }
+}
+
+/**
+ * A row held by a SECOND connection, as the database's owner, which then CHANGES it and commits —
+ * what an administrator's write does in the window (`api/members.test.ts`'s `holding`, which only
+ * ever rolls back). `waitedOn`: a statement matching `pattern` waits on this connection's lock.
+ */
+async function holdingThen(
+  statement: string,
+  params: unknown[],
+  change: string,
+  fn: (lock: {
+    waitedOn: (pattern: string) => Promise<boolean>
+    commit: () => Promise<void>
+  }) => Promise<void>,
+): Promise<void> {
+  const admin = new pg.Pool({ connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL })
+  const held = await admin.connect()
+  let open = false
+  try {
+    const { rows } = await held.query<{ pid: number }>('SELECT pg_backend_pid() AS pid')
+    const pid = rows[0]!.pid
+    await held.query('BEGIN')
+    open = true
+    await held.query(statement, params)
+    await fn({
+      waitedOn: async (pattern) =>
+        Number(
+          (
+            await admin.query<{ n: string }>(
+              `SELECT count(*) AS n FROM pg_stat_activity
+                WHERE datname = current_database() AND wait_event_type = 'Lock'
+                  AND query ILIKE $2 AND $1 = ANY(pg_blocking_pids(pid))`,
+              [pid, pattern],
+            )
+          ).rows[0]!.n,
+        ) > 0,
+      commit: async () => {
+        await held.query(change)
+        await held.query('COMMIT')
+        open = false
+      },
+    })
+  } finally {
+    if (open) await held.query('ROLLBACK')
+    held.release()
+    await admin.end()
+  }
+}
+
+/** Polls `condition` until it holds, or fails naming what it waited for. */
+async function until(
+  condition: () => boolean | Promise<boolean>,
+  what: string,
+  // Under the test's own 5 s, so a submission that never waits fails HERE, naming what it waited for.
+  timeoutMs = 3_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (!(await condition())) {
+    if (Date.now() > deadline)
+      throw new Error(`timed out after ${timeoutMs} ms waiting for ${what}`)
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+}

@@ -520,9 +520,9 @@ export const ERROR_CODES = {
     status: 409,
     families: ['LaunchRecordError'],
     summary:
-      'The staging registration is sent only once the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.',
+      'Neither registration is sent until the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.',
     remedy:
-      'Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the staging registration and say so again.',
+      'Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the registration and say so again.',
   },
   LAUNCH_STAGING_NOT_REGISTERED: {
     status: 409,

@@ -261,7 +261,10 @@ export async function recordIamRegistration(
         registeredAt,
         state,
         recordedBy: input.actor.id,
-        externalTicketRef: input.externalTicketRef ?? null,
+        // KEPT WHEN NOT GIVEN (the whole-branch review's M2): since Task 9 the owner writes it too, at
+        // "I've sent it", and an administrator recording UBC's answer without one must not erase it —
+        // for an assessment, the PIA number the staging gate reads.
+        externalTicketRef: input.externalTicketRef ?? existing?.externalTicketRef ?? null,
         certFingerprint: input.certFingerprint ?? null,
         certExpiresAt: input.certExpiresAt ?? null,
         updatedAt: new Date(),
@@ -349,7 +352,10 @@ export async function recordPrivacyAssessment(
         approvedAt,
         ...submitted,
         reviewer: input.reviewer ?? null,
-        externalTicketRef: input.externalTicketRef ?? null,
+        // KEPT WHEN NOT GIVEN (the whole-branch review's M2): since Task 9 the owner writes it too, at
+        // "I've sent it", and an administrator recording UBC's answer without one must not erase it —
+        // for an assessment, the PIA number the staging gate reads.
+        externalTicketRef: input.externalTicketRef ?? existing?.externalTicketRef ?? null,
         recordedBy: input.actor.id,
         updatedAt: new Date(),
       },
@@ -426,6 +432,15 @@ export interface SubmitInput {
 function sentDay(sentAt: string | undefined, draftedAt: Date): string {
   const today = vancouverDay(new Date())
   const day = sentAt ?? today
+  // A DAY THAT EXISTS (the whole-branch review's I2): `2026-02-30` would roll over to March 2, and
+  // compare as a string on the wrong side of the draft's day. The route's schema refuses it first;
+  // this is the module's own refusal, for any other caller.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || vancouverDay(vancouverNoon(day)) !== day)
+    throw new LaunchRecordError(
+      'LAUNCH_SENT_AT_INVALID',
+      `sentAt ${day} is not a day: give it as YYYY-MM-DD`,
+      'Give the day you sent it, as YYYY-MM-DD — or leave it out for today.',
+    )
   if (day > today)
     throw new LaunchRecordError(
       'LAUNCH_SENT_AT_INVALID',
@@ -458,11 +473,21 @@ const noDraft = (what: string) =>
  *  1. **A draft must exist** (`409 LAUNCH_DRAFT_REQUIRED`): the package is what the person sends.
  *  2. **Along `SUBMIT_ARROWS`** (`409 LAUNCH_TRANSITION_INVALID`): from a draft, after UBC asked for
  *     changes, or once it lapsed — never from what UBC has decided, never twice.
- *  3. **In UBC's order** (Spec action 9, Rich's *"Gate each step"*): staging's only once the privacy
- *     assessment is approved AND carries its reference, the PIA number UBC IAM asks for
- *     (`409 LAUNCH_PIA_NOT_APPROVED`); production's only once staging's is `active`
- *     (`409 LAUNCH_STAGING_NOT_REGISTERED` — *"tested"* is the owner's judgement, not measured).
+ *  3. **In UBC's order** (Spec action 9, Rich's *"Gate each step"*): EITHER registration only once the
+ *     privacy assessment is approved AND carries its reference, the PIA number UBC IAM asks for
+ *     (`409 LAUNCH_PIA_NOT_APPROVED` — §9: *"neither of an app's registrations is sent until the
+ *     assessment is approved"*, so production's checks it too, and staging recorded `active` by an
+ *     administrator cannot carry it past; the whole-branch review's I3); production's only once
+ *     staging's is `active` as well (`409 LAUNCH_STAGING_NOT_REGISTERED` — *"tested"* is the owner's
+ *     judgement, not measured).
  *  4. **On a day that can be true** (`400 LAUNCH_SENT_AT_INVALID`).
+ *
+ * **ONE TRANSACTION, AND WHAT IT DECIDES BY IS HELD** (the whole-branch review's I1): the record
+ * `FOR UPDATE`, the assessment and staging's registration `FOR SHARE`. An administrator's record —
+ * one upsert, one row lock — then lands wholly before this reads or wholly after it commits: never a
+ * second *"I've sent it"* over a submission they recorded in the meantime, never a submission
+ * through a gate that closed while it was being read. The locks are taken registration → assessment
+ * → staging, and no writer holds two, so they cannot deadlock.
  *
  * The caller is `submitIamRegistration`'s route, in a person's own session (`launch:submit`,
  * person-only).
@@ -472,64 +497,90 @@ export async function submitIamRegistration(
   bus: EventBus,
   input: SubmitInput & { environment: RegistrationEnvironment },
 ): Promise<IamRegistrationRow> {
-  const existing = await getIamRegistration(db, input.projectId, input.environment)
-  if (existing === undefined || existing.generatedPackage === null)
-    throw noDraft(`this app's ${input.environment} registration`)
-  if (!SUBMIT_ARROWS.iam.has(existing.state))
-    refuseSubmission('an IAM registration', existing.state, SUBMIT_ARROWS.iam)
+  const { row, day } = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(iamRegistrations)
+      .where(
+        and(
+          eq(iamRegistrations.projectId, input.projectId),
+          eq(iamRegistrations.environmentKind, input.environment),
+        ),
+      )
+      .for('update')
+    if (existing === undefined || existing.generatedPackage === null)
+      throw noDraft(`this app's ${input.environment} registration`)
+    if (!SUBMIT_ARROWS.iam.has(existing.state))
+      refuseSubmission('an IAM registration', existing.state, SUBMIT_ARROWS.iam)
 
-  if (input.environment === 'staging') {
-    const pia = await getPrivacyAssessment(db, input.projectId)
+    const [pia] = await tx
+      .select()
+      .from(privacyAssessments)
+      .where(eq(privacyAssessments.projectId, input.projectId))
+      .for('share')
     if (pia?.state !== 'approved' || pia.externalTicketRef === null)
       throw new LaunchRecordError(
         'LAUNCH_PIA_NOT_APPROVED',
         pia?.state === 'approved'
-          ? 'the privacy assessment is approved but carries no reference: UBC IAM asks for the PIA number, so the staging registration waits for it'
-          : `the privacy assessment is ${pia === undefined ? 'not yet recorded' : `'${pia.state}'`}: UBC's order is the assessment first, and the staging registration is sent once it is approved`,
-        'Send the privacy assessment first; once an administrator records it approved, with its PIA number, send the staging registration.',
+          ? `the privacy assessment is approved but carries no reference: UBC IAM asks for the PIA number, so the ${input.environment} registration waits for it`
+          : `the privacy assessment is ${pia === undefined ? 'not yet recorded' : `'${pia.state}'`}: UBC's order is the assessment first, and neither registration is sent until it is approved`,
+        pia?.state === 'approved'
+          ? 'Ask an administrator to record the assessment’s PIA number, then send the registration and say so again.'
+          : 'Send the privacy assessment first; once an administrator records it approved, with its PIA number, send the registration.',
       )
-  } else {
-    const staging = await getIamRegistration(db, input.projectId, 'staging')
-    if (staging?.state !== 'active')
-      throw new LaunchRecordError(
-        'LAUNCH_STAGING_NOT_REGISTERED',
-        `the staging registration is ${staging === undefined ? 'not yet recorded' : `'${staging.state}'`}: UBC's order is staging first, and the production registration is sent once staging is registered and tested`,
-        'Send the staging registration first; once an administrator records it active and the app is tested at staging, send production’s.',
-      )
-  }
+    if (input.environment === 'production') {
+      const [staging] = await tx
+        .select()
+        .from(iamRegistrations)
+        .where(
+          and(
+            eq(iamRegistrations.projectId, input.projectId),
+            eq(iamRegistrations.environmentKind, 'staging'),
+          ),
+        )
+        .for('share')
+      if (staging?.state !== 'active')
+        throw new LaunchRecordError(
+          'LAUNCH_STAGING_NOT_REGISTERED',
+          `the staging registration is ${staging === undefined ? 'not yet recorded' : `'${staging.state}'`}: UBC's order is staging first, and the production registration is sent once staging is registered and tested`,
+          'Send the staging registration first; once an administrator records it active and the app is tested at staging, send production’s.',
+        )
+    }
 
-  const day = sentDay(input.sentAt, existing.createdAt)
-  const [row] = await db
-    .update(iamRegistrations)
-    .set({
-      state: 'submitted',
-      submittedAt: vancouverNoon(day),
-      submittedBy: input.actor.id,
-      ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),
-      updatedAt: new Date(),
-    })
-    .where(eq(iamRegistrations.id, existing.id))
-    .returning()
+    const day = sentDay(input.sentAt, existing.createdAt)
+    const [row] = await tx
+      .update(iamRegistrations)
+      .set({
+        state: 'submitted',
+        submittedAt: vancouverNoon(day),
+        submittedBy: input.actor.id,
+        ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),
+        updatedAt: new Date(),
+      })
+      .where(eq(iamRegistrations.id, existing.id))
+      .returning()
+    return { row: row!, day }
+  })
 
   await publishEvent(
     db,
     bus,
     {
       projectId: input.projectId,
-      subject: `iam-registration:${row!.id}`,
+      subject: `iam-registration:${row.id}`,
       type: 'iam_registration.submitted',
       machineDetail: {
         environment: input.environment,
         sentAt: day,
-        externalTicketRef: row!.externalTicketRef ?? null,
+        externalTicketRef: row.externalTicketRef ?? null,
       },
       humanMessage:
         `${await personName(db, input.actor.id)} said this app's ${input.environment} registration was sent to UBC IAM on ${vancouverDayInWords(vancouverNoon(day))}` +
-        `${row!.externalTicketRef === null ? '' : ` (ticket ${row!.externalTicketRef})`}.`,
+        `${row.externalTicketRef === null ? '' : ` (ticket ${row.externalTicketRef})`}.`,
     },
     makeRedactor([]),
   )
-  return row!
+  return row
 }
 
 /**
@@ -541,40 +592,48 @@ export async function submitPrivacyAssessment(
   bus: EventBus,
   input: SubmitInput,
 ): Promise<PrivacyAssessmentRow> {
-  const existing = await getPrivacyAssessment(db, input.projectId)
-  if (existing === undefined || existing.generatedDraft === null)
-    throw noDraft("this app's privacy assessment")
-  if (!SUBMIT_ARROWS.pia.has(existing.state))
-    refuseSubmission('a privacy assessment', existing.state, SUBMIT_ARROWS.pia)
+  // The registration's rule (the whole-branch review's I1): the record held while it is decided.
+  const { row, day } = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(privacyAssessments)
+      .where(eq(privacyAssessments.projectId, input.projectId))
+      .for('update')
+    if (existing === undefined || existing.generatedDraft === null)
+      throw noDraft("this app's privacy assessment")
+    if (!SUBMIT_ARROWS.pia.has(existing.state))
+      refuseSubmission('a privacy assessment', existing.state, SUBMIT_ARROWS.pia)
 
-  const day = sentDay(input.sentAt, existing.createdAt)
-  const [row] = await db
-    .update(privacyAssessments)
-    .set({
-      state: 'submitted',
-      submittedAt: vancouverNoon(day),
-      submittedBy: input.actor.id,
-      ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),
-      updatedAt: new Date(),
-    })
-    .where(eq(privacyAssessments.id, existing.id))
-    .returning()
+    const day = sentDay(input.sentAt, existing.createdAt)
+    const [row] = await tx
+      .update(privacyAssessments)
+      .set({
+        state: 'submitted',
+        submittedAt: vancouverNoon(day),
+        submittedBy: input.actor.id,
+        ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),
+        updatedAt: new Date(),
+      })
+      .where(eq(privacyAssessments.id, existing.id))
+      .returning()
+    return { row: row!, day }
+  })
 
   await publishEvent(
     db,
     bus,
     {
       projectId: input.projectId,
-      subject: `privacy-assessment:${row!.id}`,
+      subject: `privacy-assessment:${row.id}`,
       type: 'privacy_assessment.submitted',
-      machineDetail: { sentAt: day, externalTicketRef: row!.externalTicketRef ?? null },
+      machineDetail: { sentAt: day, externalTicketRef: row.externalTicketRef ?? null },
       humanMessage:
         `${await personName(db, input.actor.id)} said this app's privacy assessment was sent to the UBC Privacy Office on ${vancouverDayInWords(vancouverNoon(day))}` +
-        `${row!.externalTicketRef === null ? '' : ` (ticket ${row!.externalTicketRef})`}.`,
+        `${row.externalTicketRef === null ? '' : ` (ticket ${row.externalTicketRef})`}.`,
     },
     makeRedactor([]),
   )
-  return row!
+  return row
 }
 
 /** Who said a record was sent, by name — what `IamRegistration.submittedBy` and the assessment's answer. */

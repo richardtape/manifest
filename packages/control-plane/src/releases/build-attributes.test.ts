@@ -199,9 +199,15 @@ describe('only a registration UBC has registered gates a build (the launch path 
   it('a submitted production registration, not yet registered, never fails a build', async () => {
     await withProject(async (tx, { projectId }) => {
       const draft = await withDraft(tx, { projectId, environment: 'production' })
+      // A NON-EMPTY list, as an administrator's record of a request always carries (the whole-branch
+      // review's M1): with `[]` here, a check that merely skipped an empty list would also be green.
       await tx
         .update(iamRegistrations)
-        .set({ state: 'submitted', submittedAt: new Date() })
+        .set({
+          state: 'submitted',
+          submittedAt: new Date(),
+          registeredAttributes: ['ubcEduCwlPuid'],
+        })
         .where(eq(iamRegistrations.id, draft.id))
       const { build } = await buildOf(
         tx,

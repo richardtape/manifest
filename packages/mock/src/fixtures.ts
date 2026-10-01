@@ -661,10 +661,10 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       owner: 'UBC Privacy Office, recorded by a platform administrator (§9)',
       blocking: true,
       state: 'unmet',
-      // Waiting on the Privacy Office since the day it was sent — `PRIVACY_ASSESSMENT.submittedAt` —
+      // Waiting on the Privacy Office since the day it was RE-sent — `PRIVACY_ASSESSMENT.submittedAt` —
       // in `launch/readiness.ts`'s words for a dated submission (the launch path plan's Task 9).
-      why: "It was sent to the UBC Privacy Office on September 10, 2026. The assessment is 'submitted' (ticket PIA-2026-0088) and must be 'approved' before anything goes to production.",
-      since: '2026-09-10T19:00:00.000Z',
+      why: "It was sent to the UBC Privacy Office on September 18, 2026. The assessment is 'submitted' (ticket PIA-2026-0088) and must be 'approved' before anything goes to production.",
+      since: '2026-09-18T19:00:00.000Z',
     },
     {
       id: 'rehearsal',
@@ -1070,10 +1070,11 @@ export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   registeredAt: '2026-09-15T00:00:00.000Z',
   state: 'active',
   externalTicketRef: 'IAM-2026-0412',
-  // The launch path plan's Task 9: when its owner said it was sent, and who.
-  submittedAt: '2026-09-12T19:00:00.000Z',
+  // The launch path plan's Task 9: when its owner said it was sent, and who — after staging was
+  // registered, IN UBC'S ORDER (see `PRIVACY_ASSESSMENT`).
+  submittedAt: '2026-09-10T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
-  createdAt: '2026-09-11T00:00:00.000Z',
+  createdAt: '2026-09-09T00:00:00.000Z',
   updatedAt: '2026-09-20T00:00:00.000Z',
 }
 
@@ -1092,15 +1093,23 @@ export const STAGING_REGISTRATION: Schemas['IamRegistration'] = {
   certExpiresAt: null,
   registeredAttributes: ['givenName', 'mail', 'sn', 'ubcEduCwlPuid'],
   requestedAttributes: null,
-  registeredAt: '2026-09-11T00:00:00.000Z',
+  registeredAt: '2026-09-09T00:00:00.000Z',
   state: 'active',
   externalTicketRef: 'IAM-2026-0398',
-  submittedAt: '2026-09-04T19:00:00.000Z',
+  // Sent the day after the assessment was approved — the order the platform gates the owner in.
+  submittedAt: '2026-09-06T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
-  createdAt: '2026-09-03T00:00:00.000Z',
-  updatedAt: '2026-09-11T00:00:00.000Z',
+  createdAt: '2026-09-05T00:00:00.000Z',
+  updatedAt: '2026-09-09T00:00:00.000Z',
 }
 
+/**
+ * STILL WITH THE PRIVACY OFFICE — AND SENT AGAIN, IN UBC'S ORDER (the launch path plan's Task 9, the
+ * whole-branch review's I5). Approved on 2026-09-05 with its PIA number, which is what let both
+ * registrations go (staging on the 6th, production on the 10th); then reopened — a change to what the
+ * app collects — and sent again on the 18th. So it is `submitted`, its approval cleared, and the
+ * checklist's item is the one `unmet` with no `builtBy`, as this fixture has always shown.
+ */
 export const PRIVACY_ASSESSMENT: Schemas['PrivacyAssessment'] = {
   id: '99999999-9999-4999-8999-999999999992',
   projectId: PROJECT_ID,
@@ -1108,9 +1117,9 @@ export const PRIVACY_ASSESSMENT: Schemas['PrivacyAssessment'] = {
   reviewer: 'UBC Privacy Office',
   approvedAt: null,
   externalTicketRef: 'PIA-2026-0088',
-  submittedAt: '2026-09-10T19:00:00.000Z',
+  submittedAt: '2026-09-18T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
-  createdAt: '2026-09-02T00:00:00.000Z',
+  createdAt: '2026-09-01T00:00:00.000Z',
   updatedAt: '2026-09-20T00:00:00.000Z',
 }
 

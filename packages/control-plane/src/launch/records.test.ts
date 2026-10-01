@@ -642,6 +642,8 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
   it('submits a drafted production registration: submitted, stamped with the day and the person', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
+      // UBC's order: the assessment approved, then staging registered (the whole-branch review's I3).
+      await piaApproved(db, projectId, actor)
       await stagingActive(db, projectId, actor)
       await withDraft(db, { projectId, environment: 'production' })
       const today = vancouverToday()
@@ -863,6 +865,55 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
         actor,
       })
       expect((await submit()).state).toBe('submitted')
+    })
+  })
+
+  it('UBC’s order: a PRODUCTION submission waits for the assessment too, even with staging recorded active — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
+    // The whole-branch review's I3: §9, "neither of an app's registrations is sent until the
+    // assessment is approved". Staging recorded `active` by an administrator — never refused for
+    // order, and the laptop's normal path — must not carry production past the assessment.
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await stagingActive(db, projectId, actor)
+      await withDraft(db, { projectId, environment: 'production' })
+      const submit = () =>
+        submitIamRegistration(db, bus, { projectId, environment: 'production', actor })
+      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      expect((await getIamRegistration(db, projectId, 'production'))?.state).toBe('draft')
+      // THE POSITIVE CONTROL: the assessment approved, with its reference.
+      await piaApproved(db, projectId, actor)
+      expect((await submit()).state).toBe('submitted')
+    })
+  })
+
+  it('refuses a day that is not one, whoever calls it — LAUNCH_SENT_AT_INVALID, never rolled over', async () => {
+    // The whole-branch review's I2, below the route: `2026-02-30` would be stored as March 2.
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      await withDraft(db, {
+        projectId,
+        environment: 'staging',
+        createdAt: new Date('2025-12-01T17:00:00.000Z'),
+      })
+      for (const sentAt of ['2026-02-30', '2026-00-15', '2025-13-01'])
+        await expect(
+          submitIamRegistration(db, bus, {
+            projectId,
+            environment: 'staging',
+            actor,
+            sentAt,
+          }),
+          sentAt,
+        ).rejects.toMatchObject({ code: 'LAUNCH_SENT_AT_INVALID' })
+      // Positive control: a real day in that range.
+      const row = await submitIamRegistration(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor,
+        sentAt: '2026-02-28',
+      })
+      expect(row.submittedAt?.toISOString()).toBe('2026-02-28T20:00:00.000Z')
     })
   })
 

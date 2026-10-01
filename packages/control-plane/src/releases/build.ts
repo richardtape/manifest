@@ -311,8 +311,10 @@ async function finishBuild(
  * **ONLY WHAT UBC HAS REGISTERED IS CHECKED** (the launch path plan's Task 9, Decision 7): the
  * PRODUCTION registration, and only once `registered_at` is set. An owner's draft, a request sent
  * and not yet answered, and the staging registration all gate nothing — so a faculty member can
- * draft the registration in week one and the agent can still add an attribute in week three, and
- * the checklist's `iam-registration` item is what says the draft no longer covers the app.
+ * draft the registration in week one and the agent can still add an attribute in week three. That
+ * the draft then no longer covers the app is for the checklist's `iam-registration` item to say —
+ * which it will once the launch path plan's Task 10 gives a draft its attribute list; until then it
+ * says only that the registration is not yet registered.
  *
  * **`iam_registrations` IS READ HERE THROUGH `db/`, NOT THROUGH `launch/`'s
  * `getIamRegistration`**, and that is a decision: `launch/readiness.ts` imports `releases/`

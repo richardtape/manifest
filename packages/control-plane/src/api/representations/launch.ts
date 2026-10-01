@@ -85,12 +85,6 @@ export const LaunchReadiness = representation(
     ),
 )
 
-/**
- * §6's `IamRegistration`, as a client reads it. **Manifest TRACKS this; UBC IAM produces
- * it** (D19, R1) — so every field is what an administrator recorded from the ticket, not
- * something derived here. P8 generates the submission; the shape does not change when it
- * does, which is §9's whole argument for modelling the submission state now.
- */
 /** Who said a record was sent, by name (the launch path plan's Task 9). */
 const Submitter = z
   .object({
@@ -99,6 +93,12 @@ const Submitter = z
   })
   .describe('The person who said it was sent.')
 
+/**
+ * §6's `IamRegistration`, as a client reads it. **Manifest TRACKS this; UBC IAM produces
+ * it** (D19, R1) — so every field is what an administrator recorded from the ticket, not
+ * something derived here. P8 generates the submission; the shape does not change when it
+ * does, which is §9's whole argument for modelling the submission state now.
+ */
 export const IamRegistration = representation(
   'IamRegistration',
   z
@@ -132,7 +132,7 @@ export const IamRegistration = representation(
       registeredAttributes: z
         .array(z.string())
         .describe(
-          'WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7). Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`.',
+          'What UBC IAM registered; empty until it has registered something. Builds are checked against the PRODUCTION registration’s list once UBC has registered it (`registeredAt` set): a build that asks for an attribute not in it fails. The staging registration’s list, and one not yet registered, gate no build. Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`.',
         ),
       requestedAttributes: z
         .array(z.string())
@@ -313,9 +313,10 @@ export const SubmitLaunchRecordRequest = request(
   'SubmitLaunchRecordRequest',
   z
     .strictObject({
-      sentAt: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
+      // A DAY THAT EXISTS — `z.iso.date()` checks month lengths and leap years (the whole-branch
+      // review's I2: a pattern alone let `2026-02-30` through, stored as March 2).
+      sentAt: z.iso
+        .date()
         .optional()
         .describe(
           'The day it was sent, `YYYY-MM-DD` — today or earlier, and not before the draft was made. Today in Vancouver when absent.',
@@ -355,6 +356,9 @@ export const RecordPrivacyAssessmentRequest = request(
     .describe('What the Privacy Office said, as an administrator records it (§9).'),
 )
 
+/** Who a record says sent it, by name — read by the route, which has the database (Task 9). */
+export type SubmitterOf = z.infer<typeof Submitter> | null
+
 /**
  * **TWO SIGNATURES, because the two callers differ in a way `tsc` should hold them to.**
  * The READ may find nothing — an absent record is a state, not an error — while a route
@@ -363,9 +367,6 @@ export const RecordPrivacyAssessmentRequest = request(
  * signature returning `| null` made `defineRoute` reject the handler, which is how this
  * was found rather than shipped.
  */
-/** Who a record says sent it, by name — read by the route, which has the database (Task 9). */
-export type SubmitterOf = z.infer<typeof Submitter> | null
-
 export function toIamRegistration(
   row: IamRegistrationRow,
   submittedBy: SubmitterOf,

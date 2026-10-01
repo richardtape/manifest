@@ -4345,7 +4345,7 @@
                   "$ref": "#/components/schemas/LaunchReadiness"
                 },
                 "example": {
-                  "projectId": "bd8dfbcc-4c37-4e7d-ab4b-4e1ce0c032e6",
+                  "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
                   "launched": false,
                   "ready": false,
                   "candidateReleaseId": null,
@@ -4368,8 +4368,8 @@
                       "owner": "UBC IAM, recorded by a platform administrator (§9)",
                       "blocking": true,
                       "state": "unmet",
-                      "why": "It was sent to UBC IAM on October 14, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
-                      "since": "2026-10-14T19:00:00.000Z"
+                      "why": "It was sent to UBC IAM on September 30, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
+                      "since": "2026-09-30T19:00:00.000Z"
                     }
                   ]
                 }
@@ -4427,14 +4427,14 @@
                   "$ref": "#/components/schemas/LaunchRecords"
                 },
                 "example": {
-                  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                  "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
                   "iamRegistration": {
-                    "id": "5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13",
-                    "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                    "id": "f9724bbd-43f6-485b-ae8a-f879f015b2b5",
+                    "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
                     "environment": "production",
-                    "entityId": "https://manifest.internal/sp/class-check-ins/production",
-                    "acsUrl": "https://class-check-ins.manifest.internal/auth/ubcshib/callback",
-                    "sloUrl": "https://class-check-ins.manifest.internal/auth/logout",
+                    "entityId": "https://manifest.internal/sp/fixture-dee0f9d6/production",
+                    "acsUrl": "https://fixture-dee0f9d6.manifest.internal/auth/ubcshib/callback",
+                    "sloUrl": "https://fixture-dee0f9d6.manifest.internal/auth/logout",
                     "certFingerprint": null,
                     "certExpiresAt": null,
                     "registeredAttributes": [],
@@ -4442,21 +4442,21 @@
                     "registeredAt": null,
                     "state": "submitted",
                     "externalTicketRef": "IAM-2026-0500",
-                    "submittedAt": "2026-10-14T19:00:00.000Z",
+                    "submittedAt": "2026-09-30T19:00:00.000Z",
                     "submittedBy": {
-                      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                      "id": "f696c331-ac5a-4887-8811-aa562446342d",
                       "displayName": "Bio Prof"
                     },
-                    "createdAt": "2026-10-09T17:22:41.508Z",
-                    "updatedAt": "2026-10-14T18:03:12.117Z"
+                    "createdAt": "2026-10-01T06:55:59.850Z",
+                    "updatedAt": "2026-10-01T06:55:59.861Z"
                   },
                   "stagingRegistration": {
-                    "id": "77e7ddc9-7571-4de3-9ba7-6a4372526295",
-                    "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                    "id": "7fefdd84-b85b-4010-b753-c5715a37f280",
+                    "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
                     "environment": "staging",
-                    "entityId": "https://manifest.internal/sp/class-check-ins/staging",
-                    "acsUrl": "https://class-check-ins.staging.manifest.internal/auth/ubcshib/callback",
-                    "sloUrl": "https://class-check-ins.staging.manifest.internal/auth/logout",
+                    "entityId": "https://manifest.internal/sp/fixture/staging",
+                    "acsUrl": "https://fixture.staging.manifest.internal/auth/ubcshib/callback",
+                    "sloUrl": "https://fixture.staging.manifest.internal/auth/logout",
                     "certFingerprint": null,
                     "certExpiresAt": null,
                     "registeredAttributes": [
@@ -4464,31 +4464,31 @@
                       "mail"
                     ],
                     "requestedAttributes": null,
-                    "registeredAt": "2026-10-07T21:48:50.164Z",
+                    "registeredAt": "2026-10-01T06:55:59.846Z",
                     "state": "active",
-                    "externalTicketRef": "IAM-2026-0480",
-                    "submittedAt": "2026-09-29T19:00:00.000Z",
+                    "externalTicketRef": null,
+                    "submittedAt": "2026-10-01T06:55:59.839Z",
                     "submittedBy": {
-                      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
-                      "displayName": "Bio Prof"
+                      "id": "99f8712e-e1bf-4683-abbf-e6c00237ca3c",
+                      "displayName": "Platform Admin"
                     },
-                    "createdAt": "2026-09-28T16:10:05.902Z",
-                    "updatedAt": "2026-10-07T21:48:50.164Z"
+                    "createdAt": "2026-10-01T06:55:59.838Z",
+                    "updatedAt": "2026-10-01T06:55:59.846Z"
                   },
                   "privacyAssessment": {
-                    "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
-                    "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                    "id": "0fa59301-628d-4a34-858e-3b51e9ea8e55",
+                    "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
                     "state": "approved",
                     "reviewer": "K. Privacy",
-                    "approvedAt": "2026-09-26T21:48:50.173Z",
+                    "approvedAt": "2026-10-01T06:55:59.831Z",
                     "externalTicketRef": "PIA-2026-0088",
-                    "submittedAt": "2026-09-15T19:00:00.000Z",
+                    "submittedAt": "2026-10-01T06:55:59.821Z",
                     "submittedBy": {
-                      "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
-                      "displayName": "Bio Prof"
+                      "id": "99f8712e-e1bf-4683-abbf-e6c00237ca3c",
+                      "displayName": "Platform Admin"
                     },
-                    "createdAt": "2026-09-14T20:31:16.044Z",
-                    "updatedAt": "2026-09-26T21:48:50.173Z"
+                    "createdAt": "2026-10-01T06:55:59.820Z",
+                    "updatedAt": "2026-10-01T06:55:59.831Z"
                   }
                 }
               }
@@ -4559,19 +4559,15 @@
                 "$ref": "#/components/schemas/RecordIamRegistrationRequest"
               },
               "example": {
-                "entityId": "https://manifest.internal/sp/iam-granted/production",
-                "acsUrl": "https://iam-granted.manifest.internal/auth/ubcshib/callback",
-                "sloUrl": "https://iam-granted.manifest.internal/auth/logout",
+                "entityId": "https://manifest.internal/sp/fixture/production",
+                "acsUrl": "https://fixture.production.manifest.internal/auth/ubcshib/callback",
+                "sloUrl": "https://fixture.production.manifest.internal/auth/logout",
                 "registeredAttributes": [
                   "ubcEduCwlPuid",
                   "mail"
                 ],
-                "requestedAttributes": [
-                  "ubcEduCwlPuid",
-                  "mail"
-                ],
-                "state": "change_requested",
-                "externalTicketRef": "IAM-iam-granted"
+                "state": "submitted",
+                "externalTicketRef": "IAM-1"
               }
             }
           }
@@ -4585,32 +4581,29 @@
                   "$ref": "#/components/schemas/IamRegistration"
                 },
                 "example": {
-                  "id": "62169b5f-1961-406a-8ad3-f5de46143c6f",
-                  "projectId": "9aa37d53-038d-4e78-9270-01c2ea085d21",
+                  "id": "af154ce9-c826-4ebe-aece-fde843b1ecbe",
+                  "projectId": "4282b668-6e36-42ec-8083-9ab697e04732",
                   "environment": "production",
-                  "entityId": "https://manifest.internal/sp/iam-granted/production",
-                  "acsUrl": "https://iam-granted.manifest.internal/auth/ubcshib/callback",
-                  "sloUrl": "https://iam-granted.manifest.internal/auth/logout",
+                  "entityId": "https://manifest.internal/sp/fixture/production",
+                  "acsUrl": "https://fixture.production.manifest.internal/auth/ubcshib/callback",
+                  "sloUrl": "https://fixture.production.manifest.internal/auth/logout",
                   "certFingerprint": null,
                   "certExpiresAt": null,
                   "registeredAttributes": [
                     "ubcEduCwlPuid",
                     "mail"
                   ],
-                  "requestedAttributes": [
-                    "ubcEduCwlPuid",
-                    "mail"
-                  ],
-                  "registeredAt": "2026-09-26T21:48:52.716Z",
-                  "state": "change_requested",
-                  "externalTicketRef": "IAM-iam-granted",
-                  "submittedAt": "2026-09-26T21:48:52.796Z",
+                  "requestedAttributes": null,
+                  "registeredAt": null,
+                  "state": "submitted",
+                  "externalTicketRef": "IAM-1",
+                  "submittedAt": "2026-10-01T06:56:08.961Z",
                   "submittedBy": {
-                    "id": "3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b",
+                    "id": "7cdb83c7-6a58-49e2-a8a8-0f480232ed6d",
                     "displayName": "Platform Admin"
                   },
-                  "createdAt": "2026-09-26T21:48:52.611Z",
-                  "updatedAt": "2026-09-26T21:48:52.796Z"
+                  "createdAt": "2026-10-01T06:56:08.960Z",
+                  "updatedAt": "2026-10-01T06:56:08.960Z"
                 }
               }
             }
@@ -4652,7 +4645,7 @@
           "launch"
         ],
         "summary": "Say a registration request was sent to UBC IAM",
-        "description": "The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: the staging registration is sent only once the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active (`409 LAUNCH_STAGING_NOT_REGISTERED`). It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.",
+        "description": "The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.",
         "security": [
           {
             "session": []
@@ -4704,7 +4697,7 @@
                 "$ref": "#/components/schemas/SubmitLaunchRecordRequest"
               },
               "example": {
-                "sentAt": "2026-10-14",
+                "sentAt": "2026-09-30",
                 "reference": "IAM-2026-0500"
               }
             }
@@ -4719,12 +4712,12 @@
                   "$ref": "#/components/schemas/IamRegistration"
                 },
                 "example": {
-                  "id": "5d2b0c1e-9a3f-4d7e-8b21-6c0f9e4a7d13",
-                  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                  "id": "f9724bbd-43f6-485b-ae8a-f879f015b2b5",
+                  "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
                   "environment": "production",
-                  "entityId": "https://manifest.internal/sp/class-check-ins/production",
-                  "acsUrl": "https://class-check-ins.manifest.internal/auth/ubcshib/callback",
-                  "sloUrl": "https://class-check-ins.manifest.internal/auth/logout",
+                  "entityId": "https://manifest.internal/sp/fixture-dee0f9d6/production",
+                  "acsUrl": "https://fixture-dee0f9d6.manifest.internal/auth/ubcshib/callback",
+                  "sloUrl": "https://fixture-dee0f9d6.manifest.internal/auth/logout",
                   "certFingerprint": null,
                   "certExpiresAt": null,
                   "registeredAttributes": [],
@@ -4732,13 +4725,13 @@
                   "registeredAt": null,
                   "state": "submitted",
                   "externalTicketRef": "IAM-2026-0500",
-                  "submittedAt": "2026-10-14T19:00:00.000Z",
+                  "submittedAt": "2026-09-30T19:00:00.000Z",
                   "submittedBy": {
-                    "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                    "id": "f696c331-ac5a-4887-8811-aa562446342d",
                     "displayName": "Bio Prof"
                   },
-                  "createdAt": "2026-10-09T17:22:41.508Z",
-                  "updatedAt": "2026-10-14T18:03:12.117Z"
+                  "createdAt": "2026-10-01T06:55:59.850Z",
+                  "updatedAt": "2026-10-01T06:55:59.861Z"
                 }
               }
             }
@@ -4820,9 +4813,7 @@
                 "$ref": "#/components/schemas/RecordPrivacyAssessmentRequest"
               },
               "example": {
-                "state": "approved",
-                "reviewer": "K. Privacy",
-                "externalTicketRef": "PIA-DELIVERY-1"
+                "state": "approved"
               }
             }
           }
@@ -4836,19 +4827,19 @@
                   "$ref": "#/components/schemas/PrivacyAssessment"
                 },
                 "example": {
-                  "id": "678fa833-25a5-4ddc-8f32-329d262e6c67",
-                  "projectId": "ed493bf0-5ff3-4f03-bfa2-ea7b7b53730f",
+                  "id": "f96ed25a-a768-42c9-b359-b8a1d019984b",
+                  "projectId": "ba33fb76-53ad-4f64-96b7-6e93f1e53df3",
                   "state": "approved",
-                  "reviewer": "K. Privacy",
-                  "approvedAt": "2026-09-26T21:47:36.002Z",
-                  "externalTicketRef": "PIA-DELIVERY-1",
-                  "submittedAt": "2026-09-26T21:47:35.912Z",
+                  "reviewer": null,
+                  "approvedAt": "2026-10-01T06:56:12.130Z",
+                  "externalTicketRef": "PIA-2026-0101",
+                  "submittedAt": "2026-09-30T19:00:00.000Z",
                   "submittedBy": {
-                    "id": "3f9e1c2b-7d4a-4e8f-a6b5-0c1d2e3f4a5b",
-                    "displayName": "Platform Admin"
+                    "id": "56746a30-6ba2-4c84-98fe-7640fda8a05d",
+                    "displayName": "Bio Prof"
                   },
-                  "createdAt": "2026-09-26T21:47:35.912Z",
-                  "updatedAt": "2026-09-26T21:47:36.002Z"
+                  "createdAt": "2026-10-01T06:56:12.112Z",
+                  "updatedAt": "2026-10-01T06:56:12.130Z"
                 }
               }
             }
@@ -4927,8 +4918,7 @@
                 "$ref": "#/components/schemas/SubmitLaunchRecordRequest"
               },
               "example": {
-                "sentAt": "2026-09-15",
-                "reference": "PIA-2026-0088"
+                "reference": "PIA-2026-0101"
               }
             }
           }
@@ -4942,19 +4932,19 @@
                   "$ref": "#/components/schemas/PrivacyAssessment"
                 },
                 "example": {
-                  "id": "04f0ba9a-51c7-449e-ab08-90969a0d6357",
-                  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                  "id": "1c31cb45-21cc-4d00-a704-ca13280fce19",
+                  "projectId": "a1750cc1-f060-431a-99f3-6da1fd4b17fb",
                   "state": "submitted",
                   "reviewer": null,
                   "approvedAt": null,
-                  "externalTicketRef": "PIA-2026-0088",
-                  "submittedAt": "2026-09-15T19:00:00.000Z",
+                  "externalTicketRef": "PIA-2026-0101",
+                  "submittedAt": "2026-09-30T19:00:00.000Z",
                   "submittedBy": {
-                    "id": "a0b7c3d2-5e6f-4a1b-9c8d-7e6f5a4b3c2d",
+                    "id": "027bc08a-b1f7-4b8b-87cd-3cb4ffb43b21",
                     "displayName": "Bio Prof"
                   },
-                  "createdAt": "2026-09-14T20:31:16.044Z",
-                  "updatedAt": "2026-09-15T17:40:09.330Z"
+                  "createdAt": "2026-10-01T06:56:00.855Z",
+                  "updatedAt": "2026-10-01T06:56:00.862Z"
                 }
               }
             }
@@ -9768,7 +9758,7 @@
           "INTAKE_SESSION_ALREADY_STARTED": "This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.",
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
           "LAUNCH_DRAFT_REQUIRED": "There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.",
-          "LAUNCH_PIA_NOT_APPROVED": "The staging registration is sent only once the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
+          "LAUNCH_PIA_NOT_APPROVED": "Neither registration is sent until the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
           "LAUNCH_SENT_AT_INVALID": "The day given for when it was sent cannot be true: it is after today in Vancouver, or before the draft that was sent was made.",
           "LAUNCH_STAGING_NOT_REGISTERED": "The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.",
@@ -14761,7 +14751,7 @@
             ]
           },
           "registeredAttributes": {
-            "description": "WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7). Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`.",
+            "description": "What UBC IAM registered; empty until it has registered something. Builds are checked against the PRODUCTION registration’s list once UBC has registered it (`registeredAt` set): a build that asks for an attribute not in it fails. The staging registration’s list, and one not yet registered, gate no build. Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`.",
             "type": "array",
             "items": {
               "type": "string"
@@ -18279,7 +18269,8 @@
           "sentAt": {
             "description": "The day it was sent, `YYYY-MM-DD` — today or earlier, and not before the draft was made. Today in Vancouver when absent.",
             "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           },
           "reference": {
             "description": "UBC’s reference for the request, when you have one yet.",
@@ -18710,8 +18701,8 @@
     },
     "LAUNCH_PIA_NOT_APPROVED": {
       "status": 409,
-      "summary": "The staging registration is sent only once the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
-      "remedy": "Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the staging registration and say so again."
+      "summary": "Neither registration is sent until the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
+      "remedy": "Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the registration and say so again."
     },
     "LAUNCH_RECORD_INVALID": {
       "status": 400,
