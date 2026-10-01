@@ -138,6 +138,14 @@ idp_login "$OP_JAR" "$OP_IDP_JAR" "$ORIGIN/auth/login" operator operator \
 ADMIN_SESSION="$(session_of "$OP_JAR")"
 [ -n "$ADMIN_SESSION" ] || fail "the operator's second sign-in left no session"
 
+# The launch path plan's Task 6c (Spec action 8 (b), §20): the rehearsal needs a step-up. A step-up
+# is a claim on the session COOKIE, and the un-stepped value above stays a valid session — so the
+# admin phase holds both: step 5 is refused on the ordinary one, then runs on the stepped one, and
+# step 6's approval is refused on the ordinary one as before.
+say "4. The administrator re-proves themselves for the rehearsal (§20's step-up)"
+ADMIN_SESSION_STEPPED="$(step_up "$OP_JAR" "$OP_IDP_JAR" operator)"
+echo "  the administrator stepped up"
+
 say "4–6. Records, the rehearsal, and an approval refused — through @manifest/contract"
 run_phase admin
 

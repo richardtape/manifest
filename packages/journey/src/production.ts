@@ -22,7 +22,8 @@ import { Checks, JourneyStop } from './check.js'
  * and steps them up BETWEEN the phases, and hands each phase the sessions it needs.
  *
  *   instructor  MANIFEST_SESSION                 steps 1–3
- *   admin       MANIFEST_ADMIN_SESSION           steps 4–6
+ *   admin       MANIFEST_ADMIN_SESSION           steps 4–6 (step 5's rehearsal: refused first,
+ *               MANIFEST_ADMIN_SESSION_STEPPED   then stepped up — the launch path plan's Task 6c)
  *   launch      MANIFEST_ADMIN_SESSION_STEPPED   steps 7–9
  *               MANIFEST_SESSION_STEPPED
  *
@@ -515,10 +516,49 @@ async function step4Records(): Promise<void> {
   )
 }
 
-/** Step 5: the rehearsal (R2) — the item is met by a MEASUREMENT on the public listener. */
+/** Production's instances, as the platform lists them — what a refused rehearsal must not add to. */
+async function productionInstanceIds(client: ManifestClient): Promise<string[]> {
+  const listed = unwrap(
+    await client.GET('/v1/environments/{environmentId}/instances', {
+      params: { path: { environmentId: state.productionEnvironmentId! } },
+    }),
+    'listInstances',
+  )
+  return listed.instances.map((i) => i.id).sort()
+}
+
+/**
+ * Step 5: the rehearsal (R2) — the item is met by a MEASUREMENT on the public listener. **Since the
+ * launch path plan's Task 6c** (Spec action 8, (b) and (c)): an ordinary session is refused first —
+ * §20, a stolen session is not enough to put an unapproved release on the public listener — and the
+ * stepped-up run takes production's instance down again before it records, so afterwards the public
+ * listener answers production's name with the wildcard, and production reads the instance `gone`.
+ */
 async function step5Rehearsal(): Promise<void> {
-  checks.step('5. Manifest runs the rehearsal (R2)')
-  const admin = clientFor('MANIFEST_ADMIN_SESSION')
+  checks.step(
+    '5. Manifest runs the rehearsal (R2) — after a step-up, and takes itself down',
+  )
+  const plain = clientFor('MANIFEST_ADMIN_SESSION')
+  const before = await productionInstanceIds(plain)
+  const refusedAttempt = await plain.POST('/v1/projects/{projectId}/rehearsal', {
+    params: {
+      path: { projectId: state.projectId! },
+      header: { 'Idempotency-Key': idempotencyKey() },
+    },
+  })
+  checks.ok(
+    'an ordinary session is refused 403 STEP_UP_REQUIRED',
+    refusal(refusedAttempt, 403, 'STEP_UP_REQUIRED') !== undefined,
+    describe(refusedAttempt),
+  )
+  const afterRefusal = await productionInstanceIds(plain)
+  checks.ok(
+    'and nothing was deployed — production lists the same instances',
+    afterRefusal.join(',') === before.join(','),
+    `${before.length} before, ${afterRefusal.length} after`,
+  )
+
+  const admin = clientFor('MANIFEST_ADMIN_SESSION_STEPPED')
   const startedAt = Date.now()
   const rehearsal = unwrap(
     await admin.POST('/v1/projects/{projectId}/rehearsal', {
@@ -552,6 +592,29 @@ async function step5Rehearsal(): Promise<void> {
     e.signInStatus === 200 &&
       [...e.attributesReleased].sort().join(',') === [...ATTRIBUTES].sort().join(','),
     `${e.signInStatus} [${e.attributesReleased.join(', ')}]`,
+  )
+  // TAKEN DOWN (Spec action 8 (c)): the BODY, never the status — the wildcard answers `200`.
+  const pub = await probe('127.0.0.3', '/healthz')
+  console.log(
+    `  afterwards 127.0.0.3 answered ${pub.status}, X-Manifest-Instance: ${pub.instance ?? '(none)'}: ${pub.body.slice(0, 80)}`,
+  )
+  checks.ok(
+    'afterwards the public listener answers production’s name with the wildcard — nothing of the app’s',
+    pub.body.startsWith(`manifest OK host=${PRODUCTION_HOST}`) &&
+      pub.body.includes('listener=public') &&
+      pub.instance === undefined,
+    `${pub.status} ${pub.instance ?? '(no instance)'} ${pub.body.slice(0, 80)}`,
+  )
+  const production = unwrap(
+    await admin.GET('/v1/environments/{environmentId}', {
+      params: { path: { environmentId: state.productionEnvironmentId! } },
+    }),
+    'getEnvironment',
+  )
+  checks.ok(
+    'and production reads the rehearsal’s instance as gone',
+    production.instance?.id === e.instanceId && production.instance.state === 'gone',
+    `${production.instance?.id ?? 'null'} ${production.instance?.state ?? ''}`,
   )
   const unmet = unmetBlocking(await readiness(admin))
   checks.ok(
