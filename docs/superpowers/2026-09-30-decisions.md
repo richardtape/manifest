@@ -212,3 +212,14 @@ recommendation put to him. Recorded as he gave them.
     is built on; before 5a, whose first Vitest truncates 7100) → 5a (may read and write code during the window, no Vitest)
     → F4a (needs Me.mayBuild, which 5a builds) in parallel with the platform's sitting 6. Mailpit moves to 5a's CLOSE
     (nothing needs it until F6).
+
+# Rich's decisions — 2026-09-30, evening (session manifest-60, manifest-00's successor as the planning session)
+
+Same rule: each answer is Rich's own, given in this session to the context, options and recommendation put to him.
+
+17. Mailpit's image pull (the handoff's section 2; the network) — asked: may the session look up Mailpit's current
+    release and pull `axllent/mailpit` at that tag (~30 MB), nothing else fetched; options "Yes, now", "Yes, after 5a
+    closes", "No network today". Rich: "Yes, now (Recommended)".
+    => DONE 2026-09-30 ~21:10: Docker Hub's tag list read; `axllent/mailpit:v1.31.3` pulled (released 2026-09-27; index
+    digest sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d; arm64; 13.9 MB; Docker 29.7.2).
+    compose.yaml is NOT edited until sitting 5a's close-out commit lands.
