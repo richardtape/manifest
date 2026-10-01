@@ -13,7 +13,7 @@ export const meRoutes = [
     tag: 'identity',
     summary: 'The signed-in person',
     description:
-      'The person this session belongs to, and the platform role it is authorized as; a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.',
+      'The person this session belongs to, the platform role it is authorized as, and whether they may build (`mayBuild`); a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,
@@ -26,6 +26,7 @@ export const meRoutes = [
         displayName: 'Unrelated User',
         email: 'unrelated_user@example.ubc.ca',
         role: 'member',
+        mayBuild: true,
       },
     },
     handler: async ({ deps, request }) => {

@@ -376,13 +376,13 @@ describe('D24’s central refusal', () => {
       // reach the handler. The step-up refusal would have satisfied "no rows" for the
       // wrong reason.
       const owner = await sessionFor(ctx, 'bio_prof', 'owner', { steppedUp: true })
-      await sessionFor(ctx, 'bio_student')
+      await sessionFor(ctx, 'bio_colleague')
       const res = await ctx.app.inject({
         method: 'POST',
         url: `/v1/projects/${ctx.projectId}/members`,
         cookies: owner,
         headers: mutationHeaders(ctx.deps),
-        payload: { puid: 'bio_student', role: 'collaborator' },
+        payload: { puid: 'bio_colleague', role: 'collaborator' },
       })
       expect(res.statusCode).toBe(201)
       const rows = await ctx.db.select().from(pendingActions)
@@ -445,11 +445,11 @@ describe('D24’s central refusal', () => {
 describe('confirming a pending action (D24, Decision 6)', () => {
   it('lets the agent’s retry through exactly once', async () => {
     await withProjectServer(async (ctx) => {
-      // `bio_student` has to have signed in, or `addMember` answers 400
+      // `bio_colleague` has to have signed in, or `addMember` answers 400
       // MEMBER_USER_NOT_FOUND *after* the authorization check and the confirmed retry
       // never reaches the row it is meant to write (sitting 4's F2).
-      await sessionFor(ctx, 'bio_student')
-      const { ask, plaintext, pendingId } = await refusedOnce(ctx)
+      await sessionFor(ctx, 'bio_colleague')
+      const { ask, plaintext, pendingId } = await refusedOnce(ctx, 'bio_colleague')
 
       const confirmed = await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)
       expect(refusal(confirmed)).toEqual({ status: 200, code: undefined })
@@ -459,14 +459,14 @@ describe('confirming a pending action (D24, Decision 6)', () => {
       // THE SAME KEY, which is what D23.6's hint tells a client to send.
       const retry = await ask()
       expect(refusal(retry)).toEqual({ status: 201, code: undefined })
-      expect(await memberPuids(ctx)).toContain('bio_student')
+      expect(await memberPuids(ctx)).toContain('bio_colleague')
       expect((await pendingById(ctx.db, pendingId))?.consumedAt).not.toBeNull()
 
       // ONCE. A second ATTEMPT at the action is a new request — a fresh key — and it is
       // a NEW question, not the old one: the grant was spent.
       const again = await ctx.app.inject({
         ...addMemberRequest(ctx.projectId, plaintext, 'm'.repeat(12)),
-        payload: { puid: 'bio_student', role: 'collaborator' },
+        payload: { puid: 'bio_colleague', role: 'collaborator' },
       })
       expect(refusal(again)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
       expect(again.json().error.pendingAction.id).not.toBe(pendingId)
@@ -485,8 +485,8 @@ describe('confirming a pending action (D24, Decision 6)', () => {
      * run. A reader who assumes otherwise mis-reads `consumed_at`.
      */
     await withProjectServer(async (ctx) => {
-      await sessionFor(ctx, 'bio_student')
-      const { ask, pendingId } = await refusedOnce(ctx)
+      await sessionFor(ctx, 'bio_colleague')
+      const { ask, pendingId } = await refusedOnce(ctx, 'bio_colleague')
       await confirmed(ctx, pendingId)
       const retry = await ask()
       expect(retry.statusCode).toBe(201)
@@ -995,6 +995,35 @@ describe('§20’s step-up meets D24’s loop', () => {
       })
       expect(refusal(res)).toEqual({ status: 200, code: undefined })
       expect(res.json().state).toBe('rejected')
+    })
+  })
+})
+
+/**
+ * WHO MAY BUILD ON THE AGENT'S PATH (FE-39). `addMember` is not session-only: a token's request
+ * becomes a question a person answers, and the confirmed RETRY reaches the same handler — so the
+ * target check holds there too, after the person said yes.
+ */
+describe('a confirmed retry still adds only a person who may build (FE-39)', () => {
+  it('naming a student is refused MEMBER_MAY_NOT_BUILD after the confirmation, and adds nobody', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student')
+      const { ask, pendingId } = await refusedOnce(ctx, 'bio_student')
+      await confirmed(ctx, pendingId)
+      const retry = await ask()
+      expect(refusal(retry)).toEqual({ status: 409, code: 'MEMBER_MAY_NOT_BUILD' })
+      expect(await memberPuids(ctx)).not.toContain('bio_student')
+    })
+  })
+
+  it('naming a faculty member is added, by the same loop', async () => {
+    // The positive control: a faculty colleague, through the same loop.
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_colleague')
+      const { ask, pendingId } = await refusedOnce(ctx, 'bio_colleague')
+      await confirmed(ctx, pendingId)
+      expect(refusal(await ask())).toEqual({ status: 201, code: undefined })
+      expect(await memberPuids(ctx)).toContain('bio_colleague')
     })
   })
 })

@@ -19,6 +19,7 @@ import {
 import { SourceError, type RepoRef, type RepositoryLink } from '../../source/index.js'
 import { declaresModels, validateSpec } from '../../spec/index.js'
 import type { ValidationContext } from '../../spec/index.js'
+import { assertSignedInMayBuild } from '../../identity/index.js'
 import { requireSession } from '../actor.js'
 import { defineRoute, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
@@ -138,7 +139,7 @@ export const projectWriteRoutes = [
     tag: 'projects',
     summary: 'Create a project',
     description:
-      'Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token). Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.',
+      'Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token), and only for a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`); anyone else is refused `BUILDING_NOT_OPEN` before anything is checked or created. Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: CreateProjectRequest,
@@ -162,6 +163,7 @@ export const projectWriteRoutes = [
       'AI_BACKEND_UNAVAILABLE',
       'AI_CATALOGUE_EMPTY',
       'TOKEN_CREDENTIAL_REFUSED',
+      'BUILDING_NOT_OPEN',
     ],
     examples: {
       request: {
@@ -241,6 +243,9 @@ export const projectWriteRoutes = [
        * this one is stated here and not there (`[M1]`).
        */
       const actor = requireSession(request)
+      // 0. WHO MAY BUILD (FE-39) — first, so a person who may not learns nothing about blueprints,
+      //    starters or which names are taken, and nothing is read or written for them.
+      await assertSignedInMayBuild(deps.db, actor)
       // 1. The blueprint and the starter exist — before anything is checked against them.
       const descriptor = deps.blueprints.resolve(body.blueprint)
       if (descriptor === undefined) {

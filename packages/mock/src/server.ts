@@ -80,6 +80,13 @@ export interface MockOptions {
   confidential?: boolean
   agentBudget?: 'ok' | 'exhausted' | 'unavailable'
   intake?: 'open' | 'daily-limit' | 'budget-spent'
+  /**
+   * WHO MAY BUILD (FE-39): `true` by default — the instructor is faculty. `MANIFEST_MOCK_MAY_BUILD=0`
+   * plays a person who may not: `getMe` answers `mayBuild: false`, `createProject` and
+   * `startIntakeSession` are refused `403 BUILDING_NOT_OPEN`, and `addMember` is refused `409
+   * MEMBER_MAY_NOT_BUILD` — the person named may not be added. An administrator always may build.
+   */
+  mayBuild?: boolean
   /** §12's silent scan window; shortened by a test that must not wait ten seconds. */
   scanSilenceMs?: number
 }
@@ -109,6 +116,17 @@ interface Answer {
 }
 
 type Answerer = (ctx: Context) => Answer
+
+/** `createProject` and `startIntakeSession`, as the platform refuses a person who may not build. */
+function refuseUnlessMayBuild(ctx: Context): void {
+  if (ctx.options.mayBuild || ctx.options.role === 'admin') return
+  throw new MockRefusal(
+    403,
+    'BUILDING_NOT_OPEN',
+    'building apps on Manifest is open only to faculty members for now',
+    'Nothing was created. If you teach at UBC and think you should be able to build, ask a platform administrator.',
+  )
+}
 
 const ok = (schema: string, body: unknown): Answer => ({ status: 200, schema, body })
 const created = (schema: string, body: unknown): Answer => ({ status: 201, schema, body })
@@ -322,7 +340,13 @@ const ANSWERS: Record<string, Answerer> = {
       )
     return ok('Fleet', f.FLEET)
   },
-  getMe: (ctx) => ok('Me', ctx.options.role === 'admin' ? f.ADMIN_ME : f.ME),
+  getMe: (ctx) =>
+    ok(
+      'Me',
+      ctx.options.role === 'admin'
+        ? f.ADMIN_ME
+        : { ...f.ME, mayBuild: ctx.options.mayBuild },
+    ),
   // KEYED ON THE PATH PARAMETER: this route's one caller is the *Check* button on a
   // CONFIRMED row, and answering some other row's state to it would be the mock lying about
   // the one fact that button exists to fetch (P5c sitting 7, F2).
@@ -335,7 +359,10 @@ const ANSWERS: Record<string, Answerer> = {
   confirmPendingAction: () => ok('PendingAction', f.CONFIRMED_ACTION),
   rejectPendingAction: () => ok('PendingAction', f.REJECTED_ACTION),
   listProjects: (ctx) => ok('ProjectList', [projectOf(ctx)]),
-  createProject: () => created('CreatedProject', f.CREATED_PROJECT),
+  createProject: (ctx) => {
+    refuseUnlessMayBuild(ctx)
+    return created('CreatedProject', f.CREATED_PROJECT)
+  },
   getProject: (ctx) =>
     ok(
       'Project',
@@ -411,7 +438,16 @@ const ANSWERS: Record<string, Answerer> = {
   // modelled, deliberately, and only for the stream.
   runRehearsal: () => ok('Rehearsal', f.REHEARSAL),
   listMembers: () => ok('MemberList', f.MEMBERS),
-  addMember: () => created('Member', f.MEMBER),
+  addMember: (ctx) => {
+    if (!ctx.options.mayBuild)
+      throw new MockRefusal(
+        409,
+        'MEMBER_MAY_NOT_BUILD',
+        `${f.REFUSED_MEMBER_NAME} cannot be added: building apps on Manifest is open only to faculty members for now`,
+        'Add a faculty colleague instead. Nobody was added.',
+      )
+    return created('Member', f.MEMBER)
+  },
   // Idempotent, and it answers the WHOLE list (P5b Task 8).
   removeMember: () => ok('MemberList', f.MEMBERS),
   listPendingActions: () => ok('PendingActionList', f.PENDING_ACTIONS),
@@ -528,6 +564,7 @@ const ANSWERS: Record<string, Answerer> = {
   getAgentBudget: (ctx) =>
     ok('AgentBudget', f.agentBudget(ctx.now, ctx.options.agentBudget ?? 'ok')),
   startIntakeSession: (ctx) => {
+    refuseUnlessMayBuild(ctx)
     if (ctx.options.intake === 'daily-limit')
       throw new MockRefusal(
         409,
@@ -888,6 +925,7 @@ export function createMockServer(options: MockOptions = {}): Server {
     fail: options.fail ?? process.env.MANIFEST_MOCK_FAIL === '1',
     launched: options.launched ?? process.env.MANIFEST_MOCK_LAUNCHED === '1',
     confidential: options.confidential ?? process.env.MANIFEST_MOCK_CONFIDENTIAL === '1',
+    mayBuild: options.mayBuild ?? process.env.MANIFEST_MOCK_MAY_BUILD !== '0',
     agentBudget:
       options.agentBudget ??
       (process.env.MANIFEST_MOCK_AGENT_BUDGET === 'exhausted' ||

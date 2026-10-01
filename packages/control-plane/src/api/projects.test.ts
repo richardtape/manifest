@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { startFake, type StartedFake } from '@manifest/github-fake/testing'
-import { appSpecs, events, projects } from '../db/index.js'
+import { appSpecs, events, projects, users, type Db } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { SourceError } from '../source/index.js'
 import { buildServer } from './server.js'
@@ -1173,12 +1173,12 @@ describe('POST /v1/projects/:id/members', () => {
 
     // The invitee needs a §6 User row — a session names a userId, and a member
     // row references it. `loginAs` creates it, exactly as the shim's login did.
-    const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_student')
+    const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_colleague')
 
     const added = await app.inject({
       method: 'POST',
       url: `/v1/projects/${id}/members`,
-      payload: { puid: 'bio_student', role: 'collaborator' },
+      payload: { puid: 'bio_colleague', role: 'collaborator' },
       cookies: { manifest_session: steppedUp },
       headers: mutationHeaders(deps),
     })
@@ -1202,11 +1202,11 @@ describe('POST /v1/projects/:id/members', () => {
     })
     const id = created.json().id
 
-    const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_student')
+    const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_colleague')
     await app.inject({
       method: 'POST',
       url: `/v1/projects/${id}/members`,
-      payload: { puid: 'bio_student', role: 'collaborator' },
+      payload: { puid: 'bio_colleague', role: 'collaborator' },
       cookies: { manifest_session: steppedUp },
       headers: mutationHeaders(deps),
     })
@@ -1774,6 +1774,168 @@ describe('a project’s name (Task 6)', () => {
       expect(second.statusCode).toBe(200)
       expect(second.json()).toEqual(first.json())
       expect(await renamedEvents(ctx)).toHaveLength(1)
+    })
+  })
+})
+
+/**
+ * WHO MAY BUILD (FE-39; §9, §6 and §13 as Spec action 7 amended them — Rich's, confirmed
+ * 2026-09-29). Only a person whose last sign-in carried `eduPersonAffiliation` `faculty`, or an
+ * administrator, may create a project; anyone else is told by code that building is not open to
+ * them, before anything is read or written. `auth.test.ts` holds the sign-in that writes the
+ * affiliation; these read the row it leaves.
+ */
+describe('who may build (FE-39)', () => {
+  /** What a sign-in carrying exactly these affiliations leaves on the person's row. */
+  const signedInWith = (deps: { db: Db }, puid: TestUserPuid, affiliations: string[]) =>
+    deps.db.update(users).set({ affiliations }).where(eq(users.ubcCwlPuid, puid))
+
+  it('a faculty member may build; a student may not, and is told so by code', async () => {
+    const student = await signedIn('bio_student')
+    const asStudent = await student.app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      cookies: student.cookies,
+    })
+    expect(asStudent.json().mayBuild).toBe(false)
+    const refused = await student.app.inject({
+      ...create('st-app'),
+      cookies: student.cookies,
+      headers: mutationHeaders(student.deps),
+    })
+    expect(refusal(refused)).toEqual({ status: 403, code: 'BUILDING_NOT_OPEN' })
+    // Nothing was written, and the name was not even checked: no row, no repository.
+    expect(await student.deps.db.select().from(projects)).toEqual([])
+    expect(existsSync(join(student.deps.config.reposRoot, 'st-app.git'))).toBe(false)
+    await student.app.close()
+
+    // The positive control: the same request from a faculty member is a project.
+    const prof = await signedIn('bio_prof')
+    const asProf = await prof.app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      cookies: prof.cookies,
+    })
+    expect(asProf.json().mayBuild).toBe(true)
+    const made = await prof.app.inject({
+      ...create('prof-app'),
+      cookies: prof.cookies,
+      headers: mutationHeaders(prof.deps),
+    })
+    expect(made.statusCode, made.body).toBe(201)
+    await prof.app.close()
+  })
+
+  it('a slug check never runs first: a student asking for a taken or reserved name is still BUILDING_NOT_OPEN', async () => {
+    // A person who may not build learns nothing about which names are taken.
+    const { deps, app, cookies } = await signedIn('bio_student')
+    // `chem` is a reserved label (SLUG_RESERVED) and `Chem_Labs` not a slug at all (SLUG_INVALID).
+    for (const slug of ['chem', 'Chem_Labs']) {
+      const res = await app.inject({
+        ...create(slug),
+        cookies,
+        headers: mutationHeaders(deps),
+      })
+      expect(refusal(res), slug).toEqual({ status: 403, code: 'BUILDING_NOT_OPEN' })
+    }
+    await app.close()
+  })
+
+  it('an administrator may build whatever their affiliation; a member with none may not', async () => {
+    const admin = await signedIn('platform_admin')
+    await signedInWith(admin.deps, 'platform_admin', [])
+    expect(
+      (
+        await admin.app.inject({ method: 'GET', url: '/v1/me', cookies: admin.cookies })
+      ).json(),
+    ).toMatchObject({ role: 'admin', mayBuild: true })
+    const made = await admin.app.inject({
+      ...create('admin-app'),
+      cookies: admin.cookies,
+      headers: mutationHeaders(admin.deps),
+    })
+    expect(made.statusCode, made.body).toBe(201)
+    await admin.app.close()
+
+    const nobody = await signedIn('unrelated_user')
+    await signedInWith(nobody.deps, 'unrelated_user', [])
+    const refused = await nobody.app.inject({
+      ...create('none-app'),
+      cookies: nobody.cookies,
+      headers: mutationHeaders(nobody.deps),
+    })
+    expect(refusal(refused)).toEqual({ status: 403, code: 'BUILDING_NOT_OPEN' })
+    await nobody.app.close()
+  })
+
+  it('a person who stops being faculty keeps their memberships and their tokens, and cannot start anything new', async () => {
+    // Decision 29, Rich's: "YEs keep but no new". A course app mid-term keeps its owner.
+    await withProjectServer(async (ctx) => {
+      const token = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      // Their next sign-in carries `staff`, not `faculty`.
+      await signedInWith(ctx, 'bio_prof', ['staff'])
+      const me = await ctx.app.inject({
+        method: 'GET',
+        url: '/v1/me',
+        cookies: ctx.ownerCookies,
+      })
+      expect(me.json()).toMatchObject({ puid: 'bio_prof', mayBuild: false })
+      // Nothing new …
+      const refused = await ctx.app.inject({
+        ...create('another-app'),
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(refusal(refused)).toEqual({ status: 403, code: 'BUILDING_NOT_OPEN' })
+      // … and everything they had: the project, as its owner, by session and by token.
+      const read = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}`,
+        cookies: ctx.ownerCookies,
+      })
+      expect(read.statusCode, read.body).toBe(200)
+      const members = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/members`,
+        cookies: ctx.ownerCookies,
+      })
+      expect(members.json()).toEqual([
+        expect.objectContaining({ puid: 'bio_prof', role: 'owner' }),
+      ])
+      const byToken = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}`,
+        headers: { authorization: `Bearer ${token.plaintext}` },
+      })
+      expect(byToken.statusCode, byToken.body).toBe(200)
+    })
+  })
+
+  it('a token a faculty member minted keeps working after their session is gone, and after their affiliation is', async () => {
+    // No session is sent at all: the token is its own credential. An assertion that carried no
+    // affiliation (`[]`) is what the person's row says now.
+    await withProjectServer(async (ctx) => {
+      const token = await mintTestToken(ctx.db, {
+        userId: ctx.userId,
+        projectId: ctx.projectId,
+        capabilities: ['project:read', 'project:write'],
+      })
+      await signedInWith(ctx, 'bio_prof', [])
+      const renamed = await ctx.app.inject({
+        method: 'PATCH',
+        url: `/v1/projects/${ctx.projectId}`,
+        headers: {
+          ...mutationHeaders(ctx.deps),
+          authorization: `Bearer ${token.plaintext}`,
+        },
+        payload: { name: 'Still the agent’s to name' },
+      })
+      expect(renamed.statusCode, renamed.body).toBe(200)
+      expect(renamed.json().name).toBe('Still the agent’s to name')
     })
   })
 })

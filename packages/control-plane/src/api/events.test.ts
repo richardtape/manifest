@@ -283,11 +283,11 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
     // The user row first: a member is added by PUID, and a PUID nobody has logged in
     // with is not a user. Asserted, because a collaborator who is secretly a stranger
     // makes this test indistinguishable from the refusal test above.
-    await loginAs(deps, 'bio_student')
+    await loginAs(deps, 'bio_colleague')
     const added = await app.inject({
       method: 'POST',
       url: `/v1/projects/${projectId}/members`,
-      payload: { puid: 'bio_student', role: 'collaborator' },
+      payload: { puid: 'bio_colleague', role: 'collaborator' },
       // STEPPED UP: §20 guards `members:manage` since P6a Task 9, and this test is about
       // what the STREAM replays rather than about the second round trip.
       cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
@@ -312,7 +312,7 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
       },
       (v) => v,
     )
-    const socket = await connect('bio_student')
+    const socket = await connect('bio_colleague')
     const frames = recorder(socket)
     await waitUntil(() => frames.some(isReady), 'the ready frame')
     deps.bus.publish(liveFrame(projectId, 'live-1'))

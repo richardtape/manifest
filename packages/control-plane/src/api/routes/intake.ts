@@ -6,6 +6,7 @@ import {
   startIntakeSession,
 } from '../../ai/index.js'
 import { AuthorizationError } from '../../projects/index.js'
+import { assertSignedInMayBuild } from '../../identity/index.js'
 import { requireSession } from '../actor.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
@@ -44,7 +45,7 @@ export const intakeRoutes = [
     tag: 'agents',
     summary: 'A model for describing an app, before it exists',
     description:
-      'A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused.',
+      'A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused. Only a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`) — starts one; anyone else is refused `BUILDING_NOT_OPEN`, and nothing is minted or counted.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,
@@ -56,6 +57,7 @@ export const intakeRoutes = [
     },
     errors: [
       'TOKEN_CREDENTIAL_REFUSED',
+      'BUILDING_NOT_OPEN',
       'INTAKE_SESSION_ALREADY_STARTED',
       'INTAKE_DAILY_LIMIT_REACHED',
       'INTAKE_BUDGET_EXHAUSTED',
@@ -87,6 +89,9 @@ export const intakeRoutes = [
     },
     handler: async ({ deps, request }) => {
       const actor = requireSession(request)
+      // WHO MAY BUILD (FE-39): describing an app spends the platform's model money on building, so
+      // only a person who may build starts one — refused before any count is read or key minted.
+      await assertSignedInMayBuild(deps.db, actor)
       const { row, key } = await startIntakeSession(
         {
           db: deps.db,

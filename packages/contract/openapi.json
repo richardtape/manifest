@@ -1523,7 +1523,7 @@
           "agents"
         ],
         "summary": "A model for describing an app, before it exists",
-        "description": "A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused.",
+        "description": "A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused. Only a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`) — starts one; anyone else is refused `BUILDING_NOT_OPEN`, and nothing is minted or counted.",
         "security": [
           {
             "session": []
@@ -1566,7 +1566,7 @@
             }
           },
           "default": {
-            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTAKE_BUDGET_EXHAUSTED, INTAKE_DAILY_LIMIT_REACHED, INTAKE_MODEL_UNAVAILABLE, INTAKE_SESSION_ALREADY_STARTED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, BUILDING_NOT_OPEN, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTAKE_BUDGET_EXHAUSTED, INTAKE_DAILY_LIMIT_REACHED, INTAKE_MODEL_UNAVAILABLE, INTAKE_SESSION_ALREADY_STARTED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1579,6 +1579,7 @@
         "x-manifest-error-codes": [
           "AI_BACKEND_UNAVAILABLE",
           "AI_CATALOGUE_DISABLED",
+          "BUILDING_NOT_OPEN",
           "CSRF_ORIGIN_REFUSED",
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
@@ -1688,7 +1689,7 @@
           "identity"
         ],
         "summary": "The signed-in person",
-        "description": "The person this session belongs to, and the platform role it is authorized as; a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.",
+        "description": "The person this session belongs to, the platform role it is authorized as, and whether they may build (`mayBuild`); a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.",
         "security": [
           {
             "session": []
@@ -1708,7 +1709,8 @@
                   "puid": "unrelated_user",
                   "displayName": "Unrelated User",
                   "email": "unrelated_user@example.ubc.ca",
-                  "role": "member"
+                  "role": "member",
+                  "mayBuild": true
                 }
               }
             }
@@ -2169,7 +2171,7 @@
           "projects"
         ],
         "summary": "Create a project",
-        "description": "Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token). Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.",
+        "description": "Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token), and only for a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`); anyone else is refused `BUILDING_NOT_OPEN` before anything is checked or created. Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.",
         "security": [
           {
             "session": []
@@ -2276,7 +2278,7 @@
             }
           },
           "default": {
-            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GITHUB_REFUSED, SOURCE_GIT_FAILED, SOURCE_REPOSITORY_EXISTS, SOURCE_REPOSITORY_NOT_PRIVATE, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, BUILDING_NOT_OPEN, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GITHUB_REFUSED, SOURCE_GIT_FAILED, SOURCE_REPOSITORY_EXISTS, SOURCE_REPOSITORY_NOT_PRIVATE, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2290,6 +2292,7 @@
           "AI_BACKEND_UNAVAILABLE",
           "AI_CATALOGUE_EMPTY",
           "BLUEPRINT_NOT_FOUND",
+          "BUILDING_NOT_OPEN",
           "CSRF_ORIGIN_REFUSED",
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
@@ -4760,7 +4763,7 @@
           "projects"
         ],
         "summary": "Add or change a member",
-        "description": "Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).",
+        "description": "Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Only a person who may build — a faculty member or a platform administrator — is added; anyone else is refused `MEMBER_MAY_NOT_BUILD`, naming them, though a person already on the project keeps their place and their role can still be changed. Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).",
         "parameters": [
           {
             "name": "projectId",
@@ -4819,7 +4822,7 @@
             }
           },
           "default": {
-            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_MAY_NOT_BUILD, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4835,6 +4838,7 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
+          "MEMBER_MAY_NOT_BUILD",
           "MEMBER_USER_AMBIGUOUS",
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
@@ -9297,6 +9301,7 @@
           "APPROVAL_PREVIEW_REQUIRED",
           "APPROVAL_PREVIEW_STALE",
           "BLUEPRINT_NOT_FOUND",
+          "BUILDING_NOT_OPEN",
           "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED",
           "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH",
           "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH",
@@ -9324,6 +9329,7 @@
           "INTERNAL",
           "LAUNCH_RECORD_INVALID",
           "LAUNCH_TRANSITION_INVALID",
+          "MEMBER_MAY_NOT_BUILD",
           "MEMBER_USER_AMBIGUOUS",
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
@@ -9429,6 +9435,7 @@
           "APPROVAL_PREVIEW_REQUIRED": "An approval or rejection names no preview. Take one (`POST /v1/releases/{releaseId}/approval-preview`), read it, and decide naming its id.",
           "APPROVAL_PREVIEW_STALE": "What the release would be approved as changed since the preview was taken — in practice another decision moved the last approved release. Take a new preview and read it.",
           "BLUEPRINT_NOT_FOUND": "No blueprint with this reference is in the registry.",
+          "BUILDING_NOT_OPEN": "Building on Manifest — creating a project or starting an intake session — is open only to faculty members and platform administrators for now, and the signed-in person is neither. Nothing was created.",
           "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED": "MANIFEST_BUILD_CREDENTIAL_SECRET is required outside development.",
           "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH": "A loopback origin names a port the control plane does not listen on.",
           "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH": "MANIFEST_FRONTEND_ORIGIN is a loopback origin naming a port the control plane does not listen on.",
@@ -9456,6 +9463,7 @@
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
+          "MEMBER_MAY_NOT_BUILD": "The person named may not build on Manifest — only faculty members and platform administrators may, for now — so they cannot be added to a project. The message names them; nobody was added.",
           "MEMBER_USER_AMBIGUOUS": "More than one person who has signed in to Manifest has the email given, so it names nobody in particular. The answer names none of them.",
           "MEMBER_USER_NOT_FOUND": "Nobody Manifest knows by the PUID, CWL login name or email given has signed in. A CWL login name is known only for a person who has signed in since Manifest began asking CWL for one, so a person who has signed in can still miss by login.",
           "NOT_FOUND": "No such resource — or one the caller has no business knowing exists.",
@@ -15748,6 +15756,10 @@
               "admin",
               "member"
             ]
+          },
+          "mayBuild": {
+            "description": "Whether this person may build: create a project, start an intake session, or be added to a project. True for a faculty member — by the CWL affiliation their last sign-in carried — and for a platform administrator; false for everyone else, who should be told that building is not open to them yet. The three operations refuse such a person `BUILDING_NOT_OPEN`, or `MEMBER_MAY_NOT_BUILD` when they are the person being added. A person who stops being faculty keeps the projects they are on.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -15755,7 +15767,8 @@
           "puid",
           "displayName",
           "email",
-          "role"
+          "role",
+          "mayBuild"
         ],
         "additionalProperties": false
       },
@@ -17909,6 +17922,11 @@
       "summary": "No blueprint with this reference is in the registry.",
       "remedy": "Choose one from `listBlueprints` and name it `name@major`."
     },
+    "BUILDING_NOT_OPEN": {
+      "status": 403,
+      "summary": "Building on Manifest — creating a project or starting an intake session — is open only to faculty members and platform administrators for now, and the signed-in person is neither. Nothing was created.",
+      "remedy": "Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. A person who teaches at UBC and should be able to build asks a platform administrator."
+    },
     "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED": {
       "status": 409,
       "summary": "MANIFEST_BUILD_CREDENTIAL_SECRET is required outside development.",
@@ -18043,6 +18061,11 @@
       "status": 409,
       "summary": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
       "remedy": "Move the record along §9’s states one step at a time, to one of the states the message names."
+    },
+    "MEMBER_MAY_NOT_BUILD": {
+      "status": 409,
+      "summary": "The person named may not build on Manifest — only faculty members and platform administrators may, for now — so they cannot be added to a project. The message names them; nobody was added.",
+      "remedy": "Add a faculty colleague instead. A person already on the project keeps their place, and their role can still be changed."
     },
     "MEMBER_USER_AMBIGUOUS": {
       "status": 400,

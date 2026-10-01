@@ -49,7 +49,7 @@ import { waitFor } from './wait.js'
  *   agent    the token, the key                                     steps 3 (the model) and 4
  *   deploy   the token                                              step 5: build, release, deploy
  *   output   the token, + MANIFEST_SESSION                          step 6
- *   people   MANIFEST_SESSION(_STEPPED), MANIFEST_STUDENT_SESSION   step 7
+ *   people   MANIFEST_SESSION(_STEPPED), MANIFEST_STUDENT_SESSION, MANIFEST_COLLEAGUE_SESSION   step 7
  *   archive  MANIFEST_SESSION(_STEPPED), the token and key          step 8: switched off
  *   restore  MANIFEST_SESSION, then a new token                     step 8: brought back
  *   delete   MANIFEST_SESSION_STEPPED                               step 9: deployed, deleted
@@ -1228,9 +1228,28 @@ async function peoplePhase(): Promise<void> {
   const id = projectId()
   const plain = person()
   const stepped = person('MANIFEST_SESSION_STEPPED')
-  const student = unwrap(await person('MANIFEST_STUDENT_SESSION').GET('/v1/me'), 'getMe')
+  const studentClient = person('MANIFEST_STUDENT_SESSION')
+  const student = unwrap(await studentClient.GET('/v1/me'), 'getMe')
+  const colleague = unwrap(
+    await person('MANIFEST_COLLEAGUE_SESSION').GET('/v1/me'),
+    'getMe',
+  )
   checks.step(
-    `7. People: the instructor, stepped up on the app origin, adds ${student.displayName} by CWL login name`,
+    `7. People: the instructor, stepped up on the app origin, adds ${colleague.displayName} by CWL login name — and may not add ${student.displayName}, who may not build`,
+  )
+  // WHO MAY BUILD (FE-39, the launch path plan's Task 8a): faculty, or an administrator — decided by
+  // the platform from the affiliation each sign-in carried, and answered on getMe.
+  checks.ok(
+    'getMe: the student may not build; the colleague, faculty, may',
+    student.mayBuild === false && colleague.mayBuild === true,
+    JSON.stringify({ student: student.mayBuild, colleague: colleague.mayBuild }),
+  )
+  // A slug no step makes: refused before the name is even checked, so nothing is made under it.
+  const studentCreates = await createScratch(studentClient, 'frontend-student-try')
+  checks.ok(
+    'the student creating a project: 403 BUILDING_NOT_OPEN, and nothing made',
+    refusal(studentCreates, 403, 'BUILDING_NOT_OPEN') !== undefined,
+    describe(studentCreates),
   )
   const members = unwrap(
     await plain.GET('/v1/projects/{projectId}/members', {
@@ -1238,19 +1257,22 @@ async function peoplePhase(): Promise<void> {
     }),
     'listMembers',
   )
-  if (members.some((m) => m.userId === student.id)) {
-    // THE RE-USE PATH: the last run added them; an add that changes nothing publishes nothing.
+  // THE RE-USE PATH: the last run added the colleague (an add that changes nothing publishes
+  // nothing), and a run from before FE-39 added the student — each removed first, so this run's
+  // add and refusal are its own.
+  for (const earlier of [colleague, student]) {
+    if (!members.some((m) => m.userId === earlier.id)) continue
     unwrap(
       await stepped.DELETE('/v1/projects/{projectId}/members/{userId}', {
         params: {
-          path: { projectId: id, userId: student.id },
+          path: { projectId: id, userId: earlier.id },
           header: { 'Idempotency-Key': idempotencyKey() },
         },
       }),
       'removeMember',
     )
     console.log(
-      `  re-use: ${student.displayName} was added by an earlier run — removed first`,
+      `  re-use: ${earlier.displayName} was added by an earlier run — removed first`,
     )
   }
   const frames: StreamFrame[] = []
@@ -1271,21 +1293,39 @@ async function peoplePhase(): Promise<void> {
       },
       body: { cwlLogin, role: 'collaborator' },
     })
-  const unstepped = await add(plain, 'student')
+  const unstepped = await add(plain, 'colleague')
   checks.ok(
     'without a step-up: 403 STEP_UP_REQUIRED',
     refusal(unstepped, 403, 'STEP_UP_REQUIRED') !== undefined,
     describe(unstepped),
   )
-  const added = await add(stepped, 'student')
+  const refusedStudent = await add(stepped, 'student')
+  const notBuilder = refusal(refusedStudent, 409, 'MEMBER_MAY_NOT_BUILD')
+  checks.ok(
+    `stepped up, adding the student: 409 MEMBER_MAY_NOT_BUILD, naming ${student.displayName}`,
+    notBuilder !== undefined && notBuilder.message.includes(student.displayName),
+    describe(refusedStudent),
+  )
+  const added = await add(stepped, 'colleague')
   const member = unwrap(added, 'addMember')
   checks.ok(
-    `stepped up: 201 — ${member.displayName}, cwlLogin student, a collaborator`,
+    `stepped up, adding the colleague: 201 — ${member.displayName}, cwlLogin colleague, a collaborator`,
     added.response.status === 201 &&
-      member.userId === student.id &&
-      member.cwlLogin === 'student' &&
+      member.userId === colleague.id &&
+      member.cwlLogin === 'colleague' &&
       member.role === 'collaborator',
     JSON.stringify(member),
+  )
+  const after = unwrap(
+    await plain.GET('/v1/projects/{projectId}/members', {
+      params: { path: { projectId: id } },
+    }),
+    'listMembers',
+  )
+  checks.ok(
+    'and the student is not a member',
+    !after.some((m) => m.userId === student.id),
+    JSON.stringify(after.map((m) => m.displayName)),
   )
   const event = await waitFor(
     frames,
@@ -1294,12 +1334,15 @@ async function peoplePhase(): Promise<void> {
   )
   // memberId is the person ADDED; userId keeps its meaning in every event — who ACTED (sitting 5).
   checks.ok(
-    'member.added: memberId is the student, userId the instructor who acted',
+    'member.added: memberId is the colleague, userId the instructor who acted — and one only',
     event?.kind === 'event' &&
       event.type === 'member.added' &&
-      event.machineDetail.memberId === student.id &&
+      event.machineDetail.memberId === colleague.id &&
       event.machineDetail.userId === state.instructorId &&
-      event.machineDetail.role === 'collaborator',
+      event.machineDetail.role === 'collaborator' &&
+      frames.filter(
+        (f) => !replayed.has(f) && f.kind === 'event' && f.type === 'member.added',
+      ).length === 1,
     event === undefined ? 'no member.added frame' : JSON.stringify(event).slice(0, 300),
   )
   stream.close()

@@ -254,17 +254,18 @@ describe('the stream in the contract (D23.2)', () => {
 
     // PEOPLE (the front-end enablement plan's Task 7): a member added and removed, so
     // `member.added` and `member.removed` are REACHED and parsed here too. Stepped up, because
-    // `members:manage` is §20-guarded; `bio_student` is the person, by PUID.
+    // `members:manage` is §20-guarded; `bio_colleague` is the person, by PUID — a faculty member,
+    // since only a person who may build is added (FE-39).
     const steppedUp = await loginAs(deps, 'bio_prof', { steppedUp: true })
-    const student = await ensureTestUser(deps.db, 'bio_student')
+    const colleague = await ensureTestUser(deps.db, 'bio_colleague')
     await post(
       `/v1/projects/${project.id}/members`,
-      { puid: 'bio_student', role: 'collaborator' },
+      { puid: 'bio_colleague', role: 'collaborator' },
       steppedUp,
     )
     const removed = await app.inject({
       method: 'DELETE',
-      url: `/v1/projects/${project.id}/members/${student.id}`,
+      url: `/v1/projects/${project.id}/members/${colleague.id}`,
       cookies: steppedUp,
       headers: mutationHeaders(deps),
     })

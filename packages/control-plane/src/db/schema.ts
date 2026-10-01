@@ -58,6 +58,16 @@ export const users = pgTable('users', {
   cwlLogin: text('cwl_login').unique(),
   role: userRole('role').notNull().default('member'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  /**
+   * WHAT `eduPersonAffiliation` SAID AT THE PERSON'S LAST SIGN-IN (§6 and §9 as Spec action 7
+   * amended them; the launch path plan's Task 8a, FE-39) — every value, exactly as UBC sent it.
+   * Written at EVERY sign-in, and `[]` when the assertion carried none: unlike `cwl_login`, an
+   * absent affiliation is UBC saying nothing, never "keep the last one". Who may build is decided
+   * from it (`identity/builders.ts`), and from nothing else but the platform role.
+   */
+  affiliations: jsonb('affiliations').notNull().default([]).$type<string[]>(),
+  /** When `affiliations` was last written — the sign-in that said it. NULL until one has. */
+  affiliationsSeenAt: timestamp('affiliations_seen_at', { withTimezone: true }),
 })
 
 export const projects = pgTable(

@@ -21,6 +21,7 @@ import {
   servingInstanceOf,
 } from '../../projects/index.js'
 import { revokeTokensOfMember } from '../../tokens/index.js'
+import { mayBuild, memberMayNotBuild } from '../../identity/index.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
 import { validateAndRecord } from '../spec-validation.js'
@@ -405,7 +406,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Add or change a member',
     description:
-      'Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).',
+      'Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Only a person who may build — a faculty member or a platform administrator — is added; anyone else is refused `MEMBER_MAY_NOT_BUILD`, naming them, though a person already on the project keeps their place and their role can still be changed. Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).',
     params: ProjectParams,
     query: NO_QUERY,
     body: AddMemberRequest,
@@ -418,6 +419,8 @@ export const projectReadRoutes = [
       'MEMBER_USER_AMBIGUOUS',
       // The only owner made a collaborator would leave the project with none (§13).
       'PROJECT_LAST_OWNER',
+      // Who may build (FE-39): the person named may not, and is not already on the project.
+      'MEMBER_MAY_NOT_BUILD',
       // D24's central refusal (P5b Task 6). Listed on the two routes whose capability is
       // one of `PRIVILEGED` rather than on every route, because only these two can answer
       // it — `members:manage` here, `release:promote` on the production deploy.
@@ -483,7 +486,13 @@ export const projectReadRoutes = [
         )
       }
       const user = person.user
-      const added = await addMember(deps.db, params.projectId, user.id, body.role)
+      const added = await addMember(deps.db, params.projectId, user.id, body.role, {
+        newcomerMayBuild: mayBuild(user),
+      })
+      // ONLY A PERSON WHO MAY BUILD IS ADDED (FE-39) — AFTER the capability, the step-up and the
+      // lookup, so only a person who may manage members learns it, about somebody who has signed in.
+      // A member already on the project is not refused: one who stops being faculty keeps their place.
+      if (added === 'may not build') throw memberMayNotBuild(user)
       // THE LAST OWNER STAYS AN OWNER (the review's I2): `removeMember`'s rule, on the other way
       // a project could lose its last owner — being made a collaborator.
       if (added === 'last owner') throw new LastOwnerError()

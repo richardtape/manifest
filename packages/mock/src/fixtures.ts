@@ -40,7 +40,7 @@ export const REJECTED_ACTION_ID = '88888888-8888-4888-8888-888888888883'
 export const LAPSED_ACTION_ID = '88888888-8888-4888-8888-888888888884'
 export const INCIDENT_ID = '99999999-9999-4999-8999-999999999999'
 export const APP_SPEC_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-export const STUDENT_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+export const COLLEAGUE_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 export const APPROVAL_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 export const APPROVAL_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 export const WITHHELD_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd2'
@@ -57,6 +57,8 @@ export const ME: Schemas['Me'] = {
   displayName: 'Instructor One',
   email: 'instructor@example.test',
   role: 'member',
+  // An instructor: faculty, so they may build. `MANIFEST_MOCK_MAY_BUILD=0` answers false.
+  mayBuild: true,
 }
 
 /** `MANIFEST_MOCK_ROLE=admin` is what makes §26's fleet reachable (Task 9's affordance). */
@@ -738,17 +740,24 @@ export const MEMBERS: Schemas['MemberList'] = [
   },
 ]
 
+/**
+ * The person `addMember` adds: a FACULTY colleague, because only a person who may build is added
+ * (FE-39). `MANIFEST_MOCK_MAY_BUILD=0` refuses the add instead, naming `REFUSED_MEMBER_NAME`.
+ */
 export const MEMBER: Schemas['Member'] = {
-  userId: STUDENT_ID,
-  puid: 'stu000001',
-  cwlLogin: 'student',
-  displayName: 'Student One',
-  email: 'student@example.test',
+  userId: COLLEAGUE_ID,
+  puid: 'col000001',
+  cwlLogin: 'colleague',
+  displayName: 'Colleague One',
+  email: 'colleague@example.test',
   role: 'collaborator',
 }
 
+/** Who `addMember`'s `409 MEMBER_MAY_NOT_BUILD` names under `MANIFEST_MOCK_MAY_BUILD=0`: a student. */
+export const REFUSED_MEMBER_NAME = 'Student One'
+
 /** `addMember` answers the one member; `removeMember` answers the whole list (P5b Task 8). */
-export const MEMBERS_WITH_STUDENT: Schemas['MemberList'] = [...MEMBERS, MEMBER]
+export const MEMBERS_WITH_COLLEAGUE: Schemas['MemberList'] = [...MEMBERS, MEMBER]
 
 export const TOKEN: Schemas['Token'] = {
   id: TOKEN_ID,
@@ -1156,7 +1165,7 @@ export const FIXTURES: [string, unknown][] = [
   ['LaunchReadiness', SELF_SERVE_READINESS],
   ['Member', MEMBER],
   ['MemberList', MEMBERS],
-  ['MemberList', MEMBERS_WITH_STUDENT],
+  ['MemberList', MEMBERS_WITH_COLLEAGUE],
   ['Token', TOKEN],
   ['Token', REVOKED_TOKEN],
   ['TokenList', TOKENS],

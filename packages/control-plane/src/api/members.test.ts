@@ -32,16 +32,25 @@ import {
  * changes are published — `member.added` and `member.removed`, each sentence naming people.
  */
 describe('people by CWL login name or email (Task 7)', () => {
-  /** A person who has signed in once, through the one function a sign-in writes with. */
+  /**
+   * A person who has signed in once, through the one function a sign-in writes with — a FACULTY
+   * colleague, because since FE-39 only a person who may build is added (the block below holds
+   * that rule; this one holds how a person is found).
+   */
   const signedInOnce = (ctx: TestProject, over: Partial<SamlIdentity> = {}) =>
-    upsertUserFromAssertion(ctx.db, {
-      ubcCwlPuid: 'stu000001',
-      email: 'student@student.ubc.ca',
-      displayName: 'Test Student',
-      cwlLogin: 'student',
-      idpSession: null,
-      ...over,
-    })
+    upsertUserFromAssertion(
+      ctx.db,
+      {
+        ubcCwlPuid: 'col000001',
+        email: 'colleague@ubc.ca',
+        displayName: 'Test Colleague',
+        cwlLogin: 'colleague',
+        affiliations: ['faculty'],
+        idpSession: null,
+        ...over,
+      },
+      { adminPuids: [] },
+    )
 
   /** `members:manage` is step-up guarded, so the owner's stepped-up session by default. */
   const add = (
@@ -83,15 +92,15 @@ describe('people by CWL login name or email (Task 7)', () => {
 
   it('adds a person by their CWL login name, whatever its case', async () => {
     await withProjectServer(async (ctx) => {
-      const student = await signedInOnce(ctx)
-      const res = await add(ctx, { cwlLogin: 'Student', role: 'collaborator' })
+      const colleague = await signedInOnce(ctx)
+      const res = await add(ctx, { cwlLogin: 'Colleague', role: 'collaborator' })
       expect(res.statusCode, res.body).toBe(201)
       expect(res.json()).toEqual({
-        userId: student.id,
-        puid: 'stu000001',
-        cwlLogin: 'student',
-        displayName: 'Test Student',
-        email: 'student@student.ubc.ca',
+        userId: colleague.id,
+        puid: 'col000001',
+        cwlLogin: 'colleague',
+        displayName: 'Test Colleague',
+        email: 'colleague@ubc.ca',
         role: 'collaborator',
       })
       // And the list says so — the owner, who signed in with no uid, has no login.
@@ -106,29 +115,29 @@ describe('people by CWL login name or email (Task 7)', () => {
           .map((m: { puid: string; cwlLogin: string | null }) => [m.puid, m.cwlLogin]),
       ).toEqual([
         ['bio_prof', null],
-        ['stu000001', 'student'],
+        ['col000001', 'colleague'],
       ])
     })
   })
 
   it('adds a person by their email, whatever its case', async () => {
     await withProjectServer(async (ctx) => {
-      const student = await signedInOnce(ctx)
+      const colleague = await signedInOnce(ctx)
       const res = await add(ctx, {
-        email: 'Student@Student.UBC.ca',
+        email: 'Colleague@UBC.ca',
         role: 'collaborator',
       })
       expect(res.statusCode, res.body).toBe(201)
-      expect(res.json()).toMatchObject({ userId: student.id, role: 'collaborator' })
+      expect(res.json()).toMatchObject({ userId: colleague.id, role: 'collaborator' })
     })
   })
 
   it('still adds a person by their PUID', async () => {
     await withProjectServer(async (ctx) => {
-      const student = await signedInOnce(ctx)
-      const res = await add(ctx, { puid: 'stu000001', role: 'owner' })
+      const colleague = await signedInOnce(ctx)
+      const res = await add(ctx, { puid: 'col000001', role: 'owner' })
       expect(res.statusCode, res.body).toBe(201)
-      expect(res.json()).toMatchObject({ userId: student.id, role: 'owner' })
+      expect(res.json()).toMatchObject({ userId: colleague.id, role: 'owner' })
     })
   })
 
@@ -136,8 +145,8 @@ describe('people by CWL login name or email (Task 7)', () => {
     await withProjectServer(async (ctx) => {
       await signedInOnce(ctx)
       for (const body of [
-        { puid: 'stu000001', cwlLogin: 'student', role: 'collaborator' },
-        { cwlLogin: 'student', email: 'student@student.ubc.ca', role: 'collaborator' },
+        { puid: 'col000001', cwlLogin: 'colleague', role: 'collaborator' },
+        { cwlLogin: 'colleague', email: 'colleague@ubc.ca', role: 'collaborator' },
         { role: 'collaborator' },
         { email: 'not an address', role: 'collaborator' },
       ]) {
@@ -152,7 +161,7 @@ describe('people by CWL login name or email (Task 7)', () => {
       // … and the positive control: ONE key is a request, so the refusals above are the
       // exactly-one rule and not a body that knows only `puid`.
       expect(
-        (await add(ctx, { cwlLogin: 'student', role: 'collaborator' })).statusCode,
+        (await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })).statusCode,
       ).toBe(201)
     })
   })
@@ -161,22 +170,27 @@ describe('people by CWL login name or email (Task 7)', () => {
     await withProjectServer(async (ctx) => {
       await signedInOnce(ctx, { cwlLogin: null })
       await signedInOnce(ctx, {
-        ubcCwlPuid: 'stu000002',
-        displayName: 'Other Student',
-        email: 'STUDENT@student.ubc.ca',
+        ubcCwlPuid: 'col000002',
+        displayName: 'Other Colleague',
+        email: 'COLLEAGUE@ubc.ca',
         cwlLogin: null,
       })
       const res = await add(ctx, {
-        email: 'student@student.ubc.ca',
+        email: 'colleague@ubc.ca',
         role: 'collaborator',
       })
       expect(refusal(res)).toEqual({ status: 400, code: 'MEMBER_USER_AMBIGUOUS' })
-      for (const secret of ['stu000001', 'stu000002', 'Test Student', 'Other Student']) {
+      for (const secret of [
+        'col000001',
+        'col000002',
+        'Test Colleague',
+        'Other Colleague',
+      ]) {
         expect(res.body).not.toContain(secret)
       }
       // The positive control: each is still addable by a key that names ONE person.
       expect(
-        (await add(ctx, { puid: 'stu000002', role: 'collaborator' })).statusCode,
+        (await add(ctx, { puid: 'col000002', role: 'collaborator' })).statusCode,
       ).toBe(201)
     })
   })
@@ -195,7 +209,7 @@ describe('people by CWL login name or email (Task 7)', () => {
           code: 'MEMBER_USER_NOT_FOUND',
         })
         expect(res.json().error.message).toContain(looked)
-        for (const other of ['stu000001', 'student@student.ubc.ca', 'Test Student']) {
+        for (const other of ['col000001', 'colleague@ubc.ca', 'Test Colleague']) {
           expect(res.body).not.toContain(other)
         }
       }
@@ -208,24 +222,23 @@ describe('people by CWL login name or email (Task 7)', () => {
     // says what it means, and names the keys that still work.
     await withProjectServer(async (ctx) => {
       await signedInOnce(ctx, { cwlLogin: null })
-      const missed = await add(ctx, { cwlLogin: 'student', role: 'collaborator' })
+      const missed = await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })
       expect(refusal(missed)).toEqual({ status: 400, code: 'MEMBER_USER_NOT_FOUND' })
-      expect(missed.json().error.message).toContain("CWL login name 'student'")
+      expect(missed.json().error.message).toContain("CWL login name 'colleague'")
       expect(missed.json().error.hint).toMatch(/email/)
       expect(missed.json().error.hint).toMatch(/PUID/)
       // … and the key it names works: the same person, by email.
       expect(
-        (await add(ctx, { email: 'student@student.ubc.ca', role: 'collaborator' }))
-          .statusCode,
+        (await add(ctx, { email: 'colleague@ubc.ca', role: 'collaborator' })).statusCode,
       ).toBe(201)
 
       await signedInOnce(ctx, {
-        ubcCwlPuid: 'stu000002',
-        displayName: 'Other Student',
-        email: 'student@student.ubc.ca',
+        ubcCwlPuid: 'col000002',
+        displayName: 'Other Colleague',
+        email: 'colleague@ubc.ca',
         cwlLogin: null,
       })
-      const shared = await add(ctx, { email: 'student@student.ubc.ca', role: 'owner' })
+      const shared = await add(ctx, { email: 'colleague@ubc.ca', role: 'owner' })
       expect(refusal(shared)).toEqual({ status: 400, code: 'MEMBER_USER_AMBIGUOUS' })
       expect(shared.json().error.hint).toMatch(/PUID/)
     })
@@ -246,7 +259,7 @@ describe('people by CWL login name or email (Task 7)', () => {
       expect(await memberEvents(ctx)).toEqual([])
       // The positive control: with a second owner, the first may become a collaborator.
       await signedInOnce(ctx)
-      expect((await add(ctx, { cwlLogin: 'student', role: 'owner' })).statusCode).toBe(
+      expect((await add(ctx, { cwlLogin: 'colleague', role: 'owner' })).statusCode).toBe(
         201,
       )
       const allowed = await add(ctx, { puid: 'bio_prof', role: 'collaborator' })
@@ -265,7 +278,7 @@ describe('people by CWL login name or email (Task 7)', () => {
       })
       const known = await add(
         ctx,
-        { cwlLogin: 'student', role: 'collaborator' },
+        { cwlLogin: 'colleague', role: 'collaborator' },
         collaborator,
       )
       const unknown = await add(
@@ -281,46 +294,51 @@ describe('people by CWL login name or email (Task 7)', () => {
 
   it('publishes member.added and member.removed, each sentence naming the people', async () => {
     await withProjectServer(async (ctx) => {
-      const student = await signedInOnce(ctx)
+      const colleague = await signedInOnce(ctx)
       const actor = { via: 'session', userId: ctx.userId, tokenId: null }
 
       expect(
-        (await add(ctx, { cwlLogin: 'student', role: 'collaborator' })).statusCode,
+        (await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })).statusCode,
       ).toBe(201)
       // The same role again changes nothing, and publishes nothing.
       expect(
-        (await add(ctx, { cwlLogin: 'student', role: 'collaborator' })).statusCode,
+        (await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })).statusCode,
       ).toBe(201)
       // A different role is a change, and says what it was.
-      expect((await add(ctx, { cwlLogin: 'student', role: 'owner' })).statusCode).toBe(
+      expect((await add(ctx, { cwlLogin: 'colleague', role: 'owner' })).statusCode).toBe(
         201,
       )
-      expect((await remove(ctx, student.id)).statusCode).toBe(200)
+      expect((await remove(ctx, colleague.id)).statusCode).toBe(200)
       // Removing somebody who is no longer a member changes nothing, and publishes nothing.
-      expect((await remove(ctx, student.id)).statusCode).toBe(200)
+      expect((await remove(ctx, colleague.id)).statusCode).toBe(200)
 
       const published = await memberEvents(ctx)
       expect(published.map((e) => [e.type, e.machineDetail])).toEqual([
         [
           'member.added',
-          { memberId: student.id, role: 'collaborator', previousRole: null, ...actor },
+          { memberId: colleague.id, role: 'collaborator', previousRole: null, ...actor },
         ],
         [
           'member.added',
-          { memberId: student.id, role: 'owner', previousRole: 'collaborator', ...actor },
+          {
+            memberId: colleague.id,
+            role: 'owner',
+            previousRole: 'collaborator',
+            ...actor,
+          },
         ],
         [
           'member.removed',
-          { memberId: student.id, tokensRevoked: 0, sessionsEnded: 0, ...actor },
+          { memberId: colleague.id, tokensRevoked: 0, sessionsEnded: 0, ...actor },
         ],
       ])
       expect(published.map((e) => e.humanMessage)).toEqual([
-        'Bio Prof added Test Student to the project as a collaborator.',
-        'Bio Prof made Test Student an owner of the project; they were a collaborator.',
-        'Bio Prof removed Test Student from the project.',
+        'Bio Prof added Test Colleague to the project as a collaborator.',
+        'Bio Prof made Test Colleague an owner of the project; they were a collaborator.',
+        'Bio Prof removed Test Colleague from the project.',
       ])
       for (const { humanMessage } of published) {
-        expect(humanMessage).not.toMatch(/bio_prof|stu000001/)
+        expect(humanMessage).not.toMatch(/bio_prof|col000001/)
       }
     })
   })
@@ -329,7 +347,7 @@ describe('people by CWL login name or email (Task 7)', () => {
     await withProjectServer(async (ctx) => {
       await signedInOnce(ctx, { displayName: '   ' })
       expect(
-        (await add(ctx, { cwlLogin: 'student', role: 'collaborator' })).statusCode,
+        (await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })).statusCode,
       ).toBe(201)
       const [event] = await memberEvents(ctx)
       expect(event!.humanMessage).toBe(
@@ -338,8 +356,128 @@ describe('people by CWL login name or email (Task 7)', () => {
       const [row] = await ctx.db
         .select({ name: users.displayName })
         .from(users)
-        .where(eq(users.ubcCwlPuid, 'stu000001'))
+        .where(eq(users.ubcCwlPuid, 'col000001'))
       expect(row!.name).toBe('   ')
+    })
+  })
+})
+
+/**
+ * ONLY A PERSON WHO MAY BUILD IS ADDED (FE-39; §13 as Spec action 7 amended it — Rich's, confirmed
+ * 2026-09-29): a faculty member, or an administrator. `addMember` refuses anyone else `409
+ * MEMBER_MAY_NOT_BUILD`, naming them — AFTER the capability, the step-up and the lookup, so the
+ * person asking is one who may manage members and the person named is one who has signed in. One
+ * who stops being faculty keeps the projects they are on (Decision 29), so a role CHANGE for a
+ * person already on the project is not an add, and is not refused.
+ */
+describe('only a person who may build is added (FE-39)', () => {
+  const STUDENT = {
+    ubcCwlPuid: 'stu000001',
+    email: 'student@student.ubc.ca',
+    displayName: 'Test Student',
+    cwlLogin: 'student',
+    affiliations: ['student'],
+    idpSession: null,
+  }
+  const COLLEAGUE = {
+    ubcCwlPuid: 'col000001',
+    email: 'colleague@ubc.ca',
+    displayName: 'Test Colleague',
+    cwlLogin: 'colleague',
+    affiliations: ['faculty'],
+    idpSession: null,
+  }
+  const add = (ctx: TestProject, body: Record<string, unknown>) =>
+    ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.projectId}/members`,
+      cookies: ctx.ownerSteppedUp,
+      headers: mutationHeaders(ctx.deps),
+      payload: body,
+    })
+  const memberPuids = async (ctx: TestProject) =>
+    (
+      await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/members`,
+        cookies: ctx.ownerCookies,
+      })
+    )
+      .json()
+      .map((m: { puid: string; role: string }) => `${m.puid}:${m.role}`)
+  const addedEvents = (ctx: TestProject) =>
+    ctx.db
+      .select({ type: events.type })
+      .from(events)
+      .where(and(eq(events.projectId, ctx.projectId), eq(events.type, 'member.added')))
+
+  it('a faculty owner adding a student is refused MEMBER_MAY_NOT_BUILD, naming them; adding a faculty colleague works', async () => {
+    await withProjectServer(async (ctx) => {
+      await upsertUserFromAssertion(ctx.db, STUDENT, { adminPuids: [] })
+      await upsertUserFromAssertion(ctx.db, COLLEAGUE, { adminPuids: [] })
+      for (const key of [
+        { cwlLogin: 'student' },
+        { puid: 'stu000001' },
+        { email: 'student@student.ubc.ca' },
+      ]) {
+        const res = await add(ctx, { ...key, role: 'collaborator' })
+        expect(refusal(res), JSON.stringify(key)).toEqual({
+          status: 409,
+          code: 'MEMBER_MAY_NOT_BUILD',
+        })
+        expect(res.json().error.message).toContain('Test Student')
+        expect(res.body).not.toContain('stu000001')
+      }
+      expect(await memberPuids(ctx)).toEqual(['bio_prof:owner'])
+      expect(await addedEvents(ctx)).toEqual([])
+      // The positive control: a faculty colleague, by the same route and the same owner.
+      const added = await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })
+      expect(added.statusCode, added.body).toBe(201)
+      expect(await memberPuids(ctx)).toEqual(['bio_prof:owner', 'col000001:collaborator'])
+    })
+  })
+
+  it('an administrator is added whatever their affiliation', async () => {
+    await withProjectServer(async (ctx) => {
+      const admin = await ensureTestUser(ctx.db, 'platform_admin')
+      await ctx.db.update(users).set({ affiliations: [] }).where(eq(users.id, admin.id))
+      const res = await add(ctx, { puid: 'platform_admin', role: 'collaborator' })
+      expect(res.statusCode, res.body).toBe(201)
+    })
+  })
+
+  it('a member who stops being faculty keeps their place, and their role may still be changed', async () => {
+    await withProjectServer(async (ctx) => {
+      const colleague = await upsertUserFromAssertion(ctx.db, COLLEAGUE, {
+        adminPuids: [],
+      })
+      expect(
+        (await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })).statusCode,
+      ).toBe(201)
+      // Their next sign-in carries `staff`.
+      await upsertUserFromAssertion(
+        ctx.db,
+        { ...COLLEAGUE, affiliations: ['staff'] },
+        { adminPuids: [] },
+      )
+      expect(await memberPuids(ctx)).toEqual(['bio_prof:owner', 'col000001:collaborator'])
+      const promoted = await add(ctx, { cwlLogin: 'colleague', role: 'owner' })
+      expect(promoted.statusCode, promoted.body).toBe(201)
+      expect(promoted.json()).toMatchObject({ userId: colleague.id, role: 'owner' })
+      // … and once REMOVED, they are a person who may not build, and are not added back.
+      const removed = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}/members/${colleague.id}`,
+        cookies: ctx.ownerSteppedUp,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(removed.statusCode, removed.body).toBe(200)
+      expect(
+        refusal(await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })),
+      ).toEqual({
+        status: 409,
+        code: 'MEMBER_MAY_NOT_BUILD',
+      })
     })
   })
 })

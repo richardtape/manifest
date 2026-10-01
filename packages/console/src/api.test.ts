@@ -52,7 +52,7 @@ const {
   PROJECT_ID,
   RELEASE_ID,
   STAGING_ID,
-  STUDENT_ID,
+  COLLEAGUE_ID,
   TOKEN_ID,
 } = fixtures
 
@@ -224,10 +224,10 @@ describe('the console’s data layer against manifest-mock', () => {
       )
 
       expect(
-        (await a.addMember(PROJECT_ID, { puid: 'stu000001', role: 'collaborator' }, k()))
+        (await a.addMember(PROJECT_ID, { puid: 'col000001', role: 'collaborator' }, k()))
           .role,
       ).toBe('collaborator')
-      expect((await a.removeMember(PROJECT_ID, STUDENT_ID, k()))[0]?.role).toBe('owner')
+      expect((await a.removeMember(PROJECT_ID, COLLEAGUE_ID, k()))[0]?.role).toBe('owner')
 
       const minted = await a.mintToken(
         PROJECT_ID,
@@ -473,10 +473,10 @@ describe('the console’s data layer against manifest-mock', () => {
       // The three whose requests changed: a member by CWL login name, a file read as bytes.
       const member = await a.addMember(
         PROJECT_ID,
-        { cwlLogin: 'student', role: 'collaborator' },
+        { cwlLogin: 'colleague', role: 'collaborator' },
         a.newKey(),
       )
-      expect(member.cwlLogin).toBe('student')
+      expect(member.cwlLogin).toBe('colleague')
       const tree = await a.getTree(PROJECT_ID)
       const bytes = await a.getFile(PROJECT_ID, 'src/app.js', tree.commitSha, 'base64')
       expect(bytes.encoding).toBe('base64')

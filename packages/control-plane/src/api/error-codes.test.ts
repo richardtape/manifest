@@ -86,6 +86,7 @@ const WIRE_CLASSES = [
   'OutputError',
   'AgentSessionError',
   'ProjectStateError',
+  'BuildingError',
 ] as const
 
 /**

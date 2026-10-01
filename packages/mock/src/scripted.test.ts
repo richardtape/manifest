@@ -455,6 +455,51 @@ describe('Task 13 — the states the document’s examples cannot show', () => {
     ).toBe(true)
   })
 
+  it('says who may build — true by default; scripted false, it refuses creating, describing and adding by code', async () => {
+    // FE-39: the platform answers `Me.mayBuild` and refuses the three operations; the mock plays
+    // both answers, as `MANIFEST_MOCK_MAY_BUILD=0` (or `mayBuild: false`) says.
+    const create = (at: string) =>
+      fetch(`${at}/v1/projects`, {
+        method: 'POST',
+        headers: mutation(SESSION),
+        body: JSON.stringify({
+          slug: 'new-app',
+          blueprint: 'node-ts-mongo@1',
+          audience: { scale: 'solo', burst: 'steady' },
+        }),
+      })
+    const describe_ = (at: string) =>
+      fetch(`${at}/v1/intake-sessions`, { method: 'POST', headers: mutation(SESSION) })
+    const add = (at: string) =>
+      fetch(`${at}/v1/projects/${f.PROJECT_ID}/members`, {
+        method: 'POST',
+        headers: mutation(SESSION),
+        body: JSON.stringify({ cwlLogin: 'student', role: 'collaborator' }),
+      })
+    const me = async (at: string) =>
+      (
+        (await (await fetch(`${at}/v1/me`, { headers: SESSION })).json()) as {
+          mayBuild: boolean
+        }
+      ).mayBuild
+    // The positive half, on the default server.
+    expect(await me(origin)).toBe(true)
+    expect((await create(origin)).status).toBe(201)
+    expect((await describe_(origin)).status).toBe(201)
+    expect((await add(origin)).status).toBe(201)
+
+    const closed = await serve({ mayBuild: false })
+    expect(await me(closed)).toBe(false)
+    for (const [name, response, status, code] of [
+      ['createProject', await create(closed), 403, 'BUILDING_NOT_OPEN'],
+      ['startIntakeSession', await describe_(closed), 403, 'BUILDING_NOT_OPEN'],
+      ['addMember', await add(closed), 409, 'MEMBER_MAY_NOT_BUILD'],
+    ] as const) {
+      expect(response.status, name).toBe(status)
+      expect(await codeOf(response), name).toBe(code)
+    }
+  })
+
   it('pauses describing a new app when scripted: the day’s limit, or the platform’s month', async () => {
     for (const [intake, code] of [
       ['daily-limit', 'INTAKE_DAILY_LIMIT_REACHED'],

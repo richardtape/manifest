@@ -194,6 +194,23 @@ describe('configuration', () => {
     }
   })
 
+  it('reads the administrators’ PUIDs — none when it is unset or blank — and refuses an empty entry (FE-39, Decision 28)', () => {
+    // Unset or blank is "no list": `scripts/admin-grant.sh` stays the procedure.
+    expect(loadConfig(base).adminPuids).toEqual([])
+    expect(loadConfig({ ...base, MANIFEST_ADMIN_PUIDS: '' }).adminPuids).toEqual([])
+    expect(loadConfig({ ...base, MANIFEST_ADMIN_PUIDS: '   ' }).adminPuids).toEqual([])
+    expect(
+      loadConfig({ ...base, MANIFEST_ADMIN_PUIDS: ' opr000001 , ins000001' }).adminPuids,
+    ).toEqual(['opr000001', 'ins000001'])
+    // When it is set it is AUTHORITATIVE — every sign-in reconciles the role to it — so a
+    // stray comma must not read as a list that names nobody, or somebody who is not there.
+    for (const value of ['opr000001,', ',opr000001', 'opr000001,,ins000001']) {
+      expect(() => loadConfig({ ...base, MANIFEST_ADMIN_PUIDS: value }), value).toThrow(
+        ConfigError,
+      )
+    }
+  })
+
   it('coerces the agent and intake numbers, and refuses one that is not positive', () => {
     const config = loadConfig({
       ...base,

@@ -11,11 +11,13 @@
 # packages/journey/src/token.ts — TypeScript, checked by tsc against the generated types,
 # importing nothing but @manifest/contract.
 #
-# THE ONE PRECONDITION THIS SCRIPT EXISTS TO MEET. Step 6 has the agent ask to add the
-# STUDENT to the project, and `POST /v1/projects/{id}/members` refuses `400
-# MEMBER_USER_NOT_FOUND` for anybody who has never signed in. So the student is signed in
+# THE ONE PRECONDITION THIS SCRIPT EXISTS TO MEET. Step 6 has the agent ask to add a faculty
+# COLLEAGUE to the project, and `POST /v1/projects/{id}/members` refuses `400
+# MEMBER_USER_NOT_FOUND` for anybody who has never signed in. So the colleague is signed in
 # here, before the TypeScript runs — otherwise the confirmed retry answers 400 and reads as
-# a defect in D24's grant rather than as a missing sign-in.
+# a defect in D24's grant rather than as a missing sign-in. The STUDENT is signed in too: since
+# FE-39 only a person who may build is added, and step 8 shows the student refused
+# `409 MEMBER_MAY_NOT_BUILD` — which needs a student who has signed in, or it is 400.
 #
 # macOS ships bash 3.2 and a BSD userland: no associative arrays, no `mapfile`,
 # no `xargs -r`, no `readlink -f`.
@@ -99,18 +101,25 @@ SESSION_STEPPED="$(session_of "$CP_JAR")"
   || fail "the step-up left the session unchanged — the callback did not re-sign it"
 echo "  stepped up"
 
-say "1a. Sign the STUDENT in once, so there is somebody to add (step 6's precondition)"
+say "1a. Sign the COLLEAGUE and the STUDENT in once, so there is somebody to add, and somebody refused"
 # A person must exist in `users` before they can be made a member, and `pnpm test` and
-# `make reset` both empty that table. The session is thrown away immediately — all this
-# needs to leave behind is the row.
+# `make reset` both empty that table. Each session is thrown away immediately — all this
+# needs to leave behind is the row, and the affiliation its sign-in wrote.
+COL_JAR="$WORK/colleague.jar"; COL_IDP_JAR="$WORK/colleague-idp.jar"
+idp_login "$COL_JAR" "$COL_IDP_JAR" "$ORIGIN/auth/login" colleague colleague \
+  "$ORIGIN/auth/saml/callback" "$CA"
+[ -n "$(session_of "$COL_JAR")" ] || fail "the colleague's sign-in left no session, so
+col000001 may not exist in \`users\` — step 8's retry would answer 400 MEMBER_USER_NOT_FOUND
+and read as a defect in D24's grant"
+rm -f "$COL_JAR" "$COL_IDP_JAR"
+echo "  col000001 (faculty) has signed in at least once"
 STU_JAR="$WORK/student.jar"; STU_IDP_JAR="$WORK/student-idp.jar"
 idp_login "$STU_JAR" "$STU_IDP_JAR" "$ORIGIN/auth/login" student student \
   "$ORIGIN/auth/saml/callback" "$CA"
 [ -n "$(session_of "$STU_JAR")" ] || fail "the student's sign-in left no session, so
-stu000001 may not exist in \`users\` — step 8's retry would answer 400 MEMBER_USER_NOT_FOUND
-and read as a defect in D24's grant"
+step 8's refusal would be 400 MEMBER_USER_NOT_FOUND rather than 409 MEMBER_MAY_NOT_BUILD"
 rm -f "$STU_JAR" "$STU_IDP_JAR"
-echo "  stu000001 has signed in at least once"
+echo "  stu000001 (a student) has signed in at least once"
 
 # token-app's repository, if a `pnpm test` left it without its project (P5a Task 11).
 clear_orphan_repository "$SLUG"

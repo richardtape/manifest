@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { db, users } from '../db/index.js'
+import { db, roleChanges, users } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { randomUUID } from 'node:crypto'
 import {
@@ -47,7 +47,8 @@ describe('auth routes', () => {
     const me = await app.inject({ method: 'GET', url: '/v1/me', cookies })
     expect(me.statusCode).toBe(200)
     // EXACTLY `Me` (P5a Task 6): the row's name and address beside the session's role,
-    // and nothing else the users table holds.
+    // whether they may build (FE-39 — decided, never the raw affiliations), and nothing else
+    // the users table holds.
     const [user] = await deps.db
       .select()
       .from(users)
@@ -58,6 +59,7 @@ describe('auth routes', () => {
       displayName: 'Bio Prof',
       email: 'bio_prof@example.ubc.ca',
       role: 'member',
+      mayBuild: true,
     })
     await app.close()
   })
@@ -175,7 +177,7 @@ describe('Manifest is its own SP (§9)', () => {
     requestId: string,
     overrides: {
       audience?: string
-      attributes?: Record<string, string>
+      attributes?: Record<string, string | readonly string[]>
       signWith?: { privateKeyPem: string; certificatePem: string }
       expired?: boolean
       unsigned?: boolean
@@ -351,6 +353,219 @@ describe('Manifest is its own SP (§9)', () => {
       })
       expect(await cwlLoginOf(deps, 'new000001')).toBe('jsmith')
       expect(await cwlLoginOf(deps, 'ins000001')).toBeNull()
+      await app.close()
+    })
+  })
+
+  /**
+   * WHO MAY BUILD (FE-39; §9, §6, §13 and §20 as Spec action 7 amended them — Rich's, confirmed
+   * 2026-09-29). `eduPersonAffiliation` is read at EVERY sign-in as UBC's current fact about the
+   * person (Decision 27), and `MANIFEST_ADMIN_PUIDS`, when it is set, decides the platform role at
+   * every sign-in, each change audited (Decision 28). `Me.mayBuild` is the answer a client reads.
+   */
+  describe('who may build — the affiliation and the administrators’ list, at every sign-in (FE-39)', () => {
+    type Deps = Awaited<ReturnType<typeof testDeps>>
+    const withAdmins = (deps: Deps, adminPuids: readonly string[]): Deps => ({
+      ...deps,
+      config: { ...deps.config, adminPuids },
+    })
+    /** Signs in through the callback and answers what `/v1/me` says of the new session. */
+    const signIn = async (
+      app: App,
+      idp: TestIdp,
+      attributes: Record<string, string | readonly string[]>,
+    ) => {
+      const login = await pendingLogin(app)
+      const res = await post(app, assertion(idp, login.requestId, { attributes }), login)
+      expect(res.statusCode, res.body).toBe(302)
+      const session = res.cookies.find((c) => c.name === 'manifest_session')!.value
+      const me = await app.inject({
+        method: 'GET',
+        url: '/v1/me',
+        cookies: { manifest_session: session },
+      })
+      expect(me.statusCode, me.body).toBe(200)
+      return me.json() as { puid: string; role: string; mayBuild: boolean }
+    }
+    const rowOf = async (deps: Deps, puid: string) => {
+      const [row] = await deps.db.select().from(users).where(eq(users.ubcCwlPuid, puid))
+      return row!
+    }
+    const roleChangesOf = async (deps: Deps, puid: string) =>
+      deps.db
+        .select({
+          fromRole: roleChanges.fromRole,
+          toRole: roleChanges.toRole,
+          actor: roleChanges.actor,
+          reason: roleChanges.reason,
+        })
+        .from(roleChanges)
+        .innerJoin(users, eq(users.id, roleChanges.userId))
+        .where(eq(users.ubcCwlPuid, puid))
+        .orderBy(asc(roleChanges.createdAt))
+    const WITHOUT_AFFILIATION = Object.fromEntries(
+      Object.entries(INSTRUCTOR).filter(([oid]) => oid !== OID.eduPersonAffiliation),
+    )
+    const OPERATOR = {
+      [OID.ubcEduCwlPuid]: 'opr000001',
+      [OID.mail]: 'operator@ubc.ca',
+      [OID.givenName]: 'Test',
+      [OID.sn]: 'Operator',
+      [OID.eduPersonAffiliation]: 'staff',
+    }
+
+    it('keeps every affiliation the assertion carried, as UBC sent each, and faculty among them may build', async () => {
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      const me = await signIn(app, idp, {
+        ...INSTRUCTOR,
+        [OID.eduPersonAffiliation]: ['member', 'faculty', 'staff'],
+      })
+      expect(me).toMatchObject({ puid: 'ins000001', role: 'member', mayBuild: true })
+      const row = await rowOf(deps, 'ins000001')
+      expect(row.affiliations).toEqual(['member', 'faculty', 'staff'])
+      expect(row.affiliationsSeenAt).toBeInstanceOf(Date)
+      await app.close()
+    })
+
+    it('the affiliation is refreshed at every sign-in — faculty last time, not this time, may not build', async () => {
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      expect((await signIn(app, idp, INSTRUCTOR)).mayBuild).toBe(true)
+      const first = (await rowOf(deps, 'ins000001')).affiliationsSeenAt!
+      const me = await signIn(app, idp, {
+        ...INSTRUCTOR,
+        [OID.eduPersonAffiliation]: 'staff',
+      })
+      expect(me.mayBuild).toBe(false)
+      const row = await rowOf(deps, 'ins000001')
+      expect(row.affiliations).toEqual(['staff'])
+      expect(row.affiliationsSeenAt!.getTime()).toBeGreaterThanOrEqual(first.getTime())
+      await app.close()
+    })
+
+    it('an assertion without eduPersonAffiliation signs the person in, and they may not build', async () => {
+      // Decision 27: unlike `uid`, an absent affiliation is not "not released, keep the old one" —
+      // the control plane's registration asks for it, so an assertion without it is UBC saying
+      // nothing, and nothing is what the person may build on. Faculty last time, to show the
+      // absence REPLACES what was kept rather than leaving it.
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      expect((await signIn(app, idp, INSTRUCTOR)).mayBuild).toBe(true)
+      const me = await signIn(app, idp, WITHOUT_AFFILIATION)
+      expect(me).toMatchObject({ puid: 'ins000001', mayBuild: false })
+      expect((await rowOf(deps, 'ins000001')).affiliations).toEqual([])
+      await app.close()
+    })
+
+    it('an administrator named by MANIFEST_ADMIN_PUIDS may build, whatever their affiliation, and the role change is audited', async () => {
+      const deps = withAdmins(await testDeps(), ['opr000001'])
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      const me = await signIn(app, idp, OPERATOR)
+      expect(me).toMatchObject({ puid: 'opr000001', role: 'admin', mayBuild: true })
+      expect(await roleChangesOf(deps, 'opr000001')).toEqual([
+        {
+          fromRole: 'member',
+          toRole: 'admin',
+          actor: 'setting:MANIFEST_ADMIN_PUIDS',
+          reason: expect.stringMatching(/MANIFEST_ADMIN_PUIDS/),
+        },
+      ])
+      // A second sign-in changes nothing, and records nothing.
+      expect((await signIn(app, idp, OPERATOR)).role).toBe('admin')
+      expect(await roleChangesOf(deps, 'opr000001')).toHaveLength(1)
+      // The positive control: a person the list does not name is not an administrator.
+      expect(await signIn(app, idp, INSTRUCTOR)).toMatchObject({
+        role: 'member',
+        mayBuild: true,
+      })
+      expect(await roleChangesOf(deps, 'ins000001')).toEqual([])
+      await app.close()
+    })
+
+    it('with MANIFEST_ADMIN_PUIDS set, an administrator absent from it is reconciled to member at sign-in, audited', async () => {
+      const plain = await testDeps()
+      const app = await buildServer(plain)
+      const idp = await testSamlIdp()
+      await signIn(app, idp, OPERATOR)
+      // As `scripts/admin-grant.sh grant` leaves it.
+      await plain.db
+        .update(users)
+        .set({ role: 'admin' })
+        .where(eq(users.ubcCwlPuid, 'opr000001'))
+      await app.close()
+
+      const deps = withAdmins(plain, ['ins000001'])
+      const listed = await buildServer(deps)
+      const me = await signIn(listed, idp, OPERATOR)
+      expect(me).toMatchObject({ role: 'member', mayBuild: false })
+      expect((await rowOf(deps, 'opr000001')).role).toBe('member')
+      expect(await roleChangesOf(deps, 'opr000001')).toEqual([
+        {
+          fromRole: 'admin',
+          toRole: 'member',
+          actor: 'setting:MANIFEST_ADMIN_PUIDS',
+          reason: expect.stringMatching(/MANIFEST_ADMIN_PUIDS/),
+        },
+      ])
+      await listed.close()
+    })
+
+    it('with MANIFEST_ADMIN_PUIDS empty, admin-grant.sh’s grant stands (today’s procedure)', async () => {
+      const deps = withAdmins(await testDeps(), [])
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      expect((await signIn(app, idp, OPERATOR)).mayBuild).toBe(false)
+      await deps.db
+        .update(users)
+        .set({ role: 'admin' })
+        .where(eq(users.ubcCwlPuid, 'opr000001'))
+      // The next sign-in issues an administrator's session, and a sign-in records no change.
+      expect(await signIn(app, idp, OPERATOR)).toMatchObject({
+        role: 'admin',
+        mayBuild: true,
+      })
+      expect(await roleChangesOf(deps, 'opr000001')).toEqual([])
+      await app.close()
+    })
+
+    it('the administrators’ list is of PUIDs: the login of a listed person, reassigned, makes nobody an administrator', async () => {
+      // Decision 28, Rich's "YEs, PUID": a CWL login is held by whoever signed in with it last,
+      // so a list read by login would hand the platform's highest role to its next holder.
+      const deps = withAdmins(await testDeps(), ['ins000001'])
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      expect(
+        await signIn(app, idp, { ...INSTRUCTOR, [OID.uid]: 'jsmith' }),
+      ).toMatchObject({
+        role: 'admin',
+      })
+      const newHolder = {
+        [OID.ubcEduCwlPuid]: 'new000001',
+        [OID.mail]: 'jsmith@ubc.ca',
+        [OID.givenName]: 'Jo',
+        [OID.sn]: 'Smith',
+        [OID.uid]: 'jsmith',
+        [OID.eduPersonAffiliation]: 'student',
+      }
+      expect(await signIn(app, idp, newHolder)).toMatchObject({
+        role: 'member',
+        mayBuild: false,
+      })
+      // And a login that happens to read like a listed PUID is still only a login.
+      expect(
+        await signIn(app, idp, {
+          ...newHolder,
+          [OID.ubcEduCwlPuid]: 'new000002',
+          [OID.uid]: 'ins000001',
+          [OID.mail]: 'other@ubc.ca',
+        }),
+      ).toMatchObject({ role: 'member', mayBuild: false })
+      expect((await rowOf(deps, 'ins000001')).role).toBe('admin')
       await app.close()
     })
   })

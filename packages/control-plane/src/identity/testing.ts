@@ -34,7 +34,14 @@ import { SESSION_COOKIE, issueSession, signSession } from './session.js'
  * is what made them look like seed data.
  *
  * `bio_prof` and `bio_student` are §9's own names. `platform_admin` and
- * `unrelated_user` are the two §9 does not name and the contract suite needs.
+ * `unrelated_user` are the two §9 does not name and the contract suite needs. `bio_colleague`
+ * is a fifth, since FE-39: the faculty member an owner adds through the route.
+ *
+ * Each carries the `eduPersonAffiliation` its sign-in would (the launch path plan's Task 8a,
+ * FE-39), because who may build is decided from it: `bio_prof` and `unrelated_user` are faculty
+ * and may build; `bio_student` is a student and may not, so a fixture that makes them a
+ * collaborator does it through `projects/`'s `addMember` (`sessionFor`), as somebody added before
+ * the rule — never through the route, which refuses them `MEMBER_MAY_NOT_BUILD`.
  */
 export const TEST_USERS = Object.freeze([
   {
@@ -42,24 +49,41 @@ export const TEST_USERS = Object.freeze([
     email: 'bio_prof@example.ubc.ca',
     displayName: 'Bio Prof',
     role: 'member',
+    affiliations: ['faculty'],
   },
   {
     puid: 'bio_student',
     email: 'bio_student@example.ubc.ca',
     displayName: 'Bio Student',
     role: 'member',
+    affiliations: ['student'],
   },
   {
     puid: 'unrelated_user',
     email: 'unrelated_user@example.ubc.ca',
     displayName: 'Unrelated User',
     role: 'member',
+    // ANOTHER INSTRUCTOR — a stranger to `bio_prof`'s project, not a person who may not build:
+    // `withProjectServer` creates the second project as this person, through the route.
+    affiliations: ['faculty'],
+  },
+  {
+    // A SECOND INSTRUCTOR, in the same department — the person an owner adds to a project THROUGH
+    // THE ROUTE (the launch path plan's Task 8a, Decision 31; the laptop IdP's `colleague`). Since
+    // FE-39 only a person who may build is added there, so `bio_student` can no longer be.
+    puid: 'bio_colleague',
+    email: 'bio_colleague@example.ubc.ca',
+    displayName: 'Bio Colleague',
+    role: 'member',
+    affiliations: ['faculty'],
   },
   {
     puid: 'platform_admin',
     email: 'platform_admin@example.ubc.ca',
     displayName: 'Platform Admin',
     role: 'admin',
+    // An administrator builds by role, whatever UBC says — like the laptop IdP's `operator`.
+    affiliations: ['staff'],
   },
 ] as const)
 
@@ -77,7 +101,7 @@ export type SessionUser = Pick<typeof users.$inferSelect, 'id' | 'ubcCwlPuid' | 
  * reason `devLogin` did: the API suites reset the database between files and a
  * test that assumed the row survived would pass or fail on file order.
  *
- * The role is set on every call rather than only on insert, because these four
+ * The role is set on every call rather than only on insert, because these
  * identities are fixtures whose roles the suite depends on — unlike a real CWL
  * login, which deliberately never touches an existing user's role (see
  * `upsertUserFromAssertion`).
@@ -89,7 +113,7 @@ export async function ensureTestUser(
   const seed = TEST_USERS.find((candidate) => candidate.puid === puid)
   if (!seed) {
     throw new Error(
-      `'${puid}' is not one of §16's four test identities: ` +
+      `'${puid}' is not one of the test identities: ` +
         `${TEST_USERS.map((u) => u.puid).join(', ')}`,
     )
   }
@@ -100,10 +124,16 @@ export async function ensureTestUser(
       email: seed.email,
       displayName: seed.displayName,
       role: seed.role,
+      affiliations: [...seed.affiliations],
     })
     .onConflictDoUpdate({
       target: users.ubcCwlPuid,
-      set: { email: seed.email, displayName: seed.displayName, role: seed.role },
+      set: {
+        email: seed.email,
+        displayName: seed.displayName,
+        role: seed.role,
+        affiliations: [...seed.affiliations],
+      },
     })
   const [user] = await db.select().from(users).where(eq(users.ubcCwlPuid, seed.puid))
   if (!user)
@@ -216,8 +246,11 @@ export interface AssertionInput {
   destination: string
   /** The AuthnRequest this answers — `authnRequestId(await sp.loginUrl(nonce))`. */
   inResponseTo: string
-  /** Keyed by OID, as the Manifest IdP releases them after `core:AttributeMap`. */
-  attributes: Record<string, string>
+  /**
+   * Keyed by OID, as the Manifest IdP releases them after `core:AttributeMap`. An array is a
+   * multi-valued attribute — one `AttributeValue` each, as UBC sends `eduPersonAffiliation`.
+   */
+  attributes: Record<string, string | readonly string[]>
   /** Signs with this key instead of the IdP's. The wrong-key control. */
   signWith?: { privateKeyPem: string; certificatePem: string }
   /** Shifts `NotOnOrAfter` into the past. The expiry control. */
@@ -290,7 +323,10 @@ export async function testSamlIdp(): Promise<TestIdp> {
         .map(
           ([name, value]) =>
             `<saml:Attribute Name="${name}" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">` +
-            `<saml:AttributeValue>${value}</saml:AttributeValue></saml:Attribute>`,
+            (typeof value === 'string' ? [value] : value)
+              .map((one) => `<saml:AttributeValue>${one}</saml:AttributeValue>`)
+              .join('') +
+            `</saml:Attribute>`,
         )
         .join('')
 

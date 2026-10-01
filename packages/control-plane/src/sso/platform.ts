@@ -42,13 +42,16 @@ export const CONTROL_PLANE_ENVIRONMENT = 'platform'
 /**
  * What the control plane asks the IdP to release about the person logging in.
  *
- * Five names, and the omission is the interesting one: **`eduPersonAffiliation`
- * is not requested.** A platform role is Manifest's to decide (§9 —
- * authentication is the IdP's job, authorization is not), so an attribute
- * saying `faculty` has no consumer here; requesting it anyway would put a value
- * in the assertion that nothing may act on, which is how it eventually gets
- * acted on. §9's attribute release is enforced at the IdP against this list, so
- * an attribute absent here is not sent at all.
+ * Six names. §9's attribute release is enforced at the IdP against this list, so an attribute
+ * absent here is not sent at all — which is why each name has a consumer.
+ *
+ * **`eduPersonAffiliation` since the launch path plan's Task 8a** (FE-39; §9 as Spec action 7
+ * amended it). Until then it was deliberately NOT requested: a platform role is Manifest's to
+ * decide (§9 — authentication is the IdP's job, authorization is not), and a value nothing may act
+ * on is how one eventually gets acted on. It now has exactly one consumer, and authorization stays
+ * Manifest's: the affiliation is kept as a FACT at every sign-in (`users.affiliations`), and
+ * `identity/builders.ts`'s `mayBuild` decides from it who may build. It never sets a platform
+ * role — only `MANIFEST_ADMIN_PUIDS` or `scripts/admin-grant.sh` does.
  */
 export const CONTROL_PLANE_ATTRIBUTES = [
   'ubcEduCwlPuid',
@@ -59,6 +62,9 @@ export const CONTROL_PLANE_ATTRIBUTES = [
   // kept as `users.cwl_login`, so an owner can add a colleague by the name they sign in with.
   // Asked for, never required — an assertion without it still signs a person in.
   'uid',
+  // Who may build (§9 as Spec action 7 amended it; the launch path plan's Task 8a): asked for,
+  // never required — an assertion without it signs a person in who may not build.
+  'eduPersonAffiliation',
 ]
 
 const ORIGIN = /^https?:\/\/[^/?#]+$/

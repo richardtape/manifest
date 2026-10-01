@@ -2,7 +2,7 @@ import { inflateRawSync } from 'node:zlib'
 import { SAML, ValidateInResponseTo } from '@node-saml/node-saml'
 import { and, eq, ne } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
-import { users } from '../db/index.js'
+import { roleChanges, users } from '../db/index.js'
 import { MANIFEST_IDP_PATHS } from '../spec/index.js'
 import {
   ATTRIBUTE_OIDS,
@@ -89,6 +89,13 @@ export interface SamlIdentity {
    * the only key a person is identified by, and a login is only how a colleague finds them.
    */
   cwlLogin: string | null
+  /**
+   * Every value of `eduPersonAffiliation`, exactly as the assertion carried it — `[]` when it
+   * carried none (the launch path plan's Task 8a, FE-39; Decision 27). UBC's CURRENT fact about
+   * the person: who may build is decided from it (`builders.ts`), so it is written at every
+   * sign-in and never kept from an earlier one.
+   */
+  affiliations: string[]
   /**
    * The session the IdP now holds for this person, as the assertion named it — what a
    * console sign-out quotes back (P6b F10). `null` only if the assertion carried no NameID.
@@ -511,6 +518,16 @@ function first(value: unknown): string | undefined {
 }
 
 /**
+ * Every value, as sent: node-saml gives a multi-valued attribute as an array and a single one as
+ * a string. Nothing is trimmed or folded — `builders.ts` compares exactly (Decision 30).
+ */
+function every(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined
+  const values = Array.isArray(value) ? value : [value]
+  return values.filter((one): one is string => typeof one === 'string' && one.length > 0)
+}
+
+/**
  * A validated profile → §9's identity, or a refusal.
  *
  * `ubcEduCwlPuid` is read by OID and then by friendly name, the same two-step
@@ -546,6 +563,10 @@ function toIdentity(profile: Record<string, unknown>): SamlIdentity {
   return {
     ubcCwlPuid,
     cwlLogin: uid === undefined || uid === '' ? null : uid,
+    affiliations:
+      every(profile[OID.eduPersonAffiliation]) ??
+      every(profile.eduPersonAffiliation) ??
+      [],
     email: read('mail') ?? '',
     // Falls back to the PUID rather than to an empty string: `display_name` is
     // NOT NULL and is what a member list shows, and a blank row there reads as
@@ -568,22 +589,32 @@ function toIdentity(profile: Record<string, unknown>): SamlIdentity {
  * The §6 `User` for an authenticated person: created on first login, found on
  * every one after.
  *
- * **The role is set on INSERT and never on update**, and that is the whole of
- * §9's *"authentication is the IdP's job; authorization is not"*. Two failures
- * it prevents, in opposite directions: a login must not be able to grant `admin`
- * — `eduPersonAffiliation` says `faculty` for an instructor, and letting that
- * through would make the IdP an authorization authority — and a login must not
- * be able to REMOVE it either, which is what an `onConflictDoUpdate` that reset
- * the column would do to every platform admin the moment they logged in again.
+ * **The assertion never sets the role.** That is §9's *"authentication is the IdP's job;
+ * authorization is not"*, and it prevents two failures in opposite directions: a login must not
+ * be able to grant `admin` — `eduPersonAffiliation` says `faculty` for an instructor, and letting
+ * that through would make the IdP an authorization authority — and a login must not be able to
+ * REMOVE it either, which is what an `onConflictDoUpdate` that reset the column would do to every
+ * platform admin the moment they logged in again. The affiliation is kept as a FACT
+ * (`affiliations`), and Manifest decides what it allows (`builders.ts`).
+ *
+ * **The one thing that does set it is the platform's own setting** (§20 as Spec action 7 amended
+ * it; the launch path plan's Task 8a, Decision 28): when `MANIFEST_ADMIN_PUIDS` names anybody, it
+ * is AUTHORITATIVE — every sign-in reconciles the person's role to it, by PUID, each change a
+ * `RoleChange` with actor `setting:MANIFEST_ADMIN_PUIDS`. When it is empty nothing is reconciled,
+ * and `scripts/admin-grant.sh` stays the procedure (both at once would flip a person the script
+ * granted at every sign-in).
  *
  * `onConflictDoUpdate` rather than a select-then-insert: two logins racing on a
  * new user would otherwise both insert, and P3 defect 76 measured what an
  * unhandled unique violation looks like from outside — 500 INTERNAL, with no
- * trace anywhere.
+ * trace anywhere. The reconciliation reads the role `FOR UPDATE` in the same transaction, so two
+ * sign-ins racing record one change, not two.
  */
 export async function upsertUserFromAssertion(
   db: Db,
   identity: SamlIdentity,
+  /** `config.adminPuids`. Required, so the one real caller cannot forget it; `[]` reconciles nobody. */
+  settings: { adminPuids: readonly string[] },
 ): Promise<typeof users.$inferSelect> {
   /**
    * THE CWL LOGIN FOLLOWS ITS HOLDER (the front-end enablement plan's Task 7). A login can
@@ -591,8 +622,14 @@ export async function upsertUserFromAssertion(
    * assertion is what says who holds it now. Any OTHER row still holding it lets go first, in
    * the same transaction, or the new holder's sign-in would fail on the old holder's stale row.
    * An assertion WITHOUT `uid` leaves a stored login alone: absent is "not released", not "none".
+   *
+   * THE AFFILIATION DOES NOT (Decision 27): it is written every time, `[]` when absent, because
+   * the control plane's registration asks for it and an attribute UBC did not send is UBC saying
+   * nothing — and "faculty, as of some earlier sign-in" is not who may build today.
    */
   const cwlLogin = identity.cwlLogin
+  const affiliations = identity.affiliations
+  const seenAt = new Date()
   await db.transaction(async (tx) => {
     if (cwlLogin !== null) {
       await tx
@@ -610,6 +647,8 @@ export async function upsertUserFromAssertion(
         displayName: identity.displayName,
         cwlLogin,
         role: 'member',
+        affiliations,
+        affiliationsSeenAt: seenAt,
       })
       .onConflictDoUpdate({
         target: users.ubcCwlPuid,
@@ -617,8 +656,30 @@ export async function upsertUserFromAssertion(
           email: identity.email,
           displayName: identity.displayName,
           ...(cwlLogin === null ? {} : { cwlLogin }),
+          affiliations,
+          affiliationsSeenAt: seenAt,
         },
       })
+    if (settings.adminPuids.length === 0) return
+    const [row] = await tx
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.ubcCwlPuid, identity.ubcCwlPuid))
+      .for('update')
+    if (row === undefined) return
+    const wanted = settings.adminPuids.includes(identity.ubcCwlPuid) ? 'admin' : 'member'
+    if (row.role === wanted) return
+    await tx.update(users).set({ role: wanted }).where(eq(users.id, row.id))
+    await tx.insert(roleChanges).values({
+      userId: row.id,
+      fromRole: row.role,
+      toRole: wanted,
+      actor: 'setting:MANIFEST_ADMIN_PUIDS',
+      reason:
+        wanted === 'admin'
+          ? 'MANIFEST_ADMIN_PUIDS names this person’s PUID; reconciled at sign-in'
+          : 'MANIFEST_ADMIN_PUIDS is set and does not name this person’s PUID; reconciled at sign-in',
+    })
   })
   const [user] = await db
     .select()

@@ -39,6 +39,7 @@ describe('manifest-mock serves the published contract', () => {
       puid: 'ins000001',
       displayName: 'Instructor One',
       email: 'instructor@example.test',
+      mayBuild: true,
     }
     // `Me` requires `role`…
     expect(check('Me', me).ok).toBe(false)

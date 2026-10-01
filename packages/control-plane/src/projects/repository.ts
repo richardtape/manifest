@@ -352,7 +352,16 @@ export async function addMember(
   projectId: string,
   userId: string,
   role: 'owner' | 'collaborator',
-): Promise<{ previousRole: ProjectRole | null } | 'last owner'> {
+  /**
+   * WHETHER A PERSON NOT YET ON THE PROJECT MAY JOIN IT (FE-39; §13 as Spec action 7 amended it):
+   * the route passes `mayBuild` of the person named. Decided HERE, against the membership read
+   * under the project's lock, because §13 says only a person who may build is ADDED while one who
+   * stops being faculty keeps the projects they are on — so a role change for a member is not an
+   * add, and a removal racing this call cannot turn one into one. Defaults to `true`: the fixtures
+   * and the creator's own membership add people the caller has already decided about.
+   */
+  options: { newcomerMayBuild?: boolean } = {},
+): Promise<{ previousRole: ProjectRole | null } | 'last owner' | 'may not build'> {
   return db.transaction(async (tx) => {
     await tx
       .select({ id: projects.id })
@@ -365,6 +374,7 @@ export async function addMember(
       .where(
         and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)),
       )
+    if (before === undefined && options.newcomerMayBuild === false) return 'may not build'
     // The LAST OWNER stays one — `removeMember`'s rule, which a demotion would otherwise route
     // around (the review's I2). Counted under the project's lock, so two demotions racing
     // cannot each see the other still an owner.

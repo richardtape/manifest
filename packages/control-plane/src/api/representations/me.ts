@@ -1,5 +1,6 @@
 import { z } from 'zod/v4'
 import type { users } from '../../db/index.js'
+import { mayBuild } from '../../identity/index.js'
 import { representation, Uuid } from '../contract/schemas.js'
 
 export const Me = representation(
@@ -15,6 +16,11 @@ export const Me = representation(
       role: z
         .enum(['admin', 'member'])
         .describe('The platform role THIS SESSION is authorized as.'),
+      mayBuild: z
+        .boolean()
+        .describe(
+          'Whether this person may build: create a project, start an intake session, or be added to a project. True for a faculty member — by the CWL affiliation their last sign-in carried — and for a platform administrator; false for everyone else, who should be told that building is not open to them yet. The three operations refuse such a person `BUILDING_NOT_OPEN`, or `MEMBER_MAY_NOT_BUILD` when they are the person being added. A person who stops being faculty keeps the projects they are on.',
+        ),
     })
     .describe('The person the session belongs to.'),
 )
@@ -36,5 +42,9 @@ export function toMe(
     displayName: user.displayName,
     email: user.email,
     role,
+    // The platform decides, here and at each refusal, from ONE predicate (FE-39): the session's role,
+    // because it is the one every authorization decision uses, and the row's affiliations, because a
+    // sign-in writes them at the same moment it issues the session.
+    mayBuild: mayBuild({ role, affiliations: user.affiliations }),
   }
 }

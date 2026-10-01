@@ -498,7 +498,9 @@ async function step6Refused(): Promise<void> {
   const projectId = checks.must('a project', state.projectId)
 
   state.memberKey = idempotencyKey()
-  state.memberBody = { puid: 'stu000001', role: 'collaborator' }
+  // A FACULTY colleague: since FE-39 only a person who may build is added (step 8 shows the student
+  // refused).
+  state.memberBody = { puid: 'col000001', role: 'collaborator' }
   state.askedAt = Date.now()
   const asked = await agent.client.POST('/v1/projects/{projectId}/members', {
     params: { path: { projectId }, header: { 'Idempotency-Key': state.memberKey } },
@@ -530,7 +532,7 @@ async function step6Refused(): Promise<void> {
   checks.ok(
     'and carries a hash of the request, never the request itself',
     /^[0-9a-f]{64}$/.test(question.bodySha256) &&
-      !JSON.stringify(question).includes('stu000001'),
+      !JSON.stringify(question).includes('col000001'),
     question.bodySha256.slice(0, 16),
   )
 }
@@ -650,7 +652,7 @@ async function step8RetriedOnce(): Promise<void> {
   checks.ok(
     'the retry — same token, same body, same Idempotency-Key — is 201',
     first.response.status === 201 &&
-      member.puid === 'stu000001' &&
+      member.puid === 'col000001' &&
       member.role === 'collaborator',
     `${first.response.status} ${JSON.stringify(member)}`,
   )
@@ -734,6 +736,20 @@ async function step8RetriedOnce(): Promise<void> {
     'and the agent’s retry is TOKEN_ACTION_REJECTED — a different code from PENDING, so it stops',
     told !== undefined && told.message.includes(reason),
     `${describe(stopped)} ${told?.message ?? ''}`,
+  )
+
+  // WHO MAY BUILD (FE-39, the launch path plan's Task 8a): only a faculty member or an administrator
+  // is added. The instructor, stepped up, names the student — who has signed in (step 1a) and may not
+  // build — and is refused by code, naming them; nobody is added.
+  const student = await humanSteppedUp.POST('/v1/projects/{projectId}/members', {
+    params: { path: { projectId }, header: { 'Idempotency-Key': idempotencyKey() } },
+    body: { puid: 'stu000001', role: 'collaborator' },
+  })
+  const notBuilder = refusal(student, 409, 'MEMBER_MAY_NOT_BUILD')
+  checks.ok(
+    'and the instructor may not add the STUDENT, who may not build — 409 MEMBER_MAY_NOT_BUILD',
+    notBuilder !== undefined && !notBuilder.message.includes('stu000001'),
+    `${describe(student)}`,
   )
 }
 

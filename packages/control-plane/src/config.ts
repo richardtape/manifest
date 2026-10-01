@@ -336,6 +336,14 @@ const envSchema = z.object({
    */
   MANIFEST_AGENT_BUILDER_MODELS: z.enum(['capable', 'on-premise']).default('capable'),
   /**
+   * THE PLATFORM'S ADMINISTRATORS, BY PUID (§20 as Spec action 7 amended it; the launch path plan's
+   * Task 8a, FE-39 — Rich, 2026-09-29: *"YEs, PUID"*). Comma-separated. **Set, it is authoritative**:
+   * every sign-in reconciles the person's platform role to it, each change an audited `RoleChange`
+   * (`identity/saml.ts`). **Unset or blank, nobody is reconciled**, and `scripts/admin-grant.sh` stays
+   * the procedure. PUIDs, never CWL login names: a login can be given to somebody else, a PUID cannot.
+   */
+  MANIFEST_ADMIN_PUIDS: z.string().default(''),
+  /**
    * Where a session's key is USED — the gateway's OpenAI-compatible base, as the agent reaches it.
    * The faculty front-end's server is a host process on the laptop, so the published port; at UBC
    * it is the gateway's own address. Answered in `startAgentSession`, never called by this process.
@@ -412,6 +420,11 @@ export interface Config {
    * picks it, and CSRF, the sign-in, the step-up and the sign-out all read THAT one.
    */
   origins: readonly string[]
+  /**
+   * `MANIFEST_ADMIN_PUIDS` (FE-39, Decision 28): empty, nobody's role is reconciled at sign-in;
+   * otherwise exactly the PUIDs who are administrators, reconciled at every sign-in.
+   */
+  adminPuids: readonly string[]
   /** §9: Manifest is its own SP. Everything that registration is built from. */
   sp: {
     /**
@@ -571,6 +584,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new ConfigError('CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH', frontendMismatch)
   }
   const origins = [spOrigin, ...(frontendOrigin === '' ? [] : [frontendOrigin])]
+  const adminPuids =
+    raw.MANIFEST_ADMIN_PUIDS.trim() === ''
+      ? []
+      : raw.MANIFEST_ADMIN_PUIDS.split(',').map((one) => one.trim())
+  // A stray comma in an AUTHORITATIVE list must not boot as a list naming somebody who is not there.
+  if (adminPuids.includes('')) {
+    throw new ConfigError(
+      'CONFIG_INVALID',
+      'invalid configuration — MANIFEST_ADMIN_PUIDS has an empty entry (a stray comma?); name each administrator’s PUID once, separated by commas',
+    )
+  }
   // A request names its origin by its HOST (`api/origins.ts`), so two origins on one host would
   // be one origin with two answers — refused here rather than resolved silently to the first.
   // The FORMAT of each (a bare origin) is `controlPlaneSpEntity`'s check, at boot.
@@ -702,6 +726,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: raw.MANIFEST_PORT,
     sessionSecret: raw.MANIFEST_SESSION_SECRET,
     origins,
+    adminPuids,
     sp: {
       origin: spOrigin,
       privateKeyPath: fromRepoRoot(raw.MANIFEST_SP_PRIVATE_KEY),

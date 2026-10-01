@@ -118,6 +118,14 @@ const STAGING_OUTPUT = { status: 403, code: 'INSTANCE_OUTPUT_STAGING' } as const
  * its building agent may use the capable model — the harness's default setting.
  */
 const CONFIDENTIAL_INCIDENTS = { status: 403, code: 'INCIDENT_LOG_CONFIDENTIAL' } as const
+/**
+ * WHO MAY BUILD (FE-39; the launch path plan's Task 8a): creating a project and starting an intake
+ * session are a faculty member's or an administrator's. This table's `collaborator` is
+ * `bio_student`, a student, so those two rows refuse them by this code — another `403` that a bare
+ * status would let `FORBIDDEN` satisfy. The owner and the stranger are faculty; the admin is
+ * `staff`, and builds by role.
+ */
+const BUILDING_NOT_OPEN = { status: 403, code: 'BUILDING_NOT_OPEN' } as const
 
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
@@ -439,7 +447,7 @@ const ROUTES: RouteCase[] = [
     }),
     expect: {
       owner: 'pass',
-      collaborator: 'pass',
+      collaborator: BUILDING_NOT_OPEN,
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
@@ -1568,7 +1576,8 @@ const ROUTES: RouteCase[] = [
   /**
    * INTAKE SESSIONS (Spec action 5, FE-1): a model before a project exists, paid for by the
    * platform — SESSION ONLY, because a token belongs to one project and there is none yet, so
-   * every token actor is `TOKEN_CREDENTIAL_REFUSED`. Any signed-in person may start one; only the
+   * every token actor is `TOKEN_CREDENTIAL_REFUSED`. Any person who may build may start one (FE-39 —
+   * the student collaborator is `BUILDING_NOT_OPEN`); only the
    * person who started one may end it — the collaborator, the stranger and the administrator are
    * all answered the stranger's `404`, as `revokeToken` answers anyone but a token's minter.
    */
@@ -1578,7 +1587,7 @@ const ROUTES: RouteCase[] = [
     request: () => ({ url: '/v1/intake-sessions' }),
     expect: {
       owner: 'pass',
-      collaborator: 'pass',
+      collaborator: BUILDING_NOT_OPEN,
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
@@ -2413,28 +2422,25 @@ export function describeAuthorizationContract(
        * Make the collaborator an actual member of the fixture project. Without this
        * line every "collaborator → pass" expectation below is a lie that still goes
        * green, because 404 is not 'pass' and the test would fail — but the reverse
-       * mistake (a stranger who is secretly a member) fails silently.
+       * mistake (a stranger who is secretly a member) fails silently. **Its answer is
+       * ASSERTED**: P6a Task 9 measured what an unread setup call costs — refused
+       * `STEP_UP_REQUIRED`, it surfaced as 29 unrelated `collaborator → pass` rows answering
+       * 404, in every part of the table but this one.
        *
-       * **A STEPPED-UP OWNER, AND ITS ANSWER IS ASSERTED** (P6a Task 9). §20's guard
-       * now refuses `members:manage` from an ordinary session, so this setup call was
-       * refused `403 STEP_UP_REQUIRED` — and because nothing read its status, the
-       * failure arrived as **29 unrelated `collaborator → pass` rows answering 404**,
-       * in every part of the table but this one. The plan predicted four red rows and
-       * measured thirty-three. **The fixture is not what this table tests**, so it
-       * steps up; the ROWS keep ordinary sessions, because a row reading `pass` on a
-       * guarded route is a row testing a guard that is not there.
+       * **THROUGH `projects/`'s `addMember`, NOT THE ROUTE, SINCE FE-39** (the launch path
+       * plan's Task 8a): the route adds only a person who may build, and this table's
+       * collaborator is `bio_student`, a student — a member who keeps their place, as one who
+       * stops being faculty does. The fixture is not what this table tests; the route's own
+       * row (above) and `members.test.ts` are.
        */
-      const madeCollaborator = await app.inject({
-        method: 'POST',
-        url: `/v1/projects/${body.id}/members`,
-        payload: { puid: 'bio_student', role: 'collaborator' },
-        cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
-        headers: mutationHeaders(deps),
-      })
-      expect({
-        status: madeCollaborator.statusCode,
-        code: codeOf(madeCollaborator.body),
-      }).toEqual({ status: 201, code: undefined })
+      const student = await ensureTestUser(deps.db, 'bio_student')
+      const madeCollaborator = await addMember(
+        deps.db,
+        body.id,
+        student.id,
+        'collaborator',
+      )
+      expect(madeCollaborator).toEqual({ previousRole: null })
 
       /**
        * **THE POSITIVE CONTROL FOR THE THREE APPROVAL ROWS ABOVE** (P6a Task 10), and what

@@ -40,6 +40,17 @@ $config = [
             'sn'                   => ['Instructor'],
             'eduPersonAffiliation' => ['faculty'],
         ],
+        // The launch path plan's Task 8a (FE-39, Decision 31): a SECOND FACULTY MEMBER. Since FE-39
+        // only a person who may build — faculty, or an administrator — is added to a project, so a
+        // demo that adds a colleague adds this one; `student` is shown refused MEMBER_MAY_NOT_BUILD.
+        'colleague:colleague' => [
+            'ubcEduCwlPuid'        => ['col000001'],
+            'uid'                  => ['colleague'],
+            'mail'                 => ['colleague@ubc.ca'],
+            'givenName'            => ['Test'],
+            'sn'                   => ['Colleague'],
+            'eduPersonAffiliation' => ['faculty'],
+        ],
         // P5a Task 16: a person to make a platform ADMINISTRATOR with scripts/admin-grant.sh,
         // so the journey can read the fleet (§26) without changing what the student and the
         // instructor prove in every other demo. Friendly names, as above.

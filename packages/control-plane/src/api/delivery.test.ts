@@ -744,7 +744,7 @@ describe('the delivery routes', () => {
     )
     // The §6 User row has to exist before the owner can add them (MEMBER_USER_NOT_FOUND),
     // which is what `loginAs` does on the way to a session.
-    const collaborator = await loginAs(deps, 'bio_student')
+    const collaborator = await loginAs(deps, 'bio_colleague')
     const added = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/members`,
@@ -754,7 +754,8 @@ describe('the delivery routes', () => {
       // than driving a SAML round trip to earn it.
       cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
       headers: mutationHeaders(deps),
-      payload: { puid: 'bio_student', role: 'collaborator' },
+      // A faculty colleague: since FE-39 only a person who may build is added through the route.
+      payload: { puid: 'bio_colleague', role: 'collaborator' },
     })
     expect(added.statusCode, added.body).toBe(201)
 

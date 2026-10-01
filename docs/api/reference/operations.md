@@ -199,7 +199,7 @@ Answer, `200`:
 
 `POST /v1/intake-sessions` · a session only — a delegated token is refused
 
-A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused.
+A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused. Only a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`) — starts one; anyone else is refused `BUILDING_NOT_OPEN`, and nothing is minted or counted.
 
 Answer, `201`:
 
@@ -223,6 +223,7 @@ Answer, `201`:
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
+| `BUILDING_NOT_OPEN` | 403 | Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. A person who teaches at UBC and should be able to build asks a platform administrator. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2018,7 +2019,7 @@ Who the caller is: the person behind the session, and their platform role.
 
 `GET /v1/me` · a session only — a delegated token is refused
 
-The person this session belongs to, and the platform role it is authorized as; a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.
+The person this session belongs to, the platform role it is authorized as, and whether they may build (`mayBuild`); a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.
 
 Answer, `200`:
 
@@ -2028,7 +2029,8 @@ Answer, `200`:
   "puid": "unrelated_user",
   "displayName": "Unrelated User",
   "email": "unrelated_user@example.ubc.ca",
-  "role": "member"
+  "role": "member",
+  "mayBuild": true
 }
 ```
 
@@ -2680,7 +2682,7 @@ Answer, `200`:
 
 `POST /v1/projects` · a session only — a delegated token is refused
 
-Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token). Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.
+Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token), and only for a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`); anyone else is refused `BUILDING_NOT_OPEN` before anything is checked or created. Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.
 
 Request:
 
@@ -2764,6 +2766,7 @@ Answer, `201`:
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
 | `BLUEPRINT_NOT_FOUND` | 400 | Choose one from `listBlueprints` and name it `name@major`. |
+| `BUILDING_NOT_OPEN` | 403 | Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. A person who teaches at UBC and should be able to build asks a platform administrator. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3119,7 +3122,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/members` · a session or a delegated token
 
-Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
+Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Only a person who may build — a faculty member or a platform administrator — is added; anyone else is refused `MEMBER_MAY_NOT_BUILD`, naming them, though a person already on the project keeps their place and their role can still be changed. Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3154,6 +3157,7 @@ Answer, `201`:
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `MEMBER_MAY_NOT_BUILD` | 409 | Add a faculty colleague instead. A person already on the project keeps their place, and their role can still be changed. |
 | `MEMBER_USER_AMBIGUOUS` | 400 | Add the person by their CWL login name (`cwlLogin`) or their PUID (`puid`) instead. |
 | `MEMBER_USER_NOT_FOUND` | 400 | Check it. For a CWL login name, add the person by their email or PUID instead; otherwise ask them to sign in to Manifest once with CWL, then add them again. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |

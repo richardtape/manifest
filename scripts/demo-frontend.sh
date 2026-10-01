@@ -4,9 +4,10 @@
 # DRIVER. An instructor signs in ON THE `app` ORIGIN, names and renames a project, and mints a
 # token for the front-end's server; the server starts a model session charged to the instructor,
 # writes a reading-responses app as text AND bytes, builds and deploys it, and reads what the app
-# printed — redacted; a student signs in to the app and posts a response; the instructor adds the
-# student by CWL login name, switches the app off and brings it back with the response kept, and
-# deletes a scratch project for good.
+# printed — redacted; a student signs in to the app and posts a response; the instructor adds a
+# faculty colleague by CWL login name — and may not add the student, who may not build (FE-39) —
+# switches the app off and brings it back with the response kept, and deletes a scratch project for
+# good.
 #
 #   make demo-frontend                                   # on whichever driver answers
 #   DEMO_FRONTEND_STOP_AFTER=4 make demo-frontend        # stop after step 4 (a negative control)
@@ -32,7 +33,7 @@
 #   4  the app as text and bytes; refused three ways         frontend.ts agent    (the token)
 #   5  build, release, deploy — then the student posts       frontend.ts deploy, then bash
 #   6  what the sandbox instance printed, redacted            bash, then frontend.ts output
-#   7  a step-up on app; the student added by login name     bash, then frontend.ts people
+#   7  a step-up on app; the colleague added, the student not bash, then frontend.ts people
 #   8  switched off (410) and brought back, data kept        frontend.ts archive, bash, restore, bash
 #   9  the scratch project deleted, its slug taken again     bash, frontend.ts delete, bash, recreate, bash
 #  10  the session ended, the token revoked                  frontend.ts end
@@ -282,7 +283,7 @@ echo "  GET $SANDBOX_URL/?from=$RUN_ID — the app printed a line for it"
 run_phase output MANIFEST_SESSION="$SESSION"
 stop_after 6
 
-say "7. The instructor steps up ON THE APP ORIGIN; the student signs in to Manifest there"
+say "7. The instructor steps up ON THE APP ORIGIN; the student and a colleague sign in to Manifest there"
 SESSION_STEPPED="$(step_up)"
 echo "  stepped up"
 # The platform knows a person's CWL login once they have signed in to MANIFEST since it began
@@ -294,8 +295,16 @@ idp_login "$STU_CP_JAR" "$STU_CP_IDP_JAR" "$ORIGIN/auth/login" student student \
   "$ORIGIN/auth/saml/callback" "$CA"
 STUDENT_SESSION="$(session_of "$STU_CP_JAR")"
 [ -n "$STUDENT_SESSION" ] || fail "the student's sign-in to Manifest left no manifest_session cookie"
+# WHO MAY BUILD (FE-39): only a faculty member is added to a project, so the person added is the
+# laptop IdP's second faculty member, `colleague` (the launch path plan's Decision 31); the student
+# is shown refused. Its own jars, for the reason above.
+COL_CP_JAR="$WORK/colleague.jar"; COL_CP_IDP_JAR="$WORK/colleague-idp.jar"
+idp_login "$COL_CP_JAR" "$COL_CP_IDP_JAR" "$ORIGIN/auth/login" colleague colleague \
+  "$ORIGIN/auth/saml/callback" "$CA"
+COLLEAGUE_SESSION="$(session_of "$COL_CP_JAR")"
+[ -n "$COLLEAGUE_SESSION" ] || fail "the colleague's sign-in to Manifest left no manifest_session cookie"
 run_phase people MANIFEST_SESSION="$SESSION" MANIFEST_SESSION_STEPPED="$SESSION_STEPPED" \
-  MANIFEST_STUDENT_SESSION="$STUDENT_SESSION"
+  MANIFEST_STUDENT_SESSION="$STUDENT_SESSION" MANIFEST_COLLEAGUE_SESSION="$COLLEAGUE_SESSION"
 stop_after 7
 
 say "8. Switched off: the app's names answer 410, and the key and the token stop"

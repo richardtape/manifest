@@ -45,6 +45,7 @@ export type ErrorFamily =
   | 'OutputError'
   | 'AgentSessionError'
   | 'ProjectStateError'
+  | 'BuildingError'
 
 interface Entry {
   status: number
@@ -323,6 +324,24 @@ export const ERROR_CODES = {
     'This pending action has already been confirmed or rejected; it cannot be answered twice.',
     'Read it again (`getPendingAction`): somebody has already answered, and its `state` says how.',
   ),
+
+  // BuildingError — who may build (the launch path plan's Task 8a, FE-39). The status is each entry's.
+  BUILDING_NOT_OPEN: {
+    status: 403,
+    families: ['BuildingError'],
+    summary:
+      'Building on Manifest — creating a project or starting an intake session — is open only to faculty members and platform administrators for now, and the signed-in person is neither. Nothing was created.',
+    remedy:
+      'Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. A person who teaches at UBC and should be able to build asks a platform administrator.',
+  },
+  MEMBER_MAY_NOT_BUILD: {
+    status: 409,
+    families: ['BuildingError'],
+    summary:
+      'The person named may not build on Manifest — only faculty members and platform administrators may, for now — so they cannot be added to a project. The message names them; nobody was added.',
+    remedy:
+      'Add a faculty colleague instead. A person already on the project keeps their place, and their role can still be changed.',
+  },
 
   // BadRequestError — every one of these is 400
   IDEMPOTENCY_KEY_REQUIRED: bad(

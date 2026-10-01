@@ -313,7 +313,11 @@ export async function registerAuthRoutes(
         throw error
       }
 
-      const user = await upsertUserFromAssertion(deps.db, identity)
+      // The affiliation is written, and the role reconciled to `MANIFEST_ADMIN_PUIDS` when it is set,
+      // BEFORE the session is issued — so the session carries the role this sign-in decided (FE-39).
+      const user = await upsertUserFromAssertion(deps.db, identity, {
+        adminPuids: deps.config.adminPuids,
+      })
       reply.setCookie(
         SESSION_COOKIE,
         signSession(

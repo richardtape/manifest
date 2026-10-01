@@ -359,7 +359,7 @@ export interface paths {
         put?: never;
         /**
          * A model for describing an app, before it exists
-         * @description A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused.
+         * @description A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused. Only a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`) — starts one; anyone else is refused `BUILDING_NOT_OPEN`, and nothing is minted or counted.
          */
         post: operations["startIntakeSession"];
         delete?: never;
@@ -397,7 +397,7 @@ export interface paths {
         };
         /**
          * The signed-in person
-         * @description The person this session belongs to, and the platform role it is authorized as; a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.
+         * @description The person this session belongs to, the platform role it is authorized as, and whether they may build (`mayBuild`); a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.
          */
         get: operations["getMe"];
         put?: never;
@@ -503,7 +503,7 @@ export interface paths {
         put?: never;
         /**
          * Create a project
-         * @description Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token). Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.
+         * @description Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token), and only for a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`); anyone else is refused `BUILDING_NOT_OPEN` before anything is checked or created. Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.
          */
         post: operations["createProject"];
         delete?: never;
@@ -807,7 +807,7 @@ export interface paths {
         put?: never;
         /**
          * Add or change a member
-         * @description Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
+         * @description Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Only a person who may build — a faculty member or a platform administrator — is added; anyone else is refused `MEMBER_MAY_NOT_BUILD`, naming them, though a person already on the project keeps their place and their role can still be changed. Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
          */
         post: operations["addMember"];
         delete?: never;
@@ -1909,7 +1909,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -4840,6 +4840,8 @@ export interface components {
              * @enum {string}
              */
             role: "admin" | "member";
+            /** @description Whether this person may build: create a project, start an intake session, or be added to a project. True for a faculty member — by the CWL affiliation their last sign-in carried — and for a platform administrator; false for everyone else, who should be told that building is not open to them yet. The three operations refuse such a person `BUILDING_NOT_OPEN`, or `MEMBER_MAY_NOT_BUILD` when they are the person being added. A person who stops being faculty keeps the projects they are on. */
+            mayBuild: boolean;
         };
         /** @description A person who may work on the project, and their role on it. */
         Member: {
@@ -6592,7 +6594,7 @@ export interface operations {
                     "application/json": components["schemas"]["IntakeSessionStarted"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTAKE_BUDGET_EXHAUSTED, INTAKE_DAILY_LIMIT_REACHED, INTAKE_MODEL_UNAVAILABLE, INTAKE_SESSION_ALREADY_STARTED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, BUILDING_NOT_OPEN, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTAKE_BUDGET_EXHAUSTED, INTAKE_DAILY_LIMIT_REACHED, INTAKE_MODEL_UNAVAILABLE, INTAKE_SESSION_ALREADY_STARTED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6670,7 +6672,8 @@ export interface operations {
                      *       "puid": "unrelated_user",
                      *       "displayName": "Unrelated User",
                      *       "email": "unrelated_user@example.ubc.ca",
-                     *       "role": "member"
+                     *       "role": "member",
+                     *       "mayBuild": true
                      *     }
                      */
                     "application/json": components["schemas"]["Me"];
@@ -7088,7 +7091,7 @@ export interface operations {
                     "application/json": components["schemas"]["CreatedProject"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GITHUB_REFUSED, SOURCE_GIT_FAILED, SOURCE_REPOSITORY_EXISTS, SOURCE_REPOSITORY_NOT_PRIVATE, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, BUILDING_NOT_OPEN, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GITHUB_REFUSED, SOURCE_GIT_FAILED, SOURCE_REPOSITORY_EXISTS, SOURCE_REPOSITORY_NOT_PRIVATE, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8422,7 +8425,7 @@ export interface operations {
                     "application/json": components["schemas"]["Member"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_MAY_NOT_BUILD, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

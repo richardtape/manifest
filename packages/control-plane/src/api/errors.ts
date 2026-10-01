@@ -6,7 +6,7 @@ import {
 import { ReleaseError } from '../releases/index.js'
 import { SourceError } from '../source/index.js'
 import { ConfigError } from '../config.js'
-import { SamlError } from '../identity/index.js'
+import { BuildingError, SamlError } from '../identity/index.js'
 import { ZodError } from 'zod'
 import type { ManifestError } from '../errors/index.js'
 import { IdempotencyConflictError } from './idempotency.js'
@@ -423,6 +423,14 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
     }
   }
 
+  // Who may build (FE-39): one family, its status the registry's — 403 for the asker, 409 for a
+  // target an owner may not add.
+  if (error instanceof BuildingError) {
+    return {
+      status: ERROR_CODES[error.code].status,
+      body: { error: { code: error.code, message: error.message, hint: error.hint } },
+    }
+  }
   if (error instanceof DocNotFoundError) {
     return {
       status: 404,

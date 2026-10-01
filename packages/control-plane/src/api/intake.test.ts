@@ -201,9 +201,9 @@ describe('intake sessions (Spec action 5, FE-1)', () => {
           code: 'INTAKE_DAILY_LIMIT_REACHED',
         })
       }
-      // Another person's day is their own.
-      const student = await sessionFor(ctx, 'bio_student')
-      expect((await start(ctx, student)).statusCode).toBe(201)
+      // Another person's day is their own — another instructor's, since only faculty start one.
+      const colleague = await sessionFor(ctx, 'bio_colleague')
+      expect((await start(ctx, colleague)).statusCode).toBe(201)
     })
   })
 
@@ -313,6 +313,22 @@ describe('intake sessions (Spec action 5, FE-1)', () => {
         type: 'token_not_found_in_db',
       })
       expect((await end(ctx.ownerCookies)).statusCode).toBe(200)
+    })
+  })
+
+  it('a person who may not build is refused BUILDING_NOT_OPEN — nothing minted, nothing recorded, no day counted', async () => {
+    // FE-39 (Spec action 7, Rich's): an intake session spends the platform's model money on
+    // describing an app, so it is building, and only faculty or an administrator may start one.
+    await withIntakeServer(async (ctx, lite) => {
+      const student = await sessionFor(ctx, 'bio_student')
+      const refused = await start(ctx, student)
+      expect(refusal(refused)).toEqual({ status: 403, code: 'BUILDING_NOT_OPEN' })
+      expect(mints(lite)).toEqual([])
+      expect(await ctx.db.select().from(intakeSessions)).toEqual([])
+      // The positive control: the faculty owner starts one through the same server.
+      const started = await start(ctx, ctx.ownerCookies)
+      expect(started.statusCode, started.body).toBe(201)
+      expect(mints(lite)).toHaveLength(1)
     })
   })
 })
