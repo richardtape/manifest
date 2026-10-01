@@ -91,6 +91,10 @@ PORT_DNS=7153
 # The D5 plan's GitHub FAKE, behind the `github` profile (Task 5). Published on loopback
 # only; nothing in a container calls it.
 PORT_GITHUB_FAKE=7110
+# Mailpit, §21's tenth container (2026-09-30): the laptop's mail sink. Published on
+# loopback only, and like the fake it has no hostname under the zone.
+PORT_MAIL_SMTP=7111
+PORT_MAIL_UI=7112
 
 # The whole reserved block, checked by doctor.
 PORT_BLOCK_START=7100

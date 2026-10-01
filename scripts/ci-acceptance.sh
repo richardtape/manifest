@@ -158,10 +158,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the launch path plan's sitting 5a (2026-09-30, FE-39 — who may build): +26 and one file —
 # `identity/builders.test.ts` (4, new), `api/auth.test.ts` (8), `api/projects.test.ts` (5), `api/members.test.ts` (4),
 # `api/delegation.test.ts` (2), `api/intake.test.ts` (1), `config.test.ts` (1) and `mock/src/scripted.test.ts` (1).
+# Then Mailpit, §21's tenth container (2026-09-30, out of plan at Rich's word): no test moved; `make doctor` +1 (its
+# image, at the digest compose pins) and `make verify` +2 (an SMTP round trip through the inbox's API, and compose's
+# settings that keep it on the laptop).
 EXPECT_TESTS=2962
 EXPECT_FILES=185
-EXPECT_DOCTOR=20
-EXPECT_VERIFY=62
+EXPECT_DOCTOR=21
+EXPECT_VERIFY=64
 
 STEPS=""
 FAILED=0

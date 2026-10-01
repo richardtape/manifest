@@ -27,6 +27,10 @@ $COMPOSE up -d registry verdaccio postgres
 # A 401 is itself proof the registry is up AND that token auth is configured.
 until [ "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_REGISTRY/v2/" 2>/dev/null)" != "000" ]; do sleep 1; done
 until curl -sf "http://127.0.0.1:$PORT_VERDACCIO/-/ping" >/dev/null; do sleep 1; done
+# Mailpit (§21's tenth container) is PULLED, not started: nothing in seeding needs it, and
+# no other step fetches it — compose's own images are not in infra/images.txt — so without
+# this an offline `make up` cannot find it. compose.yaml pins it by tag and digest.
+$COMPOSE pull -q mailpit
 
 echo "4/6  mirroring base images into the local registry"
 bash infra/seed/mirror-images.sh

@@ -1271,6 +1271,72 @@ github_fake_compose_is_narrow() {
 }
 check "compose gives the fake no App private key, and publishes it on 127.0.0.1 only"  github_fake_compose_is_narrow
 
+echo
+echo "Mailpit — the laptop's mail sink (§21's tenth container)"
+
+# A ROUND TRIP, not a port probe: what the faculty front-end's server and its tests do —
+# send on the SMTP port, find the message through the inbox's API. The probe carries a
+# subject nobody else would send, and is deleted by its ID, so a run leaves the inbox as it
+# found it (the inbox is shared with whoever is sending mail on this laptop).
+mailpit_round_trip() {
+  local nonce eml id n i api="http://127.0.0.1:$PORT_MAIL_UI/api/v1"
+  nonce="manifest-verify-$(date +%s)-$$"
+  eml=$(mktemp)
+  printf 'From: verify@manifest.internal\r\nTo: probe@manifest.internal\r\nSubject: %s\r\n\r\nmake verify, a round trip\r\n' \
+    "$nonce" > "$eml"
+  if ! curl -sS -m 5 "smtp://127.0.0.1:$PORT_MAIL_SMTP" --mail-from verify@manifest.internal \
+         --mail-rcpt probe@manifest.internal -T "$eml" >/dev/null 2>&1; then
+    rm -f "$eml"
+    echo "127.0.0.1:$PORT_MAIL_SMTP refused the message — is manifest-mailpit running? (make up)"
+    return 1
+  fi
+  rm -f "$eml"
+  # SMTP's 250 comes before the message is searchable, so give it a moment.
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    id=$(curl -sS -m 5 "$api/search?query=subject:%22$nonce%22" 2>/dev/null | jq -r '.messages[0].ID // empty' 2>/dev/null)
+    [ -n "$id" ] && break
+    sleep 0.3
+  done
+  [ -n "$id" ] || { echo "sent, but $api/search never found subject $nonce"; return 1; }
+  curl -sS -m 5 -X DELETE -H 'Content-Type: application/json' -d "{\"IDs\":[\"$id\"]}" "$api/messages" >/dev/null 2>&1
+  n=$(curl -sS -m 5 "$api/search?query=subject:%22$nonce%22" 2>/dev/null | jq -r '.messages_count' 2>/dev/null)
+  [ "$n" = 0 ] || { echo "read back as $id, but the probe was not deleted (search still counts ${n:-nothing})"; return 1; }
+  echo "sent to 127.0.0.1:$PORT_MAIL_SMTP, read back as $id through 127.0.0.1:$PORT_MAIL_UI's API, and deleted"
+}
+check "Mailpit: a message sent on 127.0.0.1:7111 is read back through the inbox's API on 7112"  mailpit_round_trip
+
+# NOTHING LEAVES THE LAPTOP (§21) — the settings that make that true, read through
+# `compose config` like the fake's check above. Each was measured on 2026-09-30 (compose.yaml
+# says how): published on loopback only; no relay, forward, webhook, SpamAssassin or
+# Prometheus; no reverse-DNS query per connection; no version check; /tmp in memory and no
+# volume; a Host allowlist.
+mailpit_compose_is_narrow() {
+  local cfg svc ports reach bad=""
+  cfg=$($COMPOSE config --format json 2>/dev/null) || { echo "docker compose config failed"; return 1; }
+  svc=$(printf '%s' "$cfg" | jq -c '.services.mailpit // empty')
+  [ -n "$svc" ] || { echo "compose has no mailpit service"; return 1; }
+  ports=$(printf '%s' "$svc" | jq -r '.ports[]? | "\(.host_ip // "*"):\(.published)"' | sort | tr '\n' ' ')
+  [ "$ports" = "127.0.0.1:7111 127.0.0.1:7112 " ] \
+    || bad="$bad publishes '${ports% }', not exactly 127.0.0.1:7111 and 127.0.0.1:7112;"
+  reach=$(printf '%s' "$svc" | jq -r '[(.environment // {} | keys[]), (.command // [] | .[])]
+    | map(select(test("RELAY|FORWARD|WEBHOOK|SPAMASSASSIN|PROMETHEUS"; "i"))) | join(" ")')
+  [ -z "$reach" ] || bad="$bad configures a way out: $reach;"
+  [ "$(printf '%s' "$svc" | jq -r '.environment.MP_SMTP_DISABLE_RDNS // empty')" = true ] \
+    || bad="$bad MP_SMTP_DISABLE_RDNS is not true (a reverse-DNS query per connection);"
+  [ "$(printf '%s' "$svc" | jq -r '.environment.MP_DISABLE_VERSION_CHECK // empty')" = true ] \
+    || bad="$bad MP_DISABLE_VERSION_CHECK is not true;"
+  [ -n "$(printf '%s' "$svc" | jq -r '.environment.MP_ALLOWED_HOSTS // empty')" ] \
+    || bad="$bad no MP_ALLOWED_HOSTS (the API answers any Host header);"
+  printf '%s' "$svc" | jq -e '(.tmpfs // []) | index("/tmp")' >/dev/null \
+    || bad="$bad /tmp is not a tmpfs (messages would be written to the VM's disk);"
+  [ "$(printf '%s' "$svc" | jq -r '(.volumes // []) | length')" = 0 ] \
+    || bad="$bad mounts a volume (messages are kept in memory only);"
+  [ -z "$bad" ] && { echo "127.0.0.1:7111 and :7112 only; no relay, forward or webhook; no rDNS, no version check; /tmp in memory"; return 0; }
+  echo "NOT NARROW:$bad"
+  return 1
+}
+check "compose publishes Mailpit on 127.0.0.1 only, and configures no way off the laptop"  mailpit_compose_is_narrow
+
 echo "Per-app resources (P3)"
 
 # S1 lost a live app's route by restarting Caddy. §12 gained a sentence for it and

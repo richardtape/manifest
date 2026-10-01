@@ -306,9 +306,57 @@ services:
       - "127.0.0.1:7122:80"
 
   # ---------------------------------------------------------------------------
+  # §21's tenth container: Mailpit, the laptop's MAIL SINK (Rich, 2026-09-30). The faculty
+  # front-end's server, and later the platform's own notices, send to it; on UBC
+  # infrastructure UBC's SMTP relay takes its place. ALWAYS ON — no profile.
+  #
+  # NOTHING LEAVES THE LAPTOP, and each setting below is part of why. Measured 2026-09-30
+  # against v1.31.3, with every DNS query the container made captured by a listener in its
+  # own network namespace:
+  #   - no relay, no forward and no webhook is configured (`make verify` asserts it);
+  #   - MP_SMTP_DISABLE_RDNS — by default EVERY SMTP connection makes a reverse-DNS query
+  #     for the sender's address (captured: `1.0.17.172.in-addr.arpa`, twice), which goes
+  #     to Docker's resolver and on to the host's. With it set: no query at all;
+  #   - MP_DISABLE_VERSION_CHECK — otherwise the inbox's About page asks GitHub for the
+  #     latest release;
+  #   - /tmp ON tmpfs — with no --database, Mailpit keeps its messages in a temporary SQLite
+  #     file in /tmp, which is the container's overlay, i.e. the Docker VM's DISK (measured).
+  #     The tmpfs is what makes §21's "messages in memory only" true, and it leaves nothing
+  #     for `make reset` to clean.
+  # What is left that reaches out is a PERSON's: the inbox's "Link check" and "Screenshot"
+  # fetch a message's own links and images when somebody clicks them.
+  #
+  # MP_ALLOWED_HOSTS: with no Host allowlist the inbox's API answers ANY Host header (Mailpit
+  # warns so at start), so a web page could read the inbox by DNS rebinding. A foreign Host
+  # is now answered 403 (measured); the image's own healthcheck still passes, because
+  # Mailpit always adds 127.0.0.1, ::1 and localhost. The inbox has no password.
+  #
+  # NO CADDY HOSTNAME, like the GitHub fake: the inbox is http://127.0.0.1:7112.
+  # PINNED BY TAG AND DIGEST, here, because compose's images are not in infra/images.txt and
+  # nothing else would record it. `make seed` pulls it (step 3); `make doctor` asserts the
+  # daemon holds exactly this reference, so an offline `make up` cannot find it missing.
+  # The image's own HEALTHCHECK (`/mailpit readyz`) is what `make up --wait` waits on —
+  # healthy in about a second, measured.
+  # ---------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d
+    container_name: manifest-mailpit
+    restart: unless-stopped
+    networks: [platform]
+    tmpfs: [/tmp]
+    environment:
+      MP_MAX_MESSAGES: "500"
+      MP_DISABLE_VERSION_CHECK: "true"
+      MP_SMTP_DISABLE_RDNS: "true"
+      MP_ALLOWED_HOSTS: "127.0.0.1:7112,localhost:7112"
+    ports:
+      - "127.0.0.1:7111:1025"
+      - "127.0.0.1:7112:8025"
+
+  # ---------------------------------------------------------------------------
   # D5's driver 2, locally: a GitHub-compatible FAKE (the D5 plan, Decision 6).
   # BEHIND A PROFILE — `make up` never starts it, so a developer on driver 1 runs
-  # nine containers, as §21 says. `make github-up` starts it; `make seed` builds it
+  # ten containers, as §21 says. `make github-up` starts it; `make seed` builds it
   # (`--profile github build`, because a plain `compose build` skips a profiled
   # service — measured 2026-09-24). NO HOSTNAME: nothing in a container calls it.
   # The App's PRIVATE key is NOT mounted — GitHub holds only the public half, and

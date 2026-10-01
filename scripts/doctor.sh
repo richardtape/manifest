@@ -441,6 +441,23 @@ check_github_fake_image() {
 }
 check "the GitHub fake's image is built (make seed, profile github)"  check_github_fake_image
 
+# MAILPIT'S IMAGE (§21's tenth container, added 2026-09-30 at Rich's word). Seed state, like
+# the fake's image above: compose pins it by tag AND digest, `make seed` pulls it, and an
+# offline `make up` could not — so ask the daemon for exactly the reference compose will run,
+# read through `compose config` rather than a grep of the YAML. A daemon holding the same tag
+# at another digest fails here, which is the point of the pin. (Its ports, 7111 and 7112, need
+# no entry in the port check, for the reason the fake's do not.)
+check_mailpit_image() {
+  local ref digest
+  ref=$($COMPOSE config --images mailpit 2>/dev/null) \
+    || { echo "docker compose config failed — is .env present?"; return 1; }
+  docker image inspect "$ref" >/dev/null 2>&1 \
+    || { echo "$ref is not pulled — run: make seed (it needs the network)"; return 1; }
+  digest=${ref#*@}
+  echo "${ref%%@*} ${digest:0:19}"
+}
+check "Mailpit's image is pulled, at the digest compose pins (make seed)"  check_mailpit_image
+
 # A WARNING, never a check: §12 says a stale database warns rather than blocks, and
 # a doctor that fails here would stop an offline developer for the one gate that is
 # explicitly allowed to degrade.
