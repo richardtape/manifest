@@ -124,7 +124,7 @@ For the platform itself it is `make doctor` and `make verify`.
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.
 - **Never edit the spec directly.** `docs/superpowers/specs/2026-08-29-manifest-platform-design.md` is marked *Approved design*.
   Record proposed changes and ask — **every spec change this project has made was approved by Rich first** (most recently, on
-  2026-09-30, the launch path plan's Spec actions 3, 4, 5 and a new 9, and §21's Mailpit row). The roadmap's *Spec action(s) raised
+  2026-10-01, the launch path plan's Spec action 10, §6's `change_requested_from`). The roadmap's *Spec action(s) raised
   by…* sections are the list; this file deliberately keeps no chain of them, because a restated list drifts. **A spec action is not
   finished when the spec changes**: the four shared HTML pages restate it in plain language, and are swept with it.
 - **These containers must survive**: `docker-simple-saml-saml-idp-1`,

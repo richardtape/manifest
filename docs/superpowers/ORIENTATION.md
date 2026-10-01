@@ -142,13 +142,13 @@ keeps the number as that sitting left it, dated.
   keeps the items; item 5 (UBC's staging IdP) is still the one part of a real first launch the platform cannot do for itself.
 - **§8's open questions.**
 
-**The spec is current, and runs AHEAD of the code in one place**, with the tasks that build it (Spec action 8 — the rehearsal
-step-up and its take-down — caught up with it in the launch path plan's sitting 5b, `3333acc`; §21's tenth container, Mailpit, in an
-out-of-plan change after sitting 5a, `8155bcf`; **Spec actions 3 and 9 — the staging registration, *"I've sent it"* and UBC's order — in
-sitting 6, `b2c75e6`/`db2ddbf`**):
-- **Spec actions 4 and 5** (§9, §2, §6, §13, §26 — the package in UBC's structure carrying the PIA number, the assessment's draft, the
-  sign-off request and its queue) → Tasks 10–12. APPLIED 2026-09-30 at Rich's word (`844605b`; his words in
-  [`2026-09-30-decisions.md`](2026-09-30-decisions.md)).
+**The spec is current, and runs AHEAD of the code in one place — Task 12's**, with the tasks that build it (Spec action 8 — the
+rehearsal step-up and its take-down — caught up with it in the launch path plan's sitting 5b, `3333acc`; §21's tenth container, Mailpit,
+in an out-of-plan change after sitting 5a, `8155bcf`; **Spec actions 3 and 9 — the staging registration, *"I've sent it"* and UBC's order
+— in sitting 6, `b2c75e6`/`db2ddbf`**; **Spec action 4 — the registration package and the assessment's draft — in sittings 7 and 8**):
+- **Spec action 5** (§6, §13, §26 — the sign-off request and its queue), APPLIED 2026-09-30 at Rich's word (`844605b`; his words in
+  [`2026-09-30-decisions.md`](2026-09-30-decisions.md)), and **Spec action 10** (§6 — `IamRegistration.change_requested_from`, from his
+  decision on `change_requested`), APPLIED 2026-10-01 at his word → both Task 12.
 
 **Every spec change is applied only after Rich has read and approved its words.** The roadmap's *Spec actions raised by…* sections
 list every one, newest first, with its wording and the shared HTML pages swept — this file keeps no chain of them.
@@ -1823,17 +1823,17 @@ named in the row below.*
 — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`,
 `state` and `archivedAt` (M3). **`pnpm test:docker` is owed** (`launch/`, `projects/`).
 
-**ASK RICH IN 9's FIRST MESSAGE — BEFORE TASK 12'S QUEUE ITEM IS BUILT:**
-1. **§8 *Open*'s `change_requested` question** (Task 12's `[S6]`): one state carrying two meanings — UBC came back with questions
-   (`submitted → change_requested`: the OWNER's move, still waiting since the original submission) and an administrator FILED a change
-   request with UBC (`active → change_requested`: waiting on UBC, stamped when filed). The row does not record which: `registered_at` set
-   does not tell them apart (a lapsed registration re-sent and questioned has it too), nor does `requested_attributes` (optional on the
-   first arrow). Put to Rich at sitting 8's close as code-level options — read his answer in this file's §8 or the plan's record.
+**IN 9's FIRST MESSAGE — BEFORE TASK 12'S QUEUE ITEM IS BUILT:**
+1. **`change_requested` is DECIDED — Rich chose (a), RECORD THE ORIGIN** (2026-10-01, at sitting 8's close; §8 *Decided*): build
+   `iam_registrations.change_requested_from` with Task 12 — set by `recordIamRegistration` on entering `change_requested`, cleared on
+   leaving — and the queue reads it (`from active` waits on UBC; `from submitted` is the owner's move, not an administrator's item).
+   **§6's `IamRegistration` row already lists it** — the plan's *Spec actions* 10, APPLIED at Rich's word the same morning (*"(a) Apply
+   as worded"*): the spec runs ahead of the code until Task 12 builds the column.
 2. **The first Vitest run TRUNCATES** whatever exists by then — `psql` the counts first; dump if anything is real.
 3. **`make refresh-vulndb` — due after 2026-10-06** (the network on, ~1–3 minutes); past it, §13's `scans` refuses every launch.
 
 **CARRIED INTO SITTING 9 — READ BEFORE TASK 12:**
-- **Task 12's `[S6]` block, first** — what the queue's `since` reads, and the question above.
+- **Task 12's `[S6]` block, first** — what the queue's `since` reads, and Rich's answer to `change_requested` (item 1 above).
 - **The contract is `1.5.0` and takes no bump in this plan**; Task 12 adds two operations and a field set — a contract commit: message the
   faculty front-end before it and at the close, and keep `packages/contract` + `packages/mock` typecheck-clean AS A UNIT (its tests read
   them live — its ask at sitting 8).
@@ -1923,19 +1923,6 @@ reasoning is recorded.**
   with a `removedAt` the listings filter on, no new state. Full text: `~/Developer/manifest-app/docs/api-findings.md`, FE-45. *Needs*: a spec action
   (§6's project states, §11's *Ending an app*, §26's queue) with (a) or (b) chosen, and a place in the plan order — both Rich's.
 
-- **`change_requested` MEANS TWO THINGS — WHICH DOES THE QUEUE SHOW? RAISED 2026-10-01 by the launch path plan's sitting 6 (its
-  whole-branch review's M13), FOR RICH BEFORE TASK 12.** UBC coming back with questions (`submitted → change_requested`: the next move is
-  the owner's, and *waiting since* is still the original submission) and an administrator FILING a change request with UBC (`active →
-  change_requested`: waiting on UBC, stamped when filed — P6b's meaning). `SUBMIT_ARROWS` lets an owner say *"I've sent it"* from either.
-  *Options, at code level* (written out by the launch path plan's sitting 8 and PUT TO RICH AT ITS CLOSE, 2026-10-01 — the row records
-  neither meaning today: `registered_at` is kept through `expired → submitted → change_requested`, and `requested_attributes` is optional on
-  `submitted → change_requested`): **(a)** record where it came from — a nullable `iam_registrations.change_requested_from` (`submitted` |
-  `active`) set by `recordIamRegistration` on entering `change_requested` and cleared on leaving; the queue shows `from active` as
-  `iam-change-request` waiting on UBC since `submitted_at`, and `from submitted` as UBC waiting on the OWNER (not an administrator's
-  item); additive, no enum change; leaves one state name meaning two things to a client reading `state`. **(b)** split the state — a new
-  `iam_registration_state` value for `submitted → …` with its own arrows and `SUBMIT_ARROWS`; honest everywhere, and an enum change the
-  front-end, the mock and the console must all handle. **(c)** leave it — the queue misreports UBC-asked-the-owner as waiting on UBC.
-  *Recommended:* (a).
 - **DOES A RE-SUBMISSION WAIT FOR UBC'S ORDER TOO? RAISED 2026-10-01 by the launch path plan's sitting 6** (its review's *declined to
   judge*). As built, every *"I've sent it"* is gated the same way — a production registration sent again after it lapsed (`expired`) or
   after a change request waits for the assessment approved and staging `active`, as a first one does. Rich's *"Gate each step"* was
@@ -2009,6 +1996,12 @@ reasoning is recorded.**
   Unmeasured — only Ollama was reachable offline. Cheap to settle the first time anyone has a provider key.
 ### Decided
 
+- **`change_requested`'s two meanings — DECIDED BY RICH 2026-10-01: (a), record the origin** (*"(a) Record the origin
+  (Recommended)"*, answering the launch path plan's sitting 8 at its close): a nullable `iam_registrations.change_requested_from`
+  (`submitted` | `active`), set on entering `change_requested`, cleared on leaving; Task 12's queue shows `from active` as waiting on UBC
+  and `from submitted` as UBC waiting on the OWNER. Rejected: splitting the state, leaving it. His words and the options:
+  [`2026-09-30-decisions.md`](2026-09-30-decisions.md) (its 2026-10-01 late-morning section) and Task 12's `[S6]` block. **§6's row gains
+  the field — Spec action 10, APPLIED the same morning at his word** (*"(a) Apply as worded"*).
 - **RICH'S DECISIONS OF 2026-09-30, WITH THE PLANNING SESSION `manifest-00`** — each in his words in
   [`2026-09-30-decisions.md`](2026-09-30-decisions.md); moved here from *Open*:
   - **A provider's `422` answered `200 null` (F8)** — *"(b) next plan; (a) meanwhile"*: a hook in `manifest_guard.py`, in the

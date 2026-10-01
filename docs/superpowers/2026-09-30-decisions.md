@@ -255,3 +255,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     Sitting 7's fix-wave contract change (409 LAUNCH_DRAFT_STALE; draftGeneratedAt and 409 LAUNCH_DRAFT_CHANGED) — made
     by the sitting as a routine call and told to Rich after: "OK, the front-end agent will need to know that". The
     front-end (manifest-app-34) had it before the commit, and holds it for its F5b.
+
+# Rich's decisions — 2026-10-01, late morning (the launch path plan's sitting 8, session manifest-8d)
+
+    change_requested — "(a) Record the origin (Recommended)" (Rich, to manifest-8d, 2026-10-01, answering the question
+    sitting 8 put at its close, with each option's code beside it). One state keeps its two meanings, and the row RECORDS
+    which: a nullable iam_registrations.change_requested_from ('submitted' | 'active'), set by recordIamRegistration when
+    a record ENTERS change_requested and cleared when it leaves. Task 12's queue reads it: from 'active' (an administrator
+    filed a change request with UBC) is an iam-change-request item waiting on UBC since submitted_at; from 'submitted'
+    (UBC came back with questions) is UBC waiting on the OWNER — not an administrator's item. Additive; no enum change.
+    Rejected: (b) split the state (an enum change the front-end, mock and console must all handle); (c) leave it (the
+    queue would misreport UBC-asked-the-owner as waiting on UBC). The options as asked are ORIENTATION §8's Decided line
+    and Task 12's [S6] block. §6's IamRegistration row lists its fields, so the column is a spec action (§6) — drafted at
+    the same close; see the plan's Spec actions.
+
+    Spec action 10 — "(a) Apply as worded (Recommended)" (Rich, to manifest-8d, 2026-10-01, minutes later): §6's
+    IamRegistration row gains change_requested_from (submitted | active — while change_requested: whether UBC asked the
+    owner for changes, or an administrator filed a change request with UBC; null otherwise), after state. APPLIED by
+    manifest-8d the same morning; no shared page lists IamRegistration's fields (checked). Built by Task 12.

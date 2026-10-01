@@ -58,8 +58,8 @@
 > mintable) stores §9's six rows — facts with where Manifest read them, the gaps only the owner can fill, a text to paste — drawn from the
 > launch candidate's manifest; it says only what the platform does today (a default named as one, no backup, no scheduled deletion,
 > Manifest's own Incident logs); kept as sent (`LAUNCH_RECORD_SUBMITTED`); its send-day the draft's; the checklist says when the draft is
-> not what launches. Contract still `1.5.0`. *Sitting 8* is the record; **sitting 9 (Task 12) is next — after Rich answers §8's
-> `change_requested` question.**
+> not what launches. Contract still `1.5.0`. *Sitting 8* is the record; **sitting 9 (Task 12) is next** — Rich answered `change_requested`
+> at the close (*"(a) Record the origin"*), and its column's spec row, Spec action 10, is APPLIED.
 
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
@@ -148,7 +148,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | **DONE 2026-09-30/10-01** — INLINE, by `manifest-92`, after Mailpit (the database dumped first; the front-end's 7100 window in the middle, migration held until it closed): `0045` (the staging kind, the submission columns, the CHECK on a registered row only); `launch:submit` (person-only) and the two submission routes, refused in UBC's order — **the assessment first for EITHER registration (the spec's words, wider than `[S9]`)**, staging before production — with a draft required and a real day; the build reads only production's registered row; `since` on the checklist; `[M8]`'s administrator hint; one whole-branch review beside the Docker tier (270/270), one fix wave (one locked transaction per submission, held by two deterministic lock tests; `z.iso.date()`; the kept reference; the mock in UBC's order; examples captured); contract `1.5.0`; the front-end told before each contract commit |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | **DONE 2026-10-01** — INLINE, by `manifest-8e`, beside the faculty front-end's F6 (mock-only — 7100 the sitting's throughout): `draftIamRegistration` (`launch:draft`, mintable) and `IamRegistration.package` — the entity, the certificate's public half through the registrar, every attribute justified by where the app reads it (the bridge skipped, bounded), the contacts (`MANIFEST_LAUNCH_CONTACTS`), the PIA number, the metadata in the tool's structure (`[M6]`); production from the candidate; `LAUNCH_RECORD_SUBMITTED`, `LAUNCH_NOT_CWL`; Review Focus 1's checklist half; `cwlFakes` on the real keypair store; ten controls red as predicted; one whole-branch review beside the Docker tier (271/271), one fix wave (`dec71d8`: one mint per environment under a lock; `LAUNCH_DRAFT_STALE`; `draftGeneratedAt` and `LAUNCH_DRAFT_CHANGED`) with six more controls; contract `1.5.0`; the front-end told before each contract commit |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | **DONE 2026-10-01** — INLINE, by `manifest-8d`, beside the faculty front-end's F6 (7100 handed over at open; its sitting 2 mock-only): `draftPrivacyAssessment` (`launch:draft`, mintable) and `PrivacyAssessment.draft` — §9's six rows as facts with their source and the owner's gaps, a text to paste, drawn from the candidate's manifest; the YAML read for what the owner WROTE (`declaredData`); kept as sent; the send-day the draft's; one whole-branch review beside the Docker tier (271/271), one fix wave (`4aaf0ef`: only what the platform does — retention and classification defaults named, no backup or deletion claimed, Manifest's Incident logs, breach and GitHub gaps; the driver-2 route test; the checklist's drift sentence); contract `1.5.0`; the front-end told before each contract commit |
-| 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30 | ← **next** — §8 *Open*'s `change_requested` question is Rich's FIRST; read Task 12's `[S6]` block |
+| 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30; **and 10** (§6's `change_requested_from`, from Rich's (a) on `change_requested`) — ✅ APPLIED 2026-10-01 | ← **next** — read Task 12's `[S6]` block (Rich's answer is in it) |
 | 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | |
 | 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | |
 
@@ -2338,6 +2338,12 @@ lands, the submission routes have no client that can meet their precondition** �
 >   `SUBMIT_ARROWS` lets an owner say *"I've sent it"* from either. Options: (a) one state, and the queue item reads both as "with UBC or
 >   with the owner" from `from`; (b) split the state; (c) leave it. Put it as code-level options, one recommendation.
 > - `LaunchReadinessItem.since` exists (Task 9) and is null for `admin-approval` — Task 12 dates it from the request.
+> - **RICH'S ANSWER, 2026-10-01 (asked at sitting 8's close): (a), RECORD THE ORIGIN** (*"(a) Record the origin (Recommended)"*). A
+>   nullable `iam_registrations.change_requested_from` (`submitted` | `active`) — a migration — set by `recordIamRegistration` when a
+>   record ENTERS `change_requested` (to `from`), cleared when it leaves; the queue shows `from active` as `iam-change-request` waiting on
+>   UBC since `submitted_at`, and `from submitted` as UBC waiting on the OWNER (no administrator's item). Additive; no enum change. **§6's
+>   row gains the field — Spec action 10, APPLIED at Rich's word the same morning.** A test per arrow, and a control
+>   (the column never set) that turns the queue's from-`submitted` case red.
 
 **Spec action 5 first.**
 
@@ -2970,6 +2976,22 @@ UBC's order, one after another …"*). Two consequential phrases: §6's `Privacy
 number), and §19's PIA row also blocks *"sending an app's staging registration"*. **Shared pages**: the schematic (its going-live
 mock-up showed the registration with UBC while the assessment was still a draft), the stories (two said *"in parallel"*), the
 decisions page's D19, and phases stage 2. **Built by Task 9's `[S9]` block.**
+
+### 10. §6 — `IamRegistration` records where a `change_requested` came from (DRAFTED 2026-10-01 by sitting 8, from Rich's decision (a) the same morning) — ✅ **APPLIED AS WORDED, 2026-10-01** (Rich, at sitting 8's close: *"(a) Apply as worded (Recommended)"*); shared pages: none describes `IamRegistration`'s fields — checked, unchanged
+
+**Why.** Rich chose (a) for `change_requested`'s two meanings (*"(a) Record the origin (Recommended)"*, 2026-10-01; ORIENTATION §8
+*Decided*): the row records whether UBC came back with questions or an administrator filed a change request with UBC, and §26's queue
+reads it. §6's `IamRegistration` row lists every field, so the new column is a spec change.
+
+**Proposed** — §6's `IamRegistration` row, one field added after `state`:
+
+> `state` (`draft` \| `submitted` \| `active` \| `change_requested` \| `expired`), **`change_requested_from` (`submitted` \| `active`
+> — while `change_requested`: whether UBC asked the owner for changes, or an administrator filed a change request with UBC; null
+> otherwise)**, `external_ticket_ref`, …
+
+*Options*: **(a) apply as worded** (recommended — the row stays the whole list, and §26's queue item has its source); **(b)** keep the
+column out of §6 as an implementation detail of the queue (the row then omits a field the code has, which the spec has never done).
+**Shared pages**: none describes `IamRegistration`'s fields — checked by the sitting that applies it. **Built by Task 12.**
 
 ## What the self-review caught
 
