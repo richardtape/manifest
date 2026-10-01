@@ -11,7 +11,7 @@ export const slugRoutes = [
     tag: 'projects',
     summary: 'Would this slug work?',
     description:
-      '§23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the slug, and a 4xx would make "taken" indistinguishable from "not allowed to ask". Says nothing about a holder. 60 a minute per person.',
+      'Checks a slug exactly as `createProject` does, so a client can tell a person while they type. The verdict is always a `200`, and never says who holds a slug. 60 checks a minute per person (`RATE_LIMITED`).',
     // Deliberately NOT §7's rule, and no length bound: a name that breaks the rule — a long
     // one included — is a 200 saying SLUG_INVALID and why (§23: "a 200 either way"), which
     // a 400 REQUEST_INVALID would not. `checkSlug` quotes at most 64 characters of it.

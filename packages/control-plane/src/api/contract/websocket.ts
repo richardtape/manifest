@@ -43,7 +43,7 @@ export function streamPathItem(): Record<string, unknown> {
       tags: ['events'],
       summary: 'The project’s event stream (WebSocket)',
       description:
-        'Upgrade to a WebSocket. Builds, their log lines, instance state transitions, incidents and every other audit event for this project, as StreamFrames: the newest events first as a replay, then the ready frame, then live. A session-bearing upgrade must carry Origin (§20); a delegated token of this project may read it too. A plain GET answers 426. `x-manifest-event-types` lists every event type with what it means and an example of its `machineDetail`.',
+        'Upgrades to a WebSocket carrying this project’s builds, build log lines, instance state changes, incidents and every other audit event, as StreamFrames: a replay of the newest events, then the ready frame, then live. An upgrade made with a session must carry `Origin`; a delegated token for this project may connect too. A plain GET answers `426 EVENTS_UPGRADE_REQUIRED`. `x-manifest-event-types` describes each event type.',
       parameters: [
         {
           name: 'projectId',
@@ -64,7 +64,7 @@ export function streamPathItem(): Record<string, unknown> {
         },
         default: {
           description:
-            'Refused before the upgrade, in the D23.7 envelope: UNAUTHENTICATED, NOT_FOUND (a stranger, or no such project), CSRF_ORIGIN_REFUSED, INTERNAL.',
+            'Refused before the upgrade, as an error envelope: UNAUTHENTICATED, NOT_FOUND (a stranger, or no such project), CSRF_ORIGIN_REFUSED, INTERNAL.',
           content: envelope,
         },
       },

@@ -55,7 +55,7 @@ export const buildRoutes = [
     tag: 'delivery',
     summary: 'Build the project',
     description:
-      '§22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running`; its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.',
+      'Builds `commitSha` — by default the commit of the newest recorded validation, not necessarily `main`’s head — with that commit’s own manifest.yaml (validated now if nobody has), refusing `SPEC_INVALID` if it is not valid. Answers `202` at once with the build `running`; its log lines arrive as `log` frames, and its end as `build.succeeded` or `build.failed`, on the project’s event stream, and `getBuild` reads its state. A replayed Idempotency-Key answers the `202` as first sent.',
     params: ProjectParams,
     query: NO_QUERY,
     body: StartBuildRequest,
@@ -191,7 +191,7 @@ export const buildRoutes = [
     tag: 'delivery',
     summary: 'A build',
     description:
-      'Its present status, image digest, the reason a failed build failed, and its scan (§12).',
+      'A build’s present status, image digest, the reason a failed build failed, and its scan.',
     params: BuildParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -221,7 +221,7 @@ export const buildRoutes = [
     tag: 'delivery',
     summary: 'A build’s log',
     description:
-      '§14: every line, redacted at capture — or the last `tail`. Lines arrive live on the project’s event stream while the build runs; this is every one of them afterwards.',
+      'Every line of the build’s log, redacted at capture — or the last `tail`. Lines arrive live on the project’s event stream while the build runs; this is every one of them afterwards.',
     params: BuildParams,
     query: z.strictObject({
       tail: z.coerce

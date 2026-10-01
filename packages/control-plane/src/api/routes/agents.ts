@@ -186,7 +186,7 @@ export const agentRoutes = [
     tag: 'agents',
     summary: 'Give an agent a model key, charged to you',
     description:
-      '§10: a model key for one agent working on this project — on the models the project’s data classification allows (D17), capped (`capUsd`, never more than the platform’s session cap or what remains of your month), and short-lived (`durationMinutes`, never past the credential that asks). **The key is in this answer and nowhere else**: Manifest keeps no copy, and a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session rather than the key — end it and start another if the first answer was lost. Its spend is YOURS — a delegated token’s minter’s — against your monthly agent budget (`getAgentBudget`). The key calls models and nothing else; it is not a Manifest credential.',
+      'A model key for one agent working on this project, on the models its data classification allows, capped (`capUsd`) and short-lived (`durationMinutes`). The key is in this answer only: a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session, so if the answer is lost, end it and start another. Spend is charged to you — a delegated token’s minter — against your monthly agent budget (`getAgentBudget`). The key calls models only; it is not a Manifest credential.',
     params: ProjectParams,
     query: NO_QUERY,
     body: StartAgentSessionRequest,

@@ -13,7 +13,7 @@ export const fleetRoutes = [
     tag: 'administration',
     summary: 'Every app on the platform',
     description:
-      '§26: the fleet, for platform administrators — an admin-scoped read on the one public API (D31), not a second API. Everyone else is refused 403, and so is every delegated token however it was minted (D24): this is cross-tenant data and a token is scoped to one project.',
+      'Every app on the platform, for platform administrators. Anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,

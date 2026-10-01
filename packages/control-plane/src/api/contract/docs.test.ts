@@ -148,6 +148,47 @@ describe('the published reference is complete (Decision 14)', () => {
   })
 
   /**
+   * WHAT EVERY READER MEETS FIRST CITES NO SPEC SECTION (Rich, 2026-09-30: *"This is API docs not a
+   * history of the API"*). `INTERNAL` above allows `§n`, `Dnn` and `Cn` because they resolve in the
+   * approved design — but only a reader of the design can resolve them. So an operation's
+   * description, the document's own, the server, the two credentials, and the two texts every
+   * operation shares (the `Idempotency-Key` parameter and the error answer) say what is true now,
+   * in their own words. Tags, schemas, fields and error entries still cite the spec: a later pass
+   * rewrites them and widens this test.
+   */
+  it('cites no spec section where every reader starts: operations, the document, its server, its credentials and the shared texts', () => {
+    const SPEC_REF = /§\d|\bD\d{1,2}(\.\d+)?\b|\bC\d\b/
+    const hits: string[] = []
+    const check = (at: string, value: unknown): void => {
+      if (typeof value === 'string' && SPEC_REF.test(value)) hits.push(`${at}: ${value}`)
+    }
+    check('info.description', (doc.info as Json).description)
+    for (const [i, server] of ((doc.servers ?? []) as Json[]).entries())
+      check(`servers[${i}].description`, server.description)
+    const schemes = (doc.components as Json).securitySchemes as Record<string, Json>
+    for (const [name, scheme] of Object.entries(schemes))
+      check(`securitySchemes.${name}.description`, scheme.description)
+    let operations = 0
+    for (const [path, item] of Object.entries(doc.paths as Record<string, Json>))
+      for (const [method, op] of Object.entries(item)) {
+        if (op === null || typeof op !== 'object' || !('operationId' in op)) continue
+        operations++
+        const operation = op as Json
+        check(`${method} ${path}`, operation.description)
+        for (const parameter of (operation.parameters ?? []) as Json[])
+          if (parameter.name === 'Idempotency-Key')
+            check(`${method} ${path} Idempotency-Key`, parameter.description)
+        const responses = (operation.responses ?? {}) as Record<string, Json>
+        for (const [status, response] of Object.entries(responses))
+          if (!/^2/.test(status))
+            check(`${method} ${path} ${status}`, response.description)
+      }
+    // The positive half: the walk reached every operation, so an empty list means none cites one.
+    expect(operations).toBeGreaterThan(60)
+    expect(hits).toEqual([])
+  })
+
+  /**
    * A PROJECT'S `name` IS WHAT PEOPLE READ, AND ITS SLUG IS WHAT EVERY HOSTNAME IS MADE FROM (§6) —
    * so published text calling the slug "the project's name" tells a reader that a rename moves a
    * hostname. And since Manifest signs a person in on two origins (§21), a session's `Origin` is the

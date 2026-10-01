@@ -61,7 +61,7 @@ export const tokenRoutes = [
     tag: 'tokens',
     summary: 'Mint a delegated token',
     description:
-      'D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.',
+      'Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).',
     params: ProjectParams,
     query: NO_QUERY,
     body: MintTokenRequest,
@@ -250,7 +250,7 @@ export const tokenRoutes = [
     tag: 'tokens',
     summary: 'A project’s delegated tokens',
     description:
-      'Every token scoped to this project, newest first, including the revoked and the expired — §20 asks for a list a person can review, and one that showed only the live ones would answer "what has been able to act here" in the present tense alone. No secret is in it.',
+      'Every delegated token scoped to this project, newest first, revoked and expired ones included, so a person can review everything that has been able to act here. No secret is in it.',
     params: ProjectParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -306,7 +306,7 @@ export const tokenRoutes = [
     tag: 'tokens',
     summary: 'Revoke a delegated token',
     description:
-      'Stops the token authenticating, from the next request onwards, closes every event stream it holds open (`4401`), and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.',
+      'Stops the token authenticating from the next request, closes every event stream it holds open (`4401`), and ends every agent session it started. Only its minter may revoke it; anyone else is answered `404 NOT_FOUND`, as for an id that does not exist. Revoking twice is idempotent. If ending its sessions fails (`503 AI_CATALOGUE_DISABLED`, or a `500`), the token is already revoked: repeat the request.',
     params: TokenParams,
     query: NO_QUERY,
     body: NO_BODY,

@@ -223,7 +223,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Release a build',
     description:
-      '§13: an immutable release — the build’s digest, the spec that build was made from, and the configuration resolved from it for all three environments, frozen together. The build must be this project’s.',
+      'An immutable release of one of this project’s builds: its digest, the spec it was built from, and the configuration resolved from that spec for all three environments, frozen together.',
     params: ProjectParams,
     query: NO_QUERY,
     body: CreateReleaseRequest,
@@ -364,7 +364,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'A release',
     description:
-      'One immutable release (§13): the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it; to production only once `getLaunchReadiness` says the checklist is met.',
+      'One immutable release: the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it — to production only once `getLaunchReadiness` says the checklist is met.',
     params: ReleaseParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -591,7 +591,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Approve a release for production',
     description:
-      '§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved. `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.',
+      'Approves the release for production: binds its image digest, records who decided and when, and stores the diff from the stored preview `previewId` names, whose facts are recomputed and must not have changed (`APPROVAL_PREVIEW_STALE`; without `previewId`, `400 APPROVAL_PREVIEW_REQUIRED`). Session only, with a recent step-up. A rebuild has a new digest, which this approval does not cover.',
     params: ReleaseParams,
     query: NO_QUERY,
     body: ApproveReleaseRequest,
@@ -682,7 +682,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Decline to approve a release for production',
     description:
-      '§13, and the same four guards as approving, naming a preview the same way. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.',
+      'Declines to approve the release for production. Guarded exactly as `approveRelease` — session only, `release:approve`, a recent step-up — and names a preview the same way. `reason` is required.',
     params: ReleaseParams,
     query: NO_QUERY,
     body: RejectReleaseRequest,
@@ -767,7 +767,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Take the preview an administrator reads before deciding',
     description:
-      '§13’s exact diff, computed NOW and STORED: the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.',
+      'Computes and stores the diff an administrator reads before deciding — facts, security notes, the reviewer’s verdict and the model’s summary — for `approveRelease` or `rejectRelease` to name. Session only, with `release:approve`; no step-up. Valid for thirty minutes.',
     params: ReleaseParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -856,7 +856,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Re-read a stored preview',
     description:
-      'The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it. 404 for a preview of another release.',
+      'A stored preview exactly as it was taken, never recomputed — what the administrator read before a step-up round trip. `404 NOT_FOUND` for a preview of another release.',
     params: z.strictObject({ releaseId: PATH.releaseId, previewId: PATH.previewId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -918,7 +918,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'The latest decision about a release',
     description:
-      '§13: the newest approval or rejection, with the diff it was made on. 404 when nobody has decided yet.',
+      'The newest approval or rejection of the release, with the diff it was made on. `404 NOT_FOUND` when nobody has decided yet.',
     params: ReleaseParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -987,7 +987,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Deploy a release to an environment',
     description:
-      '§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (§14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.',
+      'Deploys a release, answering once the new instance serves or has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. The previous instance serves until the new one is proved, then drains. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: DeployRequest,
@@ -1122,7 +1122,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'An environment’s incidents',
     description:
-      '§14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt. **A delegated token is refused a `confidential` project’s staging and production Incidents** (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of real people. A person’s session reads them, and every token reads the sandbox’s.',
+      'The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused a `confidential` project’s staging and production Incidents (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets its building agent use the capable model; a session reads them, and any token reads the sandbox’s.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: NO_BODY,

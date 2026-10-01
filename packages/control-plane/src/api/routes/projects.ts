@@ -138,7 +138,7 @@ export const projectWriteRoutes = [
     tag: 'projects',
     summary: 'Create a project',
     description:
-      '§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.',
+      'Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token). Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: CreateProjectRequest,
@@ -474,7 +474,7 @@ export const projectWriteRoutes = [
     tag: 'projects',
     summary: 'Rename a project',
     description:
-      'Changes what people call the project — `name`, any text of 1 to 80 characters on one line — and nothing else: the slug, and so every hostname and the repository, never changes (§23, D26). Publishes `project.renamed` naming who did it; renaming a project to the name it already has answers the project and publishes nothing.',
+      'Renames the project: `name` is any text of 1 to 80 characters on one line. The slug, and so every hostname and the repository, never changes. Publishes `project.renamed`; renaming to the current `name` answers the project and publishes nothing.',
     params: ProjectParams,
     query: NO_QUERY,
     body: UpdateProjectRequest,

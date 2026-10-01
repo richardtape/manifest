@@ -297,7 +297,7 @@ function parameters(route: AnyRoute): JsonSchema[] {
       name: 'Idempotency-Key',
       in: 'header',
       required: true,
-      description: 'D23.6. One per user action, reused across retries of THAT action.',
+      description: 'One per user action, and the same key when retrying that action.',
       schema: { type: 'string', minLength: 8 },
     })
   }
@@ -362,7 +362,7 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
           },
         },
         default: {
-          description: `An error, in the D23.7 envelope; \`x-manifest-errors\` gives each code's meaning and remedy. This operation can answer: ${codes.join(', ')}.`,
+          description: `An error envelope; \`x-manifest-errors\` gives each code's meaning and remedy. This operation can answer: ${codes.join(', ')}.`,
           content: {
             'application/json': { schema: { $ref: component('ErrorEnvelope') } },
           },
@@ -387,16 +387,15 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
       title: 'Manifest',
       version: CONTRACT_VERSION,
       description:
-        "Manifest's public API (§22). Generated from the control plane's route definitions; do not edit. " +
-        'Resource routes are under /v1 (D23.8); a breaking change is a new prefix beside it. Response ' +
-        'objects may gain fields under /v1 — a client ignores fields it does not know. Every mutation ' +
-        'carries an Idempotency-Key, and a session-bearing mutation carries Origin (§20).',
+        "Manifest's public API. Generated from the control plane's route definitions; do not edit. " +
+        'Resource routes are under /v1, and a breaking change gets a new prefix beside it. Response ' +
+        'objects may gain fields under /v1, so a client ignores fields it does not know. Every ' +
+        'mutation carries an Idempotency-Key, and a mutation made with a session also carries Origin.',
     },
     servers: [
       {
         url: 'https://console.manifest.internal',
-        description:
-          'The laptop platform (§21). The console and the API share this origin.',
+        description: 'The laptop platform. The console and the API share this origin.',
       },
     ],
     // EITHER credential (F17): an OpenAPI `security` list is alternatives, each object one way.
@@ -415,14 +414,14 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
           in: 'cookie',
           name: 'manifest_session',
           description:
-            'A person, signed in with CWL at /auth/login in a browser (§9). It carries their platform role and expires on its own; a mutation made with it must carry `Origin` (§20). Some operations take nothing else — their `security` names this scheme alone — and a few need it stepped up within the last ten minutes (`STEP_UP_REQUIRED`, §20).',
+            'A person, signed in with CWL at /auth/login in a browser. It carries their platform role and expires on its own; a mutation made with it must carry `Origin`. Some operations take nothing else — their `security` names this scheme alone — and a few need it stepped up within the last ten minutes (`STEP_UP_REQUIRED`).',
         },
         delegatedToken: {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'mft_<id>_<secret>',
           description:
-            'A delegated token (D24): `Authorization: Bearer mft_<id>_<secret>`, for an agent or a script. A person mints it in their own session for ONE project (`mintToken`), and it is shown once. It acts as that person, on that project, with the capabilities it was minted with, until it expires or is revoked (`revokeToken`). Send it with no session cookie — both at once is `400 CREDENTIAL_AMBIGUOUS` — and no `Origin` is needed. An operation whose `security` names the session alone refuses it `403 TOKEN_CREDENTIAL_REFUSED`; one of D24’s privileged actions answers `403 TOKEN_ACTION_PENDING` until a person confirms that one request.',
+            'A delegated token: `Authorization: Bearer mft_<id>_<secret>`, for an agent or a script. A person mints it in their own session for ONE project (`mintToken`), and it is shown once. It acts as that person, on that project, with the capabilities it was minted with, until it expires or is revoked (`revokeToken`). Send it with no session cookie — both at once is `400 CREDENTIAL_AMBIGUOUS` — and no `Origin` is needed. An operation whose `security` names the session alone refuses it `403 TOKEN_CREDENTIAL_REFUSED`; a privileged action answers `403 TOKEN_ACTION_PENDING` until a person confirms that one request.',
         },
       },
       schemas: components(),

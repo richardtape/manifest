@@ -13,7 +13,7 @@ export const meRoutes = [
     tag: 'identity',
     summary: 'The signed-in person',
     description:
-      'Who this session belongs to, and the platform role it is authorized as. Every client calls it first. Interactive sessions only: a delegated token carries no platform role at all (D24), so there is nothing truthful for this to answer it — an agent reads GET /v1/projects, which answers exactly the project it is scoped to.',
+      'The person this session belongs to, and the platform role it is authorized as; a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,

@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * The blueprint catalogue
-         * @description §22 step 2: what a person chooses from, with the starters each offers (§25).
+         * @description The blueprints to choose from when creating a project, with the starters each offers.
          */
         get: operations["listBlueprints"];
         put?: never;
@@ -93,7 +93,7 @@ export interface paths {
         };
         /**
          * A blueprint’s knowledge pack
-         * @description D25: served over the API and versioned with its blueprint, so an agent learns the conventions without running inside the platform. Each file carries its sha256.
+         * @description The files that teach an agent this blueprint’s conventions without running inside the platform, versioned with the blueprint. Each file carries its sha256.
          */
         get: operations["getKnowledgePack"];
         put?: never;
@@ -113,7 +113,7 @@ export interface paths {
         };
         /**
          * A build
-         * @description Its present status, image digest, the reason a failed build failed, and its scan (§12).
+         * @description A build’s present status, image digest, the reason a failed build failed, and its scan.
          */
         get: operations["getBuild"];
         put?: never;
@@ -133,7 +133,7 @@ export interface paths {
         };
         /**
          * A build’s log
-         * @description §14: every line, redacted at capture — or the last `tail`. Lines arrive live on the project’s event stream while the build runs; this is every one of them afterwards.
+         * @description Every line of the build’s log, redacted at capture — or the last `tail`. Lines arrive live on the project’s event stream while the build runs; this is every one of them afterwards.
          */
         get: operations["getBuildLog"];
         put?: never;
@@ -193,7 +193,7 @@ export interface paths {
         };
         /**
          * An environment, and what it serves
-         * @description The environment and the instance its hostname reaches (§6 Route) — not the newest deploy, which may have failed.
+         * @description The environment and the instance its hostname reaches — not the newest deploy, which may have failed.
          */
         get: operations["getEnvironment"];
         put?: never;
@@ -215,7 +215,7 @@ export interface paths {
         put?: never;
         /**
          * Deploy a release to an environment
-         * @description §22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (§14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.
+         * @description Deploys a release, answering once the new instance serves or has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. The previous instance serves until the new one is proved, then drains. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
          */
         post: operations["deploy"];
         delete?: never;
@@ -233,7 +233,7 @@ export interface paths {
         };
         /**
          * An environment’s incidents
-         * @description §14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt. **A delegated token is refused a `confidential` project’s staging and production Incidents** (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of real people. A person’s session reads them, and every token reads the sandbox’s.
+         * @description The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused a `confidential` project’s staging and production Incidents (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets its building agent use the capable model; a session reads them, and any token reads the sandbox’s.
          */
         get: operations["listIncidents"];
         put?: never;
@@ -253,7 +253,7 @@ export interface paths {
         };
         /**
          * An environment’s instances
-         * @description §11: the environment’s instances, the one seen most recently first — at most 50 — each marked whether the hostname reaches it now. A failed instance stays listed after it is replaced, so an agent can find it and read its Incident; a running one’s last lines are `getInstanceOutput`.
+         * @description The environment’s instances, the one seen most recently first — at most 50 — each marked whether the hostname reaches it now. A failed instance stays listed after it is replaced, so an agent can find it and read its Incident; a running one’s last lines are `getInstanceOutput`.
          */
         get: operations["listInstances"];
         put?: never;
@@ -294,13 +294,13 @@ export interface paths {
         get?: never;
         /**
          * Set the value of one of the app’s secrets
-         * @description Stores the value for this environment, write-only: it is never answered back, and it reaches the app at the NEXT deploy of this environment — setting it redeploys nothing. A value may be set before manifest.yaml declares the name, and only a declared name is ever given to the app. A delegated token may set sandbox and staging values; a production value is set only in an interactive session that has stepped up in the last ten minutes, and a token asking is refused.
+         * @description Stores the value for this environment, write-only: it is never answered back, and reaches the app at this environment’s next deploy — setting it redeploys nothing. A value may be set before manifest.yaml declares the name; only declared names reach the app. A production value needs a session with a recent step-up (`STEP_UP_REQUIRED`); a delegated token may set sandbox and staging values, and is refused production (`TOKEN_CREDENTIAL_REFUSED`).
          */
         put: operations["setAppSecret"];
         post?: never;
         /**
          * Clear the value of one of the app’s secrets
-         * @description Removes the stored value for this environment. Idempotent: clearing a name with no value answers the same state. While manifest.yaml still declares the name, the next deploy of this environment is refused with `RELEASE_SECRET_NOT_SET`; an instance already running keeps the value it was started with. Production asks what setting does: an interactive session that has stepped up.
+         * @description Removes the stored value for this environment; clearing a name with no value answers the same state. While manifest.yaml declares the name, this environment’s next deploy is refused `RELEASE_SECRET_NOT_SET`; a running instance keeps the value it started with. Production needs a session with a recent step-up, as setting does.
          */
         delete: operations["clearAppSecret"];
         options?: never;
@@ -317,7 +317,7 @@ export interface paths {
         };
         /**
          * Every app on the platform
-         * @description §26: the fleet, for platform administrators — an admin-scoped read on the one public API (D31), not a second API. Everyone else is refused 403, and so is every delegated token however it was minted (D24): this is cross-tenant data and a token is scoped to one project.
+         * @description Every app on the platform, for platform administrators. Anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
          */
         get: operations["listFleet"];
         put?: never;
@@ -337,7 +337,7 @@ export interface paths {
         };
         /**
          * A running instance’s recent output
-         * @description §14: the last lines a sandbox instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never staging or production**: both serve real people, so each is refused by its own code, and an Incident is the only window onto either. Decided by the environment’s kind, so a laptop’s staging is refused too.
+         * @description The last lines a sandbox instance printed, oldest first — read on request, never streamed or kept: up to `lines`, 256 KiB in all, each line cut at 4 KiB, and redacted as an Incident’s log tail is. Staging and production are always refused (`INSTANCE_OUTPUT_STAGING`, `INSTANCE_OUTPUT_PRODUCTION`); an Incident is the only view of their output.
          */
         get: operations["getInstanceOutput"];
         put?: never;
@@ -359,7 +359,7 @@ export interface paths {
         put?: never;
         /**
          * A model for describing an app, before it exists
-         * @description §10: a model key for a person describing an app they have not created yet — understanding what they asked for, proposing names (`checkSlug`), choosing the blueprint and starter. **The platform pays**: never your agent budget. One model, the platform’s (`session.model`), approved for internal data; a key of cents and minutes (never past your signed-in session); a few a person a day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) inside the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). **The key is in this answer and nowhere else**, and a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED` naming the session. Signed-in people only: a delegated token is refused, because intake belongs to no project.
+         * @description A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused.
          */
         post: operations["startIntakeSession"];
         delete?: never;
@@ -397,7 +397,7 @@ export interface paths {
         };
         /**
          * The signed-in person
-         * @description Who this session belongs to, and the platform role it is authorized as. Every client calls it first. Interactive sessions only: a delegated token carries no platform role at all (D24), so there is nothing truthful for this to answer it — an agent reads GET /v1/projects, which answers exactly the project it is scoped to.
+         * @description The person this session belongs to, and the platform role it is authorized as; a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.
          */
         get: operations["getMe"];
         put?: never;
@@ -417,7 +417,7 @@ export interface paths {
         };
         /**
          * This OpenAPI document
-         * @description The OpenAPI 3.1 document describing every operation, representation, error code and event — generated from the platform’s own route definitions when it starts, so it is exactly the document the platform publishes. Any credential may read it.
+         * @description This OpenAPI 3.1 document — every operation, representation, error code and event — generated from the platform’s own route definitions when it starts. Any credential may read it.
          */
         get: operations["getOpenApiDocument"];
         put?: never;
@@ -459,7 +459,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm a pending action
-         * @description D24: lets the agent’s refused request through, ONCE. It grants that exact request — this token, this method, this path, this body — a single retry, which the agent makes itself; nothing is executed here on its behalf, and the retry is validated by its own route as any request is. Only a person who holds the capability themselves may confirm, and only in an interactive session.
+         * @description Lets the agent’s refused request through once: that exact request — same token, method, path and body — may be retried a single time, by the agent itself; nothing is executed here, and the retry is validated like any request. Only a person holding the capability themselves may confirm, in their own session with a recent step-up.
          */
         post: operations["confirmPendingAction"];
         delete?: never;
@@ -479,7 +479,7 @@ export interface paths {
         put?: never;
         /**
          * Reject a pending action
-         * @description D24: refuses the agent’s request, in the person’s own words. A retry of that exact request is then answered TOKEN_ACTION_REJECTED carrying the reason, so the agent stops asking rather than looping — which is what D23.7 means by an error an agent can correct itself from.
+         * @description Refuses the agent’s request, in the person’s own words: a retry of that exact request is then answered `TOKEN_ACTION_REJECTED` with the reason, so the agent stops asking. Only a person holding the capability may reject, in their own session.
          */
         post: operations["rejectPendingAction"];
         delete?: never;
@@ -497,13 +497,13 @@ export interface paths {
         };
         /**
          * The projects I am a member of
-         * @description Every project the caller owns or collaborates on, newest first — for administrators too. A delegated token answers exactly the one project it is scoped to (D24). The fleet is GET /v1/fleet.
+         * @description Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to.
          */
         get: operations["listProjects"];
         put?: never;
         /**
          * Create a project
-         * @description §22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.
+         * @description Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token). Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.
          */
         post: operations["createProject"];
         delete?: never;
@@ -521,21 +521,21 @@ export interface paths {
         };
         /**
          * A project
-         * @description One project; `?expand=environments` includes its three environments, each with the instance it serves (D23.1).
+         * @description One project; `?expand=environments` includes its three environments, each with the instance it serves.
          */
         get: operations["getProject"];
         put?: never;
         post?: never;
         /**
          * Delete a project that never launched
-         * @description Deletes the project for good (§11) — only one that has never been to production. It is switched off first, exactly as `archiveProject` does, and then its repository, every data volume, every secret and its model budgets are destroyed and its names released: each answers nothing of this project’s. Its record and its audit trail remain, and its slug is free for another project to take. From then on every route answers it `404`, and every event stream still open on it closes `4404`. A launched project is refused `409 PROJECT_LAUNCHED_NOT_DELETABLE` — its data is disposed of under its retention period and UBC’s sunset procedure, and its production name stays held; archive it instead. (A launch that completes while the delete is starting is refused the same way, AFTER the app has been switched off: it is left archived, with everything kept.) A project whose repository another source driver made is refused `409 SOURCE_PROVIDER_MISMATCH` before anything is touched. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left ARCHIVED: send the same request again to finish the delete. The control plane’s next boot only finishes switching it off, keeping whatever data is left — and restoring it instead gives back a project that may have lost its code or data, so finish the delete. Answers once all of that is done — seconds, bounded by the drain. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived` (if it was active), then `project.deleted`.
+         * @description Deletes, for good, a project that has never been to production: switches it off as `archiveProject` does, then destroys its repository, data volumes, secrets and model budgets and releases its hostnames. Its record and audit trail remain, and its slug becomes free. Afterwards every route answers it `404`, and open event streams on it close `4404`. A launched project is refused `409 PROJECT_LAUNCHED_NOT_DELETABLE` — archive it instead — and so is one whose launch completes as the delete starts, which is left archived with everything kept. A project whose repository another source driver made is refused `409 SOURCE_PROVIDER_MISMATCH` before anything is touched. A failed step answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project archived: repeat the request to finish — restoring it instead may give back a project missing code or data. Answers once done — seconds, bounded by the drain. Owner or platform administrator, in their own session with a recent step-up; never a delegated token. Publishes `project.archived` (if it was active), then `project.deleted`.
          */
         delete: operations["deleteProject"];
         options?: never;
         head?: never;
         /**
          * Rename a project
-         * @description Changes what people call the project — `name`, any text of 1 to 80 characters on one line — and nothing else: the slug, and so every hostname and the repository, never changes (§23, D26). Publishes `project.renamed` naming who did it; renaming a project to the name it already has answers the project and publishes nothing.
+         * @description Renames the project: `name` is any text of 1 to 80 characters on one line. The slug, and so every hostname and the repository, never changes. Publishes `project.renamed`; renaming to the current `name` answers the project and publishes nothing.
          */
         patch: operations["updateProject"];
         trace?: never;
@@ -555,7 +555,7 @@ export interface paths {
         put?: never;
         /**
          * Give an agent a model key, charged to you
-         * @description §10: a model key for one agent working on this project — on the models the project’s data classification allows (D17), capped (`capUsd`, never more than the platform’s session cap or what remains of your month), and short-lived (`durationMinutes`, never past the credential that asks). **The key is in this answer and nowhere else**: Manifest keeps no copy, and a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session rather than the key — end it and start another if the first answer was lost. Its spend is YOURS — a delegated token’s minter’s — against your monthly agent budget (`getAgentBudget`). The key calls models and nothing else; it is not a Manifest credential.
+         * @description A model key for one agent working on this project, on the models its data classification allows, capped (`capUsd`) and short-lived (`durationMinutes`). The key is in this answer only: a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session, so if the answer is lost, end it and start another. Spend is charged to you — a delegated token’s minter — against your monthly agent budget (`getAgentBudget`). The key calls models only; it is not a Manifest credential.
          */
         post: operations["startAgentSession"];
         delete?: never;
@@ -575,7 +575,7 @@ export interface paths {
         put?: never;
         /**
          * Switch a project off (archive it)
-         * @description Switches the app off for everyone, and keeps it (§11). The project is marked archived first, so nothing new starts; then its agent sessions end, its delegated tokens are revoked — any event stream one holds open closing `4401`, while a person’s stays open, because an archived project can still be read — its pending questions expire, each of its names answers a page saying the app has been switched off by its owner (`410`), every instance is retired after its usual drain, its backing services stop keeping their data, and its sandbox and staging sign-on registrations are removed. Its code, data, secrets and records are kept. Answers once all of that is done — seconds, bounded by the drain. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left archived: retrying the same request continues where it stopped, and so does the control plane’s next boot. Archiving an archived project answers it as it is. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived`.
+         * @description Switches the app off for everyone and keeps its code, data, secrets and records. Nothing new starts; its agent sessions end; its delegated tokens are revoked, closing their event streams `4401` (a person’s stays open); its pending actions expire; its hostnames answer a `410` switched-off page; its instances drain and retire; its backing services stop, keeping their data; and its sandbox and staging sign-on registrations are removed. Answers once done — seconds, bounded by the drain. A failed step answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project archived: repeat the request to continue. Archiving an archived project answers it as it is. Owner or platform administrator, in their own session with a recent step-up; never a delegated token. Publishes `project.archived`.
          */
         post: operations["archiveProject"];
         delete?: never;
@@ -599,7 +599,7 @@ export interface paths {
         put?: never;
         /**
          * Build the project
-         * @description §22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running`; its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.
+         * @description Builds `commitSha` — by default the commit of the newest recorded validation, not necessarily `main`’s head — with that commit’s own manifest.yaml (validated now if nobody has), refusing `SPEC_INVALID` if it is not valid. Answers `202` at once with the build `running`; its log lines arrive as `log` frames, and its end as `build.succeeded` or `build.failed`, on the project’s event stream, and `getBuild` reads its state. A replayed Idempotency-Key answers the `202` as first sent.
          */
         post: operations["startBuild"];
         delete?: never;
@@ -661,7 +661,7 @@ export interface paths {
         };
         /**
          * A project’s environments
-         * @description Sandbox, staging and production — all three exist from the moment the project does (§23).
+         * @description Sandbox, staging and production — all three exist from the moment the project does.
          */
         get: operations["listEnvironments"];
         put?: never;
@@ -681,7 +681,7 @@ export interface paths {
         };
         /**
          * The project’s event stream (WebSocket)
-         * @description Upgrade to a WebSocket. Builds, their log lines, instance state transitions, incidents and every other audit event for this project, as StreamFrames: the newest events first as a replay, then the ready frame, then live. A session-bearing upgrade must carry Origin (§20); a delegated token of this project may read it too. A plain GET answers 426. `x-manifest-event-types` lists every event type with what it means and an example of its `machineDetail`.
+         * @description Upgrades to a WebSocket carrying this project’s builds, build log lines, instance state changes, incidents and every other audit event, as StreamFrames: a replay of the newest events, then the ready frame, then live. An upgrade made with a session must carry `Origin`; a delegated token for this project may connect too. A plain GET answers `426 EVENTS_UPGRADE_REQUIRED`. `x-manifest-event-types` describes each event type.
          */
         get: operations["streamProjectEvents"];
         put?: never;
@@ -721,7 +721,7 @@ export interface paths {
         };
         /**
          * What a production release still needs
-         * @description §13 and §22 step 7: the checklist, computed from what exists, surfaced from the moment a project exists — a first launch’s, or once launched the self-serve check, where only a sensitive change needs an administrator (D9). The production deploy is refused with this exact value until every blocking item is met.
+         * @description The launch checklist, computed from what exists now: the first launch’s, or once launched the self-serve check, where only a sensitive change needs an administrator’s approval. A production `deploy` is refused with this value until every blocking item is met.
          */
         get: operations["getLaunchReadiness"];
         put?: never;
@@ -741,7 +741,7 @@ export interface paths {
         };
         /**
          * The IAM registration and the privacy assessment, as recorded
-         * @description §9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. Manifest does not yet generate what they carry. Either may be absent, which is a state and not an error.
+         * @description The IAM registration and the privacy assessment, as a platform administrator recorded what UBC IAM and the Privacy Office said, each with its ticket reference. Either may be absent — a state, not an error.
          */
         get: operations["getLaunchRecords"];
         put?: never;
@@ -763,7 +763,7 @@ export interface paths {
         put?: never;
         /**
          * Record what UBC IAM registered
-         * @description §9 and D19: a platform administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). A later Manifest release will submit these itself; the object and its states will not change when it does.
+         * @description A platform administrator, in their own session, records the Service Provider registration UBC IAM made, with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`.
          */
         post: operations["recordIamRegistration"];
         delete?: never;
@@ -783,7 +783,7 @@ export interface paths {
         put?: never;
         /**
          * Record what the Privacy Office said
-         * @description §9 and D19: a platform administrator records it, in the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.
+         * @description A platform administrator, in their own session, records the Privacy Office’s assessment, shaped like the IAM registration, over the states `draft`, `submitted` and `approved` (`409 LAUNCH_TRANSITION_INVALID` for a move they do not allow). A refused assessment goes back to `draft` with the reviewer’s note.
          */
         post: operations["recordPrivacyAssessment"];
         delete?: never;
@@ -801,13 +801,13 @@ export interface paths {
         };
         /**
          * Who is a member of a project
-         * @description Owners and collaborators (§13). Reading is `project:read`; changing membership is `members:manage`.
+         * @description Owners and collaborators. Reading is `project:read`; changing membership is `members:manage`.
          */
         get: operations["listMembers"];
         put?: never;
         /**
          * Add or change a member
-         * @description Grants a person who has signed in once a role on the project, naming them by EXACTLY ONE of their PUID, CWL login name or email (an email two people share is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when it changed something. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.
+         * @description Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
          */
         post: operations["addMember"];
         delete?: never;
@@ -828,7 +828,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a member
-         * @description Takes a person off the project (§13) — and their agent with them: every delegated token they minted on the project is revoked with the removal, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there are ended, their model keys revoked at the gateway (§6, §10, §20). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`, saying how many tokens it revoked and sessions it ended. Idempotent — removing somebody who is not a member answers the members as they are and publishes nothing, and ends any agent session of theirs still live on the project — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy. **An error while ending their sessions comes AFTER the removal** — `503 AI_CATALOGUE_DISABLED` when AI is switched off, a `500` when the model gateway fails: the person is already off the project and their tokens already revoked, and only their agent sessions are not yet ended. Repeat the same request (once AI is back on) and it ends them.
+         * @description Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes nothing, and ends any agent session of theirs still live there. The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.
          */
         delete: operations["removeMember"];
         options?: never;
@@ -845,7 +845,7 @@ export interface paths {
         };
         /**
          * The questions agents are waiting on
-         * @description §26’s queue for one project, newest first. A person who can read the project sees every question; a delegated token sees only the ones it asked itself. Answered and expired questions stay in the list — `waitingSeconds` on a resolved row is how long the agent waited for its answer.
+         * @description The questions agents are waiting on in this project, newest first. A person who can read the project sees all of them; a delegated token sees only its own. Answered and expired questions stay listed; `waitingSeconds` on a resolved one is how long the agent waited.
          */
         get: operations["listPendingActions"];
         put?: never;
@@ -867,7 +867,7 @@ export interface paths {
         put?: never;
         /**
          * Run the pre-production rehearsal
-         * @description D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. **Who may run it:** the project’s owner, a collaborator or a platform administrator, each in their own signed-in session and with no second sign-in — never a delegated token (`403 TOKEN_CREDENTIAL_REFUSED`, whatever the token holds); anyone else is told the project does not exist (`404 NOT_FOUND`). Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.
+         * @description Deploys the candidate release to production behind the launch gate, registers its Service Provider with production-shaped values, completes one CWL sign-in, and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The owner, a collaborator or a platform administrator runs it in their own session, with no step-up; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. Refused once the app has launched (`REHEARSAL_LAUNCHED`). Up to ~90 s.
          */
         post: operations["runRehearsal"];
         delete?: never;
@@ -891,7 +891,7 @@ export interface paths {
         put?: never;
         /**
          * Release a build
-         * @description §13: an immutable release — the build’s digest, the spec that build was made from, and the configuration resolved from it for all three environments, frozen together. The build must be this project’s.
+         * @description An immutable release of one of this project’s builds: its digest, the spec it was built from, and the configuration resolved from that spec for all three environments, frozen together.
          */
         post: operations["createRelease"];
         delete?: never;
@@ -911,7 +911,7 @@ export interface paths {
         put?: never;
         /**
          * Restore a switched-off project
-         * @description Makes an archived project an ordinary one again (§11) — and starts nothing. Its names keep answering the switched-off page until its next deploy, which brings the app back on its kept data and signs it up for sign-on again. Its delegated tokens stay revoked: mint new ones. Restoring an active project answers it as it is. The owner’s or a platform administrator’s, in their own session; no step-up, because bringing an app back takes nothing from anyone. Publishes `project.restored`.
+         * @description Makes an archived project active again, and starts nothing: its hostnames answer the switched-off page until its next deploy, which brings the app back on its kept data. Its delegated tokens stay revoked: mint new ones. Restoring an active project answers it as it is. Owner or platform administrator, in their own session; no step-up. Publishes `project.restored`.
          */
         post: operations["restoreProject"];
         delete?: never;
@@ -929,13 +929,13 @@ export interface paths {
         };
         /**
          * The project’s newest valid manifest
-         * @description manifest.yaml as last validated (§7). An invalid newest manifest answers SPEC_INVALID with its errors.
+         * @description The project’s manifest.yaml as last validated. If that validation failed, answers `SPEC_INVALID` with its errors; if there is none yet, `SPEC_NOT_FOUND`.
          */
         get: operations["getSpec"];
         put?: never;
         /**
          * Validate manifest.yaml at a commit
-         * @description §22 step 3: reads manifest.yaml at the commit (HEAD by default), validates it (§7) and records the result. A sensitive diff (D9) is reported here against the newest valid spec; it is ENFORCED at the production deploy, against the last approved release (§13 D9.2).
+         * @description Reads manifest.yaml at the commit (HEAD by default), validates it and records the result. A change to a sensitive field is reported against the newest valid spec; the production deploy enforces it against the last approved release.
          */
         post: operations["validateSpec"];
         delete?: never;
@@ -953,13 +953,13 @@ export interface paths {
         };
         /**
          * A project’s delegated tokens
-         * @description Every token scoped to this project, newest first, including the revoked and the expired — §20 asks for a list a person can review, and one that showed only the live ones would answer "what has been able to act here" in the present tense alone. No secret is in it.
+         * @description Every delegated token scoped to this project, newest first, revoked and expired ones included, so a person can review everything that has been able to act here. No secret is in it.
          */
         get: operations["listTokens"];
         put?: never;
         /**
          * Mint a delegated token
-         * @description D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.
+         * @description Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).
          */
         post: operations["mintToken"];
         delete?: never;
@@ -997,7 +997,7 @@ export interface paths {
         };
         /**
          * A release
-         * @description One immutable release (§13): the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it; to production only once `getLaunchReadiness` says the checklist is met.
+         * @description One immutable release: the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it — to production only once `getLaunchReadiness` says the checklist is met.
          */
         get: operations["getRelease"];
         put?: never;
@@ -1017,7 +1017,7 @@ export interface paths {
         };
         /**
          * The latest decision about a release
-         * @description §13: the newest approval or rejection, with the diff it was made on. 404 when nobody has decided yet.
+         * @description The newest approval or rejection of the release, with the diff it was made on. `404 NOT_FOUND` when nobody has decided yet.
          */
         get: operations["getApproval"];
         put?: never;
@@ -1039,7 +1039,7 @@ export interface paths {
         put?: never;
         /**
          * Take the preview an administrator reads before deciding
-         * @description §13’s exact diff, computed NOW and STORED: the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.
+         * @description Computes and stores the diff an administrator reads before deciding — facts, security notes, the reviewer’s verdict and the model’s summary — for `approveRelease` or `rejectRelease` to name. Session only, with `release:approve`; no step-up. Valid for thirty minutes.
          */
         post: operations["createApprovalPreview"];
         delete?: never;
@@ -1057,7 +1057,7 @@ export interface paths {
         };
         /**
          * Re-read a stored preview
-         * @description The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it. 404 for a preview of another release.
+         * @description A stored preview exactly as it was taken, never recomputed — what the administrator read before a step-up round trip. `404 NOT_FOUND` for a preview of another release.
          */
         get: operations["getApprovalPreview"];
         put?: never;
@@ -1079,7 +1079,7 @@ export interface paths {
         put?: never;
         /**
          * Approve a release for production
-         * @description §13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved. `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.
+         * @description Approves the release for production: binds its image digest, records who decided and when, and stores the diff from the stored preview `previewId` names, whose facts are recomputed and must not have changed (`APPROVAL_PREVIEW_STALE`; without `previewId`, `400 APPROVAL_PREVIEW_REQUIRED`). Session only, with a recent step-up. A rebuild has a new digest, which this approval does not cover.
          */
         post: operations["approveRelease"];
         delete?: never;
@@ -1099,7 +1099,7 @@ export interface paths {
         put?: never;
         /**
          * Decline to approve a release for production
-         * @description §13, and the same four guards as approving, naming a preview the same way. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.
+         * @description Declines to approve the release for production. Guarded exactly as `approveRelease` — session only, `release:approve`, a recent step-up — and names a preview the same way. `reason` is required.
          */
         post: operations["rejectRelease"];
         delete?: never;
@@ -1117,7 +1117,7 @@ export interface paths {
         };
         /**
          * Would this slug work?
-         * @description §23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the slug, and a 4xx would make "taken" indistinguishable from "not allowed to ask". Says nothing about a holder. 60 a minute per person.
+         * @description Checks a slug exactly as `createProject` does, so a client can tell a person while they type. The verdict is always a `200`, and never says who holds a slug. 60 checks a minute per person (`RATE_LIMITED`).
          */
         get: operations["checkSlug"];
         put?: never;
@@ -1140,7 +1140,7 @@ export interface paths {
         post?: never;
         /**
          * Revoke a delegated token
-         * @description Stops the token authenticating, from the next request onwards, closes every event stream it holds open (`4401`), and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.
+         * @description Stops the token authenticating from the next request, closes every event stream it holds open (`4401`), and ends every agent session it started. Only its minter may revoke it; anyone else is answered `404 NOT_FOUND`, as for an id that does not exist. Revoking twice is idempotent. If ending its sessions fails (`503 AI_CATALOGUE_DISABLED`, or a `500`), the token is already revoked: repeat the request.
          */
         delete: operations["revokeToken"];
         options?: never;
@@ -5573,7 +5573,7 @@ export interface operations {
                     "application/json": components["schemas"]["AgentBudget"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -5588,7 +5588,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -5635,7 +5635,7 @@ export interface operations {
                     "application/json": components["schemas"]["AgentSession"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -5716,7 +5716,7 @@ export interface operations {
                     "application/json": components["schemas"]["BlueprintList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -5777,7 +5777,7 @@ export interface operations {
                     "application/json": components["schemas"]["Blueprint"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -5822,7 +5822,7 @@ export interface operations {
                     "application/json": components["schemas"]["KnowledgePack"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -5866,7 +5866,7 @@ export interface operations {
                     "application/json": components["schemas"]["Build"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -5914,7 +5914,7 @@ export interface operations {
                     "application/json": components["schemas"]["BuildLog"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -5959,7 +5959,7 @@ export interface operations {
                     "application/json": components["schemas"]["DocIndex"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -5998,7 +5998,7 @@ export interface operations {
                     "application/json": components["schemas"]["DocPage"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: DOC_NOT_FOUND, INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: DOC_NOT_FOUND, INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6048,7 +6048,7 @@ export interface operations {
                     "application/json": components["schemas"]["Environment"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6063,7 +6063,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -6103,7 +6103,7 @@ export interface operations {
                     "application/json": components["schemas"]["Instance"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6153,7 +6153,7 @@ export interface operations {
                     "application/json": components["schemas"]["IncidentList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INCIDENT_LOG_CONFIDENTIAL, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INCIDENT_LOG_CONFIDENTIAL, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6213,7 +6213,7 @@ export interface operations {
                     "application/json": components["schemas"]["InstanceList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6265,7 +6265,7 @@ export interface operations {
                     "application/json": components["schemas"]["AppSecretList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6280,7 +6280,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -6319,7 +6319,7 @@ export interface operations {
                     "application/json": components["schemas"]["AppSecretStatus"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6334,7 +6334,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -6364,7 +6364,7 @@ export interface operations {
                     "application/json": components["schemas"]["AppSecretStatus"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6477,7 +6477,7 @@ export interface operations {
                     "application/json": components["schemas"]["Fleet"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6545,7 +6545,7 @@ export interface operations {
                     "application/json": components["schemas"]["InstanceOutput"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INSTANCE_OUTPUT_PRODUCTION, INSTANCE_OUTPUT_STAGING, INSTANCE_OUTPUT_UNAVAILABLE, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INSTANCE_OUTPUT_PRODUCTION, INSTANCE_OUTPUT_STAGING, INSTANCE_OUTPUT_UNAVAILABLE, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6560,7 +6560,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path?: never;
@@ -6592,7 +6592,7 @@ export interface operations {
                     "application/json": components["schemas"]["IntakeSessionStarted"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTAKE_BUDGET_EXHAUSTED, INTAKE_DAILY_LIMIT_REACHED, INTAKE_MODEL_UNAVAILABLE, INTAKE_SESSION_ALREADY_STARTED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTAKE_BUDGET_EXHAUSTED, INTAKE_DAILY_LIMIT_REACHED, INTAKE_MODEL_UNAVAILABLE, INTAKE_SESSION_ALREADY_STARTED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6607,7 +6607,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -6638,7 +6638,7 @@ export interface operations {
                     "application/json": components["schemas"]["IntakeSession"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6676,7 +6676,7 @@ export interface operations {
                     "application/json": components["schemas"]["Me"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6715,7 +6715,7 @@ export interface operations {
                     "application/json": components["schemas"]["OpenApiDocument"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6766,7 +6766,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6781,7 +6781,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -6825,7 +6825,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6840,7 +6840,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -6888,7 +6888,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6981,7 +6981,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProjectList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6996,7 +6996,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path?: never;
@@ -7088,7 +7088,7 @@ export interface operations {
                     "application/json": components["schemas"]["CreatedProject"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GITHUB_REFUSED, SOURCE_GIT_FAILED, SOURCE_REPOSITORY_EXISTS, SOURCE_REPOSITORY_NOT_PRIVATE, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GITHUB_REFUSED, SOURCE_GIT_FAILED, SOURCE_REPOSITORY_EXISTS, SOURCE_REPOSITORY_NOT_PRIVATE, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7173,7 +7173,7 @@ export interface operations {
                     "application/json": components["schemas"]["Project"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7188,7 +7188,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -7216,7 +7216,7 @@ export interface operations {
                     "application/json": components["schemas"]["DeletedProject"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAUNCHED_NOT_DELETABLE, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_PROVIDER_MISMATCH, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAUNCHED_NOT_DELETABLE, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_PROVIDER_MISMATCH, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7231,7 +7231,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -7292,7 +7292,7 @@ export interface operations {
                     "application/json": components["schemas"]["Project"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7384,7 +7384,7 @@ export interface operations {
                     "application/json": components["schemas"]["AgentSessionList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7399,7 +7399,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -7464,7 +7464,7 @@ export interface operations {
                     "application/json": components["schemas"]["AgentSessionStarted"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AGENT_BUDGET_EXHAUSTED, AGENT_NO_MODEL_FOR_CLASSIFICATION, AGENT_SESSION_ALREADY_STARTED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AGENT_BUDGET_EXHAUSTED, AGENT_NO_MODEL_FOR_CLASSIFICATION, AGENT_SESSION_ALREADY_STARTED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7479,7 +7479,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -7536,7 +7536,7 @@ export interface operations {
                     "application/json": components["schemas"]["Project"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7630,7 +7630,7 @@ export interface operations {
                     "application/json": components["schemas"]["BuildList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7645,7 +7645,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -7686,7 +7686,7 @@ export interface operations {
                     "application/json": components["schemas"]["Build"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, SOURCE_UNREACHABLE, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, SOURCE_UNREACHABLE, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7765,7 +7765,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommitList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7780,7 +7780,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -7845,7 +7845,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommitOutcome"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_CONFLICT, SOURCE_GIT_FAILED, SOURCE_NOTHING_TO_COMMIT, SOURCE_PATH_CONFLICT, SOURCE_PATH_ESCAPE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, SPEC_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_CONFLICT, SOURCE_GIT_FAILED, SOURCE_NOTHING_TO_COMMIT, SOURCE_PATH_CONFLICT, SOURCE_PATH_ESCAPE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, SPEC_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7909,7 +7909,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommitDetail"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7961,7 +7961,7 @@ export interface operations {
                     "application/json": components["schemas"]["EnvironmentList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8000,7 +8000,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Refused before the upgrade, in the D23.7 envelope: UNAUTHENTICATED, NOT_FOUND (a stranger, or no such project), CSRF_ORIGIN_REFUSED, INTERNAL. */
+            /** @description Refused before the upgrade, as an error envelope: UNAUTHENTICATED, NOT_FOUND (a stranger, or no such project), CSRF_ORIGIN_REFUSED, INTERNAL. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8051,7 +8051,7 @@ export interface operations {
                     "application/json": components["schemas"]["SourceFile"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_FILE_NOT_TEXT, SOURCE_FILE_TOO_LARGE, SOURCE_GIT_FAILED, SOURCE_PATH_NOT_A_FILE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_FILE_NOT_TEXT, SOURCE_FILE_TOO_LARGE, SOURCE_GIT_FAILED, SOURCE_PATH_NOT_A_FILE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8112,7 +8112,7 @@ export interface operations {
                     "application/json": components["schemas"]["LaunchReadiness"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8179,7 +8179,7 @@ export interface operations {
                     "application/json": components["schemas"]["LaunchRecords"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8194,7 +8194,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -8258,7 +8258,7 @@ export interface operations {
                     "application/json": components["schemas"]["IamRegistration"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8273,7 +8273,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -8315,7 +8315,7 @@ export interface operations {
                     "application/json": components["schemas"]["PrivacyAssessment"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8367,7 +8367,7 @@ export interface operations {
                     "application/json": components["schemas"]["MemberList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8382,7 +8382,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -8422,7 +8422,7 @@ export interface operations {
                     "application/json": components["schemas"]["Member"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8437,7 +8437,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -8471,7 +8471,7 @@ export interface operations {
                     "application/json": components["schemas"]["MemberList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8541,7 +8541,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingActionList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8556,7 +8556,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -8602,7 +8602,7 @@ export interface operations {
                     "application/json": components["schemas"]["Rehearsal"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8828,7 +8828,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReleaseList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8843,7 +8843,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -8975,7 +8975,7 @@ export interface operations {
                     "application/json": components["schemas"]["Release"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8990,7 +8990,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -9047,7 +9047,7 @@ export interface operations {
                     "application/json": components["schemas"]["Project"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9127,7 +9127,7 @@ export interface operations {
                     "application/json": components["schemas"]["Spec"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9142,7 +9142,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -9191,7 +9191,7 @@ export interface operations {
                     "application/json": components["schemas"]["SpecValidation"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9255,7 +9255,7 @@ export interface operations {
                     "application/json": components["schemas"]["TokenList"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9270,7 +9270,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -9324,7 +9324,7 @@ export interface operations {
                     "application/json": components["schemas"]["MintedToken"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ALREADY_MINTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ALREADY_MINTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9396,7 +9396,7 @@ export interface operations {
                     "application/json": components["schemas"]["SourceTree"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9531,7 +9531,7 @@ export interface operations {
                     "application/json": components["schemas"]["Release"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9602,7 +9602,7 @@ export interface operations {
                     "application/json": components["schemas"]["Approval"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9617,7 +9617,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -9690,7 +9690,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalPreview"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9761,7 +9761,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalPreview"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9776,7 +9776,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -9861,7 +9861,7 @@ export interface operations {
                     "application/json": components["schemas"]["Approval"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9876,7 +9876,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -9959,7 +9959,7 @@ export interface operations {
                     "application/json": components["schemas"]["Approval"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10004,7 +10004,7 @@ export interface operations {
                     "application/json": components["schemas"]["SlugCheck"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10019,7 +10019,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -10055,7 +10055,7 @@ export interface operations {
                     "application/json": components["schemas"]["Token"];
                 };
             };
-            /** @description An error, in the D23.7 envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

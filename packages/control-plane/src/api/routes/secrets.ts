@@ -220,7 +220,7 @@ export const secretRoutes = [
     tag: 'secrets',
     summary: 'Set the value of one of the app’s secrets',
     description:
-      'Stores the value for this environment, write-only: it is never answered back, and it reaches the app at the NEXT deploy of this environment — setting it redeploys nothing. A value may be set before manifest.yaml declares the name, and only a declared name is ever given to the app. A delegated token may set sandbox and staging values; a production value is set only in an interactive session that has stepped up in the last ten minutes, and a token asking is refused.',
+      'Stores the value for this environment, write-only: it is never answered back, and reaches the app at this environment’s next deploy — setting it redeploys nothing. A value may be set before manifest.yaml declares the name; only declared names reach the app. A production value needs a session with a recent step-up (`STEP_UP_REQUIRED`); a delegated token may set sandbox and staging values, and is refused production (`TOKEN_CREDENTIAL_REFUSED`).',
     params: SecretParams,
     query: NO_QUERY,
     body: SetAppSecretRequest,
@@ -279,7 +279,7 @@ export const secretRoutes = [
     tag: 'secrets',
     summary: 'Clear the value of one of the app’s secrets',
     description:
-      'Removes the stored value for this environment. Idempotent: clearing a name with no value answers the same state. While manifest.yaml still declares the name, the next deploy of this environment is refused with `RELEASE_SECRET_NOT_SET`; an instance already running keeps the value it was started with. Production asks what setting does: an interactive session that has stepped up.',
+      'Removes the stored value for this environment; clearing a name with no value answers the same state. While manifest.yaml declares the name, this environment’s next deploy is refused `RELEASE_SECRET_NOT_SET`; a running instance keeps the value it started with. Production needs a session with a recent step-up, as setting does.',
     params: SecretParams,
     query: NO_QUERY,
     body: NO_BODY,

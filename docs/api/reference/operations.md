@@ -11,7 +11,7 @@ Operations for the platform’s administrators — today, every project on the p
 
 `GET /v1/fleet` · a session only — a delegated token is refused
 
-§26: the fleet, for platform administrators — an admin-scoped read on the one public API (D31), not a second API. Everyone else is refused 403, and so is every delegated token however it was minted (D24): this is cross-tenant data and a token is scoped to one project.
+Every app on the platform, for platform administrators. Anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
 
 Answer, `200`:
 
@@ -199,7 +199,7 @@ Answer, `200`:
 
 `POST /v1/intake-sessions` · a session only — a delegated token is refused
 
-§10: a model key for a person describing an app they have not created yet — understanding what they asked for, proposing names (`checkSlug`), choosing the blueprint and starter. **The platform pays**: never your agent budget. One model, the platform’s (`session.model`), approved for internal data; a key of cents and minutes (never past your signed-in session); a few a person a day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) inside the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). **The key is in this answer and nowhere else**, and a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED` naming the session. Signed-in people only: a delegated token is refused, because intake belongs to no project.
+A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused.
 
 Answer, `201`:
 
@@ -363,7 +363,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/agent-sessions` · a session or a delegated token
 
-§10: a model key for one agent working on this project — on the models the project’s data classification allows (D17), capped (`capUsd`, never more than the platform’s session cap or what remains of your month), and short-lived (`durationMinutes`, never past the credential that asks). **The key is in this answer and nowhere else**: Manifest keeps no copy, and a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session rather than the key — end it and start another if the first answer was lost. Its spend is YOURS — a delegated token’s minter’s — against your monthly agent budget (`getAgentBudget`). The key calls models and nothing else; it is not a Manifest credential.
+A model key for one agent working on this project, on the models its data classification allows, capped (`capUsd`) and short-lived (`durationMinutes`). The key is in this answer only: a retry with the same Idempotency-Key answers `409 AGENT_SESSION_ALREADY_STARTED` naming the session, so if the answer is lost, end it and start another. Spend is charged to you — a delegated token’s minter — against your monthly agent budget (`getAgentBudget`). The key calls models only; it is not a Manifest credential.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -444,7 +444,7 @@ The blueprints an app is built from (§25): what each provides, its starters, an
 
 `GET /v1/blueprints` · a session or a delegated token
 
-§22 step 2: what a person chooses from, with the starters each offers (§25).
+The blueprints to choose from when creating a project, with the starters each offers.
 
 Answer, `200`:
 
@@ -562,7 +562,7 @@ Answer, `200`:
 
 `GET /v1/blueprints/{blueprintRef}/knowledge-pack` · a session or a delegated token
 
-D25: served over the API and versioned with its blueprint, so an agent learns the conventions without running inside the platform. Each file carries its sha256.
+The files that teach an agent this blueprint’s conventions without running inside the platform, versioned with the blueprint. Each file carries its sha256.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -600,7 +600,7 @@ From a commit to a running app (§11–§13): build it, release the build, deplo
 
 `GET /v1/builds/{buildId}` · a session or a delegated token
 
-Its present status, image digest, the reason a failed build failed, and its scan (§12).
+A build’s present status, image digest, the reason a failed build failed, and its scan.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -633,7 +633,7 @@ Answer, `200`:
 
 `GET /v1/builds/{buildId}/logs` · a session or a delegated token
 
-§14: every line, redacted at capture — or the last `tail`. Lines arrive live on the project’s event stream while the build runs; this is every one of them afterwards.
+Every line of the build’s log, redacted at capture — or the last `tail`. Lines arrive live on the project’s event stream while the build runs; this is every one of them afterwards.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -668,7 +668,7 @@ Answer, `200`:
 
 `POST /v1/environments/{environmentId}/deploy` · a session or a delegated token
 
-§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (§14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.
+Deploys a release, answering once the new instance serves or has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. The previous instance serves until the new one is proved, then drains. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -731,7 +731,7 @@ Answer, `200`:
 
 `GET /v1/environments/{environmentId}/incidents` · a session or a delegated token
 
-§14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt. **A delegated token is refused a `confidential` project’s staging and production Incidents** (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of real people. A person’s session reads them, and every token reads the sandbox’s.
+The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused a `confidential` project’s staging and production Incidents (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets its building agent use the capable model; a session reads them, and any token reads the sandbox’s.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -771,7 +771,7 @@ Answer, `200`:
 
 `GET /v1/environments/{environmentId}/instances` · a session or a delegated token
 
-§11: the environment’s instances, the one seen most recently first — at most 50 — each marked whether the hostname reaches it now. A failed instance stays listed after it is replaced, so an agent can find it and read its Incident; a running one’s last lines are `getInstanceOutput`.
+The environment’s instances, the one seen most recently first — at most 50 — each marked whether the hostname reaches it now. A failed instance stays listed after it is replaced, so an agent can find it and read its Incident; a running one’s last lines are `getInstanceOutput`.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -820,7 +820,7 @@ Answer, `200`:
 
 `GET /v1/instances/{instanceId}/output` · a session or a delegated token
 
-§14: the last lines a sandbox instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never staging or production**: both serve real people, so each is refused by its own code, and an Incident is the only window onto either. Decided by the environment’s kind, so a laptop’s staging is refused too.
+The last lines a sandbox instance printed, oldest first — read on request, never streamed or kept: up to `lines`, 256 KiB in all, each line cut at 4 KiB, and redacted as an Incident’s log tail is. Staging and production are always refused (`INSTANCE_OUTPUT_STAGING`, `INSTANCE_OUTPUT_PRODUCTION`); an Incident is the only view of their output.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -963,7 +963,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/builds` · a session or a delegated token
 
-§22 step 4. Builds `commitSha` with THAT commit’s own manifest.yaml — its recorded validation, or one made now if nobody has validated it — and refuses `SPEC_INVALID` if it is not valid. With no `commitSha` it builds the commit of the project’s newest recorded validation, which is not necessarily `main`’s head: name the commit you mean. Answers 202 at once with the build `running`; its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.
+Builds `commitSha` — by default the commit of the newest recorded validation, not necessarily `main`’s head — with that commit’s own manifest.yaml (validated now if nobody has), refusing `SPEC_INVALID` if it is not valid. Answers `202` at once with the build `running`; its log lines arrive as `log` frames, and its end as `build.succeeded` or `build.failed`, on the project’s event stream, and `getBuild` reads its state. A replayed Idempotency-Key answers the `202` as first sent.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -1235,7 +1235,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/releases` · a session or a delegated token
 
-§13: an immutable release — the build’s digest, the spec that build was made from, and the configuration resolved from it for all three environments, frozen together. The build must be this project’s.
+An immutable release of one of this project’s builds: its digest, the spec it was built from, and the configuration resolved from that spec for all three environments, frozen together.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -1377,7 +1377,7 @@ Answer, `201`:
 
 `GET /v1/releases/{releaseId}` · a session or a delegated token
 
-One immutable release (§13): the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it; to production only once `getLaunchReadiness` says the checklist is met.
+One immutable release: the build and the validation it froze, and what it runs as in each environment. `deploy` deploys it — to production only once `getLaunchReadiness` says the checklist is met.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -1501,7 +1501,7 @@ Answer, `200`:
 
 `GET /v1/releases/{releaseId}/approval` · a session or a delegated token
 
-§13: the newest approval or rejection, with the diff it was made on. 404 when nobody has decided yet.
+The newest approval or rejection of the release, with the diff it was made on. `404 NOT_FOUND` when nobody has decided yet.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -1561,7 +1561,7 @@ Answer, `200`:
 
 `POST /v1/releases/{releaseId}/approval-preview` · a session only — a delegated token is refused
 
-§13’s exact diff, computed NOW and STORED: the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.
+Computes and stores the diff an administrator reads before deciding — facts, security notes, the reviewer’s verdict and the model’s summary — for `approveRelease` or `rejectRelease` to name. Session only, with `release:approve`; no step-up. Valid for thirty minutes.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -1646,7 +1646,7 @@ Answer, `201`:
 
 `GET /v1/releases/{releaseId}/approval-previews/{previewId}` · a session only — a delegated token is refused
 
-The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it. 404 for a preview of another release.
+A stored preview exactly as it was taken, never recomputed — what the administrator read before a step-up round trip. `404 NOT_FOUND` for a preview of another release.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -1708,7 +1708,7 @@ Answer, `200`:
 
 `POST /v1/releases/{releaseId}/approve` · a session only — a delegated token is refused
 
-§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved. `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.
+Approves the release for production: binds its image digest, records who decided and when, and stores the diff from the stored preview `previewId` names, whose facts are recomputed and must not have changed (`APPROVAL_PREVIEW_STALE`; without `previewId`, `400 APPROVAL_PREVIEW_REQUIRED`). Session only, with a recent step-up. A rebuild has a new digest, which this approval does not cover.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -1806,7 +1806,7 @@ Answer, `201`:
 
 `POST /v1/releases/{releaseId}/reject` · a session only — a delegated token is refused
 
-§13, and the same four guards as approving, naming a preview the same way. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.
+Declines to approve the release for production. Guarded exactly as `approveRelease` — session only, `release:approve`, a recent step-up — and names a preview the same way. `reason` is required.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -1966,7 +1966,7 @@ Answer, `200`:
 
 `GET /v1/openapi.json` · a session or a delegated token
 
-The OpenAPI 3.1 document describing every operation, representation, error code and event — generated from the platform’s own route definitions when it starts, so it is exactly the document the platform publishes. Any credential may read it.
+This OpenAPI 3.1 document — every operation, representation, error code and event — generated from the platform’s own route definitions when it starts. Any credential may read it.
 
 Answer, `200`:
 
@@ -1996,7 +1996,7 @@ The project’s event stream (D23.2): every audit event and build log line, live
 
 `GET /v1/projects/{projectId}/events` — a WebSocket upgrade · a session or a delegated token
 
-Upgrade to a WebSocket. Builds, their log lines, instance state transitions, incidents and every other audit event for this project, as StreamFrames: the newest events first as a replay, then the ready frame, then live. A session-bearing upgrade must carry Origin (§20); a delegated token of this project may read it too. A plain GET answers 426. `x-manifest-event-types` lists every event type with what it means and an example of its `machineDetail`.
+Upgrades to a WebSocket carrying this project’s builds, build log lines, instance state changes, incidents and every other audit event, as StreamFrames: a replay of the newest events, then the ready frame, then live. An upgrade made with a session must carry `Origin`; a delegated token for this project may connect too. A plain GET answers `426 EVENTS_UPGRADE_REQUIRED`. `x-manifest-event-types` describes each event type.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2018,7 +2018,7 @@ Who the caller is: the person behind the session, and their platform role.
 
 `GET /v1/me` · a session only — a delegated token is refused
 
-Who this session belongs to, and the platform role it is authorized as. Every client calls it first. Interactive sessions only: a delegated token carries no platform role at all (D24), so there is nothing truthful for this to answer it — an agent reads GET /v1/projects, which answers exactly the project it is scoped to.
+The person this session belongs to, and the platform role it is authorized as; a client calls it first. Session only: a delegated token is refused (`TOKEN_CREDENTIAL_REFUSED`) — an agent calls `listProjects`, which answers exactly the project its token is scoped to.
 
 Answer, `200`:
 
@@ -2048,7 +2048,7 @@ A first production launch (§9, §13): the checklist computed from what exists, 
 
 `GET /v1/projects/{projectId}/launch-readiness` · a session or a delegated token
 
-§13 and §22 step 7: the checklist, computed from what exists, surfaced from the moment a project exists — a first launch’s, or once launched the self-serve check, where only a sensitive change needs an administrator (D9). The production deploy is refused with this exact value until every blocking item is met.
+The launch checklist, computed from what exists now: the first launch’s, or once launched the self-serve check, where only a sensitive change needs an administrator’s approval. A production `deploy` is refused with this value until every blocking item is met.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2098,7 +2098,7 @@ Answer, `200`:
 
 `GET /v1/projects/{projectId}/launch-records` · a session or a delegated token
 
-§9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. Manifest does not yet generate what they carry. Either may be absent, which is a state and not an error.
+The IAM registration and the privacy assessment, as a platform administrator recorded what UBC IAM and the Privacy Office said, each with its ticket reference. Either may be absent — a state, not an error.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2154,7 +2154,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/launch-records/iam-registration` · a session only — a delegated token is refused
 
-§9 and D19: a platform administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). A later Manifest release will submit these itself; the object and its states will not change when it does.
+A platform administrator, in their own session, records the Service Provider registration UBC IAM made, with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2228,7 +2228,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/launch-records/privacy-assessment` · a session only — a delegated token is refused
 
-§9 and D19: a platform administrator records it, in the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.
+A platform administrator, in their own session, records the Privacy Office’s assessment, shaped like the IAM registration, over the states `draft`, `submitted` and `approved` (`409 LAUNCH_TRANSITION_INVALID` for a move they do not allow). A refused assessment goes back to `draft` with the reviewer’s note.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2279,7 +2279,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/rehearsal` · a session only — a delegated token is refused
 
-D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. **Who may run it:** the project’s owner, a collaborator or a platform administrator, each in their own signed-in session and with no second sign-in — never a delegated token (`403 TOKEN_CREDENTIAL_REFUSED`, whatever the token holds); anyone else is told the project does not exist (`404 NOT_FOUND`). Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.
+Deploys the candidate release to production behind the launch gate, registers its Service Provider with production-shaped values, completes one CWL sign-in, and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The owner, a collaborator or a platform administrator runs it in their own session, with no step-up; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. Refused once the app has launched (`REHEARSAL_LAUNCHED`). Up to ~90 s.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2382,7 +2382,7 @@ Answer, `200`:
 
 `POST /v1/pending-actions/{pendingActionId}/confirm` · a session only — a delegated token is refused
 
-D24: lets the agent’s refused request through, ONCE. It grants that exact request — this token, this method, this path, this body — a single retry, which the agent makes itself; nothing is executed here on its behalf, and the retry is validated by its own route as any request is. Only a person who holds the capability themselves may confirm, and only in an interactive session.
+Lets the agent’s refused request through once: that exact request — same token, method, path and body — may be retried a single time, by the agent itself; nothing is executed here, and the retry is validated like any request. Only a person holding the capability themselves may confirm, in their own session with a recent step-up.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2438,7 +2438,7 @@ Answer, `200`:
 
 `POST /v1/pending-actions/{pendingActionId}/reject` · a session only — a delegated token is refused
 
-D24: refuses the agent’s request, in the person’s own words. A retry of that exact request is then answered TOKEN_ACTION_REJECTED carrying the reason, so the agent stops asking rather than looping — which is what D23.7 means by an error an agent can correct itself from.
+Refuses the agent’s request, in the person’s own words: a retry of that exact request is then answered `TOKEN_ACTION_REJECTED` with the reason, so the agent stops asking. Only a person holding the capability may reject, in their own session.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2495,7 +2495,7 @@ Answer, `200`:
 
 `GET /v1/projects/{projectId}/pending-actions` · a session or a delegated token
 
-§26’s queue for one project, newest first. A person who can read the project sees every question; a delegated token sees only the ones it asked itself. Answered and expired questions stay in the list — `waitingSeconds` on a resolved row is how long the agent waited for its answer.
+The questions agents are waiting on in this project, newest first. A person who can read the project sees all of them; a delegated token sees only its own. Answered and expired questions stay listed; `waitingSeconds` on a resolved one is how long the agent waited.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2558,7 +2558,7 @@ A project, its three environments, its members, and the validation of its manife
 
 `GET /v1/environments/{environmentId}` · a session or a delegated token
 
-The environment and the instance its hostname reaches (§6 Route) — not the newest deploy, which may have failed.
+The environment and the instance its hostname reaches — not the newest deploy, which may have failed.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2597,7 +2597,7 @@ Answer, `200`:
 
 `GET /v1/projects` · a session or a delegated token
 
-Every project the caller owns or collaborates on, newest first — for administrators too. A delegated token answers exactly the one project it is scoped to (D24). The fleet is GET /v1/fleet.
+Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to.
 
 Answer, `200`:
 
@@ -2677,7 +2677,7 @@ Answer, `200`:
 
 `POST /v1/projects` · a session only — a delegated token is refused
 
-§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.
+Creates a project: its three environments, and a repository seeded from the skeleton and the starter, whose manifest is validated. Session only (`TOKEN_CREDENTIAL_REFUSED` for a delegated token). Progress arrives on the project’s event stream: `project.created`, `repository.seeded`, `spec.validated`.
 
 Request:
 
@@ -2786,7 +2786,7 @@ Answer, `201`:
 
 `GET /v1/projects/{projectId}` · a session or a delegated token
 
-One project; `?expand=environments` includes its three environments, each with the instance it serves (D23.1).
+One project; `?expand=environments` includes its three environments, each with the instance it serves.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2858,7 +2858,7 @@ Answer, `200`:
 
 `PATCH /v1/projects/{projectId}` · a session or a delegated token
 
-Changes what people call the project — `name`, any text of 1 to 80 characters on one line — and nothing else: the slug, and so every hostname and the repository, never changes (§23, D26). Publishes `project.renamed` naming who did it; renaming a project to the name it already has answers the project and publishes nothing.
+Renames the project: `name` is any text of 1 to 80 characters on one line. The slug, and so every hostname and the repository, never changes. Publishes `project.renamed`; renaming to the current `name` answers the project and publishes nothing.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2926,7 +2926,7 @@ Answer, `200`:
 
 `DELETE /v1/projects/{projectId}` · a session only — a delegated token is refused
 
-Deletes the project for good (§11) — only one that has never been to production. It is switched off first, exactly as `archiveProject` does, and then its repository, every data volume, every secret and its model budgets are destroyed and its names released: each answers nothing of this project’s. Its record and its audit trail remain, and its slug is free for another project to take. From then on every route answers it `404`, and every event stream still open on it closes `4404`. A launched project is refused `409 PROJECT_LAUNCHED_NOT_DELETABLE` — its data is disposed of under its retention period and UBC’s sunset procedure, and its production name stays held; archive it instead. (A launch that completes while the delete is starting is refused the same way, AFTER the app has been switched off: it is left archived, with everything kept.) A project whose repository another source driver made is refused `409 SOURCE_PROVIDER_MISMATCH` before anything is touched. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left ARCHIVED: send the same request again to finish the delete. The control plane’s next boot only finishes switching it off, keeping whatever data is left — and restoring it instead gives back a project that may have lost its code or data, so finish the delete. Answers once all of that is done — seconds, bounded by the drain. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived` (if it was active), then `project.deleted`.
+Deletes, for good, a project that has never been to production: switches it off as `archiveProject` does, then destroys its repository, data volumes, secrets and model budgets and releases its hostnames. Its record and audit trail remain, and its slug becomes free. Afterwards every route answers it `404`, and open event streams on it close `4404`. A launched project is refused `409 PROJECT_LAUNCHED_NOT_DELETABLE` — archive it instead — and so is one whose launch completes as the delete starts, which is left archived with everything kept. A project whose repository another source driver made is refused `409 SOURCE_PROVIDER_MISMATCH` before anything is touched. A failed step answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project archived: repeat the request to finish — restoring it instead may give back a project missing code or data. Answers once done — seconds, bounded by the drain. Owner or platform administrator, in their own session with a recent step-up; never a delegated token. Publishes `project.archived` (if it was active), then `project.deleted`.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -2966,7 +2966,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/archive` · a session only — a delegated token is refused
 
-Switches the app off for everyone, and keeps it (§11). The project is marked archived first, so nothing new starts; then its agent sessions end, its delegated tokens are revoked — any event stream one holds open closing `4401`, while a person’s stays open, because an archived project can still be read — its pending questions expire, each of its names answers a page saying the app has been switched off by its owner (`410`), every instance is retired after its usual drain, its backing services stop keeping their data, and its sandbox and staging sign-on registrations are removed. Its code, data, secrets and records are kept. Answers once all of that is done — seconds, bounded by the drain. A step that fails answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project left archived: retrying the same request continues where it stopped, and so does the control plane’s next boot. Archiving an archived project answers it as it is. The owner’s or a platform administrator’s, in their own session with a recent second sign-in (step-up); never a delegated token’s. Publishes `project.archived`.
+Switches the app off for everyone and keeps its code, data, secrets and records. Nothing new starts; its agent sessions end; its delegated tokens are revoked, closing their event streams `4401` (a person’s stays open); its pending actions expire; its hostnames answer a `410` switched-off page; its instances drain and retire; its backing services stop, keeping their data; and its sandbox and staging sign-on registrations are removed. Answers once done — seconds, bounded by the drain. A failed step answers `500 PROJECT_TEARDOWN_INCOMPLETE` with the project archived: repeat the request to continue. Archiving an archived project answers it as it is. Owner or platform administrator, in their own session with a recent step-up; never a delegated token. Publishes `project.archived`.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3034,7 +3034,7 @@ Answer, `200`:
 
 `GET /v1/projects/{projectId}/environments` · a session or a delegated token
 
-Sandbox, staging and production — all three exist from the moment the project does (§23).
+Sandbox, staging and production — all three exist from the moment the project does.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3075,7 +3075,7 @@ Answer, `200`:
 
 `GET /v1/projects/{projectId}/members` · a session or a delegated token
 
-Owners and collaborators (§13). Reading is `project:read`; changing membership is `members:manage`.
+Owners and collaborators. Reading is `project:read`; changing membership is `members:manage`.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3116,7 +3116,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/members` · a session or a delegated token
 
-Grants a person who has signed in once a role on the project, naming them by EXACTLY ONE of their PUID, CWL login name or email (an email two people share is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when it changed something. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.
+Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3169,7 +3169,7 @@ Answer, `201`:
 
 `DELETE /v1/projects/{projectId}/members/{userId}` · a session or a delegated token
 
-Takes a person off the project (§13) — and their agent with them: every delegated token they minted on the project is revoked with the removal, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there are ended, their model keys revoked at the gateway (§6, §10, §20). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`, saying how many tokens it revoked and sessions it ended. Idempotent — removing somebody who is not a member answers the members as they are and publishes nothing, and ends any agent session of theirs still live on the project — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy. **An error while ending their sessions comes AFTER the removal** — `503 AI_CATALOGUE_DISABLED` when AI is switched off, a `500` when the model gateway fails: the person is already off the project and their tokens already revoked, and only their agent sessions are not yet ended. Repeat the same request (once AI is back on) and it ends them.
+Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes nothing, and ends any agent session of theirs still live there. The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3215,7 +3215,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/restore` · a session only — a delegated token is refused
 
-Makes an archived project an ordinary one again (§11) — and starts nothing. Its names keep answering the switched-off page until its next deploy, which brings the app back on its kept data and signs it up for sign-on again. Its delegated tokens stay revoked: mint new ones. Restoring an active project answers it as it is. The owner’s or a platform administrator’s, in their own session; no step-up, because bringing an app back takes nothing from anyone. Publishes `project.restored`.
+Makes an archived project active again, and starts nothing: its hostnames answer the switched-off page until its next deploy, which brings the app back on its kept data. Its delegated tokens stay revoked: mint new ones. Restoring an active project answers it as it is. Owner or platform administrator, in their own session; no step-up. Publishes `project.restored`.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3281,7 +3281,7 @@ Answer, `200`:
 
 `GET /v1/projects/{projectId}/spec` · a session or a delegated token
 
-manifest.yaml as last validated (§7). An invalid newest manifest answers SPEC_INVALID with its errors.
+The project’s manifest.yaml as last validated. If that validation failed, answers `SPEC_INVALID` with its errors; if there is none yet, `SPEC_NOT_FOUND`.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3352,7 +3352,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/spec` · a session or a delegated token
 
-§22 step 3: reads manifest.yaml at the commit (HEAD by default), validates it (§7) and records the result. A sensitive diff (D9) is reported here against the newest valid spec; it is ENFORCED at the production deploy, against the last approved release (§13 D9.2).
+Reads manifest.yaml at the commit (HEAD by default), validates it and records the result. A change to a sensitive field is reported against the newest valid spec; the production deploy enforces it against the last approved release.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3414,7 +3414,7 @@ Answer, `201`:
 
 `GET /v1/slugs/{slug}` · a session or a delegated token
 
-§23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the slug, and a 4xx would make "taken" indistinguishable from "not allowed to ask". Says nothing about a holder. 60 a minute per person.
+Checks a slug exactly as `createProject` does, so a client can tell a person while they type. The verdict is always a `200`, and never says who holds a slug. 60 checks a minute per person (`RATE_LIMITED`).
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3493,7 +3493,7 @@ Answer, `200`:
 
 `PUT /v1/environments/{environmentId}/secrets/{name}` · a session or a delegated token
 
-Stores the value for this environment, write-only: it is never answered back, and it reaches the app at the NEXT deploy of this environment — setting it redeploys nothing. A value may be set before manifest.yaml declares the name, and only a declared name is ever given to the app. A delegated token may set sandbox and staging values; a production value is set only in an interactive session that has stepped up in the last ten minutes, and a token asking is refused.
+Stores the value for this environment, write-only: it is never answered back, and reaches the app at this environment’s next deploy — setting it redeploys nothing. A value may be set before manifest.yaml declares the name; only declared names reach the app. A production value needs a session with a recent step-up (`STEP_UP_REQUIRED`); a delegated token may set sandbox and staging values, and is refused production (`TOKEN_CREDENTIAL_REFUSED`).
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3541,7 +3541,7 @@ Answer, `200`:
 
 `DELETE /v1/environments/{environmentId}/secrets/{name}` · a session or a delegated token
 
-Removes the stored value for this environment. Idempotent: clearing a name with no value answers the same state. While manifest.yaml still declares the name, the next deploy of this environment is refused with `RELEASE_SECRET_NOT_SET`; an instance already running keeps the value it was started with. Production asks what setting does: an interactive session that has stepped up.
+Removes the stored value for this environment; clearing a name with no value answers the same state. While manifest.yaml declares the name, this environment’s next deploy is refused `RELEASE_SECRET_NOT_SET`; a running instance keeps the value it started with. Production needs a session with a recent step-up, as setting does.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3911,7 +3911,7 @@ Delegated tokens (D24): a person mints one for an agent, scoped to one project a
 
 `GET /v1/projects/{projectId}/tokens` · a session only — a delegated token is refused
 
-Every token scoped to this project, newest first, including the revoked and the expired — §20 asks for a list a person can review, and one that showed only the live ones would answer "what has been able to act here" in the present tense alone. No secret is in it.
+Every delegated token scoped to this project, newest first, revoked and expired ones included, so a person can review everything that has been able to act here. No secret is in it.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3965,7 +3965,7 @@ Answer, `200`:
 
 `POST /v1/projects/{projectId}/tokens` · a session only — a delegated token is refused
 
-D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in this response and nowhere else — the platform keeps only a hash of it: store it now, because `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token rather than the secret again (revoke it and mint again if the first answer was lost). A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve, launch:record, launch:rehearse or project:delete, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.
+Mints a credential for an agent, scoped to this project and an explicit set of capabilities, with an expiry. The secret is in this answer only, so store it now: `listTokens` never shows it, and a retry with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token — revoke it and mint again if the answer was lost. A token may never hold `members:manage`, `release:promote`, `quota:set` or `secret:read`, nor the person-only `release:approve`, `launch:record`, `launch:rehearse` or `project:delete` (`400 TOKEN_CAPABILITY_FORBIDDEN`), nor more than the minter holds (`403 FORBIDDEN`).
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -4029,7 +4029,7 @@ Answer, `201`:
 
 `DELETE /v1/tokens/{tokenId}` · a session only — a delegated token is refused
 
-Stops the token authenticating, from the next request onwards, closes every event stream it holds open (`4401`), and ends every agent session it started — their model keys revoked at the gateway (§10). Only the person who minted it may revoke it, and anyone else is answered 404 — the same answer a token id that does not exist gets, so the route cannot be used to discover which ids do. Revoking twice is idempotent.
+Stops the token authenticating from the next request, closes every event stream it holds open (`4401`), and ends every agent session it started. Only its minter may revoke it; anyone else is answered `404 NOT_FOUND`, as for an id that does not exist. Revoking twice is idempotent. If ending its sessions fails (`503 AI_CATALOGUE_DISABLED`, or a `500`), the token is already revoked: repeat the request.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|

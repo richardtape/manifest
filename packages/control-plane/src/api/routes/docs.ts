@@ -96,7 +96,7 @@ export const docRoutes = [
     tag: 'docs',
     summary: 'This OpenAPI document',
     description:
-      'The OpenAPI 3.1 document describing every operation, representation, error code and event — generated from the platform’s own route definitions when it starts, so it is exactly the document the platform publishes. Any credential may read it.',
+      'This OpenAPI 3.1 document — every operation, representation, error code and event — generated from the platform’s own route definitions when it starts. Any credential may read it.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,

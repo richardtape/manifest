@@ -154,7 +154,7 @@ export const pendingActionReads = [
     tag: 'pending-actions',
     summary: 'The questions agents are waiting on',
     description:
-      '§26’s queue for one project, newest first. A person who can read the project sees every question; a delegated token sees only the ones it asked itself. Answered and expired questions stay in the list — `waitingSeconds` on a resolved row is how long the agent waited for its answer.',
+      'The questions agents are waiting on in this project, newest first. A person who can read the project sees all of them; a delegated token sees only its own. Answered and expired questions stay listed; `waitingSeconds` on a resolved one is how long the agent waited.',
     params: ProjectParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -279,7 +279,7 @@ export const pendingActionRoutes = [
     tag: 'pending-actions',
     summary: 'Confirm a pending action',
     description:
-      'D24: lets the agent’s refused request through, ONCE. It grants that exact request — this token, this method, this path, this body — a single retry, which the agent makes itself; nothing is executed here on its behalf, and the retry is validated by its own route as any request is. Only a person who holds the capability themselves may confirm, and only in an interactive session.',
+      'Lets the agent’s refused request through once: that exact request — same token, method, path and body — may be retried a single time, by the agent itself; nothing is executed here, and the retry is validated like any request. Only a person holding the capability themselves may confirm, in their own session with a recent step-up.',
     params: PendingActionParams,
     query: NO_QUERY,
     // A mutation that takes no fields still takes a JSON object (P5a Decision 4). This is
@@ -349,7 +349,7 @@ export const pendingActionRoutes = [
     tag: 'pending-actions',
     summary: 'Reject a pending action',
     description:
-      'D24: refuses the agent’s request, in the person’s own words. A retry of that exact request is then answered TOKEN_ACTION_REJECTED carrying the reason, so the agent stops asking rather than looping — which is what D23.7 means by an error an agent can correct itself from.',
+      'Refuses the agent’s request, in the person’s own words: a retry of that exact request is then answered `TOKEN_ACTION_REJECTED` with the reason, so the agent stops asking. Only a person holding the capability may reject, in their own session.',
     params: PendingActionParams,
     query: NO_QUERY,
     body: RejectPendingActionRequest,

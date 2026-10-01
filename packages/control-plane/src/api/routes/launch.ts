@@ -34,7 +34,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'What a production release still needs',
     description:
-      '§13 and §22 step 7: the checklist, computed from what exists, surfaced from the moment a project exists — a first launch’s, or once launched the self-serve check, where only a sensitive change needs an administrator (D9). The production deploy is refused with this exact value until every blocking item is met.',
+      'The launch checklist, computed from what exists now: the first launch’s, or once launched the self-serve check, where only a sensitive change needs an administrator’s approval. A production `deploy` is refused with this value until every blocking item is met.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -82,7 +82,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'The IAM registration and the privacy assessment, as recorded',
     description:
-      '§9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. Manifest does not yet generate what they carry. Either may be absent, which is a state and not an error.',
+      'The IAM registration and the privacy assessment, as a platform administrator recorded what UBC IAM and the Privacy Office said, each with its ticket reference. Either may be absent — a state, not an error.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -146,7 +146,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Record what UBC IAM registered',
     description:
-      '§9 and D19: a platform administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). A later Manifest release will submit these itself; the object and its states will not change when it does.',
+      'A platform administrator, in their own session, records the Service Provider registration UBC IAM made, with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: RecordIamRegistrationRequest,
@@ -227,7 +227,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Record what the Privacy Office said',
     description:
-      '§9 and D19: a platform administrator records it, in the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.',
+      'A platform administrator, in their own session, records the Privacy Office’s assessment, shaped like the IAM registration, over the states `draft`, `submitted` and `approved` (`409 LAUNCH_TRANSITION_INVALID` for a move they do not allow). A refused assessment goes back to `draft` with the reviewer’s note.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: RecordPrivacyAssessmentRequest,
@@ -281,7 +281,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Run the pre-production rehearsal',
     description:
-      'D21, run on this platform: deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. **Who may run it:** the project’s owner, a collaborator or a platform administrator, each in their own signed-in session and with no second sign-in — never a delegated token (`403 TOKEN_CREDENTIAL_REFUSED`, whatever the token holds); anyone else is told the project does not exist (`404 NOT_FOUND`). Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.',
+      'Deploys the candidate release to production behind the launch gate, registers its Service Provider with production-shaped values, completes one CWL sign-in, and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The owner, a collaborator or a platform administrator runs it in their own session, with no step-up; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. Refused once the app has launched (`REHEARSAL_LAUNCHED`). Up to ~90 s.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,

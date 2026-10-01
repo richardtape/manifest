@@ -105,7 +105,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'The projects I am a member of',
     description:
-      'Every project the caller owns or collaborates on, newest first — for administrators too. A delegated token answers exactly the one project it is scoped to (D24). The fleet is GET /v1/fleet.',
+      'Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,
@@ -199,7 +199,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'A project',
     description:
-      'One project; `?expand=environments` includes its three environments, each with the instance it serves (D23.1).',
+      'One project; `?expand=environments` includes its three environments, each with the instance it serves.',
     params: ProjectParams,
     query: z.strictObject({
       expand: z
@@ -280,7 +280,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'A project’s environments',
     description:
-      'Sandbox, staging and production — all three exist from the moment the project does (§23).',
+      'Sandbox, staging and production — all three exist from the moment the project does.',
     params: ProjectParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -319,7 +319,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'An environment, and what it serves',
     description:
-      'The environment and the instance its hostname reaches (§6 Route) — not the newest deploy, which may have failed.',
+      'The environment and the instance its hostname reaches — not the newest deploy, which may have failed.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -366,7 +366,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Who is a member of a project',
     description:
-      'Owners and collaborators (§13). Reading is `project:read`; changing membership is `members:manage`.',
+      'Owners and collaborators. Reading is `project:read`; changing membership is `members:manage`.',
     params: ProjectParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -405,7 +405,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Add or change a member',
     description:
-      'Grants a person who has signed in once a role on the project, naming them by EXACTLY ONE of their PUID, CWL login name or email (an email two people share is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when it changed something. One of D24’s privileged four: a delegated token never holds it, and asking creates a pending action a person confirms.',
+      'Gives a person who has signed in once a role on the project, or changes theirs; name them by exactly one of their PUID, CWL login name or email (a shared email is `MEMBER_USER_AMBIGUOUS`). Publishes `member.added` when something changed. Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).',
     params: ProjectParams,
     query: NO_QUERY,
     body: AddMemberRequest,
@@ -529,7 +529,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Remove a member',
     description:
-      'Takes a person off the project (§13) — and their agent with them: every delegated token they minted on the project is revoked with the removal, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there are ended, their model keys revoked at the gateway (§6, §10, §20). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms. Publishes `member.removed`, saying how many tokens it revoked and sessions it ended. Idempotent — removing somebody who is not a member answers the members as they are and publishes nothing, and ends any agent session of theirs still live on the project — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy. **An error while ending their sessions comes AFTER the removal** — `503 AI_CATALOGUE_DISABLED` when AI is switched off, a `500` when the model gateway fails: the person is already off the project and their tokens already revoked, and only their agent sessions are not yet ended. Repeat the same request (once AI is back on) and it ends them.',
+      'Removes a person from the project, and their agent with them: their delegated tokens on it are revoked, their open event streams on it close (`4401` a token’s, `4404` their own), and their agent sessions there end. Publishes `member.removed`. Removing a non-member answers the members as they are, publishes nothing, and ends any agent session of theirs still live there. The last owner cannot be removed (`PROJECT_LAST_OWNER`). Needs a recent step-up in a session; a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). If ending the sessions fails — `503 AI_CATALOGUE_DISABLED` while AI is off, or a `500` — the removal and revocations have already happened: repeat the request (once AI is back on) to end them.',
     params: MemberParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -661,7 +661,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'The project’s newest valid manifest',
     description:
-      'manifest.yaml as last validated (§7). An invalid newest manifest answers SPEC_INVALID with its errors.',
+      'The project’s manifest.yaml as last validated. If that validation failed, answers `SPEC_INVALID` with its errors; if there is none yet, `SPEC_NOT_FOUND`.',
     params: ProjectParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -737,7 +737,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'Validate manifest.yaml at a commit',
     description:
-      '§22 step 3: reads manifest.yaml at the commit (HEAD by default), validates it (§7) and records the result. A sensitive diff (D9) is reported here against the newest valid spec; it is ENFORCED at the production deploy, against the last approved release (§13 D9.2).',
+      'Reads manifest.yaml at the commit (HEAD by default), validates it and records the result. A change to a sensitive field is reported against the newest valid spec; the production deploy enforces it against the last approved release.',
     params: ProjectParams,
     query: NO_QUERY,
     body: ValidateSpecRequest,

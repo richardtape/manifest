@@ -44,7 +44,7 @@ export const intakeRoutes = [
     tag: 'agents',
     summary: 'A model for describing an app, before it exists',
     description:
-      '§10: a model key for a person describing an app they have not created yet — understanding what they asked for, proposing names (`checkSlug`), choosing the blueprint and starter. **The platform pays**: never your agent budget. One model, the platform’s (`session.model`), approved for internal data; a key of cents and minutes (never past your signed-in session); a few a person a day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) inside the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). **The key is in this answer and nowhere else**, and a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED` naming the session. Signed-in people only: a delegated token is refused, because intake belongs to no project.',
+      'A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,

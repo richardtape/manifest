@@ -25,7 +25,7 @@ export const blueprintRoutes = [
     tag: 'blueprints',
     summary: 'The blueprint catalogue',
     description:
-      '§22 step 2: what a person chooses from, with the starters each offers (§25).',
+      'The blueprints to choose from when creating a project, with the starters each offers.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,
@@ -116,7 +116,7 @@ export const blueprintRoutes = [
     tag: 'blueprints',
     summary: 'A blueprint’s knowledge pack',
     description:
-      'D25: served over the API and versioned with its blueprint, so an agent learns the conventions without running inside the platform. Each file carries its sha256.',
+      'The files that teach an agent this blueprint’s conventions without running inside the platform, versioned with the blueprint. Each file carries its sha256.',
     params: RefParams,
     query: NO_QUERY,
     body: NO_BODY,

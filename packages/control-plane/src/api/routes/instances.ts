@@ -141,7 +141,7 @@ export const instanceRoutes = [
     tag: 'delivery',
     summary: 'An environment’s instances',
     description:
-      '§11: the environment’s instances, the one seen most recently first — at most 50 — each marked whether the hostname reaches it now. A failed instance stays listed after it is replaced, so an agent can find it and read its Incident; a running one’s last lines are `getInstanceOutput`.',
+      'The environment’s instances, the one seen most recently first — at most 50 — each marked whether the hostname reaches it now. A failed instance stays listed after it is replaced, so an agent can find it and read its Incident; a running one’s last lines are `getInstanceOutput`.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -183,7 +183,7 @@ export const instanceRoutes = [
     tag: 'delivery',
     summary: 'A running instance’s recent output',
     description:
-      '§14: the last lines a sandbox instance printed, oldest first — read on request and never streamed or kept, bounded in lines (`lines`, 200 by default, at most 1000) and in bytes (256 KiB in all, each line cut at 4 KiB), and redacted at read with the rules that redact an Incident’s log tail. **Never staging or production**: both serve real people, so each is refused by its own code, and an Incident is the only window onto either. Decided by the environment’s kind, so a laptop’s staging is refused too.',
+      'The last lines a sandbox instance printed, oldest first — read on request, never streamed or kept: up to `lines`, 256 KiB in all, each line cut at 4 KiB, and redacted as an Incident’s log tail is. Staging and production are always refused (`INSTANCE_OUTPUT_STAGING`, `INSTANCE_OUTPUT_PRODUCTION`); an Incident is the only view of their output.',
     params: InstanceParams,
     query: OutputQuery,
     body: NO_BODY,
