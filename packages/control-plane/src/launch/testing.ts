@@ -1,6 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { iamRegistrations, privacyAssessments, projects, type Db } from '../db/index.js'
+import { manifestSchema } from '../spec/index.js'
 import { mintSpKeypair, publicHalf, type SpCertificate } from '../sso/index.js'
+import { assembleAssessment } from './assessment.js'
 import { assemblePackage } from './package.js'
 import type {
   IamRegistrationRow,
@@ -105,20 +107,58 @@ export async function withDraft(
   return row!
 }
 
-/** The privacy assessment's draft, the same way — Task 11 owns its shape. */
+/**
+ * The privacy assessment's DRAFT, the same way: written straight to the row in the shape
+ * `draftPrivacyAssessment` stores (the launch path plan's Task 11, which replaced Task 9's
+ * placeholder) — for the tests whose subject is what a draft's existence does, not how one is made.
+ */
 export async function withAssessmentDraft(
   db: Db,
-  input: { projectId: string; createdAt?: Date },
+  input: {
+    projectId: string
+    /** When the record was first written — a test of `sentAt`'s lower bound backdates it. */
+    createdAt?: Date
+    /** When this draft was generated: `createdAt` when absent, as for a first draft. */
+    generatedAt?: Date
+  },
 ): Promise<PrivacyAssessmentRow> {
+  const [project] = await db
+    .select({ slug: projects.slug, name: projects.name })
+    .from(projects)
+    .where(eq(projects.id, input.projectId))
+  if (project === undefined) throw new Error(`no project '${input.projectId}'`)
+  const generatedDraft = assembleAssessment({
+    generatedAt: input.generatedAt ?? input.createdAt ?? new Date(),
+    fromCommit: 'f'.repeat(40),
+    spec: manifestSchema.parse({
+      manifest: 1,
+      name: project.slug,
+      blueprint: 'fixture-node@1',
+      runtime: { port: 3000 },
+    }),
+    retentionDeclared: false,
+    project: { slug: project.slug, name: project.name },
+    members: [],
+    platformContacts: [],
+    catalogue: [],
+    runtime: 'fake',
+    repository: { provider: 'local' },
+    warnings: [],
+  })
+  // DRAFTED AGAIN when the record exists — the draft replaced, the row's first day kept.
   const [row] = await db
     .insert(privacyAssessments)
     .values({
       projectId: input.projectId,
       state: 'draft',
-      generatedDraft: { placeholder: 'the launch path plan’s Task 11 renders the draft' },
+      generatedDraft,
       ...(input.createdAt === undefined
         ? {}
         : { createdAt: input.createdAt, updatedAt: input.createdAt }),
+    })
+    .onConflictDoUpdate({
+      target: privacyAssessments.projectId,
+      set: { generatedDraft, updatedAt: new Date() },
     })
     .returning()
   return row!

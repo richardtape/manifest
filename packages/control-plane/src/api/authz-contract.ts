@@ -142,6 +142,14 @@ const DRAFT_REQUIRED = { status: 409, code: 'LAUNCH_DRAFT_REQUIRED' } as const
  */
 const NOT_CWL = { status: 409, code: 'LAUNCH_NOT_CWL' } as const
 
+/**
+ * Drafting the privacy assessment (the launch path plan's Task 11) on this fixture, whose assessment the
+ * administrator's record row above has already moved to `submitted` — what everyone who HOLDS
+ * `launch:draft` is answered, a token included. A `409` naming its code, so the row cannot be green
+ * against `FORBIDDEN` or a missing route; the drafted case is `api/launch.test.ts`'s.
+ */
+const RECORD_SUBMITTED = { status: 409, code: 'LAUNCH_RECORD_SUBMITTED' } as const
+
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
   code: ErrorCode
@@ -1447,6 +1455,31 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
+   * DRAFTING THE PRIVACY ASSESSMENT (the launch path plan's Task 11): `launch:draft`, as the
+   * registration's draft is — MINTABLE, so a token holding it reaches the draft as a person does. The
+   * administrator's record row above has moved this fixture's assessment to `submitted`, so every
+   * holder is told what was sent is kept; a token without the capability is `403`, and one for
+   * another project `404`. AFTER the submission rows, so it could never give them a draft to send.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/launch-records/privacy-assessment/draft',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/launch-records/privacy-assessment/draft`,
+    }),
+    expect: {
+      owner: RECORD_SUBMITTED,
+      collaborator: RECORD_SUBMITTED,
+      stranger: 404,
+      admin: RECORD_SUBMITTED,
+      anonymous: 401,
+      'token-capable': RECORD_SUBMITTED,
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': RECORD_SUBMITTED,
+    },
+  },
+  /**
    * D21's rehearsal (P6a Task 14). **`launch:rehearse` since the launch path plan's Task 6b**
    * (the faculty front-end's FE-42, Rich's option (a)): the OWNER, a COLLABORATOR (§13) and an
    * administrator each answer as the administrator alone did before, in an interactive session —
@@ -2337,7 +2370,8 @@ export function describeAuthorizationContract(
         // route gives an owner's token (neither privileged nor person-only).
         'agent:session',
         // The launch path plan's Task 10: `draftIamRegistration` asserts `launch:draft`, which the
-        // mint route gives an owner's token (neither privileged nor person-only).
+        // mint route gives an owner's token (neither privileged nor person-only) — and Task 11's
+        // `draftPrivacyAssessment` the same.
         'launch:draft',
       ]
       const tokenFor = async (

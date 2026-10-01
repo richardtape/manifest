@@ -1125,6 +1125,10 @@ export const PRIVACY_ASSESSMENT: Schemas['PrivacyAssessment'] = {
   externalTicketRef: 'PIA-2026-0088',
   submittedAt: '2026-09-18T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  // The launch path plan's Task 11 added the draft an owner completes and sends; the platform keeps
+  // the one that was sent. NULL HERE UNTIL TASK 13 scripts the mock's drafts (`IAM_REGISTRATION`'s
+  // note) — on the platform an owner's submission always has one.
+  draft: null,
   createdAt: '2026-09-01T00:00:00.000Z',
   updatedAt: '2026-09-20T00:00:00.000Z',
 }

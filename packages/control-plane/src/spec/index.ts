@@ -80,6 +80,27 @@ export function declaresModels(yamlText: string): boolean {
 }
 
 /**
+ * Whether `manifest.yaml` WRITES `data.retention_days` — `false` for one that leaves it to the
+ * schema's default, and for anything that does not parse (the launch path plan's Task 11). The
+ * stored spec always carries a number, so only the YAML says whether the owner chose it, and the
+ * privacy assessment's draft must not state Manifest's default as the owner's decision.
+ */
+export function declaresRetention(yamlText: string): boolean {
+  let raw: unknown
+  try {
+    raw = parseYaml(yamlText)
+  } catch {
+    return false
+  }
+  const data = (raw as { data?: unknown } | null)?.data
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    (data as { retention_days?: unknown }).retention_days !== undefined
+  )
+}
+
+/**
  * §7 as amended on 2026-09-14 (Rich): an OMITTED project AI budget, on a manifest that
  * declares a model, is the project's AI quota. Filled HERE, before policy, so the quota
  * check reads the filled value and the stored spec — and every release frozen from it

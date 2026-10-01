@@ -2,6 +2,8 @@ import type { z } from 'zod/v4'
 import type {
   IamRegistration,
   LaunchRecords,
+  PrivacyAssessment,
+  PrivacyAssessmentDraft,
   SubmitLaunchRecordRequest,
 } from '../representations/launch.js'
 
@@ -294,7 +296,220 @@ export const RECORDS_EXAMPLE = {
       id: 'c4113a47-bf3c-4653-9260-ca723416fdc6',
       displayName: 'Platform Admin',
     },
+    draft: null,
     createdAt: '2026-10-01T15:37:22.353Z',
     updatedAt: '2026-10-01T15:37:22.363Z',
   },
 } satisfies z.input<typeof LaunchRecords>
+
+/**
+ * THE PRIVACY ASSESSMENT'S EXAMPLES (the launch path plan's Task 11), CAPTURED from one flow through the
+ * routes: a CWL app with a database, a model and an outside host; its owner drafts the assessment
+ * (`draftPrivacyAssessment`), says it was sent naming that draft (`submitPrivacyAssessment`), and an
+ * administrator records it approved (`recordPrivacyAssessment`). One draft, kept as it was sent — so the
+ * three share it. Captured in the unit tier, whose runtime driver is its fake.
+ */
+const ASSESSMENT_DRAFT = {
+  project: {
+    slug: 'cwl-db0ea7d1',
+    name: 'cwl-db0ea7d1',
+  },
+  generatedAt: '2026-10-01T17:27:02.621Z',
+  fromCommit: 'be9c870f7374a4145e3f81e4a1671329cb03c8a8',
+  sections: [
+    {
+      id: 'collected',
+      title: 'What personal information the app collects',
+      facts: [
+        {
+          label: 'ubcEduCwlPuid',
+          value:
+            'Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.',
+          source: 'manifest.yaml: auth.attributes',
+        },
+        {
+          label: 'mail',
+          value: 'The person’s email address, so the app can show it or write to them.',
+          source: 'manifest.yaml: auth.attributes',
+        },
+      ],
+      gaps: [
+        'What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.',
+      ],
+    },
+    {
+      id: 'stored',
+      title: 'Where it is stored',
+      facts: [
+        {
+          label: 'db',
+          value:
+            'A mongo database, version 7, which Manifest runs for the app — one in each environment.',
+          source: 'manifest.yaml: services',
+        },
+        {
+          label: 'Sandbox',
+          value:
+            'Where the app is built and tried: its data is thrown away when the sandbox is.',
+          source: 'Manifest’s environments',
+        },
+        {
+          label: 'Staging',
+          value:
+            'Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time.',
+          source: 'Manifest’s environments',
+        },
+        {
+          label: 'Production',
+          value:
+            'Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet.',
+          source: 'Manifest’s environments',
+        },
+      ],
+      gaps: [
+        'Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.',
+      ],
+    },
+    {
+      id: 'flows',
+      title: 'Where it flows',
+      facts: [
+        {
+          label: 'Classification',
+          value:
+            'Internal — every AI model the app uses must be approved for internal data.',
+          source: 'manifest.yaml: data.classification',
+        },
+        {
+          label: 'api.ubc.ca',
+          value: 'The app may send data to api.ubc.ca, outside the platform.',
+          source: 'manifest.yaml: egress.allow',
+        },
+        {
+          label: 'default-chat',
+          value:
+            'Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.',
+          source: 'manifest.yaml: ai.models; the model catalogue',
+        },
+      ],
+      gaps: [],
+    },
+    {
+      id: 'retention',
+      title: 'How long it is kept, and how it is disposed of',
+      facts: [
+        {
+          label: 'How long',
+          value: 'The app keeps its data for 365 days.',
+          source: 'manifest.yaml: data.retention_days',
+        },
+      ],
+      gaps: [
+        'How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.',
+      ],
+    },
+    {
+      id: 'accountable',
+      title: 'Who is accountable',
+      facts: [
+        {
+          label: 'Owner',
+          value: 'Bio Prof <bio_prof@example.ubc.ca>',
+          source: 'the project’s members',
+        },
+        {
+          label: 'Platform contact',
+          value: 'Platform Admin <platform_admin@example.ubc.ca>',
+          source: 'the platform’s contacts',
+        },
+      ],
+      gaps: [],
+    },
+    {
+      id: 'hosting',
+      title: 'Hosting and jurisdiction',
+      facts: [
+        {
+          label: 'Where the app runs',
+          value: 'Under Manifest’s fake driver.',
+          source: 'the platform’s runtime driver',
+        },
+        {
+          label: 'Where its code is kept',
+          value: 'In a repository on the machine Manifest runs on.',
+          source: 'the project’s repository',
+        },
+        {
+          label: 'default-chat',
+          value: 'Approved for internal data at most.',
+          source: 'the model catalogue',
+        },
+      ],
+      gaps: [
+        'Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.',
+        'Whether the app’s internal data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.',
+      ],
+    },
+  ],
+  warnings: [
+    'Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.',
+  ],
+  text: 'Privacy impact assessment — draft\ncwl-db0ea7d1 (cwl-db0ea7d1)\nDrafted by Manifest on October 1, 2026, from commit be9c870f7374.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its data is thrown away when the sandbox is. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its data is kept, never backed up, and resettable — it can be cleared at any time. (from Manifest’s environments)\n  - Production: Where people use the app: its data is kept while the app runs. It is not backed up on this platform yet. (from Manifest’s environments)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Internal — every AI model the app uses must be approved for internal data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  For you to add:\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n\n6. Hosting and jurisdiction\n  - Where the app runs: Under Manifest’s fake driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for internal data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s internal data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n',
+} satisfies z.input<typeof PrivacyAssessmentDraft>
+
+/** `draftPrivacyAssessment`: the owner's first draft. */
+export const ASSESSMENT_DRAFTED_EXAMPLE = {
+  id: 'c671b13d-a815-4598-ba17-864e795022d3',
+  projectId: '629eafac-3c20-45f2-8cf2-00891a3ac55a',
+  state: 'draft',
+  reviewer: null,
+  approvedAt: null,
+  externalTicketRef: null,
+  submittedAt: null,
+  submittedBy: null,
+  draft: ASSESSMENT_DRAFT,
+  createdAt: '2026-10-01T17:27:02.631Z',
+  updatedAt: '2026-10-01T17:27:02.631Z',
+} satisfies z.input<typeof PrivacyAssessment>
+
+/** `submitPrivacyAssessment`'s request: the PIA number, and the draft the person read. */
+export const ASSESSMENT_SUBMIT_REQUEST_EXAMPLE = {
+  reference: 'PIA-2026-0101',
+  draftGeneratedAt: '2026-10-01T17:27:02.621Z',
+} satisfies z.input<typeof SubmitLaunchRecordRequest>
+
+/** `submitPrivacyAssessment`: the assessment, now submitted — the draft kept as it was sent. */
+export const ASSESSMENT_SUBMITTED_EXAMPLE = {
+  id: 'c671b13d-a815-4598-ba17-864e795022d3',
+  projectId: '629eafac-3c20-45f2-8cf2-00891a3ac55a',
+  state: 'submitted',
+  reviewer: null,
+  approvedAt: null,
+  externalTicketRef: 'PIA-2026-0101',
+  submittedAt: '2026-10-01T19:00:00.000Z',
+  submittedBy: {
+    id: '8386642f-2b1a-4958-9314-522514c92dd6',
+    displayName: 'Bio Prof',
+  },
+  draft: ASSESSMENT_DRAFT,
+  createdAt: '2026-10-01T17:27:02.631Z',
+  updatedAt: '2026-10-01T17:27:02.651Z',
+} satisfies z.input<typeof PrivacyAssessment>
+
+/** `recordPrivacyAssessment`: an administrator records the Privacy Office's approval. */
+export const ASSESSMENT_APPROVED_EXAMPLE = {
+  id: 'c671b13d-a815-4598-ba17-864e795022d3',
+  projectId: '629eafac-3c20-45f2-8cf2-00891a3ac55a',
+  state: 'approved',
+  reviewer: 'K. Privacy',
+  approvedAt: '2026-10-01T17:27:02.664Z',
+  externalTicketRef: 'PIA-2026-0101',
+  submittedAt: '2026-10-01T19:00:00.000Z',
+  submittedBy: {
+    id: '8386642f-2b1a-4958-9314-522514c92dd6',
+    displayName: 'Bio Prof',
+  },
+  draft: ASSESSMENT_DRAFT,
+  createdAt: '2026-10-01T17:27:02.631Z',
+  updatedAt: '2026-10-01T17:27:02.664Z',
+} satisfies z.input<typeof PrivacyAssessment>

@@ -1222,3 +1222,365 @@ async function until(
     await new Promise((resolve) => setTimeout(resolve, 10))
   }
 }
+
+/**
+ * D19'S PRIVACY-ASSESSMENT DRAFT THROUGH THE ROUTE (the launch path plan's Task 11; Spec action 4):
+ * the owner — or an agent on their token — drafts the assessment, and Manifest generates §9's six rows
+ * from what it holds, the gaps the owner fills, and a text to paste. Production's app is what is
+ * assessed, so it is drawn from the launch candidate, as production's registration is.
+ */
+interface AssessmentDraftBody {
+  project: { slug: string; name: string }
+  generatedAt: string
+  fromCommit: string
+  sections: {
+    id: string
+    title: string
+    facts: { label: string; value: string; source: string }[]
+    gaps: string[]
+  }[]
+  warnings: string[]
+  text: string
+}
+const assessmentOf = (body: unknown) =>
+  (body as { draft: AssessmentDraftBody | null }).draft
+
+function draftAssessment(
+  ctx: { app: CwlProject['app']; deps: ServerDeps },
+  projectId: string,
+  credentials: { cookies?: Record<string, string>; bearer?: string },
+) {
+  return ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${projectId}/launch-records/privacy-assessment/draft`,
+    ...(credentials.cookies === undefined ? {} : { cookies: credentials.cookies }),
+    headers: {
+      ...mutationHeaders(ctx.deps),
+      ...(credentials.bearer === undefined
+        ? {}
+        : { authorization: `Bearer ${credentials.bearer}` }),
+    },
+  })
+}
+
+const NO_CANDIDATE_ASSESSMENT =
+  'Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.'
+const NO_RETENTION =
+  'No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.'
+
+const factsOf = (draft: AssessmentDraftBody, id: string) =>
+  draft.sections.find((s) => s.id === id)!.facts
+
+describe('D19’s privacy-assessment draft (Task 11)', () => {
+  it('drafts §9’s six rows from what Manifest holds, with the gaps and a text to paste — kept on the record and announced', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const res = await draftAssessment(ctx, ctx.project.id, {
+        cookies: ctx.ownerCookies,
+      })
+      expect(res.statusCode, res.body).toBe(200)
+      expect(res.json()).toMatchObject({
+        projectId: ctx.project.id,
+        state: 'draft',
+        submittedAt: null,
+        approvedAt: null,
+      })
+      const draft = assessmentOf(res.json())!
+      expect(draft).toMatchObject({
+        project: { slug: ctx.project.slug },
+        fromCommit: ctx.commitSha,
+        warnings: [NO_CANDIDATE_ASSESSMENT],
+      })
+      expect(draft.sections.map((s) => s.id)).toEqual([
+        'collected',
+        'stored',
+        'flows',
+        'retention',
+        'accountable',
+        'hosting',
+      ])
+      expect(factsOf(draft, 'collected').map((f) => f.label)).toEqual([
+        'ubcEduCwlPuid',
+        'mail',
+      ])
+      // The CWL manifest writes no data block: the default is Manifest's, and named as a gap.
+      expect(factsOf(draft, 'retention')[0]!.source).toBe('Manifest’s default')
+      expect(draft.sections.find((s) => s.id === 'retention')!.gaps).toContain(
+        NO_RETENTION,
+      )
+      expect(factsOf(draft, 'accountable')).toEqual([
+        {
+          label: 'Owner',
+          value: 'Bio Prof <bio_prof@example.ubc.ca>',
+          source: 'the project’s members',
+        },
+        {
+          label: 'Platform contact',
+          value: 'Platform Admin <platform_admin@example.ubc.ca>',
+          source: 'the platform’s contacts',
+        },
+      ])
+      // Driver 1: the platform's own repositories — nobody's name goes to GitHub.
+      expect(factsOf(draft, 'flows').map((f) => f.label)).not.toContain(
+        'Changes to the app',
+      )
+      expect(draft.text).toContain(`(${ctx.project.slug})`)
+      for (const gap of draft.sections.flatMap((s) => s.gaps))
+        expect(draft.text).toContain(gap)
+
+      // Kept on the record, and announced by its counts — never its text.
+      expect(assessmentOf((await cwlRecords(ctx)).privacyAssessment)).toEqual(draft)
+      const drafted = await eventsOf(ctx, 'privacy_assessment.drafted')
+      const gapCount = draft.sections.flatMap((s) => s.gaps).length
+      expect(drafted.map((e) => e.machineDetail)).toEqual([
+        { fromCommit: ctx.commitSha, gapCount },
+      ])
+      expect(drafted[0]!.humanMessage).toBe(
+        `Bio Prof drafted this app's privacy assessment for the Privacy Office, with ${gapCount} gap(s) for the owner to fill.`,
+      )
+    })
+  })
+
+  it('a retention the manifest writes is the owner’s, and is no gap', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      await commitManifest(
+        { app: ctx.app, deps: ctx.deps, cookies: ctx.ownerCookies, project: ctx.project },
+        cwlManifest(
+          ctx.project.slug,
+          ['ubcEduCwlPuid', 'mail'],
+          ['data:', '  retention_days: 90'],
+        ),
+        'feat: keep data for a term',
+      )
+      const draft = assessmentOf(
+        (
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies })
+        ).json(),
+      )!
+      expect(factsOf(draft, 'retention')[0]).toEqual({
+        label: 'How long',
+        value: 'The app keeps its data for 90 days.',
+        source: 'manifest.yaml: data.retention_days',
+      })
+      expect(draft.sections.find((s) => s.id === 'retention')!.gaps).not.toContain(
+        NO_RETENTION,
+      )
+    })
+  })
+
+  it('an app that signs nobody in is assessed too — it collects nothing from CWL', async () => {
+    await withProjectServer(async (ctx) => {
+      const res = await draftAssessment(ctx, ctx.projectId, { cookies: ctx.ownerCookies })
+      expect(res.statusCode, res.body).toBe(200)
+      expect(factsOf(assessmentOf(res.json())!, 'collected')).toEqual([
+        {
+          label: 'Sign-in',
+          value:
+            'The app signs nobody in, so UBC releases nothing about the people who use it.',
+          source: 'manifest.yaml: auth.provider',
+        },
+      ])
+    })
+  })
+
+  it('is drawn from the launch candidate, and says so when there is none', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      await stage(ctx)
+      // A newer manifest asks for more — but it is not what serves staging, so not what launches.
+      await commitManifest(
+        { app: ctx.app, deps: ctx.deps, cookies: ctx.ownerCookies, project: ctx.project },
+        cwlManifest(ctx.project.slug, ['ubcEduCwlPuid', 'mail', 'givenName']),
+        'feat: greet people by name',
+      )
+      const draft = assessmentOf(
+        (
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies })
+        ).json(),
+      )!
+      expect(factsOf(draft, 'collected').map((f) => f.label)).toEqual([
+        'ubcEduCwlPuid',
+        'mail',
+      ])
+      expect(draft.fromCommit).toBe(ctx.commitSha)
+      expect(draft.warnings).not.toContain(NO_CANDIDATE_ASSESSMENT)
+    })
+  })
+
+  it('a submitted assessment is never regenerated — LAUNCH_RECORD_SUBMITTED — nor an approved one; one sent back to draft is', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const first = assessmentOf(
+        (
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies })
+        ).json(),
+      )!
+      const sent = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment/submission`,
+        payload: { draftGeneratedAt: first.generatedAt },
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(sent.statusCode, sent.body).toBe(200)
+      expect(assessmentOf(sent.json())).toEqual(first)
+      expect(
+        refusal(
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies }),
+        ),
+      ).toEqual({ status: 409, code: 'LAUNCH_RECORD_SUBMITTED' })
+      // The draft sent is the draft kept.
+      expect(assessmentOf((await cwlRecords(ctx)).privacyAssessment)).toEqual(first)
+
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const recordUrl = `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment`
+      await post(ctx, recordUrl, { state: 'approved', externalTicketRef: 'PIA-1' }, admin)
+      expect(
+        refusal(
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies }),
+        ),
+      ).toEqual({ status: 409, code: 'LAUNCH_RECORD_SUBMITTED' })
+
+      // The Privacy Office sends it back: it is drafted again, for a new request.
+      await post(ctx, recordUrl, { state: 'draft', reviewer: 'K. Privacy' }, admin)
+      const again = await draftAssessment(ctx, ctx.project.id, {
+        cookies: ctx.ownerCookies,
+      })
+      expect(again.statusCode, again.body).toBe(200)
+      expect(assessmentOf(again.json())!.generatedAt > first.generatedAt).toBe(true)
+      expect(await eventsOf(ctx, 'privacy_assessment.drafted')).toHaveLength(2)
+    })
+  })
+
+  it('an agent on its person’s token may draft — launch:draft is mintable — a collaborator may, and a stranger is answered 404', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const minted = await post(
+        ctx,
+        `/v1/projects/${ctx.project.id}/tokens`,
+        {
+          name: 'drafting agent',
+          capabilities: ['project:read', 'launch:draft'],
+          expiresInDays: 1,
+        },
+        ctx.ownerCookies,
+        201,
+      )
+      const byToken = await draftAssessment(ctx, ctx.project.id, {
+        bearer: minted.secret as string,
+      })
+      expect(byToken.statusCode, byToken.body).toBe(200)
+      // A token without it is refused, by the capability's code.
+      const owner = await ensureTestUser(ctx.deps.db, 'bio_prof')
+      const { plaintext } = await mintTestToken(ctx.deps.db, {
+        userId: owner.id,
+        projectId: ctx.project.id,
+        capabilities: ['project:read'],
+      })
+      expect(
+        refusal(await draftAssessment(ctx, ctx.project.id, { bearer: plaintext })),
+      ).toEqual({ status: 403, code: 'FORBIDDEN' })
+      const colleague = await ensureTestUser(ctx.deps.db, 'bio_colleague')
+      await addMember(ctx.deps.db, ctx.project.id, colleague.id, 'collaborator')
+      const byCollaborator = await draftAssessment(ctx, ctx.project.id, {
+        cookies: await loginAs(ctx.deps, 'bio_colleague'),
+      })
+      expect(byCollaborator.statusCode, byCollaborator.body).toBe(200)
+      expect(
+        factsOf(assessmentOf(byCollaborator.json())!, 'accountable').map((f) => f.label),
+      ).toEqual(['Owner', 'Collaborator', 'Platform contact'])
+      const stranger = await loginAs(ctx.deps, 'unrelated_user')
+      expect(
+        refusal(await draftAssessment(ctx, ctx.project.id, { cookies: stranger })),
+      ).toEqual({ status: 404, code: 'NOT_FOUND' })
+    })
+  })
+
+  it('a submission names the draft it sent: one drafted since refuses it — LAUNCH_DRAFT_CHANGED — and the current one is accepted', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const read = assessmentOf(
+        (
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies })
+        ).json(),
+      )!
+      const since = assessmentOf(
+        (
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies })
+        ).json(),
+      )!
+      expect(since.generatedAt > read.generatedAt).toBe(true)
+      const submitWith = (draftGeneratedAt: string) =>
+        ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment/submission`,
+          payload: { draftGeneratedAt },
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+        })
+      expect(refusal(await submitWith(read.generatedAt))).toEqual({
+        status: 409,
+        code: 'LAUNCH_DRAFT_CHANGED',
+      })
+      // THE POSITIVE CONTROL: the draft the person read is the one Manifest holds.
+      const sent = await submitWith(since.generatedAt)
+      expect(sent.statusCode, sent.body).toBe(200)
+    })
+  })
+
+  it('a re-draft waits for a submission holding the record, and then refuses it — LAUNCH_RECORD_SUBMITTED', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      expect(
+        (await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies }))
+          .statusCode,
+      ).toBe(200)
+      const record = (await cwlRecords(ctx)).privacyAssessment as { id: string }
+      let answered: Awaited<ReturnType<typeof draftAssessment>> | undefined
+      await holdingThen(
+        'SELECT 1 FROM privacy_assessments WHERE id = $1 FOR UPDATE',
+        [record.id],
+        // What an owner's "I've sent it" does in the window.
+        `UPDATE privacy_assessments SET state = 'submitted', submitted_at = now() WHERE id = '${record.id}'`,
+        async (lock) => {
+          const drafting = draftAssessment(ctx, ctx.project.id, {
+            cookies: ctx.ownerCookies,
+          })
+          await until(
+            () => lock.waitedOn('%privacy_assessments%'),
+            'the re-draft waiting on the held assessment',
+          )
+          await lock.commit()
+          answered = await drafting
+        },
+      )
+      expect(refusal(answered!)).toEqual({ status: 409, code: 'LAUNCH_RECORD_SUBMITTED' })
+      expect(await eventsOf(ctx, 'privacy_assessment.drafted')).toHaveLength(1)
+    })
+  })
+})
+
+describe('the day a person may say they sent the assessment is its newest draft’s (Task 11; Task 10’s review, M4)', () => {
+  it('a re-drafted assessment moves the earliest day it can have been sent to the day it was made', async () => {
+    await withProjectServer(async (ctx) => {
+      // First drafted five days ago, drafted again today.
+      await withAssessmentDraft(ctx.db, {
+        projectId: ctx.projectId,
+        createdAt: new Date(Date.now() - 5 * 86_400_000),
+        generatedAt: new Date(),
+      })
+      expect(
+        refusal(
+          await submit(
+            ctx,
+            'privacy-assessment',
+            { sentAt: vancouverDaysAgo(3) },
+            { cookies: ctx.ownerCookies },
+          ),
+        ),
+      ).toEqual({ status: 400, code: 'LAUNCH_SENT_AT_INVALID' })
+      // The positive control: today, the draft's own day, is accepted.
+      const sent = await submit(
+        ctx,
+        'privacy-assessment',
+        { sentAt: vancouverToday() },
+        { cookies: ctx.ownerCookies },
+      )
+      expect(sent.statusCode, sent.body).toBe(200)
+    })
+  })
+})

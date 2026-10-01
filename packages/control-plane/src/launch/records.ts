@@ -14,9 +14,12 @@ import {
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { personName, repositoryOf } from '../projects/index.js'
 import { SourceError, type RepoRef, type SourceDriver } from '../source/index.js'
-import type { ManifestSpec } from '../spec/index.js'
+import { declaresRetention, type ManifestSpec } from '../spec/index.js'
 import { deriveSpEntity, type Contact, type SsoCertificates } from '../sso/index.js'
 import { candidateFor } from './candidate.js'
+import type { ModelCatalogue, ModelEntry } from '../ai/index.js'
+import type { Driver } from '../runtime/index.js'
+import { assembleAssessment, readAssessmentDraft } from './assessment.js'
 import { assemblePackage, readPackage, SEARCH_BOUND } from './package.js'
 import {
   iamTransition,
@@ -664,7 +667,8 @@ export async function submitPrivacyAssessment(
       .from(privacyAssessments)
       .where(eq(privacyAssessments.projectId, input.projectId))
       .for('update')
-    if (existing === undefined || existing.generatedDraft === null)
+    const sent = readAssessmentDraft(existing?.generatedDraft)
+    if (existing === undefined || sent === null)
       throw noDraft("this app's privacy assessment")
     if (!SUBMIT_ARROWS.pia.has(existing.state))
       refuseSubmission('a privacy assessment', existing.state, SUBMIT_ARROWS.pia)
@@ -674,7 +678,9 @@ export async function submitPrivacyAssessment(
       input.draftGeneratedAt,
     )
 
-    const day = sentDay(input.sentAt, existing.createdAt)
+    // THE DRAFT THAT WAS SENT is the newest (Task 10's review, M4; Task 11): after a re-draft the
+    // row's `created_at` is the FIRST draft's day, and the draft carries its own.
+    const day = sentDay(input.sentAt, new Date(sent.generatedAt))
     const [row] = await tx
       .update(privacyAssessments)
       .set({
@@ -784,6 +790,28 @@ async function searchableTree(
 }
 
 /**
+ * THE NEWEST VALID MANIFEST, and the commit it was validated at — what a draft is drawn from while
+ * nothing serves staging. Every project is created with a validated manifest, and an invalid one never
+ * replaces it as the newest VALID — so none at all is a platform defect: a `500` and an operator line,
+ * never a guess.
+ */
+async function newestValidSpec(
+  db: Db,
+  projectId: string,
+  what: string,
+): Promise<{ spec: ManifestSpec; commit: string }> {
+  const [newest] = await db
+    .select({ parsed: appSpecs.parsed, commitSha: appSpecs.commitSha })
+    .from(appSpecs)
+    .where(and(eq(appSpecs.projectId, projectId), eq(appSpecs.valid, true)))
+    .orderBy(desc(appSpecs.createdAt), desc(appSpecs.id))
+    .limit(1)
+  if (newest === undefined)
+    throw new Error(`project ${projectId} has no valid manifest to draft ${what} from`)
+  return { spec: newest.parsed as ManifestSpec, commit: newest.commitSha }
+}
+
+/**
  * WHAT A REGISTRATION IS DRAWN FROM (Task 10's Interfaces): **production's from the launch
  * candidate** — the release serving staging, healthy, its frozen production `auth` and its build's
  * commit — because production's registration must describe what a launch would run; with nothing
@@ -800,21 +828,10 @@ async function drawnFrom(
     if (candidate !== undefined)
       return { auth: candidate.auth, commit: candidate.build.commitSha, warnings: [] }
   }
-  const [newest] = await db
-    .select({ parsed: appSpecs.parsed, commitSha: appSpecs.commitSha })
-    .from(appSpecs)
-    .where(and(eq(appSpecs.projectId, projectId), eq(appSpecs.valid, true)))
-    .orderBy(desc(appSpecs.createdAt), desc(appSpecs.id))
-    .limit(1)
-  // Every project is created with a validated manifest, and an invalid one never replaces it as the
-  // newest VALID — so none at all is a platform defect: a `500` and an operator line, never a guess.
-  if (newest === undefined)
-    throw new Error(
-      `project ${projectId} has no valid manifest to draft a registration from`,
-    )
+  const newest = await newestValidSpec(db, projectId, 'a registration')
   return {
-    auth: (newest.parsed as ManifestSpec).auth,
-    commit: newest.commitSha,
+    auth: newest.spec.auth,
+    commit: newest.commit,
     warnings:
       environment === 'production'
         ? [
@@ -825,34 +842,86 @@ async function drawnFrom(
 }
 
 /**
- * THE CONTACTS (§9: *"technical and privacy contacts from the project owner and platform admins"*;
- * Decision 15): the project's owners, then its collaborators, as technical contacts; the platform's
- * as support — `MANIFEST_LAUNCH_CONTACTS`, or else the oldest administrator.
+ * WHAT THE PRIVACY ASSESSMENT IS DRAWN FROM (Task 11): production's rule — a PIA is per production app
+ * (C4) — so the launch candidate's manifest, the one its release was made from, and its build's commit;
+ * with nothing serving staging, the newest valid manifest, and the draft says so.
  */
-async function contactsFor(
+async function assessedFrom(
   db: Db,
   projectId: string,
-  configured: readonly Contact[] | null,
-): Promise<{ technical: Contact[]; support: Contact[] }> {
+): Promise<{ spec: ManifestSpec; commit: string; warnings: string[] }> {
+  const candidate = await candidateFor(db, projectId)
+  if (candidate !== undefined) {
+    const [made] = await db
+      .select({ parsed: appSpecs.parsed })
+      .from(appSpecs)
+      .where(eq(appSpecs.id, candidate.release.appSpecId))
+    if (made !== undefined)
+      return {
+        spec: made.parsed as ManifestSpec,
+        commit: candidate.build.commitSha,
+        warnings: [],
+      }
+  }
+  const newest = await newestValidSpec(db, projectId, 'a privacy assessment')
+  return {
+    ...newest,
+    warnings: [
+      'Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.',
+    ],
+  }
+}
+
+/** A project's members with their role — owners first, then collaborators, each by name. */
+export async function membersOf(
+  db: Db,
+  projectId: string,
+): Promise<{ name: string; email: string; role: 'owner' | 'collaborator' }[]> {
   const members = await db
     .select({ name: users.displayName, email: users.email, role: projectMembers.role })
     .from(projectMembers)
     .innerJoin(users, eq(users.id, projectMembers.userId))
     .where(eq(projectMembers.projectId, projectId))
     .orderBy(asc(users.displayName))
-  const technical = [
+  return [
     ...members.filter((m) => m.role === 'owner'),
     ...members.filter((m) => m.role !== 'owner'),
-  ].map(({ name, email }) => ({ name, email }))
-  if (configured !== null)
-    return { technical, support: configured.map((c) => ({ ...c })) }
+  ]
+}
+
+/**
+ * THE PLATFORM'S CONTACTS (Decision 15): `MANIFEST_LAUNCH_CONTACTS` when set, or else the oldest
+ * administrator — and none when there is neither, which a draft then says.
+ */
+export async function platformContacts(
+  db: Db,
+  configured: readonly Contact[] | null,
+): Promise<Contact[]> {
+  if (configured !== null) return configured.map((c) => ({ ...c }))
   const [admin] = await db
     .select({ name: users.displayName, email: users.email })
     .from(users)
     .where(eq(users.role, 'admin'))
     .orderBy(asc(users.createdAt))
     .limit(1)
-  return { technical, support: admin === undefined ? [] : [admin] }
+  return admin === undefined ? [] : [admin]
+}
+
+/**
+ * THE CONTACTS (§9: *"technical and privacy contacts from the project owner and platform admins"*;
+ * Decision 15): the project's owners, then its collaborators, as technical contacts; the platform's
+ * as support.
+ */
+async function contactsFor(
+  db: Db,
+  projectId: string,
+  configured: readonly Contact[] | null,
+): Promise<{ technical: Contact[]; support: Contact[] }> {
+  const technical = (await membersOf(db, projectId)).map(({ name, email }) => ({
+    name,
+    email,
+  }))
+  return { technical, support: await platformContacts(db, configured) }
 }
 
 export interface DraftDeps {
@@ -1040,6 +1109,139 @@ export async function draftIamRegistration(
       humanMessage:
         `${await personName(db, input.actor.id)} drafted this app's ${input.environment} registration for UBC IAM, asking for ${generated.attributes.length} attribute(s)` +
         (unused === 0 ? '.' : `, ${unused} of them not read by the app.`),
+    },
+    makeRedactor([]),
+  )
+  return row
+}
+
+/**
+ * AN ASSESSMENT ONCE SENT IS KEPT AS IT WAS SENT (Decision 9's rule, for the Privacy Office): drafted
+ * again only from `draft` — which is also where a refused assessment returns — never while it is
+ * `submitted` or `approved`.
+ */
+const assessmentAlreadySent = (state: PiaState) =>
+  new LaunchRecordError(
+    'LAUNCH_RECORD_SUBMITTED',
+    `the privacy assessment is '${state}': what was sent to the Privacy Office is kept as it was sent, and Manifest drafts it again only once the Office sends it back`,
+    'To change what the Privacy Office was sent, ask the Office; once an administrator records it back in draft, draft it again.',
+  )
+
+export interface AssessmentDraftDeps {
+  db: Db
+  bus: EventBus
+  config: Pick<Config, 'launchContacts' | 'github'>
+  source: SourceDriver
+  catalogue: ModelCatalogue
+  driver: Pick<Driver, 'name'>
+}
+
+/**
+ * D19'S DRAFT OF THE PRIVACY ASSESSMENT (§9 as Spec action 4 applied it; the launch path plan's Task 11,
+ * Decision 16): §9's six rows, generated from what Manifest holds and STORED on the record — the
+ * registration's shape, so what is sent is what was read (`draftGeneratedAt`) and its day is the
+ * draft's. In this order:
+ *
+ *  1. **A record the Privacy Office holds is not drafted again** (`409 LAUNCH_RECORD_SUBMITTED`, before
+ *     anything is read): `submitted` or `approved`.
+ *  2. **What it is drawn from** (`assessedFrom`): the launch candidate's manifest, else the newest valid
+ *     with a warning — and that commit's `manifest.yaml`, for whether it WRITES `data.retention_days`.
+ *  3. The members, the platform's contacts, the catalogue (read only when the app declares a model, as
+ *     validation reads it; a disabled one is said in the draft), the runtime driver and where the code
+ *     is kept.
+ *  4. **Written under the record's row lock**, as a submission takes it: a submission that landed
+ *     meanwhile refuses the draft; one that waits finds this draft, and is refused
+ *     `LAUNCH_DRAFT_CHANGED` if it names the draft read before it.
+ *  5. `privacy_assessment.drafted`, after the commit, carrying counts — never the draft's text.
+ *
+ * The caller is `draftPrivacyAssessment`'s route — a person, or an agent on their token (`launch:draft`
+ * is mintable: a draft sends nothing and decides nothing).
+ */
+export async function draftPrivacyAssessment(
+  deps: AssessmentDraftDeps,
+  input: { projectId: string; actor: { id: string } },
+): Promise<PrivacyAssessmentRow> {
+  const { db } = deps
+  const existing = await getPrivacyAssessment(db, input.projectId)
+  if (existing !== undefined && existing.state !== 'draft')
+    throw assessmentAlreadySent(existing.state)
+
+  const [project] = await db
+    .select({ id: projects.id, slug: projects.slug, name: projects.name })
+    .from(projects)
+    .where(eq(projects.id, input.projectId))
+  if (project === undefined) throw new Error(`no project ${input.projectId}`)
+  const drawn = await assessedFrom(db, input.projectId)
+  const repo = await repositoryOf(deps, project)
+  const manifest = await deps.source.readText(repo, drawn.commit, 'manifest.yaml')
+  const catalogue: readonly ModelEntry[] | null =
+    drawn.spec.ai.models.length === 0
+      ? []
+      : deps.catalogue.enabled
+        ? (await deps.catalogue.get()).models
+        : null
+  const generated = assembleAssessment({
+    generatedAt: new Date(),
+    fromCommit: drawn.commit,
+    spec: drawn.spec,
+    retentionDeclared: declaresRetention(manifest.content),
+    project: { slug: project.slug, name: project.name },
+    members: await membersOf(db, input.projectId),
+    platformContacts: await platformContacts(db, deps.config.launchContacts),
+    catalogue,
+    runtime: deps.driver.name,
+    repository:
+      repo.provider === 'github'
+        ? { provider: 'github', organisation: deps.config.github.org }
+        : { provider: 'local' },
+    warnings: drawn.warnings,
+  })
+
+  const row = await db.transaction(async (tx) => {
+    const held = async () =>
+      (
+        await tx
+          .select()
+          .from(privacyAssessments)
+          .where(eq(privacyAssessments.projectId, input.projectId))
+          .for('update')
+      )[0]
+    let current = await held()
+    if (current === undefined) {
+      const [inserted] = await tx
+        .insert(privacyAssessments)
+        .values({
+          projectId: input.projectId,
+          state: 'draft',
+          generatedDraft: generated,
+          recordedBy: input.actor.id,
+        })
+        .onConflictDoNothing({ target: privacyAssessments.projectId })
+        .returning()
+      if (inserted !== undefined) return inserted
+      // A first draft raced this one in: theirs is the record, and this one replaces its draft.
+      current = await held()
+      if (current === undefined) throw new Error('the assessment vanished while drafting')
+    }
+    if (current.state !== 'draft') throw assessmentAlreadySent(current.state)
+    const [updated] = await tx
+      .update(privacyAssessments)
+      .set({ generatedDraft: generated, updatedAt: new Date() })
+      .where(eq(privacyAssessments.id, current.id))
+      .returning()
+    return updated!
+  })
+
+  const gapCount = generated.sections.reduce((n, s) => n + s.gaps.length, 0)
+  await publishEvent(
+    db,
+    deps.bus,
+    {
+      projectId: input.projectId,
+      subject: `privacy-assessment:${row.id}`,
+      type: 'privacy_assessment.drafted',
+      machineDetail: { fromCommit: generated.fromCommit, gapCount },
+      humanMessage: `${await personName(db, input.actor.id)} drafted this app's privacy assessment for the Privacy Office, with ${gapCount} gap(s) for the owner to fill.`,
     },
     makeRedactor([]),
   )

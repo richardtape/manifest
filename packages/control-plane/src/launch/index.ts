@@ -17,3 +17,5 @@ export * from './candidate.js'
 export * from './rehearsal.js'
 export * from './package.js'
 export * from './usage.js'
+// D19's privacy-assessment draft (the launch path plan's Task 11).
+export * from './assessment.js'

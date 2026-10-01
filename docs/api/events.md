@@ -133,6 +133,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `iam_registration.submitted` | A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records. |
 | `privacy_assessment.submitted` | A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records. |
 | `iam_registration.drafted` | Manifest drafted the app’s staging or production registration request for a person to send to UBC IAM. Nothing was sent; the draft is on the record. |
+| `privacy_assessment.drafted` | Manifest drafted the app’s privacy impact assessment for a person to complete and send to UBC’s Privacy Office. Nothing was sent; the draft is on the record. |
 | `rehearsal.completed` | A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21). |
 | `release.approved` | An administrator approved a release for production, bound to the image digest it froze (§13). |
 | `release.approval_rejected` | An administrator rejected a release for production, which is final for that release (§13); the sentence carries their reason. |

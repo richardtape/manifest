@@ -159,6 +159,10 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     attributeCount: 3,
     unusedCount: 1,
   },
+  'privacy_assessment.drafted': {
+    fromCommit: '3f2a9c41d0b7e85f6a1c2d3e4f5a6b7c8d9e0f12',
+    gapCount: 5,
+  },
   'rehearsal.completed': {
     rehearsalId: UUID,
     releaseId: UUID,

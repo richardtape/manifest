@@ -496,6 +496,21 @@ export const EVENT_DETAIL_SCHEMAS = {
     .describe(
       'Manifest drafted the app’s staging or production registration request for a person to send to UBC IAM. Nothing was sent; the draft is on the record.',
     ),
+  'privacy_assessment.drafted': z
+    .strictObject({
+      fromCommit: z
+        .string()
+        .describe('The commit whose manifest the draft was drawn from.'),
+      gapCount: z
+        .number()
+        .int()
+        .describe(
+          'How many things the draft names for the owner to add before sending — what Manifest cannot know. The draft itself is on the record, not here.',
+        ),
+    })
+    .describe(
+      'Manifest drafted the app’s privacy impact assessment for a person to complete and send to UBC’s Privacy Office. Nothing was sent; the draft is on the record.',
+    ),
   /**
    * D21 as R2 redefines it (P6a Task 14). The COUNT of attributes released, never the
    * names, and never the assertion or a NameID — `launch/rehearsal.ts` holds the evidence.

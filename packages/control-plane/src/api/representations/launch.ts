@@ -2,6 +2,7 @@ import { z } from 'zod/v4'
 import { iamRegistrationState, privacyAssessmentState } from '../../db/index.js'
 import {
   LAUNCH_ITEM_IDS,
+  readAssessmentDraft,
   readPackage,
   type IamRegistrationRow,
   type PrivacyAssessmentRow,
@@ -306,6 +307,86 @@ export const IamRegistration = representation(
     ),
 )
 
+/**
+ * D19'S PRIVACY-ASSESSMENT DRAFT (the launch path plan's Task 11; Spec action 4) — what the owner
+ * completes and sends the Privacy Office, as Manifest generated it and stored it on the record.
+ * PUBLISHED TEXT: no section, decision or plan numbers in these descriptions.
+ */
+export const PrivacyAssessmentDraft = representation(
+  'PrivacyAssessmentDraft',
+  z
+    .object({
+      project: z
+        .object({
+          slug: z.string().describe('The app’s address name.'),
+          name: z.string().describe('The app’s name, as it was when this was drafted.'),
+        })
+        .describe('The app this assesses.'),
+      generatedAt: Timestamp.describe(
+        'When Manifest drafted it. The day a person says they sent it can be no earlier.',
+      ),
+      fromCommit: z
+        .string()
+        .describe(
+          'The commit whose `manifest.yaml` it was drawn from: the release serving staging — or, while nothing serves staging, the newest valid manifest.',
+        ),
+      sections: z
+        .array(
+          z
+            .object({
+              id: z
+                .enum([
+                  'collected',
+                  'stored',
+                  'flows',
+                  'retention',
+                  'accountable',
+                  'hosting',
+                ])
+                .describe(
+                  'Which question it answers — stable, for a client to switch on: what personal information is collected, where it is stored, where it flows, how long it is kept, who is accountable, and where it is hosted.',
+                ),
+              title: z.string().describe('The question, for a person.'),
+              facts: z
+                .array(
+                  z
+                    .object({
+                      label: z.string().describe('What the fact is about.'),
+                      value: z.string().describe('The fact, as a sentence.'),
+                      source: z
+                        .string()
+                        .describe(
+                          'Where Manifest read it — a field of `manifest.yaml`, the model catalogue, the project’s members.',
+                        ),
+                    })
+                    .describe('One thing Manifest knows, and where it read it.'),
+                )
+                .describe('What Manifest knows, in order.'),
+              gaps: z
+                .array(z.string())
+                .describe(
+                  'What Manifest cannot know, for the owner to add before sending — what the app keeps in its own database, where UBC will host it. Empty when there is nothing.',
+                ),
+            })
+            .describe('One of the assessment’s six questions.'),
+        )
+        .describe('The six questions, in the order the Privacy Office reads them.'),
+      warnings: z
+        .array(z.string())
+        .describe(
+          'What to know before sending it — a draft drawn without a release serving staging. Empty when there is nothing.',
+        ),
+      text: z
+        .string()
+        .describe(
+          'The whole draft as plain text — every fact with where it came from, and every gap — for the owner to paste into the Privacy Office’s form.',
+        ),
+    })
+    .describe(
+      'What a person completes and sends UBC’s Privacy Office: what the app collects, where it is stored and where it flows, how long it is kept, who is accountable and where it is hosted — each as facts with their source, and the gaps only the owner can fill.',
+    ),
+)
+
 /** §6's `PrivacyAssessment`. Three states, and §9 names no rejection: a refused one goes back to `draft`. */
 export const PrivacyAssessment = representation(
   'PrivacyAssessment',
@@ -337,6 +418,9 @@ export const PrivacyAssessment = representation(
       ),
       submittedBy: Submitter.nullable().describe(
         'Who said it was sent; null until it is.',
+      ),
+      draft: PrivacyAssessmentDraft.nullable().describe(
+        'What Manifest drafted for the person to complete and send (`draftPrivacyAssessment`), kept as it was sent once it is; null until drafted.',
       ),
       createdAt: Timestamp.describe('When the record was first written.'),
       updatedAt: z.iso.datetime().describe('When the record last changed.'),
@@ -562,6 +646,7 @@ export function toPrivacyAssessment(
     externalTicketRef: row.externalTicketRef,
     submittedAt: row.submittedAt === null ? null : row.submittedAt.toISOString(),
     submittedBy,
+    draft: readAssessmentDraft(row.generatedDraft),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }

@@ -348,6 +348,17 @@ Manifest drafted the app’s staging or production registration request for a pe
 }
 ```
 
+## `privacy_assessment.drafted`
+
+Manifest drafted the app’s privacy impact assessment for a person to complete and send to UBC’s Privacy Office. Nothing was sent; the draft is on the record.
+
+```json
+{
+  "fromCommit": "3f2a9c41d0b7e85f6a1c2d3e4f5a6b7c8d9e0f12",
+  "gapCount": 5
+}
+```
+
 ## `rehearsal.completed`
 
 A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21).

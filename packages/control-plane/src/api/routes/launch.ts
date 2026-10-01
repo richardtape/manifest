@@ -2,6 +2,7 @@ import { z } from 'zod/v4'
 import {
   computeLaunchReadiness,
   draftIamRegistration,
+  draftPrivacyAssessment,
   getIamRegistration,
   getPrivacyAssessment,
   recordIamRegistration,
@@ -17,6 +18,10 @@ import { withdrawWhatItNoLongerAllows } from '../spec-validation.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
 import {
+  ASSESSMENT_APPROVED_EXAMPLE,
+  ASSESSMENT_DRAFTED_EXAMPLE,
+  ASSESSMENT_SUBMIT_REQUEST_EXAMPLE,
+  ASSESSMENT_SUBMITTED_EXAMPLE,
   DRAFTED_EXAMPLE,
   RECORDS_EXAMPLE,
   SUBMIT_REQUEST_EXAMPLE,
@@ -247,22 +252,8 @@ export const launchRoutes = [
       'LAUNCH_TRANSITION_INVALID',
     ],
     examples: {
-      request: { state: 'approved' },
-      response: {
-        id: 'f96ed25a-a768-42c9-b359-b8a1d019984b',
-        projectId: 'ba33fb76-53ad-4f64-96b7-6e93f1e53df3',
-        state: 'approved',
-        reviewer: null,
-        approvedAt: '2026-10-01T06:56:12.130Z',
-        externalTicketRef: 'PIA-2026-0101',
-        submittedAt: '2026-09-30T19:00:00.000Z',
-        submittedBy: {
-          id: '56746a30-6ba2-4c84-98fe-7640fda8a05d',
-          displayName: 'Bio Prof',
-        },
-        createdAt: '2026-10-01T06:56:12.112Z',
-        updatedAt: '2026-10-01T06:56:12.130Z',
-      },
+      request: { state: 'approved', reviewer: 'K. Privacy' },
+      response: ASSESSMENT_APPROVED_EXAMPLE,
     },
     handler: async ({ deps, request, params, body }) => {
       const actor = requireSession(request)
@@ -321,6 +312,48 @@ export const launchRoutes = [
         actor: { id: actor.userId },
       })
       return toIamRegistration(row, await submitterOf(deps.db, row.submittedBy))
+    },
+  }),
+  defineRoute({
+    operationId: 'draftPrivacyAssessment',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/launch-records/privacy-assessment/draft',
+    tag: 'launch',
+    summary: 'Draft the privacy impact assessment for the Privacy Office',
+    description:
+      'Manifest generates the privacy impact assessment the project’s owner completes and sends UBC’s Privacy Office, and keeps it on the record as `draft`: six questions — what personal information the app collects, where it is stored, where it flows, how long it is kept, who is accountable, and where it is hosted — each answered with facts and where Manifest read them (`manifest.yaml`, the model catalogue, the project’s members), and the gaps only the owner can fill, such as what the app keeps in its own database; and the whole as plain text to paste. It is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the draft says so. Drafting again replaces the draft until it is sent: once the assessment is `submitted` or `approved`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until the Privacy Office sends it back. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Saying it was sent is `submitPrivacyAssessment`.',
+    params: z.strictObject({ projectId: PATH.projectId }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description: 'The assessment, with its new draft in `draft`.',
+      schema: PrivacyAssessment,
+    },
+    capability: 'launch:draft',
+    examples: { response: ASSESSMENT_DRAFTED_EXAMPLE },
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'LAUNCH_RECORD_SUBMITTED',
+      // Reading `manifest.yaml` at the commit it is drawn from — the source routes' own refusals.
+      'SOURCE_COMMIT_NOT_FOUND',
+      'SOURCE_GIT_FAILED',
+      'SOURCE_PROVIDER_MISMATCH',
+      'SOURCE_UNREACHABLE',
+      // Reading the model catalogue, for an app that declares a model — validation's own refusals.
+      'AI_BACKEND_UNAVAILABLE',
+      'AI_CATALOGUE_EMPTY',
+    ],
+    handler: async ({ deps, actor, params }) => {
+      // MINTABLE, as the registration's draft is: no `requireSession`. The capability first, so a
+      // stranger is `404` and learns nothing.
+      await assertCapability(deps.db, actor, params.projectId, 'launch:draft')
+      const row = await draftPrivacyAssessment(deps, {
+        projectId: params.projectId,
+        actor: { id: actor.userId },
+      })
+      return toPrivacyAssessment(row, await submitterOf(deps.db, row.submittedBy))
     },
   }),
   defineRoute({
@@ -404,22 +437,8 @@ export const launchRoutes = [
       'LAUNCH_SENT_AT_INVALID',
     ],
     examples: {
-      request: { reference: 'PIA-2026-0101' },
-      response: {
-        id: '1c31cb45-21cc-4d00-a704-ca13280fce19',
-        projectId: 'a1750cc1-f060-431a-99f3-6da1fd4b17fb',
-        state: 'submitted',
-        reviewer: null,
-        approvedAt: null,
-        externalTicketRef: 'PIA-2026-0101',
-        submittedAt: '2026-09-30T19:00:00.000Z',
-        submittedBy: {
-          id: '027bc08a-b1f7-4b8b-87cd-3cb4ffb43b21',
-          displayName: 'Bio Prof',
-        },
-        createdAt: '2026-10-01T06:56:00.855Z',
-        updatedAt: '2026-10-01T06:56:00.862Z',
-      },
+      request: ASSESSMENT_SUBMIT_REQUEST_EXAMPLE,
+      response: ASSESSMENT_SUBMITTED_EXAMPLE,
     },
     handler: async ({ deps, request, params, body }) => {
       const actor = requireSession(request)

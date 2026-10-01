@@ -506,7 +506,7 @@ export const ERROR_CODES = {
     summary:
       'There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.',
     remedy:
-      'Draft it first (`draftIamRegistration` for a registration), send the draft to UBC, then say it was sent. Nothing was recorded.',
+      'Draft it first (`draftIamRegistration` for a registration, `draftPrivacyAssessment` for the privacy assessment), send the draft to UBC, then say it was sent. Nothing was recorded.',
   },
   LAUNCH_SENT_AT_INVALID: {
     status: 400,
@@ -537,9 +537,9 @@ export const ERROR_CODES = {
     status: 409,
     families: ['LaunchRecordError'],
     summary:
-      'This registration is with UBC IAM or registered by it (`submitted` or `active`), and what was sent is kept as it was sent: Manifest drafts it again only once UBC asks for changes or the registration lapses.',
+      'This record has been sent, and what was sent is kept as it was sent. A registration that is with UBC IAM or registered by it (`submitted` or `active`) is drafted again only once UBC asks for changes or the registration lapses; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back.',
     remedy:
-      'To change what UBC IAM was sent, ask UBC IAM. Once an administrator records that it asked for changes (`change_requested`) or that the registration lapsed (`expired`), draft it again.',
+      'To change what was sent, ask UBC IAM or the Privacy Office. Once an administrator records that UBC asked for changes (`change_requested`), that the registration lapsed (`expired`), or that the assessment came back (`draft`), draft it again.',
   },
   // Task 10's whole-branch review: what is sent is the draft the person read, carrying what UBC asks for.
   LAUNCH_DRAFT_STALE: {

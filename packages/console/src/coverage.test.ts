@@ -53,8 +53,11 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
     'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — drafting each registration, then saying it was sent',
   submitIamRegistration:
     'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — sending the package Task 10 drafts',
+  // Task 11 parks the assessment's draft beside them.
+  draftPrivacyAssessment:
+    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — drafting the privacy assessment, then saying it was sent',
   submitPrivacyAssessment:
-    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — after Task 11 drafts the assessment it sends',
+    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — sending the assessment Task 11 drafts',
 }
 
 /**

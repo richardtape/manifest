@@ -89,6 +89,12 @@ export const EVENT_TYPES = [
    * as `iam_registration.recorded` (a member reads them through `getLaunchRecords`).
    */
   'iam_registration.drafted',
+  /**
+   * §9 (Spec action 4; the launch path plan's Task 11): Manifest drafted the privacy assessment for a
+   * person to send — the commit and how many gaps the owner must fill, NEVER the draft's text (a
+   * member reads it through `getLaunchRecords`).
+   */
+  'privacy_assessment.drafted',
   /** D21 as R2 redefines it (P6a Task 14): a production-shaped rehearsal ran, and passed or did not. */
   'rehearsal.completed',
   /** §13 (P6a Task 10): an administrator approved this release for production, bound to its digest. */
