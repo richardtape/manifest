@@ -914,9 +914,8 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
-and the current numbers are **`make doctor` 20 / 0 and `make verify` 62 / 0**
-(**All four were re-measured on 2026-09-30 at the close of the launch path plan's sitting 5 (Tasks 7 and 8 — a session narrowed in place; removing a member revokes their tokens, closes their streams and ends their sessions), and two moved: `pnpm test` **2923 passed** in **184** files, twice on the final tree (was 2908; 737 s and 737 s alone, 0 `deadlock detected` in either); `pnpm test:docker` **269 in 42** (was 268; 1337 s, and NO pool red from 12 networks — Rich removed the 42 row-less `mf-` apps the reds came from); `make doctor` 20 with **0 failed and 0 warnings** — the vulnerability database goes stale after 2026-10-06; refresh it with `make refresh-vulndb` — and `make verify` **62**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
-line disagrees with it, that box wins. **The offline acceptance has not been
+and the current numbers are stated ONCE each (Rich, 2026-09-30): **`scripts/ci-acceptance.sh`'s `EXPECT_` lines** for
+`pnpm test`, `make doctor` and `make verify`, and **ORIENTATION §2's `pnpm test:docker` row** — this file states none of them. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has FIFTEEN steps, 1 to 15, after step 0's offline check** (the front-end enablement plan's Task 15 added step 15, `make demo-frontend`, and the authoring API plan's Task 13 step 14, `make demo-authoring` — both run on either driver; this line said FOURTEEN until the launch path plan's sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's

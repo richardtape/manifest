@@ -32,6 +32,15 @@
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
 > day** (*"apply 8"*). *After sitting 4a's close* is the record.
 
+> **AFTER SITTING 5's CLOSE — RICH'S DECISIONS OF 2026-09-30 (the planning session `manifest-00`; his words in
+> [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)).** **Spec actions 3, 4 and 5 are DECIDED and APPLIED** (`844605b`) — 3 and
+> 5 option (a) as worded; 4 option (a) with two consequential edits and one bullet (the package carries the privacy assessment's
+> reference, the PIA number). **A NEW Spec action 9, APPLIED the same day: UBC's order is SEQUENTIAL** — the privacy assessment first,
+> then the staging registration (carrying the PIA number), then, once staging is registered and tested, the production registration
+> — and **the platform gates the owner's *"I've sent it"* in that order** (Task 9's `[S9]` block). **Task 11 stays** (*"Keep Task
+> 11"*). **Sittings 10 and 11 are MERGED** (Tasks 13 and 14 in one sitting; stop after Task 13 if it runs long) — **19 tasks in 14 sittings.**
+> The successor is the *faculty-ready* plan, WRITTEN and APPROVED the same day.
+
 > **WRITTEN 2026-09-29, AT RICH'S INSTRUCTION, FROM ORIENTATION §7e** (*"Yes: write the plan, then run its Task 1 (including the
 > real-GitHub run) in the same session"*). **Reviewed and APPROVED by Rich as written, thirteen sittings, 2026-09-29** (sitting 2's first message). Its sitting 1 — Task 1, the measurements and THE FIRST
 > RUN OF THE CONTROL PLANE AGAINST REAL GITHUB — runs in the same session, before his review, exactly as the front-end enablement
@@ -70,7 +79,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 
 **Predecessor:** [`2026-09-27-front-end-enablement.md`](./2026-09-27-front-end-enablement.md), executed 2026-09-29. **Its *What this plan does not build* and its *Sitting 12*'s deferred list are an input list**: M4 (Rich's decision) is Task 8; M6 is FE-33, Task 5; M3 is part of Task 12; F26 is Task 3. The rest stays named in *What this plan does not build* below.
 
-**Successor:** the vulnerability database in the console (Rich, 2026-09-27: *"Launch path first"*; ORIENTATION §8 *Decided*). Then, in the roadmap's order, FE-19, FE-20, FE-21, FE-22, FE-7 and FE-3. **And FE-30 with FE-28, as a sitting of their own after this plan** (Rich, 2026-09-29, sitting 2's first message: *"not in this plan. Put FE-30 and FE-28 in a sitting of their own after it"* — where it falls beside the vulnerability database in the console is his to say).
+**Successor:** **the *faculty-ready* plan — [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), WRITTEN and APPROVED by Rich 2026-09-30** (*"(a) Faculty-ready → FE-32 → vuln DB"*; *"plan looks good"*): FE-28 widened, FE-30 with FE-29, FE-31, F8's `422` hook, `node:24-alpine`, `Init: true`, the IdP store's own role and §26's administrator reason. **Then FE-32** (an agent can add a dependency), **then the vulnerability database in the console.** It replaces *"FE-30 and FE-28 in a sitting of their own after it"* (2026-09-29).
 
 ---
 
@@ -102,12 +111,11 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** — ✅ **APPLIED as worded, 2026-09-30, at this sitting's open** | **DONE 2026-09-30** — subagent-driven, by `manifest-d4`: Spec actions 8, 1 and 2 applied first at Rich's word; **Task 7** (`d061ad7`): a session narrowed in place — `/key/update` by alias, then the row and `agent_session.narrowed` in one transaction, ended only when nothing is left (`0042`); **Task 8** (`baacc1c`, `0b4d50e`): a removal revokes the person's tokens on the project in its own transaction, closes their streams `4401`/`4404`, ends their sessions `member_removed` (`0043`), and a start or a mint racing it holds the membership row; one fix round (the mint race), one whole-branch review beside the Docker tier (269/269, no pool red — Rich removed the 42 orphan apps), one fix wave (`f27914e`: the seam guard's test, a false `409`); contract `1.5.0`, the front-end told before each commit |
 | 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; ✅ **APPLIED 2026-09-30** (*"apply 8"*) | ← **next** |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
-| 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
-| 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** | |
-| 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** | |
-| 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** | |
-| 10 | 13 | **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue | **No** — unless a change reaches an owing path | — | |
-| 11 | 14 | **The guides**: *Launching* rewritten around the three clocks; *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example | **No** | — | |
+| 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | |
+| 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | |
+| 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | |
+| 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30 | |
+| 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example | **No** — unless a change reaches an owing path | — | |
 | 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -115,7 +123,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 1. **The four gates**, from the repository root: `pnpm test` (twice, alone), `pnpm lint`, `pnpm typecheck` and `pnpm format:check`. Add **`pnpm test:docker`** whenever the table above says it is owed (1309 s on its last run, 2026-09-29). **Budget for it rather than being surprised by it, run it in the background, and restart the control plane afterwards.** **The test budget is LEAN** (ORIENTATION §8 *Decided*): no open run on an unchanged tree, single files while fixing, and the whole suite twice on the FINAL tree at the close.
 2. **A dated entry in *What executing this plan found*.** It records the tasks, every defect with the measurement that found it, and the negative controls, including which of them could not fail and why. It ends with the gate numbers and the state of the machine, **queried at the close** (`psql`, `docker`, `curl`), never remembered.
 3. **This plan's sittings table, updated.** Mark the sitting done and move the `← next` marker. **State no findings count here**: it lives once, in the roadmap's defect-rate table, derived at the CLOSE with the command at the head of *What executing this plan found*.
-4. **The close-out sweep in ORIENTATION §6.** Its first line is the roadmap ledger. The gate numbers live in **ORIENTATION's top-of-file box, §2's box, `RUNBOOK.md` and `scripts/ci-acceptance.sh`'s four `EXPECT_` lines**, and all four move together. **Then re-read your own §7e as a cold agent would, and verify every claim by opening what it points at.**
+4. **The close-out sweep in ORIENTATION §6.** Its first line is the roadmap ledger. **The gate numbers are stated ONCE (since 2026-09-30, Rich's *"Trim + single source"*): `scripts/ci-acceptance.sh`'s `EXPECT_` lines for the unit suite, doctor and verify, and ORIENTATION §2's box for `pnpm test:docker`'s** — everything else points at them, so the sweep moves one place each. **Then re-read your own §7e as a cold agent would, and verify every claim by opening what it points at.**
 
 **THIS TABLE IS A SCHEDULE, NOT A CONTRACT.** Moving task boundaries is Task 1's job. **If a measurement breaks the split, say so to Rich before sitting 2 and let him re-cut it. Do not re-cut it silently.** Three rules survive any re-cut. **Task 1 stays first and alone. Task 15 stays alone and last. No task that a spec action changes runs before Rich has decided that spec action** — and if he chooses an option other than the recommended one, the task's own *If Rich chooses otherwise* paragraph says what changes.
 
@@ -232,7 +240,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
    against the projects that own them. Deleting one on github.com is his, or is done by the script's `--delete <name>` at his yes,
    named one at a time. **The same truncation takes `lp-real-a`'s ROW at sitting 2's first Vitest run, and its repository on
    GitHub stays** — the script then reads it `NONE`. That is expected, and it is exactly what the script is for.
-6. **FE-28 TO FE-32 — do any join this plan?** They were relayed as his decisions and not yet confirmed by him (ORIENTATION §8
+6. ~~**FE-28 TO FE-32 — do any join this plan?**~~ **DECIDED 2026-09-30: none joins it** — FE-29, FE-31 and FE-32 CONFIRMED by Rich, and FE-28, FE-29, FE-30 and FE-31 placed in the *faculty-ready* plan, FE-32 in the plan after it. *As written:* They were relayed as his decisions and not yet confirmed by him (ORIENTATION §8
    *Open*): FE-28 (`__Host-manifest_session`), FE-31 (`listBlueprints` offers only blueprints meant for people) and FE-30 (a
    request id on every answer) *"before faculty use it for real"*; FE-29 (a refusal's facts as fields) *"when the error envelope
    is next touched"*; FE-32 (an agent cannot add a dependency). **This plan carries none of them**, because none was named in its
@@ -1841,6 +1849,24 @@ faculty member, which is the whole unit tier's `withProjectServer` owner.
 
 ## Task 9: The three clocks' records — the staging registration, "I've sent it", and *waiting since*
 
+> **`[S9]` (Rich, 2026-09-30, Spec action 9 — APPLIED, `844605b`): THE THREE RUN IN UBC'S ORDER, AND THE OWNER'S *"I'VE SENT IT"* IS
+> GATED IN IT.** Rich: *"app developed -> apply for PIA -> once a PIA is given -> provide info to IAM team -> once IAM approval and
+> implementation -> we can now go on the staging environment -> once tested -> send production details to IAM team -> once received
+> and implemented -> go live in production"*, and *"Gate each step"*. So `submitIamRegistration` gains **two `409`s** (name them in
+> the `LaunchRecordError` family, with their remedies in `api/error-codes.ts`; suggested `LAUNCH_PIA_NOT_APPROVED` and
+> `LAUNCH_STAGING_NOT_REGISTERED`):
+> - **a STAGING submission is refused unless the project's privacy assessment is `approved` AND has its reference**
+>   (`external_ticket_ref`, the PIA number — Spec action 4's package carries it, Task 10);
+> - **a PRODUCTION submission is refused unless the staging registration is `active`** (*"tested"* is the owner's judgement, not
+>   measured).
+>
+> **An administrator's `launch:record` of UBC's answer is NEVER refused for order** — UBC's decision is a fact (Spec action 9's §9
+> words) — which also keeps `make demo-production` and the demos that record production `active` directly green. **An app with
+> `auth.provider: none` registers nothing**; its privacy assessment still comes first for production. **The laptop's demo** (Task 15)
+> records staging `active` as an administrator before the production submission. Each refusal gets its refusal test, a positive control
+> (the same submission after the prerequisite is recorded), and a negative control. **The faculty front-end designs the sequence in its
+> F5b** (walk-through moment 10 was *"three long clocks, started early"*): tell it the two codes before the contract commit.
+
 > **`[S4a]` (sitting 4a, 2026-09-30 — Task 6b, `fa02bbc`, and its final wave): `launch:rehearse` IS ALREADY IN `CAPABILITIES`, `OWNER`
 > and `PERSON_ONLY`** (`projects/authz.ts`), and in the console's `everyCapability([...])` and its own `PERSON_ONLY` set
 > (`packages/console/src/screens/tokens.tsx`) — `launch:submit` goes beside it, and `person-only.test.ts`'s set keeps it. **The
@@ -1975,6 +2001,11 @@ lands, the submission routes have no client that can meet their precondition** �
 ---
 
 ## Task 10: D19's registration package — UBC's structure, Manifest's values, a justification for every attribute
+
+> **`[S9]` (Rich, 2026-09-30, Spec action 4 as applied):** the package also carries **the privacy assessment's reference — the PIA
+> number, which UBC IAM asks for** (§9's package list). And §2's asset row and §9's *Certificate lifecycle* now say the tool's
+> STRUCTURE is used, never its code, and that Manifest issues the certificate itself (D20) — the `sso/` renderer's comments should say
+> the same.
 
 > **`[M6]` and `[M9]` (Task 1, 2026-09-29 — F11, F12).** **The structure** is `spikes/launch-baseline/probes/ubc-structure.xml`,
 > the tool's own output. Copy it into the test's fixture directory as `UBC_STRUCTURE_ORDER`'s source.
@@ -2428,7 +2459,7 @@ lands, the submission routes have no client that can meet their precondition** �
 - **An audience upgrade, a domain, a launch override in the queue** — §26's other rows, whose entities do not exist yet (§24,
   §23, `LaunchReadiness` overrides).
 - **An owner revoking any token on their project, and `Token` naming its minter** — FE-11's option (b). Rich chose (a) (Task 8).
-- **FE-28 to FE-32** — relayed as Rich's decisions and not confirmed (*What Rich does* 6).
+- **FE-28 to FE-32** — CONFIRMED by Rich 2026-09-30 and placed: FE-28 to FE-31 in the *faculty-ready* plan, FE-32 in the plan after it.
 - **TAs building, or being added** — FE-39's *"Perhaps in the future"*: a change to Task 8a's one predicate, when Rich says so.
 - **From the front-end enablement plan, still open:**
   - M1 — a restore after a part-way teardown (`teardown_finished_at`);
@@ -2500,7 +2531,7 @@ app for up to a year (the faculty front-end's FE-11).
 **Shared pages:** `manifest-decisions.html` D24 (a sentence: *"and a person removed from a project takes their agents' access
 with them"*); check the others.
 
-### 3. §9, §6, §13, §19 and D24 — the staging registration is a second kind of `IamRegistration`, and an owner says *"I've sent it"* (before sitting 6)
+### 3. §9, §6, §13, §19 and D24 — the staging registration is a second kind of `IamRegistration`, and an owner says *"I've sent it"* (before sitting 6) — ✅ **OPTION (a) APPLIED AS WORDED, 2026-09-30** (Rich, planning session `manifest-00`: *"(a) Apply as worded"*; `844605b`); shared pages: `manifest-phases.html` stage 2, the schematic's launch checklist, `manifest-decisions.html` D19 and D24 — swept
 
 **Why.** FE-6, the launch path Rich placed first. §9 says how Manifest drafts and tracks the staging request *"is not yet
 designed"*, and §19 asks *"beside `IamRegistration` or as a second kind of it"*. And nothing records that a request was sent, so
@@ -2536,7 +2567,7 @@ nothing can say *waiting since*.
 **Shared pages:** `manifest-phases.html` stage 2 (a faculty member drafts and sends their launch requests from week one);
 `manifest-schematic.html`, where it describes the launch checklist; `manifest-decisions.html` D19 and D24.
 
-### 4. §9 — D19's package: UBC's structure, not the tool's code; justifications from where the code reads each attribute; the assessment names its gaps (before sitting 7)
+### 4. §9 — D19's package: UBC's structure, not the tool's code; justifications from where the code reads each attribute; the assessment names its gaps (before sitting 7) — ✅ **OPTION (a) APPLIED 2026-09-30, WITH TWO CONSEQUENTIAL EDITS AND ONE BULLET** (Rich: *"(a) + follow-ons + PIA no."*; `844605b`): §2's asset row (*"Its structure, not its code"*), §9's *Certificate lifecycle* (Manifest issues the certificate itself, D20), and the package list's *"the privacy assessment's reference (the PIA number), which UBC IAM asks for"*; shared pages checked — none names the tool
 
 **Why.** §9 says the package is generated *"reusing `saml-metadata-generator` as a library"*. The tool is a web application, not
 a library (*Read this first* 6): its ACS paths are the Shibboleth daemon's, it hands the person the private key, and it is not a
@@ -2563,7 +2594,7 @@ dependency Manifest may add (C6). What UBC IAM needs from it is its STRUCTURE.
 **Shared pages:** `manifest-decisions.html` D19 (*"drafts it"* is still true — check the wording); the others do not name the tool
 (check).
 
-### 5. §6, §13 and §26 — an owner asks for sign-off, and the request is a queue item (before sitting 9)
+### 5. §6, §13 and §26 — an owner asks for sign-off, and the request is a queue item (before sitting 9) — ✅ **OPTION (a) APPLIED AS WORDED, 2026-09-30** (Rich: *"(a) Apply as worded"*; `844605b`); shared pages: `manifest-phases.html` stage 2
 
 **Why.** FE-25. §26's queue lists *"Release awaiting approval — `Approval` (D9)"*, but nothing makes a release await one: an
 approval begins on the administrator's side, and a refused production deploy writes nothing (*Read this first* 10).
@@ -2736,6 +2767,23 @@ same sentence) — its *"a rehearsal the platform runs by itself"* in the P6a st
 launch did; `manifest-phases.html` and `manifest-stories.html` checked — their rehearsals are load rehearsals and history — unchanged.
 
 ---
+
+### 9. §9 and §13 — UBC's order: the privacy assessment first, then the staging registration, then production's (NEW, drafted 2026-09-30 by the planning session `manifest-00` from Rich's own description of UBC's process) — ✅ **APPLIED AS WORDED, 2026-09-30** (Rich: *"Apply as worded"*; `844605b`)
+
+**Why.** Rich, answering Spec action 4: *"In order to get IAM integration, the app needs a PIA … a separate tool to help collect
+everything needed by the IAM team (which includes the PIA number) … the process needs to exist in the app as app developed -> apply
+for PIA -> once a PIA is given -> provide info to IAM team -> once IAM approval and implementation -> we can now go on the staging
+environment -> once tested -> send production details to IAM team -> once received and implemented -> go live in production."* The
+spec had three parallel clocks, the staging registration *"the first of the three to start"*. Asked how Manifest holds the order, he
+chose *"Gate each step"* — on the owner's *"I've sent it"* only; an administrator's record of UBC's answer is never refused for order.
+
+**Applied**, four edits: §9 *Staging* (*"the second of three steps, in UBC's order … sent only once the privacy assessment is
+approved, and its package carries the assessment's reference"*); §9 *Production* (*"sent only once the staging registration is
+`active` … What UBC decides … is never refused for order"*); §9 *Privacy Impact Assessment* (*"it comes first"*); §13 (*"They run in
+UBC's order, one after another …"*). Two consequential phrases: §6's `PrivacyAssessment` row gains `external_ticket_ref` (the PIA
+number), and §19's PIA row also blocks *"sending an app's staging registration"*. **Shared pages**: the schematic (its going-live
+mock-up showed the registration with UBC while the assessment was still a draft), the stories (two said *"in parallel"*), the
+decisions page's D19, and phases stage 2. **Built by Task 9's `[S9]` block.**
 
 ## What the self-review caught
 

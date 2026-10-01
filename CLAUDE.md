@@ -7,22 +7,16 @@ plan queue, and the conventions below in full. Everything here is the short vers
 
 ## State
 
-*This section moves only when a plan starts or finishes, and it states no job, no sitting and no gate
-numbers. **ORIENTATION §7e names the next job and how to run it**, and the current plan's sittings table
-says how far it has got — those are the ONLY two places the job is stated (Rich, 2026-09-24), so they are
-the only two a sitting changes. ORIENTATION §2's box is the only current statement of the four gate
-numbers, and the roadmap's ledger (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every
-other document on status.*
+*This section moves only when a plan starts or finishes. It states no job, no sitting and no gate numbers: **ORIENTATION §7e
+names the next job** and the current plan's sittings table says how far it has got; the gate numbers are `scripts/ci-acceptance.sh`'s
+`EXPECT_` lines and ORIENTATION §2's `pnpm test:docker` row, stated nowhere else; and the roadmap's ledger
+(`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every document on status (Rich, 2026-09-24 and 2026-09-30).*
 
-**The design is approved and complete, five spikes are done, and fourteen plans are executed** — Phase 1c,
-and Phase 2's first five plans, P6a (the first production launch), P6b (subsequent releases), D5's
-GitHub source driver, the authoring API and **the front-end enablement plan** (2026-09-29 — what the faculty front-end at
-`app.manifest.internal` needs; eighteen tasks in fifteen sittings, all ten of its spec actions Rich's and applied). Every one has an
-acceptance that passes. **The launch path plan is WRITTEN and APPROVED by Rich as written** (`docs/superpowers/plans/2026-09-29-launch-path.md`, 2026-09-29 — FE-6,
-FE-25 and Rich's additions; 19 tasks in 15 sittings — Task 8a and sitting 5a from the faculty front-end's FE-39, and Tasks 6a and 6b (sitting 4a) from its FE-41 and FE-42, each confirmed by Rich, and Task 6c (sitting 5b, after 5 and before 5a) from Spec action 8 — eight spec actions drafted — 7 applied at Rich's word, 6 decided (option (a)) and applied by sitting 4 (`0ebe514`), 8 drafted by sitting 4a, its premise re-asked, and DECIDED by Rich 2026-09-30 — (b) and (c) together: a step-up before D21's rehearsal, and the rehearsal takes its production instance down — APPLIED at his word the same day (*"apply 8"*; ORIENTATION §8 *Decided*), 1 and 2 applied as worded at the launch path plan's sitting 5's open (2026-09-30), 3–5 not) **and it is in execution** —
-its first sitting ran the control plane AGAINST REAL GITHUB (`Manifest-local-dev`), green end to end; its sittings table says how far
-it has got, and ORIENTATION §7e says what is next (this file names no sitting — it said *"sittings 1 and 2 have run"* until the
-launch path plan's sitting 3 found it stale). Each plan's *What executing this plan found* is its record; this file keeps none of it.
+**The design is approved and complete, five spikes are done, and fourteen plans are executed** — each with an acceptance that
+passes. **The launch path plan** (`docs/superpowers/plans/2026-09-29-launch-path.md`) is approved and in execution, every one of its
+spec actions decided and applied. **The plan after it, *faculty-ready*** (`docs/superpowers/plans/2026-09-30-faculty-ready.md`), is
+written and approved; then FE-32's plan; then the vulnerability database in the console. Rich's decisions of 2026-09-30 are in
+`docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -41,50 +35,24 @@ launch path plan's sitting 3 found it stale). Each plan's *What executing this p
 | Authoring API | 2026-09-27 | An app CREATED through the API: files read and committed against the commit read (git plumbing, no worktree, both drivers), history attributed by the platform's own record, app secrets set write-only, a build of exactly the commit written with its own manifest — and the API's documentation served by the API | `make demo-authoring` (either driver), **and a person clicking it** |
 | Front-end enablement | 2026-09-29 | A second origin (`app.`) for the faculty front-end; a project's name, people by CWL login, agent and intake model keys, recent output (sandbox), binary files, archive/restore and delete, the capable model and its on-premise fallback, the building agent's models as a setting | `make demo-frontend` (either driver), **and a person clicking it** |
 
-**Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
-turning the network off from a tool call cuts the agent off too; **it now has FIFTEEN steps**, the
-newest being `make demo-frontend` (step 15), which runs on EITHER driver like `make demo-authoring` (step 14); `make demo-github` (step 13) needs the control
-plane on DRIVER 2 while steps 6 to 12 need driver 1 — each step asks which answers and reads SKIPPED on the wrong one; step 12's preview summary may
-legitimately read `unavailable` offline), the second-machine clean clone, starting the UBC external track
-(its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
-the objects a real IAM registration and PIA would populate; **since 2026-09-20 its item 5,
-access to UBC's staging IdP, is the ONLY part of a first production launch this platform
-cannot do for itself** — Manifest runs D21's rehearsal locally and says in the checklist that
-it proves the registration's shape and never UBC's acceptance of it), **any real
-repository in `Manifest-local-dev` that no project owns** — NONE since the launch path plan's sitting 5 deleted `lp-real-a` and `f5-reading`
-at his yes (2026-09-30; `bash scripts/github-real-repos.sh` reads 0 repositories); a Vitest run truncates a row and leaves its repository, and removing one is his (the plan's *What Rich does* 5) — **refreshing the
-vulnerability database weekly, with the network on** (**`make refresh-vulndb`**, added
-2026-09-24 at Rich's request; last run by him 2026-09-29 — nothing up or down but Docker Desktop, ~1–3 minutes; **next due after 2026-10-06** — past §12's
-seven days `make doctor` warns and §13's `scans` item refuses every production launch, so
-`make demo-production` goes red), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
-applied by the agent session itself and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
-reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at sitting 1's close
-too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,
-one volume and one LiteLLM orphan (`p4b-probe-user`) came straight back**, and were cleared again. **The cycle is the thing to understand, not the status**: a tier run takes
-`make verify`'s per-app line from `containers=3 networks=1 volumes=2` to
-`containers=3 networks=8 volumes=3`, and an apply takes it back. **The tier has now been measured putting back exactly the same seven networks and one volume
-many times over** — ORIENTATION §2's box carries the count, and this file deliberately does not,
-because a restated number drifts and this one did — so treat it as a property of the Docker tier
-rather than as a backlog: **none of these cleanups stays cleared on its own**, and every demo adds a LiteLLM user
-besides. **App images have their own script since 2026-09-25, `scripts/app-images.sh`** — every build
-and every deploy leaves one, about thirteen per Docker-tier run, and nothing had ever removed them (283 went
-that day, ~8.6 GB); it keeps any image a container of any state uses, and a deploy re-pulls from the
-registry. **STATE NO COUNT HERE AND MEASURE IT
-YOURSELF**: every Docker-tier run and every demo moves it, so any number written down is
-wrong within the day. **And NAME THE METRIC when you do**, because the obvious commands
-disagree by design: on 2026-09-20 `docker images -q | wc -l` answered **114** while
-`docker images -q | sort -u | wc -l` answered **106** (dangling and multiply-tagged images),
-and the app images themselves are tagged `127.0.0.1:7107/local/*` — so
-`docker images | grep '^local/'` answers **0** and reads as *none* when 64 of them exist.
-ORIENTATION §2's *Outstanding* bullet on the image sweep carries the same lesson from the
-day 86 of them were removed. **So run all three scripts bare at a sitting's close — `dead-app-resources.sh`, `litellm-orphans.sh` and
-`app-images.sh` — then TRY `--apply` yourself**, and hand the output to
-Rich only when the classifier refuses you — it refused these in earlier sittings and ALLOWED both in
-P5c sitting 8, which cleared them without him. Never work from a written list. **The permission classifier is not a
-fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same
-session, so try the command rather than assuming either way. *(The one P5a negative control those rules refused —
-the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no
-longer outstanding.)*
+**Outstanding, and Rich's** (ORIENTATION §2 and §8 have the detail):
+- **the offline acceptance** — `scripts/offline-acceptance.sh`, run by hand, because turning the network off from a tool call cuts the
+  agent off too;
+- **the second-machine clean clone**;
+- **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-06**; past seven days `make doctor` warns and
+  §13's `scans` item refuses every production launch;
+- **any real repository in `Manifest-local-dev` that no project owns** — none on 2026-09-30 (`bash scripts/github-real-repos.sh`);
+  removing one is his;
+- **the UBC external track — DEFERRED by Rich, 2026-09-30** (*"I have to get all of this working first locally. And then show
+  demos"*): not a blocker; do not raise it as urgent;
+- the rest of ORIENTATION §8 *Open*.
+
+**Machine cleanup: at every sitting's close run `scripts/dead-app-resources.sh`, `litellm-orphans.sh` and `app-images.sh` bare,
+then TRY `--apply` yourself**, and hand the output to Rich only when the permission classifier actually refuses you — it is not a
+fixed rule, so try rather than assume. **None of these stays cleared on its own**: a Docker-tier run puts back ~7 networks, a volume
+and ~13 app images, and every demo adds a LiteLLM user. **Never work from a written count — measure, and NAME THE METRIC**:
+`docker images` counts disagree by design, and the app images are tagged `127.0.0.1:7107/local/*`, so `grep '^local/'` reads 0 when
+dozens exist.
 
 **Where to look:** [`WALKTHROUGH.md`](docs/superpowers/WALKTHROUGH.md) to see it run;
 [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) to operate it, run each demo, and — its
@@ -153,13 +121,11 @@ For the platform itself it is `make doctor` and `make verify`.
 - **Never touch Laravel Valet.** It owns the `.test` TLD, port 53 and ports 80/443 on
   this machine and on other UBC developers' machines. This is why the platform zone
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.
-- **Never edit the spec directly.** `docs/superpowers/specs/2026-08-29-manifest-platform-design.md`
-  is marked *Approved design*. Record proposed changes and ask — **every spec change this
-  project has made was approved by Rich first**, most recently **the launch path plan's Spec actions 1 and 2, applied as worded at its sitting 5's open on 2026-09-30** (§7: a session a withdrawn model leaves anything to is narrowed in place, not ended; §10/§6/§20: removing a person revokes their tokens on the project, ends their agent sessions and closes their streams) — after **its Spec action 8, applied at Rich's word the same day** (*"apply 8"* — options (b) and (c) together: D21's rehearsal is person-only and step-up, and takes its production instance down before it records; D24, §20 twice and §9 — ahead of the code, which is Task 6c) — after **its Spec action 6, applied by its sitting 4 on 2026-09-29** (option (a), Rich's *"(a) is good"*: §7's capable-model fallback answers a provider that cannot be reached or fails, and never a request the provider refused as malformed — `0ebe514`) — after **its Spec action 7, the same day** (the faculty front-end's FE-39, confirmed by Rich — only faculty, by `eduPersonAffiliation` exactly `faculty`, or an administrator named by a setting of PUIDs, may start a project or an intake session or be added to one; one who stops being faculty keeps their projects and starts nothing new — §9, §6, §13 and §20) — after **the front-end enablement plan's Spec action 10, on 2026-09-28** (option (a), as drafted, with its safeguard: the agent that BUILDS an app is governed by a platform setting — the capable model allowed on a `confidential` project by default, the app's own AI on-premise either way, a `confidential` project's tokens refused staging's and production's Incident log tails while it is — `d9a1fa1`) — after **its Spec action 9, the same day** (option (a), as drafted: §8's `SAML_PRIVATE_KEY_PATH` is required in every environment, the sandbox's included — the faculty front-end's FE-37, whose code its session committed at Rich's word, `c4e10cc`; the spec in `d82b3a2`) — after **its Spec action 8, the same day** (option (a), as drafted: the capable model's fallback is the on-premise model, `default-chat-onprem` by default, its classification the platform's to enforce — `e6c272d`) — after **its Spec action 7, on 2026-09-27** (option (a), as drafted: the capable model, `default-chat-large` at `internal`, its provider a platform setting — `959af7f`) — after **its Spec actions 5 and 6, the same day** (each option (a), as drafted: an intake key before a project exists, paid for by the platform; staging is UBC's real staging world, with the laptop's staging keeping the fake sign-in — `25e7445`) — after **its four, the same day** (each option (a): agent model keys outside a sandbox, charged to the person; the `app` origin; archive, restore and delete; a project's name and a person's CWL login — `1d1afd7`) — after **§26's *Scope*, the same day** (the interface design brief's §13: the admin console gets real design effort and no longer inherits `console/`'s plain bar, which stays with §22), and the authoring API plan's Spec actions 1 and 3 and **§7's two edits for the per-user AI budget, on 2026-09-26** (Spec action 4, option (a): validated, not enforced before Phase 4 as §10 already said, refused above the project's AI quota, and a validation warning that it binds no one) — the same day as §20's and D24's three edits for who may set an app secret's value (Spec action 2, option (a)). The
-  roadmap's *Spec action(s) raised by…* sections are the list; this file deliberately states no
-  count, because a restated number drifts (ORIENTATION §9) and this one already had.
-  **A spec action is not finished when the spec changes**: the four shared HTML pages restate it
-  in plain language, and D33 moved six counts across four files.
+- **Never edit the spec directly.** `docs/superpowers/specs/2026-08-29-manifest-platform-design.md` is marked *Approved design*.
+  Record proposed changes and ask — **every spec change this project has made was approved by Rich first** (most recently, on
+  2026-09-30, the launch path plan's Spec actions 3, 4, 5 and a new 9, and §21's Mailpit row). The roadmap's *Spec action(s) raised
+  by…* sections are the list; this file deliberately keeps no chain of them, because a restated list drifts. **A spec action is not
+  finished when the spec changes**: the four shared HTML pages restate it in plain language, and are swept with it.
 - **These containers must survive**: `docker-simple-saml-saml-idp-1`,
   `qdrant-local-dev`, `mongodb`, `mongo-express`.
 - **`docker-simple-saml` and `ubc-genai-toolkit` are read-only.** Both are clean and
@@ -202,7 +168,7 @@ For the platform itself it is `make doctor` and `make verify`.
   documents say, so a sitting that ends unswept sends them at a task that is already
   committed. **The plan's own sittings table is the first thing to change and the
   easiest to miss.** ORIENTATION §6 carries the full checklist — including the fact
-  that the gate numbers are stated in ORIENTATION's two boxes, RUNBOOK and
-  `scripts/ci-acceptance.sh` (this file deliberately states none) and must move together. Budget session
+  that the gate numbers are stated ONCE: `scripts/ci-acceptance.sh`'s `EXPECT_` lines and ORIENTATION §2's
+  `pnpm test:docker` row (this file deliberately states none). Budget session
   capacity for the sweep; if it is tight, stop a task early and sweep rather than
   finishing the task and leaving the documents lying.
