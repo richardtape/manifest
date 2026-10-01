@@ -22,6 +22,11 @@
 > starter — so driver 2's create retries its seed push and first fetch (by status, ≤30 s, a fresh token each time); 5 of 5 on
 > github.com. Spec action 6 applied; FE-34's guard keeps §7's words in the gateway (`make verify` 62). *Sitting 4* is the record.
 
+> **SITTING 5 — TASKS 7 AND 8 — DONE 2026-09-30.** Spec actions 8, 1 and 2 applied at Rich's word first. A session whose project no
+> longer allows one of its models is narrowed in place (`agent_session.narrowed`), and ended only when nothing is left. Removing a member
+> revokes their tokens on the project, closes their streams and ends their sessions (`member_removed`), and neither a mint nor a session
+> start can race it into a live credential. Contract still `1.5.0`. *Sitting 5* is the record; **sitting 5b (Task 6c) is next.**
+
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
@@ -94,8 +99,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 3 | 4, 5 | **FE-38 and FE-33**: `instances.created_at` and `Instance.createdAt`; a stream registry — a revoked or expired token's streams closed `4401`, a deleted project's closed `4404`, at the moment it happens | **Yes** — `observability/`, `releases/` | none | **DONE 2026-09-29** — subagent-driven, after Rich's answers (FE-40 confirmed; the database dumped first): `0041` and `Instance.createdAt`, **contract `1.5.0`** (the plan's one bump); the stream registry — `4401` at a revoke, an archive's revoke and an expiry (token AND session), a delete's `4404` at the tombstone, **the authorization → registration race window closed and held by a deterministic lock test**; one fix round per task, one whole-branch review beside the Docker tier, one fix wave; the front-end told at every contract commit and adopted `1.5.0` |
 | 4 | 6, 6a | **FE-34**: the capable model's fallback answers a provider that could not be reached, timed out, rate-limited or failed — and **not** one that refused the request as malformed. It is a LiteLLM guard if Task 1's `[M5]` measures that one can be built, and otherwise documented and raised with Rich. **And FE-41 (Task 6a, Rich's, after sitting 3's close): a project created WITH a starter on real GitHub — reproduced at his yes, logged, fixed on driver 2, held by a test** | **Yes** — `ai/`, `infra/`, `source/` | **Spec action 6** — ✅ **DECIDED by Rich: option (a)** (2026-09-29, after sitting 3's close: *"(a) is good"*); **APPLIED by sitting 4 before Task 6** (`0ebe514`); Task 6a needs none | **DONE 2026-09-29/30** — subagent-driven: **FE-41's premise false** (not the starter — real GitHub refuses a repository it made seconds ago, 403/404 in four measured shapes); driver 2's create retries its seed push and first fetch by STATUS, one ≤30 s budget, a fresh token per retry, and forgets a slug's stale tokens first; a failed create logged; on github.com 6 of 7 failed before, 5 of 5 after (2 retried). **Spec action 6 applied**; the **fallback guard** (`manifest_guard.py`) refuses a fallback after a provider's 400/413/422, read from the request's own logging object, lets 401/403/404/408/429/5xx fall back — streamed too; `make verify` 62. F8 (`422` → `200 null`) stands, LiteLLM's — for Rich |
 | 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich. **A TOKEN MAY NOT RUN IT — Rich's (a), PERSONS ONLY** (relayed by `manifest-73`, his session for 4a, 2026-09-29: owner, collaborators and administrators from an interactive session; a delegated token stays refused, SESSION_ONLY as today; one D24 clause is DRAFTED as a spec action for his later approval — it does not block 4a); **Spec action 8 drafted by 4a — its premise RE-ASKED** (the rehearsal leaves the unapproved candidate on production's public listener) | **DONE 2026-09-30** — subagent-driven: Step 1 read by the controller (no spec text names who triggers it — no stop); **`launch:rehearse`**, in `OWNER` (collaborator and administrator inherit it), person-only, not step-up; `runRehearsal`'s description says who may run it and drops `FORBIDDEN`; the owner still refused `launch:record`; contract `1.5.0` (the enum gains it); the front-end told first; **the whole-branch review found the rehearsal leaves an UNAPPROVED candidate serving production's public listener until the launch — Rich's (a) had rested on the controller's wrong *"nothing is public"*, so Spec action 8 re-asks it** (`fa02bbc` stands meanwhile); one wave: the published person-only lists held by a test, the journey's launch row split, comments made true |
-| 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** — ✅ **APPLIED as worded, 2026-09-30, at this sitting's open** | ← **next** |
-| 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; ✅ **APPLIED 2026-09-30** (*"apply 8"*) | |
+| 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** — ✅ **APPLIED as worded, 2026-09-30, at this sitting's open** | **DONE 2026-09-30** — subagent-driven, by `manifest-d4`: Spec actions 8, 1 and 2 applied first at Rich's word; **Task 7** (`d061ad7`): a session narrowed in place — `/key/update` by alias, then the row and `agent_session.narrowed` in one transaction, ended only when nothing is left (`0042`); **Task 8** (`baacc1c`, `0b4d50e`): a removal revokes the person's tokens on the project in its own transaction, closes their streams `4401`/`4404`, ends their sessions `member_removed` (`0043`), and a start or a mint racing it holds the membership row; one fix round (the mint race), one whole-branch review beside the Docker tier (269/269, no pool red — Rich removed the 42 orphan apps), one fix wave (`f27914e`: the seam guard's test, a false `409`); contract `1.5.0`, the front-end told before each commit |
+| 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; ✅ **APPLIED 2026-09-30** (*"apply 8"*) | ← **next** |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | |
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** | |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** | |
@@ -1511,6 +1516,28 @@ guide), the mock if it scripts the rehearsal's refusal; then the four regenerati
 > **Spec action 8's combined words were APPLIED at Rich's word on 2026-09-30** (*"apply 8"*; the *Spec actions* section, 8) — the
 > spec runs ahead of the code until this task lands. Step 3 also corrects `projects/authz.ts`'s `PERSON_ONLY` comment (*"D24's clause
 > naming it is DRAFTED … and not yet applied"*) and whatever in `person-only.test.ts` names the rehearsal apart from D24's others.
+>
+> **`[S5]` (sitting 5, 2026-09-30 — what 5b inherits):**
+> - **THE CONTRACT BUNDLE — 5b's contract commit carries these five as well** (sitting 5's whole-branch review, triaged *"one contract
+>   commit, the next one"*): `removeMember`'s description says removing a non-member *"publishes nothing"* — it can publish
+>   `agent_session.ended` (say *"publishes no `member.removed`"*); `AI_CATALOGUE_DISABLED`'s published remedy (*"Remove `ai.models` from
+>   manifest.yaml…"*) does not fit a removal or a revoke; `revokeToken`'s description still does not say the token is revoked BEFORE a
+>   `503` (twice deferred — do not let it slip a third time); `member.removed`'s `tokensRevoked` says *"every one still live"* but expired,
+>   unrevoked tokens are stamped and counted too; and `agent_session.narrowed`'s `models`/`withdrawn` say *"Never empty"* with no
+>   `.min(1)`. Tell the front-end before the commit, as always.
+> - **THE FACULTY FRONT-END HAS BUILT AGAINST THIS TASK'S DESCRIBED SHAPE** (`manifest-app-f1`, its F5 sitting 6, told on 2026-09-30 from
+>   the code): the owner's dry-run press reads `403 STEP_UP_REQUIRED` by code (the production deploy's refusal — one serializer,
+>   `api/errors.ts`); a take-down refusal matched as **`REHEARSAL_TEARDOWN_FAILED`**; production's `gone` instance read as nothing there
+>   before a launch (`getEnvironment(production).instance` is the `gone` instance, not `null` — Decision 4); a failed start inside the dry
+>   run read from that instance's production Incident. **If 5b's final code, or `getEnvironment`'s answer, differs from any of these,
+>   message it before the commit** — and at 5b's close in any case (it waits for the window, below).
+> - **FE-43 (the front-end's, Rich's to carry)**: nothing reads a dry run back — one under way, or the last one's result — so a reload or a
+>   second tab can offer a second run beside one running. **5b decides whether a second rehearsal while one runs is refused** (a `409`
+>   with a code of its own, the environment's lock already serialises the deploys) **and tells the front-end the code**, or records why
+>   not; a read of the last rehearsal is FE-43's, not 5b's.
+> - **THE 7100 WINDOW**: the front-end's real-platform walk and Rich's click run BETWEEN 5b's close and 5a's first Vitest — no platform
+>   Vitest, no control-plane restart while it walks; `scripts/admin-grant.sh grant opr000001` once `operator` has signed in; one real
+>   private repository, at Rich's word. 5b's close restarts the control plane FIRST, then hands 7100 over.
 
 **Why both.** (c) alone leaves the stolen-session case open, because nothing bounds how often a rehearsal runs: a stolen owner
 session can commit, build, deploy to staging (none of that is step-up) and then loop the rehearsal, keeping its code up on production's
@@ -3474,3 +3501,197 @@ stricter still …"*) moves only when Spec action 8 is applied, and says so in t
   exactly as the combined words (each matched once), and the shared pages above. **The spec now runs ahead of the code in two places**: §20
   lists the rehearsal for step-up and §9 says it takes itself down, and the code does neither until Task 6c. D24's fourth person-only
   action is already the code's (`PERSON_ONLY`, since `fa02bbc`).
+
+### Sitting 5 — 2026-09-30: Tasks 7 and 8 — a session narrowed in place; removing a member revokes their tokens, closes their streams and ends their sessions
+
+**Run by session `manifest-d4`**: the session Rich opened that afternoon to ask where the project stood. It took Spec action 8's answer
+(`f0ca32b`) and applied it at his *"apply 8"* (`9468ff9`), then opened this sitting at his *"and then proceed with the next
+sitting"*. **Subagent-driven** on `main`:
+- one implementer per task (opus) and one task review each (opus);
+- one fix round on Task 8 (resumed implementer) and its scoped re-review (sonnet);
+- one whole-branch review (opus), run beside the Docker tier;
+- one fix wave (opus) and its scoped re-review (sonnet), run beside the first unit run.
+
+Peers:
+- **The faculty front-end** (`manifest-app-f1`, its F5 sitting 6, mock mode throughout): told before each contract commit, and adopted
+  both.
+- **The planning session `manifest-00`** (Rich's; no task here). While this sitting ran, it applied Spec actions 3, 4, 5 and a new 9 to
+  the spec and wrote the next plan — `844605b`, `50425de`, `b7a80b1`, `b269149`, `348c2c8` — touching none of this sitting's paths. It
+  also relayed that Rich had run the orphan-app script, which this sitting then measured.
+
+**The database was EMPTY at open** (0 projects, 0 users), so nothing was dumped.
+
+**At the open, Rich gave four answers**, each read with its text:
+- Spec actions 1 and 2: **"Apply as worded"** → `62c8019` (§7; §10, §6, §20; `manifest-decisions.html`'s D24).
+- The orphan apps: **"Remove"** (F12).
+- The two real repositories: **"Delete both"**. `lp-real-a` and `f5-reading` were deleted on github.com at his yes, and
+  `Manifest-local-dev` now holds 0.
+
+**What it made true**:
+- **A session is NARROWED in place, not ended** (`d061ad7`, Task 7 — Spec action 1). When a project's classification rises, or the
+  builder setting narrows, the sweep — renamed **`narrowSessionsHoldingMore`**, with every caller moved — first calls `narrowAgentKey`:
+  one `POST /key/update { key_alias, models }`. Only after the gateway answers does it write the row's `models` and a new event,
+  **`agent_session.narrowed`** (`{ sessionId, withdrawn, models, via, userId, tokenId }`), in ONE transaction, and it publishes after the
+  commit.
+  - The withdrawn models are refused through the SAME key at once (`403 key_model_access_denied`, measured on the real LiteLLM by calling
+    it), and the kept local model answers `200`.
+  - A gateway failure leaves the session live and the row unchanged, and the next sweep retries it (a commit, a production deploy, a
+    rehearsal, the boot).
+  - **It is ended `models_withdrawn` only when nothing it may use is left.** A key is never narrowed to an empty list, which LiteLLM
+    reads as every model.
+  - Migration **`0042`** (`events_type_known`). The boot line's `agentSessionsWithdrawn` gains `narrowed`. The console re-reads its
+    session list on the new event. The guides (`agents.md`, `frontend.md`) and RUNBOOK say it.
+- **Removing a member removes their access** (`baacc1c`, Task 8 — Spec action 2):
+  - In the removal's OWN transaction, `revokeTokensOfMember` revokes every token the person minted on THIS project, and only theirs.
+  - After the commit, their token streams close `4401` and their session streams on the project close `4404` (Task 5's registry).
+  - Then their agent sessions there — token-started and browser-started — end **`member_removed`**: a new end reason in the CHECK (migration
+    **`0043`**), the type, the representation and the event's enum.
+  - `member.removed` gains `tokensRevoked` and `sessionsEnded` (required).
+  - The route declares **`503 AI_CATALOGUE_DISABLED`**, which comes AFTER the removal and the revoke; repeating the request finishes
+    ending the sessions.
+  - **Neither a session start nor a token mint can race a removal into a live credential.** `startAgentSession` (`baacc1c`) and
+    `mintToken` (`0b4d50e`, the fix round) each hold the person's membership row `FOR SHARE` inside their transaction. A removal either
+    waits for them and then revokes or ends what they made, or it committed first and they are refused `404 NOT_FOUND` — the stranger's
+    answer, so it is no oracle.
+- **The fix wave** (`f27914e`):
+  - the seam guard's test (F8);
+  - a second queued removal is no longer a false last owner (F9);
+  - the console's token list refreshes on `member.removed`;
+  - one race test made deterministic;
+  - a stale comment in `journey/src/token.ts`.
+
+**What sitting 5 found** (the count is derived by the command at the head of this section):
+
+**F1 The plan's names had drifted since `862851c`.**
+- `trimOrEnd` is `endSessionsHoldingMore`, and `AgentKeyAdmin` is `LiteLlmClient`.
+- `ai/sessions.test.ts` does not exist; the old rule's tests and helpers live in `api/agents.test.ts`.
+
+Found by the pre-flight scan and ruled routine (the implementer built on what exists).
+
+**F2 The plan's predicted kept list was wrong.** The prediction was `['default-chat-large', 'default-chat-onprem']`. The list derived from
+`agentModelsFor` under `capable`, before any test ran, is `[default-chat-onprem, default-chat-onprem-reasoning, default-chat-large]`, in
+the row's order. The plan called the list a prediction to be fixed first, and it was.
+
+**F3 `/key/update` for an alias that no key holds answers `404 not_found_error`** (measured on LiteLLM 1.98.0). It is read as done, as
+`revokeKeyByAlias` reads `/key/delete`'s 404, so a narrowing that lands after a removal's `/key/delete` recreates nothing. **And
+`/key/update` checks no model name**: the whole-branch review read LiteLLM's own source in image `20b5044b`. So a kept name the gateway
+no longer serves does not make every sweep fail (Task 7's m9, resolved).
+
+**F4 Task 8's control (b), as the plan wrote it, could not fail.** `removeMember` RETURNS `'last owner'` from a DELETE whose guard held;
+it never throws. So a revoke gated on `'removed'` is skipped whether or not it shares the transaction. The pre-flight scan predicted it,
+and the control confirmed it: (b1) stayed GREEN. The transaction's real property is *no removal without its revoke*. It is held by an
+injected-failure test: the revoke's UPDATE fails inside the transaction, and the member stays and every token stays live. That test went
+RED with the revoke moved outside (b2, `members.test.ts:687`).
+
+**F5 `endSessionsOf`'s third target had to be checked FIRST.** Its old branch is `'tokenId' in target ? … : eq(projectId)`, so a
+`{ projectId, userId }` target falling to the fallback would end every session on the project. Ruled before dispatch, and held by a
+colleague's session surviving the removal. Control (d) dropped the discrimination and went RED at `:617`, where the colleague's key
+answered `401`.
+
+**F6 A browser-started session racing a removal would have left a live key** for someone off the project. The implementer added
+`startAgentSession`'s `FOR SHARE` hold beyond the brief, and the controller ruled to keep it. But its first test's pre-implementation red
+came from nothing ending sessions at all, not from the missing lock. **The task review caught that the lock had never been watched
+failing** (its I2). Control (g), in the fix round, dropped it and went RED at the "WHILE starting" test (`:773`, a key answering `200`
+instead of `401`).
+
+**F7 A token minted while its minter was being removed survived the removal, and nothing could revoke it** (the task review's I1).
+- `mintToken` read membership outside its transaction and held only `projects`.
+- A removal committing between that read and the INSERT revoked before the row existed, leaving a live token for up to 365 days.
+- A repeat of the removal answered `'not a member'`, and an owner cannot revoke another person's token.
+- It contradicted what the diff stated as fact (`authz.ts`, `authentication.md`, `member.removed`'s description).
+
+Ruled fixed in the task, because Spec action 2 says *every* token. The fix is the mint's membership hold plus a `NOT_FOUND`. Two race
+tests are forced into each order by a row that a second connection holds (the new `holding` helper). Controls: (e), the lock dropped, went
+RED only mid-mint (`:865`); (f), the refusal dropped, went RED only after the removal committed (`:891`).
+
+**F8 The narrowing's `ended_at IS NULL` guard — the one place the two tasks meet — had no test.** Removing it stayed green, and
+Task 7's report had called that "a green control to record as such". The whole-branch review's Important 1, and the memory's rule:
+*a green control is a question*. The fix wave added a test in which a gate holds `/key/update`'s answer, a removal lands, and no
+`narrowed` event is recorded for the ended session while the same sweep narrows the owner's. Its control went RED at `:1562`.
+
+**F9 A second removal of the same person, queued behind a start's or a mint's new `FOR SHARE` hold, answered a FALSE
+`409 PROJECT_LAST_OWNER`.** `removeMember` read *"the DELETE removed no row"* as the last owner — a window this sitting's own holds
+opened (the whole-branch review's Minor 2). Now a no-row DELETE re-reads the membership: gone means `'not a member'`. The test was RED
+first (`409`), and its control went RED at `:941`.
+
+**F10 Four documents still stated rules this sitting reversed.**
+- ORIENTATION's §3: `endSessionsHoldingMore` ends every session, and *"A token therefore outlives its minter's membership"*.
+- RUNBOOK's member paragraph: removal *"does nothing about tokens"*.
+- A comment in `journey/src/token.ts`.
+
+Swept at the close, and the comment in the fix wave. Three of the four were NOT on the close-out list until the whole-branch review named
+them.
+
+**F11 The skill's `task-brief` extractor matched `Task 8` as a prefix and pulled Task 8a into Task 8's brief.** It was trimmed by hand
+to the 62 lines that are Task 8, so the implementer could not build 8a by mistake. Check a brief's last heading whenever a task number has
+a lettered sibling.
+
+**F12 The orphan apps.** Of 26 Docker networks (the pool is ~31), 14 belonged to 42 `mf-` app containers with no rows behind them, which
+made every tier go red twice (sitting 4a's F8).
+- Rich chose to remove them, but `docker rm -f` of the 42 was REFUSED by the permission classifier ("Unverifiable Deletion Scope" — the
+  list was computed in the same command). Not retried.
+- A script naming the 42, as read first-hand, followed by `dead-app-resources.sh --apply`, was handed to Rich, and he ran it in his own
+  tab.
+- Measured afterwards: 0 `mf-` containers, 0 `mf-` volumes, **12 networks**. **The tier then ran 269/269 with no pool red**, the first
+  time since sitting 4.
+
+**F13 A race test rested on a 150 ms margin** (*"a member removed before their browser session reaches its key"*). The whole removal
+request had to reach its DELETE before a slowed `/user/info` returned, on a machine whose load reaches 50–90 during a screen share. The
+fix wave made it deterministic, with a hold on the project row and an assertion that `/user/info` was called first. Its control went
+RED at `:809`.
+
+**F14 The console's token list re-read only on `token.minted`**, so tokens a removal revoked showed as live until a reload. It now
+re-reads on `member.removed` too. No console test covers the trigger list.
+
+**The negative controls**, each predicted before it ran, quoted and restored (Task 7's two, Task 8's six, the fix wave's three):
+- Task 7 (a), the old rule: RED 9/38 at `agents.test.ts:1002`.
+- Task 7 (b), the row written before the gateway: RED 2/38 at `:1361` and `:1459`.
+- Task 8 (a), `project_id` dropped: RED at `:512`.
+- Task 8 (b1): GREEN, as predicted (F4).
+- Task 8 (b2): RED at `:687`.
+- Task 8 (c), browser-started sessions skipped: RED 4/19.
+- Task 8 (d): RED at `:617`.
+- Fix round (e): RED at `:865`.
+- Fix round (f): RED at `:891`.
+- Fix round (g): RED at `:773`.
+- Fix wave: the seam guard RED at `:1562`; the false 409 RED at `:941`; the race test RED at `:809`.
+
+**Carried, not fixed** (the whole-branch review's triage; the ledger has each ruling):
+- **5b's contract bundle**: Task 6c's `[S5]` block.
+- **The narrowing's m1 does NOT heal itself.** Two concurrent narrowings with different lists leave the key holding more than the row,
+  and no later sweep sees it. It is unreachable with today's catalogue. The fix is the row `FOR UPDATE` across `/key/update`.
+- **A removal answered `503` finishes only if a person repeats it.** The residue: model-only keys charged to the removed person, at most
+  480 minutes, with no project access. A boot sweep ending the sessions of non-members would close it — a plan gap.
+- **The keep rule** `allowed ∨ ¬served` versus §7's *"keeps the models the project still allows"*.
+- **A removed person's tokens' pending questions stay `pending`** until their own expiry.
+- Task 7's m3–m7 and Task 8's r2, r3, r5–r7, minor.
+
+**Gates on the final tree (`f27914e` code; HEAD `f27914e`; HEAD `f27914e` before this close-out)**:
+- `pnpm test` **2923 passed, 0 skipped, in 184 files (737 s alone, load ~4, 0 `deadlock detected`)**, then **2923 / 184 (737 s alone, 0 `deadlock detected`)** — twice, alone.
+- `pnpm test:docker` **269 passed, 0 failed, in 42 files**, 1337 s, on `348c2c8` (code `0b4d50e`). The fix wave's one source change is
+  not reached by it (the controller's ruling).
+- `pnpm lint`, `typecheck` and `format:check` clean.
+- `make verify` **62 / 0 / 0**, `make doctor` **20 / 0 / 0**.
+
+**The machine at the close**, queried, not remembered: 
+- **The control plane: PID 932 on 7100, on `f27914e`, REAL GitHub** (Rich's `.env`), restarted at the close by
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged; detached, `nohup`) after the unit runs truncated it. Its boot line
+  reads `"source":"github"`, `"github":"api.github.com"`, `"githubOrg":"Manifest-local-dev"`, `capableModel: registered`,
+  `capableFallback: set`, `sourceRepositoriesPrepared: 2`, and `agentSessionsWithdrawn: {ended: 0, narrowed: 0, failed: 0}` (Task 7's new
+  shape).
+- **The control database: EMPTY** — 0 projects, 0 users; **44 migrations** (`0043_gray_expediter` newest; this sitting added `0042` and
+  `0043`).
+- **GitHub**: `Manifest-local-dev` holds **0 repositories** (`lp-real-a` and `f5-reading` deleted at Rich's yes).
+- **Mirrors** that `dead-app-resources.sh` names and never removes: `f5-reading.git` and `lp-real-a.git` (their repositories are gone), and
+  `frontend-github.git` and `frontend-scratch-github.git` (the fake's).
+- **Containers**: **0 `mf-`** (Rich removed the 42; F12). `make verify`'s INFO reads `mf- containers=0 networks=0 volumes=0`, and there are
+  **12 Docker networks** in all.
+- **Cleanup**: `dead-app-resources.sh` (7 networks + 1 volume — the tier's) and `app-images.sh` (26) applied by this session, and both
+  re-measured to 0 dead. `litellm-orphans.sh` lists **13**, not applied: the deleted apps' nine users, `p4b-probe-user`, two people's agent
+  budgets and the platform's intake budget. A budget's deletion resets its month, and the script's one mode takes all thirteen.
+- **7102 and 7105 are the faculty front-end's** (node 35047 and 15448; mock mode by its word). **Nothing on 7104.**
+- **Not this project's**: the `cwl-spike-*` containers and `openwebui-openwebui-1`. Ollama **0.35.0**. **Free disk 74 GiB** (77 at open;
+  Docker's build cache 25 GB, 21 GB reclaimable — Rich's).
+- Load ~4.4.
+- `scripts/snapshot-machine.sh` at open and close: identical in the must-survive containers, the ports, the loopback alias, the
+  resolvers, Valet, the toolchain and the daemon. The rest of the diff is the containers, images, networks and volumes removed on purpose.

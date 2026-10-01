@@ -915,7 +915,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 62 / 0**
-(**All four were re-measured on 2026-09-30 at the close of the launch path plan's sitting 4a (Task 6b — FE-42's `launch:rehearse`), and one moved: `pnpm test` **2908 passed** in **184** files, twice on the final tree (was 2894; 722 s and 711 s alone, 0 `deadlock detected` in either); `pnpm test:docker` **268 in 42**, unchanged (266 measured, 1210 s, and the same two reds for Docker's exhausted address pools from a start of 26 networks, both 40 of 40 alone after `scripts/dead-app-resources.sh --apply` — TRAPS.md); `make doctor` 20 with **0 failed and 0 warnings** — the vulnerability database goes stale after 2026-10-06; refresh it with `make refresh-vulndb` — and `make verify` **62**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-30 at the close of the launch path plan's sitting 5 (Tasks 7 and 8 — a session narrowed in place; removing a member revokes their tokens, closes their streams and ends their sessions), and two moved: `pnpm test` **2923 passed** in **184** files, twice on the final tree (was 2908; 737 s and 737 s alone, 0 `deadlock detected` in either); `pnpm test:docker` **269 in 42** (was 268; 1337 s, and NO pool red from 12 networks — Rich removed the 42 row-less `mf-` apps the reds came from); `make doctor` 20 with **0 failed and 0 warnings** — the vulnerability database goes stale after 2026-10-06; refresh it with `make refresh-vulndb` — and `make verify` **62**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has FIFTEEN steps, 1 to 15, after step 0's offline check** (the front-end enablement plan's Task 15 added step 15, `make demo-frontend`, and the authoring API plan's Task 13 step 14, `make demo-authoring` — both run on either driver; this line said FOURTEEN until the launch path plan's sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
@@ -1723,9 +1723,14 @@ show a person what they decided.
 **Removing a member** is D24's fourth privileged action and became reachable in the same task:
 `DELETE /v1/projects/$PROJECT_ID/members/$USER_ID`, answering `200` with the members as they now are. It is
 idempotent — removing somebody who is not a member is not an error — and the **last owner cannot be
-removed** (`409 PROJECT_LAST_OWNER`). It was written after D24's rule was made central and does nothing
-about tokens: an agent asking is answered `403 TOKEN_ACTION_PENDING` anyway, which is the whole claim of
-that rule and is what its test measures.
+removed** (`409 PROJECT_LAST_OWNER`). It was written after D24's rule was made central and needs no token
+code of its own to refuse one: an agent asking is answered `403 TOKEN_ACTION_PENDING` anyway, which is the
+whole claim of that rule and is what its test measures. **What it does to the removed person, since the launch
+path plan's Task 8 (2026-09-30)**: every token they minted on THIS project is revoked in the removal's own
+transaction, their token streams close `4401` and their session streams on the project `4404`, and their agent
+sessions there end `member_removed` — `member.removed` counts both. If ending a session fails, the answer is
+`503 AI_CATALOGUE_DISABLED` (or a `500`) that comes AFTER the removal and the revoke: **repeat the same request**
+and it finishes ending them.
 
 **Refusing is final for that request.** A retry after a rejection is answered `403 TOKEN_ACTION_REJECTED`
 carrying the person's own reason, rather than asking them the same thing again — which is what D23.7 means

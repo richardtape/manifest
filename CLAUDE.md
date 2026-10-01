@@ -50,9 +50,9 @@ legitimately read `unavailable` offline), the second-machine clean clone, starti
 the objects a real IAM registration and PIA would populate; **since 2026-09-20 its item 5,
 access to UBC's staging IdP, is the ONLY part of a first production launch this platform
 cannot do for itself** — Manifest runs D21's rehearsal locally and says in the checklist that
-it proves the registration's shape and never UBC's acceptance of it), **the real
-repositories in `Manifest-local-dev`** — `lp-real-a` (owned by no project since the launch path plan's sitting 2 truncated its row) and
-`f5-reading` (the faculty front-end's F5 sitting 1's, owned by no project since sitting 4's first truncation) — `bash scripts/github-real-repos.sh` lists both `NONE`; a Vitest run truncates a row and leaves the repository, and removing one is his (the plan's *What Rich does* 5) — **refreshing the
+it proves the registration's shape and never UBC's acceptance of it), **any real
+repository in `Manifest-local-dev` that no project owns** — NONE since the launch path plan's sitting 5 deleted `lp-real-a` and `f5-reading`
+at his yes (2026-09-30; `bash scripts/github-real-repos.sh` reads 0 repositories); a Vitest run truncates a row and leaves its repository, and removing one is his (the plan's *What Rich does* 5) — **refreshing the
 vulnerability database weekly, with the network on** (**`make refresh-vulndb`**, added
 2026-09-24 at Rich's request; last run by him 2026-09-29 — nothing up or down but Docker Desktop, ~1–3 minutes; **next due after 2026-10-06** — past §12's
 seven days `make doctor` warns and §13's `scans` item refuses every production launch, so
