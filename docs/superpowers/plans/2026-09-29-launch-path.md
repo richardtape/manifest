@@ -121,7 +121,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | |
 | 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30 | |
-| 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example | **No** — unless a change reaches an owing path | — | |
+| 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | |
 | 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -2374,9 +2374,29 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Task 14: The guides — *Launching* rewritten around the three clocks
 
+> **`[S10]` (Rich, 2026-09-30 — *"One of the things that we don't need to see in the API docs is things like section or plan
+> numbers. They're irrelevant to the person reading the docs … This needs to be looked at for all the docs"*; placed HERE, *"In the
+> merged sitting 10"*): THIS TASK ALSO MAKES EVERY PUBLISHED TEXT CITE NO SECTION, DECISION OR PLAN, AND NO MAINTAINER NOTE.**
+> - **The document**: every schema, property, tag (`TAG_DESCRIPTIONS`), error entry (`api/error-codes.ts`'s meanings and
+>   remedies, `x-manifest-spec-errors`), event (`observability/event-schemas.ts`, `examples.ts`) and unversioned-endpoint text — about
+>   **101** references (`§n`, `Dnn`, `Cn`) measured on 2026-09-30, plus the info paragraph's *"Generated from the control plane's route
+>   definitions; do not edit"* (a note for someone editing the repository, not for a reader — move it to a comment beside the
+>   generator, or drop it), and the rehearsal checklist item's *"D21: …"*, *"(D6)"* and *"(§9)"* that sitting 5b left for this pass
+>   (`launch/readiness.ts`). The operation descriptions were done on 2026-09-30 (`5246d4d`).
+> - **The guides** (`docs/api/*.md`): **52** measured — `events.md` 48 (read where they come from: a table `docs:write` generates is
+>   fixed at its source), `journey.md` 3, `conventions.md` 1.
+> - **The style** (`5246d4d`'s): what is true now, in its own words — no history, no future, no reason a caller cannot act on; keep
+>   every fact a caller needs (codes, capabilities, limits, who may and who never may).
+> - **The gate**: widen `api/contract/docs.test.ts`'s *"cites no spec section where every reader starts"* to the WHOLE published
+>   document, and add the same check over `docs/api/**/*.md` (where a test already reads them — `packages/journey/src/docs.test.ts`).
+>   Its negative control: one `§20` put back in a field description goes red, naming it.
+> - **Then** `pnpm contract:write`, `contract:generate`, `docs:write` (contract `1.5.0` — text only), and tell the faculty front-end
+>   first. **Code comments are NOT this pass** — a later plan of their own (Rich).
+
 **Files:**
 - Modify: `docs/api/launching.md` — rewritten:
-  - the three clocks, and why the staging one starts first;
+  - the three steps IN UBC'S ORDER (Spec action 9): the privacy assessment first, then the staging registration carrying its
+    reference, then — once staging is registered and tested — the production registration; and the two refusals that hold the order;
   - drafting, and what a package holds;
   - *I've sent it*, and *waiting since*;
   - asking for sign-off;
