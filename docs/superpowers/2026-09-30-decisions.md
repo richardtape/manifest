@@ -223,3 +223,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     => DONE 2026-09-30 ~21:10: Docker Hub's tag list read; `axllent/mailpit:v1.31.3` pulled (released 2026-09-27; index
     digest sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d; arm64; 13.9 MB; Docker 29.7.2).
     compose.yaml is NOT edited until sitting 5a's close-out commit lands.
+
+18. F4a, the faculty front-end's "only faculty build" (it reads sitting 5a's `Me.mayBuild`) — given by Rich in the
+    front-end's session (manifest-app-4d), relayed to this one, and CONFIRMED HERE by Rich ("Yes, record it"). His words
+    there: "yes I approve, you can start work on that when you know the other agent is finished."
+    => F4a runs in the front-end's session (one agent, then a fresh reviewer for the whole branch), starting when
+    manifest-74 says sitting 5a has closed; in parallel with the platform's sitting 6 (manifest-92). Its first three
+    tasks touch only its own repository and its mock (7102); its last walks 7100 at Rich's word, in a window it asks
+    the platform sitting for (no Vitest, no control-plane restart).
+    Coordination settled by the planning session (not Rich's decision): sitting 6 starts after 5a's close-out AND
+    after Mailpit lands — Mailpit's `make up`/`make verify` and a sitting's Vitest or Docker tier would break each
+    other's results; manifest-92 agreed.
