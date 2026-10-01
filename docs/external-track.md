@@ -100,10 +100,15 @@ on a line of code being written. **They are `ubcEduCwlPuid`, `mail`, `givenName`
 since 2026-09-27 — `uid`, the CWL login name** (`CONTROL_PLANE_ATTRIBUTES` in
 `packages/control-plane/src/sso/platform.ts`; §9 as Spec action 4 amended it). `uid` is
 ASKED FOR AND NEVER REQUIRED: a person whose assertion lacks it still signs in, and only
-adding them to a project by login name stops working. **`eduPersonAffiliation` is NOT
-among them** — this line named it until 2026-09-27, wrongly: a platform role is
-Manifest's to decide (§9), so the control plane never asks for one. *(Corrected by the
-front-end enablement plan's sitting 5.)* **Since 2026-09-27 the registration names TWO
+adding them to a project by login name stops working. **And — since 2026-09-30 —
+`eduPersonAffiliation`** (§9 as Spec action 7 amended it; the launch path plan's Task 8a,
+FE-39): Manifest is for faculty, for now, and the affiliation is the one fact it decides
+who may build from — kept at every sign-in, never a platform role, which stays Manifest's
+to decide (§9). Also ASKED FOR AND NEVER REQUIRED: a person whose assertion lacks it still
+signs in, but **without it nobody but an administrator can build**, so a registration that
+leaves it out makes the platform unusable for faculty. *(This line said it was NOT among
+them from 2026-09-27 — correct then, when nothing read it — until the launch path plan's
+sitting 5a.)* **Six attributes, then.** **Since 2026-09-27 the registration names TWO
 assertion-consumer URLs under its ONE entity** — the reference console's origin and the
 faculty front-end's, `app` (§9 and §21 as Spec action 2 amended them; the front-end
 enablement plan's Task 8): at UBC, `https://<console origin>/auth/saml/callback` at index 0

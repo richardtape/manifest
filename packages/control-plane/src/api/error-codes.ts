@@ -332,7 +332,7 @@ export const ERROR_CODES = {
     summary:
       'Building on Manifest — creating a project or starting an intake session — is open only to faculty members and platform administrators for now, and the signed-in person is neither. Nothing was created.',
     remedy:
-      'Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. A person who teaches at UBC and should be able to build asks a platform administrator.',
+      'Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. The affiliation is read at sign-in, so a faculty member refused should sign out and sign in again first; if they still may not build, a platform administrator can help.',
   },
   MEMBER_MAY_NOT_BUILD: {
     status: 409,

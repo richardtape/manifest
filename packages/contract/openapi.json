@@ -4796,7 +4796,7 @@
                 "$ref": "#/components/schemas/AddMemberRequest"
               },
               "example": {
-                "cwlLogin": "student",
+                "cwlLogin": "colleague",
                 "role": "collaborator"
               }
             }
@@ -4812,10 +4812,10 @@
                 },
                 "example": {
                   "userId": "5d0f7c3e-9b21-4f6a-8e47-2c1a9b3d6e80",
-                  "puid": "stu000001",
-                  "cwlLogin": "student",
-                  "displayName": "Test Student",
-                  "email": "student@student.ubc.ca",
+                  "puid": "col000001",
+                  "cwlLogin": "colleague",
+                  "displayName": "Test Colleague",
+                  "email": "colleague@ubc.ca",
                   "role": "collaborator"
                 }
               }
@@ -17925,7 +17925,7 @@
     "BUILDING_NOT_OPEN": {
       "status": 403,
       "summary": "Building on Manifest — creating a project or starting an intake session — is open only to faculty members and platform administrators for now, and the signed-in person is neither. Nothing was created.",
-      "remedy": "Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. A person who teaches at UBC and should be able to build asks a platform administrator."
+      "remedy": "Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. The affiliation is read at sign-in, so a faculty member refused should sign out and sign in again first; if they still may not build, a platform administrator can help."
     },
     "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED": {
       "status": 409,

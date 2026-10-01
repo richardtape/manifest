@@ -223,7 +223,7 @@ Answer, `201`:
 |---|---|---|
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
-| `BUILDING_NOT_OPEN` | 403 | Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. A person who teaches at UBC and should be able to build asks a platform administrator. |
+| `BUILDING_NOT_OPEN` | 403 | Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. The affiliation is read at sign-in, so a faculty member refused should sign out and sign in again first; if they still may not build, a platform administrator can help. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2766,7 +2766,7 @@ Answer, `201`:
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
 | `BLUEPRINT_NOT_FOUND` | 400 | Choose one from `listBlueprints` and name it `name@major`. |
-| `BUILDING_NOT_OPEN` | 403 | Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. A person who teaches at UBC and should be able to build asks a platform administrator. |
+| `BUILDING_NOT_OPEN` | 403 | Read `mayBuild` on `getMe` before offering to build, and tell a person for whom it is false that building is not open to them yet. The affiliation is read at sign-in, so a faculty member refused should sign out and sign in again first; if they still may not build, a platform administrator can help. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3132,7 +3132,7 @@ Request:
 
 ```json
 {
-  "cwlLogin": "student",
+  "cwlLogin": "colleague",
   "role": "collaborator"
 }
 ```
@@ -3142,10 +3142,10 @@ Answer, `201`:
 ```json
 {
   "userId": "5d0f7c3e-9b21-4f6a-8e47-2c1a9b3d6e80",
-  "puid": "stu000001",
-  "cwlLogin": "student",
-  "displayName": "Test Student",
-  "email": "student@student.ubc.ca",
+  "puid": "col000001",
+  "cwlLogin": "colleague",
+  "displayName": "Test Colleague",
+  "email": "colleague@ubc.ca",
   "role": "collaborator"
 }
 ```

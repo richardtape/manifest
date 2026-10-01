@@ -429,6 +429,25 @@ describe('Manifest is its own SP (§9)', () => {
       await app.close()
     })
 
+    it('keeps each affiliation exactly as UBC sent it — Faculty, " faculty" and "faculty " are not faculty', async () => {
+      // Decision 30, Rich's "literally just those with 'faculty'": held where UBC's value ENTERS, not
+      // only in the predicate — a reader that folded case or trimmed would make each of these faculty.
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      const me = await signIn(app, idp, {
+        ...INSTRUCTOR,
+        [OID.eduPersonAffiliation]: ['Faculty', ' faculty', 'faculty '],
+      })
+      expect(me.mayBuild).toBe(false)
+      expect((await rowOf(deps, 'ins000001')).affiliations).toEqual([
+        'Faculty',
+        ' faculty',
+        'faculty ',
+      ])
+      await app.close()
+    })
+
     it('the affiliation is refreshed at every sign-in — faculty last time, not this time, may not build', async () => {
       const deps = await testDeps()
       const app = await buildServer(deps)

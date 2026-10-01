@@ -355,12 +355,17 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     // belongs to the person the IdP authenticated" are different claims, and
     // only the second one means the login worked. `ins000001` is the
     // `ubcEduCwlPuid` the IdP's own auth source holds for `instructor`, and
-    // `member` is Manifest's — the assertion says eduPersonAffiliation=faculty.
+    // `member` is Manifest's — the assertion says eduPersonAffiliation=faculty, which
+    // decides who may BUILD (FE-39), never the platform role.
     const me = await request(`${ORIGIN}/v1/me`, {
       cookie: `manifest_session=${appJar.get('manifest_session')}`,
     })
     expect(me.status).toBe(200)
-    expect(JSON.parse(me.body)).toMatchObject({ puid: 'ins000001', role: 'member' })
+    expect(JSON.parse(me.body)).toMatchObject({
+      puid: 'ins000001',
+      role: 'member',
+      mayBuild: true,
+    })
 
     // A REAL SIGN-IN KEEPS THE PERSON'S CWL LOGIN NAME (the front-end enablement plan's Task 7).
     // Only this tier can see it: §9's release is enforced by the REAL IdP against the row this
@@ -369,11 +374,15 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     const control = new pg.Client({ connectionString: process.env.MANIFEST_DATABASE_URL })
     await control.connect()
     try {
-      const { rows } = await control.query<{ cwl_login: string | null }>(
-        'SELECT cwl_login FROM users WHERE ubc_cwl_puid = $1',
-        ['ins000001'],
-      )
-      expect(rows).toEqual([{ cwl_login: 'instructor' }])
+      // AND ITS AFFILIATION (the launch path plan's Task 8a, FE-39): released only because
+      // `CONTROL_PLANE_ATTRIBUTES` names it, and kept as UBC's fact at this sign-in.
+      const { rows } = await control.query<{
+        cwl_login: string | null
+        affiliations: string[]
+      }>('SELECT cwl_login, affiliations FROM users WHERE ubc_cwl_puid = $1', [
+        'ins000001',
+      ])
+      expect(rows).toEqual([{ cwl_login: 'instructor', affiliations: ['faculty'] }])
     } finally {
       await control.end()
     }

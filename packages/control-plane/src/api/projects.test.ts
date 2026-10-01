@@ -1804,6 +1804,10 @@ describe('who may build (FE-39)', () => {
       headers: mutationHeaders(student.deps),
     })
     expect(refusal(refused)).toEqual({ status: 403, code: 'BUILDING_NOT_OPEN' })
+    // THE COMMONEST CAUSE FIRST (the whole-branch review's M7): a faculty member whose affiliation
+    // Manifest has not read since they last signed in — every person signed in before it began asking —
+    // is put right by signing in again, which no administrator can do for them.
+    expect(refused.json().error.hint).toMatch(/sign out and sign in again/)
     // Nothing was written, and the name was not even checked: no row, no repository.
     expect(await student.deps.db.select().from(projects)).toEqual([])
     expect(existsSync(join(student.deps.config.reposRoot, 'st-app.git'))).toBe(false)

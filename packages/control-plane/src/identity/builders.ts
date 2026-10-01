@@ -52,7 +52,7 @@ export function assertMayBuild(user: {
   throw new BuildingError(
     'BUILDING_NOT_OPEN',
     'building apps on Manifest is open only to faculty members for now',
-    'Nothing was created. If you teach at UBC and think you should be able to build, ask a platform administrator.',
+    'Nothing was created. Manifest reads your CWL affiliation when you sign in, so if you are faculty, sign out and sign in again. If you still cannot build, ask a platform administrator.',
   )
 }
 

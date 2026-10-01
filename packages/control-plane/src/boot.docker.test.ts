@@ -147,16 +147,17 @@ describeDocker('the boot entry point', () => {
         expect(row?.AssertionConsumerService[0]?.Location).toBe(
           'http://127.0.0.1:7188/auth/saml/callback',
         )
-        // §9's fail-open rule: a row with no attribute list releases everything.
-        // `eduPersonAffiliation` is deliberately NOT among them — a platform
-        // role is Manifest's to decide, so the IdP is never asked for one. `uid` — the
-        // CWL login name — since the front-end enablement plan's Task 7.
+        // §9's fail-open rule: a row with no attribute list releases everything. `uid` — the
+        // CWL login name — since the front-end enablement plan's Task 7; `eduPersonAffiliation`
+        // since the launch path plan's Task 8a (FE-39): the one fact who may build is decided
+        // from — a FACT kept at every sign-in, never a platform role.
         expect(row?.attributes).toEqual([
           'ubcEduCwlPuid',
           'mail',
           'givenName',
           'sn',
           'uid',
+          'eduPersonAffiliation',
         ])
         expect(row?.certData).toBeTruthy()
         expect(row?.['validate.authnrequest']).toBe(true)

@@ -480,6 +480,53 @@ describe('only a person who may build is added (FE-39)', () => {
       })
     })
   })
+
+  it('a removal racing a role change for a member who may not build leaves them removed — the change does not re-add them', async () => {
+    // The whole-branch review's I2. `addMember` read `before` with a plain SELECT: a removal committing
+    // between that read and the upsert left the change believing it was a role change, and the upsert —
+    // finding the row gone — INSERTED it, re-adding a person who may not build. DETERMINISTIC: a second
+    // connection holds the membership row as a start would, so the removal's DELETE waits on it and the
+    // role change queues behind the removal; released, the removal goes first.
+    await withProjectServer(async (ctx) => {
+      const colleague = await upsertUserFromAssertion(ctx.db, COLLEAGUE, {
+        adminPuids: [],
+      })
+      expect(
+        (await add(ctx, { cwlLogin: 'colleague', role: 'collaborator' })).statusCode,
+      ).toBe(201)
+      await upsertUserFromAssertion(
+        ctx.db,
+        { ...COLLEAGUE, affiliations: ['staff'] },
+        { adminPuids: [] },
+      )
+      await holding(
+        'SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2 FOR SHARE',
+        [ctx.projectId, colleague.id],
+        async (lock) => {
+          const removing = ctx.app.inject({
+            method: 'DELETE',
+            url: `/v1/projects/${ctx.projectId}/members/${colleague.id}`,
+            cookies: ctx.ownerSteppedUp,
+            headers: mutationHeaders(ctx.deps),
+          })
+          await until(
+            () => lock.waitedOn('%delete from "project_members"%'),
+            'the removal’s DELETE waiting on the held membership',
+          )
+          const promoting = add(ctx, { cwlLogin: 'colleague', role: 'owner' })
+          await until(
+            () => lock.waitedOnBehind('%project_members%'),
+            'the role change queued behind the removal',
+          )
+          await lock.release()
+          const [removed, promoted] = await Promise.all([removing, promoting])
+          expect(removed.statusCode, removed.body).toBe(200)
+          expect(refusal(promoted)).toEqual({ status: 409, code: 'MEMBER_MAY_NOT_BUILD' })
+        },
+      )
+      expect(await memberPuids(ctx)).toEqual(['bio_prof:owner'])
+    })
+  })
 })
 
 /**

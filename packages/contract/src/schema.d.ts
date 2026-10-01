@@ -8398,7 +8398,7 @@ export interface operations {
             content: {
                 /**
                  * @example {
-                 *       "cwlLogin": "student",
+                 *       "cwlLogin": "colleague",
                  *       "role": "collaborator"
                  *     }
                  */
@@ -8415,10 +8415,10 @@ export interface operations {
                     /**
                      * @example {
                      *       "userId": "5d0f7c3e-9b21-4f6a-8e47-2c1a9b3d6e80",
-                     *       "puid": "stu000001",
-                     *       "cwlLogin": "student",
-                     *       "displayName": "Test Student",
-                     *       "email": "student@student.ubc.ca",
+                     *       "puid": "col000001",
+                     *       "cwlLogin": "colleague",
+                     *       "displayName": "Test Colleague",
+                     *       "email": "colleague@ubc.ca",
                      *       "role": "collaborator"
                      *     }
                      */
