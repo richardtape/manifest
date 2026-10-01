@@ -152,6 +152,13 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     sentAt: '2026-09-22',
     externalTicketRef: 'PIA-2026-0088',
   },
+  'iam_registration.drafted': {
+    environment: 'staging',
+    entityId: 'https://manifest.internal/sp/chem-labs/staging',
+    fromCommit: '3f2a9c41d0b7e85f6a1c2d3e4f5a6b7c8d9e0f12',
+    attributeCount: 3,
+    unusedCount: 1,
+  },
   'rehearsal.completed': {
     rehearsalId: UUID,
     releaseId: UUID,

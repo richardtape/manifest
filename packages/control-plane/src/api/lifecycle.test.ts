@@ -24,7 +24,7 @@ import {
   TEARDOWN_STEPS,
 } from '../releases/index.js'
 import type { FakeDriver } from '../runtime/index.js'
-import type { SsoDeregistrar, SsoRegistrar } from '../sso/index.js'
+import type { SsoCertificates, SsoDeregistrar, SsoRegistrar } from '../sso/index.js'
 import { fingerprintOf, recordPendingAction, tokenActor } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
@@ -49,10 +49,15 @@ import {
 
 /** A registrar that records what the archive removes: the unit tier has no IdP (`testDeps`). */
 function recordingSso(): SsoRegistrar &
-  SsoDeregistrar & { removed: { slug: string; environmentKind: string }[] } {
+  SsoDeregistrar &
+  SsoCertificates & { removed: { slug: string; environmentKind: string }[] } {
   const removed: { slug: string; environmentKind: string }[] = []
   return {
     removed,
+    // Nothing in this file drafts a registration (the launch path plan's Task 10).
+    spCertificate: () => {
+      throw new Error('the lifecycle tests draft no registration package')
+    },
     registerServiceProvider: () => {
       throw new Error(
         'the unit tier has no IdP: nothing here registers a Service Provider',

@@ -83,6 +83,12 @@ export const EVENT_TYPES = [
   'iam_registration.submitted',
   /** The same for the privacy assessment, sent to the Privacy Office (Task 9). */
   'privacy_assessment.submitted',
+  /**
+   * §9 (Spec action 4; the launch path plan's Task 10): Manifest drafted a registration's package for
+   * a person to send — the environment, the entity and the counts, NEVER the attributes themselves,
+   * as `iam_registration.recorded` (a member reads them through `getLaunchRecords`).
+   */
+  'iam_registration.drafted',
   /** D21 as R2 redefines it (P6a Task 14): a production-shaped rehearsal ran, and passed or did not. */
   'rehearsal.completed',
   /** §13 (P6a Task 10): an administrator approved this release for production, bound to its digest. */

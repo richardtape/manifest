@@ -32,7 +32,12 @@ import { sendRefusalPage, wantsRefusalPage } from './auth-page.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore, type WithholdOnReplay } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
-import type { CwlSignInProbe, SsoDeregistrar, SsoRegistrar } from '../sso/index.js'
+import type {
+  CwlSignInProbe,
+  SsoCertificates,
+  SsoDeregistrar,
+  SsoRegistrar,
+} from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
 import type { AiKeyService, LiteLlmClient, ModelCatalogue } from '../ai/index.js'
 import type { BuildRunner, Retirer } from '../releases/index.js'
@@ -59,9 +64,10 @@ export interface ServerDeps {
    * §9's SP registrar, with the IdP pool, the master key and the platform's
    * entity base already bound — so `api/` and `releases/` hold no key material
    * and no second connection. Same shape as `secrets` above, for the same reason. And, since
-   * the front-end enablement plan's Task 11, the archive's removal of a registration.
+   * the front-end enablement plan's Task 11, the archive's removal of a registration. And, since
+   * the launch path plan's Task 10, an environment's certificate for D19's package — its public half.
    */
-  sso: SsoRegistrar & SsoDeregistrar
+  sso: SsoRegistrar & SsoDeregistrar & SsoCertificates
   /**
    * §9's other half: Manifest's own Service Provider, with its entity, its
    * keypair and the IdP's certificate already bound. `/auth/login` and

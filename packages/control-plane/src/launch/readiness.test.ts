@@ -17,6 +17,7 @@ import {
 import { withProject } from '../db/testing.js'
 import { assertLaunchable, ProductionGateError } from './gate.js'
 import { computeLaunchReadiness, readyOf, type LaunchItem } from './readiness.js'
+import { withDraft } from './testing.js'
 
 /**
  * §12 classifies Critical and High and nothing else (P5a Task 13), so a `SeverityCounts`
@@ -965,6 +966,121 @@ describe('the gate that BLOCKS (§13, D9.1, P6a Task 7)', () => {
           .filter((i) => i.blocking && i.state !== 'met')
           .map((i) => i.id),
       ).toEqual(['rehearsal', 'admin-approval'])
+    })
+  })
+})
+
+/**
+ * REVIEW FOCUS 1's CHECKLIST HALF (the launch path plan's Task 10; Task 9's whole-branch review, I4):
+ * an owner drafts the production registration in week one, and in week three the agent adds `sn`.
+ * The build is not gated by a draft (Task 9) — so the checklist is where the owner learns that the
+ * draft, or the request already with UBC, no longer describes the release serving staging.
+ */
+describe('a draft that no longer covers the app (Task 10)', () => {
+  const item = async (tx: Db, projectId: string) =>
+    (await computeLaunchReadiness(tx, projectId)).items.find(
+      (i) => i.id === 'iam-registration',
+    )!
+  const at = {
+    acsUrl: `https://${PRODUCTION.hostname}${PRODUCTION.callback}`,
+    sloUrl: `https://${PRODUCTION.hostname}${PRODUCTION.logout}`,
+  }
+
+  it('says a production draft no longer covers the release serving staging, and to draft again — and nothing when it does', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'mail', 'sn'],
+        PRODUCTION,
+      )
+      await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid', 'mail'],
+        ...at,
+      })
+      const iam = await item(tx, projectId)
+      expect(iam.state).toBe('unmet')
+      expect(iam.why).toContain(
+        'The draft no longer matches the release serving staging: it asks for sn, which the draft does not. Draft it again before you send it.',
+      )
+      // THE POSITIVE CONTROL: a draft that covers the release says nothing of the kind.
+      await tx.delete(iamRegistrations).where(eq(iamRegistrations.projectId, projectId))
+      await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        ...at,
+      })
+      const covered = await item(tx, projectId)
+      expect(covered.state).toBe('unmet')
+      expect(covered.why).not.toMatch(/no longer matches/)
+    })
+  })
+
+  it('a draft asking for more than the release, or at another address, says which', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'mail'],
+        PRODUCTION,
+      )
+      await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        acsUrl: `https://${PRODUCTION.hostname}/auth/ubcshib/callback`,
+        sloUrl: at.sloUrl,
+      })
+      expect((await item(tx, projectId)).why).toContain(
+        `The draft no longer matches the release serving staging: the draft asks for sn, which the release no longer does; the release signs people in at ${at.acsUrl}, the draft at https://${PRODUCTION.hostname}/auth/ubcshib/callback. Draft it again before you send it.`,
+      )
+    })
+  })
+
+  it('a request already sent that no longer matches says UBC IAM must be told', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'mail', 'sn'],
+        PRODUCTION,
+      )
+      await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid', 'mail'],
+        ...at,
+      })
+      await tx
+        .update(iamRegistrations)
+        .set({ state: 'submitted', submittedAt: new Date() })
+        .where(eq(iamRegistrations.projectId, projectId))
+      expect((await item(tx, projectId)).why).toContain(
+        'The request sent to UBC IAM no longer matches the release serving staging: it asks for sn, which the request does not. Tell UBC IAM; once it asks for changes, draft it again.',
+      )
+    })
+  })
+
+  it('with nothing serving staging there is nothing to compare, and the draft is not called stale', async () => {
+    await withProject(async (tx, { projectId }) => {
+      await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid'],
+        ...at,
+      })
+      const iam = await item(tx, projectId)
+      expect(iam.state).toBe('unmet')
+      expect(iam.why).not.toMatch(/no longer matches/)
     })
   })
 })

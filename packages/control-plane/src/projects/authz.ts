@@ -123,6 +123,14 @@ export const CAPABILITIES = [
    * step-up: it grants nothing.
    */
   'launch:submit',
+  /**
+   * DRAFTING A REGISTRATION — D19's package for the staging or production registration (§9, Spec
+   * action 4; the launch path plan's Task 10, Decision 11): `draftIamRegistration`. The OWNER, a
+   * COLLABORATOR and an administrator hold it. **Its own capability, not `launch:submit`**: preparing
+   * a document is not saying it was sent. **MINTABLE — neither privileged nor person-only**: a draft
+   * sends nothing and decides nothing, and an agent may prepare one for its person to read.
+   */
+  'launch:draft',
   'quota:set',
 ] as const
 
@@ -435,6 +443,8 @@ const OWNER: readonly Capability[] = [
   'launch:rehearse',
   // "I've sent it" (Task 9): the owner's, so the collaborator's and the administrator's.
   'launch:submit',
+  // Drafting a registration (Task 10): the owner's, so the collaborator's and the administrator's.
+  'launch:draft',
 ]
 
 // §13: "same as owner except member management and deletion" — and not promotion,

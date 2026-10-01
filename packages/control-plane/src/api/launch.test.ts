@@ -1,6 +1,12 @@
+import { randomUUID, X509Certificate } from 'node:crypto'
+import { and, asc, eq } from 'drizzle-orm'
 import pg from 'pg'
 import { describe, expect, it } from 'vitest'
+import { events } from '../db/index.js'
+import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
+import { addMember } from '../projects/index.js'
+import { writeFiles } from '../source/testing.js'
 import {
   vancouverDaysAgo,
   vancouverToday,
@@ -9,11 +15,17 @@ import {
 } from '../launch/testing.js'
 import { vancouverNoon } from '../launch/index.js'
 import { mintTestToken } from '../tokens/testing.js'
+import { buildServer, type ServerDeps } from './server.js'
 import {
+  commitManifest,
+  cwlFakes,
+  cwlManifest,
   loginAs,
   mutationHeaders,
+  projectBody,
   refusal,
   sessionFor,
+  testDeps,
   withProjectServer,
   type TestProject,
 } from './testing.js'
@@ -462,6 +474,617 @@ describe('an administrator’s record keeps the owner’s reference (the whole-b
         externalTicketRef: 'PIA-2026-0102',
       })
       expect(replaced).toMatchObject({ externalTicketRef: 'PIA-2026-0102' })
+    })
+  })
+})
+
+/**
+ * D19'S REGISTRATION PACKAGE THROUGH THE ROUTE (the launch path plan's Task 10; Spec action 4): a CWL
+ * app's owner — or an agent on their token — drafts the staging or production registration, and
+ * Manifest generates what UBC IAM receives: the environment's entity and URLs, its own certificate,
+ * every attribute with where the app reads it, the contacts and the PIA number. Over `cwlFakes`, for
+ * their reason — and since Task 10 its registrar keeps the keypair where the real one does, so the
+ * certificate it registers is the environment's own.
+ */
+interface CwlProject {
+  app: Awaited<ReturnType<typeof buildServer>>
+  deps: ServerDeps
+  ownerCookies: Record<string, string>
+  project: {
+    id: string
+    slug: string
+    environments: { id: string; kind: string; hostname: string }[]
+  }
+  /** The commit the CWL manifest was validated at — the newest valid manifest's. */
+  commitSha: string
+}
+
+/** The app's own reads, which the search must find exactly: `routes/people.js:3`, `public/app.js:2`. */
+const APP_CODE = {
+  'routes/people.js': [
+    '// Who is signed in: the friendly names the blueprint’s bridge gives the app.',
+    'export function whoIs(req) {',
+    '  return { id: req.user.user.ubcEduCwlPuid, name: req.user.user.givenName }',
+    '}',
+    '',
+  ].join('\n'),
+  'public/app.js': [
+    "const me = await (await fetch('/me')).json()",
+    "document.title = me.attributes?.mail ?? 'someone'",
+    '',
+  ].join('\n'),
+}
+
+/** A CWL app on `node-ts-mongo@1`, created through the route by its owner (who may build). */
+async function withCwlProject(
+  attributes: readonly string[],
+  fn: (ctx: CwlProject) => Promise<void>,
+  options: { deps?: (deps: ServerDeps) => ServerDeps } = {},
+): Promise<void> {
+  await resetDatabase()
+  const base = await testDeps()
+  const withFakes: ServerDeps = { ...base, ...cwlFakes(base) }
+  const deps = options.deps === undefined ? withFakes : options.deps(withFakes)
+  const app = await buildServer(deps)
+  try {
+    // The oldest administrator is the platform's contact when none is configured.
+    await ensureTestUser(deps.db, 'platform_admin')
+    const ownerCookies = await loginAs(deps, 'bio_prof')
+    const slug = `cwl-${randomUUID().slice(0, 8)}`
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      payload: projectBody(slug, { blueprint: 'node-ts-mongo@1' }),
+      cookies: ownerCookies,
+      headers: mutationHeaders(deps),
+    })
+    if (created.statusCode !== 201)
+      throw new Error(
+        `creating '${slug}' answered ${created.statusCode}: ${created.body}`,
+      )
+    const project = created.json() as CwlProject['project']
+    await writeFiles(
+      deps.source,
+      deps.source.repositoryFor(slug),
+      APP_CODE,
+      'feat: who is signed in',
+    )
+    const { commitSha } = await commitManifest(
+      { app, deps, cookies: ownerCookies, project },
+      cwlManifest(slug, attributes),
+      'feat: sign in with CWL',
+    )
+    await fn({ app, deps, ownerCookies, project, commitSha })
+  } finally {
+    await deps.builds.idle()
+    await app.close()
+  }
+}
+
+const hostOf = (ctx: CwlProject, kind: 'staging' | 'production') =>
+  ctx.project.environments.find((e) => e.kind === kind)!.hostname
+
+function draft(
+  ctx: CwlProject,
+  environment: 'staging' | 'production',
+  credentials: { cookies?: Record<string, string>; bearer?: string } = {
+    cookies: ctx.ownerCookies,
+  },
+) {
+  return ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/launch-records/iam-registration/${environment}/draft`,
+    ...(credentials.cookies === undefined ? {} : { cookies: credentials.cookies }),
+    headers: {
+      ...mutationHeaders(ctx.deps),
+      ...(credentials.bearer === undefined
+        ? {}
+        : { authorization: `Bearer ${credentials.bearer}` }),
+    },
+  })
+}
+
+/** A POST that must answer `expected` — a fixture step, which throws rather than asserting. */
+async function post(
+  ctx: CwlProject,
+  url: string,
+  payload: Record<string, unknown>,
+  cookies: Record<string, string>,
+  expected = 200,
+): Promise<Json> {
+  const res = await ctx.app.inject({
+    method: 'POST',
+    url,
+    payload,
+    cookies,
+    headers: mutationHeaders(ctx.deps),
+  })
+  if (res.statusCode !== expected)
+    throw new Error(`POST ${url} answered ${res.statusCode}: ${res.body}`)
+  return res.json() as Json
+}
+
+/** The CWL app built, released and deployed to staging — which makes it the launch candidate. */
+async function stage(ctx: CwlProject): Promise<void> {
+  const started = await post(
+    ctx,
+    `/v1/projects/${ctx.project.id}/builds`,
+    {},
+    ctx.ownerCookies,
+    202,
+  )
+  await ctx.deps.builds.idle()
+  const release = await post(
+    ctx,
+    `/v1/projects/${ctx.project.id}/releases`,
+    { buildId: started.id },
+    ctx.ownerCookies,
+    201,
+  )
+  const staging = ctx.project.environments.find((e) => e.kind === 'staging')!
+  const staged = await post(
+    ctx,
+    `/v1/environments/${staging.id}/deploy`,
+    { releaseId: release.id },
+    ctx.ownerCookies,
+  )
+  if (staged.state !== 'healthy') throw new Error(`staging is ${String(staged.state)}`)
+}
+
+async function cwlRecords(ctx: CwlProject) {
+  const res = await ctx.app.inject({
+    method: 'GET',
+    url: `/v1/projects/${ctx.project.id}/launch-records`,
+    cookies: ctx.ownerCookies,
+  })
+  expect(res.statusCode, res.body).toBe(200)
+  return res.json() as {
+    iamRegistration: Json | null
+    stagingRegistration: Json | null
+    privacyAssessment: Json | null
+  }
+}
+
+async function cwlPiaApproved(ctx: CwlProject): Promise<void> {
+  const admin = await loginAs(ctx.deps, 'platform_admin')
+  for (const state of ['submitted', 'approved'] as const)
+    await post(
+      ctx,
+      `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment`,
+      { state, reviewer: 'K. Privacy', externalTicketRef: 'PIA-2026-0088' },
+      admin,
+    )
+}
+
+/** The owner's *"I've sent it"* for the staging registration, today, with UBC's reference. */
+const cwlSubmitStaging = (ctx: CwlProject) =>
+  ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/launch-records/iam-registration/staging/submission`,
+    payload: { reference: 'IAM-2026-0500' },
+    cookies: ctx.ownerCookies,
+    headers: mutationHeaders(ctx.deps),
+  })
+
+/** Every audit row of one type for the project, oldest first. */
+const eventsOf = (ctx: CwlProject, type: string) =>
+  ctx.deps.db
+    .select()
+    .from(events)
+    .where(and(eq(events.projectId, ctx.project.id), eq(events.type, type)))
+    .orderBy(asc(events.createdAt))
+
+interface Pkg {
+  environment: string
+  generatedAt: string
+  fromCommit: string
+  entityId: string
+  acsUrl: string
+  sloUrl: string
+  certificate: { pem: string; fingerprint: string; expiresAt: string }
+  attributes: {
+    name: string
+    oid: string
+    purpose: string
+    usedAt: { path: string; line: number }[]
+    justification: string
+    unused: boolean
+  }[]
+  usedAtTruncated: boolean
+  contacts: {
+    technical: { name: string; email: string }[]
+    support: { name: string; email: string }[]
+  }
+  privacyAssessmentReference: string | null
+  metadataXml: string
+  warnings: string[]
+}
+const packageOf = (body: unknown) => (body as { package: Pkg }).package
+
+const NO_PIA_NUMBER =
+  'The privacy assessment’s PIA number is not recorded yet, and UBC IAM asks for it. Once an administrator records the assessment approved with its number, draft this again so the package carries it.'
+const NO_CANDIDATE =
+  'Nothing is serving staging yet, so this is drawn from the newest valid manifest. Production’s registration should describe the release you will launch: once it serves staging, draft this again.'
+const PRIVATE_KEY = /-----BEGIN (RSA )?PRIVATE KEY/
+
+describe('D19’s registration package (Task 10)', () => {
+  it('drafts the staging package: staging’s entity, the certificate staging registers with, a justification per attribute', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail', 'givenName'], async (ctx) => {
+      const res = await draft(ctx, 'staging')
+      expect(res.statusCode, res.body).toBe(200)
+      const staging = hostOf(ctx, 'staging')
+      const entityId = `${ctx.deps.config.idp.spEntityBase}/sp/${ctx.project.slug}/staging`
+      const urls = {
+        entityId,
+        acsUrl: `https://${staging}/auth/ubcshib/callback`,
+        sloUrl: `https://${staging}/auth/logout`,
+      }
+      expect(res.json()).toMatchObject({
+        environment: 'staging',
+        state: 'draft',
+        ...urls,
+        // A draft registers nothing: UBC has not answered.
+        registeredAttributes: [],
+        registeredAt: null,
+        submittedAt: null,
+      })
+      const pkg = packageOf(res.json())
+      expect(pkg).toMatchObject({
+        environment: 'staging',
+        ...urls,
+        fromCommit: ctx.commitSha,
+        usedAtTruncated: false,
+        privacyAssessmentReference: null,
+        warnings: [NO_PIA_NUMBER],
+        contacts: {
+          technical: [{ name: 'Bio Prof', email: 'bio_prof@example.ubc.ca' }],
+          support: [{ name: 'Platform Admin', email: 'platform_admin@example.ubc.ca' }],
+        },
+      })
+      // Where the APP reads each one — never the blueprint's own bridge (its auth/attributes.js
+      // reads `.ubcEduCwlPuid` itself, and is skipped).
+      expect(pkg.attributes.map((a) => [a.name, a.usedAt, a.unused])).toEqual([
+        ['ubcEduCwlPuid', [{ path: 'routes/people.js', line: 3 }], false],
+        ['mail', [{ path: 'public/app.js', line: 2 }], false],
+        ['givenName', [{ path: 'routes/people.js', line: 3 }], false],
+      ])
+      expect(pkg.attributes[1]!.justification).toMatch(
+        /shows it to the person in the browser, in public\/app\.js:2\.$/,
+      )
+      // Staging's names only: production's entity and hostname appear nowhere in it.
+      const whole = JSON.stringify(pkg)
+      expect(whole).not.toContain(`/sp/${ctx.project.slug}/production`)
+      expect(whole).not.toContain(`//${hostOf(ctx, 'production')}`)
+      expect(pkg.metadataXml).toContain(`entityID="${entityId}"`)
+      // The certificate is a real one, for this entity, and its fingerprint is its own.
+      const cert = new X509Certificate(pkg.certificate.pem)
+      expect(cert.fingerprint256).toBe(pkg.certificate.fingerprint)
+      expect(cert.subjectAltName).toBe(`URI:${entityId}`)
+      // Kept on the record, and announced without the attributes themselves.
+      expect(packageOf((await cwlRecords(ctx)).stagingRegistration)).toEqual(pkg)
+      const drafted = await eventsOf(ctx, 'iam_registration.drafted')
+      expect(drafted.map((e) => e.machineDetail)).toEqual([
+        {
+          environment: 'staging',
+          entityId,
+          fromCommit: ctx.commitSha,
+          attributeCount: 3,
+          unusedCount: 0,
+        },
+      ])
+      expect(drafted[0]!.humanMessage).toBe(
+        "Bio Prof drafted this app's staging registration for UBC IAM, asking for 3 attribute(s).",
+      )
+    })
+  })
+
+  it('a package’s certificate is the one the environment registers with', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const drafted = packageOf((await draft(ctx, 'staging')).json()).certificate
+      await stage(ctx)
+      const registered = await eventsOf(ctx, 'sso.registered')
+      const staging = registered.filter(
+        (e) => e.subject === `sp:${ctx.project.slug}:staging`,
+      )
+      expect(staging).toHaveLength(1)
+      expect(
+        (staging[0]!.machineDetail as { certificateFingerprint: string })
+          .certificateFingerprint,
+      ).toBe(drafted.fingerprint)
+      // Drafted again, the same certificate: the environment's keypair is made once (D20).
+      expect(packageOf((await draft(ctx, 'staging')).json()).certificate).toEqual(drafted)
+      // And production's is its own — a compromise is contained to one environment.
+      const production = packageOf((await draft(ctx, 'production')).json()).certificate
+      expect(production.fingerprint).not.toBe(drafted.fingerprint)
+    })
+  })
+
+  it('an attribute the app never reads is flagged unused, with a warning to remove it before sending', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail', 'sn'], async (ctx) => {
+      const pkg = packageOf((await draft(ctx, 'staging')).json())
+      expect(pkg.attributes.find((a) => a.name === 'sn')).toMatchObject({
+        unused: true,
+        usedAt: [],
+        justification:
+          'The app asks for it and does not read it anywhere Manifest looked — remove it from `auth.attributes` before you send this.',
+      })
+      expect(pkg.warnings).toContain(
+        'The app asks for sn and does not read it anywhere Manifest looked. Remove it from auth.attributes, validate the manifest and draft this again before you send it — UBC IAM asks why an app needs each attribute.',
+      )
+      // The positive control: what the app reads is not flagged.
+      expect(pkg.attributes.find((a) => a.name === 'mail')!.unused).toBe(false)
+      expect(
+        (await eventsOf(ctx, 'iam_registration.drafted'))[0]!.machineDetail,
+      ).toMatchObject({ attributeCount: 3, unusedCount: 1 })
+    })
+  })
+
+  it('a submitted package is never regenerated — LAUNCH_RECORD_SUBMITTED — and a change_requested one is', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const first = packageOf((await draft(ctx, 'staging')).json())
+      await cwlPiaApproved(ctx)
+      const sent = await cwlSubmitStaging(ctx)
+      expect(sent.statusCode, sent.body).toBe(200)
+      expect(refusal(await draft(ctx, 'staging'))).toEqual({
+        status: 409,
+        code: 'LAUNCH_RECORD_SUBMITTED',
+      })
+      // The package sent is the package kept.
+      expect(packageOf((await cwlRecords(ctx)).stagingRegistration)).toEqual(first)
+
+      // UBC registers it — at an ACS path the app has since moved away from — and it is still kept.
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const registered = {
+        environment: 'staging',
+        entityId: first.entityId,
+        acsUrl: `https://${hostOf(ctx, 'staging')}/auth/old/callback`,
+        sloUrl: first.sloUrl,
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      }
+      const recordUrl = `/v1/projects/${ctx.project.id}/launch-records/iam-registration`
+      await post(ctx, recordUrl, { ...registered, state: 'active' }, admin)
+      expect(refusal(await draft(ctx, 'staging'))).toEqual({
+        status: 409,
+        code: 'LAUNCH_RECORD_SUBMITTED',
+      })
+
+      // An administrator files a change request: a new request is the point, so it drafts again.
+      await post(
+        ctx,
+        recordUrl,
+        {
+          ...registered,
+          state: 'change_requested',
+          requestedAttributes: ['ubcEduCwlPuid', 'mail'],
+        },
+        admin,
+      )
+      const again = await draft(ctx, 'staging')
+      expect(again.statusCode, again.body).toBe(200)
+      // The record still says what UBC REGISTERED; only the package is new.
+      expect(again.json()).toMatchObject({
+        state: 'change_requested',
+        acsUrl: registered.acsUrl,
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      })
+      const redrafted = packageOf(again.json())
+      expect(redrafted.generatedAt > first.generatedAt).toBe(true)
+      expect(redrafted.acsUrl).toBe(first.acsUrl)
+      // And now it carries the PIA number the assessment was approved with.
+      expect(redrafted.privacyAssessmentReference).toBe('PIA-2026-0088')
+      expect(redrafted.warnings).not.toContain(NO_PIA_NUMBER)
+    })
+  })
+
+  it('no answer carries a private key', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const bodies: string[] = []
+      for (const environment of ['staging', 'production'] as const) {
+        const res = await draft(ctx, environment)
+        expect(res.statusCode, res.body).toBe(200)
+        bodies.push(res.body)
+      }
+      await cwlPiaApproved(ctx)
+      const sent = await cwlSubmitStaging(ctx)
+      bodies.push(sent.body)
+      await stage(ctx)
+      for (const url of ['launch-records', 'launch-readiness']) {
+        const res = await ctx.app.inject({
+          method: 'GET',
+          url: `/v1/projects/${ctx.project.id}/${url}`,
+          cookies: ctx.ownerCookies,
+        })
+        bodies.push(res.body)
+      }
+      const audit = await ctx.deps.db
+        .select()
+        .from(events)
+        .where(eq(events.projectId, ctx.project.id))
+      bodies.push(JSON.stringify(audit))
+      // The positive control: the certificates ARE there — the scan is reading the right bodies.
+      expect(bodies.join('\n')).toContain('-----BEGIN CERTIFICATE-----')
+      for (const body of bodies) expect(body).not.toMatch(PRIVATE_KEY)
+    })
+  })
+
+  it('refuses an app that registers nothing — LAUNCH_NOT_CWL — and writes nothing', async () => {
+    await withProjectServer(async (ctx) => {
+      // `fixture-node@1` signs nobody in (`auth.provider: none`).
+      for (const environment of ['staging', 'production'] as const) {
+        const res = await ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/launch-records/iam-registration/${environment}/draft`,
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+        })
+        expect(refusal(res)).toEqual({ status: 409, code: 'LAUNCH_NOT_CWL' })
+      }
+      expect(await records(ctx)).toMatchObject({
+        iamRegistration: null,
+        stagingRegistration: null,
+      })
+    })
+  })
+
+  it('production is drawn from the launch candidate, and says so when there is none', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const early = packageOf((await draft(ctx, 'production')).json())
+      expect(early.warnings).toContain(NO_CANDIDATE)
+      expect(early.fromCommit).toBe(ctx.commitSha)
+      expect(early.acsUrl).toBe(
+        `https://${hostOf(ctx, 'production')}/auth/ubcshib/callback`,
+      )
+
+      await stage(ctx)
+      // A newer manifest asks for more — but it is not what serves staging.
+      const newer = await commitManifest(
+        { app: ctx.app, deps: ctx.deps, cookies: ctx.ownerCookies, project: ctx.project },
+        cwlManifest(ctx.project.slug, ['ubcEduCwlPuid', 'mail', 'givenName']),
+        'feat: greet people by name',
+      )
+      const production = packageOf((await draft(ctx, 'production')).json())
+      expect(production.attributes.map((a) => a.name)).toEqual(['ubcEduCwlPuid', 'mail'])
+      expect(production.fromCommit).toBe(ctx.commitSha)
+      expect(production.warnings).not.toContain(NO_CANDIDATE)
+      // Staging is drawn from the newest valid manifest.
+      const staging = packageOf((await draft(ctx, 'staging')).json())
+      expect(staging.attributes.map((a) => a.name)).toEqual([
+        'ubcEduCwlPuid',
+        'mail',
+        'givenName',
+      ])
+      expect(staging.fromCommit).toBe(newer.commitSha)
+    })
+  })
+
+  it('an agent on its person’s token may draft — launch:draft is mintable — a collaborator may, and a stranger is answered 404', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const minted = await post(
+        ctx,
+        `/v1/projects/${ctx.project.id}/tokens`,
+        {
+          name: 'drafting agent',
+          capabilities: ['project:read', 'launch:draft'],
+          expiresInDays: 1,
+        },
+        ctx.ownerCookies,
+        201,
+      )
+      const byToken = await draft(ctx, 'staging', { bearer: minted.secret as string })
+      expect(byToken.statusCode, byToken.body).toBe(200)
+      // A token without it is refused, by the capability's code.
+      const owner = await ensureTestUser(ctx.deps.db, 'bio_prof')
+      const { plaintext } = await mintTestToken(ctx.deps.db, {
+        userId: owner.id,
+        projectId: ctx.project.id,
+        capabilities: ['project:read'],
+      })
+      expect(refusal(await draft(ctx, 'staging', { bearer: plaintext }))).toEqual({
+        status: 403,
+        code: 'FORBIDDEN',
+      })
+      const colleague = await ensureTestUser(ctx.deps.db, 'bio_colleague')
+      await addMember(ctx.deps.db, ctx.project.id, colleague.id, 'collaborator')
+      const byCollaborator = await draft(ctx, 'production', {
+        cookies: await loginAs(ctx.deps, 'bio_colleague'),
+      })
+      expect(byCollaborator.statusCode, byCollaborator.body).toBe(200)
+      // The collaborators stand beside the owner as technical contacts.
+      expect(packageOf(byCollaborator.json()).contacts.technical).toEqual([
+        { name: 'Bio Prof', email: 'bio_prof@example.ubc.ca' },
+        { name: 'Bio Colleague', email: 'bio_colleague@example.ubc.ca' },
+      ])
+      const stranger = await loginAs(ctx.deps, 'unrelated_user')
+      expect(refusal(await draft(ctx, 'staging', { cookies: stranger }))).toEqual({
+        status: 404,
+        code: 'NOT_FOUND',
+      })
+    })
+  })
+
+  it('the platform’s contacts are the configured ones when set', async () => {
+    await withCwlProject(
+      ['ubcEduCwlPuid', 'mail'],
+      async (ctx) => {
+        const pkg = packageOf((await draft(ctx, 'staging')).json())
+        expect(pkg.contacts.support).toEqual([
+          { name: 'IAM Desk', email: 'iam.desk@example.ubc.ca' },
+          { name: 'Rich T', email: 'rich@example.ubc.ca' },
+        ])
+        expect(pkg.metadataXml).toContain(
+          '<md:EmailAddress>iam.desk@example.ubc.ca</md:EmailAddress>',
+        )
+      },
+      {
+        deps: (deps) => ({
+          ...deps,
+          config: {
+            ...deps.config,
+            launchContacts: [
+              { name: 'IAM Desk', email: 'iam.desk@example.ubc.ca' },
+              { name: 'Rich T', email: 'rich@example.ubc.ca' },
+            ],
+          },
+        }),
+      },
+    )
+  })
+
+  it('a re-draft waits for a submission holding the record, and then refuses it — LAUNCH_RECORD_SUBMITTED', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      expect((await draft(ctx, 'staging')).statusCode).toBe(200)
+      const record = (await cwlRecords(ctx)).stagingRegistration as { id: string }
+      let answered: Awaited<ReturnType<typeof draft>> | undefined
+      await holdingThen(
+        'SELECT 1 FROM iam_registrations WHERE id = $1 FOR UPDATE',
+        [record.id],
+        // What an owner's "I've sent it" does in the window.
+        `UPDATE iam_registrations SET state = 'submitted', submitted_at = now() WHERE id = '${record.id}'`,
+        async (lock) => {
+          const drafting = draft(ctx, 'staging')
+          await until(
+            () => lock.waitedOn('%iam_registrations%'),
+            'the re-draft waiting on the held registration',
+          )
+          await lock.commit()
+          answered = await drafting
+        },
+      )
+      expect(refusal(answered!)).toEqual({ status: 409, code: 'LAUNCH_RECORD_SUBMITTED' })
+      expect(await eventsOf(ctx, 'iam_registration.drafted')).toHaveLength(1)
+    })
+  })
+})
+
+describe('the day a person may say they sent it is the newest draft’s (Task 10; the whole-branch review’s M4)', () => {
+  it('a re-drafted package moves the earliest day it can have been sent to the day it was made', async () => {
+    await withProjectServer(async (ctx) => {
+      await piaApproved(ctx)
+      // First drafted five days ago, drafted again today.
+      await withDraft(ctx.db, {
+        projectId: ctx.projectId,
+        environment: 'staging',
+        createdAt: new Date(Date.now() - 5 * 86_400_000),
+        generatedAt: new Date(),
+      })
+      expect(
+        refusal(
+          await submit(
+            ctx,
+            'staging',
+            { sentAt: vancouverDaysAgo(3) },
+            { cookies: ctx.ownerCookies },
+          ),
+        ),
+      ).toEqual({ status: 400, code: 'LAUNCH_SENT_AT_INVALID' })
+      // The positive control: today, the draft's own day, is accepted.
+      const sent = await submit(
+        ctx,
+        'staging',
+        { sentAt: vancouverToday() },
+        { cookies: ctx.ownerCookies },
+      )
+      expect(sent.statusCode, sent.body).toBe(200)
     })
   })
 })

@@ -29,11 +29,19 @@ export {
 } from './entity.js'
 export {
   describeKeypair,
+  ensureSpCertificate,
   ensureSpKeypair,
   mintSpKeypair,
+  publicHalf,
+  type SpCertificate,
   type SpKeypair,
   type SpKeypairScope,
 } from './keypair.js'
+export {
+  renderRegistrationMetadata,
+  type Contact,
+  type RegistrationXmlInput,
+} from './registration-xml.js'
 export {
   createIdpPool,
   deleteSpRow,
@@ -59,6 +67,7 @@ export {
   type SpRegistration,
   type SpDeregistrationInput,
   type SpRegistrationInput,
+  type SsoCertificates,
   type SsoDeregistrar,
   type SsoRegistrar,
 } from './registration.js'

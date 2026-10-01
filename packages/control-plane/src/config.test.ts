@@ -211,6 +211,38 @@ describe('configuration', () => {
     }
   })
 
+  it('reads the platform’s launch contacts as Name <email> — none when unset — and refuses one it cannot read (Task 10, Decision 15)', () => {
+    // Unset or blank: the package names the oldest administrator, read when it is drafted.
+    expect(loadConfig(base).launchContacts).toBeNull()
+    expect(
+      loadConfig({ ...base, MANIFEST_LAUNCH_CONTACTS: '  ' }).launchContacts,
+    ).toBeNull()
+    expect(
+      loadConfig({
+        ...base,
+        MANIFEST_LAUNCH_CONTACTS:
+          ' IAM Desk <iam.desk@example.ubc.ca> , Rich T <rich@example.ubc.ca>',
+      }).launchContacts,
+    ).toEqual([
+      { name: 'IAM Desk', email: 'iam.desk@example.ubc.ca' },
+      { name: 'Rich T', email: 'rich@example.ubc.ca' },
+    ])
+    // A contact UBC IAM is sent must be a name AND an address: a typo must not boot as a package
+    // that names nobody, or an address with no person.
+    for (const value of [
+      'iam.desk@example.ubc.ca',
+      'IAM Desk',
+      'IAM Desk <not-an-address>',
+      '<iam.desk@example.ubc.ca>',
+      'IAM Desk <iam.desk@example.ubc.ca>,',
+    ]) {
+      expect(
+        () => loadConfig({ ...base, MANIFEST_LAUNCH_CONTACTS: value }),
+        value,
+      ).toThrow(ConfigError)
+    }
+  })
+
   it('coerces the agent and intake numbers, and refuses one that is not positive', () => {
     const config = loadConfig({
       ...base,

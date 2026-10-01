@@ -506,7 +506,7 @@ export const ERROR_CODES = {
     summary:
       'There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.',
     remedy:
-      'Draft it first, send the draft to UBC, then say it was sent. Nothing was recorded.',
+      'Draft it first (`draftIamRegistration` for a registration), send the draft to UBC, then say it was sent. Nothing was recorded.',
   },
   LAUNCH_SENT_AT_INVALID: {
     status: 400,
@@ -531,6 +531,23 @@ export const ERROR_CODES = {
       'The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.',
     remedy:
       'Send the staging registration first. Once an administrator records it active and you have tested the app at staging, send the production registration and say so again.',
+  },
+  // launch/records.ts — D19's registration package (the launch path plan's Task 10)
+  LAUNCH_RECORD_SUBMITTED: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'This registration is with UBC IAM or registered by it (`submitted` or `active`), and what was sent is kept as it was sent: Manifest drafts it again only once UBC asks for changes or the registration lapses.',
+    remedy:
+      'To change what UBC IAM was sent, ask UBC IAM. Once an administrator records that it asked for changes (`change_requested`) or that the registration lapsed (`expired`), draft it again.',
+  },
+  LAUNCH_NOT_CWL: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'The app signs nobody in with CWL — or asks for no attribute, which no registration may — so there is nothing to register with UBC IAM.',
+    remedy:
+      'An app that signs nobody in needs no registration. To sign people in, set `auth.provider: cwl` and the attributes the app needs in `auth.attributes`, validate the manifest, then draft again.',
   },
 
   // launch/rehearsal.ts — D21's rehearsal as R2 redefines it (P6a Task 14). Every one of

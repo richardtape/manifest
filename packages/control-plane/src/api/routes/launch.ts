@@ -1,6 +1,7 @@
 import { z } from 'zod/v4'
 import {
   computeLaunchReadiness,
+  draftIamRegistration,
   getIamRegistration,
   getPrivacyAssessment,
   recordIamRegistration,
@@ -15,6 +16,7 @@ import { requireSession } from '../actor.js'
 import { withdrawWhatItNoLongerAllows } from '../spec-validation.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
+import { DRAFTED_EXAMPLE, RECORDS_EXAMPLE, SUBMITTED_EXAMPLE } from './launch-examples.js'
 import {
   IamRegistration,
   LaunchReadiness,
@@ -99,70 +101,7 @@ export const launchRoutes = [
     },
     capability: 'project:read',
     errors: ['NOT_FOUND'],
-    examples: {
-      response: {
-        projectId: '5604d74f-590f-41e9-a34f-75d343aec6f6',
-        iamRegistration: {
-          id: 'f9724bbd-43f6-485b-ae8a-f879f015b2b5',
-          projectId: '5604d74f-590f-41e9-a34f-75d343aec6f6',
-          environment: 'production',
-          entityId: 'https://manifest.internal/sp/fixture-dee0f9d6/production',
-          acsUrl: 'https://fixture-dee0f9d6.manifest.internal/auth/ubcshib/callback',
-          sloUrl: 'https://fixture-dee0f9d6.manifest.internal/auth/logout',
-          certFingerprint: null,
-          certExpiresAt: null,
-          registeredAttributes: [],
-          requestedAttributes: null,
-          registeredAt: null,
-          state: 'submitted',
-          externalTicketRef: 'IAM-2026-0500',
-          submittedAt: '2026-09-30T19:00:00.000Z',
-          submittedBy: {
-            id: 'f696c331-ac5a-4887-8811-aa562446342d',
-            displayName: 'Bio Prof',
-          },
-          createdAt: '2026-10-01T06:55:59.850Z',
-          updatedAt: '2026-10-01T06:55:59.861Z',
-        },
-        stagingRegistration: {
-          id: '7fefdd84-b85b-4010-b753-c5715a37f280',
-          projectId: '5604d74f-590f-41e9-a34f-75d343aec6f6',
-          environment: 'staging',
-          entityId: 'https://manifest.internal/sp/fixture/staging',
-          acsUrl: 'https://fixture.staging.manifest.internal/auth/ubcshib/callback',
-          sloUrl: 'https://fixture.staging.manifest.internal/auth/logout',
-          certFingerprint: null,
-          certExpiresAt: null,
-          registeredAttributes: ['ubcEduCwlPuid', 'mail'],
-          requestedAttributes: null,
-          registeredAt: '2026-10-01T06:55:59.846Z',
-          state: 'active',
-          externalTicketRef: null,
-          submittedAt: '2026-10-01T06:55:59.839Z',
-          submittedBy: {
-            id: '99f8712e-e1bf-4683-abbf-e6c00237ca3c',
-            displayName: 'Platform Admin',
-          },
-          createdAt: '2026-10-01T06:55:59.838Z',
-          updatedAt: '2026-10-01T06:55:59.846Z',
-        },
-        privacyAssessment: {
-          id: '0fa59301-628d-4a34-858e-3b51e9ea8e55',
-          projectId: '5604d74f-590f-41e9-a34f-75d343aec6f6',
-          state: 'approved',
-          reviewer: 'K. Privacy',
-          approvedAt: '2026-10-01T06:55:59.831Z',
-          externalTicketRef: 'PIA-2026-0088',
-          submittedAt: '2026-10-01T06:55:59.821Z',
-          submittedBy: {
-            id: '99f8712e-e1bf-4683-abbf-e6c00237ca3c',
-            displayName: 'Platform Admin',
-          },
-          createdAt: '2026-10-01T06:55:59.820Z',
-          updatedAt: '2026-10-01T06:55:59.831Z',
-        },
-      },
-    },
+    examples: { response: RECORDS_EXAMPLE },
     handler: async ({ deps, actor, params }) => {
       // READABLE BY THE PROJECT, not only by an administrator: §13 says the checklist is
       // surfaced "the moment a project is created — not at the point the owner asks to go
@@ -243,6 +182,7 @@ export const launchRoutes = [
           id: '7cdb83c7-6a58-49e2-a8a8-0f480232ed6d',
           displayName: 'Platform Admin',
         },
+        package: null,
         createdAt: '2026-10-01T06:56:08.960Z',
         updatedAt: '2026-10-01T06:56:08.960Z',
       },
@@ -333,6 +273,52 @@ export const launchRoutes = [
     },
   }),
   defineRoute({
+    operationId: 'draftIamRegistration',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/draft',
+    tag: 'launch',
+    summary: 'Draft a registration request for UBC IAM',
+    description:
+      'Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is `submitted` or `active`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until UBC asks for changes or the registration lapses. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Saying it was sent is `submitIamRegistration`.',
+    params: z.strictObject({
+      projectId: PATH.projectId,
+      environment: z
+        .enum(['staging', 'production'])
+        .describe('Which registration to draft: `staging` or `production`.'),
+    }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description: 'The registration, with its new draft in `package`.',
+      schema: IamRegistration,
+    },
+    capability: 'launch:draft',
+    examples: { response: DRAFTED_EXAMPLE },
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'LAUNCH_RECORD_SUBMITTED',
+      'LAUNCH_NOT_CWL',
+      // Reading the app's code at the commit it is drawn from — the source routes' own refusals.
+      'SOURCE_COMMIT_NOT_FOUND',
+      'SOURCE_GIT_FAILED',
+      'SOURCE_PROVIDER_MISMATCH',
+      'SOURCE_UNREACHABLE',
+    ],
+    handler: async ({ deps, actor, params }) => {
+      // MINTABLE (Decision 11): no `requireSession` — an agent on its person's token may prepare a
+      // draft for them to read. The capability first, so a stranger is `404` and learns nothing.
+      await assertCapability(deps.db, actor, params.projectId, 'launch:draft')
+      const row = await draftIamRegistration(deps, {
+        projectId: params.projectId,
+        environment: params.environment,
+        actor: { id: actor.userId },
+      })
+      return toIamRegistration(row, await submitterOf(deps.db, row.submittedBy))
+    },
+  }),
+  defineRoute({
     operationId: 'submitIamRegistration',
     credential: 'session',
     method: 'POST',
@@ -366,31 +352,7 @@ export const launchRoutes = [
       'LAUNCH_STAGING_NOT_REGISTERED',
       'LAUNCH_SENT_AT_INVALID',
     ],
-    examples: {
-      request: { sentAt: '2026-09-30', reference: 'IAM-2026-0500' },
-      response: {
-        id: 'f9724bbd-43f6-485b-ae8a-f879f015b2b5',
-        projectId: '5604d74f-590f-41e9-a34f-75d343aec6f6',
-        environment: 'production',
-        entityId: 'https://manifest.internal/sp/fixture-dee0f9d6/production',
-        acsUrl: 'https://fixture-dee0f9d6.manifest.internal/auth/ubcshib/callback',
-        sloUrl: 'https://fixture-dee0f9d6.manifest.internal/auth/logout',
-        certFingerprint: null,
-        certExpiresAt: null,
-        registeredAttributes: [],
-        requestedAttributes: null,
-        registeredAt: null,
-        state: 'submitted',
-        externalTicketRef: 'IAM-2026-0500',
-        submittedAt: '2026-09-30T19:00:00.000Z',
-        submittedBy: {
-          id: 'f696c331-ac5a-4887-8811-aa562446342d',
-          displayName: 'Bio Prof',
-        },
-        createdAt: '2026-10-01T06:55:59.850Z',
-        updatedAt: '2026-10-01T06:55:59.861Z',
-      },
-    },
+    examples: { request: { reference: 'IAM-2026-0500' }, response: SUBMITTED_EXAMPLE },
     handler: async ({ deps, request, params, body }) => {
       // A PERSON, in their own session (D24: *"saying that a request to either was sent"*).
       // `requireSession` first, so a token is answered the same for every project id and learns

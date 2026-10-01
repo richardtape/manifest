@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type pg from 'pg'
 import { X509Certificate } from 'node:crypto'
@@ -15,6 +16,7 @@ import {
 import { SpEntityError } from './entity.js'
 import { idpDatabaseUrl, idpSigningCertPath } from './testing.js'
 import { createEventBus, type StreamFrame } from '../observability/index.js'
+import { assemblePackage } from '../launch/package.js'
 
 /** D23.2's bus (P4b Task 15). §9's two events reach the stream as well as the table. */
 const bus = createEventBus()
@@ -292,6 +294,69 @@ describeDocker('registerServiceProvider (§9)', () => {
       // the shape ServiceCredentialResolver already has (Task 5).
       expect(result.entity.entityId).toBe(entityId)
       expect(await readSpRow(pool, entityId)).not.toBeUndefined()
+    })
+  })
+
+  /**
+   * D19'S PACKAGE CARRIES THE CERTIFICATE THE ENVIRONMENT REGISTERS WITH (the launch path plan's Task
+   * 10, Review Focus 2) — against the real IdP row. A draft asks the registrar for the environment's
+   * certificate (`spCertificate`, the public half), and a staging deploy registers the environment
+   * (`registerServiceProvider`); both read ONE keypair store, so the row's `certData` is the package's
+   * certificate whichever came first. And the metadata the package renders is well-formed XML, read by
+   * the host's own `xmllint` (Step 5 — the unit tier does not assume it).
+   */
+  it('the certificate a staging deploy registers is the package’s, and the package’s metadata is well-formed', async () => {
+    await withSecretScope(async (db, { projectId, keys }) => {
+      const entityId = 'https://manifest.internal/sp/reg-package/staging'
+      entityIds.push(entityId)
+      const registrar = createSsoRegistrar(
+        pool,
+        keys,
+        'https://manifest.internal',
+        idpSigningCertPath(),
+        bus,
+      )
+      // The draft first, as an owner in week one: the keypair is minted here.
+      const certificate = await registrar.spCertificate(db, {
+        projectId,
+        environmentKind: 'staging',
+        slug: 'reg-package',
+        entityId,
+      })
+      expect(JSON.stringify(certificate)).not.toMatch(/PRIVATE KEY/)
+      const { entityBase: _bound, ...unbound } = input('reg-package')
+      const result = await registrar.registerServiceProvider(db, {
+        ...unbound,
+        projectId,
+      })
+      const row = await readSpRow(pool, entityId)
+      expect(row?.certData).toBe(certificate.certData)
+      expect(result.keypair.fingerprint).toBe(certificate.fingerprint)
+
+      const pkg = assemblePackage({
+        environment: 'staging',
+        generatedAt: new Date(),
+        fromCommit: 'a'.repeat(40),
+        entity: result.entity,
+        certificate,
+        uses: { ubcEduCwlPuid: [{ path: 'server.js', line: 1 }], mail: [] },
+        usedAtTruncated: false,
+        contacts: {
+          technical: [{ name: 'Reg Owner', email: 'owner@example.ubc.ca' }],
+          support: [{ name: 'Platform & Co <Admin>', email: 'admin@example.ubc.ca' }],
+        },
+        privacyAssessmentReference: 'PIA-2026-0088',
+        warnings: [],
+      })
+      const lint = spawnSync('xmllint', ['--noout', '-'], { input: pkg.metadataXml })
+      expect(lint.error).toBeUndefined()
+      expect(lint.stderr.toString()).toBe('')
+      expect(lint.status).toBe(0)
+      // THE POSITIVE CONTROL: the same check refuses a document that is not well-formed.
+      const broken = spawnSync('xmllint', ['--noout', '-'], {
+        input: pkg.metadataXml.replace('</md:Organization>', ''),
+      })
+      expect(broken.status).not.toBe(0)
     })
   })
 

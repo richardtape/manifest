@@ -1,5 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { iamRegistrations, privacyAssessments, projects, type Db } from '../db/index.js'
+import { mintSpKeypair, publicHalf, type SpCertificate } from '../sso/index.js'
+import { assemblePackage } from './package.js'
 import type {
   IamRegistrationRow,
   PrivacyAssessmentRow,
@@ -7,10 +9,23 @@ import type {
 } from './records.js'
 
 /**
- * A registration DRAFT, as the launch path plan's Task 10 will store one — written straight to
- * the row, because until Task 10 lands nothing generates a package, and a submission refuses a
- * record that has none (`LAUNCH_DRAFT_REQUIRED`). The package here is a PLACEHOLDER: the
- * submission reads only that one exists, and Task 10 owns its shape.
+ * The fixture certificate every `withDraft` package carries — minted ONCE per test process: an
+ * RSA-4096 mint costs ~0.2–0.5 s, and a package's certificate is not what these drafts are about
+ * (`api/launch.test.ts` drafts through the route, with the environment's own).
+ */
+let fixtureCertificate: Promise<SpCertificate> | undefined
+const certificateOnce = () =>
+  (fixtureCertificate ??= mintSpKeypair({
+    projectId: '',
+    environmentKind: 'staging',
+    slug: 'draft-fixture',
+    entityId: 'https://manifest.internal/sp/draft-fixture/staging',
+  }).then(publicHalf))
+
+/**
+ * A registration DRAFT, written straight to the row in the shape `draftIamRegistration` stores
+ * (the launch path plan's Task 10, which replaced Task 9's placeholder) — for the tests whose subject
+ * is what a draft's EXISTENCE does (a submission, the checklist), not how one is generated.
  *
  * **A draft is not a registration**: `registered_attributes` is left to its default, `[]`, and
  * `registered_at` null — UBC has registered nothing — so the build's attribute check must ignore
@@ -22,8 +37,13 @@ export async function withDraft(
     projectId: string
     environment: RegistrationEnvironment
     attributes?: string[]
-    /** When the draft was made — a test of `sentAt`'s lower bound backdates it. */
+    /** When the record was first written — a test of `sentAt`'s lower bound backdates it. */
     createdAt?: Date
+    /** When this package was generated: `createdAt` when absent, as for a first draft. */
+    generatedAt?: Date
+    /** Where the draft says the app signs people in and out, when a case needs another. */
+    acsUrl?: string
+    sloUrl?: string
   },
 ): Promise<IamRegistrationRow> {
   const [project] = await db
@@ -35,19 +55,36 @@ export async function withDraft(
     input.environment === 'production'
       ? `${project.slug}.manifest.internal`
       : `${project.slug}.staging.manifest.internal`
+  const entity = {
+    entityId: `https://manifest.internal/sp/${project.slug}/${input.environment}`,
+    acsUrl: input.acsUrl ?? `https://${host}/auth/ubcshib/callback`,
+    sloUrl: input.sloUrl ?? `https://${host}/auth/logout`,
+    attributes: input.attributes ?? ['ubcEduCwlPuid', 'mail'],
+  }
+  const generatedPackage = assemblePackage({
+    environment: input.environment,
+    generatedAt: input.generatedAt ?? input.createdAt ?? new Date(),
+    fromCommit: 'f'.repeat(40),
+    entity,
+    certificate: await certificateOnce(),
+    uses: Object.fromEntries(
+      entity.attributes.map((name) => [name, [{ path: 'server.js', line: 1 }]]),
+    ),
+    usedAtTruncated: false,
+    contacts: { technical: [], support: [] },
+    privacyAssessmentReference: null,
+    warnings: [],
+  })
   const [row] = await db
     .insert(iamRegistrations)
     .values({
       projectId: input.projectId,
       environmentKind: input.environment,
-      entityId: `https://manifest.internal/sp/${project.slug}/${input.environment}`,
-      acsUrl: `https://${host}/auth/ubcshib/callback`,
-      sloUrl: `https://${host}/auth/logout`,
+      entityId: entity.entityId,
+      acsUrl: entity.acsUrl,
+      sloUrl: entity.sloUrl,
       state: 'draft',
-      generatedPackage: {
-        placeholder: 'the launch path plan’s Task 10 renders the package',
-        attributes: input.attributes ?? ['ubcEduCwlPuid', 'mail'],
-      },
+      generatedPackage,
       ...(input.createdAt === undefined
         ? {}
         : { createdAt: input.createdAt, updatedAt: input.createdAt }),

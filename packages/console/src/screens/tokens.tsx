@@ -106,6 +106,12 @@ const CAPABILITIES = everyCapability([
    * owner's, a collaborator's and an administrator's — and PERSON-ONLY, so never mintable.
    */
   'launch:submit',
+  /**
+   * Drafting a registration request for UBC IAM (the launch path plan's Task 10): the owner's, a
+   * collaborator's and an administrator's — and MINTABLE: a draft sends nothing, and an agent may
+   * prepare one for its person to read.
+   */
+  'launch:draft',
   'quota:set',
   'secret:read',
 ] as const)

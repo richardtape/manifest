@@ -2,7 +2,7 @@ import { createSign, createVerify, X509Certificate } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { getSecret } from '../secrets/index.js'
 import { withSecretScope } from '../secrets/testing.js'
-import { ensureSpKeypair } from './index.js'
+import { ensureSpCertificate, ensureSpKeypair } from './index.js'
 
 const scopeFor = (projectId: string, environmentKind: 'sandbox' | 'staging') => ({
   projectId,
@@ -26,6 +26,23 @@ describe('per-app SP keypairs (§9, D20)', () => {
       expect(cert.subjectAltName).toBe(
         'URI:https://manifest.internal/sp/chem-labs/staging',
       )
+    })
+  })
+
+  it('answers the PUBLIC half of the stored keypair to a package — the certificate, never the key (Task 10)', async () => {
+    await withSecretScope(async (db, { projectId, keys }) => {
+      const scope = scopeFor(projectId, 'staging')
+      const certificate = await ensureSpCertificate(db, keys, scope)
+      // The SAME keypair a registration then reads: minted once, by whichever comes first.
+      const kp = await ensureSpKeypair(db, keys, scope)
+      expect(certificate).toEqual({
+        certificatePem: kp.certificatePem,
+        certData: kp.certData,
+        fingerprint: kp.fingerprint,
+        expiresAt: kp.expiresAt,
+      })
+      expect(Object.keys(certificate)).not.toContain('privateKeyPem')
+      expect(JSON.stringify(certificate)).not.toMatch(/PRIVATE KEY/)
     })
   })
 

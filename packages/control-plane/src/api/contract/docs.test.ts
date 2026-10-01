@@ -29,6 +29,14 @@ const doc = openApiDocument(ROUTE_DEFINITIONS) as Json
 const INTERNAL =
   /\b(P[1-6][abc]?|sitting|Task \d+|Decision \d+|Rich|Rich's|Spec action \d+)\b|the D5 plan|\bR[1-9]\b|\bF\d{1,3}\b|\bFE-\d+\b/
 
+/**
+ * MACHINE DATA IN AN EXAMPLE, NOT PROSE (the launch path plan's Task 10): a registration package's
+ * certificate, its fingerprint and its metadata XML. A fingerprint is hex pairs, and `F0` reads as a
+ * finding number to `INTERNAL`; a PEM body or a base64 line could too. Exempt by WHERE it is, never by
+ * what it says, so a sentence in any other field is still read.
+ */
+const MACHINE_DATA = /\.(certificate\.(pem|fingerprint)|metadataXml)$/
+
 /** One sentence at least: long enough to say something, and ending like a sentence. */
 const SENTENCE = (text: unknown): boolean =>
   typeof text === 'string' && text.length >= 40 && /[.!?)`]\s*$/.test(text)
@@ -136,7 +144,7 @@ describe('the published reference is complete (Decision 14)', () => {
     const hits: string[] = []
     const walk = (value: unknown, at: string): void => {
       if (typeof value === 'string') {
-        if (INTERNAL.test(value)) hits.push(`${at}: ${value}`)
+        if (INTERNAL.test(value) && !MACHINE_DATA.test(at)) hits.push(`${at}: ${value}`)
       } else if (Array.isArray(value)) {
         value.forEach((v, i) => walk(v, `${at}[${i}]`))
       } else if (value !== null && typeof value === 'object') {

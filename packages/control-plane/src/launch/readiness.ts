@@ -17,6 +17,7 @@ import {
   vancouverDayInWords,
   type IamRegistrationRow,
 } from './records.js'
+import { readPackage } from './package.js'
 import { rehearsalItem } from './rehearsal.js'
 
 /**
@@ -401,9 +402,53 @@ async function iamItem(
     state: 'unmet',
     why:
       `${sentToIam(row)}The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch` +
-      (sentToIam(row) === '' ? ' (§9).' : '.'),
+      (sentToIam(row) === '' ? ' (§9).' : '.') +
+      draftDrift(row, would),
     since: waitingOnUbc(row),
   }
+}
+
+/**
+ * REVIEW FOCUS 1'S CHECKLIST HALF (the launch path plan's Task 10; Task 9's review, I4): a draft — or
+ * a request already with UBC that it has not registered — compared with what the release serving
+ * staging would register, and the difference said in words, with what to do. A draft gates no build
+ * (Task 9), so this is where an owner whose agent added `sn` in week three learns that the package
+ * from week one no longer describes the app. `''` when they match, when there is nothing serving
+ * staging to compare with, or when the record holds no package (an administrator's own record).
+ */
+function draftDrift(
+  row: IamRegistrationRow,
+  would: RegistrationShape | undefined,
+): string {
+  const drafted = readPackage(row.generatedPackage)
+  if (would === undefined || drafted === null) return ''
+  const sent = row.state === 'submitted'
+  const noun = sent ? 'request' : 'draft'
+  const asked = drafted.attributes.map((a) => a.name)
+  const missing = would.attributes.filter((a) => !asked.includes(a))
+  const extra = asked.filter((a) => !would.attributes.includes(a))
+  const gaps = [
+    ...(missing.length === 0
+      ? []
+      : [`it asks for ${missing.join(', ')}, which the ${noun} does not`]),
+    ...(extra.length === 0
+      ? []
+      : [`the ${noun} asks for ${extra.join(', ')}, which the release no longer does`]),
+    ...(drafted.acsUrl === would.acsUrl
+      ? []
+      : [
+          `the release signs people in at ${would.acsUrl}, the ${noun} at ${drafted.acsUrl}`,
+        ]),
+    ...(drafted.sloUrl === would.sloUrl
+      ? []
+      : [
+          `the release signs people out at ${would.sloUrl}, the ${noun} at ${drafted.sloUrl}`,
+        ]),
+  ]
+  if (gaps.length === 0) return ''
+  return sent
+    ? ` The request sent to UBC IAM no longer matches the release serving staging: ${gaps.join('; ')}. Tell UBC IAM; once it asks for changes, draft it again.`
+    : ` The draft no longer matches the release serving staging: ${gaps.join('; ')}. Draft it again before you send it.`
 }
 
 /**

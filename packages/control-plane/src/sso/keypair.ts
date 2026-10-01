@@ -215,3 +215,41 @@ export async function ensureSpKeypair(
   await putSecret(db, { ...at(names.certificate), value: minted.certificatePem }, keys)
   return minted
 }
+
+/**
+ * THE PUBLIC HALF OF AN SP KEYPAIR — what D19's registration package carries (§9: *"The private key
+ * never leaves the platform: the package carries the certificate"*; the launch path plan's Task 10).
+ * **The type has no field a private key could travel in**, so a package built from one cannot carry
+ * it whatever the code that builds it does.
+ */
+export interface SpCertificate {
+  certificatePem: string
+  certData: string
+  fingerprint: string
+  expiresAt: Date
+}
+
+/** A keypair's public half, built field by field — never a spread that would carry the key along. */
+export function publicHalf(keypair: SpKeypair): SpCertificate {
+  return {
+    certificatePem: keypair.certificatePem,
+    certData: keypair.certData,
+    fingerprint: keypair.fingerprint,
+    expiresAt: keypair.expiresAt,
+  }
+}
+
+/**
+ * THE ENVIRONMENT'S CERTIFICATE, FOR A PACKAGE: `ensureSpKeypair`'s keypair — minted on first use,
+ * the same one thereafter — answered without its private key. **The SAME keypair a registration then
+ * reads** (`registerServiceProvider` calls `ensureSpKeypair` with the same scope), so the certificate
+ * a person sends to UBC IAM is the one the app signs with, whichever of the draft and the first deploy
+ * comes first (D20: *"generated once at registration"*).
+ */
+export async function ensureSpCertificate(
+  db: Db,
+  keys: MasterKeypair,
+  scope: SpKeypairScope,
+): Promise<SpCertificate> {
+  return publicHalf(await ensureSpKeypair(db, keys, scope))
+}

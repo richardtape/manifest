@@ -48,8 +48,11 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   // THE LAUNCH PATH PLAN'S TASK 9 PARKS TWO, naming its Task 13 as their remover: until Tasks 10
   // and 11 draft a package and an assessment, no client can meet their precondition (a draft), so
   // a console button for them could only ever answer `409 LAUNCH_DRAFT_REQUIRED`.
+  // Task 10 parks its draft beside them, for the same screen.
+  draftIamRegistration:
+    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — drafting each registration, then saying it was sent',
   submitIamRegistration:
-    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — after Task 10 drafts the package it sends',
+    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — sending the package Task 10 drafts',
   submitPrivacyAssessment:
     'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — after Task 11 drafts the assessment it sends',
 }

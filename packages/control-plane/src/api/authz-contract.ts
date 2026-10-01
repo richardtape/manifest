@@ -134,6 +134,14 @@ const BUILDING_NOT_OPEN = { status: 403, code: 'BUILDING_NOT_OPEN' } as const
  */
 const DRAFT_REQUIRED = { status: 409, code: 'LAUNCH_DRAFT_REQUIRED' } as const
 
+/**
+ * Drafting a registration (the launch path plan's Task 10) for this fixture's app, which signs
+ * nobody in (`fixture-node@1`, `auth.provider: none`) — what everyone who HOLDS `launch:draft` is
+ * answered, a token included. A `409` naming its code, so the row cannot be green against
+ * `FORBIDDEN` or a missing route; the drafted case is `api/launch.test.ts`'s.
+ */
+const NOT_CWL = { status: 409, code: 'LAUNCH_NOT_CWL' } as const
+
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
   code: ErrorCode
@@ -1414,6 +1422,31 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
+   * DRAFTING A REGISTRATION (the launch path plan's Task 10, Decision 11): `launch:draft`, held by
+   * the owner, a collaborator and an administrator — and MINTABLE, neither privileged nor
+   * person-only, so a token holding it reaches the draft exactly as a person does. This fixture's
+   * app registers nothing, so every one of them is told so; a token without it is `403`, and one
+   * for another project `404`.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/launch-records/iam-registration/:environment/draft',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/launch-records/iam-registration/staging/draft`,
+    }),
+    expect: {
+      owner: NOT_CWL,
+      collaborator: NOT_CWL,
+      stranger: 404,
+      admin: NOT_CWL,
+      anonymous: 401,
+      'token-capable': NOT_CWL,
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': NOT_CWL,
+    },
+  },
+  /**
    * D21's rehearsal (P6a Task 14). **`launch:rehearse` since the launch path plan's Task 6b**
    * (the faculty front-end's FE-42, Rich's option (a)): the OWNER, a COLLABORATOR (§13) and an
    * administrator each answer as the administrator alone did before, in an interactive session —
@@ -2303,6 +2336,9 @@ export function describeAuthorizationContract(
         // Task 10: `startAgentSession` and `endAgentSession` assert `agent:session`, which the mint
         // route gives an owner's token (neither privileged nor person-only).
         'agent:session',
+        // The launch path plan's Task 10: `draftIamRegistration` asserts `launch:draft`, which the
+        // mint route gives an owner's token (neither privileged nor person-only).
+        'launch:draft',
       ]
       const tokenFor = async (
         actor: TokenActor,

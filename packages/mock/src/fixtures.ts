@@ -1074,6 +1074,10 @@ export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   // registered, IN UBC'S ORDER (see `PRIVACY_ASSESSMENT`).
   submittedAt: '2026-09-10T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  // The launch path plan's Task 10 added the package a draft carries; the platform keeps the one
+  // that was sent. NULL HERE UNTIL TASK 13 scripts the mock's drafts — on the platform an owner's
+  // submission always has one, so a screen must not read null as "never drafted" from this fixture.
+  package: null,
   createdAt: '2026-09-09T00:00:00.000Z',
   updatedAt: '2026-09-20T00:00:00.000Z',
 }
@@ -1099,6 +1103,8 @@ export const STAGING_REGISTRATION: Schemas['IamRegistration'] = {
   // Sent the day after the assessment was approved — the order the platform gates the owner in.
   submittedAt: '2026-09-06T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  // Null until Task 13 scripts the mock's drafts (`IAM_REGISTRATION`'s note).
+  package: null,
   createdAt: '2026-09-05T00:00:00.000Z',
   updatedAt: '2026-09-09T00:00:00.000Z',
 }

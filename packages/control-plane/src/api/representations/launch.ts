@@ -2,6 +2,7 @@ import { z } from 'zod/v4'
 import { iamRegistrationState, privacyAssessmentState } from '../../db/index.js'
 import {
   LAUNCH_ITEM_IDS,
+  readPackage,
   type IamRegistrationRow,
   type PrivacyAssessmentRow,
   type RehearsalRow,
@@ -94,6 +95,137 @@ const Submitter = z
   .describe('The person who said it was sent.')
 
 /**
+ * D19'S REGISTRATION PACKAGE (the launch path plan's Task 10; Spec action 4) — what a person sends UBC
+ * IAM, as Manifest generated it and stored it on the record. PUBLISHED TEXT: no section, decision or
+ * plan numbers in these descriptions (the plan's Global Constraints).
+ */
+const Contact = z
+  .object({
+    name: z.string().describe('Their name.'),
+    email: z.string().describe('Their address.'),
+  })
+  .describe('A person UBC IAM may write to about the registration.')
+
+export const RegistrationPackage = representation(
+  'RegistrationPackage',
+  z
+    .object({
+      environment: z
+        .enum(['staging', 'production'])
+        .describe('Which registration this package is for.'),
+      generatedAt: Timestamp.describe(
+        'When Manifest drafted it. The day a person says they sent it can be no earlier.',
+      ),
+      fromCommit: z
+        .string()
+        .describe(
+          'The commit whose `manifest.yaml` and code it was drawn from: for production, the release serving staging; for staging — or for production while nothing serves staging — the newest valid manifest.',
+        ),
+      entityId: z
+        .string()
+        .describe(
+          'The Service Provider’s entity ID for this environment, derived by Manifest and fixed once registered.',
+        ),
+      acsUrl: z
+        .string()
+        .describe(
+          'Where sign-ins are sent — the app’s callback path on this environment’s hostname.',
+        ),
+      sloUrl: z
+        .string()
+        .describe('Where sign-outs are sent — the app’s logout path on this hostname.'),
+      certificate: z
+        .object({
+          pem: z
+            .string()
+            .describe(
+              'The certificate the app signs with in this environment, as PEM. Never a private key: the key stays with Manifest.',
+            ),
+          fingerprint: z.string().describe('Its SHA-256 fingerprint, colon-separated.'),
+          expiresAt: Timestamp.describe('When it expires.'),
+        })
+        .describe(
+          'The certificate Manifest issued for this environment — the same one the environment’s deploys register.',
+        ),
+      attributes: z
+        .array(
+          z
+            .object({
+              name: z
+                .string()
+                .describe(
+                  'The attribute’s friendly name, as `auth.attributes` lists it.',
+                ),
+              oid: z.string().describe('Its OID, as UBC releases it.'),
+              purpose: z.string().describe('What it is for, in one plain sentence.'),
+              usedAt: z
+                .array(
+                  z
+                    .object({
+                      path: z
+                        .string()
+                        .describe('A file of the app, from its repository’s root.'),
+                      line: z.number().int().describe('The line, counting from 1.'),
+                    })
+                    .describe('One line that reads it.'),
+                )
+                .describe(
+                  'Every line of the app’s code Manifest found reading it, as a property — a hint for the reviewer, never a proof. Empty when none was found.',
+                ),
+              justification: z
+                .string()
+                .describe(
+                  'Why the app needs it — its purpose and where the app reads it — or, when nothing reads it, that it should be removed before sending.',
+                ),
+              unused: z
+                .boolean()
+                .describe(
+                  'True when the app asks for it and Manifest found nothing reading it: remove it from `auth.attributes` before you send this.',
+                ),
+            })
+            .describe('One attribute the app asks for, justified.'),
+        )
+        .describe('Every attribute the app asks for, in `auth.attributes` order.'),
+      usedAtTruncated: z
+        .boolean()
+        .describe(
+          'True when Manifest read only part of the app’s code (at most 200 files and 2 MiB of text): a line elsewhere is not shown.',
+        ),
+      contacts: z
+        .object({
+          technical: z
+            .array(Contact)
+            .describe('The project’s owners, then its collaborators.'),
+          support: z
+            .array(Contact)
+            .describe(
+              'The platform’s contacts — as configured, or else its longest-serving administrator.',
+            ),
+        })
+        .describe('Who UBC IAM may write to.'),
+      privacyAssessmentReference: z
+        .string()
+        .nullable()
+        .describe(
+          'The privacy assessment’s PIA number, which UBC IAM asks for — null until the assessment is recorded approved with it.',
+        ),
+      metadataXml: z
+        .string()
+        .describe(
+          'The SAML metadata for the request, in the structure UBC’s own metadata generator produces, with these values.',
+        ),
+      warnings: z
+        .array(z.string())
+        .describe(
+          'What to fix or know before sending it — an attribute nothing reads, a missing PIA number, a package drawn without a release serving staging. Empty when there is nothing.',
+        ),
+    })
+    .describe(
+      'What a person sends UBC IAM to register one environment of a CWL app: its entity and addresses, the certificate it signs with, every attribute it asks for with why, the contacts and the PIA number — and the metadata, built from the same values.',
+    ),
+)
+
+/**
  * §6's `IamRegistration`, as a client reads it. **Manifest TRACKS this; UBC IAM produces
  * it** (D19, R1) — so every field is what an administrator recorded from the ticket, not
  * something derived here. P8 generates the submission; the shape does not change when it
@@ -162,6 +294,9 @@ export const IamRegistration = representation(
       ),
       submittedBy: Submitter.nullable().describe(
         'Who said it was sent; null until it is.',
+      ),
+      package: RegistrationPackage.nullable().describe(
+        'What Manifest drafted for the person to send (`draftIamRegistration`), kept as it was sent once it is; null until drafted.',
       ),
       createdAt: Timestamp.describe('When the record was first written.'),
       updatedAt: z.iso.datetime().describe('When the record last changed.'),
@@ -396,6 +531,7 @@ export function toIamRegistration(
     externalTicketRef: row.externalTicketRef,
     submittedAt: row.submittedAt === null ? null : row.submittedAt.toISOString(),
     submittedBy,
+    package: readPackage(row.generatedPackage),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }

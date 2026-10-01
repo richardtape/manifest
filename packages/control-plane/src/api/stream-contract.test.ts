@@ -47,6 +47,8 @@ const PUBLISHED_ELSEWHERE = {
   // never makes (Tasks 10 and 11 generate them).
   'iam_registration.submitted': 'launch/records.test.ts — submitIamRegistration',
   'privacy_assessment.submitted': 'launch/records.test.ts — submitPrivacyAssessment',
+  // Task 10: drafting reads a CWL app's code and mints its certificate; this lifecycle's app is not CWL.
+  'iam_registration.drafted': 'api/launch.test.ts — draftIamRegistration',
   // Moved here from NO_PUBLISHER_YET by P6b Task 4, which found all three there although
   // their publishers have existed since P6a Tasks 10 and 14: the list's own rule said the
   // publishing task removes the entry, and nothing went red to make it, because this

@@ -344,6 +344,13 @@ const envSchema = z.object({
    */
   MANIFEST_ADMIN_PUIDS: z.string().default(''),
   /**
+   * THE PLATFORM'S CONTACTS IN D19'S REGISTRATION PACKAGE (§9: *"technical and privacy contacts from
+   * the project owner and platform admins"*; the launch path plan's Task 10, Decision 15) — `Name
+   * <email>`, comma-separated. Unset, a package names the oldest administrator, read when it is
+   * drafted. At UBC the names are Rich's to give.
+   */
+  MANIFEST_LAUNCH_CONTACTS: z.string().default(''),
+  /**
    * Where a session's key is USED — the gateway's OpenAI-compatible base, as the agent reaches it.
    * The faculty front-end's server is a host process on the laptop, so the published port; at UBC
    * it is the gateway's own address. Answered in `startAgentSession`, never called by this process.
@@ -425,6 +432,11 @@ export interface Config {
    * otherwise exactly the PUIDs who are administrators, reconciled at every sign-in.
    */
   adminPuids: readonly string[]
+  /**
+   * `MANIFEST_LAUNCH_CONTACTS` (Task 10, Decision 15): the support contacts a registration package
+   * names, or null — then the oldest administrator, read when a package is drafted.
+   */
+  launchContacts: readonly { name: string; email: string }[] | null
   /** §9: Manifest is its own SP. Everything that registration is built from. */
   sp: {
     /**
@@ -595,6 +607,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       'invalid configuration — MANIFEST_ADMIN_PUIDS has an empty entry (a stray comma?); name each administrator’s PUID once, separated by commas',
     )
   }
+  const launchContacts = parseLaunchContacts(raw.MANIFEST_LAUNCH_CONTACTS)
   // A request names its origin by its HOST (`api/origins.ts`), so two origins on one host would
   // be one origin with two answers — refused here rather than resolved silently to the first.
   // The FORMAT of each (a bare origin) is `controlPlaneSpEntity`'s check, at boot.
@@ -727,6 +740,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     sessionSecret: raw.MANIFEST_SESSION_SECRET,
     origins,
     adminPuids,
+    launchContacts,
     sp: {
       origin: spOrigin,
       privateKeyPath: fromRepoRoot(raw.MANIFEST_SP_PRIVATE_KEY),
@@ -802,6 +816,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       webhookSecretPath: fromRepoRoot(raw.MANIFEST_GITHUB_WEBHOOK_SECRET),
     },
   }
+}
+
+/**
+ * `Name <email>, Name <email>` — each contact a name AND an address, because UBC IAM is sent them: a
+ * typo must not boot as a package that names nobody, or an address with no person. Blank is null.
+ */
+function parseLaunchContacts(value: string): { name: string; email: string }[] | null {
+  if (value.trim() === '') return null
+  return value.split(',').map((entry) => {
+    const match = /^(\S.*?)\s*<([^<>\s@]+@[^<>\s@]+\.[^<>\s@]+)>$/.exec(entry.trim())
+    if (match === null)
+      throw new ConfigError(
+        'CONFIG_INVALID',
+        `invalid configuration — MANIFEST_LAUNCH_CONTACTS entry '${entry.trim()}' is not 'Name <email>'; give each contact as a name and an address, separated by commas`,
+      )
+    return { name: match[1]!, email: match[2]! }
+  })
 }
 
 export function zoneFor(

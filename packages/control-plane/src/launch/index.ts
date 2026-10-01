@@ -15,3 +15,5 @@ export * from './review.js'
 // §13's third blocking item, and the candidate derivation both of them share.
 export * from './candidate.js'
 export * from './rehearsal.js'
+export * from './package.js'
+export * from './usage.js'

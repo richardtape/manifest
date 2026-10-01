@@ -3922,6 +3922,17 @@
             }
           },
           {
+            "type": "iam_registration.drafted",
+            "description": "Manifest drafted the app’s staging or production registration request for a person to send to UBC IAM. Nothing was sent; the draft is on the record.",
+            "example": {
+              "environment": "staging",
+              "entityId": "https://manifest.internal/sp/chem-labs/staging",
+              "fromCommit": "3f2a9c41d0b7e85f6a1c2d3e4f5a6b7c8d9e0f12",
+              "attributeCount": 3,
+              "unusedCount": 1
+            }
+          },
+          {
             "type": "rehearsal.completed",
             "description": "A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21).",
             "example": {
@@ -4427,14 +4438,15 @@
                   "$ref": "#/components/schemas/LaunchRecords"
                 },
                 "example": {
-                  "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
-                  "iamRegistration": {
-                    "id": "f9724bbd-43f6-485b-ae8a-f879f015b2b5",
-                    "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
-                    "environment": "production",
-                    "entityId": "https://manifest.internal/sp/fixture-dee0f9d6/production",
-                    "acsUrl": "https://fixture-dee0f9d6.manifest.internal/auth/ubcshib/callback",
-                    "sloUrl": "https://fixture-dee0f9d6.manifest.internal/auth/logout",
+                  "projectId": "433b7cfc-6735-480e-89cc-52836329df29",
+                  "iamRegistration": null,
+                  "stagingRegistration": {
+                    "id": "c774307b-db67-486e-a201-38a76e2e45af",
+                    "projectId": "433b7cfc-6735-480e-89cc-52836329df29",
+                    "environment": "staging",
+                    "entityId": "https://manifest.internal/sp/cwl-eabfcf05/staging",
+                    "acsUrl": "https://cwl-eabfcf05.staging.manifest.internal/auth/ubcshib/callback",
+                    "sloUrl": "https://cwl-eabfcf05.staging.manifest.internal/auth/logout",
                     "certFingerprint": null,
                     "certExpiresAt": null,
                     "registeredAttributes": [],
@@ -4442,53 +4454,89 @@
                     "registeredAt": null,
                     "state": "submitted",
                     "externalTicketRef": "IAM-2026-0500",
-                    "submittedAt": "2026-09-30T19:00:00.000Z",
+                    "submittedAt": "2026-10-01T19:00:00.000Z",
                     "submittedBy": {
-                      "id": "f696c331-ac5a-4887-8811-aa562446342d",
+                      "id": "88c5198a-c93f-48fa-9c7c-4f309dc1fa87",
                       "displayName": "Bio Prof"
                     },
-                    "createdAt": "2026-10-01T06:55:59.850Z",
-                    "updatedAt": "2026-10-01T06:55:59.861Z"
-                  },
-                  "stagingRegistration": {
-                    "id": "7fefdd84-b85b-4010-b753-c5715a37f280",
-                    "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
-                    "environment": "staging",
-                    "entityId": "https://manifest.internal/sp/fixture/staging",
-                    "acsUrl": "https://fixture.staging.manifest.internal/auth/ubcshib/callback",
-                    "sloUrl": "https://fixture.staging.manifest.internal/auth/logout",
-                    "certFingerprint": null,
-                    "certExpiresAt": null,
-                    "registeredAttributes": [
-                      "ubcEduCwlPuid",
-                      "mail"
-                    ],
-                    "requestedAttributes": null,
-                    "registeredAt": "2026-10-01T06:55:59.846Z",
-                    "state": "active",
-                    "externalTicketRef": null,
-                    "submittedAt": "2026-10-01T06:55:59.839Z",
-                    "submittedBy": {
-                      "id": "99f8712e-e1bf-4683-abbf-e6c00237ca3c",
-                      "displayName": "Platform Admin"
+                    "package": {
+                      "environment": "staging",
+                      "generatedAt": "2026-10-01T14:53:03.289Z",
+                      "fromCommit": "de62c6ea74bf32249eb8cfa6f0e63feaae7e177c",
+                      "entityId": "https://manifest.internal/sp/cwl-eabfcf05/staging",
+                      "acsUrl": "https://cwl-eabfcf05.staging.manifest.internal/auth/ubcshib/callback",
+                      "sloUrl": "https://cwl-eabfcf05.staging.manifest.internal/auth/logout",
+                      "certificate": {
+                        "pem": "-----BEGIN CERTIFICATE-----\nMIIFhTCCA22gAwIBAgIUViZ1Fnx70pZfrmlZtF+p4+S5GtowDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwM1oXDTI4MDkzMDE0NTMwM1owMjEdMBsGA1UE\nAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArpimvEnKSrLK5uTxziNBik3fCojW\ngJrYDoOqKf/Hin9gdyVCQ480+DZSPUx31OsJW0Cj2slHPYiRcxe5+OkxdPIwbwo+\nZNzDCcn4MDz41fI/pFxO799iHoq5i6+gwhamEx/0Nusz4cm2BV4XzdYocub67PJc\nMnxIa4iT2XJsubCRKtXdkZHM6WR6b1lVWz+/6D/wdXjrlF/RY1P43zbcW4hNJMmv\n8vF19gC57YrswtPp9ME0Ao2l1EqUglobE47sOml4vMbdhkY3JMCnSOfcHZSZ0TkN\nJpwtJIUfeGOmhPOX9EnZIIV/vp9b2BBtiTEcSW+HZH6ybQ4sEDwvLM/4Z+qWiAfx\n1q6r/qrlapWF92HqULbLbQdU/SnAZwLSsipycDnFGDZTcCltYGkomfFGVC51543f\nnu9jZCdrhA4XnVvoA/+8gFRPgtbzpIoKK9NUBlh8qSnREqVaPlWf8FcGqGcgKMDM\nd5RHeLWHmLJUxZSEvAD5VAHkiZNpPPNkssfmK7g9j7lf2gTSwoQQXW9Atuh+Hy3j\nE+XTNw8dsBhxOBc01YHMmzF3i54vDPxIypjZkdkvZ+QsVfZyj8IC/HaEP9t905bW\nPUQF5eTYb2KD24jfqXz4xpyavrz1YpZJF4ac64QEBzAM8GeM+cihQUdqKzeEjafG\nOGxisJi2/XDNcrECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUgtY6OEKJYftJ1BFz2Oc2\nXQksVpwwHwYDVR0jBBgwFoAUgtY6OEKJYftJ1BFz2Oc2XQksVpwwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC1lYWJmY2YwNS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCuDP8YJNk3\nEhJSOoXQ2jAnvjASVI4grSZzFXvDqLnN2lVBtE5LkUFW6YQzrN5hg6KWOzqV30BT\nUy/WSPFF2yDc0WRGALseNawsmgFVLuCRYgjTylBQzLaL5F0ml42W9MIRMs2evRIl\nwxMqKd9P1xuE5AkUnBkVFOW4OB6v7JnQp2dr50IlLvx+w9YA3DWFSXvQXKBNrTHD\n5Gxj5PuV4zv9xVJMaqKHEnGJ3SJiV+kaSqSoPBKsko4Mkg+/sa6cb4CDHllZvaLC\np79r4a+hNF6uyfdVoBr64hsHzdUf/jBIxKaDykZqocwzdBpxVSWaG2ZSzbF4T501\ns+gKIR7Na5HaXojbkFEEYzCQHwreO0pDeLwdDjFxvOjbuyufD0z9ldBMemDnLsYw\np2SnTUaRzhxNCDfo7NR7Il/gLdZJqfig8JbfD+OR0j26HONyK389rhbykS4x9gp+\nHU46h10fuxBn4rnMf+GLO48B0BowI05IFx3HROjYtDQdjlolGWy7yOPTKc4fD/6v\nZDoJgVL5vcFoBSwZQi8ssFol4ov8Paj67vKL6Rt7c+KfwCJUa6nqOmHuK8q2UkPx\ns/8KM7Ys8uGwlIShvnZxK7sBxfWYcz4cSYENUqLFIMEBvFvmZ9aRLJl7Z940NlK9\nZvXcbgCi3VnABjPKJ3l/Rq14q0lPfBPS8Q==\n-----END CERTIFICATE-----\n",
+                        "fingerprint": "64:A4:FD:CE:F0:C6:35:D7:A3:94:CC:70:D7:6D:A2:75:5C:8E:B5:50:B3:17:7D:03:D2:A6:6B:AE:65:E2:CD:B0",
+                        "expiresAt": "2028-09-30T14:53:03.000Z"
+                      },
+                      "attributes": [
+                        {
+                          "name": "ubcEduCwlPuid",
+                          "oid": "urn:oid:1.3.6.1.4.1.60.6.1.6",
+                          "purpose": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.",
+                          "usedAt": [
+                            {
+                              "path": "routes/people.js",
+                              "line": 3
+                            }
+                          ],
+                          "justification": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. The app reads it in routes/people.js:3.",
+                          "unused": false
+                        },
+                        {
+                          "name": "mail",
+                          "oid": "urn:oid:0.9.2342.19200300.100.1.3",
+                          "purpose": "The person’s email address, so the app can show it or write to them.",
+                          "usedAt": [
+                            {
+                              "path": "public/app.js",
+                              "line": 2
+                            }
+                          ],
+                          "justification": "The person’s email address, so the app can show it or write to them. The app shows it to the person in the browser, in public/app.js:2.",
+                          "unused": false
+                        }
+                      ],
+                      "usedAtTruncated": false,
+                      "contacts": {
+                        "technical": [
+                          {
+                            "name": "Bio Prof",
+                            "email": "bio_prof@example.ubc.ca"
+                          }
+                        ],
+                        "support": [
+                          {
+                            "name": "Platform Admin",
+                            "email": "platform_admin@example.ubc.ca"
+                          }
+                        ]
+                      },
+                      "privacyAssessmentReference": null,
+                      "metadataXml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" xmlns:alg=\"urn:oasis:names:tc:SAML:metadata:algsupport\" ID=\"_6d0d62b3bd029bc004f89da18650d613\" entityID=\"https://manifest.internal/sp/cwl-eabfcf05/staging\">\n\n  <md:Extensions>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#sha384\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha384\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256\"/>\n  </md:Extensions>\n\n  <md:SPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n    <md:KeyDescriptor use=\"signing\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-eabfcf05.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-eabfcf05-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUViZ1Fnx70pZfrmlZtF+p4+S5GtowDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwM1oXDTI4MDkzMDE0NTMwM1owMjEdMBsGA1UE\nAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArpimvEnKSrLK5uTxziNBik3fCojW\ngJrYDoOqKf/Hin9gdyVCQ480+DZSPUx31OsJW0Cj2slHPYiRcxe5+OkxdPIwbwo+\nZNzDCcn4MDz41fI/pFxO799iHoq5i6+gwhamEx/0Nusz4cm2BV4XzdYocub67PJc\nMnxIa4iT2XJsubCRKtXdkZHM6WR6b1lVWz+/6D/wdXjrlF/RY1P43zbcW4hNJMmv\n8vF19gC57YrswtPp9ME0Ao2l1EqUglobE47sOml4vMbdhkY3JMCnSOfcHZSZ0TkN\nJpwtJIUfeGOmhPOX9EnZIIV/vp9b2BBtiTEcSW+HZH6ybQ4sEDwvLM/4Z+qWiAfx\n1q6r/qrlapWF92HqULbLbQdU/SnAZwLSsipycDnFGDZTcCltYGkomfFGVC51543f\nnu9jZCdrhA4XnVvoA/+8gFRPgtbzpIoKK9NUBlh8qSnREqVaPlWf8FcGqGcgKMDM\nd5RHeLWHmLJUxZSEvAD5VAHkiZNpPPNkssfmK7g9j7lf2gTSwoQQXW9Atuh+Hy3j\nE+XTNw8dsBhxOBc01YHMmzF3i54vDPxIypjZkdkvZ+QsVfZyj8IC/HaEP9t905bW\nPUQF5eTYb2KD24jfqXz4xpyavrz1YpZJF4ac64QEBzAM8GeM+cihQUdqKzeEjafG\nOGxisJi2/XDNcrECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUgtY6OEKJYftJ1BFz2Oc2\nXQksVpwwHwYDVR0jBBgwFoAUgtY6OEKJYftJ1BFz2Oc2XQksVpwwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC1lYWJmY2YwNS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCuDP8YJNk3\nEhJSOoXQ2jAnvjASVI4grSZzFXvDqLnN2lVBtE5LkUFW6YQzrN5hg6KWOzqV30BT\nUy/WSPFF2yDc0WRGALseNawsmgFVLuCRYgjTylBQzLaL5F0ml42W9MIRMs2evRIl\nwxMqKd9P1xuE5AkUnBkVFOW4OB6v7JnQp2dr50IlLvx+w9YA3DWFSXvQXKBNrTHD\n5Gxj5PuV4zv9xVJMaqKHEnGJ3SJiV+kaSqSoPBKsko4Mkg+/sa6cb4CDHllZvaLC\np79r4a+hNF6uyfdVoBr64hsHzdUf/jBIxKaDykZqocwzdBpxVSWaG2ZSzbF4T501\ns+gKIR7Na5HaXojbkFEEYzCQHwreO0pDeLwdDjFxvOjbuyufD0z9ldBMemDnLsYw\np2SnTUaRzhxNCDfo7NR7Il/gLdZJqfig8JbfD+OR0j26HONyK389rhbykS4x9gp+\nHU46h10fuxBn4rnMf+GLO48B0BowI05IFx3HROjYtDQdjlolGWy7yOPTKc4fD/6v\nZDoJgVL5vcFoBSwZQi8ssFol4ov8Paj67vKL6Rt7c+KfwCJUa6nqOmHuK8q2UkPx\ns/8KM7Ys8uGwlIShvnZxK7sBxfWYcz4cSYENUqLFIMEBvFvmZ9aRLJl7Z940NlK9\nZvXcbgCi3VnABjPKJ3l/Rq14q0lPfBPS8Q==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n    </md:KeyDescriptor>\n\n    <md:KeyDescriptor use=\"encryption\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-eabfcf05.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-eabfcf05-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUViZ1Fnx70pZfrmlZtF+p4+S5GtowDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwM1oXDTI4MDkzMDE0NTMwM1owMjEdMBsGA1UE\nAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArpimvEnKSrLK5uTxziNBik3fCojW\ngJrYDoOqKf/Hin9gdyVCQ480+DZSPUx31OsJW0Cj2slHPYiRcxe5+OkxdPIwbwo+\nZNzDCcn4MDz41fI/pFxO799iHoq5i6+gwhamEx/0Nusz4cm2BV4XzdYocub67PJc\nMnxIa4iT2XJsubCRKtXdkZHM6WR6b1lVWz+/6D/wdXjrlF/RY1P43zbcW4hNJMmv\n8vF19gC57YrswtPp9ME0Ao2l1EqUglobE47sOml4vMbdhkY3JMCnSOfcHZSZ0TkN\nJpwtJIUfeGOmhPOX9EnZIIV/vp9b2BBtiTEcSW+HZH6ybQ4sEDwvLM/4Z+qWiAfx\n1q6r/qrlapWF92HqULbLbQdU/SnAZwLSsipycDnFGDZTcCltYGkomfFGVC51543f\nnu9jZCdrhA4XnVvoA/+8gFRPgtbzpIoKK9NUBlh8qSnREqVaPlWf8FcGqGcgKMDM\nd5RHeLWHmLJUxZSEvAD5VAHkiZNpPPNkssfmK7g9j7lf2gTSwoQQXW9Atuh+Hy3j\nE+XTNw8dsBhxOBc01YHMmzF3i54vDPxIypjZkdkvZ+QsVfZyj8IC/HaEP9t905bW\nPUQF5eTYb2KD24jfqXz4xpyavrz1YpZJF4ac64QEBzAM8GeM+cihQUdqKzeEjafG\nOGxisJi2/XDNcrECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUgtY6OEKJYftJ1BFz2Oc2\nXQksVpwwHwYDVR0jBBgwFoAUgtY6OEKJYftJ1BFz2Oc2XQksVpwwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC1lYWJmY2YwNS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCuDP8YJNk3\nEhJSOoXQ2jAnvjASVI4grSZzFXvDqLnN2lVBtE5LkUFW6YQzrN5hg6KWOzqV30BT\nUy/WSPFF2yDc0WRGALseNawsmgFVLuCRYgjTylBQzLaL5F0ml42W9MIRMs2evRIl\nwxMqKd9P1xuE5AkUnBkVFOW4OB6v7JnQp2dr50IlLvx+w9YA3DWFSXvQXKBNrTHD\n5Gxj5PuV4zv9xVJMaqKHEnGJ3SJiV+kaSqSoPBKsko4Mkg+/sa6cb4CDHllZvaLC\np79r4a+hNF6uyfdVoBr64hsHzdUf/jBIxKaDykZqocwzdBpxVSWaG2ZSzbF4T501\ns+gKIR7Na5HaXojbkFEEYzCQHwreO0pDeLwdDjFxvOjbuyufD0z9ldBMemDnLsYw\np2SnTUaRzhxNCDfo7NR7Il/gLdZJqfig8JbfD+OR0j26HONyK389rhbykS4x9gp+\nHU46h10fuxBn4rnMf+GLO48B0BowI05IFx3HROjYtDQdjlolGWy7yOPTKc4fD/6v\nZDoJgVL5vcFoBSwZQi8ssFol4ov8Paj67vKL6Rt7c+KfwCJUa6nqOmHuK8q2UkPx\ns/8KM7Ys8uGwlIShvnZxK7sBxfWYcz4cSYENUqLFIMEBvFvmZ9aRLJl7Z940NlK9\nZvXcbgCi3VnABjPKJ3l/Rq14q0lPfBPS8Q==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes128-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes256-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#aes256-cbc\"/>\n    </md:KeyDescriptor>\n\n    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://cwl-eabfcf05.staging.manifest.internal/auth/logout\"/>\n\n    <md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://cwl-eabfcf05.staging.manifest.internal/auth/ubcshib/callback\" index=\"1\" isDefault=\"true\"/>\n  </md:SPSSODescriptor>\n\n  <md:Organization>\n    <md:OrganizationName>University of British Columbia</md:OrganizationName>\n    <md:OrganizationDisplayName>University of British Columbia</md:OrganizationDisplayName>\n    <md:OrganizationURL>https://www.ubc.ca</md:OrganizationURL>\n  </md:Organization>\n\n  <md:ContactPerson contactType=\"technical\">\n    <md:EmailAddress>bio_prof@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n  <md:ContactPerson contactType=\"support\">\n    <md:EmailAddress>platform_admin@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n\n</md:EntityDescriptor>\n",
+                      "warnings": [
+                        "The privacy assessment’s PIA number is not recorded yet, and UBC IAM asks for it. Once an administrator records the assessment approved with its number, draft this again so the package carries it."
+                      ]
                     },
-                    "createdAt": "2026-10-01T06:55:59.838Z",
-                    "updatedAt": "2026-10-01T06:55:59.846Z"
+                    "createdAt": "2026-10-01T14:53:03.291Z",
+                    "updatedAt": "2026-10-01T14:53:03.327Z"
                   },
                   "privacyAssessment": {
-                    "id": "0fa59301-628d-4a34-858e-3b51e9ea8e55",
-                    "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
+                    "id": "659dd0f4-aee4-43cc-93a6-c51a236de4eb",
+                    "projectId": "433b7cfc-6735-480e-89cc-52836329df29",
                     "state": "approved",
                     "reviewer": "K. Privacy",
-                    "approvedAt": "2026-10-01T06:55:59.831Z",
+                    "approvedAt": "2026-10-01T14:53:03.310Z",
                     "externalTicketRef": "PIA-2026-0088",
-                    "submittedAt": "2026-10-01T06:55:59.821Z",
+                    "submittedAt": "2026-10-01T14:53:03.304Z",
                     "submittedBy": {
-                      "id": "99f8712e-e1bf-4683-abbf-e6c00237ca3c",
+                      "id": "9bbae740-1083-45a8-b90e-830ee067b028",
                       "displayName": "Platform Admin"
                     },
-                    "createdAt": "2026-10-01T06:55:59.820Z",
-                    "updatedAt": "2026-10-01T06:55:59.831Z"
+                    "createdAt": "2026-10-01T14:53:03.303Z",
+                    "updatedAt": "2026-10-01T14:53:03.310Z"
                   }
                 }
               }
@@ -4602,6 +4650,7 @@
                     "id": "7cdb83c7-6a58-49e2-a8a8-0f480232ed6d",
                     "displayName": "Platform Admin"
                   },
+                  "package": null,
                   "createdAt": "2026-10-01T06:56:08.960Z",
                   "updatedAt": "2026-10-01T06:56:08.960Z"
                 }
@@ -4634,6 +4683,189 @@
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/launch-records/iam-registration/{environment}/draft": {
+      "post": {
+        "operationId": "draftIamRegistration",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Draft a registration request for UBC IAM",
+        "description": "Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is `submitted` or `active`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until UBC asks for changes or the registration lapses. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Saying it was sent is `submitIamRegistration`.",
+        "parameters": [
+          {
+            "name": "environment",
+            "in": "path",
+            "description": "Which registration to draft: `staging` or `production`.",
+            "required": true,
+            "schema": {
+              "description": "Which registration to draft: `staging` or `production`.",
+              "type": "string",
+              "enum": [
+                "staging",
+                "production"
+              ]
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "One per user action, and the same key when retrying that action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The registration, with its new draft in `package`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamRegistration"
+                },
+                "example": {
+                  "id": "fa225a19-b57e-46c0-bc3e-eb44e428169c",
+                  "projectId": "f07c67f0-a378-4b1b-9e34-1afe372b187e",
+                  "environment": "staging",
+                  "entityId": "https://manifest.internal/sp/cwl-56a0c1e2/staging",
+                  "acsUrl": "https://cwl-56a0c1e2.staging.manifest.internal/auth/ubcshib/callback",
+                  "sloUrl": "https://cwl-56a0c1e2.staging.manifest.internal/auth/logout",
+                  "certFingerprint": null,
+                  "certExpiresAt": null,
+                  "registeredAttributes": [],
+                  "requestedAttributes": null,
+                  "registeredAt": null,
+                  "state": "draft",
+                  "externalTicketRef": null,
+                  "submittedAt": null,
+                  "submittedBy": null,
+                  "package": {
+                    "environment": "staging",
+                    "generatedAt": "2026-10-01T14:53:01.024Z",
+                    "fromCommit": "682bbf005259758fd3ab2ea903983077d1a468b4",
+                    "entityId": "https://manifest.internal/sp/cwl-56a0c1e2/staging",
+                    "acsUrl": "https://cwl-56a0c1e2.staging.manifest.internal/auth/ubcshib/callback",
+                    "sloUrl": "https://cwl-56a0c1e2.staging.manifest.internal/auth/logout",
+                    "certificate": {
+                      "pem": "-----BEGIN CERTIFICATE-----\nMIIFhTCCA22gAwIBAgIUA6kwjjsTzFhDnISuIdlr29NKt20wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTU2YTBjMWUyLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwMFoXDTI4MDkzMDE0NTMwMFowMjEdMBsGA1UE\nAwwUY3dsLTU2YTBjMWUyLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAoHjx8128O6LkcC0Ib/fgDb7QeH6L\n6ENdNu37ho+vpWnpe2B/43/ihpxYyZPhL7S2tbCyWY0/azjkC7ZrdxYotEBnVSbs\n+0QK+MbR0DpK+Hy/cFZN0LICoaSluUW8KZsOiRGd1GPDYx0zjLR0WDBrZ5sOvyNp\nIOoz6WWCKfMYtIQgUTNpUu8lVZDcQUnhbiYaNnwEX2ZwadL31erYydLCk5DXvRtT\n2ridNlUuq1RtniKrPZSjsvjW6mPBR4HpHEbpu6V2mFG7eEndV4iRbQggCOG93sUV\ngn7zU3W3HC/uHKgOIJV/TTuoeS0rw1tDDF7WTE1odGjN1wWXu6kAI0UnNIOZufv4\nHcVykvUaJcvBp154HR/RQzgN4Fc4xY7MizuRtzO1dH5lbFOqhKNRw0JgcwaxDqsf\nqO2GjSoHxhmkGkbhsFUlz0xi4+OYMDUwcG6zTyVyRz9Gw5Ykk6mcKSw2Tbzynu1w\nQ9G3h9xf3J4h/vCeswZGVOP8HS8QabI0i6afEJF7b8OVVH1QonGWnfnuzfc+PpdL\nD00sf/EPdvzpvebm86kJDPUu3F/swYY92Tkwa9YD3iJaolWVhzOsyeCPty5nPUvK\nGXLf7lorn7FLWRdPV6W4mZtcHGM0PxCoUwPbTL+Gah/wLhYMV/qYZPA24MJJ+WH3\nImVfkD7hNYM0dWECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXTRB4dpCJD5Q/wSsVgr5\ng4PSLi8wHwYDVR0jBBgwFoAUXTRB4dpCJD5Q/wSsVgr5g4PSLi8wDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC01NmEwYzFlMi9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQAbRgLhQ4W+\n7yQQ/+KoFFF/F4q01yDwTMCr06OdFY5Cxs2IemKAQgHWGsypaaVdB8GszY7os+sZ\niIFgOLgADMF4EqRfhX+LrFmHZBNppobrceOylUuk1JOELCxUgYy7M2U84vARe/ZE\n04+9I93sndiOHDWYza1viQvIbDAc0is0sqZ3TonIVnKpRMQ4oKWrgB+Tx++sXBBL\nrfl9ILYXU2I6YsL9N+CS/TkW9xvdHExzcPtyFuem0AtqSa647BBxQNtPWIKLLFku\nbf6os8qQuM6DuGJqX+wTnG5FIjNLNoKIPPa0EUDrmBuSZJoeCH10tRI5kq//owM4\nuji1QP4cWbdbBiQWgSGOM4KhttLKjpN5Uw/tcpxq2ccg6ZB3fo0C7Ug1cpHfSX2j\nKsi0Y12EmFHaz0neRdXkuCKdc8Krc5tqijIPKgdem5qALQhDLw4kZL1N7xQbTbuG\nLhcONHDAH6qC2hiJ3dJaW6xs/sHmY/uCT1F2WafdMKAODr2FeqUuMPOwV7BrKXDx\n2KjNAMHN7xumweDJVVVUIUixYqMOQn+PPmrxMUo6lZW6OlNeZ6lkzKod31BUFN0Q\niGOE/fcB6EwpCKd1I7RR7qDvfNdWKgd6+S/4Iz17lCapy9vV5FldReldjYWc961K\n9NfNOOAOoIXRsM0lpjwYnm86+6XiX7iw+Q==\n-----END CERTIFICATE-----\n",
+                      "fingerprint": "F3:D6:88:CD:AF:34:68:BC:8A:E2:14:C0:1B:B8:8D:FE:CC:F2:07:2C:DB:20:72:92:0E:FF:3F:FF:5A:75:24:95",
+                      "expiresAt": "2028-09-30T14:53:00.000Z"
+                    },
+                    "attributes": [
+                      {
+                        "name": "ubcEduCwlPuid",
+                        "oid": "urn:oid:1.3.6.1.4.1.60.6.1.6",
+                        "purpose": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.",
+                        "usedAt": [
+                          {
+                            "path": "routes/people.js",
+                            "line": 3
+                          }
+                        ],
+                        "justification": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. The app reads it in routes/people.js:3.",
+                        "unused": false
+                      },
+                      {
+                        "name": "mail",
+                        "oid": "urn:oid:0.9.2342.19200300.100.1.3",
+                        "purpose": "The person’s email address, so the app can show it or write to them.",
+                        "usedAt": [
+                          {
+                            "path": "public/app.js",
+                            "line": 2
+                          }
+                        ],
+                        "justification": "The person’s email address, so the app can show it or write to them. The app shows it to the person in the browser, in public/app.js:2.",
+                        "unused": false
+                      },
+                      {
+                        "name": "givenName",
+                        "oid": "urn:oid:2.5.4.42",
+                        "purpose": "The person’s first name, so the app can greet them and show who wrote what.",
+                        "usedAt": [
+                          {
+                            "path": "routes/people.js",
+                            "line": 3
+                          }
+                        ],
+                        "justification": "The person’s first name, so the app can greet them and show who wrote what. The app reads it in routes/people.js:3.",
+                        "unused": false
+                      }
+                    ],
+                    "usedAtTruncated": false,
+                    "contacts": {
+                      "technical": [
+                        {
+                          "name": "Bio Prof",
+                          "email": "bio_prof@example.ubc.ca"
+                        }
+                      ],
+                      "support": [
+                        {
+                          "name": "Platform Admin",
+                          "email": "platform_admin@example.ubc.ca"
+                        }
+                      ]
+                    },
+                    "privacyAssessmentReference": null,
+                    "metadataXml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" xmlns:alg=\"urn:oasis:names:tc:SAML:metadata:algsupport\" ID=\"_ffa24c163d06a582e524876b6a9ed218\" entityID=\"https://manifest.internal/sp/cwl-56a0c1e2/staging\">\n\n  <md:Extensions>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#sha384\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha384\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256\"/>\n  </md:Extensions>\n\n  <md:SPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n    <md:KeyDescriptor use=\"signing\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-56a0c1e2.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-56a0c1e2-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUA6kwjjsTzFhDnISuIdlr29NKt20wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTU2YTBjMWUyLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwMFoXDTI4MDkzMDE0NTMwMFowMjEdMBsGA1UE\nAwwUY3dsLTU2YTBjMWUyLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAoHjx8128O6LkcC0Ib/fgDb7QeH6L\n6ENdNu37ho+vpWnpe2B/43/ihpxYyZPhL7S2tbCyWY0/azjkC7ZrdxYotEBnVSbs\n+0QK+MbR0DpK+Hy/cFZN0LICoaSluUW8KZsOiRGd1GPDYx0zjLR0WDBrZ5sOvyNp\nIOoz6WWCKfMYtIQgUTNpUu8lVZDcQUnhbiYaNnwEX2ZwadL31erYydLCk5DXvRtT\n2ridNlUuq1RtniKrPZSjsvjW6mPBR4HpHEbpu6V2mFG7eEndV4iRbQggCOG93sUV\ngn7zU3W3HC/uHKgOIJV/TTuoeS0rw1tDDF7WTE1odGjN1wWXu6kAI0UnNIOZufv4\nHcVykvUaJcvBp154HR/RQzgN4Fc4xY7MizuRtzO1dH5lbFOqhKNRw0JgcwaxDqsf\nqO2GjSoHxhmkGkbhsFUlz0xi4+OYMDUwcG6zTyVyRz9Gw5Ykk6mcKSw2Tbzynu1w\nQ9G3h9xf3J4h/vCeswZGVOP8HS8QabI0i6afEJF7b8OVVH1QonGWnfnuzfc+PpdL\nD00sf/EPdvzpvebm86kJDPUu3F/swYY92Tkwa9YD3iJaolWVhzOsyeCPty5nPUvK\nGXLf7lorn7FLWRdPV6W4mZtcHGM0PxCoUwPbTL+Gah/wLhYMV/qYZPA24MJJ+WH3\nImVfkD7hNYM0dWECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXTRB4dpCJD5Q/wSsVgr5\ng4PSLi8wHwYDVR0jBBgwFoAUXTRB4dpCJD5Q/wSsVgr5g4PSLi8wDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC01NmEwYzFlMi9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQAbRgLhQ4W+\n7yQQ/+KoFFF/F4q01yDwTMCr06OdFY5Cxs2IemKAQgHWGsypaaVdB8GszY7os+sZ\niIFgOLgADMF4EqRfhX+LrFmHZBNppobrceOylUuk1JOELCxUgYy7M2U84vARe/ZE\n04+9I93sndiOHDWYza1viQvIbDAc0is0sqZ3TonIVnKpRMQ4oKWrgB+Tx++sXBBL\nrfl9ILYXU2I6YsL9N+CS/TkW9xvdHExzcPtyFuem0AtqSa647BBxQNtPWIKLLFku\nbf6os8qQuM6DuGJqX+wTnG5FIjNLNoKIPPa0EUDrmBuSZJoeCH10tRI5kq//owM4\nuji1QP4cWbdbBiQWgSGOM4KhttLKjpN5Uw/tcpxq2ccg6ZB3fo0C7Ug1cpHfSX2j\nKsi0Y12EmFHaz0neRdXkuCKdc8Krc5tqijIPKgdem5qALQhDLw4kZL1N7xQbTbuG\nLhcONHDAH6qC2hiJ3dJaW6xs/sHmY/uCT1F2WafdMKAODr2FeqUuMPOwV7BrKXDx\n2KjNAMHN7xumweDJVVVUIUixYqMOQn+PPmrxMUo6lZW6OlNeZ6lkzKod31BUFN0Q\niGOE/fcB6EwpCKd1I7RR7qDvfNdWKgd6+S/4Iz17lCapy9vV5FldReldjYWc961K\n9NfNOOAOoIXRsM0lpjwYnm86+6XiX7iw+Q==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n    </md:KeyDescriptor>\n\n    <md:KeyDescriptor use=\"encryption\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-56a0c1e2.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-56a0c1e2-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUA6kwjjsTzFhDnISuIdlr29NKt20wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTU2YTBjMWUyLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwMFoXDTI4MDkzMDE0NTMwMFowMjEdMBsGA1UE\nAwwUY3dsLTU2YTBjMWUyLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAoHjx8128O6LkcC0Ib/fgDb7QeH6L\n6ENdNu37ho+vpWnpe2B/43/ihpxYyZPhL7S2tbCyWY0/azjkC7ZrdxYotEBnVSbs\n+0QK+MbR0DpK+Hy/cFZN0LICoaSluUW8KZsOiRGd1GPDYx0zjLR0WDBrZ5sOvyNp\nIOoz6WWCKfMYtIQgUTNpUu8lVZDcQUnhbiYaNnwEX2ZwadL31erYydLCk5DXvRtT\n2ridNlUuq1RtniKrPZSjsvjW6mPBR4HpHEbpu6V2mFG7eEndV4iRbQggCOG93sUV\ngn7zU3W3HC/uHKgOIJV/TTuoeS0rw1tDDF7WTE1odGjN1wWXu6kAI0UnNIOZufv4\nHcVykvUaJcvBp154HR/RQzgN4Fc4xY7MizuRtzO1dH5lbFOqhKNRw0JgcwaxDqsf\nqO2GjSoHxhmkGkbhsFUlz0xi4+OYMDUwcG6zTyVyRz9Gw5Ykk6mcKSw2Tbzynu1w\nQ9G3h9xf3J4h/vCeswZGVOP8HS8QabI0i6afEJF7b8OVVH1QonGWnfnuzfc+PpdL\nD00sf/EPdvzpvebm86kJDPUu3F/swYY92Tkwa9YD3iJaolWVhzOsyeCPty5nPUvK\nGXLf7lorn7FLWRdPV6W4mZtcHGM0PxCoUwPbTL+Gah/wLhYMV/qYZPA24MJJ+WH3\nImVfkD7hNYM0dWECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXTRB4dpCJD5Q/wSsVgr5\ng4PSLi8wHwYDVR0jBBgwFoAUXTRB4dpCJD5Q/wSsVgr5g4PSLi8wDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC01NmEwYzFlMi9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQAbRgLhQ4W+\n7yQQ/+KoFFF/F4q01yDwTMCr06OdFY5Cxs2IemKAQgHWGsypaaVdB8GszY7os+sZ\niIFgOLgADMF4EqRfhX+LrFmHZBNppobrceOylUuk1JOELCxUgYy7M2U84vARe/ZE\n04+9I93sndiOHDWYza1viQvIbDAc0is0sqZ3TonIVnKpRMQ4oKWrgB+Tx++sXBBL\nrfl9ILYXU2I6YsL9N+CS/TkW9xvdHExzcPtyFuem0AtqSa647BBxQNtPWIKLLFku\nbf6os8qQuM6DuGJqX+wTnG5FIjNLNoKIPPa0EUDrmBuSZJoeCH10tRI5kq//owM4\nuji1QP4cWbdbBiQWgSGOM4KhttLKjpN5Uw/tcpxq2ccg6ZB3fo0C7Ug1cpHfSX2j\nKsi0Y12EmFHaz0neRdXkuCKdc8Krc5tqijIPKgdem5qALQhDLw4kZL1N7xQbTbuG\nLhcONHDAH6qC2hiJ3dJaW6xs/sHmY/uCT1F2WafdMKAODr2FeqUuMPOwV7BrKXDx\n2KjNAMHN7xumweDJVVVUIUixYqMOQn+PPmrxMUo6lZW6OlNeZ6lkzKod31BUFN0Q\niGOE/fcB6EwpCKd1I7RR7qDvfNdWKgd6+S/4Iz17lCapy9vV5FldReldjYWc961K\n9NfNOOAOoIXRsM0lpjwYnm86+6XiX7iw+Q==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes128-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes256-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#aes256-cbc\"/>\n    </md:KeyDescriptor>\n\n    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://cwl-56a0c1e2.staging.manifest.internal/auth/logout\"/>\n\n    <md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://cwl-56a0c1e2.staging.manifest.internal/auth/ubcshib/callback\" index=\"1\" isDefault=\"true\"/>\n  </md:SPSSODescriptor>\n\n  <md:Organization>\n    <md:OrganizationName>University of British Columbia</md:OrganizationName>\n    <md:OrganizationDisplayName>University of British Columbia</md:OrganizationDisplayName>\n    <md:OrganizationURL>https://www.ubc.ca</md:OrganizationURL>\n  </md:Organization>\n\n  <md:ContactPerson contactType=\"technical\">\n    <md:EmailAddress>bio_prof@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n  <md:ContactPerson contactType=\"support\">\n    <md:EmailAddress>platform_admin@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n\n</md:EntityDescriptor>\n",
+                    "warnings": [
+                      "The privacy assessment’s PIA number is not recorded yet, and UBC IAM asks for it. Once an administrator records the assessment approved with its number, draft this again so the package carries it."
+                    ]
+                  },
+                  "createdAt": "2026-10-01T14:53:01.034Z",
+                  "updatedAt": "2026-10-01T14:53:01.034Z"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_NOT_CWL, LAUNCH_RECORD_SUBMITTED, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "LAUNCH_NOT_CWL",
+          "LAUNCH_RECORD_SUBMITTED",
+          "NOT_FOUND",
+          "PROJECT_ARCHIVED",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "SOURCE_COMMIT_NOT_FOUND",
+          "SOURCE_GIT_FAILED",
+          "SOURCE_PROVIDER_MISMATCH",
+          "SOURCE_UNREACHABLE",
           "UNAUTHENTICATED"
         ]
       }
@@ -4697,7 +4929,6 @@
                 "$ref": "#/components/schemas/SubmitLaunchRecordRequest"
               },
               "example": {
-                "sentAt": "2026-09-30",
                 "reference": "IAM-2026-0500"
               }
             }
@@ -4712,12 +4943,12 @@
                   "$ref": "#/components/schemas/IamRegistration"
                 },
                 "example": {
-                  "id": "f9724bbd-43f6-485b-ae8a-f879f015b2b5",
-                  "projectId": "5604d74f-590f-41e9-a34f-75d343aec6f6",
-                  "environment": "production",
-                  "entityId": "https://manifest.internal/sp/fixture-dee0f9d6/production",
-                  "acsUrl": "https://fixture-dee0f9d6.manifest.internal/auth/ubcshib/callback",
-                  "sloUrl": "https://fixture-dee0f9d6.manifest.internal/auth/logout",
+                  "id": "c774307b-db67-486e-a201-38a76e2e45af",
+                  "projectId": "433b7cfc-6735-480e-89cc-52836329df29",
+                  "environment": "staging",
+                  "entityId": "https://manifest.internal/sp/cwl-eabfcf05/staging",
+                  "acsUrl": "https://cwl-eabfcf05.staging.manifest.internal/auth/ubcshib/callback",
+                  "sloUrl": "https://cwl-eabfcf05.staging.manifest.internal/auth/logout",
                   "certFingerprint": null,
                   "certExpiresAt": null,
                   "registeredAttributes": [],
@@ -4725,13 +4956,74 @@
                   "registeredAt": null,
                   "state": "submitted",
                   "externalTicketRef": "IAM-2026-0500",
-                  "submittedAt": "2026-09-30T19:00:00.000Z",
+                  "submittedAt": "2026-10-01T19:00:00.000Z",
                   "submittedBy": {
-                    "id": "f696c331-ac5a-4887-8811-aa562446342d",
+                    "id": "88c5198a-c93f-48fa-9c7c-4f309dc1fa87",
                     "displayName": "Bio Prof"
                   },
-                  "createdAt": "2026-10-01T06:55:59.850Z",
-                  "updatedAt": "2026-10-01T06:55:59.861Z"
+                  "package": {
+                    "environment": "staging",
+                    "generatedAt": "2026-10-01T14:53:03.289Z",
+                    "fromCommit": "de62c6ea74bf32249eb8cfa6f0e63feaae7e177c",
+                    "entityId": "https://manifest.internal/sp/cwl-eabfcf05/staging",
+                    "acsUrl": "https://cwl-eabfcf05.staging.manifest.internal/auth/ubcshib/callback",
+                    "sloUrl": "https://cwl-eabfcf05.staging.manifest.internal/auth/logout",
+                    "certificate": {
+                      "pem": "-----BEGIN CERTIFICATE-----\nMIIFhTCCA22gAwIBAgIUViZ1Fnx70pZfrmlZtF+p4+S5GtowDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwM1oXDTI4MDkzMDE0NTMwM1owMjEdMBsGA1UE\nAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArpimvEnKSrLK5uTxziNBik3fCojW\ngJrYDoOqKf/Hin9gdyVCQ480+DZSPUx31OsJW0Cj2slHPYiRcxe5+OkxdPIwbwo+\nZNzDCcn4MDz41fI/pFxO799iHoq5i6+gwhamEx/0Nusz4cm2BV4XzdYocub67PJc\nMnxIa4iT2XJsubCRKtXdkZHM6WR6b1lVWz+/6D/wdXjrlF/RY1P43zbcW4hNJMmv\n8vF19gC57YrswtPp9ME0Ao2l1EqUglobE47sOml4vMbdhkY3JMCnSOfcHZSZ0TkN\nJpwtJIUfeGOmhPOX9EnZIIV/vp9b2BBtiTEcSW+HZH6ybQ4sEDwvLM/4Z+qWiAfx\n1q6r/qrlapWF92HqULbLbQdU/SnAZwLSsipycDnFGDZTcCltYGkomfFGVC51543f\nnu9jZCdrhA4XnVvoA/+8gFRPgtbzpIoKK9NUBlh8qSnREqVaPlWf8FcGqGcgKMDM\nd5RHeLWHmLJUxZSEvAD5VAHkiZNpPPNkssfmK7g9j7lf2gTSwoQQXW9Atuh+Hy3j\nE+XTNw8dsBhxOBc01YHMmzF3i54vDPxIypjZkdkvZ+QsVfZyj8IC/HaEP9t905bW\nPUQF5eTYb2KD24jfqXz4xpyavrz1YpZJF4ac64QEBzAM8GeM+cihQUdqKzeEjafG\nOGxisJi2/XDNcrECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUgtY6OEKJYftJ1BFz2Oc2\nXQksVpwwHwYDVR0jBBgwFoAUgtY6OEKJYftJ1BFz2Oc2XQksVpwwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC1lYWJmY2YwNS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCuDP8YJNk3\nEhJSOoXQ2jAnvjASVI4grSZzFXvDqLnN2lVBtE5LkUFW6YQzrN5hg6KWOzqV30BT\nUy/WSPFF2yDc0WRGALseNawsmgFVLuCRYgjTylBQzLaL5F0ml42W9MIRMs2evRIl\nwxMqKd9P1xuE5AkUnBkVFOW4OB6v7JnQp2dr50IlLvx+w9YA3DWFSXvQXKBNrTHD\n5Gxj5PuV4zv9xVJMaqKHEnGJ3SJiV+kaSqSoPBKsko4Mkg+/sa6cb4CDHllZvaLC\np79r4a+hNF6uyfdVoBr64hsHzdUf/jBIxKaDykZqocwzdBpxVSWaG2ZSzbF4T501\ns+gKIR7Na5HaXojbkFEEYzCQHwreO0pDeLwdDjFxvOjbuyufD0z9ldBMemDnLsYw\np2SnTUaRzhxNCDfo7NR7Il/gLdZJqfig8JbfD+OR0j26HONyK389rhbykS4x9gp+\nHU46h10fuxBn4rnMf+GLO48B0BowI05IFx3HROjYtDQdjlolGWy7yOPTKc4fD/6v\nZDoJgVL5vcFoBSwZQi8ssFol4ov8Paj67vKL6Rt7c+KfwCJUa6nqOmHuK8q2UkPx\ns/8KM7Ys8uGwlIShvnZxK7sBxfWYcz4cSYENUqLFIMEBvFvmZ9aRLJl7Z940NlK9\nZvXcbgCi3VnABjPKJ3l/Rq14q0lPfBPS8Q==\n-----END CERTIFICATE-----\n",
+                      "fingerprint": "64:A4:FD:CE:F0:C6:35:D7:A3:94:CC:70:D7:6D:A2:75:5C:8E:B5:50:B3:17:7D:03:D2:A6:6B:AE:65:E2:CD:B0",
+                      "expiresAt": "2028-09-30T14:53:03.000Z"
+                    },
+                    "attributes": [
+                      {
+                        "name": "ubcEduCwlPuid",
+                        "oid": "urn:oid:1.3.6.1.4.1.60.6.1.6",
+                        "purpose": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.",
+                        "usedAt": [
+                          {
+                            "path": "routes/people.js",
+                            "line": 3
+                          }
+                        ],
+                        "justification": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. The app reads it in routes/people.js:3.",
+                        "unused": false
+                      },
+                      {
+                        "name": "mail",
+                        "oid": "urn:oid:0.9.2342.19200300.100.1.3",
+                        "purpose": "The person’s email address, so the app can show it or write to them.",
+                        "usedAt": [
+                          {
+                            "path": "public/app.js",
+                            "line": 2
+                          }
+                        ],
+                        "justification": "The person’s email address, so the app can show it or write to them. The app shows it to the person in the browser, in public/app.js:2.",
+                        "unused": false
+                      }
+                    ],
+                    "usedAtTruncated": false,
+                    "contacts": {
+                      "technical": [
+                        {
+                          "name": "Bio Prof",
+                          "email": "bio_prof@example.ubc.ca"
+                        }
+                      ],
+                      "support": [
+                        {
+                          "name": "Platform Admin",
+                          "email": "platform_admin@example.ubc.ca"
+                        }
+                      ]
+                    },
+                    "privacyAssessmentReference": null,
+                    "metadataXml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" xmlns:alg=\"urn:oasis:names:tc:SAML:metadata:algsupport\" ID=\"_6d0d62b3bd029bc004f89da18650d613\" entityID=\"https://manifest.internal/sp/cwl-eabfcf05/staging\">\n\n  <md:Extensions>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#sha384\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha384\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256\"/>\n  </md:Extensions>\n\n  <md:SPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n    <md:KeyDescriptor use=\"signing\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-eabfcf05.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-eabfcf05-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUViZ1Fnx70pZfrmlZtF+p4+S5GtowDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwM1oXDTI4MDkzMDE0NTMwM1owMjEdMBsGA1UE\nAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArpimvEnKSrLK5uTxziNBik3fCojW\ngJrYDoOqKf/Hin9gdyVCQ480+DZSPUx31OsJW0Cj2slHPYiRcxe5+OkxdPIwbwo+\nZNzDCcn4MDz41fI/pFxO799iHoq5i6+gwhamEx/0Nusz4cm2BV4XzdYocub67PJc\nMnxIa4iT2XJsubCRKtXdkZHM6WR6b1lVWz+/6D/wdXjrlF/RY1P43zbcW4hNJMmv\n8vF19gC57YrswtPp9ME0Ao2l1EqUglobE47sOml4vMbdhkY3JMCnSOfcHZSZ0TkN\nJpwtJIUfeGOmhPOX9EnZIIV/vp9b2BBtiTEcSW+HZH6ybQ4sEDwvLM/4Z+qWiAfx\n1q6r/qrlapWF92HqULbLbQdU/SnAZwLSsipycDnFGDZTcCltYGkomfFGVC51543f\nnu9jZCdrhA4XnVvoA/+8gFRPgtbzpIoKK9NUBlh8qSnREqVaPlWf8FcGqGcgKMDM\nd5RHeLWHmLJUxZSEvAD5VAHkiZNpPPNkssfmK7g9j7lf2gTSwoQQXW9Atuh+Hy3j\nE+XTNw8dsBhxOBc01YHMmzF3i54vDPxIypjZkdkvZ+QsVfZyj8IC/HaEP9t905bW\nPUQF5eTYb2KD24jfqXz4xpyavrz1YpZJF4ac64QEBzAM8GeM+cihQUdqKzeEjafG\nOGxisJi2/XDNcrECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUgtY6OEKJYftJ1BFz2Oc2\nXQksVpwwHwYDVR0jBBgwFoAUgtY6OEKJYftJ1BFz2Oc2XQksVpwwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC1lYWJmY2YwNS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCuDP8YJNk3\nEhJSOoXQ2jAnvjASVI4grSZzFXvDqLnN2lVBtE5LkUFW6YQzrN5hg6KWOzqV30BT\nUy/WSPFF2yDc0WRGALseNawsmgFVLuCRYgjTylBQzLaL5F0ml42W9MIRMs2evRIl\nwxMqKd9P1xuE5AkUnBkVFOW4OB6v7JnQp2dr50IlLvx+w9YA3DWFSXvQXKBNrTHD\n5Gxj5PuV4zv9xVJMaqKHEnGJ3SJiV+kaSqSoPBKsko4Mkg+/sa6cb4CDHllZvaLC\np79r4a+hNF6uyfdVoBr64hsHzdUf/jBIxKaDykZqocwzdBpxVSWaG2ZSzbF4T501\ns+gKIR7Na5HaXojbkFEEYzCQHwreO0pDeLwdDjFxvOjbuyufD0z9ldBMemDnLsYw\np2SnTUaRzhxNCDfo7NR7Il/gLdZJqfig8JbfD+OR0j26HONyK389rhbykS4x9gp+\nHU46h10fuxBn4rnMf+GLO48B0BowI05IFx3HROjYtDQdjlolGWy7yOPTKc4fD/6v\nZDoJgVL5vcFoBSwZQi8ssFol4ov8Paj67vKL6Rt7c+KfwCJUa6nqOmHuK8q2UkPx\ns/8KM7Ys8uGwlIShvnZxK7sBxfWYcz4cSYENUqLFIMEBvFvmZ9aRLJl7Z940NlK9\nZvXcbgCi3VnABjPKJ3l/Rq14q0lPfBPS8Q==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n    </md:KeyDescriptor>\n\n    <md:KeyDescriptor use=\"encryption\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-eabfcf05.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-eabfcf05-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUViZ1Fnx70pZfrmlZtF+p4+S5GtowDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE0NTMwM1oXDTI4MDkzMDE0NTMwM1owMjEdMBsGA1UE\nAwwUY3dsLWVhYmZjZjA1LXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArpimvEnKSrLK5uTxziNBik3fCojW\ngJrYDoOqKf/Hin9gdyVCQ480+DZSPUx31OsJW0Cj2slHPYiRcxe5+OkxdPIwbwo+\nZNzDCcn4MDz41fI/pFxO799iHoq5i6+gwhamEx/0Nusz4cm2BV4XzdYocub67PJc\nMnxIa4iT2XJsubCRKtXdkZHM6WR6b1lVWz+/6D/wdXjrlF/RY1P43zbcW4hNJMmv\n8vF19gC57YrswtPp9ME0Ao2l1EqUglobE47sOml4vMbdhkY3JMCnSOfcHZSZ0TkN\nJpwtJIUfeGOmhPOX9EnZIIV/vp9b2BBtiTEcSW+HZH6ybQ4sEDwvLM/4Z+qWiAfx\n1q6r/qrlapWF92HqULbLbQdU/SnAZwLSsipycDnFGDZTcCltYGkomfFGVC51543f\nnu9jZCdrhA4XnVvoA/+8gFRPgtbzpIoKK9NUBlh8qSnREqVaPlWf8FcGqGcgKMDM\nd5RHeLWHmLJUxZSEvAD5VAHkiZNpPPNkssfmK7g9j7lf2gTSwoQQXW9Atuh+Hy3j\nE+XTNw8dsBhxOBc01YHMmzF3i54vDPxIypjZkdkvZ+QsVfZyj8IC/HaEP9t905bW\nPUQF5eTYb2KD24jfqXz4xpyavrz1YpZJF4ac64QEBzAM8GeM+cihQUdqKzeEjafG\nOGxisJi2/XDNcrECAwEAAaOBkjCBjzAdBgNVHQ4EFgQUgtY6OEKJYftJ1BFz2Oc2\nXQksVpwwHwYDVR0jBBgwFoAUgtY6OEKJYftJ1BFz2Oc2XQksVpwwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC1lYWJmY2YwNS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCuDP8YJNk3\nEhJSOoXQ2jAnvjASVI4grSZzFXvDqLnN2lVBtE5LkUFW6YQzrN5hg6KWOzqV30BT\nUy/WSPFF2yDc0WRGALseNawsmgFVLuCRYgjTylBQzLaL5F0ml42W9MIRMs2evRIl\nwxMqKd9P1xuE5AkUnBkVFOW4OB6v7JnQp2dr50IlLvx+w9YA3DWFSXvQXKBNrTHD\n5Gxj5PuV4zv9xVJMaqKHEnGJ3SJiV+kaSqSoPBKsko4Mkg+/sa6cb4CDHllZvaLC\np79r4a+hNF6uyfdVoBr64hsHzdUf/jBIxKaDykZqocwzdBpxVSWaG2ZSzbF4T501\ns+gKIR7Na5HaXojbkFEEYzCQHwreO0pDeLwdDjFxvOjbuyufD0z9ldBMemDnLsYw\np2SnTUaRzhxNCDfo7NR7Il/gLdZJqfig8JbfD+OR0j26HONyK389rhbykS4x9gp+\nHU46h10fuxBn4rnMf+GLO48B0BowI05IFx3HROjYtDQdjlolGWy7yOPTKc4fD/6v\nZDoJgVL5vcFoBSwZQi8ssFol4ov8Paj67vKL6Rt7c+KfwCJUa6nqOmHuK8q2UkPx\ns/8KM7Ys8uGwlIShvnZxK7sBxfWYcz4cSYENUqLFIMEBvFvmZ9aRLJl7Z940NlK9\nZvXcbgCi3VnABjPKJ3l/Rq14q0lPfBPS8Q==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes128-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes256-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#aes256-cbc\"/>\n    </md:KeyDescriptor>\n\n    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://cwl-eabfcf05.staging.manifest.internal/auth/logout\"/>\n\n    <md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://cwl-eabfcf05.staging.manifest.internal/auth/ubcshib/callback\" index=\"1\" isDefault=\"true\"/>\n  </md:SPSSODescriptor>\n\n  <md:Organization>\n    <md:OrganizationName>University of British Columbia</md:OrganizationName>\n    <md:OrganizationDisplayName>University of British Columbia</md:OrganizationDisplayName>\n    <md:OrganizationURL>https://www.ubc.ca</md:OrganizationURL>\n  </md:Organization>\n\n  <md:ContactPerson contactType=\"technical\">\n    <md:EmailAddress>bio_prof@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n  <md:ContactPerson contactType=\"support\">\n    <md:EmailAddress>platform_admin@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n\n</md:EntityDescriptor>\n",
+                    "warnings": [
+                      "The privacy assessment’s PIA number is not recorded yet, and UBC IAM asks for it. Once an administrator records the assessment approved with its number, draft this again so the package carries it."
+                    ]
+                  },
+                  "createdAt": "2026-10-01T14:53:03.291Z",
+                  "updatedAt": "2026-10-01T14:53:03.327Z"
                 }
               }
             }
@@ -9620,8 +9912,10 @@
           "INTAKE_SESSION_ALREADY_STARTED",
           "INTERNAL",
           "LAUNCH_DRAFT_REQUIRED",
+          "LAUNCH_NOT_CWL",
           "LAUNCH_PIA_NOT_APPROVED",
           "LAUNCH_RECORD_INVALID",
+          "LAUNCH_RECORD_SUBMITTED",
           "LAUNCH_SENT_AT_INVALID",
           "LAUNCH_STAGING_NOT_REGISTERED",
           "LAUNCH_TRANSITION_INVALID",
@@ -9758,8 +10052,10 @@
           "INTAKE_SESSION_ALREADY_STARTED": "This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.",
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
           "LAUNCH_DRAFT_REQUIRED": "There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.",
+          "LAUNCH_NOT_CWL": "The app signs nobody in with CWL — or asks for no attribute, which no registration may — so there is nothing to register with UBC IAM.",
           "LAUNCH_PIA_NOT_APPROVED": "Neither registration is sent until the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
+          "LAUNCH_RECORD_SUBMITTED": "This registration is with UBC IAM or registered by it (`submitted` or `active`), and what was sent is kept as it was sent: Manifest drafts it again only once UBC asks for changes or the registration lapses.",
           "LAUNCH_SENT_AT_INVALID": "The day given for when it was sent cannot be true: it is after today in Vancouver, or before the draft that was sent was made.",
           "LAUNCH_STAGING_NOT_REGISTERED": "The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.",
@@ -12198,6 +12494,100 @@
                 "required": [
                   "sentAt",
                   "externalTicketRef"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "iam_registration.drafted"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "Manifest drafted the app’s staging or production registration request for a person to send to UBC IAM. Nothing was sent; the draft is on the record.",
+                "type": "object",
+                "properties": {
+                  "environment": {
+                    "description": "Which registration was drafted: the staging one, or production’s.",
+                    "type": "string",
+                    "enum": [
+                      "staging",
+                      "production"
+                    ]
+                  },
+                  "entityId": {
+                    "description": "The Service Provider entity ID the draft registers, for that environment.",
+                    "type": "string"
+                  },
+                  "fromCommit": {
+                    "description": "The commit whose manifest and code the draft was drawn from.",
+                    "type": "string"
+                  },
+                  "attributeCount": {
+                    "description": "How many attributes the draft asks for. The names are in the record, not here.",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "unusedCount": {
+                    "description": "How many of them nothing in the app was found reading — each to remove before sending.",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "environment",
+                  "entityId",
+                  "fromCommit",
+                  "attributeCount",
+                  "unusedCount"
                 ],
                 "additionalProperties": false
               },
@@ -14849,6 +15239,17 @@
               }
             ]
           },
+          "package": {
+            "description": "What Manifest drafted for the person to send (`draftIamRegistration`), kept as it was sent once it is; null until drafted.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegistrationPackage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "createdAt": {
             "description": "When the record was first written.",
             "type": "string",
@@ -14878,6 +15279,7 @@
           "externalTicketRef",
           "submittedAt",
           "submittedBy",
+          "package",
           "createdAt",
           "updatedAt"
         ],
@@ -16426,6 +16828,7 @@
                 "launch:record",
                 "launch:rehearse",
                 "launch:submit",
+                "launch:draft",
                 "quota:set",
                 "secret:read"
               ]
@@ -16979,6 +17382,231 @@
         },
         "required": [
           "state"
+        ],
+        "additionalProperties": false
+      },
+      "RegistrationPackage": {
+        "description": "What a person sends UBC IAM to register one environment of a CWL app: its entity and addresses, the certificate it signs with, every attribute it asks for with why, the contacts and the PIA number — and the metadata, built from the same values.",
+        "type": "object",
+        "properties": {
+          "environment": {
+            "description": "Which registration this package is for.",
+            "type": "string",
+            "enum": [
+              "staging",
+              "production"
+            ]
+          },
+          "generatedAt": {
+            "description": "When Manifest drafted it. The day a person says they sent it can be no earlier.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "fromCommit": {
+            "description": "The commit whose `manifest.yaml` and code it was drawn from: for production, the release serving staging; for staging — or for production while nothing serves staging — the newest valid manifest.",
+            "type": "string"
+          },
+          "entityId": {
+            "description": "The Service Provider’s entity ID for this environment, derived by Manifest and fixed once registered.",
+            "type": "string"
+          },
+          "acsUrl": {
+            "description": "Where sign-ins are sent — the app’s callback path on this environment’s hostname.",
+            "type": "string"
+          },
+          "sloUrl": {
+            "description": "Where sign-outs are sent — the app’s logout path on this hostname.",
+            "type": "string"
+          },
+          "certificate": {
+            "description": "The certificate Manifest issued for this environment — the same one the environment’s deploys register.",
+            "type": "object",
+            "properties": {
+              "pem": {
+                "description": "The certificate the app signs with in this environment, as PEM. Never a private key: the key stays with Manifest.",
+                "type": "string"
+              },
+              "fingerprint": {
+                "description": "Its SHA-256 fingerprint, colon-separated.",
+                "type": "string"
+              },
+              "expiresAt": {
+                "description": "When it expires.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "pem",
+              "fingerprint",
+              "expiresAt"
+            ],
+            "additionalProperties": false
+          },
+          "attributes": {
+            "description": "Every attribute the app asks for, in `auth.attributes` order.",
+            "type": "array",
+            "items": {
+              "description": "One attribute the app asks for, justified.",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "The attribute’s friendly name, as `auth.attributes` lists it.",
+                  "type": "string"
+                },
+                "oid": {
+                  "description": "Its OID, as UBC releases it.",
+                  "type": "string"
+                },
+                "purpose": {
+                  "description": "What it is for, in one plain sentence.",
+                  "type": "string"
+                },
+                "usedAt": {
+                  "description": "Every line of the app’s code Manifest found reading it, as a property — a hint for the reviewer, never a proof. Empty when none was found.",
+                  "type": "array",
+                  "items": {
+                    "description": "One line that reads it.",
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "description": "A file of the app, from its repository’s root.",
+                        "type": "string"
+                      },
+                      "line": {
+                        "description": "The line, counting from 1.",
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "line"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "justification": {
+                  "description": "Why the app needs it — its purpose and where the app reads it — or, when nothing reads it, that it should be removed before sending.",
+                  "type": "string"
+                },
+                "unused": {
+                  "description": "True when the app asks for it and Manifest found nothing reading it: remove it from `auth.attributes` before you send this.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "oid",
+                "purpose",
+                "usedAt",
+                "justification",
+                "unused"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "usedAtTruncated": {
+            "description": "True when Manifest read only part of the app’s code (at most 200 files and 2 MiB of text): a line elsewhere is not shown.",
+            "type": "boolean"
+          },
+          "contacts": {
+            "description": "Who UBC IAM may write to.",
+            "type": "object",
+            "properties": {
+              "technical": {
+                "description": "The project’s owners, then its collaborators.",
+                "type": "array",
+                "items": {
+                  "description": "A person UBC IAM may write to about the registration.",
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "Their name.",
+                      "type": "string"
+                    },
+                    "email": {
+                      "description": "Their address.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "email"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "support": {
+                "description": "The platform’s contacts — as configured, or else its longest-serving administrator.",
+                "type": "array",
+                "items": {
+                  "description": "A person UBC IAM may write to about the registration.",
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "Their name.",
+                      "type": "string"
+                    },
+                    "email": {
+                      "description": "Their address.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "email"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "technical",
+              "support"
+            ],
+            "additionalProperties": false
+          },
+          "privacyAssessmentReference": {
+            "description": "The privacy assessment’s PIA number, which UBC IAM asks for — null until the assessment is recorded approved with it.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadataXml": {
+            "description": "The SAML metadata for the request, in the structure UBC’s own metadata generator produces, with these values.",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "What to fix or know before sending it — an attribute nothing reads, a missing PIA number, a package drawn without a release serving staging. Empty when there is nothing.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "environment",
+          "generatedAt",
+          "fromCommit",
+          "entityId",
+          "acsUrl",
+          "sloUrl",
+          "certificate",
+          "attributes",
+          "usedAtTruncated",
+          "contacts",
+          "privacyAssessmentReference",
+          "metadataXml",
+          "warnings"
         ],
         "additionalProperties": false
       },
@@ -18697,7 +19325,12 @@
     "LAUNCH_DRAFT_REQUIRED": {
       "status": 409,
       "summary": "There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.",
-      "remedy": "Draft it first, send the draft to UBC, then say it was sent. Nothing was recorded."
+      "remedy": "Draft it first (`draftIamRegistration` for a registration), send the draft to UBC, then say it was sent. Nothing was recorded."
+    },
+    "LAUNCH_NOT_CWL": {
+      "status": 409,
+      "summary": "The app signs nobody in with CWL — or asks for no attribute, which no registration may — so there is nothing to register with UBC IAM.",
+      "remedy": "An app that signs nobody in needs no registration. To sign people in, set `auth.provider: cwl` and the attributes the app needs in `auth.attributes`, validate the manifest, then draft again."
     },
     "LAUNCH_PIA_NOT_APPROVED": {
       "status": 409,
@@ -18708,6 +19341,11 @@
       "status": 400,
       "summary": "An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.",
       "remedy": "Correct the fields the message names — a registration lists at least one attribute — and record it again."
+    },
+    "LAUNCH_RECORD_SUBMITTED": {
+      "status": 409,
+      "summary": "This registration is with UBC IAM or registered by it (`submitted` or `active`), and what was sent is kept as it was sent: Manifest drafts it again only once UBC asks for changes or the registration lapses.",
+      "remedy": "To change what UBC IAM was sent, ask UBC IAM. Once an administrator records that it asked for changes (`change_requested`) or that the registration lapsed (`expired`), draft it again."
     },
     "LAUNCH_SENT_AT_INVALID": {
       "status": 400,

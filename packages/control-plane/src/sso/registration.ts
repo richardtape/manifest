@@ -11,7 +11,13 @@ import {
   type SpEntity,
   type SpEntityInput,
 } from './entity.js'
-import { ensureSpKeypair, type SpKeypair } from './keypair.js'
+import {
+  ensureSpCertificate,
+  ensureSpKeypair,
+  type SpCertificate,
+  type SpKeypair,
+  type SpKeypairScope,
+} from './keypair.js'
 import {
   deleteSpRow,
   readSpRow,
@@ -241,14 +247,25 @@ export interface SsoDeregistrar {
   ): Promise<boolean>
 }
 
+/**
+ * D19's PACKAGE: the environment's certificate, its public half, with the master key bound (the launch
+ * path plan's Task 10). ITS OWN INTERFACE, for `SsoDeregistrar`'s reason: the package's drafting asks
+ * for this alone, and on the registrar because the registrar is what holds the master key — `api/` and
+ * `launch/` hold no key material, and this answer has no field for any.
+ */
+export interface SsoCertificates {
+  spCertificate(db: Db, scope: SpKeypairScope): Promise<SpCertificate>
+}
+
 export function createSsoRegistrar(
   pool: pg.Pool,
   keys: MasterKeypair,
   entityBase: string,
   idpSigningCertPath: string,
   bus: EventBus,
-): SsoRegistrar & SsoDeregistrar {
+): SsoRegistrar & SsoDeregistrar & SsoCertificates {
   return {
+    spCertificate: (db, scope) => ensureSpCertificate(db, keys, scope),
     registerServiceProvider: (db, input) =>
       registerServiceProvider(db, pool, keys, bus, { ...input, entityBase }),
     deregisterServiceProvider: (db, input) =>

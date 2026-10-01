@@ -1,7 +1,23 @@
-import { and, eq } from 'drizzle-orm'
-import { iamRegistrations, privacyAssessments, users, type Db } from '../db/index.js'
+import { and, asc, desc, eq } from 'drizzle-orm'
+import type { BlueprintRegistry } from '../blueprints/index.js'
+import type { Config } from '../config.js'
+import {
+  appSpecs,
+  environments,
+  iamRegistrations,
+  privacyAssessments,
+  projectMembers,
+  projects,
+  users,
+  type Db,
+} from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
-import { personName } from '../projects/index.js'
+import { personName, repositoryOf } from '../projects/index.js'
+import { SourceError, type RepoRef, type SourceDriver } from '../source/index.js'
+import type { ManifestSpec } from '../spec/index.js'
+import { deriveSpEntity, type Contact, type SsoCertificates } from '../sso/index.js'
+import { candidateFor } from './candidate.js'
+import { assemblePackage, readPackage, SEARCH_BOUND } from './package.js'
 import {
   iamTransition,
   piaTransition,
@@ -10,6 +26,7 @@ import {
   type IamState,
   type PiaState,
 } from './transitions.js'
+import { findAttributeUses } from './usage.js'
 
 /**
  * §9's two external records, which **Manifest tracks and does not produce** (D19, R1):
@@ -547,7 +564,13 @@ export async function submitIamRegistration(
         )
     }
 
-    const day = sentDay(input.sentAt, existing.createdAt)
+    // THE DRAFT THAT WAS SENT is the newest (the whole-branch review's M4): after a re-draft the
+    // row's `created_at` is the FIRST draft's day, and the package carries its own.
+    const drafted = readPackage(existing.generatedPackage)?.generatedAt
+    const day = sentDay(
+      input.sentAt,
+      drafted === undefined ? existing.createdAt : new Date(drafted),
+    )
     const [row] = await tx
       .update(iamRegistrations)
       .set({
@@ -647,4 +670,331 @@ export async function submitterOf(
     .from(users)
     .where(eq(users.id, userId))
   return who ?? null
+}
+
+/**
+ * A REGISTRATION ONCE SENT IS KEPT AS IT WAS SENT (Decision 9): drafted again only after UBC asked
+ * for changes or the registration lapsed, where a new request is the point.
+ */
+const DRAFTABLE: ReadonlySet<IamState> = new Set(['draft', 'change_requested', 'expired'])
+
+const alreadySent = (environment: RegistrationEnvironment, state: IamState) =>
+  new LaunchRecordError(
+    'LAUNCH_RECORD_SUBMITTED',
+    `the ${environment} registration is '${state}': what was sent to UBC IAM is kept as it was sent, and Manifest drafts it again only once UBC asks for changes or the registration lapses`,
+    'To change what UBC IAM was sent, ask UBC IAM; once an administrator records that it asked for changes, draft it again.',
+  )
+
+/** Extensions an app's own code and served pages are written in (Decision 14, `[M9]`). */
+const SEARCHED = /\.(js|mjs|ts|html)$/
+
+/**
+ * THE TREE THE ATTRIBUTE SEARCH READS — Decision 14's caller half: the text files of the commit,
+ * except the blueprint's own `auth/` bridge (it reads every attribute by design, so it would justify
+ * all of them), at most `SEARCH_BOUND` — and `truncated` whenever a file it would have read was not,
+ * so the package never claims to have looked where it did not.
+ */
+async function searchableTree(
+  source: SourceDriver,
+  repo: RepoRef,
+  commit: string,
+  bridge: ReadonlySet<string>,
+): Promise<{ files: { path: string; text: string }[]; truncated: boolean }> {
+  const tree = await source.listTree(repo, commit)
+  let truncated = tree.truncated
+  let bytes = 0
+  const files: { path: string; text: string }[] = []
+  for (const entry of tree.entries) {
+    if (entry.type !== 'file' || entry.binary === true || !SEARCHED.test(entry.path))
+      continue
+    if (bridge.has(entry.path)) continue
+    if (files.length === SEARCH_BOUND.files) {
+      truncated = true
+      break
+    }
+    // A file past what is left of the bound is skipped, not the rest: a smaller one may still fit.
+    if (bytes + (entry.size ?? 0) > SEARCH_BOUND.bytes) {
+      truncated = true
+      continue
+    }
+    try {
+      const file = await source.readText(repo, commit, entry.path)
+      files.push({ path: entry.path, text: file.content })
+      bytes += file.size
+    } catch (error) {
+      // Not UTF-8, or past the read limit: not searched, and the package says so.
+      if (
+        error instanceof SourceError &&
+        (error.code === 'SOURCE_FILE_NOT_TEXT' || error.code === 'SOURCE_FILE_TOO_LARGE')
+      ) {
+        truncated = true
+        continue
+      }
+      throw error
+    }
+  }
+  return { files, truncated }
+}
+
+/**
+ * WHAT A REGISTRATION IS DRAWN FROM (Task 10's Interfaces): **production's from the launch
+ * candidate** — the release serving staging, healthy, its frozen production `auth` and its build's
+ * commit — because production's registration must describe what a launch would run; with nothing
+ * serving staging, from the newest valid manifest, and the package says so. **Staging's from the
+ * newest valid manifest**: staging is where the app is still changing.
+ */
+async function drawnFrom(
+  db: Db,
+  projectId: string,
+  environment: RegistrationEnvironment,
+): Promise<{ auth: ManifestSpec['auth']; commit: string; warnings: string[] }> {
+  if (environment === 'production') {
+    const candidate = await candidateFor(db, projectId)
+    if (candidate !== undefined)
+      return { auth: candidate.auth, commit: candidate.build.commitSha, warnings: [] }
+  }
+  const [newest] = await db
+    .select({ parsed: appSpecs.parsed, commitSha: appSpecs.commitSha })
+    .from(appSpecs)
+    .where(and(eq(appSpecs.projectId, projectId), eq(appSpecs.valid, true)))
+    .orderBy(desc(appSpecs.createdAt), desc(appSpecs.id))
+    .limit(1)
+  // Every project is created with a validated manifest, and an invalid one never replaces it as the
+  // newest VALID — so none at all is a platform defect: a `500` and an operator line, never a guess.
+  if (newest === undefined)
+    throw new Error(
+      `project ${projectId} has no valid manifest to draft a registration from`,
+    )
+  return {
+    auth: (newest.parsed as ManifestSpec).auth,
+    commit: newest.commitSha,
+    warnings:
+      environment === 'production'
+        ? [
+            'Nothing is serving staging yet, so this is drawn from the newest valid manifest. Production’s registration should describe the release you will launch: once it serves staging, draft this again.',
+          ]
+        : [],
+  }
+}
+
+/**
+ * THE CONTACTS (§9: *"technical and privacy contacts from the project owner and platform admins"*;
+ * Decision 15): the project's owners, then its collaborators, as technical contacts; the platform's
+ * as support — `MANIFEST_LAUNCH_CONTACTS`, or else the oldest administrator.
+ */
+async function contactsFor(
+  db: Db,
+  projectId: string,
+  configured: readonly Contact[] | null,
+): Promise<{ technical: Contact[]; support: Contact[] }> {
+  const members = await db
+    .select({ name: users.displayName, email: users.email, role: projectMembers.role })
+    .from(projectMembers)
+    .innerJoin(users, eq(users.id, projectMembers.userId))
+    .where(eq(projectMembers.projectId, projectId))
+    .orderBy(asc(users.displayName))
+  const technical = [
+    ...members.filter((m) => m.role === 'owner'),
+    ...members.filter((m) => m.role !== 'owner'),
+  ].map(({ name, email }) => ({ name, email }))
+  if (configured !== null)
+    return { technical, support: configured.map((c) => ({ ...c })) }
+  const [admin] = await db
+    .select({ name: users.displayName, email: users.email })
+    .from(users)
+    .where(eq(users.role, 'admin'))
+    .orderBy(asc(users.createdAt))
+    .limit(1)
+  return { technical, support: admin === undefined ? [] : [admin] }
+}
+
+export interface DraftDeps {
+  db: Db
+  bus: EventBus
+  config: Pick<Config, 'idp' | 'launchContacts'>
+  source: SourceDriver
+  sso: SsoCertificates
+  blueprints: Pick<BlueprintRegistry, 'skeleton'>
+}
+
+/**
+ * D19'S DRAFT OF ONE ENVIRONMENT'S REGISTRATION (§9 as Spec action 4 applied it; the launch path
+ * plan's Task 10, Decisions 9, 11–15). The package is GENERATED and STORED on the record — a draft
+ * mints the environment's keypair on first use, and a read that minted a key would be a side effect —
+ * and a submission sends exactly what is stored. In this order:
+ *
+ *  1. **A record UBC holds is not drafted again** (`409 LAUNCH_RECORD_SUBMITTED`, before anything is
+ *     read or minted): `submitted` or `active`.
+ *  2. **What it is drawn from** (`drawnFrom`), refused `409 LAUNCH_NOT_CWL` for an app that signs
+ *     nobody in with CWL — or asks for no attribute, which no registration may (§9's fail-open list).
+ *  3. The entity (`deriveSpEntity`, D15, at the environment row's hostname, as a deploy registers it),
+ *     the environment's certificate (the public half, D20), where the app reads each attribute, the
+ *     contacts and the PIA number — the assessment's reference once it is approved.
+ *  4. **Written under the record's row lock**, as a submission takes it (Task 9's I1): a submission
+ *     that landed meanwhile refuses the draft (`LAUNCH_RECORD_SUBMITTED`), and one that waits sends
+ *     this draft. A record not yet registered takes the package's entity, ACS and SLO; **one UBC has
+ *     registered keeps what UBC registered** — the checklist and the build read those columns as
+ *     UBC's, and only the package is new.
+ *  5. `iam_registration.drafted`, after the commit, naming no attribute (as `recorded` does).
+ *
+ * The caller is `draftIamRegistration`'s route — a person, or an agent on their token (`launch:draft`
+ * is mintable: a draft sends nothing and decides nothing).
+ */
+export async function draftIamRegistration(
+  deps: DraftDeps,
+  input: {
+    projectId: string
+    environment: RegistrationEnvironment
+    actor: { id: string }
+  },
+): Promise<IamRegistrationRow> {
+  const { db } = deps
+  const existing = await getIamRegistration(db, input.projectId, input.environment)
+  if (existing !== undefined && !DRAFTABLE.has(existing.state))
+    throw alreadySent(input.environment, existing.state)
+
+  const [project] = await db
+    .select({ id: projects.id, slug: projects.slug, blueprintRef: projects.blueprintRef })
+    .from(projects)
+    .where(eq(projects.id, input.projectId))
+  if (project === undefined) throw new Error(`no project ${input.projectId}`)
+  const drawn = await drawnFrom(db, input.projectId, input.environment)
+  if (drawn.auth.provider !== 'cwl')
+    throw new LaunchRecordError(
+      'LAUNCH_NOT_CWL',
+      `this app does not sign people in with CWL (auth.provider is '${drawn.auth.provider}'), so there is nothing to register with UBC IAM`,
+      'An app that signs nobody in waits for no registration. To sign people in, set auth.provider: cwl and the attributes it needs in manifest.yaml, then draft again.',
+    )
+  if (drawn.auth.attributes.length === 0)
+    throw new LaunchRecordError(
+      'LAUNCH_NOT_CWL',
+      'this app signs people in with CWL but asks for no attribute — a registration with no attribute list would release every attribute UBC holds, so Manifest drafts none',
+      'List the attributes the app needs in auth.attributes, validate the manifest, then draft again.',
+    )
+
+  const [environmentRow] = await db
+    .select({ hostname: environments.hostname })
+    .from(environments)
+    .where(
+      and(
+        eq(environments.projectId, input.projectId),
+        eq(environments.kind, input.environment),
+      ),
+    )
+  if (environmentRow === undefined)
+    throw new Error(`project ${project.slug} has no ${input.environment} environment`)
+  const entity = deriveSpEntity({
+    slug: project.slug,
+    environmentKind: input.environment,
+    hostname: environmentRow.hostname,
+    entityBase: deps.config.idp.spEntityBase,
+    auth: drawn.auth,
+  })
+  const certificate = await deps.sso.spCertificate(db, {
+    projectId: project.id,
+    environmentKind: input.environment,
+    slug: project.slug,
+    entityId: entity.entityId,
+  })
+  const bridge = new Set(
+    Object.keys(deps.blueprints.skeleton(project.blueprintRef) ?? {}).filter((path) =>
+      path.startsWith('auth/'),
+    ),
+  )
+  const repo = await repositoryOf(deps, project)
+  const tree = await searchableTree(deps.source, repo, drawn.commit, bridge)
+  const pia = await getPrivacyAssessment(db, input.projectId)
+  const generated = assemblePackage({
+    environment: input.environment,
+    generatedAt: new Date(),
+    fromCommit: drawn.commit,
+    entity,
+    certificate,
+    uses: findAttributeUses(tree.files, entity.attributes),
+    usedAtTruncated: tree.truncated,
+    contacts: await contactsFor(db, input.projectId, deps.config.launchContacts),
+    privacyAssessmentReference:
+      pia?.state === 'approved' ? (pia.externalTicketRef ?? null) : null,
+    warnings: drawn.warnings,
+  })
+
+  const row = await db.transaction(async (tx) => {
+    const held = async () =>
+      (
+        await tx
+          .select()
+          .from(iamRegistrations)
+          .where(
+            and(
+              eq(iamRegistrations.projectId, input.projectId),
+              eq(iamRegistrations.environmentKind, input.environment),
+            ),
+          )
+          .for('update')
+      )[0]
+    let current = await held()
+    if (current === undefined) {
+      const [inserted] = await tx
+        .insert(iamRegistrations)
+        .values({
+          projectId: input.projectId,
+          environmentKind: input.environment,
+          entityId: generated.entityId,
+          acsUrl: generated.acsUrl,
+          sloUrl: generated.sloUrl,
+          state: 'draft',
+          generatedPackage: generated,
+          recordedBy: input.actor.id,
+        })
+        .onConflictDoNothing({
+          target: [iamRegistrations.projectId, iamRegistrations.environmentKind],
+        })
+        .returning()
+      if (inserted !== undefined) return inserted
+      // A first draft raced this one in: theirs is the record, and this one replaces its package.
+      current = await held()
+      if (current === undefined)
+        throw new Error('the registration vanished while drafting')
+    }
+    if (!DRAFTABLE.has(current.state)) throw alreadySent(input.environment, current.state)
+    const [updated] = await tx
+      .update(iamRegistrations)
+      .set({
+        generatedPackage: generated,
+        ...(current.registeredAt === null
+          ? {
+              entityId: generated.entityId,
+              acsUrl: generated.acsUrl,
+              sloUrl: generated.sloUrl,
+            }
+          : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(iamRegistrations.id, current.id))
+      .returning()
+    return updated!
+  })
+
+  const unused = generated.attributes.filter((a) => a.unused).length
+  await publishEvent(
+    db,
+    deps.bus,
+    {
+      projectId: input.projectId,
+      subject: `iam-registration:${row.id}`,
+      type: 'iam_registration.drafted',
+      machineDetail: {
+        environment: input.environment,
+        entityId: generated.entityId,
+        fromCommit: generated.fromCommit,
+        attributeCount: generated.attributes.length,
+        unusedCount: unused,
+      },
+      humanMessage:
+        `${await personName(db, input.actor.id)} drafted this app's ${input.environment} registration for UBC IAM, asking for ${generated.attributes.length} attribute(s)` +
+        (unused === 0 ? '.' : `, ${unused} of them not read by the app.`),
+    },
+    makeRedactor([]),
+  )
+  return row
 }

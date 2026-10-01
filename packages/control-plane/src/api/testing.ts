@@ -31,10 +31,13 @@ import {
   deriveSpEntity,
   spEntityId,
   describeKeypair,
+  ensureSpCertificate,
+  ensureSpKeypair,
   mintSpKeypair,
   type SpEntity,
   type SpKeypair,
 } from '../sso/index.js'
+import type { MasterKeypair } from '../secrets/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
 import {
   createEventBus,
@@ -488,11 +491,22 @@ export async function launchedProject(slug: string) {
  * `sso.registered` event the real one does, because `runRehearsal` reads the registration
  * back off that event. The probe answers a passing sign-in releasing EXACTLY what was
  * registered at the ACS it is asked about — and nothing at all for an ACS nobody registered.
+ *
+ * **ITS KEYPAIR IS THE ENVIRONMENT'S OWN SINCE THE LAUNCH PATH PLAN'S TASK 10**, kept where the real
+ * registrar keeps it (`ensureSpKeypair`, under `testDeps()`'s master key) — so the certificate it
+ * registers is the one a drafted package carries, and *"a package's certificate is the one the
+ * environment registers with"* can fail here. Until Task 10 every environment registered the shared
+ * test keypair. Only the IdP's row is faked.
  */
 export function cwlFakes(deps: ServerDeps): Pick<ServerDeps, 'sso' | 'signIn'> {
   const registered = new Map<string, SpEntity>()
+  const keys = TEST_MASTER_KEYS.get(deps.appSecrets)
+  if (keys === undefined)
+    throw new Error('cwlFakes needs a `testDeps()` server: its master key is not known')
   return {
     sso: {
+      // D19's package (Task 10): the same certificate store as the registration below.
+      spCertificate: (db, scope) => ensureSpCertificate(db, keys, scope),
       // §11's archive: forgets what it registered under the entity id, as the IdP's row goes.
       deregisterServiceProvider: async (_db, input) => {
         const entityId = spEntityId(
@@ -514,7 +528,12 @@ export function cwlFakes(deps: ServerDeps): Pick<ServerDeps, 'sso' | 'signIn'> {
           entityBase: deps.config.idp.spEntityBase,
         })
         registered.set(entity.acsUrl, entity)
-        const { keypair } = await testSamlMaterial()
+        const keypair = await ensureSpKeypair(db, keys, {
+          projectId: input.projectId,
+          environmentKind: input.environmentKind,
+          slug: input.slug,
+          entityId: entity.entityId,
+        })
         await publishEvent(
           db,
           deps.bus,
@@ -770,6 +789,14 @@ function servedDocsOnce(root: string): Promise<ServedDocs> {
   return servedDocs
 }
 
+/**
+ * EACH `testDeps()` SERVER'S MASTER KEY, by its `appSecrets` — the one dependency every spread of a
+ * `testDeps()` keeps by identity. `ServerDeps` holds no key material, on purpose, so `cwlFakes` finds
+ * the key here to keep its keypairs where the real registrar keeps them (the launch path plan's Task
+ * 10).
+ */
+const TEST_MASTER_KEYS = new WeakMap<object, MasterKeypair>()
+
 export async function testDeps(): Promise<ServerDeps> {
   await mkdir(TEST_REPOS_ROOT, { recursive: true })
   const reposRoot = await mkdtemp(join(TEST_REPOS_ROOT, 'run-'))
@@ -795,6 +822,7 @@ export async function testDeps(): Promise<ServerDeps> {
   const driver = createFakeDriver()
   const bus = createEventBus()
   const appSecrets = createAppSecrets(masterKeypair)
+  TEST_MASTER_KEYS.set(appSecrets, masterKeypair)
   const ai = testAiKeyService()
   // Built into locals so the harness can register their `idle`s: the next test's
   // `resetDatabase` waits for both before it truncates (F26, launch path plan Task 3).
@@ -892,6 +920,12 @@ export async function testDeps(): Promise<ServerDeps> {
       },
     },
     sso: {
+      /**
+       * D19's package (the launch path plan's Task 10): the REAL certificate store, not a stub —
+       * minting is `openssl` and a `secrets` row, and needs no IdP, so a draft in this tier carries
+       * the environment's own certificate exactly as on a laptop.
+       */
+      spCertificate: (db, scope) => ensureSpCertificate(db, masterKeypair, scope),
       registerServiceProvider: () => {
         throw new Error(
           'the API test harness has no IdP: an app in this tier registered a Service ' +

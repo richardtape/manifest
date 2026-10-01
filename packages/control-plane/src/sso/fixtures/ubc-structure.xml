@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport" ID="_v8v9zgcdkpj" entityID="https://lp-sample.manifest.internal">
+
+  <md:Extensions>
+    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#sha384"/>
+    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/>
+    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"/>
+    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"/>
+    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/>
+  </md:Extensions>
+
+  <md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:1.0:protocol">
+    <md:Extensions>
+      <init:RequestInitiator xmlns:init="urn:oasis:names:tc:SAML:profiles:SSO:request-init" Binding="urn:oasis:names:tc:SAML:profiles:SSO:request-init" Location="https://lp-sample.manifest.internal/Shibboleth.sso/Login"/>
+    </md:Extensions>
+
+    <md:KeyDescriptor use="signing">
+      <ds:KeyInfo>
+        <ds:KeyName>lp-sample.manifest.internal</ds:KeyName>
+        <ds:X509Data>
+          <ds:X509SubjectName>CN=lp-sample.manifest.internal</ds:X509SubjectName>
+          <ds:X509Certificate>MIIDCTCCAfGgAwIBAgIUI7XGpL3aFB9WSGf0Lr1Wl83EPLkwDQYJKoZIhvcNAQEL
+BQAwFDESMBAGA1UEAwwJbHAtc2FtcGxlMB4XDTI2MDkyOTIwNDY0N1oXDTI2MDkz
+MDIwNDY0N1owFDESMBAGA1UEAwwJbHAtc2FtcGxlMIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEAzDSgL9F50tVtx0apMvHzfI5mzJS0DSG6lIB+oEGxPR6d
+sOpij1ILAyN8g8gbqJak86DrP9kNSiHX6jkgj9BOj5XthQp1deABDCVsPgUTM+oe
+WQm5LrIVfo0sJ8fj6HxK2VON/yg1mb/6uZfTg1gopXHQg4sBIXemEFXGzJs+VfFx
+IdCBclzLspuoYmj6UQEDtEKQkSEH2AiPoDl6BqthXtKt4nqbvR0x9LlHR6YiLqsm
+zwf4EHVZozt4AAVKik8ckEsqDwpVmaX4ZzhzpY7DBHAHMcpQeoF2vWeLuN8ELf/J
+KueT2Ko0nssspZZ3Z0bvJK2rs41hfTTEDqZLfms70wIDAQABo1MwUTAdBgNVHQ4E
+FgQUmovMu/GJMcOLRkXZ/PW1ILrENJcwHwYDVR0jBBgwFoAUmovMu/GJMcOLRkXZ
+/PW1ILrENJcwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAi7F+
+HXYrKx6AnpaSmZpVY1B+CuaRIZOUpqksYDEFvtZuUOVfYQsqE/hmhOlM3F+cIwqL
+u6m5g/R5XOIJAFRyQlPpqAIGpran/0l3YivNut95EG3ZrSWYXvpF7VM6SuGW5i1L
+1fabYVhh72s1pF4MfKDTslNuH0FaKPpAudgeUWdnfNSd5XtxGkU+dECJsYYttRub
+8bRm8m3LKRyfVUOw2GotExa+v9KlsWWwkGQ1ki3BGsE4gqxNdZokE3sjXezcvSxo
+/x843UpyCU8J0BDCbpm0j5CJNbZRhv0Cc0wMTjrUS7pRqK3Q5m0+UM25w7H4dqsk
+3y2GupZb4FifEYetIQ==</ds:X509Certificate>
+        </ds:X509Data>
+      </ds:KeyInfo>
+    </md:KeyDescriptor>
+
+    <md:KeyDescriptor use="encryption">
+      <ds:KeyInfo>
+        <ds:KeyName>lp-sample.manifest.internal</ds:KeyName>
+        <ds:X509Data>
+          <ds:X509SubjectName>CN=lp-sample.manifest.internal</ds:X509SubjectName>
+          <ds:X509Certificate>MIIDCTCCAfGgAwIBAgIUI7XGpL3aFB9WSGf0Lr1Wl83EPLkwDQYJKoZIhvcNAQEL
+BQAwFDESMBAGA1UEAwwJbHAtc2FtcGxlMB4XDTI2MDkyOTIwNDY0N1oXDTI2MDkz
+MDIwNDY0N1owFDESMBAGA1UEAwwJbHAtc2FtcGxlMIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEAzDSgL9F50tVtx0apMvHzfI5mzJS0DSG6lIB+oEGxPR6d
+sOpij1ILAyN8g8gbqJak86DrP9kNSiHX6jkgj9BOj5XthQp1deABDCVsPgUTM+oe
+WQm5LrIVfo0sJ8fj6HxK2VON/yg1mb/6uZfTg1gopXHQg4sBIXemEFXGzJs+VfFx
+IdCBclzLspuoYmj6UQEDtEKQkSEH2AiPoDl6BqthXtKt4nqbvR0x9LlHR6YiLqsm
+zwf4EHVZozt4AAVKik8ckEsqDwpVmaX4ZzhzpY7DBHAHMcpQeoF2vWeLuN8ELf/J
+KueT2Ko0nssspZZ3Z0bvJK2rs41hfTTEDqZLfms70wIDAQABo1MwUTAdBgNVHQ4E
+FgQUmovMu/GJMcOLRkXZ/PW1ILrENJcwHwYDVR0jBBgwFoAUmovMu/GJMcOLRkXZ
+/PW1ILrENJcwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAi7F+
+HXYrKx6AnpaSmZpVY1B+CuaRIZOUpqksYDEFvtZuUOVfYQsqE/hmhOlM3F+cIwqL
+u6m5g/R5XOIJAFRyQlPpqAIGpran/0l3YivNut95EG3ZrSWYXvpF7VM6SuGW5i1L
+1fabYVhh72s1pF4MfKDTslNuH0FaKPpAudgeUWdnfNSd5XtxGkU+dECJsYYttRub
+8bRm8m3LKRyfVUOw2GotExa+v9KlsWWwkGQ1ki3BGsE4gqxNdZokE3sjXezcvSxo
+/x843UpyCU8J0BDCbpm0j5CJNbZRhv0Cc0wMTjrUS7pRqK3Q5m0+UM25w7H4dqsk
+3y2GupZb4FifEYetIQ==</ds:X509Certificate>
+        </ds:X509Data>
+      </ds:KeyInfo>
+      <md:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
+      <md:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes256-gcm"/>
+      <md:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes256-cbc"/>
+    </md:KeyDescriptor>
+
+    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SLO/Redirect"/>
+    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SLO/POST"/>
+    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SLO/Artifact"/>
+
+    <md:ManageNameIDService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://lp-sample.manifest.internal/Shibboleth.sso/NIM/Redirect"/>
+    <md:ManageNameIDService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://lp-sample.manifest.internal/Shibboleth.sso/NIM/POST"/>
+    <md:ManageNameIDService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact" Location="https://lp-sample.manifest.internal/Shibboleth.sso/NIM/Artifact"/>
+
+    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SAML2/POST" index="1" isDefault="true"/>
+    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SAML2/POST-SimpleSign" index="2"/>
+    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SAML2/Artifact" index="3"/>
+    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:PAOS" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SAML2/ECP" index="4"/>
+    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:1.0:profiles:browser-post" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SAML/POST" index="5"/>
+    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:1.0:profiles:artifact-01" Location="https://lp-sample.manifest.internal/Shibboleth.sso/SAML/Artifact" index="6"/>
+  </md:SPSSODescriptor>
+
+  <md:Organization>
+    <md:OrganizationName>University of British Columbia</md:OrganizationName>
+    <md:OrganizationDisplayName>University of British Columbia</md:OrganizationDisplayName>
+    <md:OrganizationURL>https://www.ubc.ca</md:OrganizationURL>
+  </md:Organization>
+
+  <md:ContactPerson contactType="technical">
+    <md:EmailAddress>owner@example.ubc.ca</md:EmailAddress>
+  </md:ContactPerson>
+
+</md:EntityDescriptor>
