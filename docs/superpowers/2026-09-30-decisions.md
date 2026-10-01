@@ -234,3 +234,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     Coordination settled by the planning session (not Rich's decision): sitting 6 starts after 5a's close-out AND
     after Mailpit lands — Mailpit's `make up`/`make verify` and a sitting's Vitest or Docker tier would break each
     other's results; manifest-92 agreed.
+
+    Mailpit (decisions 6, 12c and 17) — LANDED 2026-09-30 22:50, `8155bcf` (manifest-60), after sitting 5a's close-out
+    (`003adf7`). Beyond the handoff's brief, three settings, each measured against v1.31.3 with every DNS query captured:
+    MP_SMTP_DISABLE_RDNS (otherwise a reverse-DNS query per SMTP connection), /tmp on tmpfs (otherwise messages sit in a
+    SQLite file on the VM's disk, not "in memory only" as §21 says), MP_ALLOWED_HOSTS (otherwise the password-less inbox
+    answers any Host header). make doctor 21/0/0, make verify 64/0/0 (EXPECT_ lines moved); the three new checks watched
+    red with their causes named (Mailpit stopped; a relay and no tmpfs; an unpulled digest), then restored. The control
+    plane was not restarted. The front-end (manifest-app-4d) and sitting 6 (manifest-92) told.

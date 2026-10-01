@@ -31,6 +31,11 @@ everything you need. **Read it whole before you do anything.** Then read `CLAUDE
 
 ## 2. Your one job after 5a closes: add Mailpit (out of plan, at Rich's word)
 
+> **✅ DONE 2026-09-30 22:50 by `manifest-60` — `8155bcf` (code), docs after it.** What it found beyond this brief, and its
+> measurements, are in `2026-09-30-decisions.md` (17, and the note after 18) and `infra/compose.yaml`'s comment. One correction to the
+> survey below: the other compose images record their digests NOWHERE but the dated machine baselines, so Mailpit's is pinned as
+> `tag@digest` in `compose.yaml` itself.
+
 **Rich decided, 2026-09-30:** *"(a) Mailpit in the platform now"*, and *"Always-on row"* for the spec. **The spec is already
 changed** (`50425de`): §21 says *"Ten long-running containers"*, with Mailpit's row (7111 SMTP, 7112 inbox; messages in memory; no
 relay; UBC's SMTP relay takes its place at UBC). The code does not have it yet. **It lands at 5a's close, not before.** Nothing needs

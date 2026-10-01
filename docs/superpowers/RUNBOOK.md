@@ -382,7 +382,7 @@ read them as Markdown in `docs/api/`, or from `GET /v1/docs`; the page's introdu
 ## Running `manifest-mock`
 
 *Added by P5c sitting 8, 2026-09-19 (Task 12). §21: "front-end developers are not
-required to run the platform" — one process, not nine containers plus a language model.*
+required to run the platform" — one process, not ten containers plus a language model.*
 
 `packages/mock` serves the **published contract** from hand-written fixtures and, for every
 operation without one, the document's own examples — with a scripted WebSocket stream. It needs no Docker, no Postgres, no Ollama and no control
@@ -502,6 +502,36 @@ platform (the P5 brief's §8). Specifically:
 
 **Stop it by port** when you are done —
 `lsof -nP -iTCP:7102 -sTCP:LISTEN -t | xargs kill`.
+
+## Mailpit — the laptop's mail sink
+
+*Added 2026-09-30, out of plan at Rich's word — §21's tenth container.*
+
+`make up` starts it — `manifest-mailpit`, always on, no profile. It is **this laptop's only mail server, and it sends
+nothing on**: a message to anyone, at any address, lands here and stays here. On UBC infrastructure UBC's SMTP relay takes
+its place. The faculty front-end's server sends to it; the platform's own notices will later.
+
+| | |
+|---|---|
+| **SMTP** | `127.0.0.1:7111` — no authentication, no TLS |
+| **The inbox** | <http://127.0.0.1:7112> in a browser; its API under `http://127.0.0.1:7112/api/v1/` — e.g. `GET /api/v1/search?query=subject:"…"`, `DELETE /api/v1/messages` with `{"IDs":[…]}` |
+| **Messages** | **in memory only** (`/tmp` is a tmpfs) — gone when the container restarts or is recreated; at most 500, oldest dropped first |
+
+```bash
+f=$(mktemp); printf 'Subject: hello\r\n\r\nfrom the runbook\r\n' > "$f"
+curl -sS smtp://127.0.0.1:7111 --mail-from me@manifest.internal --mail-rcpt anyone@example.ubc.ca -T "$f"; rm -f "$f"
+open http://127.0.0.1:7112
+```
+
+- **Use `127.0.0.1` or `localhost` in the address.** The inbox has no password, so it answers only those Host names —
+  the guard against a web page reading it by DNS rebinding; any other name is answered `403`.
+- **No hostname under `manifest.internal`**, deliberately, like the GitHub fake: nothing in a container reads the inbox.
+- **What still reaches out is yours to click**: the inbox's *Link check* and *Screenshot* fetch a message's own links and
+  images. Nothing else does — no relay, forward or webhook, no reverse-DNS lookup per connection, no version check.
+  `infra/compose.yaml` says how each setting was measured, and `make verify` asserts them.
+- **`make verify` sends one message and deletes it by its ID**; the rest of the inbox is left alone.
+- **`make seed` pulls the image**, pinned by tag and digest in `compose.yaml`; `make doctor` says whether the daemon holds
+  exactly that reference, which is what an offline `make up` needs.
 
 ## The GitHub fake — D5's driver 2, locally
 

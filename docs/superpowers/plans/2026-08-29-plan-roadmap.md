@@ -1351,6 +1351,12 @@ submission; §9's package wording; §6/§13/§26's `ApprovalRequest`; and §7's 
 
 **No task boundary moved. Rich's review is next**: the plan, its thirteen sittings and its seven spec actions.
 
+**Out of plan, between sittings 5a and 6 — ✅ MAILPIT, §21's TENTH CONTAINER, LANDED 2026-09-30 (`8155bcf`)**, at Rich's word (*"(a)
+Mailpit in the platform now"*; the spec's row `50425de`; his words in [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), 6, 12c
+and 17): the laptop's mail sink on `127.0.0.1:7111`/`7112`, always on, nothing leaving the laptop (no relay, no reverse-DNS query, no
+version check, `/tmp` a tmpfs, a Host allowlist — each measured), by the planning session `manifest-60`. `make doctor` +1, `make
+verify` +2 (`scripts/ci-acceptance.sh`); all three new checks watched red with the cause named, then restored. No plan task moved.
+
 ### The faculty front-end's message — RICH'S DECISIONS OF 2026-09-27, AND WHAT FOLLOWS THE FRONT-END ENABLEMENT PLAN
 
 The faculty front-end is its own project, `~/Developer/manifest-app` (§5), begun 2026-09-27; it designed the faculty

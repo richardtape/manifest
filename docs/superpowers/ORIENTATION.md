@@ -142,13 +142,13 @@ keeps the number as that sitting left it, dated.
   keeps the items; item 5 (UBC's staging IdP) is still the one part of a real first launch the platform cannot do for itself.
 - **§8's open questions.**
 
-**The spec is current, and runs AHEAD of the code in two places**, each with the task that builds it (Spec action 8 — the rehearsal
-step-up and its take-down — caught up with it in the launch path plan's sitting 5b, `3333acc`):
+**The spec is current, and runs AHEAD of the code in one place**, with the tasks that build it (Spec action 8 — the rehearsal
+step-up and its take-down — caught up with it in the launch path plan's sitting 5b, `3333acc`; §21's tenth container, Mailpit, in an
+out-of-plan change after sitting 5a, `8155bcf`):
 - **Spec actions 3, 4, 5 and a new 9** (§9, §6, §13, §19, §26, D24, §2 — the staging registration, *"I've sent it"*, the package in
   UBC's structure carrying the PIA number, the sign-off request, and **UBC's order: the privacy assessment, then the staging
   registration, then production's**) → Tasks 9–12. APPLIED 2026-09-30 at Rich's word (`844605b`; his words in
   [`2026-09-30-decisions.md`](2026-09-30-decisions.md)).
-- **§21's tenth container, Mailpit** (`50425de`) → an out-of-plan change at the boundary after sitting 5b.
 
 **Every spec change is applied only after Rich has read and approved its words.** The roadmap's *Spec actions raised by…* sections
 list every one, newest first, with its wording and the shared HTML pages swept — this file keeps no chain of them.
@@ -1352,8 +1352,8 @@ dependency and is not one. §21's inventory is the authority; this is its summar
 | **Admin UI (7101), `manifest-mock` (7102), reference console (7104)** | Vite dev servers |
 
 **Everything else is a container**: Caddy, Postgres, the registry, Verdaccio,
-LiteLLM, the Manifest IdP, both dnsmasq processes, the egress proxy, the builder, and
-the Syft/Grype scanners. So:
+LiteLLM, the Manifest IdP, both dnsmasq processes, the egress proxy, Mailpit (the
+laptop's mail sink, since 2026-09-30), the builder, and the Syft/Grype scanners. So:
 
 - **Caddy is never `brew install`ed.** It is a **custom `xcaddy` build** (§20), because
   S7 established that **Coraza pins the Caddy version**. `make seed` builds that image.
@@ -1404,6 +1404,8 @@ which is why P1's **offline** acceptance can only run after a successful seed.
 - **7110 is the GitHub fake's** (the D5 plan, Task 5): `make github-up`, published on
   `127.0.0.1` only, behind the `github` profile. `make doctor` counts it Manifest's own
   without being told — its port map is every `manifest-*` container's published ports.
+- **7111 and 7112 are Mailpit's** (2026-09-30, out of plan): SMTP and the inbox, on
+  `127.0.0.1` only, always on. Counted Manifest's own the same way.
 - Docker VM memory is **8.32 GB decimal / 7.75 GiB binary** — passes or fails §21's
   "≥8 GB" floor *depending on the unit*, which is why the spec now states the unit.
 - Host: 36 GiB RAM, 12 cores, ~163 GiB free. **macOS 26.6.2 (build 25G83)** — the
@@ -1799,7 +1801,8 @@ named in the row below.*
 
 **THE NEXT JOB IS NOT A SITTING: Mailpit** (§21's tenth container, `manifest-mailpit`, 7111 SMTP / 7112 inbox) **is added by `manifest-60`
 right after this close**; it moves `make doctor` by +1 and `make verify` by +2 in `scripts/ci-acceptance.sh` — read the `EXPECT_` lines,
-and `docker ps | grep mailpit` says whether it has landed.
+and `docker ps | grep mailpit` says whether it has landed. **LANDED 2026-09-30 22:50, `8155bcf`** (`manifest-60`): RUNBOOK's *Mailpit*
+says how to use it; the machine below is as it stands after it.
 
 **Then sitting 6 — Task 9, the three clocks' records** (Spec actions 3 and 9 APPLIED; `[S9]` at the head of Task 9 — UBC's order, two new
 `409`s; `[S4a]`; `[M8]`): `IamRegistration` per environment, `submitted_at`/`submitted_by`, the owner's *"I've sent it"*
@@ -1828,11 +1831,14 @@ after Mailpit).
 **THE MACHINE, AS SITTING 5a LEFT IT** — queried at 22:45 on 2026-09-30, not remembered:
 - **The control plane: PID 50862 on 7100, on `42cd8c5`, REAL GitHub** (Rich's `.env`), restarted at the close by
   `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh`; boot line `"source":"github"`, `capableModel: registered`,
-  `sourceRepositoriesPrepared: 4`, `rehearsalsTakenDown: 0`. **Mailpit's addition will restart it again** (`manifest-60`).
+  `sourceRepositoriesPrepared: 4`, `rehearsalsTakenDown: 0`. **Mailpit's addition did NOT restart it** — nothing in it reads
+  Mailpit; still PID 50862, started 22:43 (`ps`, queried 22:52 by `manifest-60`).
 - **The control database: EMPTY** — 0 projects, 0 users; **45 migrations** (`0044_big_black_panther` newest).
 - **GitHub**: `Manifest-local-dev` holds **0 repositories** (the window's two deleted at Rich's word).
 - **Containers: 0 `mf-`**, 0 app networks, 0 app volumes (`make verify`'s INFO); **12 Docker networks** in all.
 - `make verify` **62/0/0**, `make doctor` **20/0/0** — before Mailpit, which moves both. `litellm-orphans.sh` lists **17**, not applied (budgets).
+  **After Mailpit (22:52)**: `make verify` **64/0/0**, `make doctor` **21/0/0** (the `EXPECT_` lines agree); **10 `manifest-` containers**
+  (`manifest-mailpit` healthy, on the platform network — still 12 Docker networks); its inbox empty.
 - **7102 and 7105 are the faculty front-end's** (its mock and its server). Nothing on 7104. Free disk 67 GiB. Load ~5.
 
 **Query it again at open** — `docker exec manifest-postgres psql -U manifest -d manifest_control`, `docker ps`,
