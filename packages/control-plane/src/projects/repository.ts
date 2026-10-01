@@ -472,7 +472,20 @@ export async function removeMember(
       ),
     )
     .returning({ userId: projectMembers.userId })
-  return deleted === undefined ? 'last owner' : 'removed'
+  if (deleted !== undefined) return 'removed'
+  // A DELETE THAT REMOVED NO ROW IS NOT YET THE LAST OWNER (the launch path plan's final review, Minor 2).
+  // Since Task 8 a start and a mint hold the membership row FOR SHARE, so two removals of one person can
+  // both queue behind that hold at this DELETE: the first deletes the row, and the second's then matches
+  // nothing because the row is GONE — not because its owner guard held. Read again — a new statement, so
+  // under READ COMMITTED it sees what committed while this one waited: gone is `'not a member'`, and the
+  // route answers the members as they are; still there is the guard's refusal.
+  const [still] = await db
+    .select({ role: projectMembers.role })
+    .from(projectMembers)
+    .where(
+      and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)),
+    )
+  return still === undefined ? 'not a member' : 'last owner'
 }
 
 export async function listEnvironments(

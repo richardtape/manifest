@@ -738,8 +738,11 @@ async function step8RetriedOnce(): Promise<void> {
 }
 
 /**
- * Step 9 — the end of the loop. Revoking is the minter's, and it is what stops a token:
- * a token outlives its minter's membership, so nothing else does (D24, P5b Task 4).
+ * Step 9 — the end of the loop. Revoking is what stops a token before it expires (D24,
+ * P5b Task 4): its minter's own revoke, as here — only the minter may revoke one — or the
+ * minter's removal from the project, which revokes every token they minted on it in the
+ * removal's own transaction (Spec action 2; the launch path plan's Task 8). A token does not
+ * outlive its minter's place on the project.
  */
 async function step9Revoked(): Promise<void> {
   checks.step('9. The instructor revokes the token, and its next call is 401')

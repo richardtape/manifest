@@ -8,6 +8,7 @@ import {
   endSessionsOf,
   narrowSessionsHoldingMore,
   type BuilderModels,
+  type LiteLlmClient,
   type ModelCatalogue,
 } from '../ai/index.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
@@ -960,6 +961,30 @@ async function until(condition: () => boolean, what: string): Promise<void> {
   }
 }
 
+/**
+ * `lite`, with its answer to ONE call — `path`, for the key `alias` — HELD until `release()`. The fake has
+ * recorded the call and acted on it (`answered()` says so); only its answer waits. A race opened by a
+ * gate, so it opens whatever the machine's load — never by `slow()`'s margin.
+ */
+function holdingAnswer(lite: FakeLiteLlm, path: string, alias: string) {
+  let release!: () => void
+  const released = new Promise<void>((resolve) => (release = resolve))
+  let answered = false
+  const llm: LiteLlmClient = {
+    get: (p, query) => lite.get(p, query),
+    delete: (p, query) => lite.delete(p, query),
+    post: async <T>(p: string, body: unknown): Promise<T> => {
+      const answer = await lite.post<T>(p, body)
+      if (p === path && (body as { key_alias?: unknown }).key_alias === alias) {
+        answered = true
+        await released
+      }
+      return answer
+    },
+  }
+  return { llm, answered: () => answered, release }
+}
+
 const sessionsById = async (ctx: TestProject) =>
   new Map(
     (
@@ -1477,6 +1502,86 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         models: CONFIDENTIAL_KEEPS,
       })
       expect(await narrowedEvents(ctx)).toHaveLength(1)
+    })
+  })
+
+  it('a session ENDED while the sweep narrows it stays as it ended — no agent_session.narrowed is recorded after its end, while the same sweep narrows the session nobody ended (the final review’s Important 1)', async () => {
+    // THE NARROWING'S ROW WRITE IS GUARDED BY `ended_at IS NULL` — and that guard is the only thing between
+    // an end landing while the sweep waits on the gateway (a removal, Task 8, or a revoke) and an
+    // `agent_session.narrowed` recorded for a session already ended. DETERMINISTIC: the gateway has
+    // recorded and made the TA's `/key/update`, and its answer is HELD until the removal has answered — so
+    // the removal ends the session after the sweep read it live and before the sweep writes its row. A
+    // gate, never `slow()`'s margin: a whole removal request is not something a fixed delay can be
+    // trusted to outrun on a loaded machine.
+    await withBuilderServer('capable', async (ctx, lite) => {
+      const taCookies = await sessionFor(ctx, 'bio_student', 'collaborator')
+      const ta = await ensureTestUser(ctx.db, 'bio_student')
+      const theirs = (await start(ctx, { cookies: taCookies })).json() as Started
+      const mine = (await start(ctx, { cookies: ctx.ownerCookies })).json() as Started
+      expect(theirs.session.models).toEqual(INTERNAL_SESSION)
+      expect(mine.session.models).toEqual(INTERNAL_SESSION)
+      // Raised to confidential by a recorded manifest — no commit, so no sweep but the one below.
+      await ctx.db.insert(appSpecs).values({
+        projectId: ctx.projectId,
+        commitSha: ctx.commitSha,
+        parsed: { data: { classification: 'confidential' } },
+        schemaVersion: 1,
+        valid: true,
+        createdAt: new Date(Date.now() + 1000),
+      })
+      const gate = holdingAnswer(lite, '/key/update', `mf-agent-${theirs.session.id}`)
+      const sweeping = narrowSessionsHoldingMore(
+        {
+          db: ctx.db,
+          bus: ctx.deps.bus,
+          llm: gate.llm,
+          catalogue: ctx.deps.catalogue,
+          agent: ctx.deps.config.agent,
+        },
+        'every',
+      )
+      await until(
+        () => gate.answered(),
+        'the gateway narrowing the TA’s key, its answer held',
+      )
+      const removed = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}/members/${ta.id}`,
+        cookies: ctx.ownerSteppedUp,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(removed.statusCode, removed.body).toBe(200)
+      gate.release()
+      const swept = await sweeping
+
+      // NOTHING RECORDED AFTER THE END: no `agent_session.narrowed` names the ended session…
+      expect(
+        (await narrowedEvents(ctx)).filter(
+          (e) => e.subject === `agent_session:${theirs.session.id}`,
+        ),
+      ).toEqual([])
+      // …and the sweep claims neither a narrowing nor a failure for it. THE POSITIVE CONTROL, in the same
+      // sweep: the session nobody ended IS narrowed, and recorded.
+      expect(swept).toEqual({ ended: [], narrowed: [mine.session.id], failed: [] })
+      expect((await narrowedEvents(ctx)).map((e) => e.subject)).toEqual([
+        `agent_session:${mine.session.id}`,
+      ])
+      // The ended row is as the removal left it — its reason, and the models it held when it ended.
+      const after = await sessionsById(ctx)
+      expect(after.get(theirs.session.id)).toMatchObject({
+        state: 'ended',
+        endReason: 'member_removed',
+        models: INTERNAL_SESSION,
+      })
+      expect(after.get(mine.session.id)).toMatchObject({
+        state: 'active',
+        endReason: null,
+        models: CONFIDENTIAL_KEEPS,
+      })
+      expect(lite.use(theirs.key, 'default-chat-onprem')).toEqual({
+        status: 401,
+        type: 'token_not_found_in_db',
+      })
     })
   })
 

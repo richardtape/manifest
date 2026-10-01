@@ -782,18 +782,33 @@ describe('removing a member revokes their tokens on the project, ends their agen
   })
 
   it('a member removed before their browser session reaches its key is refused NOT_FOUND, and nothing is minted', async () => {
-    // The other order: the removal commits while the start reads the month (`/user/info`), before its
-    // transaction — the start has already passed `assertCapability`, so only a read under its
-    // transaction can see the person gone.
+    // The other order: the removal commits after the start has passed `assertCapability` and read the
+    // month (`/user/info`), and before its transaction reads anything under lock — so only a read under
+    // its transaction can see the person gone. DETERMINISTIC (the final review's Minor 8: a 150 ms
+    // `slow('/user/info')` asked the whole removal to reach its DELETE first, which a loaded machine does
+    // not promise): a second connection holds the PROJECT's row against the start's `FOR SHARE` — and not
+    // against the removal, whose event's foreign key takes only `FOR KEY SHARE` — so the start waits at
+    // its first statement under lock while the removal runs to the end.
     const lite = fakeLiteLlm()
     await withProjectServer(
       async (ctx) => {
         const ta = await theTa(ctx)
-        lite.slow('/user/info', 150)
-        const starting = startSession(ctx, { cookies: ta.cookies }, ctx.projectId)
-        await untilCalled(lite, '/user/info')
-        expect((await remove(ctx, ta.id)).statusCode).toBe(200)
-        expect(refusal(await starting)).toEqual({ status: 404, code: 'NOT_FOUND' })
+        await holding(
+          'SELECT 1 FROM projects WHERE id = $1 FOR NO KEY UPDATE',
+          [ctx.projectId],
+          async (lock) => {
+            const starting = startSession(ctx, { cookies: ta.cookies }, ctx.projectId)
+            await until(
+              () => lock.waitedOn('%from "projects"%for share%'),
+              'the start’s project hold waiting on the held project row',
+            )
+            // Past `assertCapability` and the month's read: the refusal below can be no earlier check's.
+            expect(lite.calls.some((c) => c.path === '/user/info')).toBe(true)
+            expect((await remove(ctx, ta.id)).statusCode).toBe(200)
+            await lock.release()
+            expect(refusal(await starting)).toEqual({ status: 404, code: 'NOT_FOUND' })
+          },
+        )
         expect(lite.calls.filter((c) => c.path === '/key/generate')).toEqual([])
         expect(liveKeysOf(lite, ta.id)).toEqual([])
         // The positive control: the owner — still a member — starts one the same way.
@@ -894,6 +909,52 @@ describe('removing a member revokes their tokens on the project, ends their agen
       expect(await liveTokensOf(ctx, ta.id)).toEqual([])
       // The positive control: the owner — still a member — mints the same way.
       expect((await mint(ctx, ctx.ownerCookies)).statusCode).toBe(201)
+    })
+  })
+
+  it('two removals of one collaborator queued behind a held membership both answer the members — the second is not refused as the last owner', async () => {
+    // The final review's Minor 2. Since Task 8 a start and a mint hold the membership row FOR SHARE, so two
+    // removals of one person can both queue behind it at their DELETE: the first deletes the row, and the
+    // second's DELETE then matches nothing — which `removeMember` read as the LAST OWNER, a `409` for a
+    // collaborator. DETERMINISTIC: a second connection holds the row as a start would, until both DELETEs
+    // wait on it. (The true last owner is still refused — *"removing the last owner is still refused"*
+    // above is this test's positive control.)
+    await withProjectServer(async (ctx) => {
+      const ta = await theTa(ctx)
+      const deleting = '%delete from "project_members"%'
+      await holding(
+        'SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2 FOR SHARE',
+        [ctx.projectId, ta.id],
+        async (lock) => {
+          const first = remove(ctx, ta.id)
+          await until(
+            () => lock.waitedOn(deleting),
+            'the first removal’s DELETE waiting on the held membership',
+          )
+          const second = remove(ctx, ta.id)
+          await until(
+            () => lock.waitedOnBehind(deleting),
+            'the second removal’s DELETE queued behind the first',
+          )
+          await lock.release()
+          const answers = await Promise.all([first, second])
+          expect(answers.map((res) => refusal(res))).toEqual([
+            { status: 200, code: undefined },
+            { status: 200, code: undefined },
+          ])
+          // Each answers the members as they are: the owner, and not the person removed.
+          for (const res of answers) {
+            const members = (res.json() as { userId: string }[]).map((m) => m.userId)
+            expect(members).toContain(ctx.userId)
+            expect(members).not.toContain(ta.id)
+          }
+        },
+      )
+      expect(await isMember(ctx, ta.id)).toBe(false)
+      // ONE removal recorded: the second changed nothing, so it published nothing.
+      expect((await published(ctx, 'member.removed')).map((e) => e.subject)).toEqual([
+        `member:${ta.id}`,
+      ])
     })
   })
 })

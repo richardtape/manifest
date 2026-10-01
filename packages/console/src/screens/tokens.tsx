@@ -189,14 +189,17 @@ export function Tokens({
   // D23.2: RE-READ WHEN A FRAME SAYS IT CHANGED, never on a timer — and this screen consumes
   // the project screen's ONE socket rather than opening a second (§7e, D23.2).
   //
-  // ONLY `mintToken` PUBLISHES. `revokeToken` publishes nothing (`api/routes/tokens.ts` has
-  // one `publishEvent`, in the mint handler), so a revocation made in another tab or by
-  // another person cannot reach this list — the same shape as `validateSpec` (sitting 4, F5)
-  // and `createRelease` (sitting 5, F7). Our OWN revoke reloads locally, below.
-  const minted = frames.filter(
-    (f) => f.kind === 'event' && f.type === 'token.minted',
+  // `token.minted` — a token minted — and `member.removed` — a removal, which revokes every
+  // token the person minted on the project (Spec action 2; the launch path plan's Task 8), so
+  // without it those rows read live until a reload. `revokeToken` publishes nothing
+  // (`api/routes/tokens.ts`), so a revocation made in another tab or by another person cannot
+  // reach this list — the same shape as `validateSpec` (sitting 4, F5) and `createRelease`
+  // (sitting 5, F7). Our OWN revoke reloads locally, below.
+  const changed = frames.filter(
+    (f) =>
+      f.kind === 'event' && (f.type === 'token.minted' || f.type === 'member.removed'),
   ).length
-  const tokens = useAsync(() => api.listTokens(projectId), [projectId, minted])
+  const tokens = useAsync(() => api.listTokens(projectId), [projectId, changed])
   const [secret, setSecret] = useState<string | undefined>(undefined)
   const [error, setError] = useState<unknown>(undefined)
 
