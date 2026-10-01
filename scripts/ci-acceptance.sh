@@ -161,8 +161,8 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then Mailpit, §21's tenth container (2026-09-30, out of plan at Rich's word): no test moved; `make doctor` +1 (its
 # image, at the digest compose pins) and `make verify` +2 (an SMTP round trip through the inbox's API, and compose's
 # settings that keep it on the laptop).
-EXPECT_TESTS=2962
-EXPECT_FILES=185
+EXPECT_TESTS=3024
+EXPECT_FILES=186
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 

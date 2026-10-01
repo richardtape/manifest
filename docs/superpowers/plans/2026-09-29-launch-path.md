@@ -39,6 +39,14 @@
 > reconciles the role at every sign-in, audited. Contract still `1.5.0`. *Sitting 5a* is the record; **Mailpit (`manifest-60`), then
 > sitting 6 (Task 9), are next.**
 
+> **SITTING 6 — TASK 9 — DONE 2026-09-30/10-01** (Spec actions 3 and 9). The three clocks' records: `IamRegistration` per environment
+> (`0045`: `environment_kind`, UNIQUE `(project_id, environment_kind)`, `submitted_at`/`submitted_by`/`generated_package`, a CHECK that
+> holds only a REGISTERED row); an owner's *"I've sent it"* (`submitIamRegistration`, `submitPrivacyAssessment` — `launch:submit`,
+> person-only), gated in UBC's order (`409 LAUNCH_PIA_NOT_APPROVED` for EITHER registration, `409 LAUNCH_STAGING_NOT_REGISTERED` for
+> production), a draft required (`409 LAUNCH_DRAFT_REQUIRED`), a day that can be true (`400 LAUNCH_SENT_AT_INVALID`), one locked
+> transaction; the build checks only production's REGISTERED row; `LaunchReadinessItem.since`; `LaunchRecords.stagingRegistration`.
+> Contract still `1.5.0`. *Sitting 6* is the record; **sitting 7 (Task 10) is next.**
+
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
@@ -123,8 +131,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** — ✅ **APPLIED as worded, 2026-09-30, at this sitting's open** | **DONE 2026-09-30** — subagent-driven, by `manifest-d4`: Spec actions 8, 1 and 2 applied first at Rich's word; **Task 7** (`d061ad7`): a session narrowed in place — `/key/update` by alias, then the row and `agent_session.narrowed` in one transaction, ended only when nothing is left (`0042`); **Task 8** (`baacc1c`, `0b4d50e`): a removal revokes the person's tokens on the project in its own transaction, closes their streams `4401`/`4404`, ends their sessions `member_removed` (`0043`), and a start or a mint racing it holds the membership row; one fix round (the mint race), one whole-branch review beside the Docker tier (269/269, no pool red — Rich removed the 42 orphan apps), one fix wave (`f27914e`: the seam guard's test, a false `409`); contract `1.5.0`, the front-end told before each commit |
 | 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; ✅ **APPLIED 2026-09-30** (*"apply 8"*) | **DONE 2026-09-30** — INLINE, by `manifest-e2`: the step-up (`STEP_UP_GUARDED`, `assertStepUp` at the route); the take-down under the environment lock — the name only while it reaches the rehearsal's own instance, the Route record, the instance — BEFORE the row; `500 REHEARSAL_TEARDOWN_FAILED`; FE-43's `409 REHEARSAL_RUNNING` (a try-lock); one whole-branch review beside the Docker tier, one fix wave (a deploy that throws releases the name; the boot takes down a rehearsal a stopped process left serving); sitting 5's contract bundle; contract `1.5.0`; the front-end told before each contract commit |
 | 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | **DONE 2026-09-30** — INLINE, by `manifest-74`, after the front-end's 7100 window (the database dumped first): the affiliation asked for and written at every sign-in (`0044`), `[]` when absent; `mayBuild` (admin, or `faculty` exactly); the three refusals, `addMember`'s for a NEWCOMER only, decided under a membership row lock; `MANIFEST_ADMIN_PUIDS` authoritative when set, each change a `RoleChange`; `TEST_USERS` with affiliations and a fifth, `bio_colleague`; the IdP's `colleague`; `make demo-token` and `make demo-frontend` green on driver 1; the mock's `MANIFEST_MOCK_MAY_BUILD=0`; one whole-branch review beside the Docker tier, one fix wave (a removal racing a role change re-added the person; the Docker pins; the published example; the hint); contract `1.5.0`; the front-end told before each contract commit |
-| 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | ← **next** — after Mailpit (`manifest-60`, right after 5a's close) |
-| 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | |
+| 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | **DONE 2026-09-30/10-01** — INLINE, by `manifest-92`, after Mailpit (the database dumped first; the front-end's 7100 window in the middle, migration held until it closed): `0045` (the staging kind, the submission columns, the CHECK on a registered row only); `launch:submit` (person-only) and the two submission routes, refused in UBC's order — **the assessment first for EITHER registration (the spec's words, wider than `[S9]`)**, staging before production — with a draft required and a real day; the build reads only production's registered row; `since` on the checklist; `[M8]`'s administrator hint; one whole-branch review beside the Docker tier (270/270), one fix wave (one locked transaction per submission, held by two deterministic lock tests; `z.iso.date()`; the kept reference; the mock in UBC's order; examples captured); contract `1.5.0`; the front-end told before each contract commit |
+| 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | ← **next** — read Task 10's `[S6]` block first |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | |
 | 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30 | |
 | 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | |
@@ -2027,6 +2035,29 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ## Task 10: D19's registration package — UBC's structure, Manifest's values, a justification for every attribute
 
+> **`[S6]` (sitting 6, 2026-10-01 — Task 9, `b2c75e6` and its fix wave `db2ddbf`): WHAT TASK 10 BUILDS ON, AND WHAT IT NOW OWNS.**
+> - **The row.** `iam_registrations` is per environment (`environment_kind`, UNIQUE `(project_id, environment_kind)`, migration `0045`).
+>   `getIamRegistration(db, projectId, environment)` takes the environment, REQUIRED. A draft is a row in `draft` with
+>   `registered_attributes` `[]` (its default; the CHECK holds only a row with `registered_at` set) and `generated_package` — null until
+>   drafted. **`submitIamRegistration` refuses a null package `409 LAUNCH_DRAFT_REQUIRED`**, so Task 10's draft is what unlocks it.
+> - **The fixture.** `launch/testing.ts`'s `withDraft` writes a PLACEHOLDER package `{ placeholder, attributes }` straight to the row.
+>   Task 10 owns the real shape: change `withDraft` to write it (or call the drafting function), and read every Task 9 test that uses it.
+> - **Review Focus 1's checklist half is Task 10's** (the whole-branch review's I4): *"the checklist's `iam-registration` item says the
+>   draft no longer covers the app, and to draft again"*. Task 9 could not — it needs the package's attribute list. `iamItem` must compare
+>   a DRAFT's (or a submitted, unregistered record's) attributes with the candidate's and say so, with its refusal-free test and a
+>   positive control. `releases/build.ts`'s comment says it will.
+> - **The draft takes the submission's row lock** (I1): `submitIamRegistration` reads the record `FOR UPDATE` inside one transaction
+>   (and the assessment and staging's registration `FOR SHARE`). A re-draft from `change_requested` or `expired` must lock the same row,
+>   or a draft and a submission interleave — the deterministic test shape is `api/launch.test.ts`'s `holdingThen`.
+> - **The day's lower bound reads the row's `created_at`** (the review's M4). After a re-draft that is the FIRST draft's day. Store a
+>   `generatedAt` in the package and make `sentDay` (`launch/records.ts`) read it.
+> - **UBC's order, as built**: NEITHER registration is sent until the assessment is approved with its reference (`409
+>   LAUNCH_PIA_NOT_APPROVED` — the spec's words, wider than `[S9]`, the review's I3); production's also waits for staging `active`. The
+>   package's PIA number is `privacy_assessments.external_ticket_ref` — and an administrator's record that omits a ticket now KEEPS it.
+> - `409 LAUNCH_RECORD_SUBMITTED` (Decision 9's re-draft refusal) is NOT registered yet: the registry refuses a code the source never
+>   throws — Task 10 adds it with its thrower. `IamRegistration` has no `package` field yet; Task 10 adds it to the representation.
+> - **Who may build** (sitting 5a): a test that creates a project or adds a person THROUGH THE ROUTE does it as someone who may build.
+
 > **`[S9]` (Rich, 2026-09-30, Spec action 4 as applied):** the package also carries **the privacy assessment's reference — the PIA
 > number, which UBC IAM asks for** (§9's package list). And §2's asset row and §9's *Certificate lifecycle* now say the tool's
 > STRUCTURE is used, never its code, and that Manifest issues the certificate itself (D20) — the `sso/` renderer's comments should say
@@ -2252,6 +2283,18 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ---
 ## Task 12: FE-25 and §26's queue — an owner asks for sign-off, and an administrator sees everything waiting on them
+
+> **`[S6]` (sitting 6, 2026-10-01 — Task 9): WHAT THE QUEUE'S *since* READS, AND A QUESTION FOR RICH FIRST.**
+> - **`submitted_at` / `submitted_by` mean "when the request now with UBC was sent, and who said so"**: stamped by the owner's *"I've
+>   sent it"* (the day they name, at NOON in Vancouver — up to ~12 h ahead of the moment; count waits in Vancouver DAYS), by an
+>   administrator's record that MOVES a record into `submitted` (now), and by filing a change request (`active → change_requested`,
+>   now); never by UBC's answer and never by a ticket correction. A `submitted` or `change_requested` registration's `since` is it.
+> - **ASK RICH BEFORE BUILDING THE QUEUE'S `change_requested` ITEM** (the whole-branch review's M13): `change_requested` carries two
+>   meanings — UBC came back with questions (`submitted → change_requested`: the ball is the OWNER's, and `since` is still the original
+>   submission) and an administrator FILED a change request with UBC (`active → change_requested`: waiting on UBC, stamped when filed).
+>   `SUBMIT_ARROWS` lets an owner say *"I've sent it"* from either. Options: (a) one state, and the queue item reads both as "with UBC or
+>   with the owner" from `from`; (b) split the state; (c) leave it. Put it as code-level options, one recommendation.
+> - `LaunchReadinessItem.since` exists (Task 9) and is null for `admin-approval` — Task 12 dates it from the request.
 
 **Spec action 5 first.**
 
@@ -4107,3 +4150,195 @@ stores them verbatim and may not build; its control (the reader folding) is red.
 - Ollama **0.35.0**; **free disk 67 GiB** (71 at open). Load ~5.
 - `scripts/snapshot-machine.sh` at open and close: identical but for the uptimes, the free disk, the edge restarted by the Docker tier, and
   the 17 window containers removed.
+
+### Sitting 6 — 2026-09-30/10-01: Task 9 — the three clocks' records: a staging registration, an owner's "I've sent it", and waiting since
+
+**Run by session `manifest-92`, INLINE** (`superpowers:executing-plans`: one context, TDD per step, one fresh whole-branch review beside
+the Docker tier, one fix wave) on `main`, from `2d03271`. **Rich's word, in this session's chat**: *"I confirm that you can work on this
+when the other agents say that it is your turn"*. It started after sitting 5a's close (`manifest-74`, `003adf7`) and the planning session's
+*"Mailpit landed"* (`manifest-60`, `8155bcf`/`2d03271`). §7e's two questions answered themselves: the database held only the front-end's
+walk's two users (dumped anyway: `.superpowers/sdd/2026-09-29-launch-path/manifest_control-before-sitting6-2026-09-30.dump`, 77 KB), and
+`make refresh-vulndb` is not due until after 2026-10-06.
+
+Peers:
+- **The faculty front-end, `manifest-app-4d`**: ran F4a beside this sitting; asked for a 7100 window mid-implementation (Rich's ask) — given
+  at once, with no Vitest, no Docker tier, no `make verify`, no restart and the migration HELD until it closed; told before each contract
+  commit (*"OK, commit it"*, twice); its 1671 tests pass on this tree, and five of its going-live test files gained `since` in its own
+  F4a-close commit (`bb943c2`).
+- **The planning session, `manifest-60`**: Mailpit first (`EXPECT_DOCTOR` 21, `EXPECT_VERIFY` 64).
+- **The S5 spike, `manifest-s5-b3`** (Rich's overnight spike, its own repository): held its on-premise and capable-model runs at this
+  sitting's ask — the Docker tier's control planes remove `default-chat-large`, which ended one of its runs — until the close.
+
+**What it made true** (`b2c75e6`, and the fix wave's `db2ddbf`):
+- **A registration per environment** (migration `0045_organic_quasar`): `iam_registrations.environment_kind` (`staging` | `production`,
+  every older row `production` by the column default), UNIQUE `(project_id, environment_kind)`; `submitted_at`, `submitted_by`,
+  `generated_package`; `registered_attributes` defaults to `[]` and **its CHECK holds only a REGISTERED row** (`registered_at IS NULL OR
+  jsonb_array_length(...) > 0`). `privacy_assessments` gains `submitted_at`, `submitted_by`. `getIamRegistration` takes the environment,
+  required.
+- **An owner's *"I've sent it"*** — `submitIamRegistration` (`POST …/launch-records/iam-registration/{environment}/submission`) and
+  `submitPrivacyAssessment` (`POST …/launch-records/privacy-assessment/submission`), session-only, **`launch:submit`** (owner,
+  collaborator, administrator; **PERSON_ONLY**, in all four published lists). In ONE transaction (the record `FOR UPDATE`, the assessment
+  and staging's registration `FOR SHARE`), each refusal before anything is written: a draft is required (`409 LAUNCH_DRAFT_REQUIRED`);
+  only along `SUBMIT_ARROWS` (`409 LAUNCH_TRANSITION_INVALID`); **UBC's order** — neither registration until the assessment is approved
+  WITH its reference (`409 LAUNCH_PIA_NOT_APPROVED`), production's only once staging's is `active` (`409 LAUNCH_STAGING_NOT_REGISTERED`);
+  a day that can be true (`400 LAUNCH_SENT_AT_INVALID`, `sentAt` a `format: date`, stored at noon in Vancouver). The events
+  `iam_registration.submitted` and `privacy_assessment.submitted`. **An administrator's record of UBC's answer is never refused for
+  order**; its move into `submitted`, or a filed change request, stamps when and by whom; and it keeps a reference it does not give.
+- **The build checks only the PRODUCTION registration UBC has registered** (`registered_at` set): a draft, a submission and the staging
+  registration gate nothing (Review Focus 1's build half).
+- **The checklist reads production's row only**, and every item carries **`since`** — while a record waits on UBC, the day it was said to
+  be sent (*"It was sent to UBC IAM on October 14, 2026."*); once met, the day UBC registered it or the Office approved it; else null.
+- `LaunchRecords.stagingRegistration`; `IamRegistration.environment/submittedAt/submittedBy/createdAt`;
+  `PrivacyAssessment.submittedAt/submittedBy/createdAt`; `RecordIamRegistrationRequest.environment` (default production).
+- **`[M8]`**: a capability no project role holds (`launch:record`, `release:approve`, `quota:set`) is refused with a hint naming a platform
+  administrator; `LaunchRecordError`'s status is the registry's.
+- The mock's fixtures carry it all, in UBC's order; the console parks both operations for Task 13; the journey names them outside it.
+  **Contract still `1.5.0`.**
+
+**What sitting 6 found** (the count is derived by the command at the head of this section):
+
+**F1 The plan's two test files do not exist.** It names `src/api/launch.test.ts` and `launch/testing.ts`'s `withDraft` as if present;
+neither existed at `2d03271`. Both were created (the records' older route tests live in `api/delivery.test.ts` and
+`api/subsequent-releases.test.ts`).
+
+**F2 The predicted migration number was taken**: `0044` is sitting 5a's; Task 9's is `0045`.
+
+**F3 The plan's own test contradicted its own formatter.** It asserts *"sent to UBC IAM on 1 October 2026"* while Step 3 names
+`Intl.DateTimeFormat('en-CA', { dateStyle: 'long' })`, which renders *"October 1, 2026"* (node 24.12.0). The formatter is the
+instruction; the tests follow it.
+
+**F4 The plan's snippet sends a day its own rule refuses**: `sentAt: '2026-10-01'` on 2026-09-30 is in the future. Tests compute days
+relative to today in Vancouver (`vancouverToday`, `vancouverDaysAgo`).
+
+**F5 The plan's interface omits the bus.** `submitIamRegistration(db, { userId, … })` publishes an event; it takes `(db, bus, { …, actor
+})`, as `recordIamRegistration` does.
+
+**F6 `LaunchRecordError` was always `400`**, and the plan puts three `409`s in its family. `api/errors.ts` now reads each code's status
+from the registry — the existing *"answers each class-thrown code with the status the registry states"* test would have gone red.
+
+**F7 The build test's fixture called a row registered by its STATE alone** — `active`, `registered_at` null. Under Decision 7 its refusal
+case would have stopped refusing; the fixture now says when UBC registered it.
+
+**F8 The plan's control (c) could not have failed** had the submission asked the state machine too: the machine's arrows INTO `submitted`
+are exactly `SUBMIT_ARROWS`, so adding `submitted` to the set changes nothing while `iamTransition` still refuses `submitted →
+submitted`. The submission decides by `SUBMIT_ARROWS` alone (`refuseSubmission`), and control (c) is red (3).
+
+**F9 An existing test asserted the invariant Decision 7 changes** — *"the DATABASE refuses an empty list"*. It now inserts a REGISTERED
+row, beside a draft positive control (a draft at `[]` stands).
+
+**F10 The contract's new required fields broke the mock's `tsc`** (its fixtures are typed `Schemas['…']`) at regeneration; the fixtures
+gained them in the same commit, and the front-end, which reads this tree live, fixed five test files of its own.
+
+**F11 Two test defects of my own**, caught at the first green run: a sorted list asserted in the wrong order, and an event case that sent
+a day before its own draft existed — which the code rightly refused.
+
+**F12 Ruling: the assessment's submission needs a draft too.** Decision 9 names only the registration; §13 (*"Each of the three is drafted
+by Manifest and sent by the owner"*) and *"the package sent is the package kept"* cover both. Until Task 11, nothing can meet it.
+
+**F13 Ruling: what `submitted_at` means.** *"When the request now with UBC was sent, and who said so"* — stamped by the owner's
+submission, by an administrator's move INTO `submitted`, and by filing a change request; never by UBC's answer. So `since` for
+`submitted` and `change_requested` (the plan's rule) is the moment that request went, for both of `change_requested`'s meanings — and
+Task 12's queue can date an administrator-recorded submission too. `change_requested`'s two meanings are carried to Rich (Task 12's `[S6]`).
+
+**F14 The whole-branch review's I1: every submission was check-then-act.** It read the row, checked the arrows and UBC's order, then
+`UPDATE … WHERE id`: two submissions, or an administrator's write in the window, moved the day the clock started, or let a submission
+through a gate that had just closed (an assessment reopened, staging lapsed). Fixed: one transaction, the record `FOR UPDATE`, the
+assessment and staging's registration `FOR SHARE`. **Held by two DETERMINISTIC tests** (a second connection holds the row, changes it and
+commits once the submission waits on it): RED before — `200` where `409 LAUNCH_TRANSITION_INVALID` belonged, and a gate read that never
+waited — GREEN after; controls (h) and (i).
+
+**F15 The review's I2: `sentAt` accepted impossible days** — `2026-02-30` was stored as March 2, `2026-00-15` passed a December draft
+and was stored before it, and the event's day and sentence disagreed. `z.iso.date()` at the route, and the module refuses a day that does
+not round-trip; controls (j) and (j2).
+
+**F16 The review's I3: a PRODUCTION submission never checked the assessment.** The applied spec says *"neither of an app's registrations
+is sent until the assessment is approved"*; `[S9]` named only staging's check for production, and the transitivity failed whenever an
+administrator recorded staging `active` — never refused for order, and the laptop's normal path — or the assessment was reopened. Now both
+check it, first; control (k). **A ruling wider than `[S9]`, from the spec's own words.**
+
+**F17 The review's I4: Review Focus 1's checklist half belonged to no task** — *"the item says the draft no longer covers the app, and to
+draft again"* needs a draft's attribute list (Task 10's package) — and `build.ts`'s comment claimed it was done. The comment says *will*,
+and Task 10's `[S6]` owns it.
+
+**F18 The review's I5: the mock showed an order the platform refuses** — the owner's staging submission dated before the assessment's
+approval. I had carried it to sitting 10; the review graded it by its effect on the front-end's F5b, which designs the sequence from these
+fixtures. The dates now follow UBC's order (the assessment approved, staging, production, then the assessment reopened and re-sent), every
+state the fixtures showed kept.
+
+**F19 The review's I6: `registeredAttributes`' published description became false** (*"a production build fails when a release asks for
+an attribute that is not in here"* — of a staging or unregistered row, now untrue). Rewritten.
+
+**F20 The review's M1, re-graded Important: the build test passed for a wrong reason.** Control (a)'s red came from the EMPTY-list
+refusal, not the `registered_at` predicate — so a check that skipped empty lists would have stayed green while an administrator-recorded
+`submitted` row (never empty) gated builds: Review Focus 1's own failure. The submitted case now holds a non-empty list; control (m) is the
+one the old test could not be.
+
+**F21 The review's M2, re-graded Important: an administrator's record without a ticket ERASED the owner's reference** — for the assessment,
+the PIA number the staging gate reads, so a later submission would be refused. It keeps it now.
+
+**F22 The review's M11, re-graded: the new operations' examples were invented**, against *Global Constraints*' *"captured from its own
+tests"*. Captured from `api/launch.test.ts`'s answers (six), the test file restored after.
+
+**F23 Process — my first fix-pass edit script stopped at its second edit**, so the two race tests and the kept-reference test did not exist
+at the first red run: it read 4 red where 7 were written. Caught by counting the reds against the tests written, before any source fix.
+
+**F24 Process — the front-end's 7100 window opened in the middle of implementation.** The migration was generated but not applied until
+the walk was done, so the control plane it walked (on `42cd8c5`) saw the schema it was built for.
+
+**The negative controls**, each predicted, applied (the diff read), run and restored by `git checkout` of the committed file
+(`$SCRATCH/control.sh`) — on `b2c75e6`:
+- (a) `build.ts`'s `registered_at` condition removed: RED 2 (the draft, the unregistered submission), at `toBe('succeeded')`.
+- (a2) its environment filter removed: RED 1 (*a staging registration, even active…*).
+- (b) `launch:submit` out of `PERSON_ONLY`: RED 6 (the literals ×3, the API probe, the mint loop, the phrase map) — and the route's own
+  token case GREEN, as predicted: `requireSession` answers `TOKEN_CREDENTIAL_REFUSED` first, the second layer.
+- (c) `submitted` in `SUBMIT_ARROWS.iam`: RED 3 (the literals ×2, *refuses a second submission*); the route's case GREEN (it drives the
+  assessment).
+- (d) the assessment's reference not required: RED 1. (e) staging merely present: RED 2. (f) the administrator hint never given: RED 2.
+  (g) `since` never set for a registration: RED 2.
+
+On `db2ddbf` (the fix wave): (h) no `FOR UPDATE` on the record: RED 1 (`200`). (i) no `FOR SHARE` on the assessment: RED 1 (timed out
+waiting for the read under lock). (j) the module's real-day check removed: RED 1, the route green (its schema first). (j2) the schema back
+to a pattern: RED 1. (k) production skipping the assessment: RED 2. (l) the reference erased again: RED 1. (m) the build skipping EMPTY
+lists instead of unregistered rows: RED 1. **Every one red exactly where predicted.**
+
+**Carried, not fixed** (the review's minors; the ledger has each):
+- `since` for a FILED change request is read by no test; nor *"`submitted → change_requested` keeps the stamp"*, nor an administrator's
+  move of the assessment into `submitted` (M10).
+- A same-day submission's `submittedAt` is noon in Vancouver, up to ~12 h AHEAD of the moment — the descriptions should say it marks a
+  DAY (M3; sitting 10's pass or Task 14).
+- "Today" is the host's clock and the draft's day the database's (M5; TRAPS: the database's clock is not the host's).
+- The older `why` sentences print UTC days beside the new Vancouver `since` (M6, the F23 trap).
+- `LAUNCH_TRANSITION_INVALID`'s and `FORBIDDEN`'s registry remedies do not fit the owner's second submission or an administrator-only
+  capability (M7).
+- The CHECK no longer refuses `active` with `registered_at` null and `[]` — consider `CHECK (state <> 'active' OR registered_at IS NOT
+  NULL)` (M8).
+- `(D24)`/`(§9)` kept in lines this commit rewrote — sitting 10's pass (M9).
+- **For Rich**: `change_requested`'s two meanings (Task 12's `[S6]`), and whether a RE-submission (production after `expired`) must wait
+  for staging `active` too — Rich's *"Gate each step"* was asked of a first launch (§8 *Open*).
+
+**Gates on the final tree** (`db2ddbf` code):
+- `pnpm test` **3024 passed, 0 skipped, in 186 files (822 s, load ~4–7, 0 `deadlock detected`)**, then **3024 / 186 (823 s, 0 `deadlock detected`)** — twice, alone, identical. Up 62 from 2962 and one file (`api/launch.test.ts`); `EXPECT_TESTS`/`EXPECT_FILES` moved.
+- `pnpm test:docker` — the whole tier on `b2c75e6`: **270 passed, 0 failed, 270 in 42 files**, 1246 s (load ~5). The fix wave's one
+  Docker file, `releases/production.docker.test.ts`, alone on `db2ddbf`: **9/9**, 62 s; the rest of the tier reaches nothing it changed
+  (ruled by grep). **270 in 42**, ORIENTATION §2's row.
+- `pnpm lint`, `typecheck` (all six packages) and `format:check` clean.
+- `make verify` **64 / 0 / 0**, `make doctor` **21 / 0 / 0** (after the restart and the cleanup).
+
+**The machine at the close**, queried at 00:38 on 2026-10-01, not remembered:
+- **The control plane: PID 96152 on 7100, on `db2ddbf`, REAL GitHub** (Rich's `.env`), restarted LAST — after the two unit runs — by
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged; detached). Boot line: `"source":"github"`, `"github":"api.github.com"`,
+  `capableModel: registered`, `rehearsalsTakenDown: 0`. **It was STOPPED for the Docker tier and the unit runs** (one control plane per
+  database), so the capable model was out of LiteLLM from the tier's start (23:27) to the restart (00:35).
+- **The control database: EMPTY** — 0 projects, 0 users, 0 registrations; **46 migrations** (`0045_organic_quasar` newest).
+- **GitHub**: `Manifest-local-dev` holds **0 repositories** (`scripts/github-real-repos.sh`).
+- **Containers: 0 `mf-`**, 10 `manifest-`; `dead-app-resources.sh --apply` (7 networks, 1 volume) and `app-images.sh --apply` (16 images),
+  each re-measured to 0; `make verify`'s INFO `mf- containers=0 networks=0 volumes=0`; **12 Docker networks** in all.
+  `litellm-orphans.sh` lists **18** orphaned — **not applied**, for sitting 5's reason (a budget's deletion resets its month).
+- `make doctor` **21/0/0**, `make verify` **64/0/0** (Mailpit's counts).
+- **The S5 spike's, not this sitting's**: its `s5-*` containers and images, and **32 anonymous volumes** created 23:08–23:31 PDT — in pairs,
+  a MongoDB container's two; 2 used by its running `s5-A2-mongo`, 30 by nothing. Left alone; the spike told.
+- **7102 and 7105 are the faculty front-end's** (node 26430 and 26458). **Nothing on 7104.**
+- Ollama **0.35.0** (the S5 spike is loading `qwen3.8:27b` from 00:35, evicting the 4B, and re-warms it after); **free disk 63 GiB** (68 at
+  open). Load ~4.
+- `scripts/snapshot-machine.sh` at open and close: identical but for the uptimes, the free disk and the S5 spike's containers, images and
+  volumes.
