@@ -33,6 +33,12 @@
 > stopped control plane left serving. Contract still `1.5.0`. *Sitting 5b* is the record; **the faculty front-end's 7100 window, then
 > sitting 5a (Task 8a), are next** — 5a may start during the window, with no Vitest and no restart until the walk is done.
 
+> **SITTING 5a — TASK 8a — DONE 2026-09-30** (FE-39, Spec action 7). Only faculty build: the control plane asks for
+> `eduPersonAffiliation` and keeps it at every sign-in (`0044`); `Me.mayBuild`; `createProject` and `startIntakeSession` refuse anyone else
+> `403 BUILDING_NOT_OPEN`, and `addMember` a newcomer who may not build `409 MEMBER_MAY_NOT_BUILD`; `MANIFEST_ADMIN_PUIDS`, when set,
+> reconciles the role at every sign-in, audited. Contract still `1.5.0`. *Sitting 5a* is the record; **Mailpit (`manifest-60`), then
+> sitting 6 (Task 9), are next.**
+
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
@@ -116,8 +122,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 4a | 6b | **FE-42 (Rich's, after sitting 3's close — *"its own small sitting"*)**: the project's OWNER may run D21's rehearsal (today `launch:record`, an administrator's alone); the rehearsal's published description says who may run it | **Yes** — `launch/`, `projects/` | **To be read first** — Task 6b's Step 1 reads §13, §20 and D24; if any names who triggers the rehearsal, a spec action is drafted and the sitting stops for Rich. **A TOKEN MAY NOT RUN IT — Rich's (a), PERSONS ONLY** (relayed by `manifest-73`, his session for 4a, 2026-09-29: owner, collaborators and administrators from an interactive session; a delegated token stays refused, SESSION_ONLY as today; one D24 clause is DRAFTED as a spec action for his later approval — it does not block 4a); **Spec action 8 drafted by 4a — its premise RE-ASKED** (the rehearsal leaves the unapproved candidate on production's public listener) | **DONE 2026-09-30** — subagent-driven: Step 1 read by the controller (no spec text names who triggers it — no stop); **`launch:rehearse`**, in `OWNER` (collaborator and administrator inherit it), person-only, not step-up; `runRehearsal`'s description says who may run it and drops `FORBIDDEN`; the owner still refused `launch:record`; contract `1.5.0` (the enum gains it); the front-end told first; **the whole-branch review found the rehearsal leaves an UNAPPROVED candidate serving production's public listener until the launch — Rich's (a) had rested on the controller's wrong *"nothing is public"*, so Spec action 8 re-asks it** (`fa02bbc` stands meanwhile); one wave: the published person-only lists held by a test, the journey's launch row split, comments made true |
 | 5 | 7, 8 | **Rich's two decisions of 2026-09-29**: a session whose project no longer allows one of its models is **narrowed in place** (`/key/update`, `agent_session.narrowed`) and ended only when nothing is left; **removing a member** revokes their tokens on the project, ends their agent sessions (`member_removed`) and closes their streams | **Yes** — `ai/`, `projects/` | **Spec actions 1 and 2** — ✅ **APPLIED as worded, 2026-09-30, at this sitting's open** | **DONE 2026-09-30** — subagent-driven, by `manifest-d4`: Spec actions 8, 1 and 2 applied first at Rich's word; **Task 7** (`d061ad7`): a session narrowed in place — `/key/update` by alias, then the row and `agent_session.narrowed` in one transaction, ended only when nothing is left (`0042`); **Task 8** (`baacc1c`, `0b4d50e`): a removal revokes the person's tokens on the project in its own transaction, closes their streams `4401`/`4404`, ends their sessions `member_removed` (`0043`), and a start or a mint racing it holds the membership row; one fix round (the mint race), one whole-branch review beside the Docker tier (269/269, no pool red — Rich removed the 42 orphan apps), one fix wave (`f27914e`: the seam guard's test, a false `409`); contract `1.5.0`, the front-end told before each commit |
 | 5b | 6c | **Spec action 8's (b) and (c) (Rich, 2026-09-30 — *"b and c together, in its own small sitting after 5"*)**: running D21's rehearsal needs a step-up (`launch:rehearse` in `STEP_UP_GUARDED`, `assertStepUp` at the route), and the rehearsal **takes its production instance down** — the name first, then the instance — **before** its row is written, so nothing unapproved stays on production's public listener and the checklist cannot read the item met while the candidate serves. **Runs after 5 and BEFORE 5a** | **Yes** — `launch/`, `releases/`, `routing/`, `projects/` | **Spec action 8** — ✅ **DECIDED (b) and (c)**; ✅ **APPLIED 2026-09-30** (*"apply 8"*) | **DONE 2026-09-30** — INLINE, by `manifest-e2`: the step-up (`STEP_UP_GUARDED`, `assertStepUp` at the route); the take-down under the environment lock — the name only while it reaches the rehearsal's own instance, the Route record, the instance — BEFORE the row; `500 REHEARSAL_TEARDOWN_FAILED`; FE-43's `409 REHEARSAL_RUNNING` (a try-lock); one whole-branch review beside the Docker tier, one fix wave (a deploy that throws releases the name; the boot takes down a rehearsal a stopped process left serving); sitting 5's contract bundle; contract `1.5.0`; the front-end told before each contract commit |
-| 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | ← **next** — after the faculty front-end's 7100 window (Task 6c's `[S5]`) |
-| 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | |
+| 5a | 8a | **FE-39 — who may build (Rich's, confirmed 2026-09-29)**: faculty — `eduPersonAffiliation` exactly `faculty` — refreshed at every sign-in, or an administrator named by a setting; one predicate, `mayBuild`, on `getMe`; `createProject`, `startIntakeSession` and `addMember`'s target refused anyone else (`403 BUILDING_NOT_OPEN`, `409 MEMBER_MAY_NOT_BUILD`); the mock's switch; every fixture and demo that builds as a non-faculty person moved | **Yes** — `identity/`, `sso/`, `projects/` | **Spec action 7** — ✅ APPLIED 2026-09-29, at Rich's word | **DONE 2026-09-30** — INLINE, by `manifest-74`, after the front-end's 7100 window (the database dumped first): the affiliation asked for and written at every sign-in (`0044`), `[]` when absent; `mayBuild` (admin, or `faculty` exactly); the three refusals, `addMember`'s for a NEWCOMER only, decided under a membership row lock; `MANIFEST_ADMIN_PUIDS` authoritative when set, each change a `RoleChange`; `TEST_USERS` with affiliations and a fifth, `bio_colleague`; the IdP's `colleague`; `make demo-token` and `make demo-frontend` green on driver 1; the mock's `MANIFEST_MOCK_MAY_BUILD=0`; one whole-branch review beside the Docker tier, one fix wave (a removal racing a role change re-added the person; the Docker pins; the published example; the hint); contract `1.5.0`; the front-end told before each contract commit |
+| 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | ← **next** — after Mailpit (`manifest-60`, right after 5a's close) |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | |
 | 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30 | |
@@ -3945,3 +3951,159 @@ breaking — the plan's own order, which the fix wave skipped.
 - Ollama **0.35.0**; **free disk 70 GiB** (75 at open). Load ~5.5.
 - `scripts/snapshot-machine.sh` at open and close: identical but for the uptimes, the free disk, and `launch-app`'s containers, image and
   network.
+
+### Sitting 5a — 2026-09-30: Task 8a — FE-39: who may build — faculty, or an administrator named by a setting
+
+**Run by session `manifest-74`, INLINE** (`superpowers:executing-plans`: one context, TDD per step, one fresh whole-branch review
+beside the Docker tier, one fix wave) on `main`, from `3124d8c`, after Rich's word that the faculty front-end's 7100 window was done
+(its walk and his click of `class-check-ins`). **Rich's four first-message answers**: dump the database first — done,
+`.superpowers/sdd/2026-09-29-launch-path/manifest_control-before-sitting5a-2026-09-30.dump` (143 KB, `pg_dump --format=custom`: `my-answers`,
+`class-check-ins` — launched — `operator` admin and `instructor`, 7 instances, 4 tokens, 44 migrations); **delete both real repositories at
+the close**; remove the window's 22 app containers at the close; `make refresh-vulndb` is his.
+
+Peers:
+- **The faculty front-end**: `manifest-app-f1` had ended; its handover reached this session through `manifest-83` (a research-only session).
+  Its successor `manifest-app-4d` was told the shape before the contract commit and at the close; it OK'd moving the mock's `MEMBER`
+  fixture to a faculty colleague (*"it breaks nothing of ours"*), and starts its F4a at this close.
+- **The planning session**: `manifest-00` handed over to `manifest-60` during the sitting; it adds Mailpit right after this close.
+- **`manifest-92`** runs sitting 6 (Task 9), after Mailpit; it held Vitest, restarts, cleanup and edits until this close.
+
+**What it made true** (`8771272`, and the fix wave's `42cd8c5`):
+- **The control plane asks for `eduPersonAffiliation`** — six attributes (`sso/platform.ts`); the platform's SP row the boot writes lists
+  it, so the real IdP releases it (seen in `make demo-frontend`: the student's real sign-in carried `student`, the colleague's `faculty`).
+- **It is UBC's current fact, written at EVERY sign-in** — `users.affiliations` (every value as sent) and `affiliations_seen_at`
+  (migration `0044`), `[]` when the assertion carries none, never kept from an earlier sign-in (Decision 27).
+- **ONE predicate, `identity/builders.ts`'s `mayBuild`**: an administrator, or `faculty` exactly — no folding, no trimming, no setting
+  (Decision 30). `Me.mayBuild` answers it from the SESSION's role and the row's affiliations.
+- **`createProject` and `startIntakeSession` refuse anyone else `403 BUILDING_NOT_OPEN`, FIRST** — before a blueprint, a starter or a
+  slug is checked, and before any count is read or key minted. **`addMember` refuses a NEWCOMER who may not build `409
+  MEMBER_MAY_NOT_BUILD`**, naming them by display name — decided in `projects/`'s `addMember`, against the membership read `FOR
+  UPDATE` under the project's lock; a member who stops being faculty keeps their place and their role can still change (Decision 29).
+  A token's confirmed retry meets the same rule.
+- **`MANIFEST_ADMIN_PUIDS`** (Decision 28): set, authoritative — every sign-in reconciles the role to it, `FOR UPDATE`, an
+  `audit.role_changes` row with actor `setting:MANIFEST_ADMIN_PUIDS`; unset (the default), nothing is reconciled and
+  `scripts/admin-grant.sh` stays the procedure; a stray comma refuses the boot.
+- **The people**: the unit tier's `TEST_USERS` carry affiliations and gain a fifth, `bio_colleague` (faculty); the laptop IdP gains
+  `colleague` / `colleague` (`col000001`, faculty — Decision 31); `make demo-frontend`'s step 7 and `make demo-token` add the colleague
+  and show the student refused; the mock answers `mayBuild` and plays `MANIFEST_MOCK_MAY_BUILD=0`, and its `MEMBER` is a colleague now.
+- The guides (`frontend.md`'s new *Who may build*, `authentication.md`), `.env.example`, RUNBOOK, WALKTHROUGH, `docs/external-track.md`
+  (six attributes for the control plane's UBC registration). **Contract still `1.5.0`.**
+
+**What sitting 5a found** (the count is derived by the command at the head of this section):
+
+**F1 The plan's Step 2 count measured the wrong thing.** `grep sessionFor|loginAs|withProjectServer` reads 401 occurrences in 28 files,
+and almost none of them could go red: once `TEST_USERS` carry `faculty` for `bio_prof` and `unrelated_user`, every fixture owner may
+build. The wide red, measured on the implemented tree over the 26 files that call the three routes, was **19 tests in 9 files** —
+exactly where a STUDENT is added through the route (the members suite's lookup block ×9, delegation ×3, projects ×2, delivery ×1,
+events ×1), starts an intake (×1), the authorization matrix's fixture, and `auth.test.ts`'s exact `Me` (a shape change). Then the
+matrix's two rows that expected the student collaborator to `pass` (×2).
+
+**F2 The plan says the three operations are session-only, "so no token path exists to guard" — `addMember` is not.** A delegated
+token's request becomes a pending action, and the CONFIRMED RETRY reaches the same handler. The check in the handler covers it; a pair
+in `delegation.test.ts` holds it (a student refused after the confirmation, a colleague added by the same loop).
+
+**F3 The plan did not say what a role change is for a member who stopped being faculty.** Ruled from §13 as Spec action 7 amended it
+(*"keeps the projects they are on"*): not an add, so not refused; decided under the project's lock in `projects/`'s `addMember`
+(`newcomerMayBuild`). Control (d).
+
+**F4 `unrelated_user` must be faculty.** `withProjectServer` creates its second project AS `unrelated_user` through the route; the
+plan's *"as their roles say"* would have made every fixture red. Another instructor, a stranger to the first project.
+
+**F5 The authorization matrix's collaborator persona is a student**, made a member through the route. Its fixture now adds them through
+`projects/`'s `addMember` (a member who keeps their place), and its `POST /v1/projects` and `POST /v1/intake-sessions` rows expect `403
+BUILDING_NOT_OPEN` for that persona — by code, a new constant beside `STEP_UP`.
+
+**F6 The test IdP signed one value per attribute**; UBC's `eduPersonAffiliation` is multi-valued. Widened to arrays.
+
+**F7 The mock's `MEMBER` fixture was a student added as a collaborator** — a picture of an add the platform now refuses. Moved to a
+faculty colleague at the front-end's word (*"it breaks nothing of ours"*); the console's own test with it.
+
+**F8 Process — the Docker tier was started BEFORE the two Docker files the plan names were changed.** `boot.docker.test.ts` pinned
+the five names — and went RED there, as predicted before it answered (*expected six to equal five*); `identity/saml.docker.test.ts`
+asserted nothing about the affiliation, so the tier was green on it for the wrong reason. Both fixed in the fix wave and run alone.
+
+**F9 `make demo-token`'s student refusal needed the student signed in to Manifest** — or the refusal is `400 MEMBER_USER_NOT_FOUND`,
+which reads as a different defect. The script signs both the colleague (added) and the student (refused) in.
+
+**F10 The whole-branch review's I2: a removal racing a role change RE-ADDED a person who may not build** — and the repository's comment
+said it could not. `addMember` read `before` with a plain SELECT; a removal committing between that read and the upsert left the call
+believing it was a role change, and the upsert, finding the row gone, INSERTED it. Reproduced deterministically (the membership held FOR
+SHARE as a start holds it; the removal's DELETE waiting; the role change queued behind): `201` where `409 MEMBER_MAY_NOT_BUILD`
+belonged. Fixed NARROWLY — the `before` read `FOR UPDATE` — rather than by the reviewer's preferred project lock in `removeMember`, which
+would hang Task 8's two deterministic tests (`members.test.ts`, *"refused NOT_FOUND"* and *"a mint that read the membership…"*, built
+on the removal NOT needing the project row). The older race that lock would also close is carried (below).
+
+**F11 The review's I3: `addMember`'s published example added `student`, `201`** — the request the same description now says is refused.
+The example names the colleague now.
+
+**F12 The review's I5: `docs/external-track.md` told the control plane's UBC registration to leave `eduPersonAffiliation` OUT** — filed as
+written, UBC would release none and nobody but an administrator could build. Six attributes now.
+
+**F13 The review's M7, re-graded Important: `BUILDING_NOT_OPEN`'s hint sent a faculty member to an administrator who cannot help.**
+Migration `0044` gives every existing row `[]`, and a session issued before it decides from that row: every faculty member signed in
+before the change is refused until they sign in AGAIN. The hint and the remedy now lead with that.
+
+**F14 The review's M11(a), re-graded Important: Decision 30's "exactly `faculty`" was held only in the predicate**, not where UBC's value
+enters — a reader that folded or trimmed would have left every test green. A sign-in carrying `Faculty`, ` faculty` and `faculty ` now
+stores them verbatim and may not build; its control (the reader folding) is red.
+
+**F15 Process — my first-message question to Rich said the window left "22 app containers"; there were 17.** Not counted when asked —
+§6's *count what you summarised*. Corrected in the close message.
+
+**The negative controls**, each predicted, applied (the diff read), run and restored by `git checkout` of the committed file:
+- (a) `mayBuild` → `true`: RED 17 of 24 across the seven files' FE-39 tests — every refusal and every `mayBuild: false`; the seven green
+  are exactly the positive-only cases. The first test red at its FIRST assertion.
+- (b) the sign-in writer keeping the affiliations when the attribute is absent: RED 1 — *an assertion without eduPersonAffiliation …
+  may not build*.
+- (c) the administrators' list read by CWL login: RED 2 — *an administrator named by MANIFEST_ADMIN_PUIDS…* (the operator carries no
+  `uid`) and *the administrators' list is of PUIDs…*.
+- (d) the already-a-member exemption removed: RED 1 — *a member who stops being faculty keeps their place…*.
+- (e) the refusal moved after the slug check: RED 1 — *a slug check never runs first…* (`409 SLUG_RESERVED`).
+- (f) the reader folding and trimming (on the fix tree): RED 1 — *keeps each affiliation exactly as UBC sent it…*.
+- (g) `eduPersonAffiliation` removed from `CONTROL_PLANE_ATTRIBUTES` (Docker, `identity/saml.docker.test.ts` alone, on `42cd8c5`): RED 1 at
+  `mayBuild` — the REAL IdP released nothing it was not asked for.
+- The race (F10) was watched red before its fix, at its own assertion.
+
+**Carried, not fixed** (the review's minors and what the fix wave left; the ledger has each):
+- **The older no-owner race**: demoting owner A while owner B is removed can leave a project with no owner — `removeMember`'s guard is in
+  its DELETE and it takes no project lock (by Task 8's tests' design); pre-existing since P5b Task 8.
+- The target check reads the target's ROW role: with `MANIFEST_ADMIN_PUIDS` set, a former administrator the list no longer names is
+  addable until their next sign-in (M6).
+- The step-up callback discards the assertion's affiliation, unstated (M8); `scripts/admin-grant.sh` does not warn that the setting, when
+  set, undoes a grant it does not name (M9); a role reconciled at sign-in writes no operator line (M10).
+- Three tests that cannot fail for what they name: `affiliationsSeenAt >= first` cannot see a never-updated column; the keeps-tokens
+  test simulates the sign-in with a raw UPDATE; `toIdentity`'s friendly-name fallback is untested (M11 b–d).
+- Two comments overclaim: `createProject`'s *"learns nothing about which names are taken"* (`checkSlug` is open to them), and the
+  reconciliation's `FOR UPDATE` credited with what the upsert's row lock already gives (M12).
+
+**Gates on the final tree** (`42cd8c5` code):
+- `pnpm test` **2962 passed, 0 skipped, in 185 files (813 s, load ~4–5, 0 `deadlock detected`)**, then **2962 / 185 (798 s, 0 `deadlock
+  detected`)** — twice, alone, identical. Up 26 from 2936 and one file (`identity/builders.test.ts`); `EXPECT_TESTS`/`EXPECT_FILES` moved.
+- `pnpm test:docker` — the whole tier on `8771272`: **269 passed, 1 FAILED, 270 in 42 files**, 1239 s — `boot.docker.test.ts` at the
+  attribute list (F8), predicted. After the fix wave, the two files it reached, alone: `boot.docker.test.ts` **7/7**,
+  `identity/saml.docker.test.ts` **4/4**. **270 in 42**, ORIENTATION §2's row.
+- `pnpm lint`, `typecheck` (all six packages) and `format:check` clean.
+- `make verify` **62 / 0 / 0**, `make doctor` **20 / 0 / 0** (after the restart and the cleanup).
+- `make demo-token` (32 s) and `make demo-frontend` (127 s, fresh) green on driver 1 on `8771272`'s tree.
+
+**The machine at the close**, queried at 22:45, not remembered:
+- **The control plane: PID 50862 on 7100, on `42cd8c5`, REAL GitHub** (Rich's `.env`), restarted LAST, after the unit runs, by
+  `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged; detached). Boot line: `"source":"github"`, `"github":"api.github.com"`,
+  `"githubOrg":"Manifest-local-dev"`, `capableModel: registered`, `capableFallback: set`, `sourceRepositoriesPrepared: 4`,
+  `rehearsalsTakenDown: 0`. **This sitting ran it on DRIVER 1** (PID 39828, `$SCRATCH/cp-driver1.sh`: `.env` sourced, then the source
+  driver and the real-App settings unset) for `make demo-token` and `make demo-frontend`, then stopped it for the Docker tier and the unit
+  runs (one control plane per database).
+- **The control database: EMPTY** — 0 projects, users, instances, routes; **45 migrations** (`0044_big_black_panther` newest).
+- **GitHub**: `Manifest-local-dev` holds **0 repositories** — `class-check-ins` and `my-answers` DELETED at Rich's word
+  (`github-real-repos.sh --delete`, one at a time). Their mirrors stay in `.manifest/repos/` (named by `dead-app-resources.sh`, never
+  removed by it; the S5 spike reads `my-answers.git`).
+- **Containers: 0 `mf-`** — the window's 17 and this sitting's demos' 6 removed by name (`docker rm -f -v`, allowed); then
+  `dead-app-resources.sh --apply` (15 networks, 17 volumes) and `app-images.sh --apply` (21 images), each re-measured to 0. `make verify`'s
+  INFO: `mf- containers=0 networks=0 volumes=0`. **12 Docker networks** in all. `litellm-orphans.sh` lists **17** orphaned — **not applied**,
+  for sitting 5's reason (a budget's deletion resets its month, and the script's one mode takes all).
+- `infra/idp/config/authsources.php` written through in place (inode `41391714` unchanged); the container reads the new file
+  (`sha256` equal, `php -l` clean).
+- **7102 and 7105 are the faculty front-end's** (node 35047 and 73117). **Nothing on 7104.**
+- Ollama **0.35.0**; **free disk 67 GiB** (71 at open). Load ~5.
+- `scripts/snapshot-machine.sh` at open and close: identical but for the uptimes, the free disk, the edge restarted by the Docker tier, and
+  the 17 window containers removed.

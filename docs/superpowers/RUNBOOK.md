@@ -1054,6 +1054,8 @@ not the step numbers it prints:
 6. **The agent retries** with the same body and the **same `Idempotency-Key`** and gets `201`; the same key
    again replays that `201` and asks nobody anything; a **fresh** key is a new question. The instructor
    **rejects** that one, and the agent's retry is `403 TOKEN_ACTION_REJECTED` carrying their words verbatim.
+   Then the instructor, stepped up, names the STUDENT and is refused `409 MEMBER_MAY_NOT_BUILD` (FE-39: only
+   a faculty member or an administrator is added).
 7. **The instructor revokes the token** and the agent's next call is `401 UNAUTHENTICATED` — while the token
    still reads `expired: false`, because a clock and a person are different answers to why a credential stopped.
 
@@ -1062,11 +1064,13 @@ rather than the first thing that broke. It prints, on the green path, the token'
 how long the build took, how long the question waited for a human, and each retry's status — a green
 `checks.ok` prints no detail, so the numbers a filed run is evidence for would otherwise be thrown away.
 
-**THE ONE PRECONDITION, and why the script signs a second person in.** Step 6 has the agent ask to add
-`stu000001`, and `POST /v1/projects/{id}/members` refuses `400 MEMBER_USER_NOT_FOUND` for anybody who has never
-signed in — `pnpm test` and `make reset` both empty `users`. So `scripts/demo-token.sh` signs the student in
-and throws the session away; all it needs is the row. Without it the **confirmed retry** answers `400`, which
-reads as a defect in D24's grant rather than as a missing sign-in.
+**THE ONE PRECONDITION, and why the script signs two more people in.** Step 6 has the agent ask to add
+`col000001` — the IdP's `colleague`, a faculty member, because since FE-39 a student cannot be added — and
+`POST /v1/projects/{id}/members` refuses `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in —
+`pnpm test` and `make reset` both empty `users`. So `scripts/demo-token.sh` signs the colleague in, and the
+student too (the refusal above needs a student who has signed in, or it is `400`), and throws both sessions away;
+all it needs is the rows. Without them the **confirmed retry** answers `400`, which reads as a defect in D24's
+grant rather than as a missing sign-in.
 
 **What it leaves behind.** One `pending` question — the production promotion nobody answered — which is honest:
 it is what Task 10's expiry sweeper exists for, and §26's queue shows it beside the run's `confirmed` and
@@ -1309,16 +1313,16 @@ a token is refused staging's Incidents. **It never calls `default-chat-large`** 
 | 4 | the agent commits `server.js` as text and `logo.png` — a 1×1 PNG the demo MAKES — as bytes: a dry run, then the commit | the dry run no commit, `logo.png added, server.js modified`, `main` unmoved; then `201` with the same two; `server.js` as base64 → `400 REQUEST_INVALID` saying it *is text; send it with encoding: 'utf8'*; an ELF header as `logo2.png` → `400 REQUEST_INVALID` saying it *is not a kind the API writes* (each rule's own words, because all three binary rules answer the same code); **a PDF with an AWS-key-shaped value made at run time** → `409 SOURCE_SECRET_DETECTED` naming `syllabus.pdf:` and never the value, and `repository.secret_refused` naming it; `main` still the app's commit; `getTree` marks `logo.png` binary; `getFile?encoding=base64` the same bytes |
 | 5 | the server builds that commit, releases it, deploys it to **staging and the sandbox**; the STUDENT signs in inside the staging app and posts a response | the release froze `confidential`; both `healthy`; the app's `/api/me` is *Test Student* (**F1's guard**: without `express.urlencoded` nobody signs in); the post `303` to `/`; the page lists it under *Test Student*; `/logo.png` the committed bytes as `image/png` |
 | 6 | bash requests the SANDBOX page with the run's id; the server reads that instance's output | `listInstances` names step 5's sandbox instance as serving; `getInstanceOutput` holds the marker line for this run's request, with **`[REDACTED]` in its `mongo` field, where the app printed its own `MONGODB_URI`**, and no line holding the password; **staging's output is `403 INSTANCE_OUTPUT_STAGING`** (recent output is the sandbox's, FE-24); production's refusal is the unit tier's; the token's staging `listIncidents` → `403 INCIDENT_LOG_CONFIDENTIAL`, its sandbox's and the person's staging `200` |
-| 7 | the instructor steps up ON `app`; the student signs in to MANIFEST on `app` (so the platform knows the login); `addMember { cwlLogin: 'student' }` | without the step-up `403 STEP_UP_REQUIRED`; stepped up `201`, `cwlLogin: student`, a collaborator; `member.added` whose `memberId` is the student and `userId` the instructor; `nobody` → `400 MEMBER_USER_NOT_FOUND` |
+| 7 | the instructor steps up ON `app`; the student and `colleague` (faculty) sign in to MANIFEST on `app` (so the platform knows the logins); the student's `createProject`; `addMember { cwlLogin: 'student' }`, then `{ cwlLogin: 'colleague' }` | `getMe`: the student `mayBuild: false`, the colleague `true`; the student's create `403 BUILDING_NOT_OPEN`; without the step-up `403 STEP_UP_REQUIRED`; stepped up, the student `409 MEMBER_MAY_NOT_BUILD` naming them, the colleague `201`, `cwlLogin: colleague`, a collaborator; ONE `member.added`, `memberId` the colleague and `userId` the instructor; `nobody` → `400 MEMBER_USER_NOT_FOUND` |
 | 8 | archive (stepped up); then restore, a NEW token for the server, the same release deployed again, and a new model session | the key answered before (`200`, listing the session's model), then `401 token_not_found_in_db`; the token `401 UNAUTHENTICATED`; the instructor's `startBuild` `409 PROJECT_ARCHIVED`; step 3's session `ended`, `project_archived`; **both names `410`** with *This app has been switched off by its owner.*; after the restore the old token stays `401`, the redeploy is `healthy`, and **the page shows the response the student posted before the archive** |
 | 9 | the scratch project is built, deployed to its sandbox, then deleted (stepped up); then a NEW project is created with its slug | its repository THERE before the delete (driver 1: `.manifest/repos/<slug>.git`; driver 2: the fake's `200` naming it, and the mirror) — so "gone" afterwards is a change seen, not an empty path; its sandbox name answered *fixture-app in sandbox*, and afterwards the edge's wildcard; `checkSlug` available; `getProject` `404 NOT_FOUND`; its repository gone (driver 1: no directory; driver 2: the fake's `404` *Not Found*, and no mirror); **then `createProject` with the same slug `201`, a new id** — the only check that meets the partial unique index (`checkSlug` reads its own copy of the predicate) — and its repository there again. **When `launch-app` has launched** (`make demo-production`), `deleteProject` on it → `409 PROJECT_LAUNCHED_NOT_DELETABLE`, still `active` — the one call to a project the demo did not create, and read-only; otherwise it says why it did not ask. **That branch has never run on this machine**: on 2026-09-29 `launch-app` did not exist here (the tables had been truncated), so all three runs printed that it was not asked |
 | 10 | the server ends its session; the instructor revokes its token | `ended`/`ended`; the key `401 token_not_found_in_db`; the token `401 UNAUTHENTICATED`; `listAgentSessions` holds the session just ended, as `ended`, and no session of the project is active |
 
 **It stops at the first red phase** (each phase prints every check first). **The re-use path** starts the app again from the
-project's first commit — one commit — so every run commits the same two changes, removes and re-adds the student, and renames
+project's first commit — one commit — so every run commits the same two changes, removes and re-adds the colleague, and renames
 the project back first; its step 2 finds the scratch project the last run's step 9 created again, and its step 9 deletes it.
 **A green, FULL run leaves** `frontend-<driver>` running in staging with the student's responses (its sandbox switched off
-until the next deploy — the restore redeploys staging only), the student a collaborator, and no session or token of its own
+until the next deploy — the restore redeploys staging only), the colleague a collaborator, and no session or token of its own
 live; a new `frontend-scratch-<driver>`, never deployed, beside the deleted one's tombstone; and a `mf-person-` user at
 LiteLLM, which `scripts/litellm-orphans.sh` reclaims. **A `DEMO_FRONTEND_STOP_AFTER` run, or a red one, leaves more live**:
 step 3's model session (its key, for up to its 60 minutes) and step 2's token (for its day) — and after step 8, the second
@@ -1426,6 +1430,21 @@ docker exec manifest-postgres psql -U manifest -d manifest_control -c \
 `operator` / `operator` (PUID `opr000001`) is the IdP test user `make demo-journey` makes an administrator, so
 that the student and the instructor keep proving exactly what they prove in every other demo. An administrator
 reads `GET /v1/fleet` (§26); everyone else gets `403`.
+
+**Or name the administrators in a setting — `MANIFEST_ADMIN_PUIDS`** (the launch path plan's Task 8a, FE-39; §20 as
+Spec action 7 amended it). A comma-separated list of PUIDs in `.env`, read at boot. **Set, it is AUTHORITATIVE**: at every
+sign-in the person's role is reconciled to it — named, `admin`; not named, `member` — and each change is an
+`audit.role_changes` row with actor `setting:MANIFEST_ADMIN_PUIDS`, so a grant made by the script to someone the list
+does not name is undone at their next sign-in. **Unset (the default), nobody is reconciled** and the script above is the
+procedure. PUIDs, never CWL login names: a login can be given to somebody else. A stray comma refuses the boot
+(`CONFIG_INVALID`). Restart the control plane after changing it; it reaches each person at their next sign-in.
+
+**Who may BUILD is not a role** (FE-39): a faculty member — `eduPersonAffiliation` exactly `faculty` at their last
+sign-in — or an administrator may create a project, start an intake session or be added to one; anyone else signs
+in and is refused `403 BUILDING_NOT_OPEN` / `409 MEMBER_MAY_NOT_BUILD`, and `GET /v1/me` answers `mayBuild: false`.
+On the laptop IdP, `instructor` and `colleague` are faculty, `student` a student and `operator` staff — so `operator`
+builds only once an administrator. Read a person's last affiliation with `SELECT ubc_cwl_puid, affiliations,
+affiliations_seen_at FROM users`.
 
 ## Reaping LiteLLM's orphaned users
 
