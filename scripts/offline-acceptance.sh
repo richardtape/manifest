@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.."
 
 # WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
 # the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
-# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 and 15 run on either; run a driver-1 demo on driver 2 and it CREATES
+# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 to 16 run on either; run a driver-1 demo on driver 2 and it CREATES
 # its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
 source_driver() {
   local answer
@@ -286,6 +286,30 @@ case "$(source_driver)" in
   local | github)
     echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — frontend-local' || echo '2 — frontend-github')"
     make demo-frontend; echo "demo-frontend exit=$?"
+    ;;
+  *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
+esac
+
+echo
+echo "=== 16. The launch path plan's acceptance: a faculty member launches an app themselves, offline ==="
+# APPENDED, like steps 7 to 15. WHAT THIS PROVES OFFLINE THAT THE OTHER FIFTEEN DO NOT: the three
+# records UBC asks for — the privacy assessment and both registrations — DRAFTED by Manifest from the
+# app's own code and certificates, read, and sent by the owner in UBC's order (each refusal of the
+# order met); an agent on a token drafting and asking for sign-off and refused saying anything was
+# sent; the administrators' queue; the launch; then a revoked token's stream closed 4401, a removed
+# colleague's 4404, a failed attempt newer than the instance serving, and an open agent session
+# NARROWED when the app is raised to `confidential` — `default-chat` refused through the same key and
+# `default-chat-onprem` answering. It never calls `default-chat-large`, which needs the network.
+#
+# IT NEEDS A FRESH VULNERABILITY DATABASE, like step 11: past seven days §13's `scans` item refuses the
+# launch, and `make refresh-vulndb` needs the network.
+#
+# IT RUNS ON EITHER DRIVER, like steps 14 and 15, and says which slug: `launchpath-local` on driver 1,
+# `launchpath-github` on driver 2. A second run finds the app launched and runs its steps 9–11 again.
+case "$(source_driver)" in
+  local | github)
+    echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — launchpath-local' || echo '2 — launchpath-github')"
+    make demo-launch; echo "demo-launch exit=$?"
     ;;
   *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
 esac

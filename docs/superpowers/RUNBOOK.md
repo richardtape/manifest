@@ -952,7 +952,7 @@ what those commands reported *on 2026-09-05*; P3 and then P4a have since added c
 and the current numbers are stated ONCE each (Rich, 2026-09-30): **`scripts/ci-acceptance.sh`'s `EXPECT_` lines** for
 `pnpm test`, `make doctor` and `make verify`, and **ORIENTATION §2's `pnpm test:docker` row** — this file states none of them. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has FIFTEEN steps, 1 to 15, after step 0's offline check** (the front-end enablement plan's Task 15 added step 15, `make demo-frontend`, and the authoring API plan's Task 13 step 14, `make demo-authoring` — both run on either driver; this line said FOURTEEN until the launch path plan's sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
+disabling Wi-Fi cuts an agent off too. **It now has SIXTEEN steps, 1 to 16, after step 0's offline check** (the launch path plan's Task 15 added step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all three run on either driver; this line said FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
 preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
 (2026-09-22), and P6b sitting 7 added `make demo-releases` as step 12 (2026-09-23) — whose
@@ -1366,6 +1366,57 @@ ends and revokes its own. **What it does not cover:** production (a token cannot
 design, and nothing here launches), the capable model, and the CLICKED half — the reference console served on `app`
 (*Serving the reference console on the front-end's origin*, above) and a person clicking the same journey.
 
+## `make demo-launch` — the launch path plan's acceptance: a faculty member launches an app themselves
+
+*Added by the launch path plan's sitting 12, 2026-10-02 (Task 15).*
+
+A faculty member takes an app to production THEMSELVES, through the edge: the three records UBC asks for drafted by Manifest
+from the app's own code and certificates, read, and sent **in UBC's order**; an administrator's sign-off asked for and given;
+the launch. Then what a launched app's people, credentials and models do. The bash half (`scripts/demo-launch.sh`) signs
+people in and steps them up; the TypeScript half (`packages/journey/src/launch.ts`) is every client call, through
+`@manifest/contract` alone. **It runs on EITHER driver**: `launchpath-local` on driver 1, `launchpath-github` on driver 2 —
+**the GitHub FAKE**: with `.env`'s real-App block in force the demo refuses by name (`require_fake_github`, which reads `.env`,
+so the block is commented out for the fake's run and the control plane restarted, as its refusal says).
+
+```bash
+make demo-launch                                   # whichever driver answers
+DEMO_LAUNCH_STOP_AFTER=4 make demo-launch          # stop after a step, 0 to 11
+DEMO_LAUNCH_SLUG=launchpath-control DEMO_LAUNCH_STOP_AFTER=2 make demo-launch
+                                                   # a negative control of steps 1–8, on a project of its own
+DEMO_LAUNCH_REAL=1 DEMO_LAUNCH_STOP_AFTER=3 make demo-launch
+                                                   # the REAL App, steps 0–3, then deleted — Rich's yes, the network on
+```
+
+**Measured 2026-10-02** (sitting 12, on `94dc0d0`'s tree): driver 1 **260 s fresh** (on a `make reset` machine, a cold build
+cache) and **154 s re-used**; driver 2 on the fake **201–253 s fresh** and **138–149 s re-used**; the real leg **133 s**.
+
+**The app** is `fixtures/launch-path-app/`: an office-hours booking app on `node-ts-mongo@1` that reads `ubcEduCwlPuid`,
+`givenName` and `mail`, and asks for `sn` WITHOUT reading it — so the package flags `sn` unread and warns before it is sent.
+It is `internal` until step 11 raises it.
+
+| Step | What happens | What must be true |
+|---|---|---|
+| 0 | the build; `/v1/me`; the driver; `127.0.0.3` | `401 UNAUTHENTICATED` through the edge; on driver 2 the fake answers (or, with `DEMO_LAUNCH_REAL=1`, the real App) |
+| 1 | the project from the bare skeleton; the app committed, built, released; deployed to sandbox and staging | staging's `sso.registered` caught on the stream with its certificate fingerprint and staging's entity id; staging answers `/healthz` **as the app** (`"mongo":true`, `X-Manifest-Instance` the deploy's instance) |
+| 2 | the owner drafts the assessment, then staging's and production's registrations, and reads them; a build after the drafts | the assessment's six questions in the Privacy Office's order, with gaps; each package names ITS environment's entity id, ACS and SLO, lists the four attributes, flags `sn` alone unread with its warning, justifies `mail` by `server.js:<line>`, says the PIA number is not recorded, and carries a certificate — **staging's the one `sso.registered` published**, each environment its own — and **no `PRIVATE KEY` anywhere**; the checklist's three items in their draft words; **the build succeeds** (a draft registers nothing) |
+| 3 | an agent on a token (`project:read`, `launch:draft`, `approval:request`) drafts the assessment again, tries to say it was sent, asks for sign-off with a note | `200` and a newer draft; **`403 TOKEN_CREDENTIAL_REFUSED`**, still a draft; `requestApproval` **`200`**, open; `admin-approval` reads *An agent on Test Instructor’s token asked an administrator to approve it on <today>*; the note nowhere in the checklist |
+| 4 | the owner says the assessment was sent — first naming the draft they read before the agent's | `409 LAUNCH_DRAFT_CHANGED`, then recorded; the checklist *It was sent to the UBC Privacy Office on <today>.* with `since`; both registrations' sends **`409 LAUNCH_PIA_NOT_APPROVED`** |
+| 5 | the queue; the assessment recorded approved with its PIA number | the owner `403 FORBIDDEN`; the whole queue oldest first; this app's two items (the assessment, the sign-off request with its note); the assessment leaves it |
+| 6 | staging's send from the old draft; drafted again and sent; production's send early; staging recorded active; production drafted again, sent, recorded active | `409 LAUNCH_DRAFT_STALE`; the PIA number in both packages; **`409 LAUNCH_STAGING_NOT_REGISTERED`**; each registration waits in the queue and leaves it; *It was sent to UBC IAM on <today>.*; both records met — unmet exactly `admin-approval`, `rehearsal` |
+| 7 | stepped up: the rehearsal, a preview, the approval | the rehearsal passed on the public listener, releasing exactly the four; approved, bound to the digest, as previewed; the request leaves the queue; ready |
+| 8 | stepped up: the owner deploys to production | healthy; `127.0.0.3` answers as the instance; `127.0.0.2` does not; launched |
+| 9 | a token's stream, then the token revoked; the colleague added, minting a token, with a session stream and a token stream — then removed | **`4401`** within two seconds, and a new stream refused; the colleague's session stream **`4404`** and token stream **`4401`**, their token `401 UNAUTHENTICATED`, the project `404` to them |
+| 10 | in SANDBOX: the launched release, then a release whose health check never answers | `failed` after ~90 s; every instance carries `createdAt`; **the failed attempt's `createdAt` is when its deploy was asked for** (not ~90 s later, when it was last seen), and newer than the serving one's |
+| 11 | an agent session started (`default-chat` warmed first); the app raised to `confidential` by a commit | `default-chat` answers, then **`403 key_model_access_denied`** through the SAME key; the session still open, keeping `default-chat-onprem`, which answers; the manifest committed back to `internal` |
+
+**A launched project re-runs steps 9–11**, after checking what its launch durably is (the three records, production serving
+an approved release on `127.0.0.3`, nothing of it in the queue); **a project an earlier run left unlaunched is deleted and
+made again**, so steps 1–8 always run whole. **A green FULL run leaves** the app in production, sandbox and staging, the
+manifest `internal`, and a `mf-person-` user at LiteLLM (`scripts/litellm-orphans.sh`). **A control run with
+`DEMO_LAUNCH_SLUG`** leaves that project unlaunched — the next run with the name deletes it. **What it does not cover:** the
+CLICKED half (WALKTHROUGH, *A launch's three records and the administrators' queue, clicked*), `default-chat-large` (it needs
+the network), and anything FE-46, FE-47 or FE-5 would change (their spec actions are drafted, not applied).
+
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 
 *Added by P5c sitting 8, 2026-09-19 (Task 13).*
@@ -1393,7 +1444,7 @@ of everything that is broken rather than a stop at the first thing. It runs, in 
 `make doctor`, `make verify`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`,
 `pnpm test`, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production`
 and — last of driver 1's, because it leaves `launch-app` on its leg C release — `make demo-releases`,
-then `make demo-github`, and then, on EITHER driver, `make demo-authoring` and `make demo-frontend`. *(This line named
+then `make demo-github`, and then, on EITHER driver, `make demo-authoring`, `make demo-frontend` and `make demo-launch`. *(This line named
 three demos until the D5 plan's sitting 8 found it; P6b sitting 7 had added `make demo-releases` to the script and not
 to this sentence — and the authoring API plan's Task 13 added `make demo-authoring` to the script and not to it, which
 the front-end enablement plan's Task 15 found when it added `make demo-frontend` to both.)*

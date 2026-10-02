@@ -12,11 +12,12 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# sixteen `=== n.` headings are numbered 0 to 15, where 0 is the precondition and 1-15 are
+# seventeen `=== n.` headings are numbered 0 to 16, where 0 is the precondition and 1-16 are
 # the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it; P6b
 # Task 11 added step 12, `make demo-releases`; the D5 plan's Task 15 step 13, `make
 # demo-github`; the authoring API plan's Task 13 step 14, `make demo-authoring`; the front-end
-# enablement plan's Task 15 step 15, `make demo-frontend`).
+# enablement plan's Task 15 step 15, `make demo-frontend`; the launch path plan's Task 15 step
+# 16, `make demo-launch`).
 # This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
@@ -365,6 +366,21 @@ case "$DRIVER" in
   *) record "make demo-frontend" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
 esac
 
+# ---------------------------------------------------------------- 9. the launch path plan's acceptance
+#   demo-launch     — a faculty member takes an app to production themselves (the launch path
+#                     plan's Task 15): the privacy assessment and both registrations drafted from
+#                     the app's own code and certificates, read and sent in UBC's order; an agent
+#                     on a token drafting and asking for sign-off, refused saying anything was
+#                     sent; the administrators' queue; the launch; then a revoked token's stream
+#                     4401, a removed colleague's 4404, a failed attempt newer than the instance
+#                     serving, and an open agent session narrowed by raising the app to
+#                     confidential. It runs on EITHER driver, as demo-frontend does, on its own
+#                     project (launchpath-local or launchpath-github), and adds no test.
+case "$DRIVER" in
+  local | github) run "make demo-launch" make demo-launch ;;
+  *) record "make demo-launch" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
+esac
+
 # ---------------------------------------------------------------- the summary
 bold "=== summary ==="
 printf '%s' "$STEPS" | while IFS='|' read -r name status note; do
@@ -390,7 +406,7 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-15 include `make demo-identity` and `make demo-ai`;
+     network off, whose steps 0-16 include `make demo-identity` and `make demo-ai`;
    - BOTH source drivers in one run — one driver per control-plane process, so a run on
      driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 the other four.
 TAIL
