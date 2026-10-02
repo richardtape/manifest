@@ -299,7 +299,7 @@ export const STEP_UP_GUARDED: ReadonlySet<PrivilegedCapability> = new Set([
  */
 export class StepUpRequiredError extends Error {
   constructor(readonly capability: PrivilegedCapability) {
-    super(`'${capability}' needs a second authentication round trip (§20)`)
+    super(`'${capability}' needs a second authentication round trip`)
     this.name = 'StepUpRequiredError'
   }
 }

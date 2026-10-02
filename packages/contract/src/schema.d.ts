@@ -1336,7 +1336,7 @@ export interface components {
                 /** @description The label its minter gave it. */
                 tokenName: string;
             } | null;
-            /** @description The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has. When the project stops allowing some of them, the key loses those at once and keeps the rest (`agent_session.narrowed`), and this list is what it holds now. */
+            /** @description The logical models the key may call — the ones the project’s data classification allows, and never fewer restrictions than production’s release has. When the project stops allowing some of them, the key loses those at once and keeps the rest (`agent_session.narrowed`), and this list is what it holds now. */
             models: string[];
             /** @description The most the key may spend, in US dollars. The gateway refuses it past this. */
             capUsd: number;
@@ -1408,7 +1408,7 @@ export interface components {
             /** @description When the value last changed, or was first set; null when none is. */
             updatedAt: string | null;
         };
-        /** @description One decision about one release, kept for ever (§13). */
+        /** @description One decision about one release, kept for ever. */
         Approval: {
             /**
              * Format: uuid
@@ -1442,15 +1442,15 @@ export interface components {
              * @description When.
              */
             decidedAt: string;
-            /** @description What this approval binds to (§13). */
+            /** @description The image digest this approval binds to. */
             imageDigest: string;
-            /** @description Required on a rejection: a refusal with no words is one nobody can act on (D23.7). */
+            /** @description Required on a rejection: a refusal with no words is one nobody can act on. */
             reason: string | null;
             diff: components["schemas"]["ApprovalDiff"];
             /** @description The stored preview the administrator read, whose diff this record COPIES. Null only for a decision made before previews existed. */
             previewId: string | null;
         };
-        /** @description The exact diff shown at decision time (§13). */
+        /** @description The exact diff shown at decision time. */
         ApprovalDiff: {
             /** @description The image this approval binds to — the same value as the approval’s. */
             imageDigest: string;
@@ -1471,7 +1471,7 @@ export interface components {
             }[];
             /** @description `type@version`, sorted — what this release asks the platform to run. */
             services: string[];
-            /** @description The CWL attributes this release requests, sorted (§7). */
+            /** @description The CWL attributes this release requests, sorted. */
             attributes: string[];
             /** @description The production limits this release would run under. */
             resources: {
@@ -1500,23 +1500,23 @@ export interface components {
                 /** @description What that change could expose, in the model’s words. */
                 sentence: string;
             }[] | null;
-            /** @description The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before subsequent releases were compared. */
+            /** @description The last approved release this one was compared with — null for a first launch, and for a record made before subsequent releases were compared. */
             baselineReleaseId: string | null;
-            /** @description Which of §7’s sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch. */
+            /** @description Which sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch. */
             sensitiveFields: ("services" | "auth.attributes" | "egress.allow" | "resources" | "data.classification" | "ai.models" | "blueprint")[];
             /** @description What each changed field means for security and privacy, in the platform’s own words — present whether or not the model answered. */
             security: {
                 /**
-                 * @description One of §7’s sensitive fields that changed.
+                 * @description A sensitive field that changed.
                  * @enum {string}
                  */
                 field: "services" | "auth.attributes" | "egress.allow" | "resources" | "data.classification" | "ai.models" | "blueprint";
                 /** @description What it means for security and privacy. */
                 note: string;
             }[];
-            /** @description D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before it was stated. */
+            /** @description The limit of what an approval covers, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before it was stated. */
             coverage: string | null;
-            /** @description The code reviewer’s verdict at decision time (D33, §15). `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed. */
+            /** @description The code reviewer’s verdict at decision time. `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed. */
             review: {
                 /**
                  * @description The verdict, or `not_performed`.
@@ -1529,7 +1529,7 @@ export interface components {
                 detail: string;
             };
         };
-        /** @description §13’s exact diff, shown BEFORE the decision: approve and reject name it, the platform recomputes its facts and refuses if they moved (`APPROVAL_PREVIEW_STALE`), and the record copies its summary and verdict rather than asking the model again. */
+        /** @description The exact diff an administrator decides on, shown BEFORE the decision: approve and reject name it, the platform recomputes its facts and refuses if they moved (`APPROVAL_PREVIEW_STALE`), and the record copies its summary and verdict rather than asking the model again. */
         ApprovalPreview: {
             /**
              * Format: uuid
@@ -1563,7 +1563,7 @@ export interface components {
              * @description Thirty minutes after it was taken. A decision naming it after this is refused `APPROVAL_PREVIEW_EXPIRED`; take a new one.
              */
             expiresAt: string;
-            /** @description The digest the preview was taken over (§13). */
+            /** @description The image digest the preview was taken over. */
             imageDigest: string;
             diff: components["schemas"]["ApprovalDiff"];
         };
@@ -1622,15 +1622,15 @@ export interface components {
              */
             previewId?: string;
         };
-        /** @description Who the app is for, as its owner answered at creation (§24, D29). A large or public audience adds a load rehearsal to the launch checklist. */
+        /** @description Who the app is for, as its owner answered at creation. A large or public audience adds a load rehearsal to the launch checklist. */
         Audience: {
             /**
-             * @description §24: how many people the app is for.
+             * @description How many people the app is for.
              * @enum {string}
              */
             scale: "solo" | "class" | "large_course" | "public";
             /**
-             * @description §24: whether they arrive steadily, or all at once — a class starting a lab together.
+             * @description Whether they arrive steadily, or all at once — a class starting a lab together.
              * @enum {string}
              */
             burst: "steady" | "synchronised";
@@ -1647,15 +1647,15 @@ export interface components {
              */
             setAt: string;
         };
-        /** @description §24’s two questions about who the app is for, answered by a person at creation. */
+        /** @description The two questions about who the app is for, answered by a person at creation. */
         AudienceInput: {
             /**
-             * @description §24: how many people.
+             * @description How many people the app is for.
              * @enum {string}
              */
             scale: "solo" | "class" | "large_course" | "public";
             /**
-             * @description §24: do they all arrive at once.
+             * @description Whether they arrive steadily, or all at once.
              * @enum {string}
              */
             burst: "steady" | "synchronised";
@@ -1664,7 +1664,7 @@ export interface components {
         };
         /** @description A blueprint as a client chooses one: what it provides and the starters it offers. Never its base image or build internals. */
         Blueprint: {
-            /** @description `name@major` — what a project pins (§25). */
+            /** @description `name@major` — what a project pins. */
             ref: string;
             /** @description The blueprint’s name. */
             name: string;
@@ -1678,7 +1678,7 @@ export interface components {
             healthPath: string;
             /** @description The `manifest:` schema versions it understands. */
             schemaVersions: number[];
-            /** @description What an app on it may declare in manifest.yaml (§25). */
+            /** @description What an app on it may declare in manifest.yaml. */
             provides: {
                 /** @description The service types it can bind — what `services[].type` may name. */
                 services: string[];
@@ -1687,7 +1687,7 @@ export interface components {
                 /** @description Whether its apps may declare `ai.models`. */
                 ai: boolean;
             };
-            /** @description §25: what `POST /v1/projects` accepts as `starter` for this blueprint. */
+            /** @description What `POST /v1/projects` accepts as `starter` for this blueprint. */
             starters: {
                 /** @description The starter’s name, as `starter` in `createProject`. */
                 name: string;
@@ -1697,7 +1697,7 @@ export interface components {
         };
         /** @description Every blueprint a project can be created from. */
         BlueprintList: components["schemas"]["Blueprint"][];
-        /** @description A build of one commit (§13). It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream. */
+        /** @description A build of one commit. It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream. */
         Build: {
             /**
              * Format: uuid
@@ -1718,7 +1718,7 @@ export interface components {
             status: "pending" | "running" | "succeeded" | "failed";
             /** @description `sha256:…` once the build has succeeded; the image a release names. */
             imageDigest: string | null;
-            /** @description Why a failed build failed, in words its author can act on (§14). */
+            /** @description Why a failed build failed, in words its author can act on. */
             error: string | null;
             /** @description Null until the build succeeds, and for a build from before scans were recorded. */
             scan: components["schemas"]["ScanSummary"] | null;
@@ -1730,7 +1730,7 @@ export interface components {
         };
         /** @description A project’s newest builds, newest first. */
         BuildList: components["schemas"]["Build"][];
-        /** @description §14’s build log, as stored. */
+        /** @description A build’s log, as stored. */
         BuildLog: {
             /**
              * Format: uuid
@@ -1746,7 +1746,7 @@ export interface components {
                  * @enum {string}
                  */
                 stream: "stdout" | "stderr";
-                /** @description Redacted at capture (§14). */
+                /** @description The line’s text, redacted at capture. */
                 text: string;
                 /**
                  * Format: date-time
@@ -1933,7 +1933,7 @@ export interface components {
         };
         /** @description A new project: its slug, optionally a name people read, its blueprint, an optional starter, and who it is for. */
         CreateProjectRequest: {
-            /** @description Checked by the same function as GET /v1/slugs/{slug} (§23). */
+            /** @description Its permanent identifier, checked by the same function as GET /v1/slugs/{slug}. */
             slug: string;
             /** @description What people call the project — `ProjectName`’s rules. The slug, when none is given; `updateProject` changes it later. */
             name?: string;
@@ -1953,33 +1953,33 @@ export interface components {
             /** @description What this release changes, for the people who read it. */
             summary?: string;
         };
-        /** @description §22 steps 2–3: the project, its environments, and the validation of the manifest its first commit carries. */
+        /** @description A newly created project: the project, its environments, and the validation of the manifest its first commit carries. */
         CreatedProject: {
             /**
              * Format: uuid
              * @description The project — what every project-scoped path names.
              */
             id: string;
-            /** @description The project’s permanent identifier, and the first label of every hostname it has (§23). It never changes; `name` is what people read. */
+            /** @description The project’s permanent identifier, and the first label of every hostname it has. It never changes; `name` is what people read. */
             slug: string;
             /** @description What people call the project — text of 1 to 80 characters, trimmed, on one line, with something visible in it; no control character, line separator or bidirectional mark. Never part of an address: the slug is. */
             name: string;
-            /** @description `name@major` (§25). */
+            /** @description Its blueprint, `name@major`. */
             blueprint: string;
-            /** @description The starter the first commit was seeded from (§25); null for the skeleton alone. */
+            /** @description The starter the first commit was seeded from; null for the skeleton alone. */
             starter: string | null;
             owner: components["schemas"]["UserSummary"];
-            /** @description Who it is for (§24); null for a project created before the question was asked. */
+            /** @description Who it is for; null for a project created before the question was asked. */
             audience: components["schemas"]["Audience"] | null;
             /**
              * Format: date-time
              * @description When it was created.
              */
             createdAt: string;
-            /** @description When it first went to production (§13 D9) — null until then; never cleared. */
+            /** @description When it first went to production — null until then; never cleared. */
             launchedAt: string | null;
             /**
-             * @description §11: `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.
+             * @description `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.
              * @enum {string}
              */
             state: "active" | "archived";
@@ -1990,17 +1990,17 @@ export interface components {
             environments: components["schemas"]["Environment"][];
             spec: components["schemas"]["SpecValidation"];
         };
-        /** @description A deleted project (§11): what remains of it — the record its audit trail refers to. */
+        /** @description A deleted project: what remains of it — the record its audit trail refers to. */
         DeletedProject: {
             /**
              * Format: uuid
              * @description The project that was deleted. Every route answers it `404` from now on.
              */
             id: string;
-            /** @description Its permanent identifier — now FREE: another project may be created with it (§11). */
+            /** @description Its permanent identifier — now FREE: another project may be created with it. */
             slug: string;
             /**
-             * @description §11: `deleted` — its repository, every data volume, every secret and its model budgets destroyed. Its record and its audit trail remain.
+             * @description `deleted` — its repository, every data volume, every secret and its model budgets destroyed. Its record and its audit trail remain.
              * @constant
              */
             state: "deleted";
@@ -2041,7 +2041,7 @@ export interface components {
         };
         /** @description A mutation that takes no fields still sends a JSON object: `{}`, with `Content-Type: application/json`. */
         EmptyRequest: Record<string, never>;
-        /** @description One of a project’s three environments (§11): where a release is deployed, and what is serving there now. */
+        /** @description One of a project’s three environments: where a release is deployed, and what is serving there now. */
         Environment: {
             /**
              * Format: uuid
@@ -2054,28 +2054,28 @@ export interface components {
              */
             projectId: string;
             /**
-             * @description Which of the three: `sandbox`, `staging` or `production` (§11).
+             * @description Which of the three: `sandbox`, `staging` or `production`.
              * @enum {string}
              */
             kind: "sandbox" | "staging" | "production";
-            /** @description §23: `<slug>.<zone for this kind>`. Permanent. */
+            /** @description Its hostname: `<slug>.<zone for this kind>`. Permanent. */
             hostname: string;
             /**
              * Format: uri
              * @description Where the app answers in this environment, once it is deployed.
              */
             url: string;
-            /** @description The instance the hostname reaches (§6 Route). Null before any deploy. */
+            /** @description The instance the hostname reaches. Null before any deploy. */
             instance: components["schemas"]["Instance"] | null;
         };
         /** @description A project’s three environments: sandbox, staging and production. */
         EnvironmentList: components["schemas"]["Environment"][];
         /**
-         * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
+         * @description Every code the API answers with, in `error.code`. Stable: a client switches on it. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
         ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_NOT_NEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_DRAFT_CHANGED" | "LAUNCH_DRAFT_REQUIRED" | "LAUNCH_DRAFT_STALE" | "LAUNCH_NOT_CWL" | "LAUNCH_PIA_NOT_APPROVED" | "LAUNCH_RECORD_INVALID" | "LAUNCH_RECORD_SUBMITTED" | "LAUNCH_SENT_AT_INVALID" | "LAUNCH_STAGING_NOT_REGISTERED" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_REJECTED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
-        /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
+        /** @description Every error the API answers, in one shape: a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
             error: {
@@ -2086,13 +2086,13 @@ export interface components {
                 hint?: string;
                 /** @description On SPEC_INVALID: each problem in manifest.yaml, with its path and code. */
                 details?: components["schemas"]["ManifestError"][];
-                /** @description On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13). */
+                /** @description On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs. */
                 launchReadiness?: components["schemas"]["LaunchReadiness"];
-                /** @description On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed (D24). */
+                /** @description On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed. */
                 pendingAction?: components["schemas"]["PendingAction"];
             };
         };
-        /** @description An audit Event, as recorded (§20) and redacted at capture (§14). Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect. */
+        /** @description An audit Event, as recorded and redacted at capture. Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect. */
         EventFrame: {
             /**
              * @description An audit event.
@@ -2116,11 +2116,11 @@ export interface components {
              * @constant
              */
             type: "sso.registered";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The app’s SAML Service Provider registration with the identity provider was written for one environment (§9). */
+            /** @description The app’s SAML Service Provider registration with the identity provider was written for one environment. */
             machineDetail: {
-                /** @description The app’s SAML entity id in this environment (§9). */
+                /** @description The app’s SAML entity id in this environment. */
                 entityId: string;
                 /** @description Where the identity provider sends its assertions. */
                 acsUrl: string;
@@ -2159,9 +2159,9 @@ export interface components {
              * @constant
              */
             type: "sso.acs_changed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description Where the app receives CWL sign-in assertions moved (§9). Worth a person’s attention: it is where a sign-in is sent. */
+            /** @description Where the app receives CWL sign-in assertions moved. Worth a person’s attention: it is where a sign-in is sent. */
             machineDetail: {
                 /** @description Where assertions were sent before; null for a first registration. */
                 from: string | null;
@@ -2196,9 +2196,9 @@ export interface components {
              * @constant
              */
             type: "build.started";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A build began (§14). Its log lines follow on the stream as LogFrames, and `build.succeeded` or `build.failed` ends it. */
+            /** @description A build began. Its log lines follow on the stream as LogFrames, and `build.succeeded` or `build.failed` ends it. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2207,7 +2207,7 @@ export interface components {
                 buildId: string;
                 /** @description A full 40-character commit id. */
                 commitSha: string;
-                /** @description The blueprint it is built with, `name@major` (§25). */
+                /** @description The blueprint it is built with, `name@major`. */
                 blueprintRef: string;
             };
             /**
@@ -2238,9 +2238,9 @@ export interface components {
              * @constant
              */
             type: "build.succeeded";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A build finished and passed every gate (§12); create a release from it next. */
+            /** @description A build finished and passed every gate; create a release from it next. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2280,7 +2280,7 @@ export interface components {
              * @constant
              */
             type: "build.failed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description A build failed. `reason` says why, and `getBuildLog` has the whole output to correct it from. */
             machineDetail: {
@@ -2291,7 +2291,7 @@ export interface components {
                 buildId: string;
                 /** @description A stable code for the failure when there is one; null for a failure with no code. */
                 code: string | null;
-                /** @description Redacted at capture (§14). For the agent; the human message is for a person. */
+                /** @description Redacted at capture. For the agent; the human message is for a person. */
                 reason: string;
             };
             /**
@@ -2322,9 +2322,9 @@ export interface components {
              * @constant
              */
             type: "instance.provisioning";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A deploy made an instance and is binding its services — the first step of a deploy (§11). */
+            /** @description A deploy made an instance and is binding its services — the first step of a deploy. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2347,7 +2347,7 @@ export interface components {
                  */
                 environment: "sandbox" | "staging" | "production";
                 /**
-                 * @description The state the instance moved to (§11).
+                 * @description The state the instance moved to.
                  * @enum {string}
                  */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
@@ -2380,9 +2380,9 @@ export interface components {
              * @constant
              */
             type: "instance.starting";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The instance’s services are bound and the runtime is starting it, beside the one already serving (§11). */
+            /** @description The instance’s services are bound and the runtime is starting it, beside the one already serving. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2405,7 +2405,7 @@ export interface components {
                  */
                 environment: "sandbox" | "staging" | "production";
                 /**
-                 * @description The state the instance moved to (§11).
+                 * @description The state the instance moved to.
                  * @enum {string}
                  */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
@@ -2438,9 +2438,9 @@ export interface components {
              * @constant
              */
             type: "instance.healthy";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The instance passed its health check and now serves the environment; a deploy has succeeded (§11). */
+            /** @description The instance passed its health check and now serves the environment; a deploy has succeeded. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2463,7 +2463,7 @@ export interface components {
                  */
                 environment: "sandbox" | "staging" | "production";
                 /**
-                 * @description The state the instance moved to (§11).
+                 * @description The state the instance moved to.
                  * @enum {string}
                  */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
@@ -2496,9 +2496,9 @@ export interface components {
              * @constant
              */
             type: "instance.failed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The instance never became healthy — whatever was already serving keeps serving — and an Incident records why (§11, §14). */
+            /** @description The instance never became healthy — whatever was already serving keeps serving — and an Incident records why. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2521,7 +2521,7 @@ export interface components {
                  */
                 environment: "sandbox" | "staging" | "production";
                 /**
-                 * @description The state the instance moved to (§11).
+                 * @description The state the instance moved to.
                  * @enum {string}
                  */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
@@ -2556,9 +2556,9 @@ export interface components {
              * @constant
              */
             type: "incident.opened";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An Incident was recorded for a failed instance (§14): its logs, redacted, and a prompt an agent can work from. */
+            /** @description An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2609,9 +2609,9 @@ export interface components {
              * @constant
              */
             type: "ai.key_rotated";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The app’s AI key was replaced by a deploy that became healthy (§10). The key itself is never in an event. */
+            /** @description The app’s AI key was replaced by a deploy that became healthy. The key itself is never in an event. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2654,9 +2654,9 @@ export interface components {
              * @constant
              */
             type: "instance.retiring";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An instance a deploy replaced is finishing the requests it already had, before it stops (§11). */
+            /** @description An instance a deploy replaced is finishing the requests it already had, before it stops. */
             machineDetail: {
                 /** @description The instance being retired; null for a container no instance row names any more, which `handle` then names. */
                 instanceId: string | null;
@@ -2667,7 +2667,7 @@ export interface components {
                  * @enum {string}
                  */
                 environment: "sandbox" | "staging" | "production";
-                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops (§11). */
+                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops. */
                 drainMs: number;
             };
             /**
@@ -2698,9 +2698,9 @@ export interface components {
              * @constant
              */
             type: "instance.retired";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A replaced instance finished: its container is gone and its AI key is revoked (§11). */
+            /** @description A replaced instance finished: its container is gone and its AI key is revoked. */
             machineDetail: {
                 /** @description The instance being retired; null for a container no instance row names any more, which `handle` then names. */
                 instanceId: string | null;
@@ -2711,7 +2711,7 @@ export interface components {
                  * @enum {string}
                  */
                 environment: "sandbox" | "staging" | "production";
-                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops (§11). */
+                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops. */
                 drainMs: number;
             };
             /**
@@ -2742,9 +2742,9 @@ export interface components {
              * @constant
              */
             type: "instance.retire_failed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A replaced instance could not be retired, and will be tried again — never silently (§11). */
+            /** @description A replaced instance could not be retired, and will be tried again — never silently. */
             machineDetail: {
                 /** @description The instance being retired; null for a container no instance row names any more, which `handle` then names. */
                 instanceId: string | null;
@@ -2755,9 +2755,9 @@ export interface components {
                  * @enum {string}
                  */
                 environment: "sandbox" | "staging" | "production";
-                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops (§11). */
+                /** @description How long, in milliseconds, requests already in flight are given to finish before the container stops. */
                 drainMs: number;
-                /** @description A code or an error class name — never a message (§14). */
+                /** @description A code or an error class name — never a message. */
                 error: string;
             };
             /**
@@ -2788,25 +2788,25 @@ export interface components {
              * @constant
              */
             type: "project.created";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A project and its three environments were created (§22). `repository.seeded` and `spec.validated` follow. */
+            /** @description A project and its three environments were created. `repository.seeded` and `spec.validated` follow. */
             machineDetail: {
-                /** @description The project’s slug (§23) — what its hostnames and repository are made from, and never changes. */
+                /** @description The project’s slug — what its hostnames and repository are made from, and never changes. */
                 slug: string;
-                /** @description Its blueprint, `name@major` (§25). */
+                /** @description Its blueprint, `name@major`. */
                 blueprint: string;
                 /** @description The starter it was seeded from; null for the skeleton alone. */
                 starter: string | null;
-                /** @description Who the app is for, as its owner answered at creation (§24). */
+                /** @description Who the app is for, as its owner answered at creation. */
                 audience: {
                     /**
-                     * @description §24: how many people the app is for.
+                     * @description How many people the app is for.
                      * @enum {string}
                      */
                     scale: "solo" | "class" | "large_course" | "public";
                     /**
-                     * @description §24: whether they arrive steadily or all at once.
+                     * @description Whether they arrive steadily or all at once.
                      * @enum {string}
                      */
                     burst: "steady" | "synchronised";
@@ -2840,9 +2840,9 @@ export interface components {
              * @constant
              */
             type: "repository.seeded";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The project’s repository was created and its first commit made, from the blueprint’s skeleton and starter (§25). */
+            /** @description The project’s repository was created and its first commit made, from the blueprint’s skeleton and starter. */
             machineDetail: {
                 /** @description A full 40-character commit id. */
                 commitSha: string;
@@ -2879,9 +2879,9 @@ export interface components {
              * @constant
              */
             type: "spec.validated";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not (§7). */
+            /** @description manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2923,16 +2923,16 @@ export interface components {
              * @constant
              */
             type: "token.minted";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A person minted a delegated token for this project (D24). Never carries the token or its hash. */
+            /** @description A person minted a delegated token for this project. Never carries the token or its hash. */
             machineDetail: {
                 /**
                  * Format: uuid
                  * @description The token (`listTokens`).
                  */
                 tokenId: string;
-                /** @description What it may do (D24). */
+                /** @description The capabilities it was minted with — what it may do. */
                 capabilities: string[];
                 /**
                  * Format: date-time
@@ -2968,9 +2968,9 @@ export interface components {
              * @constant
              */
             type: "pending_action.created";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A delegated token asked for one of D24’s privileged actions, and a person must confirm or reject it in the console. */
+            /** @description A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2982,7 +2982,7 @@ export interface components {
                  * @description The token that asked.
                  */
                 tokenId: string;
-                /** @description The privileged capability it asked to use (D24). */
+                /** @description The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`. */
                 action: string;
             };
             /**
@@ -3013,9 +3013,9 @@ export interface components {
              * @constant
              */
             type: "pending_action.confirmed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A person confirmed a token’s pending action, which grants that one request exactly one retry (D24). */
+            /** @description A person confirmed a token’s pending action, which grants that one request exactly one retry. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -3027,7 +3027,7 @@ export interface components {
                  * @description The token that asked.
                  */
                 tokenId: string;
-                /** @description The privileged capability it asked to use (D24). */
+                /** @description The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`. */
                 action: string;
                 /**
                  * Format: uuid
@@ -3063,9 +3063,9 @@ export interface components {
              * @constant
              */
             type: "pending_action.rejected";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED` (D24). */
+            /** @description A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED`. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -3077,7 +3077,7 @@ export interface components {
                  * @description The token that asked.
                  */
                 tokenId: string;
-                /** @description The privileged capability it asked to use (D24). */
+                /** @description The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`. */
                 action: string;
                 /**
                  * Format: uuid
@@ -3115,12 +3115,12 @@ export interface components {
              * @constant
              */
             type: "iam_registration.recorded";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description An administrator recorded what UBC IAM registered for the app’s staging or production sign-in. */
             machineDetail: {
                 /**
-                 * @description The registration’s state, as UBC IAM gave it (§9).
+                 * @description The registration’s state, as UBC IAM gave it.
                  * @enum {string}
                  */
                 state: "draft" | "submitted" | "active" | "change_requested" | "expired";
@@ -3164,12 +3164,12 @@ export interface components {
              * @constant
              */
             type: "privacy_assessment.recorded";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment (§9). */
+            /** @description An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment. */
             machineDetail: {
                 /**
-                 * @description The assessment’s state, as the Privacy Office gave it (§9).
+                 * @description The assessment’s state, as the Privacy Office gave it.
                  * @enum {string}
                  */
                 state: "draft" | "submitted" | "approved";
@@ -3204,7 +3204,7 @@ export interface components {
              * @constant
              */
             type: "iam_registration.submitted";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records. */
             machineDetail: {
@@ -3246,7 +3246,7 @@ export interface components {
              * @constant
              */
             type: "privacy_assessment.submitted";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records. */
             machineDetail: {
@@ -3283,7 +3283,7 @@ export interface components {
              * @constant
              */
             type: "iam_registration.drafted";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description Manifest drafted the app’s staging or production registration request for a person to send to UBC IAM. Nothing was sent; the draft is on the record. */
             machineDetail: {
@@ -3329,7 +3329,7 @@ export interface components {
              * @constant
              */
             type: "privacy_assessment.drafted";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description Manifest drafted the app’s privacy impact assessment for a person to complete and send to UBC’s Privacy Office. Nothing was sent; the draft is on the record. */
             machineDetail: {
@@ -3366,9 +3366,9 @@ export interface components {
              * @constant
              */
             type: "rehearsal.completed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21). */
+            /** @description A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -3413,9 +3413,9 @@ export interface components {
              * @constant
              */
             type: "release.approved";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An administrator approved a release for production, bound to the image digest it froze (§13). */
+            /** @description An administrator approved a release for production, bound to the image digest it froze. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -3458,9 +3458,9 @@ export interface components {
              * @constant
              */
             type: "release.approval_rejected";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An administrator rejected a release for production, which is final for that release (§13); the sentence carries their reason. */
+            /** @description An administrator rejected a release for production, which is final for that release; the sentence carries their reason. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -3503,7 +3503,7 @@ export interface components {
              * @constant
              */
             type: "approval.requested";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description A person asked an administrator to approve the release serving staging for production. It waits in the administrators’ queue until an administrator decides, or another release serves staging. */
             machineDetail: {
@@ -3548,9 +3548,9 @@ export interface components {
              * @constant
              */
             type: "project.launched";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The app’s first production launch became healthy (§13 D9). Published once per project, ever. */
+            /** @description The app’s first production launch became healthy. Published once per project, ever. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -3593,9 +3593,9 @@ export interface components {
              * @constant
              */
             type: "repository.pushed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A branch moved on GitHub and Manifest’s copy took it (D5). Commit ids only — never an author or a message. */
+            /** @description A branch moved on GitHub and Manifest’s copy took it. Commit ids only — never an author or a message. */
             machineDetail: {
                 /** @description The branch, as git names it: `refs/heads/main`. */
                 ref: string;
@@ -3632,9 +3632,9 @@ export interface components {
              * @constant
              */
             type: "repository.history_rewritten";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next (§13). */
+            /** @description A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next. */
             machineDetail: {
                 /** @description The branch, as git names it: `refs/heads/main`. */
                 ref: string;
@@ -3671,9 +3671,9 @@ export interface components {
              * @constant
              */
             type: "repository.visibility_enforced";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The repository was found public on GitHub, and was made private again or could not be (§20). */
+            /** @description The repository was found public on GitHub, and was made private again or could not be. */
             machineDetail: {
                 /**
                  * @description What the repository was found to be on GitHub.
@@ -3716,9 +3716,9 @@ export interface components {
              * @constant
              */
             type: "repository.secret_detected";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A commit pushed to GitHub adds a value shaped like a secret (§20). Never the value; the commit is never deployed with it. */
+            /** @description A commit pushed to GitHub adds a value shaped like a secret. Never the value; the commit is never deployed with it. */
             machineDetail: {
                 /** @description The commit that added the value. */
                 commit: string;
@@ -3762,9 +3762,9 @@ export interface components {
              * @constant
              */
             type: "repository.scan_incomplete";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description Commits pushed to GitHub were too large for Manifest to scan for secrets (§20). Nothing in them was read; a build of any commit still scans the whole tree it builds. */
+            /** @description Commits pushed to GitHub were too large for Manifest to scan for secrets. Nothing in them was read; a build of any commit still scans the whole tree it builds. */
             machineDetail: {
                 /** @description The commits whose own changes were too large to scan, oldest first. */
                 commits: string[];
@@ -3797,7 +3797,7 @@ export interface components {
              * @constant
              */
             type: "repository.protection_unavailable";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description GitHub would not protect the new repository’s `main`, so a person can rewrite or delete it there; `getProject`’s repository says so too. */
             machineDetail: {
@@ -3834,7 +3834,7 @@ export interface components {
              * @constant
              */
             type: "repository.committed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description A commit was made through Manifest’s API (`createCommit`) — the platform’s own record of who made it, which `listCommits` reads as `madeThrough`. */
             machineDetail: {
@@ -3889,9 +3889,9 @@ export interface components {
              * @constant
              */
             type: "repository.secret_refused";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A commit Manifest was asked to make carried a value shaped like a secret, and was refused (§20). Never the value. */
+            /** @description A commit Manifest was asked to make carried a value shaped like a secret, and was refused. Never the value. */
             machineDetail: {
                 /** @description Where each value was, and what kind. */
                 findings: {
@@ -3931,7 +3931,7 @@ export interface components {
              * @constant
              */
             type: "app_secret.set";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description A value was set for one of the app’s secrets in one environment; the next deploy there renders it. Never the value. */
             machineDetail: {
@@ -3983,7 +3983,7 @@ export interface components {
              * @constant
              */
             type: "app_secret.cleared";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description A secret’s value was removed from one environment; deploying a release that declares it there is refused until it is set again. */
             machineDetail: {
@@ -4035,7 +4035,7 @@ export interface components {
              * @constant
              */
             type: "project.renamed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
             /** @description The project’s name — what people call it — changed. Its slug, and so every hostname it has, did not. */
             machineDetail: {
@@ -4084,9 +4084,9 @@ export interface components {
              * @constant
              */
             type: "member.added";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A person was added to the project, or their role on it changed (§13). Not published when nothing changed. */
+            /** @description A person was added to the project, or their role on it changed. Not published when nothing changed. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -4141,9 +4141,9 @@ export interface components {
              * @constant
              */
             type: "member.removed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A person was taken off the project (§13) — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed (§6, §10, §20). Not published for somebody who was not a member. */
+            /** @description A person was taken off the project — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed. Not published for somebody who was not a member. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -4195,16 +4195,16 @@ export interface components {
              * @constant
              */
             type: "agent_session.started";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published. */
+            /** @description An agent was given a model key for this project, charged to the person who started it. The key itself is never published. */
             machineDetail: {
                 /**
                  * Format: uuid
                  * @description The session — `listAgentSessions` names it.
                  */
                 sessionId: string;
-                /** @description The logical models its key may call — what D17 allows for the project’s data. */
+                /** @description The logical models its key may call — those approved for the project’s data classification. */
                 models: string[];
                 /** @description The most its key may spend, in US dollars. */
                 capUsd: number;
@@ -4254,9 +4254,9 @@ export interface components {
              * @constant
              */
             type: "agent_session.narrowed";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key. */
+            /** @description An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest. The session goes on with the same key. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -4308,9 +4308,9 @@ export interface components {
              * @constant
              */
             type: "agent_session.ended";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An agent session’s key was revoked at the gateway (§10). */
+            /** @description An agent session ended: its key was revoked at the gateway, and `reason` says why. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -4363,11 +4363,11 @@ export interface components {
              * @constant
              */
             type: "sso.deregistered";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11). */
+            /** @description The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off. */
             machineDetail: {
-                /** @description The app’s SAML entity id in this environment (§9), now unregistered. */
+                /** @description The app’s SAML entity id in this environment, now unregistered. */
                 entityId: string;
             };
             /**
@@ -4398,9 +4398,9 @@ export interface components {
              * @constant
              */
             type: "project.archived";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored. */
+            /** @description The project was switched off by its owner: each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored. */
             machineDetail: {
                 /**
                  * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
@@ -4443,9 +4443,9 @@ export interface components {
              * @constant
              */
             type: "project.restored";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked. */
+            /** @description A switched-off project was restored. Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked. */
             machineDetail: {
                 /**
                  * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
@@ -4488,9 +4488,9 @@ export interface components {
              * @constant
              */
             type: "project.deleted";
-            /** @description For a person (§14). Never parse it. */
+            /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The project, which never launched, was deleted by its owner (§11): switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has. */
+            /** @description The project, which never launched, was deleted by its owner: switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has. */
             machineDetail: {
                 /**
                  * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.
@@ -4511,14 +4511,14 @@ export interface components {
              */
             createdAt: string;
         };
-        /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
+        /** @description The fleet — every project, active or archived, but none deleted — for administrators only. It does not carry a project’s department, custom domains or AI spend this month. */
         Fleet: {
             /**
              * Format: uuid
              * @description The project.
              */
             id: string;
-            /** @description Its slug (§23), which its hostnames are made from. */
+            /** @description Its slug, which its hostnames are made from. */
             slug: string;
             /** @description Its name, as its owner gave it. */
             name: string;
@@ -4545,14 +4545,14 @@ export interface components {
                 /** @description Their address. */
                 email: string;
             };
-            /** @description Who it is for (§24); null for a project created before the question was asked. */
+            /** @description Who it is for; null for a project created before the question was asked. */
             audience: components["schemas"]["Audience"] | null;
             /**
              * Format: date-time
              * @description When it was created.
              */
             createdAt: string;
-            /** @description §23: holds a label reserved after it was created. Handle with the owner; never renamed automatically. */
+            /** @description Whether its slug is a label reserved after the project was created. Handle with the owner; it is never renamed automatically. */
             slugReserved: boolean;
             /** @description Its three environments, and what each is running. */
             environments: {
@@ -4561,7 +4561,7 @@ export interface components {
                  * @enum {string}
                  */
                 kind: "sandbox" | "staging" | "production";
-                /** @description Its hostname (§23). */
+                /** @description Its hostname: `<slug>.<zone for this kind>`. */
                 hostname: string;
                 /** @description The serving instance’s state; null before any deploy. */
                 state: string | null;
@@ -4592,7 +4592,7 @@ export interface components {
              * @enum {string}
              */
             environment: "staging" | "production";
-            /** @description §9: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch. */
+            /** @description The Service Provider’s entity ID: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch. */
             entityId: string;
             /** @description The assertion consumer URL registered — where sign-ins are sent. */
             acsUrl: string;
@@ -4600,16 +4600,16 @@ export interface components {
             sloUrl: string;
             /** @description The fingerprint of the signing certificate registered; null when none was recorded. */
             certFingerprint: string | null;
-            /** @description D20: an unnoticed expiry silently kills login for a live course app. */
+            /** @description When the registered signing certificate expires; null when none was recorded. An unnoticed expiry silently kills login for a live course app. */
             certExpiresAt: string | null;
             /** @description What UBC IAM registered; empty until it has registered something. Builds are checked against the PRODUCTION registration’s list once UBC has registered it (`registeredAt` set): a build that asks for an attribute not in it fails. The staging registration’s list, and one not yet registered, gate no build. Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`. */
             registeredAttributes: string[];
-            /** @description What an outstanding CHANGE REQUEST asks UBC IAM for (§9) — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again. */
+            /** @description What an outstanding CHANGE REQUEST asks UBC IAM for — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again. */
             requestedAttributes: string[] | null;
-            /** @description When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it (§13, D9). */
+            /** @description When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it. */
             registeredAt: string | null;
             /**
-             * @description Along §9’s states: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.
+             * @description Where the registration is: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.
              * @enum {string}
              */
             state: "draft" | "submitted" | "active" | "change_requested" | "expired";
@@ -4642,7 +4642,7 @@ export interface components {
              */
             updatedAt: string;
         };
-        /** @description A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. */
+        /** @description A failed deploy, as the platform records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. */
         Incident: {
             /**
              * Format: uuid
@@ -4661,9 +4661,9 @@ export interface components {
             releaseId: string;
             /** @description How it ended — its exit, or that it never answered its health check. */
             exitReason: string;
-            /** @description The last 200 lines, redacted at capture (§14). */
+            /** @description The last 200 lines the app printed, redacted at capture. */
             logTail: string;
-            /** @description Which check the platform ran and what it got back (§11). */
+            /** @description Which check the platform ran and what it got back. */
             failedCheck: string;
             /** @description What changed in manifest.yaml since the last release that was healthy here — often the cause. */
             diffSinceHealthy: string;
@@ -4672,7 +4672,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description §14: shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model. */
+            /** @description Shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model. */
             prompt: string;
         };
         /** @description One environment’s Incidents, newest first. */
@@ -4685,7 +4685,7 @@ export interface components {
             /** @description Newest first. */
             incidents: components["schemas"]["Incident"][];
         };
-        /** @description A running (or once-running) copy of a release in one environment (§11). Never its driver or handle. */
+        /** @description A running (or once-running) copy of a release in one environment. Never its driver or handle. */
         Instance: {
             /**
              * Format: uuid
@@ -4708,7 +4708,7 @@ export interface components {
              */
             kind: "web" | "worker" | "cron";
             /**
-             * @description Where it is in its life (§11): `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.
+             * @description Where it is in its life: `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.
              * @enum {string}
              */
             state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
@@ -4720,7 +4720,7 @@ export interface components {
              */
             createdAt: string;
         };
-        /** @description An environment’s instances (§11), the one seen most recently first; `createdAt` says which attempt is newest. */
+        /** @description An environment’s instances, the one seen most recently first; `createdAt` says which attempt is newest. */
         InstanceList: {
             /**
              * Format: uuid
@@ -4732,7 +4732,7 @@ export interface components {
             /** @description True when the environment has had more than 50 instances and only the 50 seen most recently are listed. */
             truncated: boolean;
         };
-        /** @description A running instance’s recent output (§14): read on request, never streamed, never stored — in the sandbox only. */
+        /** @description A running instance’s recent output: read on request, never streamed, never stored — in the sandbox only. */
         InstanceOutput: {
             /**
              * Format: uuid
@@ -4745,7 +4745,7 @@ export interface components {
              */
             environmentId: string;
             /**
-             * @description Only a sandbox instance’s output is readable (§14): a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.
+             * @description Only a sandbox instance’s output is readable: a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.
              * @enum {string}
              */
             environmentKind: "sandbox" | "staging";
@@ -4804,7 +4804,7 @@ export interface components {
              */
             kind: "web" | "worker" | "cron";
             /**
-             * @description Where it is in its life (§11): `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.
+             * @description Where it is in its life: `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.
              * @enum {string}
              */
             state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
@@ -4858,7 +4858,7 @@ export interface components {
              */
             baseUrl: string;
         };
-        /** @description D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it. */
+        /** @description The blueprint’s knowledge pack: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it. */
         KnowledgePack: {
             /** @description The blueprint it belongs to, `name@major`. */
             blueprint: string;
@@ -4877,29 +4877,29 @@ export interface components {
                 content: string;
             }[];
         };
-        /** @description §13’s checklist, computed from what exists — a first launch’s, or once launched the self-serve check (D9). A production deploy is refused with this exact value until every blocking item is met. */
+        /** @description The launch checklist, computed from what exists — a first launch’s, or once launched the self-serve check. A production deploy is refused with this exact value until every blocking item is met. */
         LaunchReadiness: {
             /**
              * Format: uuid
              * @description The project.
              */
             projectId: string;
-            /** @description Which of D9’s two clauses this is: false, the first launch’s checklist; true, a launched app’s, where a release goes to production self-serve unless it changes a sensitive field (§13). */
+            /** @description Which checklist this is: false, the first launch’s; true, a launched app’s, where a release goes to production self-serve unless it changes a sensitive field. */
             launched: boolean;
             /** @description Whether every blocking item is met — a production deploy is refused until it is. */
             ready: boolean;
             /** @description The release serving staging — what production would run; null when nothing serves staging. */
             candidateReleaseId: string | null;
-            /** @description The last approved release the candidate is compared with (D9.2); null before launch, or when nothing else is approved. */
+            /** @description The last approved release the candidate is compared with; null before launch, or when nothing else is approved. */
             baselineReleaseId: string | null;
-            /** @description §7’s fields the candidate changes since that release; empty before launch. */
+            /** @description The sensitive fields the candidate changes since that release; empty before launch. */
             sensitiveFields: ("services" | "auth.attributes" | "egress.allow" | "resources" | "data.classification" | "ai.models" | "blueprint")[];
-            /** @description An administrator’s approval is what this release is waiting for — a sensitive change, not rejected, and nothing else unmet (§13 D9.2). */
+            /** @description An administrator’s approval is what this release is waiting for — a sensitive change, not rejected, and nothing else unmet. */
             reescalated: boolean;
             /** @description Every item, met or not. */
             items: components["schemas"]["LaunchReadinessItem"][];
         };
-        /** @description One item of the launch checklist (§13), computed from what exists. */
+        /** @description One item of the launch checklist, computed from what exists. */
         LaunchReadinessItem: {
             /**
              * @description Which item — stable, for a client to switch on.
@@ -4910,7 +4910,7 @@ export interface components {
             title: string;
             /** @description Who meets it: the project’s owner, Manifest itself, or UBC recorded by an administrator. */
             owner: string;
-            /** @description Whether this item gates production. `ready` is every BLOCKING item being met; a non-blocking item is shown and never refuses a launch (D33: `code-review`). */
+            /** @description Whether this item gates production. `ready` is every BLOCKING item being met; a non-blocking item — `code-review` — is shown and never refuses a launch. */
             blocking: boolean;
             /**
              * @description `met`: satisfied. `unmet`: tracked and not satisfied — `why` says what to do. `not_built`: Manifest does not track it yet, and `builtBy` says what will.
@@ -4964,7 +4964,7 @@ export interface components {
              * @enum {string}
              */
             stream: "stdout" | "stderr";
-            /** @description Redacted at capture (§14). */
+            /** @description The line’s text, redacted at capture. */
             text: string;
             /**
              * Format: date-time
@@ -4972,7 +4972,7 @@ export interface components {
              */
             createdAt: string;
         };
-        /** @description One thing wrong with manifest.yaml (§7, §25), inside `details` of a `422 SPEC_INVALID` or a spec validation. Switch on `code`; show `message` and `hint` to a person. */
+        /** @description One thing wrong with manifest.yaml, inside `details` of a `422 SPEC_INVALID` or a spec validation. Switch on `code`; show `message` and `hint` to a person. */
         ManifestError: {
             code: components["schemas"]["ManifestErrorCode"];
             /** @description Where in manifest.yaml, dotted: `services.0.type`. */
@@ -4983,20 +4983,20 @@ export interface components {
             hint?: string;
         };
         /**
-         * @description A code inside `details` of a `422 SPEC_INVALID`: a breach of §7’s schema or policy, or of §25’s blueprint compatibility. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-spec-errors` its remedy.
+         * @description A code inside `details` of a `422 SPEC_INVALID`: a breach of manifest.yaml’s schema or policy, or something the project’s blueprint does not support. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-spec-errors` its remedy.
          * @enum {string}
          */
         ManifestErrorCode: "BLUEPRINT_AI_UNSUPPORTED" | "BLUEPRINT_AUTH_UNSUPPORTED" | "BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED" | "BLUEPRINT_SERVICE_UNSUPPORTED" | "SPEC_AI_BUDGET_REQUIRED" | "SPEC_AI_DISABLED" | "SPEC_ATTRIBUTE_NOT_REGISTERED" | "SPEC_ATTRIBUTE_NOT_WHITELISTED" | "SPEC_BLUEPRINT_NOT_PINNED" | "SPEC_BUILD_BLOCK_FORBIDDEN" | "SPEC_ENV_NAME_RESERVED" | "SPEC_FIELD_NOT_ENFORCED" | "SPEC_INVALID_BLUEPRINT_REF" | "SPEC_INVALID_SLUG" | "SPEC_INVALID_VALUE" | "SPEC_MODEL_CLASSIFICATION_TOO_LOW" | "SPEC_MODEL_UNCLASSIFIED" | "SPEC_MODEL_UNKNOWN" | "SPEC_NAME_SLUG_MISMATCH" | "SPEC_PATH_EXPECTED" | "SPEC_QUOTA_EXCEEDED" | "SPEC_RESERVED_BLOCK_NOT_EMPTY" | "SPEC_SERVICE_TYPE_UNKNOWN" | "SPEC_UNKNOWN_KEY" | "SPEC_YAML_PARSE_FAILED";
-        /** @description manifest.yaml, schema version 1 (§7), as a JSON Schema — DOCUMENTATION FOR THE FILE, for whoever writes it. The platform validates with its own code: `validateSpec` and a commit answer each problem as a `ManifestError` with a path, and some rules are not expressible here — the name must equal the project’s slug, a model must be in the catalogue and approved for `data.classification`, and what is asked for must fit the project’s quota. */
+        /** @description manifest.yaml, schema version 1, as a JSON Schema — DOCUMENTATION FOR THE FILE, for whoever writes it. The platform validates with its own code: `validateSpec` and a commit answer each problem as a `ManifestError` with a path, and some rules are not expressible here — the name must equal the project’s slug, a model must be in the catalogue and approved for `data.classification`, and what is asked for must fit the project’s quota. */
         ManifestYaml: {
             /**
              * @description The schema version: `1`.
              * @constant
              */
             manifest: 1;
-            /** @description The project’s slug, exactly (§23): 3 to 39 lower-case letters, digits and hyphens, starting with a letter. */
+            /** @description The project’s slug, exactly: 3 to 39 lower-case letters, digits and hyphens, starting with a letter. */
             name: string;
-            /** @description The project’s blueprint and its major version, `name@major` — the project’s own pin (§25). A commit cannot change it. */
+            /** @description The project’s blueprint and its major version, `name@major` — the project’s own pin. A commit cannot change it. */
             blueprint: string;
             /** @description What the app is for, in a sentence or two. */
             description?: string;
@@ -5005,7 +5005,7 @@ export interface components {
                 /** @description The port the app listens on inside its container. */
                 port: number;
                 /**
-                 * @description The path the platform checks before an instance serves: it must answer 200 (§11). A path, never a URL.
+                 * @description The path the platform checks before an instance serves: it must answer 200. A path, never a URL.
                  * @default /healthz
                  */
                 health: string;
@@ -5014,7 +5014,7 @@ export interface components {
                  * @default null
                  */
                 command: string | null;
-                /** @description FORBIDDEN (D13): the Dockerfile is the blueprint’s. An app declares what it needs, never how to build it. */
+                /** @description FORBIDDEN: the Dockerfile is the blueprint’s. An app declares what it needs, never how to build it. */
                 build?: unknown;
             };
             /**
@@ -5044,12 +5044,12 @@ export interface components {
                 name: string;
             }[];
             /**
-             * @description Who may use the app, and what it learns about them (§9).
+             * @description Who may use the app, and what it learns about them.
              * @default {}
              */
             auth: {
                 /**
-                 * @description `cwl` signs people in with UBC’s CWL (§9); `none` signs nobody in.
+                 * @description `cwl` signs people in with UBC’s CWL; `none` signs nobody in.
                  * @default none
                  * @enum {string}
                  */
@@ -5060,46 +5060,46 @@ export interface components {
                  */
                 attributes: string[];
                 /**
-                 * @description The PATH the identity provider posts a sign-in to (D15) — Manifest derives the origin.
+                 * @description The PATH the identity provider posts a sign-in to — Manifest derives the origin.
                  * @default /auth/ubcshib/callback
                  */
                 callback: string;
                 /**
-                 * @description The PATH single logout arrives at (D15).
+                 * @description The PATH single logout arrives at.
                  * @default /auth/logout
                  */
                 logout: string;
             };
             /**
-             * @description The AI the app uses, through the platform’s gateway (§10).
+             * @description The AI the app uses, through the platform’s gateway.
              * @default {}
              */
             ai: {
                 /**
-                 * @description The LOGICAL models the app may call — `default-chat`, `default-embed` — never a vendor’s model id. Each must be approved for `data.classification` (D17).
+                 * @description The LOGICAL models the app may call — `default-chat`, `default-embed` — never a vendor’s model id. Each must be approved for `data.classification`.
                  * @default []
                  */
                 models: string[];
                 /**
-                 * @description What the app’s AI may cost (§10).
+                 * @description What the app’s AI may cost.
                  * @default {}
                  */
                 budget: {
                     /** @description The most the app may spend on AI in a month, in US dollars. Omitted, with models declared, it is the project’s AI quota; 0 is refused. */
                     project_monthly_usd?: number;
                     /**
-                     * @description The most one person may spend through the app in a month, in US dollars (§7) — validated, not enforced before Phase 4 (§10): never above the project’s AI quota, recorded with the release, and limiting no single person yet; a validation that finds it set carries a `SPEC_FIELD_NOT_ENFORCED` warning.
+                     * @description The most one person may spend through the app in a month, in US dollars — validated and not enforced: never above the project’s AI quota, recorded with the release, and limiting no single person yet; a validation that finds it set carries a `SPEC_FIELD_NOT_ENFORCED` warning.
                      * @default 0
                      */
                     per_user_monthly_usd: number;
                 };
             };
             /**
-             * @description Environment variables the app is given, beside the ones the platform sets (§8).
+             * @description Environment variables the app is given, beside the ones the platform sets.
              * @default []
              */
             env: ({
-                /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself (§8). */
+                /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself. */
                 name: string;
                 /** @description Its value, written here and so in git — never a credential. */
                 value?: string;
@@ -5130,12 +5130,12 @@ export interface components {
                 allow: string[];
             };
             /**
-             * @description What the app’s data is (§15).
+             * @description What the app’s data is.
              * @default {}
              */
             data: {
                 /**
-                 * @description How sensitive the app’s data is: `public`, `internal` or `confidential` — what its models must be approved for (D17).
+                 * @description How sensitive the app’s data is: `public`, `internal` or `confidential` — what its models must be approved for.
                  * @default internal
                  * @enum {string}
                  */
@@ -5147,17 +5147,17 @@ export interface components {
                 retention_days: number;
             };
             /**
-             * @description Reserved (§15): must be empty, or absent, in schema version 1.
+             * @description Reserved: must be empty, or absent, in schema version 1.
              * @default []
              */
             integrations: unknown[];
             /**
-             * @description Reserved (§15): must be empty, or absent, in schema version 1.
+             * @description Reserved: must be empty, or absent, in schema version 1.
              * @default []
              */
             jobs: unknown[];
             /**
-             * @description Reserved (§15): must be empty, or absent, in schema version 1.
+             * @description Reserved: must be empty, or absent, in schema version 1.
              * @default []
              */
             checks: unknown[];
@@ -5181,7 +5181,7 @@ export interface components {
                     };
                     /** @description Adds to, or replaces by name, the top-level `env` in this environment. */
                     env?: ({
-                        /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself (§8). */
+                        /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself. */
                         name: string;
                         /** @description Its value, written here and so in git — never a credential. */
                         value?: string;
@@ -5216,7 +5216,7 @@ export interface components {
                     };
                     /** @description Adds to, or replaces by name, the top-level `env` in this environment. */
                     env?: ({
-                        /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself (§8). */
+                        /** @description The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself. */
                         name: string;
                         /** @description Its value, written here and so in git — never a credential. */
                         value?: string;
@@ -5245,7 +5245,7 @@ export interface components {
              * @description The person’s user id on this platform — what `listMembers` calls `userId`.
              */
             id: string;
-            /** @description The person's ubcEduCwlPuid (§9). */
+            /** @description The person's ubcEduCwlPuid — the one key a person is identified by. */
             puid: string;
             /** @description Their name, as CWL gave it. */
             displayName: string;
@@ -5266,16 +5266,16 @@ export interface components {
              * @description The person’s user id — what `removeMember` names.
              */
             userId: string;
-            /** @description Their ubcEduCwlPuid (§9) — the one key a person is identified by. */
+            /** @description Their ubcEduCwlPuid — the one key a person is identified by. */
             puid: string;
-            /** @description Their CWL login name, lowercased, as they last signed in with it (§9) — what a colleague adds them by. Null if CWL has never released it. */
+            /** @description Their CWL login name, lowercased, as they last signed in with it — what a colleague adds them by. Null if CWL has never released it. */
             cwlLogin: string | null;
             /** @description Their name, as CWL gave it. */
             displayName: string;
             /** @description Their address, as CWL gave it. */
             email: string;
             /**
-             * @description `owner` may do everything on the project; `collaborator` the same except managing members, deleting the project and promoting a release to production (§13).
+             * @description `owner` may do everything on the project; `collaborator` the same except managing members, deleting the project and promoting a release to production.
              * @enum {string}
              */
             role: "owner" | "collaborator";
@@ -5286,9 +5286,9 @@ export interface components {
         MintTokenRequest: {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
-            /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:submit, launch:rehearse or project:delete, which are person-only and refused outright. */
+            /** @description The explicit set this token may use. None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:submit, launch:rehearse or project:delete, which are person-only and refused outright. */
             capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "agent:session" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "launch:rehearse" | "launch:submit" | "launch:draft" | "approval:request" | "quota:set" | "secret:read")[];
-            /** @description How long the token lives, in days. D24: a token has an expiry, and at most 365 days of one. */
+            /** @description How long the token lives, in days. Every token expires, at most 365 days after it is minted. */
             expiresInDays: number;
         };
         /** @description A newly minted delegated token, with its secret. The only time the secret exists. */
@@ -5301,7 +5301,7 @@ export interface components {
         OpenApiDocument: {
             [key: string]: unknown;
         };
-        /** @description D24: a delegated token asked for one of the privileged four. A person confirms or rejects it; a confirmation grants that one request a single retry. */
+        /** @description A delegated token asked to use one of the four privileged capabilities. A person confirms or rejects it; a confirmation grants that one request a single retry. */
         PendingAction: {
             /**
              * Format: uuid
@@ -5318,7 +5318,7 @@ export interface components {
              * @description The delegated token that asked (`listTokens`).
              */
             tokenId: string;
-            /** @description The privileged capability that was refused — one of D24’s four. */
+            /** @description The privileged capability that was refused: `release:promote`, `secret:read`, `quota:set` or `members:manage`. */
             action: string;
             /**
              * @description `pending` until a person answers; `confirmed` grants the identical request one retry; `rejected` is final; `expired` when nobody answered in time.
@@ -5352,7 +5352,7 @@ export interface components {
             /** @description When the confirmed retry was made, spending the confirmation; null until then. */
             consumedAt: string | null;
         };
-        /** @description The questions agents have put to the people who own this project, newest first (§26). */
+        /** @description The questions agents have put to the people who own this project, newest first. */
         PendingActionList: components["schemas"]["PendingAction"][];
         /** @description The app’s privacy impact assessment: when a person said it was sent, and what UBC’s Privacy Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval. */
         PrivacyAssessment: {
@@ -5367,7 +5367,7 @@ export interface components {
              */
             projectId: string;
             /**
-             * @description Along §9’s states: `draft`, `submitted` to the Privacy Office, `approved`. A refused assessment goes back to `draft`.
+             * @description Where the assessment is: `draft`, `submitted` to the Privacy Office, `approved`. A refused assessment goes back to `draft`.
              * @enum {string}
              */
             state: "draft" | "submitted" | "approved";
@@ -5444,40 +5444,40 @@ export interface components {
             /** @description The whole draft as plain text — every fact with where it came from, and every gap — for the owner to paste into the Privacy Office’s form. */
             text: string;
         };
-        /** @description A project: one app, its code, its three environments and who works on it (§6). */
+        /** @description A project: one app, its code, its three environments and who works on it. */
         Project: {
             /**
              * Format: uuid
              * @description The project — what every project-scoped path names.
              */
             id: string;
-            /** @description The project’s permanent identifier, and the first label of every hostname it has (§23). It never changes; `name` is what people read. */
+            /** @description The project’s permanent identifier, and the first label of every hostname it has. It never changes; `name` is what people read. */
             slug: string;
             /** @description What people call the project — text of 1 to 80 characters, trimmed, on one line, with something visible in it; no control character, line separator or bidirectional mark. Never part of an address: the slug is. */
             name: string;
-            /** @description `name@major` (§25). */
+            /** @description Its blueprint, `name@major`. */
             blueprint: string;
-            /** @description The starter the first commit was seeded from (§25); null for the skeleton alone. */
+            /** @description The starter the first commit was seeded from; null for the skeleton alone. */
             starter: string | null;
             owner: components["schemas"]["UserSummary"];
-            /** @description Who it is for (§24); null for a project created before the question was asked. */
+            /** @description Who it is for; null for a project created before the question was asked. */
             audience: components["schemas"]["Audience"] | null;
             /**
              * Format: date-time
              * @description When it was created.
              */
             createdAt: string;
-            /** @description When it first went to production (§13 D9) — null until then; never cleared. */
+            /** @description When it first went to production — null until then; never cleared. */
             launchedAt: string | null;
             /**
-             * @description §11: `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.
+             * @description `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.
              * @enum {string}
              */
             state: "active" | "archived";
             /** @description When it was last switched off; null if it never was. Kept through a restore. */
             archivedAt: string | null;
             repository: components["schemas"]["RepositoryLink"];
-            /** @description Present with `?expand=environments` (D23.1). */
+            /** @description Its three environments, present with `?expand=environments`. */
             environments?: components["schemas"]["Environment"][];
         };
         /** @description Every project the caller is a member of — every project, for an administrator. */
@@ -5555,7 +5555,7 @@ export interface components {
             /** @description What a change request asks for; required when a registration goes from `active` to `change_requested`. */
             requestedAttributes?: string[];
             /**
-             * @description The state this record should now be in. It is reached along §9’s arrows from wherever it is — a first write into `active` is refused exactly as a later one is.
+             * @description The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `active` or `change_requested`; `active` to `change_requested` or `expired`; `change_requested` to `submitted` or `expired`; `expired` to `submitted`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`, so a first write into `active` is refused exactly as a later one is.
              * @enum {string}
              */
             state: "draft" | "submitted" | "active" | "change_requested" | "expired";
@@ -5565,14 +5565,14 @@ export interface components {
             certFingerprint?: string;
             /**
              * Format: date-time
-             * @description When that certificate expires (D20).
+             * @description When that certificate expires.
              */
             certExpiresAt?: string;
         };
-        /** @description What the Privacy Office said, as an administrator records it (§9). */
+        /** @description What the Privacy Office said, as an administrator records it. */
         RecordPrivacyAssessmentRequest: {
             /**
-             * @description The state this record should now be in, reached along §9’s arrows.
+             * @description The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `approved`, or back to `draft` when the Privacy Office refuses it; `approved` to `draft`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`.
              * @enum {string}
              */
             state: "draft" | "submitted" | "approved";
@@ -5659,7 +5659,7 @@ export interface components {
             /** @description What to fix or know before sending it — an attribute nothing reads, a missing PIA number, a package drawn without a release serving staging. Empty when there is nothing. */
             warnings: string[];
         };
-        /** @description A LOCAL, production-shaped rehearsal of the app’s CWL sign-in (D21): it proves the SHAPE of the registration, and never UBC’s acceptance of it. */
+        /** @description A LOCAL, production-shaped rehearsal of the app’s CWL sign-in: it proves the SHAPE of the registration, and never UBC’s acceptance of it. */
         Rehearsal: {
             /**
              * Format: uuid
@@ -5691,13 +5691,13 @@ export interface components {
                 /** @description The hostname the sign-in went to. */
                 hostname: string;
                 /**
-                 * @description Which of the edge’s listeners the app answered on (§12).
+                 * @description Which of the edge’s listeners the app answered on.
                  * @enum {string}
                  */
                 listener: "internal" | "public";
                 /** @description What the app answered at its registered ACS, or null when no assertion was produced. */
                 signInStatus: number | null;
-                /** @description What the assertion ACTUALLY carried, as friendly names where the platform knows one. §9’s attribute release, measured rather than assumed. */
+                /** @description What the assertion ACTUALLY carried, as friendly names where the platform knows one: the attribute release, measured rather than assumed. */
                 attributesReleased: string[];
                 /** @description Why it passed or did not, in the platform’s words. */
                 reason: string;
@@ -5720,7 +5720,7 @@ export interface components {
              */
             previewId?: string;
         };
-        /** @description Immutable: a build, a spec and the configuration resolved for every environment (§13). */
+        /** @description Immutable: a build, a spec and the configuration resolved for every environment. */
         Release: {
             /**
              * Format: uuid
@@ -5742,7 +5742,7 @@ export interface components {
              * @description The validation of manifest.yaml it froze — its build’s commit’s.
              */
             appSpecId: string;
-            /** @description What an approval binds to (§13). */
+            /** @description The image’s digest — what an approval binds to. */
             imageDigest: string;
             /** @description What it changes, in its author’s words; null when none was given. */
             summary: string | null;
@@ -5756,11 +5756,11 @@ export interface components {
              * @description When it was made.
              */
             createdAt: string;
-            /** @description §12: its build’s scan, recorded on the Release. */
+            /** @description Its build’s vulnerability scan, recorded on the Release. */
             scan: components["schemas"]["ScanSummary"] | null;
             /** @description What it runs as in each environment, resolved when it was made. */
             config: {
-                /** @description One environment’s view of the release, frozen when it was made (§13). */
+                /** @description One environment’s view of the release, frozen when it was made. */
                 sandbox: {
                     /** @description The port the app listens on. */
                     port: number;
@@ -5788,9 +5788,9 @@ export interface components {
                     }[];
                     /** @description The hostnames it may reach outside the platform. */
                     egressAllow: string[];
-                    /** @description Its data classification (D17). */
+                    /** @description Its data classification. */
                     classification: string;
-                    /** @description Its sign-in (§9). */
+                    /** @description Its sign-in. */
                     auth: {
                         /**
                          * @description Whether it signs people in with CWL.
@@ -5800,7 +5800,7 @@ export interface components {
                         /** @description The CWL attributes it receives. */
                         attributes: string[];
                     };
-                    /** @description Its AI (§10). */
+                    /** @description Its AI. */
                     ai: {
                         /** @description The logical models it may call. */
                         models: string[];
@@ -5808,7 +5808,7 @@ export interface components {
                     /** @description The names of the variables the app declares — never their values. */
                     envNames: string[];
                 };
-                /** @description One environment’s view of the release, frozen when it was made (§13). */
+                /** @description One environment’s view of the release, frozen when it was made. */
                 staging: {
                     /** @description The port the app listens on. */
                     port: number;
@@ -5836,9 +5836,9 @@ export interface components {
                     }[];
                     /** @description The hostnames it may reach outside the platform. */
                     egressAllow: string[];
-                    /** @description Its data classification (D17). */
+                    /** @description Its data classification. */
                     classification: string;
-                    /** @description Its sign-in (§9). */
+                    /** @description Its sign-in. */
                     auth: {
                         /**
                          * @description Whether it signs people in with CWL.
@@ -5848,7 +5848,7 @@ export interface components {
                         /** @description The CWL attributes it receives. */
                         attributes: string[];
                     };
-                    /** @description Its AI (§10). */
+                    /** @description Its AI. */
                     ai: {
                         /** @description The logical models it may call. */
                         models: string[];
@@ -5856,7 +5856,7 @@ export interface components {
                     /** @description The names of the variables the app declares — never their values. */
                     envNames: string[];
                 };
-                /** @description One environment’s view of the release, frozen when it was made (§13). */
+                /** @description One environment’s view of the release, frozen when it was made. */
                 production: {
                     /** @description The port the app listens on. */
                     port: number;
@@ -5884,9 +5884,9 @@ export interface components {
                     }[];
                     /** @description The hostnames it may reach outside the platform. */
                     egressAllow: string[];
-                    /** @description Its data classification (D17). */
+                    /** @description Its data classification. */
                     classification: string;
-                    /** @description Its sign-in (§9). */
+                    /** @description Its sign-in. */
                     auth: {
                         /**
                          * @description Whether it signs people in with CWL.
@@ -5896,7 +5896,7 @@ export interface components {
                         /** @description The CWL attributes it receives. */
                         attributes: string[];
                     };
-                    /** @description Its AI (§10). */
+                    /** @description Its AI. */
                     ai: {
                         /** @description The logical models it may call. */
                         models: string[];
@@ -5908,10 +5908,10 @@ export interface components {
         };
         /** @description A project’s newest releases, newest first. */
         ReleaseList: components["schemas"]["Release"][];
-        /** @description Where the project’s code lives (D5), and whether `main` is protected there. */
+        /** @description Where the project’s code lives, and whether `main` is protected there. */
         RepositoryLink: {
             /**
-             * @description Which of D5’s drivers holds it: a repository on this machine, or GitHub.
+             * @description Which source host holds it: a repository on this machine, or GitHub.
              * @enum {string}
              */
             provider: "local" | "github";
@@ -5931,7 +5931,7 @@ export interface components {
             /** @description Anything the administrators should know — a date the app is needed by, say. Shown to administrators in their queue, and to nobody else; never in an event. */
             note?: string;
         };
-        /** @description §12’s scan of the image a build produced (§6 `Build.scan`). */
+        /** @description The vulnerability scan of the image a build produced (`Build.scan`). */
         ScanSummary: {
             /** @description The scanner and its version — `fake` from the in-memory driver. */
             scanner: string;
@@ -5942,25 +5942,25 @@ export interface components {
             scannedAt: string;
             /** @description How old the vulnerability database was, in days; null when the scanner could not say, and then `stale` is true. */
             databaseAgeDays: number | null;
-            /** @description A clean result from a stale database is not evidence there is nothing to find (§12). */
+            /** @description Whether the vulnerability database was more than 7 days old, or of unknown age. A clean result from a stale database is not evidence there is nothing to find. */
             stale: boolean;
             /** @description False when the base image was not identified: every finding was attributed to the build, so `baseImage` counted nothing. */
             baseImageKnown: boolean;
-            /** @description Introduced by this build, with a published fix. On a fresh database a build with any is refused (§12). */
+            /** @description Introduced by this build, with a published fix. On a fresh database a build with any is refused. */
             fixable: {
                 /** @description Critical findings. */
                 critical: number;
                 /** @description High findings. */
                 high: number;
             };
-            /** @description Introduced by this build, with no published fix: recorded, not blocking (§12). */
+            /** @description Introduced by this build, with no published fix: recorded, not blocking. */
             unfixable: {
                 /** @description Critical findings. */
                 critical: number;
                 /** @description High findings. */
                 high: number;
             };
-            /** @description The base image’s own — the blueprint’s to fix (§20). */
+            /** @description The base image’s own — the blueprint’s to fix. */
             baseImage: {
                 /** @description Critical findings. */
                 critical: number;
@@ -5977,9 +5977,9 @@ export interface components {
                 package: string;
             }[];
         };
-        /** @description D9: which of §7’s sensitive fields this manifest changes against the project’s newest VALID one. Reported here, and enforced at a launched app’s production deploy, where such a change needs an administrator’s approval (§13). */
+        /** @description Which sensitive fields this manifest changes against the project’s newest VALID one. Reported here, and enforced at a launched app’s production deploy, where such a change needs an administrator’s approval. */
         SensitiveDiff: {
-            /** @description Whether any of §7’s sensitive fields changed. */
+            /** @description Whether any sensitive field changed. */
             sensitive: boolean;
             /** @description Which of them changed — `services`, `auth.attributes`, `egress.allow` and so on. */
             fields: string[];
@@ -5989,7 +5989,7 @@ export interface components {
             /** @description The value, as text: at least 6 characters (a shorter one could not be redacted from the app’s Incidents), at most 16384 bytes of UTF-8, well-formed, with no NUL. Takes effect at the next deploy of this environment; it is never answered back. */
             value: string;
         };
-        /** @description §23: exactly what project creation will answer — advisory, since creation checks again. */
+        /** @description Whether a slug is available: exactly what project creation will answer — advisory, since creation checks again. */
         SlugCheck: {
             /** @description The slug checked, as sent. */
             slug: string;
@@ -6055,7 +6055,7 @@ export interface components {
             /** @description True when the tree has more than 10,000 entries and only the first 10,000, by path, are listed. */
             truncated: boolean;
         };
-        /** @description The project’s newest recorded validation of manifest.yaml, parsed (§7), when it is valid — an invalid one is answered `422 SPEC_INVALID` instead. Its commit is the one a build names when it names none. */
+        /** @description The project’s newest recorded validation of manifest.yaml, parsed, when it is valid — an invalid one is answered `422 SPEC_INVALID` instead. Its commit is the one a build names when it names none. */
         Spec: {
             /**
              * Format: uuid
@@ -6064,12 +6064,12 @@ export interface components {
             appSpecId: string;
             /** @description The commit whose manifest.yaml it is. */
             commitSha: string;
-            /** @description manifest.yaml v1 as parsed and validated (§7), every default filled in. `ManifestYaml` in this document describes each field. */
+            /** @description manifest.yaml v1 as parsed and validated, every default filled in. `ManifestYaml` in this document describes each field. */
             spec: {
                 [key: string]: unknown;
             };
         };
-        /** @description One validation of manifest.yaml at one commit (§7), recorded — valid or not — and announced as `spec.validated`. */
+        /** @description One validation of manifest.yaml at one commit, recorded — valid or not — and announced as `spec.validated`. */
         SpecValidation: {
             /**
              * Format: uuid
@@ -6117,7 +6117,7 @@ export interface components {
              */
             draftGeneratedAt?: string;
         };
-        /** @description A delegated token (D24), scoped to one project and a capability set. Its secret is shown once, when it is minted, and is never readable again. */
+        /** @description A delegated token, scoped to one project and a capability set. Its secret is shown once, when it is minted, and is never readable again. */
         Token: {
             /**
              * Format: uuid
@@ -6131,9 +6131,9 @@ export interface components {
             projectId: string;
             /** @description The label its minter gave it. */
             name: string;
-            /** @description What it may do on that project (D24); nothing else. */
+            /** @description What it may do on that project; nothing else. */
             capabilities: string[];
-            /** @description Requests a minute this token may make, enforced in the control plane (§20). Past it, every route answers 429 RATE_LIMITED with Retry-After. */
+            /** @description Requests a minute this token may make, enforced in the control plane. Past it, every route answers 429 RATE_LIMITED with Retry-After. */
             rateLimit: number;
             /**
              * Format: date-time
@@ -6154,7 +6154,7 @@ export interface components {
         };
         /** @description The project’s delegated tokens — revoked and expired ones included. */
         TokenList: components["schemas"]["Token"][];
-        /** @description What to change about a project. Only its name can change; its slug never does (§23, D26). */
+        /** @description What to change about a project. Only its name can change; its slug never does. */
         UpdateProjectRequest: {
             /** @description What people call the project — text of 1 to 80 characters, trimmed, on one line, with something visible in it; no control character, line separator or bidirectional mark. Never part of an address: the slug is. */
             name: string;
@@ -6450,8 +6450,8 @@ export interface operations {
                      *         {
                      *           "path": "AGENTS.md",
                      *           "mediaType": "text/markdown",
-                     *           "sha256": "65c15d46fd344f1e2cf2bbea2727fc97e42504c78c88e5de5509127a2892a739",
-                     *           "content": "# node-ts-mongo@1 — knowledge pack\n\nYou are generating an application from this blueprint. This file is the whole of\nwhat you need to know about the platform; it is served over the Manifest API\n(D25) alongside the blueprint itself.\n\n**The stack is fixed.** Node 22 on Alpine, Expr …"
+                     *           "sha256": "a0fe0e12674fbb6b8862ec2b7338cbd12b2e83b37608f94c42479933a567a136",
+                     *           "content": "# node-ts-mongo@1 — knowledge pack\n\nYou are generating an application from this blueprint. This file is the whole of\nwhat you need to know about the platform; it is served over the Manifest API\nalongside the blueprint itself.\n\n**The stack is fixed.** Node 22 on Alpine, Expr …"
                      *         }
                      *       ]
                      *     }
@@ -6495,7 +6495,7 @@ export interface operations {
                      *       "commitSha": "8ca53a0c88c96b9624724873b4e03d9c40af796c",
                      *       "status": "failed",
                      *       "imageDigest": null,
-                     *       "error": "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'iam-add': sn. Registered: mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered (§7, §9) — otherwise students hit a broken login on launch …",
+                     *       "error": "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'iam-add': sn. Registered: mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered — otherwise students hit a broken login on launch …",
                      *       "scan": null,
                      *       "createdAt": "2026-09-26T21:48:49.290Z"
                      *     }
@@ -8479,7 +8479,7 @@ export interface operations {
                      *           {
                      *             "code": "SPEC_FIELD_NOT_ENFORCED",
                      *             "path": "ai.budget.per_user_monthly_usd",
-                     *             "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+                     *             "message": "$2/month per person is validated and recorded with the release, and not enforced: no single person is limited by it yet",
                      *             "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
                      *           }
                      *         ]
@@ -8740,13 +8740,13 @@ export interface operations {
                      *           "owner": "project owner",
                      *           "blocking": true,
                      *           "state": "met",
-                     *           "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.",
+                     *           "why": "Canonical hostname only — no action. A custom domain is not offered yet, and for a CWL app one must be chosen before IAM registration, because the registration carries it.",
                      *           "since": null
                      *         },
                      *         {
                      *           "id": "iam-registration",
                      *           "title": "Registered with UBC IAM",
-                     *           "owner": "UBC IAM, recorded by a platform administrator (§9)",
+                     *           "owner": "UBC IAM, recorded by a platform administrator",
                      *           "blocking": true,
                      *           "state": "unmet",
                      *           "why": "It was sent to UBC IAM on September 30, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
@@ -10719,7 +10719,7 @@ export interface operations {
                      *         {
                      *           "code": "SPEC_FIELD_NOT_ENFORCED",
                      *           "path": "ai.budget.per_user_monthly_usd",
-                     *           "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+                     *           "message": "$2/month per person is validated and recorded with the release, and not enforced: no single person is limited by it yet",
                      *           "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
                      *         }
                      *       ],
@@ -11201,11 +11201,11 @@ export interface operations {
                      *         "baselineReleaseId": null,
                      *         "sensitiveFields": [],
                      *         "security": [],
-                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
                      *         "review": {
                      *           "state": "not_performed",
                      *           "reviewer": "none",
-                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
                      *         }
                      *       },
                      *       "previewId": "a08d1993-28bf-4378-a8d8-dfad2dccfc57"
@@ -11287,14 +11287,14 @@ export interface operations {
                      *         "security": [
                      *           {
                      *             "field": "auth.attributes",
-                     *             "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA."
+                     *             "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered, and it is an input to the PIA."
                      *           }
                      *         ],
-                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
                      *         "review": {
                      *           "state": "not_performed",
                      *           "reviewer": "none",
-                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
                      *         }
                      *       }
                      *     }
@@ -11361,11 +11361,11 @@ export interface operations {
                      *         "baselineReleaseId": null,
                      *         "sensitiveFields": [],
                      *         "security": [],
-                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
                      *         "review": {
                      *           "state": "not_performed",
                      *           "reviewer": "none",
-                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
                      *         }
                      *       }
                      *     }
@@ -11515,14 +11515,14 @@ export interface operations {
                      *         "security": [
                      *           {
                      *             "field": "auth.attributes",
-                     *             "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA."
+                     *             "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered, and it is an input to the PIA."
                      *           }
                      *         ],
-                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
                      *         "review": {
                      *           "state": "not_performed",
                      *           "reviewer": "none",
-                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
                      *         }
                      *       },
                      *       "previewId": "0df5bf80-218f-430f-9295-c6837256afca"
@@ -11613,14 +11613,14 @@ export interface operations {
                      *         "security": [
                      *           {
                      *             "field": "egress.allow",
-                     *             "note": "The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”."
+                     *             "note": "The app may send data to a host it could not reach before. Default-deny egress is the containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”."
                      *           }
                      *         ],
-                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+                     *         "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
                      *         "review": {
                      *           "state": "not_performed",
                      *           "reviewer": "none",
-                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+                     *           "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
                      *         }
                      *       },
                      *       "previewId": "46109278-ffed-493e-8489-09e3b24c9be8"

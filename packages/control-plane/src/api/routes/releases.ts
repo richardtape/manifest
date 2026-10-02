@@ -660,16 +660,16 @@ export const releaseRoutes = [
           security: [
             {
               field: 'auth.attributes',
-              note: 'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA.',
+              note: 'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered, and it is an input to the PIA.',
             },
           ],
           coverage:
-            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+            'An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.',
           review: {
             state: 'not_performed',
             reviewer: 'none',
             detail:
-              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections.',
           },
         },
         previewId: '0df5bf80-218f-430f-9295-c6837256afca',
@@ -745,16 +745,16 @@ export const releaseRoutes = [
           security: [
             {
               field: 'egress.allow',
-              note: 'The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”.',
+              note: 'The app may send data to a host it could not reach before. Default-deny egress is the containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”.',
             },
           ],
           coverage:
-            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+            'An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.',
           review: {
             state: 'not_performed',
             reviewer: 'none',
             detail:
-              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections.',
           },
         },
         previewId: '46109278-ffed-493e-8489-09e3b24c9be8',
@@ -822,16 +822,16 @@ export const releaseRoutes = [
           security: [
             {
               field: 'auth.attributes',
-              note: 'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA.',
+              note: 'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered, and it is an input to the PIA.',
             },
           ],
           coverage:
-            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+            'An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.',
           review: {
             state: 'not_performed',
             reviewer: 'none',
             detail:
-              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections.',
           },
         },
       },
@@ -893,12 +893,12 @@ export const releaseRoutes = [
           sensitiveFields: [],
           security: [],
           coverage:
-            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+            'An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.',
           review: {
             state: 'not_performed',
             reviewer: 'none',
             detail:
-              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections.',
           },
         },
       },
@@ -956,12 +956,12 @@ export const releaseRoutes = [
           sensitiveFields: [],
           security: [],
           coverage:
-            'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+            'An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.',
           review: {
             state: 'not_performed',
             reviewer: 'none',
             detail:
-              'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).',
+              'No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections.',
           },
         },
         previewId: 'a08d1993-28bf-4378-a8d8-dfad2dccfc57',
@@ -1254,7 +1254,7 @@ export const releaseRoutes = [
       )
         throw new OutputError(
           'INCIDENT_LOG_CONFIDENTIAL',
-          `the ${environment.kind} Incidents of a confidential project are not answered to a delegated token while its building agent may use the capable model (§7); a person reads them in their own session`,
+          `the ${environment.kind} Incidents of a confidential project are not answered to a delegated token while its building agent may use the capable model; a person reads them in their own session`,
         )
       const [project] = await deps.db
         .select({ slug: projects.slug })

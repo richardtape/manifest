@@ -488,7 +488,7 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
       )
       expect(rehearsal).toMatchObject({
         state: 'not_built',
-        builtBy: 'a later Manifest release (§24’s load rehearsal)',
+        builtBy: 'a later Manifest release (the load rehearsal)',
       })
     })
   })

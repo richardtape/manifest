@@ -49,7 +49,7 @@ export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
           code: SPEC_CODES.BUILD_BLOCK_FORBIDDEN,
           path: 'runtime.build',
           message: 'an app may not supply its own build definition',
-          hint: 'Remove the build block. The Dockerfile comes from the blueprint (D13) — declare what you need, never how to build it.',
+          hint: 'Remove the build block. The Dockerfile comes from the blueprint — declare what you need, never how to build it.',
         }
       }
 
@@ -65,7 +65,7 @@ export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
           code: SPEC_CODES.RESERVED_BLOCK_NOT_EMPTY,
           path: block,
           message: `${block} is reserved and must be empty in schema version 1`,
-          hint: `${block} is a forward-compatibility hook (§15). Leave it as an empty list.`,
+          hint: `${block} is reserved: schema version 1 accepts it only empty. Leave it as an empty list.`,
         }
       }
 
@@ -74,7 +74,7 @@ export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
         // Naming it for `data.bogus` would send a self-correcting agent to rename
         // the key to `services`, which `data` does not accept either.
         const hint = path
-          ? `${path} does not define that key. Check §7 for the keys ${path} accepts.`
+          ? `${path} does not define that key. Check the ManifestYaml schema for the keys ${path} accepts.`
           : `Allowed top-level keys are: ${TOP_LEVEL_KEYS}.`
         return {
           code: SPEC_CODES.UNKNOWN_KEY,
@@ -111,7 +111,7 @@ export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
           code: SPEC_CODES.PATH_EXPECTED,
           path,
           message: 'this field is a path, not a URL',
-          hint: 'Supply a path beginning with / such as /auth/ubcshib/callback. Manifest derives the origin itself (D15); an app never supplies one.',
+          hint: 'Supply a path beginning with / such as /auth/ubcshib/callback. Manifest derives the origin itself; an app never supplies one.',
         }
       }
 
@@ -125,7 +125,7 @@ export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
           issue.message === 'Invalid'
             ? `${path || 'this field'} does not match the format §7 requires`
             : issue.message,
-        hint: `Check the type and permitted values of ${path || 'this field'} in §7 of the platform design.`,
+        hint: `Check the type and permitted values of ${path || 'this field'} in the ManifestYaml schema.`,
       }
     }),
   )

@@ -34,7 +34,7 @@ export const ErrorEnvelope = representation(
               'On SPEC_INVALID: each problem in manifest.yaml, with its path and code.',
             ),
           launchReadiness: LaunchReadiness.optional().describe(
-            'On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13).',
+            'On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs.',
           ),
           /**
            * D24 (P5b Task 6, Decision 8). A `$ref` to the same representation §26's queue
@@ -48,7 +48,7 @@ export const ErrorEnvelope = representation(
            * hears about that on stderr.
            */
           pendingAction: PendingAction.optional().describe(
-            'On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed (D24).',
+            'On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed.',
           ),
         })
         .describe(
@@ -56,7 +56,7 @@ export const ErrorEnvelope = representation(
         ),
     })
     .describe(
-      'Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on.',
+      'Every error the API answers, in one shape: a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on.',
     ),
 )
 

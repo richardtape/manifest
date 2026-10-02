@@ -39,7 +39,7 @@ const ReleaseConfig = z
     egressAllow: z
       .array(z.string())
       .describe('The hostnames it may reach outside the platform.'),
-    classification: z.string().describe('Its data classification (D17).'),
+    classification: z.string().describe('Its data classification.'),
     auth: z
       .object({
         provider: z
@@ -47,15 +47,15 @@ const ReleaseConfig = z
           .describe('Whether it signs people in with CWL.'),
         attributes: z.array(z.string()).describe('The CWL attributes it receives.'),
       })
-      .describe('Its sign-in (§9).'),
+      .describe('Its sign-in.'),
     ai: z
       .object({ models: z.array(z.string()).describe('The logical models it may call.') })
-      .describe('Its AI (§10).'),
+      .describe('Its AI.'),
     envNames: z
       .array(z.string())
       .describe('The names of the variables the app declares — never their values.'),
   })
-  .describe('One environment’s view of the release, frozen when it was made (§13).')
+  .describe('One environment’s view of the release, frozen when it was made.')
 
 export const Release = representation(
   'Release',
@@ -67,7 +67,7 @@ export const Release = representation(
       appSpecId: Uuid.describe(
         'The validation of manifest.yaml it froze — its build’s commit’s.',
       ),
-      imageDigest: z.string().describe('What an approval binds to (§13).'),
+      imageDigest: z.string().describe('The image’s digest — what an approval binds to.'),
       summary: z
         .string()
         .nullable()
@@ -75,7 +75,7 @@ export const Release = representation(
       createdBy: Uuid.describe('Who made it.'),
       createdAt: Timestamp.describe('When it was made.'),
       scan: ScanSummary.nullable().describe(
-        '§12: its build’s scan, recorded on the Release.',
+        'Its build’s vulnerability scan, recorded on the Release.',
       ),
       config: z
         .object({
@@ -86,7 +86,7 @@ export const Release = representation(
         .describe('What it runs as in each environment, resolved when it was made.'),
     })
     .describe(
-      'Immutable: a build, a spec and the configuration resolved for every environment (§13).',
+      'Immutable: a build, a spec and the configuration resolved for every environment.',
     ),
 )
 export const ReleaseList = representation(
@@ -212,7 +212,7 @@ export const ApprovalDiff = representation(
         .describe('`type@version`, sorted — what this release asks the platform to run.'),
       attributes: z
         .array(z.string())
-        .describe('The CWL attributes this release requests, sorted (§7).'),
+        .describe('The CWL attributes this release requests, sorted.'),
       resources: z
         .object({
           cpu: z.number().nullable().describe('CPU cores; null when no limit is set.'),
@@ -265,19 +265,17 @@ export const ApprovalDiff = representation(
           'One sentence per change, in `changes`’ order, written by a language model: what that change could expose. **Never for a change to `auth.attributes`**: a model read those wrong — a removed attribute as one the app now receives, `sn` as a student number — so the change line alone is the record, and such a change has no entry here. The model is given the changes and the security notes only — never the verdict — and fills a schema with no place for one. The change lines are the record; these are the model’s reading of them, and a reading can get a fact wrong. Null unless `summarySource` is `llm`, and for a record made before it existed, whose `summary` is one string.',
         ),
       baselineReleaseId: Uuid.nullable().describe(
-        'The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before subsequent releases were compared.',
+        'The last approved release this one was compared with — null for a first launch, and for a record made before subsequent releases were compared.',
       ),
       sensitiveFields: z
         .array(z.enum(SENSITIVE_FIELDS))
         .describe(
-          'Which of §7’s sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch.',
+          'Which sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch.',
         ),
       security: z
         .array(
           z.object({
-            field: z
-              .enum(SENSITIVE_FIELDS)
-              .describe('One of §7’s sensitive fields that changed.'),
+            field: z.enum(SENSITIVE_FIELDS).describe('A sensitive field that changed.'),
             note: z.string().describe('What it means for security and privacy.'),
           }),
         )
@@ -288,7 +286,7 @@ export const ApprovalDiff = representation(
         .string()
         .nullable()
         .describe(
-          'D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before it was stated.',
+          'The limit of what an approval covers, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before it was stated.',
         ),
       review: z
         .object({
@@ -297,10 +295,10 @@ export const ApprovalDiff = representation(
           detail: z.string().describe('What it said, in the platform’s words.'),
         })
         .describe(
-          'The code reviewer’s verdict at decision time (D33, §15). `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed.',
+          'The code reviewer’s verdict at decision time. `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed.',
         ),
     })
-    .describe('The exact diff shown at decision time (§13).'),
+    .describe('The exact diff shown at decision time.'),
 )
 
 /**
@@ -331,19 +329,19 @@ export const Approval = representation(
           'The display name of the person who decided — the owner meets a decision before anyone else, and a user id tells them nothing.',
         ),
       decidedAt: Timestamp.describe('When.'),
-      imageDigest: z.string().describe('What this approval binds to (§13).'),
+      imageDigest: z.string().describe('The image digest this approval binds to.'),
       reason: z
         .string()
         .nullable()
         .describe(
-          'Required on a rejection: a refusal with no words is one nobody can act on (D23.7).',
+          'Required on a rejection: a refusal with no words is one nobody can act on.',
         ),
       diff: ApprovalDiff,
       previewId: Uuid.nullable().describe(
         'The stored preview the administrator read, whose diff this record COPIES. Null only for a decision made before previews existed.',
       ),
     })
-    .describe('One decision about one release, kept for ever (§13).'),
+    .describe('One decision about one release, kept for ever.'),
 )
 
 /**
@@ -366,11 +364,11 @@ export const ApprovalPreview = representation(
       expiresAt: Timestamp.describe(
         'Thirty minutes after it was taken. A decision naming it after this is refused `APPROVAL_PREVIEW_EXPIRED`; take a new one.',
       ),
-      imageDigest: z.string().describe('The digest the preview was taken over (§13).'),
+      imageDigest: z.string().describe('The image digest the preview was taken over.'),
       diff: ApprovalDiff,
     })
     .describe(
-      '§13’s exact diff, shown BEFORE the decision: approve and reject name it, the platform recomputes its facts and refuses if they moved (`APPROVAL_PREVIEW_STALE`), and the record copies its summary and verdict rather than asking the model again.',
+      'The exact diff an administrator decides on, shown BEFORE the decision: approve and reject name it, the platform recomputes its facts and refuses if they moved (`APPROVAL_PREVIEW_STALE`), and the record copies its summary and verdict rather than asking the model again.',
     ),
 )
 

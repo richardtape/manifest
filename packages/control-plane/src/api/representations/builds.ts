@@ -9,7 +9,7 @@ const Counts = z
     high: z.number().int().nonnegative().describe('High findings.'),
   })
   .describe(
-    'Critical and High only: the two severities §12’s gate sorts into its buckets. Anything lower is neither attributed nor counted.',
+    'Critical and High only: the two severities the vulnerability scan sorts into its buckets. Anything lower is neither attributed nor counted.',
   )
 
 export const ScanSummary = representation(
@@ -30,7 +30,7 @@ export const ScanSummary = representation(
       stale: z
         .boolean()
         .describe(
-          'A clean result from a stale database is not evidence there is nothing to find (§12).',
+          'Whether the vulnerability database was more than 7 days old, or of unknown age. A clean result from a stale database is not evidence there is nothing to find.',
         ),
       baseImageKnown: z
         .boolean()
@@ -38,12 +38,12 @@ export const ScanSummary = representation(
           'False when the base image was not identified: every finding was attributed to the build, so `baseImage` counted nothing.',
         ),
       fixable: Counts.describe(
-        'Introduced by this build, with a published fix. On a fresh database a build with any is refused (§12).',
+        'Introduced by this build, with a published fix. On a fresh database a build with any is refused.',
       ),
       unfixable: Counts.describe(
-        'Introduced by this build, with no published fix: recorded, not blocking (§12).',
+        'Introduced by this build, with no published fix: recorded, not blocking.',
       ),
-      baseImage: Counts.describe('The base image’s own — the blueprint’s to fix (§20).'),
+      baseImage: Counts.describe('The base image’s own — the blueprint’s to fix.'),
       unfixableFindings: z
         .array(
           z.object({
@@ -56,7 +56,7 @@ export const ScanSummary = representation(
           'The unfixable findings by id, at most 50; `unfixable` counts them all.',
         ),
     })
-    .describe('§12’s scan of the image a build produced (§6 `Build.scan`).'),
+    .describe('The vulnerability scan of the image a build produced (`Build.scan`).'),
 )
 
 export const Build = representation(
@@ -83,14 +83,14 @@ export const Build = representation(
       error: z
         .string()
         .nullable()
-        .describe('Why a failed build failed, in words its author can act on (§14).'),
+        .describe('Why a failed build failed, in words its author can act on.'),
       scan: ScanSummary.nullable().describe(
         'Null until the build succeeds, and for a build from before scans were recorded.',
       ),
       createdAt: Timestamp.describe('When it was started.'),
     })
     .describe(
-      'A build of one commit (§13). It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream.',
+      'A build of one commit. It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream.',
     ),
 )
 export const BuildList = representation(
@@ -110,13 +110,13 @@ export const BuildLog = representation(
             stream: z
               .enum(['stdout', 'stderr'])
               .describe('Which of the build’s outputs wrote it.'),
-            text: z.string().describe('Redacted at capture (§14).'),
+            text: z.string().describe('The line’s text, redacted at capture.'),
             at: Timestamp.describe('When it was written.'),
           }),
         )
         .describe('Every line, in order.'),
     })
-    .describe('§14’s build log, as stored.'),
+    .describe('A build’s log, as stored.'),
 )
 
 export const StartBuildRequest = request(

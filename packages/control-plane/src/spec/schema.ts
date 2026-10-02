@@ -38,7 +38,7 @@ const serviceSchema = z
   })
   .strict()
   .describe(
-    'A backing service the platform runs and binds for the app (§8 injects its address).',
+    'A backing service the platform runs and binds for the app, injecting its address.',
   )
 
 const envEntrySchema = z
@@ -47,7 +47,7 @@ const envEntrySchema = z
       .string()
       .regex(/^[A-Z][A-Z0-9_]*$/)
       .describe(
-        'The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself (§8).',
+        'The variable’s name: upper-case letters, digits and underscores, starting with a letter. Not one the platform sets itself.',
       ),
     value: z
       .string()
@@ -110,7 +110,7 @@ const runtimeSchema = z
       .regex(AUTH_PATH)
       .default('/healthz')
       .describe(
-        'The path the platform checks before an instance serves: it must answer 200 (§11). A path, never a URL.',
+        'The path the platform checks before an instance serves: it must answer 200. A path, never a URL.',
       ),
     command: z
       .string()
@@ -121,7 +121,7 @@ const runtimeSchema = z
       .never()
       .optional()
       .describe(
-        'FORBIDDEN (D13): the Dockerfile is the blueprint’s. An app declares what it needs, never how to build it.',
+        'FORBIDDEN: the Dockerfile is the blueprint’s. An app declares what it needs, never how to build it.',
       ),
   })
   .strict()
@@ -132,7 +132,7 @@ const authSchema = z
     provider: z
       .enum(['cwl', 'none'])
       .default('none')
-      .describe('`cwl` signs people in with UBC’s CWL (§9); `none` signs nobody in.'),
+      .describe('`cwl` signs people in with UBC’s CWL; `none` signs nobody in.'),
     attributes: z
       .array(z.string().min(1))
       .default([])
@@ -144,16 +144,16 @@ const authSchema = z
       .regex(AUTH_PATH)
       .default('/auth/ubcshib/callback')
       .describe(
-        'The PATH the identity provider posts a sign-in to (D15) — Manifest derives the origin.',
+        'The PATH the identity provider posts a sign-in to — Manifest derives the origin.',
       ),
     logout: z
       .string()
       .regex(AUTH_PATH)
       .default('/auth/logout')
-      .describe('The PATH single logout arrives at (D15).'),
+      .describe('The PATH single logout arrives at.'),
   })
   .strict()
-  .describe('Who may use the app, and what it learns about them (§9).')
+  .describe('Who may use the app, and what it learns about them.')
 
 const environmentOverrideSchema = z
   .object({
@@ -176,13 +176,13 @@ export const manifestSchema = z
       .string()
       .regex(SLUG)
       .describe(
-        'The project’s slug, exactly (§23): 3 to 39 lower-case letters, digits and hyphens, starting with a letter.',
+        'The project’s slug, exactly: 3 to 39 lower-case letters, digits and hyphens, starting with a letter.',
       ),
     blueprint: z
       .string()
       .regex(BLUEPRINT_REF)
       .describe(
-        'The project’s blueprint and its major version, `name@major` — the project’s own pin (§25). A commit cannot change it.',
+        'The project’s blueprint and its major version, `name@major` — the project’s own pin. A commit cannot change it.',
       ),
     description: z
       .string()
@@ -206,7 +206,7 @@ export const manifestSchema = z
           .array(z.string().min(1))
           .default([])
           .describe(
-            'The LOGICAL models the app may call — `default-chat`, `default-embed` — never a vendor’s model id. Each must be approved for `data.classification` (D17).',
+            'The LOGICAL models the app may call — `default-chat`, `default-embed` — never a vendor’s model id. Each must be approved for `data.classification`.',
           ),
         budget: z
           .object({
@@ -226,21 +226,21 @@ export const manifestSchema = z
               .nonnegative()
               .default(0)
               .describe(
-                'The most one person may spend through the app in a month, in US dollars (§7) — validated, not enforced before Phase 4 (§10): never above the project’s AI quota, recorded with the release, and limiting no single person yet; a validation that finds it set carries a `SPEC_FIELD_NOT_ENFORCED` warning.',
+                'The most one person may spend through the app in a month, in US dollars — validated and not enforced: never above the project’s AI quota, recorded with the release, and limiting no single person yet; a validation that finds it set carries a `SPEC_FIELD_NOT_ENFORCED` warning.',
               ),
           })
           .strict()
           .default({})
-          .describe('What the app’s AI may cost (§10).'),
+          .describe('What the app’s AI may cost.'),
       })
       .strict()
       .default({})
-      .describe('The AI the app uses, through the platform’s gateway (§10).'),
+      .describe('The AI the app uses, through the platform’s gateway.'),
     env: z
       .array(envEntrySchema)
       .default([])
       .describe(
-        'Environment variables the app is given, beside the ones the platform sets (§8).',
+        'Environment variables the app is given, beside the ones the platform sets.',
       ),
     egress: z
       .object({
@@ -260,7 +260,7 @@ export const manifestSchema = z
           .enum(CLASSIFICATIONS)
           .default('internal')
           .describe(
-            'How sensitive the app’s data is: `public`, `internal` or `confidential` — what its models must be approved for (D17).',
+            'How sensitive the app’s data is: `public`, `internal` or `confidential` — what its models must be approved for.',
           ),
         retention_days: z
           .number()
@@ -271,23 +271,23 @@ export const manifestSchema = z
       })
       .strict()
       .default({})
-      .describe('What the app’s data is (§15).'),
+      .describe('What the app’s data is.'),
     // §15 hooks — reserved, must be empty in v1
     integrations: z
       .array(z.never())
       .max(0)
       .default([])
-      .describe('Reserved (§15): must be empty, or absent, in schema version 1.'),
+      .describe('Reserved: must be empty, or absent, in schema version 1.'),
     jobs: z
       .array(z.never())
       .max(0)
       .default([])
-      .describe('Reserved (§15): must be empty, or absent, in schema version 1.'),
+      .describe('Reserved: must be empty, or absent, in schema version 1.'),
     checks: z
       .array(z.never())
       .max(0)
       .default([])
-      .describe('Reserved (§15): must be empty, or absent, in schema version 1.'),
+      .describe('Reserved: must be empty, or absent, in schema version 1.'),
     environments: z
       .object({
         staging: environmentOverrideSchema

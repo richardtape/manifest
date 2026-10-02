@@ -29,7 +29,7 @@ export const LaunchReadinessItem = representation(
       blocking: z
         .boolean()
         .describe(
-          'Whether this item gates production. `ready` is every BLOCKING item being met; a non-blocking item is shown and never refuses a launch (D33: `code-review`).',
+          'Whether this item gates production. `ready` is every BLOCKING item being met; a non-blocking item — `code-review` — is shown and never refuses a launch.',
         ),
       state: z
         .enum(['met', 'unmet', 'not_built'])
@@ -45,7 +45,7 @@ export const LaunchReadinessItem = representation(
         'When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; while the release waits on an administrator’s approval someone asked for (`requestApproval`), when they asked; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”.',
       ),
     })
-    .describe('One item of the launch checklist (§13), computed from what exists.'),
+    .describe('One item of the launch checklist, computed from what exists.'),
 )
 
 export const LaunchReadiness = representation(
@@ -56,7 +56,7 @@ export const LaunchReadiness = representation(
       launched: z
         .boolean()
         .describe(
-          'Which of D9’s two clauses this is: false, the first launch’s checklist; true, a launched app’s, where a release goes to production self-serve unless it changes a sensitive field (§13).',
+          'Which checklist this is: false, the first launch’s; true, a launched app’s, where a release goes to production self-serve unless it changes a sensitive field.',
         ),
       ready: z
         .boolean()
@@ -67,23 +67,23 @@ export const LaunchReadiness = representation(
         'The release serving staging — what production would run; null when nothing serves staging.',
       ),
       baselineReleaseId: Uuid.nullable().describe(
-        'The last approved release the candidate is compared with (D9.2); null before launch, or when nothing else is approved.',
+        'The last approved release the candidate is compared with; null before launch, or when nothing else is approved.',
       ),
       // `spec/`'s ONE list, not a restatement (the rule P6a Task 12 set for item ids).
       sensitiveFields: z
         .array(z.enum(SENSITIVE_FIELDS))
         .describe(
-          '§7’s fields the candidate changes since that release; empty before launch.',
+          'The sensitive fields the candidate changes since that release; empty before launch.',
         ),
       reescalated: z
         .boolean()
         .describe(
-          'An administrator’s approval is what this release is waiting for — a sensitive change, not rejected, and nothing else unmet (§13 D9.2).',
+          'An administrator’s approval is what this release is waiting for — a sensitive change, not rejected, and nothing else unmet.',
         ),
       items: z.array(LaunchReadinessItem).describe('Every item, met or not.'),
     })
     .describe(
-      '§13’s checklist, computed from what exists — a first launch’s, or once launched the self-serve check (D9). A production deploy is refused with this exact value until every blocking item is met.',
+      'The launch checklist, computed from what exists — a first launch’s, or once launched the self-serve check. A production deploy is refused with this exact value until every blocking item is met.',
     ),
 )
 
@@ -246,7 +246,7 @@ export const IamRegistration = representation(
       entityId: z
         .string()
         .describe(
-          '§9: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch.',
+          'The Service Provider’s entity ID: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch.',
         ),
       acsUrl: z
         .string()
@@ -261,7 +261,9 @@ export const IamRegistration = representation(
       certExpiresAt: z.iso
         .datetime()
         .nullable()
-        .describe('D20: an unnoticed expiry silently kills login for a live course app.'),
+        .describe(
+          'When the registered signing certificate expires; null when none was recorded. An unnoticed expiry silently kills login for a live course app.',
+        ),
       registeredAttributes: z
         .array(z.string())
         .describe(
@@ -271,18 +273,18 @@ export const IamRegistration = representation(
         .array(z.string())
         .nullable()
         .describe(
-          'What an outstanding CHANGE REQUEST asks UBC IAM for (§9) — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again.',
+          'What an outstanding CHANGE REQUEST asks UBC IAM for — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again.',
         ),
       registeredAt: z.iso
         .datetime()
         .nullable()
         .describe(
-          'When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it (§13, D9).',
+          'When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it.',
         ),
       state: z
         .enum(iamRegistrationState.enumValues)
         .describe(
-          'Along §9’s states: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.',
+          'Where the registration is: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.',
         ),
       changeRequestedFrom: z
         .enum(['submitted', 'active'])
@@ -403,7 +405,7 @@ export const PrivacyAssessment = representation(
       state: z
         .enum(privacyAssessmentState.enumValues)
         .describe(
-          'Along §9’s states: `draft`, `submitted` to the Privacy Office, `approved`. A refused assessment goes back to `draft`.',
+          'Where the assessment is: `draft`, `submitted` to the Privacy Office, `approved`. A refused assessment goes back to `draft`.',
         ),
       reviewer: z
         .string()
@@ -506,7 +508,7 @@ export const RecordIamRegistrationRequest = request(
       state: z
         .enum(iamRegistrationState.enumValues)
         .describe(
-          'The state this record should now be in. It is reached along §9’s arrows from wherever it is — a first write into `active` is refused exactly as a later one is.',
+          'The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `active` or `change_requested`; `active` to `change_requested` or `expired`; `change_requested` to `submitted` or `expired`; `expired` to `submitted`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`, so a first write into `active` is refused exactly as a later one is.',
         ),
       externalTicketRef: z
         .string()
@@ -523,7 +525,7 @@ export const RecordIamRegistrationRequest = request(
       certExpiresAt: z.iso
         .datetime()
         .optional()
-        .describe('When that certificate expires (D20).'),
+        .describe('When that certificate expires.'),
     })
     .describe(
       'What UBC IAM registered for the app’s staging or production sign-in, as an administrator records it from the ticket. UBC’s answer is recorded whatever order it arrives in.',
@@ -567,7 +569,9 @@ export const RecordPrivacyAssessmentRequest = request(
     .strictObject({
       state: z
         .enum(privacyAssessmentState.enumValues)
-        .describe('The state this record should now be in, reached along §9’s arrows.'),
+        .describe(
+          'The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `approved`, or back to `draft` when the Privacy Office refuses it; `approved` to `draft`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`.',
+        ),
       reviewer: z
         .string()
         .min(1)
@@ -581,7 +585,7 @@ export const RecordPrivacyAssessmentRequest = request(
         .optional()
         .describe('The Privacy Office’s reference, pasted in.'),
     })
-    .describe('What the Privacy Office said, as an administrator records it (§9).'),
+    .describe('What the Privacy Office said, as an administrator records it.'),
 )
 
 /** Who a record says sent it, by name — read by the route, which has the database (Task 9). */
@@ -696,7 +700,7 @@ export const Rehearsal = representation(
           hostname: z.string().describe('The hostname the sign-in went to.'),
           listener: z
             .enum(['internal', 'public'])
-            .describe('Which of the edge’s listeners the app answered on (§12).'),
+            .describe('Which of the edge’s listeners the app answered on.'),
           signInStatus: z
             .number()
             .int()
@@ -707,7 +711,7 @@ export const Rehearsal = representation(
           attributesReleased: z
             .array(z.string())
             .describe(
-              'What the assertion ACTUALLY carried, as friendly names where the platform knows one. §9’s attribute release, measured rather than assumed.',
+              'What the assertion ACTUALLY carried, as friendly names where the platform knows one: the attribute release, measured rather than assumed.',
             ),
           reason: z
             .string()
@@ -717,7 +721,7 @@ export const Rehearsal = representation(
       ranAt: z.string().describe('When it ran, ISO 8601 in UTC.'),
     })
     .describe(
-      'A LOCAL, production-shaped rehearsal of the app’s CWL sign-in (D21): it proves the SHAPE of the registration, and never UBC’s acceptance of it.',
+      'A LOCAL, production-shaped rehearsal of the app’s CWL sign-in: it proves the SHAPE of the registration, and never UBC’s acceptance of it.',
     ),
 )
 

@@ -10,17 +10,17 @@ export const UNVERSIONED = [
   {
     method: 'GET',
     path: '/auth/login',
-    why: 'Browser-mediated sign-in. Its URL is part of the flow the Manifest IdP completes (§9), not a resource.',
+    why: 'Browser-mediated sign-in. Its URL is part of the flow the Manifest IdP completes, not a resource.',
   },
   {
     method: 'GET',
     path: '/auth/step-up',
-    why: "§20's step-up re-authentication. A browser navigation that ends at the IdP and returns through the ACS; it re-proves a person rather than naming a resource, and its answer is a redirect rather than a representation.",
+    why: 'Step-up re-authentication: a second sign-in, for the actions that ask for one. A browser navigation that ends at the IdP and returns through the ACS; it re-proves a person rather than naming a resource, and its answer is a redirect rather than a representation.',
   },
   {
     method: 'POST',
     path: '/auth/saml/callback',
-    why: "The ACS. Its URL is registered with the IdP in the platform's SP row (§9), so a prefix change would be an IdP registration change.",
+    why: "The ACS. Its URL is registered with the IdP in the platform's SP row, so a prefix change would be an IdP registration change.",
   },
   {
     method: 'POST',
@@ -33,12 +33,12 @@ export const UNVERSIONED = [
   {
     method: 'GET',
     path: '/auth/logout',
-    why: "The SLO URL registered beside the ACS (§9), reached by the IdP's HTTP-Redirect binding, which is a GET: the IdP's signed LogoutRequest, or its signed LogoutResponse to a console sign-out.",
+    why: "The SLO URL registered beside the ACS, reached by the IdP's HTTP-Redirect binding, which is a GET: the IdP's signed LogoutRequest, or its signed LogoutResponse to a console sign-out.",
   },
   {
     method: 'GET',
     path: '/internal/registry/token',
-    why: 'The registry token realm (§13). Its callers are the Docker daemon and BuildKit speaking the distribution token protocol, never a Manifest client.',
+    why: 'The registry token realm. Its callers are the Docker daemon and BuildKit speaking the distribution token protocol, never a Manifest client.',
   },
   {
     method: 'POST',
@@ -48,6 +48,6 @@ export const UNVERSIONED = [
   {
     method: 'POST',
     path: '/webhooks/github',
-    why: "GitHub's deliveries (D5's GitHub driver): its caller is GitHub, never a Manifest client, and its credential is the delivery's HMAC signature rather than a session or a token (§20). Reached at 127.0.0.1:7100 directly, as the edge itself reaches the control plane — never through the edge, which forwards only /v1/* and /auth/*. On driver 1 it answers every delivery 404 WEBHOOKS_NOT_CONFIGURED.",
+    why: "GitHub's deliveries, for a control plane that runs the GitHub source driver: its caller is GitHub, never a Manifest client, and its credential is the delivery's HMAC signature rather than a session or a token. Reached at 127.0.0.1:7100 directly, as the edge itself reaches the control plane — never through the edge, which forwards only /v1/* and /auth/*. On the local source driver it answers every delivery 404 WEBHOOKS_NOT_CONFIGURED.",
   },
 ] as const satisfies readonly { method: 'GET' | 'POST'; path: string; why: string }[]

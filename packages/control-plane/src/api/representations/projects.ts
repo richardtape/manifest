@@ -54,11 +54,11 @@ export const Audience = representation(
     .object({
       scale: z
         .enum(['solo', 'class', 'large_course', 'public'])
-        .describe('§24: how many people the app is for.'),
+        .describe('How many people the app is for.'),
       burst: z
         .enum(['steady', 'synchronised'])
         .describe(
-          '§24: whether they arrive steadily, or all at once — a class starting a lab together.',
+          'Whether they arrive steadily, or all at once — a class starting a lab together.',
         ),
       justification: z
         .string()
@@ -68,7 +68,7 @@ export const Audience = representation(
       setAt: Timestamp.describe('When they answered.'),
     })
     .describe(
-      'Who the app is for, as its owner answered at creation (§24, D29). A large or public audience adds a load rehearsal to the launch checklist.',
+      'Who the app is for, as its owner answered at creation. A large or public audience adds a load rehearsal to the launch checklist.',
     ),
 )
 
@@ -82,9 +82,7 @@ export const RepositoryLink = representation(
     .object({
       provider: z
         .enum(['local', 'github'])
-        .describe(
-          'Which of D5’s drivers holds it: a repository on this machine, or GitHub.',
-        ),
+        .describe('Which source host holds it: a repository on this machine, or GitHub.'),
       fullName: z
         .string()
         .describe(
@@ -114,9 +112,7 @@ export const RepositoryLink = representation(
           'What Manifest last read of the repository’s visibility on GitHub: `private`, or `public` — and nothing is built from a repository last read public until a read says it is private again. Null on this machine, where a repository has no visibility, and before GitHub has been read.',
         ),
     })
-    .describe(
-      'Where the project’s code lives (D5), and whether `main` is protected there.',
-    ),
+    .describe('Where the project’s code lives, and whether `main` is protected there.'),
 )
 
 export const Project = representation(
@@ -127,28 +123,28 @@ export const Project = representation(
       slug: z
         .string()
         .describe(
-          'The project’s permanent identifier, and the first label of every hostname it has (§23). It never changes; `name` is what people read.',
+          'The project’s permanent identifier, and the first label of every hostname it has. It never changes; `name` is what people read.',
         ),
       name: ProjectName,
-      blueprint: z.string().describe('`name@major` (§25).'),
+      blueprint: z.string().describe('Its blueprint, `name@major`.'),
       starter: z
         .string()
         .nullable()
         .describe(
-          'The starter the first commit was seeded from (§25); null for the skeleton alone.',
+          'The starter the first commit was seeded from; null for the skeleton alone.',
         ),
       owner: UserSummary,
       audience: Audience.nullable().describe(
-        'Who it is for (§24); null for a project created before the question was asked.',
+        'Who it is for; null for a project created before the question was asked.',
       ),
       createdAt: Timestamp.describe('When it was created.'),
       launchedAt: Timestamp.nullable().describe(
-        'When it first went to production (§13 D9) — null until then; never cleared.',
+        'When it first went to production — null until then; never cleared.',
       ),
       state: z
         .enum(['active', 'archived'])
         .describe(
-          '§11: `active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.',
+          '`active`, or `archived` — switched off by its owner (`archiveProject`): each of its names answers a page saying so, nothing runs, and its code, data, secrets and records are kept. An archived project can be read and restored (`restoreProject`), and nothing else: every change is refused `409 PROJECT_ARCHIVED`.',
         ),
       archivedAt: Timestamp.nullable().describe(
         'When it was last switched off; null if it never was. Kept through a restore.',
@@ -157,10 +153,10 @@ export const Project = representation(
       environments: z
         .array(Environment)
         .optional()
-        .describe('Present with `?expand=environments` (D23.1).'),
+        .describe('Its three environments, present with `?expand=environments`.'),
     })
     .describe(
-      'A project: one app, its code, its three environments and who works on it (§6).',
+      'A project: one app, its code, its three environments and who works on it.',
     ),
 )
 
@@ -179,17 +175,17 @@ export const DeletedProject = representation(
       slug: z
         .string()
         .describe(
-          'Its permanent identifier — now FREE: another project may be created with it (§11).',
+          'Its permanent identifier — now FREE: another project may be created with it.',
         ),
       state: z
         .literal('deleted')
         .describe(
-          '§11: `deleted` — its repository, every data volume, every secret and its model budgets destroyed. Its record and its audit trail remain.',
+          '`deleted` — its repository, every data volume, every secret and its model budgets destroyed. Its record and its audit trail remain.',
         ),
       deletedAt: Timestamp.describe('When it was deleted.'),
     })
     .describe(
-      'A deleted project (§11): what remains of it — the record its audit trail refers to.',
+      'A deleted project: what remains of it — the record its audit trail refers to.',
     ),
 )
 
@@ -209,10 +205,10 @@ export const AudienceInput = request(
     .strictObject({
       scale: z
         .enum(['solo', 'class', 'large_course', 'public'])
-        .describe('§24: how many people.'),
+        .describe('How many people the app is for.'),
       burst: z
         .enum(['steady', 'synchronised'])
-        .describe('§24: do they all arrive at once.'),
+        .describe('Whether they arrive steadily, or all at once.'),
       justification: z
         .string()
         .max(1000)
@@ -222,7 +218,7 @@ export const AudienceInput = request(
         ),
     })
     .describe(
-      '§24’s two questions about who the app is for, answered by a person at creation.',
+      'The two questions about who the app is for, answered by a person at creation.',
     ),
 )
 
@@ -235,7 +231,9 @@ export const CreateProjectRequest = request(
       slug: z
         .string()
         .min(1)
-        .describe('Checked by the same function as GET /v1/slugs/{slug} (§23).'),
+        .describe(
+          'Its permanent identifier, checked by the same function as GET /v1/slugs/{slug}.',
+        ),
       name: ProjectName.optional().describe(
         'What people call the project — `ProjectName`’s rules. The slug, when none is given; `updateProject` changes it later.',
       ),
@@ -263,7 +261,7 @@ export const UpdateProjectRequest = request(
       name: ProjectName,
     })
     .describe(
-      'What to change about a project. Only its name can change; its slug never does (§23, D26).',
+      'What to change about a project. Only its name can change; its slug never does.',
     ),
 )
 
@@ -275,7 +273,7 @@ export const CreatedProject = representation(
       .describe('Its three environments, none deployed yet.'),
     spec: SpecValidation,
   }).describe(
-    '§22 steps 2–3: the project, its environments, and the validation of the manifest its first commit carries.',
+    'A newly created project: the project, its environments, and the validation of the manifest its first commit carries.',
   ),
 )
 

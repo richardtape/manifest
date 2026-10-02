@@ -30,19 +30,19 @@ export type SensitiveField = (typeof SENSITIVE_FIELDS)[number]
  */
 export const SECURITY_NOTES: Record<SensitiveField, string> = {
   services:
-    'A service stores data somewhere new — the PIA’s “where it is stored” (§9) may no longer be accurate.',
+    'A service stores data somewhere new — the PIA’s “where it is stored” may no longer be accurate.',
   'auth.attributes':
-    'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA.',
+    'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered, and it is an input to the PIA.',
   'egress.allow':
-    'The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”.',
+    'The app may send data to a host it could not reach before. Default-deny egress is the containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”.',
   resources:
     'More CPU, memory, processes or disk: cost and blast radius rather than data.',
   'data.classification':
-    'The app now claims a different class of data, which bounds the models it may use (D17) and is an input to the PIA.',
+    'The app now claims a different class of data, which bounds the models it may use and is an input to the PIA.',
   'ai.models':
-    'A model change can move personal information to a different jurisdiction, which invalidates an approved PIA (§7, §9) — the administrator decides whether the PIA must be reviewed again.',
+    'A model change can move personal information to a different jurisdiction, which invalidates an approved PIA — the administrator decides whether the PIA must be reviewed again.',
   blueprint:
-    'Under D13 the blueprint is the build definition: a change replaces the Dockerfile, base image and knowledge pack beneath the app.',
+    'The blueprint is the build definition: a change replaces the Dockerfile, base image and knowledge pack beneath the app.',
 }
 
 /**

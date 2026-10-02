@@ -73,7 +73,7 @@ export const AgentSession = representation(
       models: z
         .array(z.string())
         .describe(
-          'The logical models the key may call — the ones the project’s data classification allows (D17), and never fewer restrictions than production’s release has. When the project stops allowing some of them, the key loses those at once and keeps the rest (`agent_session.narrowed`), and this list is what it holds now.',
+          'The logical models the key may call — the ones the project’s data classification allows, and never fewer restrictions than production’s release has. When the project stops allowing some of them, the key loses those at once and keeps the rest (`agent_session.narrowed`), and this list is what it holds now.',
         ),
       capUsd: z
         .number()

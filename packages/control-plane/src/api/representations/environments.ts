@@ -13,17 +13,19 @@ export const Environment = representation(
       projectId: Uuid.describe('Its project.'),
       kind: z
         .enum(environmentKind.enumValues)
-        .describe('Which of the three: `sandbox`, `staging` or `production` (§11).'),
-      hostname: z.string().describe('§23: `<slug>.<zone for this kind>`. Permanent.'),
+        .describe('Which of the three: `sandbox`, `staging` or `production`.'),
+      hostname: z
+        .string()
+        .describe('Its hostname: `<slug>.<zone for this kind>`. Permanent.'),
       url: z
         .url()
         .describe('Where the app answers in this environment, once it is deployed.'),
       instance: Instance.nullable().describe(
-        'The instance the hostname reaches (§6 Route). Null before any deploy.',
+        'The instance the hostname reaches. Null before any deploy.',
       ),
     })
     .describe(
-      'One of a project’s three environments (§11): where a release is deployed, and what is serving there now.',
+      'One of a project’s three environments: where a release is deployed, and what is serving there now.',
     ),
 )
 

@@ -12,10 +12,12 @@ export const Incident = representation(
       exitReason: z
         .string()
         .describe('How it ended — its exit, or that it never answered its health check.'),
-      logTail: z.string().describe('The last 200 lines, redacted at capture (§14).'),
+      logTail: z
+        .string()
+        .describe('The last 200 lines the app printed, redacted at capture.'),
       failedCheck: z
         .string()
-        .describe('Which check the platform ran and what it got back (§11).'),
+        .describe('Which check the platform ran and what it got back.'),
       diffSinceHealthy: z
         .string()
         .describe(
@@ -25,11 +27,11 @@ export const Incident = representation(
       prompt: z
         .string()
         .describe(
-          '§14: shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model.',
+          'Shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model.',
         ),
     })
     .describe(
-      'A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked.',
+      'A failed deploy, as the platform records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked.',
     ),
 )
 

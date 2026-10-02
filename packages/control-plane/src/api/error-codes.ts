@@ -188,7 +188,7 @@ export const ERROR_CODES = {
   ),
   RATE_LIMITED: api(
     429,
-    'Too many requests from this credential; Retry-After says when to try again. A delegated token’s limit is its own, from its row (§20).',
+    'Too many requests from this credential; Retry-After says when to try again. A delegated token has a limit of its own, fixed when it was minted.',
     'Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted.',
   ),
   EVENTS_UPGRADE_REQUIRED: api(
@@ -211,7 +211,7 @@ export const ERROR_CODES = {
     // directions — so a stale family here is a red gate.
     families: ['ProductionGateError'],
     summary:
-      'A blocking item an approval alone cannot fix is unmet — a first launch’s checklist (§13, D19), or a launched app’s (D9.2), a rejected release included; the body carries LaunchReadiness.',
+      'A blocking item an approval alone cannot fix is unmet — on a first launch’s checklist, or a launched app’s, a rejected release included; the body carries LaunchReadiness.',
     remedy:
       'Read `launchReadiness`: each unmet blocking item says what meets it. Meet them — most are records an administrator keeps, some with long lead times — and deploy again; a retry alone changes nothing.',
   },
@@ -220,7 +220,7 @@ export const ERROR_CODES = {
     // P6b Task 6 (Decision 9): thrown by `assertLaunchable` as a LITERAL, beside the code above.
     families: ['ProductionGateError'],
     summary:
-      'A launched app’s release changes a sensitive field (§7) since the last approved release, and only an administrator’s approval is missing (§13 D9.2); the body carries LaunchReadiness.',
+      'A launched app’s release changes a sensitive field since the last approved release, and only an administrator’s approval is missing; the body carries LaunchReadiness.',
     remedy:
       'Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again once they have.',
   },
@@ -252,7 +252,7 @@ export const ERROR_CODES = {
   // api/actor.ts — the credential class itself being refused (D24, P5b Task 5)
   TOKEN_CREDENTIAL_REFUSED: api(
     403,
-    'A valid delegated token asked for something D24 reserves to an interactive session.',
+    'A valid delegated token asked for something only a person’s own interactive session may do.',
     'Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused.',
   ),
   /**
@@ -264,7 +264,7 @@ export const ERROR_CODES = {
    */
   TOKEN_ACTION_PENDING: api(
     403,
-    'A delegated token asked for one of D24’s privileged four; `pendingAction` is the question a person must answer.',
+    'A delegated token asked for one of the four privileged actions (`release:promote`, `secret:read`, `quota:set`, `members:manage`); `pendingAction` is the question a person must answer.',
     'Ask the person who minted the token to confirm `pendingAction` in the console, then retry the identical request — same body, same Idempotency-Key — once. The confirmation grants exactly one retry.',
   ),
   /**
@@ -292,7 +292,7 @@ export const ERROR_CODES = {
    */
   STEP_UP_REQUIRED: api(
     403,
-    'This action needs a second authentication round trip (§20). Send the person to /auth/step-up and retry.',
+    'This action needs a second authentication round trip. Send the person to /auth/step-up and retry.',
     'Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up.',
   ),
   /**
@@ -304,7 +304,7 @@ export const ERROR_CODES = {
    */
   TOKEN_PERSON_ONLY: api(
     403,
-    'A delegated token asked for a person-only action (D24) — approving a release, recording UBC’s IAM or privacy decision, saying a request to UBC IAM or the Privacy Office was sent, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.',
+    'A delegated token asked for a person-only action — approving a release, recording UBC’s IAM or privacy decision, saying a request to UBC IAM or the Privacy Office was sent, running the pre-production rehearsal, or switching an app off, bringing it back or deleting it. Refused outright; no pending action is created.',
     'A person does this, in the console, in their own session. No token can hold it and no confirmation grants it — do not ask for one.',
   ),
   // GET /v1/docs/{slug} (the authoring API plan's Task 11)
@@ -345,7 +345,7 @@ export const ERROR_CODES = {
 
   // BadRequestError — every one of these is 400
   IDEMPOTENCY_KEY_REQUIRED: bad(
-    'A mutation arrived without an Idempotency-Key of at least 8 characters (D23.6).',
+    'A mutation arrived without an Idempotency-Key of at least 8 characters.',
     'Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action.',
   ),
   BLUEPRINT_NOT_FOUND: bad(
@@ -371,7 +371,7 @@ export const ERROR_CODES = {
     'Take a preview (`createApprovalPreview`), read it, and send the decision again naming its `previewId`.',
   ),
   STARTER_NOT_FOUND: bad(
-    'The blueprint offers no starter by that name (§25).',
+    'The blueprint offers no starter by that name.',
     'Choose one of the starters `getBlueprint` lists, or leave `starter` out for the skeleton alone.',
   ),
   CREDENTIAL_AMBIGUOUS: bad(
@@ -379,12 +379,12 @@ export const ERROR_CODES = {
     'Send one credential: the session cookie from a browser, or `Authorization: Bearer` from a program — never both.',
   ),
   TOKEN_CAPABILITY_FORBIDDEN: bad(
-    'A mint asked for one of D24’s four privileged capabilities, or for a person-only one; the message names which.',
+    'A mint asked for one of the four privileged capabilities (`release:promote`, `secret:read`, `quota:set`, `members:manage`), or for a person-only one; the message names which.',
     'Mint the token without them. A privileged action is granted to a token one request at a time, by a person’s confirmation (`TOKEN_ACTION_PENDING`); a person-only one never is.',
   ),
   // The authoring API plan's Task 8: its own code, so an agent told it stops asking.
   SECRET_NAME_RESERVED: bad(
-    'That variable is one the platform sets for every app (§8) — the platform’s value always wins — so it cannot be an app secret. Choose another name.',
+    'That variable is one the platform sets for every app — the platform’s value always wins — so it cannot be an app secret. Choose another name.',
     'Name the secret something else, in manifest.yaml and here. The platform’s own variables are listed in the blueprint’s knowledge pack (`getKnowledgePack`).',
   ),
 
@@ -392,7 +392,7 @@ export const ERROR_CODES = {
   SLUG_INVALID: {
     status: 400,
     families: ['SlugRefusedError'],
-    summary: 'The slug breaks §7’s rule for slugs.',
+    summary: 'The slug breaks the rule for slugs.',
     remedy:
       'Choose a slug of 3 to 39 lower-case letters, digits and hyphens that starts with a letter. `checkSlug` checks one without creating anything.',
   },
@@ -400,7 +400,7 @@ export const ERROR_CODES = {
     status: 409,
     families: ['SlugRefusedError'],
     summary:
-      'The slug is one of §23’s reserved labels; the message says what it stands for.',
+      'The slug is a reserved label — a slug no project may take; the message says what it stands for.',
     remedy: 'Choose another slug. `checkSlug` says whether one is free.',
   },
   SLUG_TAKEN: {
@@ -441,7 +441,7 @@ export const ERROR_CODES = {
   ),
   RELEASE_DIGEST_MISSING: release('The release’s build recorded no digest.', REBUILD),
   RELEASE_DIGEST_NOT_APPROVED: release(
-    'This production deploy needs an administrator’s approval — a first launch, or a launched app’s change to a sensitive field (§13 D9.2) — and none covers the digest it would run; or an administrator rejected this release, which is final. The message says which.',
+    'This production deploy needs an administrator’s approval — a first launch, or a launched app’s change to a sensitive field — and none covers the digest it would run; or an administrator rejected this release, which is final. The message says which.',
     'Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again. A rejected release stays rejected: build and release a new one.',
   ),
   RELEASE_ENVIRONMENT_NOT_FOUND: release(
@@ -453,11 +453,11 @@ export const ERROR_CODES = {
     REBUILD,
   ),
   RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER: release(
-    'A laptop-built image cannot reach a remote driver (§13).',
+    'A laptop-built image cannot reach a remote driver.',
     'Nothing a client can change: this control plane builds on one machine and runs on another. Report it to the platform’s operator.',
   ),
   RELEASE_MODEL_CLASSIFICATION_TOO_LOW: release(
-    'A declared model is not approved for the app’s data classification (D17).',
+    'A declared model is not approved for the app’s data classification.',
     'Declare a model approved for the app’s `data.classification`, or lower the classification if it is overstated; then build and release again.',
   ),
   RELEASE_MODEL_NOT_IN_CATALOGUE: release(
@@ -487,15 +487,15 @@ export const ERROR_CODES = {
     status: 409,
     families: ['LaunchTransitionError'],
     summary:
-      'An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.',
+      'An IAM registration or a privacy assessment was asked to move to a state it cannot reach from the one it is in; the message names what that state CAN become.',
     remedy:
-      'Move the record along §9’s states one step at a time, to one of the states the message names.',
+      'Move the record through its states one step at a time, to one of the states the message names.',
   },
   LAUNCH_RECORD_INVALID: {
     status: 400,
     families: ['LaunchRecordError'],
     summary:
-      'An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.',
+      'An external record’s fields cannot be accepted — for example an empty registered-attribute list, which the identity provider would read as releasing every attribute; the message names the field.',
     remedy:
       'Correct the fields the message names — a registration lists at least one attribute — and record it again.',
   },
@@ -589,7 +589,7 @@ export const ERROR_CODES = {
   // rehearsal that RAN and did not pass is a `200` with `passed: false`, never one of
   // these — a measurement that came out badly is not a request error.
   REHEARSAL_NO_CANDIDATE: rehearsal(
-    'Nothing is serving staging, so there is no candidate release to rehearse (§13).',
+    'Nothing is serving staging, so there is no candidate release to rehearse.',
     'Deploy a release to staging and let it become healthy, then rehearse again.',
   ),
   REHEARSAL_NOT_CWL: rehearsal(
@@ -602,7 +602,7 @@ export const ERROR_CODES = {
   ),
   REHEARSAL_LAUNCHED: rehearsal(
     'The app has launched, so a rehearsal would put an unapproved candidate on its live production listener. A registration change is proved by UBC IAM’s change request.',
-    'Nothing to rehearse: a launched app’s registration change goes to UBC IAM as a change request (§9), which an administrator records (`recordIamRegistration`).',
+    'Nothing to rehearse: a launched app’s registration change goes to UBC IAM as a change request, which an administrator records (`recordIamRegistration`).',
   ),
   // The launch path plan's Task 6c (the faculty front-end's FE-43): one rehearsal per project at a
   // time, a second REFUSED rather than queued — it would deploy and take down again for nobody.
@@ -656,7 +656,7 @@ export const ERROR_CODES = {
   ),
   SOURCE_INVALID_SLUG: source(
     'The slug cannot name a repository.',
-    'Choose a slug that follows §23’s rule; `checkSlug` checks one.',
+    'Choose a slug of 3 to 39 lower-case letters, digits and hyphens that starts with a letter; `checkSlug` checks one.',
   ),
   SOURCE_NOTHING_TO_COMMIT: source(
     'Every change leaves its file as it is in the base commit, so there is nothing to commit.',
@@ -695,11 +695,11 @@ export const ERROR_CODES = {
     'Create the project again. If it recurs, the GitHub organisation’s settings forbid private repositories, and its administrator changes them.',
   ),
   SOURCE_REPOSITORY_PUBLIC: source(
-    'The repository was last read PUBLIC on GitHub and could not be made private; it is not built while it is public (§20).',
+    'The repository was last read PUBLIC on GitHub and could not be made private; it is not built while it is public.',
     'Make the repository private on GitHub. The next push or read checks it again, and building resumes.',
   ),
   SOURCE_SECRET_DETECTED: source(
-    'A commit Manifest was asked to make carries a secret-shaped value, and nothing was committed; the message names path:line and the rule, never the value (§20).',
+    'A commit Manifest was asked to make carries a secret-shaped value, and nothing was committed; the message names path:line and the rule, never the value.',
     'Remove the value from the file — or the commit message — the message names, and never commit a credential: set it as an app secret instead (`setAppSecret`) and read it from the environment. Then commit again. In a file written with `encoding: base64`, the line counts runs of printable text, not lines.',
   ),
   // NOT a state conflict: a client retries a 503 and does not "fix" a 409 (Decision 18).
@@ -718,7 +718,7 @@ export const ERROR_CODES = {
     status: 403,
     families: ['OutputError'],
     summary:
-      'A production instance’s output is not readable (§14): it serves real people, whose input its output can carry.',
+      'A production instance’s output is not readable: it serves real people, whose input its output can carry.',
     remedy:
       'Read a sandbox instance’s output instead, or a failed production instance’s Incident (`listIncidents`) — its log tail is the only window onto production.',
   },
@@ -729,7 +729,7 @@ export const ERROR_CODES = {
     status: 403,
     families: ['OutputError'],
     summary:
-      'A staging instance’s output is not readable (§14): staging serves real people — staging CWL holders at UBC — whose input its output can carry. Decided by the environment’s kind, so a laptop’s staging is refused too.',
+      'A staging instance’s output is not readable: staging serves real people — staging CWL holders at UBC — whose input its output can carry. Decided by the environment’s kind, so a laptop’s staging is refused too.',
     remedy:
       'Read a sandbox instance’s output instead — deploy the same release there (`deploy`) to see what it prints — or a failed staging instance’s Incident (`listIncidents`), whose log tail is the only window onto staging.',
   },
@@ -740,7 +740,7 @@ export const ERROR_CODES = {
     status: 403,
     families: ['OutputError'],
     summary:
-      'A confidential project’s staging and production Incidents are not answered to a delegated token while the platform lets that project’s building agent use the capable model (§7): their log tails can carry the input of the real people the classification protects, and redaction does not remove names or student numbers.',
+      'A confidential project’s staging and production Incidents are not answered to a delegated token while the platform lets that project’s building agent use the capable model: their log tails can carry the input of the real people the classification protects, and redaction does not remove names or student numbers.',
     remedy:
       'Read the sandbox’s Incidents instead — its users are test users — or ask the person you work for to read this environment’s Incidents in their own session and tell you, in their own words, what failed — never to paste its log tail or prompt to you, which is what this protects.',
   },
@@ -760,7 +760,7 @@ export const ERROR_CODES = {
     status: 409,
     families: ['ProjectStateError'],
     summary:
-      'The project is archived — switched off by its owner (§11) — so it can be read and restored, and nothing else can change.',
+      'The project is archived — switched off by its owner — so it can be read and restored, and nothing else can change.',
     remedy:
       'Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore.',
   },
@@ -776,7 +776,7 @@ export const ERROR_CODES = {
     status: 409,
     families: ['ProjectStateError'],
     summary:
-      'The project has been to production, so it cannot be deleted (§11): its data is disposed of under its retention period and UBC’s sunset procedure, which are the Privacy Office’s, and its production name stays held for good (D26). Nothing was destroyed — and nothing was changed, unless the launch completed while the delete was starting, when the app has been switched off (archived) with everything kept.',
+      'The project has been to production, so it cannot be deleted: its data is disposed of under its retention period and UBC’s sunset procedure, which are the Privacy Office’s, and its production name stays held for good. Nothing was destroyed — and nothing was changed, unless the launch completed while the delete was starting, when the app has been switched off (archived) with everything kept.',
     remedy:
       'Archive it instead (`archiveProject`) to switch it off for everyone; its data and records are kept for their retention period. One the delete switched off is restored with `restoreProject`.',
   },
@@ -795,7 +795,7 @@ export const ERROR_CODES = {
     status: 409,
     families: ['AgentSessionError'],
     summary:
-      'The monthly agent budget of the person this credential acts for is spent, so no key was issued (§10).',
+      'The monthly agent budget of the person this credential acts for is spent, so no key was issued.',
     remedy:
       'Wait for the month to reset (`getAgentBudget` says when), or ask a platform administrator to raise this person’s agent budget.',
   },
@@ -803,7 +803,7 @@ export const ERROR_CODES = {
     status: 409,
     families: ['AgentSessionError'],
     summary:
-      'No model in the platform’s catalogue is approved for this project’s data classification, so no key was issued (D17). An empty model list would be every model to the gateway.',
+      'No model in the platform’s catalogue is approved for this project’s data classification, so no key was issued. An empty model list would be every model to the gateway.',
     remedy:
       'Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release.',
   },
@@ -823,7 +823,7 @@ export const ERROR_CODES = {
     status: 409,
     families: ['AgentSessionError'],
     summary:
-      'This person has started the intake sessions a person may start in a day (§10), so describing new apps is paused for them until midnight, Vancouver time.',
+      'This person has started the intake sessions a person may start in a day, so describing new apps is paused for them until midnight, Vancouver time.',
     remedy:
       'Try again tomorrow, or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead.',
   },
@@ -831,7 +831,7 @@ export const ERROR_CODES = {
     status: 409,
     families: ['AgentSessionError'],
     summary:
-      'The platform’s monthly intake budget is spent (§10), so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.',
+      'The platform’s monthly intake budget is spent, so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.',
     remedy:
       'Wait for the month to reset — the first of the month, 00:00 UTC — or ask a platform administrator to raise the intake budget.',
   },
@@ -839,7 +839,7 @@ export const ERROR_CODES = {
     status: 503,
     families: ['AgentSessionError'],
     summary:
-      'The platform’s intake model is not a catalogue model approved for internal data (D17), so intake is paused rather than sent to another model.',
+      'The platform’s intake model is not a catalogue model approved for internal data, so intake is paused rather than sent to another model.',
     remedy:
       'A platform administrator names an intake model the catalogue approves for internal data (`MANIFEST_INTAKE_MODEL`).',
   },
@@ -1003,17 +1003,17 @@ export const MANIFEST_ERRORS: Record<
   // §7's schema (spec/errors.ts)
   SPEC_BUILD_BLOCK_FORBIDDEN: {
     summary:
-      'manifest.yaml supplies its own build definition (`runtime.build`); the Dockerfile is the blueprint’s (D13).',
+      'manifest.yaml supplies its own build definition (`runtime.build`); the Dockerfile is the blueprint’s.',
     remedy: 'Remove `runtime.build`. Declare what the app needs — never how to build it.',
   },
   SPEC_UNKNOWN_KEY: {
-    summary: 'A key §7 does not define at that path.',
+    summary: 'A key manifest.yaml does not define at that path.',
     remedy: 'Remove or rename the key; the hint lists the keys that path accepts.',
   },
   SPEC_PATH_EXPECTED: {
     summary: 'A field that takes a path was given a URL.',
     remedy:
-      'Write a path beginning `/`, such as `/auth/ubcshib/callback`; Manifest derives the origin itself (D15).',
+      'Write a path beginning `/`, such as `/auth/ubcshib/callback`; Manifest derives the origin itself.',
   },
   SPEC_INVALID_SLUG: {
     summary: '`name` is not a valid project slug.',
@@ -1022,7 +1022,7 @@ export const MANIFEST_ERRORS: Record<
   },
   SPEC_RESERVED_BLOCK_NOT_EMPTY: {
     summary:
-      '`integrations`, `jobs` or `checks` is not empty; §15 reserves each, empty, in schema version 1.',
+      '`integrations`, `jobs` or `checks` is not empty; schema version 1 reserves each, and each must be empty.',
     remedy: 'Leave the block out, or leave it as an empty list.',
   },
   SPEC_INVALID_BLUEPRINT_REF: {
@@ -1031,7 +1031,7 @@ export const MANIFEST_ERRORS: Record<
       'Write it as `name@major` — the project’s own pin, which `getProject` answers as `blueprint`.',
   },
   SPEC_INVALID_VALUE: {
-    summary: 'A value has the wrong type, or is outside what §7 permits.',
+    summary: 'A value has the wrong type, or is outside what its field permits.',
     remedy:
       'Correct the value the path names. This document’s `ManifestYaml` schema gives every field’s type and permitted values.',
   },
@@ -1042,7 +1042,7 @@ export const MANIFEST_ERRORS: Record<
   },
   // §7's policy (spec/policy.ts)
   SPEC_ENV_NAME_RESERVED: {
-    summary: 'An `env` entry declares a variable the platform sets for every app (§8).',
+    summary: 'An `env` entry declares a variable the platform sets for every app.',
     remedy:
       'Remove the entry, or choose another name: the platform’s value always wins, so this line would do nothing.',
   },
@@ -1061,7 +1061,7 @@ export const MANIFEST_ERRORS: Record<
   },
   SPEC_ATTRIBUTE_NOT_REGISTERED: {
     summary:
-      'A launched app asks for a CWL attribute its recorded IAM registration does not release (§7); refused when the production build runs.',
+      'A launched app asks for a CWL attribute its recorded IAM registration does not release; refused when the production build runs.',
     remedy:
       'Remove the attribute from `auth.attributes`, or have UBC IAM approve the registration’s change and record it (`recordIamRegistration`), then build again.',
   },
@@ -1070,11 +1070,11 @@ export const MANIFEST_ERRORS: Record<
     remedy: 'Use a logical model name the hint lists, never a vendor’s model id.',
   },
   SPEC_MODEL_UNCLASSIFIED: {
-    summary: 'A model with no data classification, which no app may use (D17).',
+    summary: 'A model with no data classification, which no app may use.',
     remedy: 'Choose another model, or ask an administrator to classify this one.',
   },
   SPEC_MODEL_CLASSIFICATION_TOO_LOW: {
-    summary: 'A model that is not approved for the app’s `data.classification` (D17).',
+    summary: 'A model that is not approved for the app’s `data.classification`.',
     remedy:
       'Choose a model approved for that classification, or lower `data.classification` if it is overstated.',
   },
@@ -1096,7 +1096,7 @@ export const MANIFEST_ERRORS: Record<
   },
   SPEC_FIELD_NOT_ENFORCED: {
     summary:
-      'A WARNING, not an error: a field Manifest validates and records with the release but does not enforce yet — today `ai.budget.per_user_monthly_usd`, not enforced before Phase 4 (§10). The manifest is valid.',
+      'A WARNING, not an error: a field Manifest validates and records with the release but does not enforce yet — today `ai.budget.per_user_monthly_usd`. The manifest is valid.',
     remedy:
       'Nothing to fix. Keep the value if you mean it — it applies once Manifest enforces it; what limits the app today is `ai.budget.project_monthly_usd`.',
   },
@@ -1107,21 +1107,20 @@ export const MANIFEST_ERRORS: Record<
   },
   // §25's compatibility check (blueprints/compatibility.ts)
   BLUEPRINT_SERVICE_UNSUPPORTED: {
-    summary: 'The pinned blueprint cannot bind that service type (§25).',
+    summary: 'The pinned blueprint cannot bind that service type.',
     remedy: 'Use a service type the hint lists, which the pinned blueprint can bind.',
   },
   BLUEPRINT_AUTH_UNSUPPORTED: {
-    summary: 'The pinned blueprint does not support that `auth.provider` (§25).',
+    summary: 'The pinned blueprint does not support that `auth.provider`.',
     remedy:
       'Set `auth.provider` to one the hint lists, which the pinned blueprint supports.',
   },
   BLUEPRINT_AI_UNSUPPORTED: {
-    summary: 'The pinned blueprint does not provide AI (§25).',
+    summary: 'The pinned blueprint does not provide AI.',
     remedy: 'Remove `ai.models`: an app gets AI only from a blueprint that provides it.',
   },
   BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED: {
-    summary:
-      'The pinned blueprint does not understand this `manifest:` schema version (§25).',
+    summary: 'The pinned blueprint does not understand this `manifest:` schema version.',
     remedy: 'Set `manifest:` to a schema version the hint lists.',
   },
 }

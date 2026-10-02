@@ -5,7 +5,7 @@ Every operation of Manifest’s API, version 1.5.0, grouped by what it is about:
 
 ## administration
 
-Operations for the platform’s administrators — today, every project on the platform at a glance (§26).
+Operations for the platform’s administrators: every project on the platform at a glance, and everything waiting on an administrator.
 
 ### `listFleet` — Every app on the platform
 
@@ -177,7 +177,7 @@ Answer, `200`:
 
 ## agents
 
-Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget; and the intake session a person describing a new app is given before it exists, which the platform pays for.
+Model keys for an agent working outside Manifest: a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget; and the intake session a person describing a new app is given before it exists, which the platform pays for.
 
 ### `getAgentBudget` — Your agent budget this month
 
@@ -505,7 +505,7 @@ Answer, `201`:
 
 ## blueprints
 
-The blueprints an app is built from (§25): what each provides, its starters, and the knowledge pack an agent reads before writing code.
+The blueprints an app is built from: what each provides, its starters, and the knowledge pack an agent reads before writing code.
 
 ### `listBlueprints` — The blueprint catalogue
 
@@ -644,8 +644,8 @@ Answer, `200`:
     {
       "path": "AGENTS.md",
       "mediaType": "text/markdown",
-      "sha256": "65c15d46fd344f1e2cf2bbea2727fc97e42504c78c88e5de5509127a2892a739",
-      "content": "# node-ts-mongo@1 — knowledge pack\n\nYou are generating an application from this blueprint. This file is the whole of\nwhat you need to know about the platform; it is served over the Manifest API\n(D25) alongside the blueprint itself.\n\n**The stack is fixed.** Node 22 on Alpine, Expr …"
+      "sha256": "a0fe0e12674fbb6b8862ec2b7338cbd12b2e83b37608f94c42479933a567a136",
+      "content": "# node-ts-mongo@1 — knowledge pack\n\nYou are generating an application from this blueprint. This file is the whole of\nwhat you need to know about the platform; it is served over the Manifest API\nalongside the blueprint itself.\n\n**The stack is fixed.** Node 22 on Alpine, Expr …"
     }
   ]
 }
@@ -661,7 +661,7 @@ Answer, `200`:
 
 ## delivery
 
-From a commit to a running app (§11–§13): build it, release the build, deploy the release, and — for production — the approval an administrator gives. Incidents say why an instance failed.
+From a commit to a running app: build it, release the build, deploy the release, and — for production — the approval an administrator gives. Incidents say why an instance failed.
 
 ### `getBuild` — A build
 
@@ -682,7 +682,7 @@ Answer, `200`:
   "commitSha": "8ca53a0c88c96b9624724873b4e03d9c40af796c",
   "status": "failed",
   "imageDigest": null,
-  "error": "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'iam-add': sn. Registered: mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered (§7, §9) — otherwise students hit a broken login on launch …",
+  "error": "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'iam-add': sn. Registered: mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered — otherwise students hit a broken login on launch …",
   "scan": null,
   "createdAt": "2026-09-26T21:48:49.290Z"
 }
@@ -1605,11 +1605,11 @@ Answer, `200`:
     "baselineReleaseId": null,
     "sensitiveFields": [],
     "security": [],
-    "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+    "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
     "review": {
       "state": "not_performed",
       "reviewer": "none",
-      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
     }
   },
   "previewId": "a08d1993-28bf-4378-a8d8-dfad2dccfc57"
@@ -1677,14 +1677,14 @@ Answer, `201`:
     "security": [
       {
         "field": "auth.attributes",
-        "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA."
+        "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered, and it is an input to the PIA."
       }
     ],
-    "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+    "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
     "review": {
       "state": "not_performed",
       "reviewer": "none",
-      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
     }
   }
 }
@@ -1750,11 +1750,11 @@ Answer, `200`:
     "baselineReleaseId": null,
     "sensitiveFields": [],
     "security": [],
-    "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+    "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
     "review": {
       "state": "not_performed",
       "reviewer": "none",
-      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
     }
   }
 }
@@ -1834,14 +1834,14 @@ Answer, `201`:
     "security": [
       {
         "field": "auth.attributes",
-        "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA."
+        "note": "The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered, and it is an input to the PIA."
       }
     ],
-    "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+    "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
     "review": {
       "state": "not_performed",
       "reviewer": "none",
-      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
     }
   },
   "previewId": "0df5bf80-218f-430f-9295-c6837256afca"
@@ -1930,14 +1930,14 @@ Answer, `201`:
     "security": [
       {
         "field": "egress.allow",
-        "note": "The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”."
+        "note": "The app may send data to a host it could not reach before. Default-deny egress is the containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”."
       }
     ],
-    "coverage": "An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).",
+    "coverage": "An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.",
     "review": {
       "state": "not_performed",
       "reviewer": "none",
-      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20)."
+      "detail": "No code reviewer is configured. Manifest reviews manifest.yaml, not code; the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections."
     }
   },
   "previewId": "46109278-ffed-493e-8489-09e3b24c9be8"
@@ -2057,7 +2057,7 @@ Answer, `200`:
 
 ## events
 
-The project’s event stream (D23.2): every audit event and build log line, live, over a WebSocket.
+The project’s event stream: every audit event and build log line, live, over a WebSocket.
 
 ### `streamProjectEvents` — The project’s event stream (WebSocket)
 
@@ -2110,7 +2110,7 @@ Answer, `200`:
 
 ## launch
 
-A first production launch (§9, §13): the checklist computed from what exists, the external records UBC’s IAM and Privacy Office decisions are kept in, and the sign-in rehearsal.
+A first production launch: the checklist computed from what exists; the registration with UBC IAM and the privacy assessment for the Privacy Office, each drafted, sent and answered, and the records their decisions are kept in; the sign-in rehearsal; and asking an administrator to sign a release off.
 
 ### `getLaunchReadiness` — What a production release still needs
 
@@ -2140,13 +2140,13 @@ Answer, `200`:
       "owner": "project owner",
       "blocking": true,
       "state": "met",
-      "why": "Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.",
+      "why": "Canonical hostname only — no action. A custom domain is not offered yet, and for a CWL app one must be chosen before IAM registration, because the registration carries it.",
       "since": null
     },
     {
       "id": "iam-registration",
       "title": "Registered with UBC IAM",
-      "owner": "UBC IAM, recorded by a platform administrator (§9)",
+      "owner": "UBC IAM, recorded by a platform administrator",
       "blocking": true,
       "state": "unmet",
       "why": "It was sent to UBC IAM on September 30, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
@@ -2355,7 +2355,7 @@ Answer, `200`:
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `LAUNCH_RECORD_INVALID` | 400 | Correct the fields the message names — a registration lists at least one attribute — and record it again. |
-| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
+| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record through its states one step at a time, to one of the states the message names. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -2600,7 +2600,7 @@ Answer, `200`:
 | `LAUNCH_PIA_NOT_APPROVED` | 409 | Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the registration and say so again. |
 | `LAUNCH_SENT_AT_INVALID` | 400 | Give the day you sent it, as YYYY-MM-DD — today or earlier, and not before the draft’s day — or leave it out for today. |
 | `LAUNCH_STAGING_NOT_REGISTERED` | 409 | Send the staging registration first. Once an administrator records it active and you have tested the app at staging, send the production registration and say so again. |
-| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
+| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record through its states one step at a time, to one of the states the message names. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -2809,7 +2809,7 @@ Answer, `200`:
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
-| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
+| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record through its states one step at a time, to one of the states the message names. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -3222,7 +3222,7 @@ Answer, `200`:
 | `LAUNCH_DRAFT_CHANGED` | 409 | Read the current draft (`getLaunchRecords`). If it is what you sent, say so again with its `generatedAt`; if you sent the earlier one, send the current draft instead and say so. |
 | `LAUNCH_DRAFT_REQUIRED` | 409 | Draft it first (`draftIamRegistration` for a registration, `draftPrivacyAssessment` for the privacy assessment), send the draft to UBC, then say it was sent. Nothing was recorded. |
 | `LAUNCH_SENT_AT_INVALID` | 400 | Give the day you sent it, as YYYY-MM-DD — today or earlier, and not before the draft’s day — or leave it out for today. |
-| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record along §9’s states one step at a time, to one of the states the message names. |
+| `LAUNCH_TRANSITION_INVALID` | 409 | Move the record through its states one step at a time, to one of the states the message names. |
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
@@ -3281,7 +3281,7 @@ Answer, `200`:
 | `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REHEARSAL_DEPLOY_FAILED` | 409 | Read the message and the project’s events for why the deploy failed, fix that, and rehearse again. |
-| `REHEARSAL_LAUNCHED` | 409 | Nothing to rehearse: a launched app’s registration change goes to UBC IAM as a change request (§9), which an administrator records (`recordIamRegistration`). |
+| `REHEARSAL_LAUNCHED` | 409 | Nothing to rehearse: a launched app’s registration change goes to UBC IAM as a change request, which an administrator records (`recordIamRegistration`). |
 | `REHEARSAL_NOT_CWL` | 409 | Nothing to do: the launch checklist’s rehearsal item is already met for an app with no CWL sign-in. |
 | `REHEARSAL_NO_CANDIDATE` | 409 | Deploy a release to staging and let it become healthy, then rehearse again. |
 | `REHEARSAL_RUNNING` | 409 | Wait for the running rehearsal to answer — up to about two minutes — then read the launch checklist (`getLaunchReadiness`): its `rehearsal` item says how it went. |
@@ -3349,7 +3349,7 @@ Answer, `200`:
 
 ## pending-actions
 
-D24’s questions: a delegated token that asks for a privileged action waits here until a person confirms or rejects it.
+Questions for a person: a delegated token that asks for a privileged action waits here until a person confirms or rejects it.
 
 ### `getPendingAction` — One pending action
 
@@ -3565,7 +3565,7 @@ Answer, `200`:
 
 ## projects
 
-A project, its three environments, its members, and the validation of its manifest.yaml (§6, §7, §23).
+A project, its three environments, its members, and the validation of its manifest.yaml.
 
 ### `getEnvironment` — An environment, and what it serves
 
@@ -4393,7 +4393,7 @@ Answer, `201`:
     {
       "code": "SPEC_FIELD_NOT_ENFORCED",
       "path": "ai.budget.per_user_monthly_usd",
-      "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+      "message": "$2/month per person is validated and recorded with the release, and not enforced: no single person is limited by it yet",
       "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
     }
   ],
@@ -4460,7 +4460,7 @@ Answer, `200`:
 
 ## secrets
 
-The values of an app’s declared secrets, per environment — set and cleared, and never read back (§20).
+The values of an app’s declared secrets, per environment — set and cleared, and never read back.
 
 ### `listAppSecrets` — The app’s secrets in an environment — names only
 
@@ -4594,7 +4594,7 @@ Answer, `200`:
 
 ## source
 
-The project’s code: read a tree, a file, the history and one commit, and commit changes against the commit read (§20’s git driver).
+The project’s code: read a tree, a file, the history and one commit, and commit changes against the commit read.
 
 ### `listCommits` — The history of the project’s repository
 
@@ -4715,7 +4715,7 @@ Answer, `201`:
       {
         "code": "SPEC_FIELD_NOT_ENFORCED",
         "path": "ai.budget.per_user_monthly_usd",
-        "message": "$2/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet",
+        "message": "$2/month per person is validated and recorded with the release, and not enforced: no single person is limited by it yet",
         "hint": "Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it."
       }
     ]
@@ -4920,7 +4920,7 @@ Answer, `200`:
 
 ## tokens
 
-Delegated tokens (D24): a person mints one for an agent, scoped to one project and a list of capabilities, and revokes it.
+Delegated tokens: a person mints one for an agent, scoped to one project and a list of capabilities, and revokes it.
 
 ### `listTokens` — A project’s delegated tokens
 

@@ -277,7 +277,7 @@ export const SPEC_VALIDATION: Schemas['SpecValidation'] = {
       code: 'SPEC_FIELD_NOT_ENFORCED',
       path: 'ai.budget.per_user_monthly_usd',
       message:
-        '$1/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet',
+        '$1/month per person is validated and recorded with the release, and not enforced: no single person is limited by it yet',
       hint: 'Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it.',
     },
   ],
@@ -514,9 +514,9 @@ const APPROVAL_DIFF: Schemas['ApprovalDiff'] = {
     state: 'not_performed',
     reviewer: 'none',
     detail:
-      'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the ' +
+      'No code reviewer is configured. Manifest reviews manifest.yaml, not code; the ' +
       'controls that make that tolerable are containment — default-deny egress, network ' +
-      'isolation, least privilege and edge protections (§20).',
+      'isolation, least privilege and edge protections.',
   },
   // R4(d) (P6b Task 8). The memory change above IS one of §7's sensitive fields, so this
   // approval names what it was compared with, the field and its note — the note and the
@@ -531,9 +531,9 @@ const APPROVAL_DIFF: Schemas['ApprovalDiff'] = {
     },
   ],
   coverage:
-    'An administrator sees a first launch and any release that changes a sensitive field (§7). ' +
+    'An administrator sees a first launch and any release that changes a sensitive field. ' +
     'A release that changes none reaches production without an administrator, and its code is ' +
-    'reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+    'reviewed by nothing (an accepted risk); containment is the control.',
 }
 
 /**
@@ -653,13 +653,13 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       owner: 'project owner',
       blocking: true,
       state: 'met',
-      why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
+      why: 'Canonical hostname only — no action. A custom domain is not offered yet, and for a CWL app one must be chosen before IAM registration, because the registration carries it.',
       since: null,
     },
     {
       id: 'iam-registration',
       title: 'Registered with UBC IAM',
-      owner: 'UBC IAM, recorded by a platform administrator (§9)',
+      owner: 'UBC IAM, recorded by a platform administrator',
       blocking: true,
       state: 'met',
       why: 'Registered as https://manifest.internal/sp/mock-app/production, active (ticket IAM-2026-0412), releasing 4 attribute(s).',
@@ -669,7 +669,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
     {
       id: 'privacy-assessment',
       title: 'Privacy Impact Assessment approved',
-      owner: 'UBC Privacy Office, recorded by a platform administrator (§9)',
+      owner: 'UBC Privacy Office, recorded by a platform administrator',
       blocking: true,
       state: 'unmet',
       // Waiting on the Privacy Office since the day it was RE-sent — `PRIVACY_ASSESSMENT.submittedAt` —
@@ -683,7 +683,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       owner: 'Manifest',
       blocking: true,
       state: 'met',
-      why: "A production-shaped rehearsal passed on 2026-09-20: the app was deployed to its production hostname on the public listener, its Service Provider was registered with production values, and one CWL sign-in completed releasing 3 attribute(s). This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).",
+      why: "A production-shaped rehearsal passed on 2026-09-20: the app was deployed to its production hostname on the public listener, its Service Provider was registered with production values, and one CWL sign-in completed releasing 3 attribute(s). This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth, and a sign-in against UBC's own staging IdP is not part of this rehearsal.",
       since: null,
     },
     {
@@ -692,7 +692,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       owner: 'Manifest',
       blocking: true,
       state: 'met',
-      why: 'Its secret and lockfile gates passed and no finding it introduced has a published fix. 0 finding(s) with no published fix are recorded on the release (§12).',
+      why: 'Its secret and lockfile gates passed and no finding it introduced has a published fix. 0 finding(s) with no published fix are recorded on the release.',
       since: null,
     },
     {
@@ -711,7 +711,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       blocking: false,
       state: 'not_built',
       builtBy: 'a tracked hardening item (SemgrepReviewer), not a plan',
-      why: 'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code (§13), and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20). A reviewer interface exists with no implementation behind it (D33, §15), so this item does not block a launch.',
+      why: 'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code, and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections. A reviewer interface exists with no implementation behind it, so this item does not block a launch.',
       since: null,
     },
   ],
@@ -743,9 +743,9 @@ export const SELF_SERVE_READINESS: Schemas['LaunchReadiness'] = {
         ? {
             ...i,
             title:
-              'Release approved by a platform administrator — only when a sensitive field changed (D9)',
+              'Release approved by a platform administrator — only when a sensitive field changed',
             state: 'met' as const,
-            why: 'No sensitive field (§7) changed since the last approved release, so this release goes to production self-serve (D9). Its code is not reviewed: that is §13’s residual risk, and containment is its control (§20).',
+            why: 'No sensitive field changed since the last approved release, so this release goes to production self-serve. Its code is not reviewed: that is an accepted risk, and containment is its control.',
             since: null,
           }
         : i,
@@ -1585,7 +1585,7 @@ export const EMPTIED_MANIFEST: Schemas['ErrorEnvelope'] = {
         code: 'SPEC_INVALID_VALUE',
         path: '',
         message: 'Expected object, received null',
-        hint: 'Check the type and permitted values of this field in §7 of the platform design.',
+        hint: 'Check the type and permitted values of this field in the ManifestYaml schema.',
       },
     ],
   },

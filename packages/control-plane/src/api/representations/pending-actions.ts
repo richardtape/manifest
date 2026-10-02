@@ -29,7 +29,9 @@ export const PendingAction = representation(
       tokenId: Uuid.describe('The delegated token that asked (`listTokens`).'),
       action: z
         .string()
-        .describe('The privileged capability that was refused — one of D24’s four.'),
+        .describe(
+          'The privileged capability that was refused: `release:promote`, `secret:read`, `quota:set` or `members:manage`.',
+        ),
       state: z
         .enum(['pending', 'confirmed', 'rejected', 'expired'])
         .describe(
@@ -86,7 +88,7 @@ export const PendingAction = representation(
       ),
     })
     .describe(
-      'D24: a delegated token asked for one of the privileged four. A person confirms or rejects it; a confirmation grants that one request a single retry.',
+      'A delegated token asked to use one of the four privileged capabilities. A person confirms or rejects it; a confirmation grants that one request a single retry.',
     ),
 )
 
@@ -102,7 +104,7 @@ export const PendingActionList = representation(
   z
     .array(PendingAction)
     .describe(
-      'The questions agents have put to the people who own this project, newest first (§26).',
+      'The questions agents have put to the people who own this project, newest first.',
     ),
 )
 

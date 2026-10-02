@@ -28,7 +28,7 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     acsUrl: 'https://chem-labs.staging.manifest.internal/auth/saml/callback',
     attributes: ['displayName', 'mail'],
     certificateFingerprint:
-      '3A:9C:04:E7:B2:5D:18:6A:C3:47:0E:9B:D2:61:A8:35:7C:E0:4B:93:2D:A6:15:C8:E9:30:7A:4E:B1:6C:D5:08',
+      '3A:9C:04:E7:B2:5D:18:6A:C3:47:0E:9B:DB:61:A8:35:7C:E0:4B:93:2D:A6:15:C8:E9:30:7A:4E:B1:6C:DF:08',
     changed: true,
   },
   'sso.acs_changed': {

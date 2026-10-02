@@ -6,7 +6,7 @@ export const Blueprint = representation(
   'Blueprint',
   z
     .object({
-      ref: z.string().describe('`name@major` — what a project pins (§25).'),
+      ref: z.string().describe('`name@major` — what a project pins.'),
       name: z.string().describe('The blueprint’s name.'),
       majorVersion: z
         .number()
@@ -31,7 +31,7 @@ export const Blueprint = representation(
             .describe('What `auth.provider` may be.'),
           ai: z.boolean().describe('Whether its apps may declare `ai.models`.'),
         })
-        .describe('What an app on it may declare in manifest.yaml (§25).'),
+        .describe('What an app on it may declare in manifest.yaml.'),
       starters: z
         .array(
           z.object({
@@ -41,9 +41,7 @@ export const Blueprint = representation(
             summary: z.string().describe('What it is, in a sentence.'),
           }),
         )
-        .describe(
-          '§25: what `POST /v1/projects` accepts as `starter` for this blueprint.',
-        ),
+        .describe('What `POST /v1/projects` accepts as `starter` for this blueprint.'),
     })
     .describe(
       'A blueprint as a client chooses one: what it provides and the starters it offers. Never its base image or build internals.',
@@ -76,7 +74,7 @@ export const KnowledgePack = representation(
         .describe('Every file in the pack; read them all before writing code.'),
     })
     .describe(
-      'D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it.',
+      'The blueprint’s knowledge pack: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it.',
     ),
 )
 

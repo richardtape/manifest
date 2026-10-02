@@ -307,7 +307,7 @@ export function policyWarnings(spec: ManifestSpec): ManifestError[] {
     warnings.push({
       code: POLICY_CODES.FIELD_NOT_ENFORCED,
       path: 'ai.budget.per_user_monthly_usd',
-      message: `$${perUser}/month per person is validated and recorded with the release, and not enforced before Phase 4 (§10): no single person is limited by it yet`,
+      message: `$${perUser}/month per person is validated and recorded with the release, and not enforced: no single person is limited by it yet`,
       hint: 'Nothing to fix. What limits the app’s AI spending today is ai.budget.project_monthly_usd; keep this value if you mean it — it applies once Manifest enforces it.',
     })
   }

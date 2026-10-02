@@ -219,7 +219,7 @@ const DOMAIN_ITEM: LaunchItem = {
   owner: 'project owner',
   blocking: true,
   state: 'met',
-  why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
+  why: 'Canonical hostname only — no action. A custom domain is not offered yet, and for a CWL app one must be chosen before IAM registration, because the registration carries it.',
 }
 
 /** §24: a large-audience app is rehearsed under load before launch — P9 builds it. Both clauses. */
@@ -232,8 +232,8 @@ function loadRehearsalItems(audience: StoredAudience | null | undefined): Launch
       owner: 'Manifest',
       blocking: true,
       state: 'not_built',
-      builtBy: 'a later Manifest release (§24’s load rehearsal)',
-      why: `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed against staging with production-shaped capacity before launch (§24).`,
+      builtBy: 'a later Manifest release (the load rehearsal)',
+      why: `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed against staging with production-shaped capacity before launch.`,
     },
   ]
 }
@@ -283,7 +283,7 @@ async function codeReviewItem(
       ...CODE_REVIEW_BASE,
       state: 'not_built',
       builtBy: CODE_REVIEWER_BUILT_BY,
-      why: `No reviewer has looked at this release. A reviewer runs when an administrator previews a release for approval — a first launch or a re-escalation — and never for a self-serve release (D33). ${NOTHING_REVIEWS_CODE}`,
+      why: `No reviewer has looked at this release. A reviewer runs when an administrator previews a release for approval — a first launch or a re-escalation — and never for a self-serve release. ${NOTHING_REVIEWS_CODE}`,
     }
   const { review } = latest
   // F13 (P6b sitting 7; the D5 plan's Task 13): WHERE THE VERDICT WAS RECORDED, as
@@ -300,13 +300,13 @@ async function codeReviewItem(
       return {
         ...CODE_REVIEW_BASE,
         state: 'met',
-        why: `${review.reviewer}: ${review.detail}. ${capitalised(recorded)}; it does not block a launch (D33).`,
+        why: `${review.reviewer}: ${review.detail}. ${capitalised(recorded)}; it does not block a launch.`,
       }
     case 'findings':
       return {
         ...CODE_REVIEW_BASE,
         state: 'unmet',
-        why: `${review.detail} — ${review.reviewer}. ${capitalised(recorded)}; advisory, so it does not block a launch (D33).`,
+        why: `${review.detail} — ${review.reviewer}. ${capitalised(recorded)}; advisory, so it does not block a launch.`,
       }
     case 'not_performed':
       return {
@@ -335,7 +335,7 @@ const CODE_REVIEWER_BUILT_BY = 'a tracked hardening item (SemgrepReviewer), not 
  * sentence and that row can be read as saying different things, this sentence is wrong.
  */
 const NOTHING_REVIEWS_CODE =
-  'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code (§13), and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20). A reviewer interface exists with no implementation behind it (D33, §15), so this item does not block a launch.'
+  'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code, and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections. A reviewer interface exists with no implementation behind it, so this item does not block a launch.'
 
 /**
  * §13's first blocking item, and the one R1 bought (P6a Task 7). Until this task it read
@@ -371,7 +371,7 @@ async function iamItem(
     return {
       ...IAM_BASE,
       state: 'unmet',
-      why: 'Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference.',
+      why: 'Every production app that signs people in with CWL needs its own registration with UBC IAM, and it takes weeks. Production’s is drafted (draftIamRegistration) and sent (submitIamRegistration) once the privacy assessment is approved and staging’s registration is active. An administrator records UBC IAM’s answer, with its ticket reference.',
     }
   if (row.state === 'active') {
     /**
@@ -402,8 +402,7 @@ async function iamItem(
     ...IAM_BASE,
     state: 'unmet',
     why:
-      `${sentToIam(row)}The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch` +
-      (sentToIam(row) === '' ? ' (§9).' : '.') +
+      `${sentToIam(row)}The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch.` +
       draftDrift(row, would),
     since: waitingOnUbc(row),
   }
@@ -503,20 +502,20 @@ async function liveRegistrationItem(
     return {
       ...IAM_BASE,
       state: 'unmet',
-      why: 'This app has launched and signs people in with CWL, but no IAM registration is recorded for it — nothing reaches production until an administrator records what UBC IAM registered (§9).',
+      why: 'This app has launched and signs people in with CWL, but no IAM registration is recorded for it — nothing reaches production until an administrator records what UBC IAM registered.',
     }
   if (row.registeredAt === null)
     return {
       ...IAM_BASE,
       state: 'unmet',
-      why: `${sentToIam(row)}UBC IAM has never been recorded registering this app: the registration is '${row.state}'${ticket(row.externalTicketRef)}. Nothing reaches production until an administrator records it 'active' (§9).`,
+      why: `${sentToIam(row)}UBC IAM has never been recorded registering this app: the registration is '${row.state}'${ticket(row.externalTicketRef)}. Nothing reaches production until an administrator records it 'active'.`,
       since: waitingOnUbc(row),
     }
   if (row.state === 'expired')
     return {
       ...IAM_BASE,
       state: 'unmet',
-      why: `The registration lapsed (D20)${ticket(row.externalTicketRef)} — nothing reaches production until UBC IAM registers it again and an administrator records it 'active' (§9).`,
+      why: `The registration lapsed${ticket(row.externalTicketRef)} — nothing reaches production until UBC IAM registers it again and an administrator records it 'active'.`,
     }
   const since = `since ${row.registeredAt.toISOString().slice(0, 10)}`
   if (would === undefined)
@@ -602,7 +601,7 @@ function coverageGap(
   const sentences: string[] = []
   if (coverage.missing.length > 0)
     sentences.push(
-      `${subject} asks for CWL attribute(s) UBC IAM did not register: ${coverage.missing.join(', ')}. Registered: ${[...row.registeredAttributes].sort().join(', ')}. A production release may request only what was registered (§7, §9), or students hit a broken login — ${
+      `${subject} asks for CWL attribute(s) UBC IAM did not register: ${coverage.missing.join(', ')}. Registered: ${[...row.registeredAttributes].sort().join(', ')}. A production release may request only what was registered, or students hit a broken login — ${
         row.requestedAttributes === null
           ? `raise an IAM change request${row.externalTicketRef === null ? '' : ` against ${row.externalTicketRef}`} (an administrator records it here as 'change_requested', with requestedAttributes), or remove the attribute(s) from auth.attributes and build again.`
           : `a change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${[...row.requestedAttributes].sort().join(', ')}); this release waits for UBC IAM to register it and an administrator to record it 'active'.`
@@ -631,7 +630,7 @@ const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
 const IAM_BASE = {
   id: 'iam-registration' as const,
   title: 'Registered with UBC IAM',
-  owner: 'UBC IAM, recorded by a platform administrator (§9)',
+  owner: 'UBC IAM, recorded by a platform administrator',
   blocking: true,
 }
 
@@ -697,7 +696,7 @@ async function approvalItem(
     return {
       ...base,
       state: 'unmet',
-      why: 'Nothing is serving in staging yet, so there is no release to approve. Production runs exactly what staging ran (§13).',
+      why: 'Nothing is serving in staging yet, so there is no release to approve. Production runs exactly what staging ran.',
     }
   const approval = await latestApprovalFor(db, candidate.release.id)
   if (approval === undefined) {
@@ -706,8 +705,8 @@ async function approvalItem(
       ...base,
       state: 'unmet',
       why:
-        'An administrator approves the exact image digest, with step-up re-authentication (§13, §20). This release has not been reviewed yet.' +
-        (asked?.sentence ?? ''),
+        'An administrator approves the exact image digest, with step-up re-authentication. This release has not been reviewed yet.' +
+        (asked?.sentence ?? ' Ask an administrator to sign it off (requestApproval).'),
       since: asked?.since ?? null,
     }
   }
@@ -725,7 +724,7 @@ async function approvalItem(
       ...base,
       state: 'unmet',
       why:
-        'This release was rebuilt since it was approved, so the approval no longer covers what would be deployed — the approval binds an image digest (§13). Approve the new build.' +
+        'This release was rebuilt since it was approved, so the approval no longer covers what would be deployed — the approval binds an image digest. Approve the new build.' +
         (asked?.sentence ?? ''),
       since: asked?.since ?? null,
     }
@@ -767,7 +766,7 @@ async function releaseApprovalItem(
   const base = {
     id: 'admin-approval' as const,
     title:
-      'Release approved by a platform administrator — only when a sensitive field changed (D9)',
+      'Release approved by a platform administrator — only when a sensitive field changed',
     owner: 'platform admin',
     blocking: true,
   }
@@ -776,7 +775,7 @@ async function releaseApprovalItem(
       item: {
         ...base,
         state: 'unmet',
-        why: 'Nothing is serving in staging yet, so there is no release to promote. Production runs exactly what staging ran (§13).',
+        why: 'Nothing is serving in staging yet, so there is no release to promote. Production runs exactly what staging ran.',
       },
       baselineReleaseId: null,
       sensitiveFields: [],
@@ -799,7 +798,7 @@ async function releaseApprovalItem(
       item: {
         ...base,
         state: 'unmet',
-        why: `An administrator did not approve this release: ${v.latest!.reason}. A rejection is final for this release (§13); build and release again.`,
+        why: `An administrator did not approve this release: ${v.latest!.reason}. A rejection is final for this release; build and release again.`,
       },
     }
   if (!v.requirement.required)
@@ -808,7 +807,7 @@ async function releaseApprovalItem(
       item: {
         ...base,
         state: 'met',
-        why: 'No sensitive field (§7) changed since the last approved release, so this release goes to production self-serve (D9). Its code is not reviewed: that is §13’s residual risk, and containment is its control (§20).',
+        why: 'No sensitive field changed since the last approved release, so this release goes to production self-serve. Its code is not reviewed: that is an accepted risk, and containment is its control.',
       },
     }
   if (v.covered) {
@@ -821,7 +820,7 @@ async function releaseApprovalItem(
         why:
           v.requirement.fields.length > 0
             ? `This release changes ${fields} since the last approved release, and an administrator approved it ${on}`
-            : `An administrator approved this release itself ${on} No other approved release exists to compare it with, so its own approval is what covers it (§13, D9).`,
+            : `An administrator approved this release itself ${on} No other approved release exists to compare it with, so its own approval is what covers it.`,
       },
     }
   }
@@ -833,8 +832,8 @@ async function releaseApprovalItem(
       state: 'unmet',
       why:
         (v.requirement.reason === 'sensitive'
-          ? `This release changes ${fields} since the last approved release, so an administrator must approve it before it goes to production (§13, D9).`
-          : 'This app has launched, but no approved release exists to compare this one with — so it needs an administrator’s approval, and so will every release until one is approved (§13, D9).') +
+          ? `This release changes ${fields} since the last approved release, so an administrator must approve it before it goes to production.`
+          : 'This app has launched, but no approved release exists to compare this one with — so it needs an administrator’s approval, and so will every release until one is approved.') +
         (asked?.sentence ?? ''),
       since: asked?.since ?? null,
     },
@@ -877,7 +876,7 @@ async function piaItem(
   const base = {
     id: 'privacy-assessment' as const,
     title: 'Privacy Impact Assessment approved',
-    owner: 'UBC Privacy Office, recorded by a platform administrator (§9)',
+    owner: 'UBC Privacy Office, recorded by a platform administrator',
     blocking: true,
   }
   const row = await getPrivacyAssessment(db, projectId)
@@ -885,7 +884,7 @@ async function piaItem(
     return {
       ...base,
       state: 'unmet',
-      why: 'A Privacy Impact Assessment is required before a production launch (§9), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what the UBC Privacy Office said, with the ticket reference.',
+      why: 'A Privacy Impact Assessment is required before a production launch, and it takes weeks. Draft it (draftPrivacyAssessment), send it to the UBC Privacy Office, and say it was sent (submitPrivacyAssessment); an administrator records the Office’s answer, with its ticket reference.',
     }
   if (row.state === 'approved')
     return {
@@ -906,7 +905,7 @@ async function piaItem(
     // a launched app whose PIA went back to `draft` stops shipping too — not only a first launch.
     why:
       (since === null
-        ? `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production (§9).`
+        ? `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`
         : `It was sent to the UBC Privacy Office on ${vancouverDayInWords(new Date(since))}. The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`) +
       assessmentDrift(row, candidateCommit),
     since,
@@ -927,7 +926,7 @@ function scansItem(
     return {
       ...base,
       state: 'unmet',
-      why: 'Nothing is serving in staging yet, so there is no release to launch. Deploy to staging first — production runs exactly what staging ran (§13).',
+      why: 'Nothing is serving in staging yet, so there is no release to launch. Deploy to staging first — production runs exactly what staging ran.',
     }
   }
   if (scan === null || scan === undefined) {
@@ -951,7 +950,7 @@ function scansItem(
     return {
       ...base,
       state: 'unmet',
-      why: `The release serving staging was scanned against a vulnerability database ${age}. A clean result from a stale database is not evidence (§12); rebuild once the database is refreshed.`,
+      why: `The release serving staging was scanned against a vulnerability database ${age}. A clean result from a stale database is not evidence there is nothing to find; rebuild once the database is refreshed.`,
     }
   }
   const unfixable = Object.values(scan.unfixable).reduce((a, b) => a + b, 0)
@@ -963,6 +962,6 @@ function scansItem(
   return {
     ...base,
     state: 'met',
-    why: `Its secret and lockfile gates passed and no finding it introduced has a published fix. ${unfixable} finding(s) with no published fix are recorded on the release (§12).${attribution}`,
+    why: `Its secret and lockfile gates passed and no finding it introduced has a published fix. ${unfixable} finding(s) with no published fix are recorded on the release.${attribution}`,
   }
 }

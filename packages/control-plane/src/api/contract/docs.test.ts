@@ -23,8 +23,8 @@ const doc = openApiDocument(ROUTE_DEFINITIONS) as Json
 /**
  * Text a reader OUTSIDE the team cannot resolve (Decision 14): a plan, a task, a sitting, a
  * decision or finding number — the faculty front-end's `FE-n` included — a spec action, a
- * person. The spec's own `§n`, `Dnn` and `Cn` are public and allowed — they resolve in the
- * approved design.
+ * person. The spec's own `§n`, `Dnn` and `Cn` are `SPEC_REF`'s, below: since the launch path
+ * plan's Task 14 none of them is published either.
  */
 const INTERNAL =
   /\b(P[1-6][abc]?|sitting|Task \d+|Decision \d+|Rich|Rich's|Spec action \d+)\b|the D5 plan|\bR[1-9]\b|\bF\d{1,3}\b|\bFE-\d+\b/
@@ -156,44 +156,38 @@ describe('the published reference is complete (Decision 14)', () => {
   })
 
   /**
-   * WHAT EVERY READER MEETS FIRST CITES NO SPEC SECTION (Rich, 2026-09-30: *"This is API docs not a
-   * history of the API"*). `INTERNAL` above allows `§n`, `Dnn` and `Cn` because they resolve in the
-   * approved design — but only a reader of the design can resolve them. So an operation's
-   * description, the document's own, the server, the two credentials, and the two texts every
-   * operation shares (the `Idempotency-Key` parameter and the error answer) say what is true now,
-   * in their own words. Tags, schemas, fields and error entries still cite the spec: a later pass
-   * rewrites them and widens this test.
+   * NOTHING PUBLISHED CITES A SPEC SECTION, A DECISION, A CONSTRAINT OR A ROADMAP PHASE (Rich,
+   * 2026-09-30: *"One of the things that we don't need to see in the API docs is things like section
+   * or plan numbers. They're irrelevant to the person reading the docs … This needs to be looked at
+   * for all the docs"*). Every string in the document — tags, schemas, fields, error entries, events,
+   * examples, the unversioned endpoints — says what is true now, in its own words. Since the launch
+   * path plan's Task 14 (until then only the operations, the document, its server, its credentials
+   * and the two shared texts were held, `5246d4d`). A certificate, its fingerprint and the metadata
+   * XML are machine data, exempt by where they are (`MACHINE_DATA`) — and a fingerprint anywhere else
+   * (an event's `certificateFingerprint`) is hex pairs, so `SPEC_REF` reads no `D2:` or `C3:` between
+   * colons as a decision or a constraint.
    */
-  it('cites no spec section where every reader starts: operations, the document, its server, its credentials and the shared texts', () => {
-    const SPEC_REF = /§\d|\bD\d{1,2}(\.\d+)?\b|\bC\d\b/
+  it('cites no spec section, decision, constraint or roadmap phase anywhere it publishes', () => {
+    const SPEC_REF =
+      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?![\w:])|(?<![\w:])C\d(?![\w:])|\bPhase \d/
     const hits: string[] = []
-    const check = (at: string, value: unknown): void => {
-      if (typeof value === 'string' && SPEC_REF.test(value)) hits.push(`${at}: ${value}`)
-    }
-    check('info.description', (doc.info as Json).description)
-    for (const [i, server] of ((doc.servers ?? []) as Json[]).entries())
-      check(`servers[${i}].description`, server.description)
-    const schemes = (doc.components as Json).securitySchemes as Record<string, Json>
-    for (const [name, scheme] of Object.entries(schemes))
-      check(`securitySchemes.${name}.description`, scheme.description)
-    let operations = 0
-    for (const [path, item] of Object.entries(doc.paths as Record<string, Json>))
-      for (const [method, op] of Object.entries(item)) {
-        if (op === null || typeof op !== 'object' || !('operationId' in op)) continue
-        operations++
-        const operation = op as Json
-        check(`${method} ${path}`, operation.description)
-        for (const parameter of (operation.parameters ?? []) as Json[])
-          if (parameter.name === 'Idempotency-Key')
-            check(`${method} ${path} Idempotency-Key`, parameter.description)
-        const responses = (operation.responses ?? {}) as Record<string, Json>
-        for (const [status, response] of Object.entries(responses))
-          if (!/^2/.test(status))
-            check(`${method} ${path} ${status}`, response.description)
+    let strings = 0
+    const walk = (value: unknown, at: string): void => {
+      if (typeof value === 'string') {
+        strings++
+        if (SPEC_REF.test(value) && !MACHINE_DATA.test(at)) hits.push(`${at}: ${value}`)
+      } else if (Array.isArray(value)) {
+        value.forEach((v, i) => walk(v, `${at}[${i}]`))
+      } else if (value !== null && typeof value === 'object') {
+        for (const [k, v] of Object.entries(value)) walk(v, `${at}.${k}`)
       }
-    // The positive half: the walk reached every operation, so an empty list means none cites one.
-    expect(operations).toBeGreaterThan(60)
+    }
+    walk(doc, '')
+    // The positive half: the walk read the document, so an empty list means nothing cites one.
+    expect(strings).toBeGreaterThan(2000)
     expect(hits).toEqual([])
+    // AND NO NOTE FOR A MAINTAINER: the document is generated, which is the repository's business.
+    expect(String((doc.info as Json).description)).not.toMatch(/do not edit/i)
   })
 
   /**

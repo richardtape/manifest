@@ -10,7 +10,9 @@ export const Me = representation(
       id: Uuid.describe(
         'The person’s user id on this platform — what `listMembers` calls `userId`.',
       ),
-      puid: z.string().describe("The person's ubcEduCwlPuid (§9)."),
+      puid: z
+        .string()
+        .describe("The person's ubcEduCwlPuid — the one key a person is identified by."),
       displayName: z.string().describe('Their name, as CWL gave it.'),
       email: z.string().describe('Their address, as CWL gave it.'),
       role: z

@@ -43,7 +43,7 @@ export async function checkManifest(
       }),
       'createCommit',
     )
-    // Valid — and whether it changes a field an administrator reviews at production (§13).
+    // Valid — and whether it changes a field an administrator reviews before production.
     return { valid: true, sensitiveFields: outcome.spec.sensitiveDiff.fields }
   } catch (error) {
     // Switch on the CODE, never the message: `details` is there to act on.

@@ -161,8 +161,8 @@ export const JOURNEY: readonly JourneyStep[] = [
     who: 'person',
     operations: [],
     later: {
-      plan: 'the administrators’ queue (§26)',
-      why: 'raising an audience is a request an administrator approves (§24)',
+      plan: 'not built yet',
+      why: 'raising who an app is for needs an administrator’s approval, and there is no way to ask for it',
     },
   },
   {
@@ -176,8 +176,8 @@ export const JOURNEY: readonly JourneyStep[] = [
     who: 'agent',
     operations: [],
     later: {
-      plan: 'Phase 3 (§17)',
-      why: 'an agent working inside a platform sandbox is not built before then',
+      plan: 'not built yet',
+      why: 'an agent works on an app through the API, from outside the platform; it cannot work inside a platform sandbox',
     },
   },
   {
@@ -194,7 +194,7 @@ export const JOURNEY: readonly JourneyStep[] = [
 
 /** In the document, and deliberately in no faculty step — each with its reason. */
 export const OUTSIDE_THE_JOURNEY: Readonly<Record<string, string>> = {
-  listFleet: 'An administrator’s view of every app (§26), not a step in building one.',
+  listFleet: 'An administrator’s view of every app, not a step in building one.',
   // The launch path plan's Tasks 9 to 11 — until its Task 15's `make demo-launch` makes them steps.
   draftIamRegistration:
     'Drafting a registration request for UBC IAM is a step of launching an app, after it is built; the launch’s own demo drives it.',

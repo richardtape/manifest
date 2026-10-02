@@ -185,6 +185,40 @@ describe('the guides (Decisions 16 and 19)', () => {
     expect(page.match(/createManifestClient\(\{[^})]*\bsession\b/g) ?? []).toEqual([])
   })
 
+  /**
+   * *LAUNCHING*'S TWO LISTS ARE HELD (the launch path plan's Task 14, Step 4 — which found that nothing
+   * held them): a capability on its *May* line is one a token can use, and one on its *May not, ever*
+   * line is one a token is refused. The refused set is the document's own — every capability the mint
+   * request's description says a delegated token is refused, privileged or person-only.
+   */
+  it('never tell an agent it may do what a token is refused — Launching’s two lists', async () => {
+    const document = JSON.parse(await readFile(DOCUMENT, 'utf8')) as {
+      components: {
+        schemas: {
+          MintTokenRequest: { properties: { capabilities: { description: string } } }
+        }
+      }
+    }
+    const refused = new Set(
+      document.components.schemas.MintTokenRequest.properties.capabilities.description.match(
+        /\b[a-z]+:[a-z]+\b/g,
+      ),
+    )
+    const page = (await generateDocs()).get('launching.md')!
+    const line = (label: string) =>
+      page.split('\n').find((l) => l.startsWith(`- **${label}`)) ?? ''
+    const named = (text: string) =>
+      [...text.matchAll(/`([a-z]+:[a-z]+)`/g)].map((m) => m[1]!)
+    const may = named(line('May:'))
+    const mayNot = named(line('May not, ever:'))
+    // The positive half: both lists were found, and the refused set was read.
+    expect(refused.has('launch:submit')).toBe(true)
+    expect(may.length).toBeGreaterThan(0)
+    expect(mayNot.length).toBeGreaterThan(0)
+    expect(may.filter((c) => refused.has(c))).toEqual([])
+    expect(mayNot.filter((c) => !refused.has(c))).toEqual([])
+  })
+
   it('name the capability a token needs for what they show an agent doing with one', async () => {
     // `startAgentSession` asserts `agent:session` and `getInstanceOutput` `output:read`, and no
     // published description names either — so a page showing an agent either must, or a token
@@ -214,6 +248,30 @@ describe('the guides (Decisions 16 and 19)', () => {
     expect(prompt).toMatch(/confidential/)
     const generated = await generateDocs()
     expect(generated.get('frontend.md')).toMatch(/never hand[^.]*`(logTail|prompt)`/)
+  })
+
+  /**
+   * NOR A SPEC SECTION, A DECISION, A CONSTRAINT OR A ROADMAP PHASE (Rich, 2026-09-30; the launch
+   * path plan's Task 14): every page `pnpm docs:write` writes — the guides, the reference generated
+   * from the document, and `llms.txt` — says what is true now, in its own words.
+   */
+  it('cite no spec section, decision, constraint or roadmap phase', async () => {
+    const SPEC_REF =
+      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?![\w:])|(?<![\w:])C\d(?![\w:])|\bPhase \d/
+    const generated = await generateDocs()
+    const pages = [...generated].filter(
+      ([key]) => key.endsWith('.md') || key.endsWith('llms.txt'),
+    )
+    // The positive half: the guides and the reference were read.
+    expect(pages.length).toBeGreaterThan(10)
+    expect(
+      pages.flatMap(([key, text]) =>
+        text
+          .split('\n')
+          .filter((line) => SPEC_REF.test(line))
+          .map((line) => `${key}: ${line.slice(0, 160)}`),
+      ),
+    ).toEqual([])
   })
 
   it('name no internal artefact a reader outside the team cannot resolve', async () => {

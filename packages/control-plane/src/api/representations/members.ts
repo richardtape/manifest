@@ -10,19 +10,19 @@ export const Member = representation(
       userId: Uuid.describe('The person’s user id — what `removeMember` names.'),
       puid: z
         .string()
-        .describe('Their ubcEduCwlPuid (§9) — the one key a person is identified by.'),
+        .describe('Their ubcEduCwlPuid — the one key a person is identified by.'),
       cwlLogin: z
         .string()
         .nullable()
         .describe(
-          'Their CWL login name, lowercased, as they last signed in with it (§9) — what a colleague adds them by. Null if CWL has never released it.',
+          'Their CWL login name, lowercased, as they last signed in with it — what a colleague adds them by. Null if CWL has never released it.',
         ),
       displayName: z.string().describe('Their name, as CWL gave it.'),
       email: z.string().describe('Their address, as CWL gave it.'),
       role: z
         .enum(memberRole.enumValues)
         .describe(
-          '`owner` may do everything on the project; `collaborator` the same except managing members, deleting the project and promoting a release to production (§13).',
+          '`owner` may do everything on the project; `collaborator` the same except managing members, deleting the project and promoting a release to production.',
         ),
     })
     .describe('A person who may work on the project, and their role on it.'),

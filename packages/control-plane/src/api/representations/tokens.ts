@@ -26,11 +26,11 @@ export const Token = representation(
        */
       capabilities: z
         .array(z.string())
-        .describe('What it may do on that project (D24); nothing else.'),
+        .describe('What it may do on that project; nothing else.'),
       rateLimit: z
         .int()
         .describe(
-          'Requests a minute this token may make, enforced in the control plane (§20). Past it, every route answers 429 RATE_LIMITED with Retry-After.',
+          'Requests a minute this token may make, enforced in the control plane. Past it, every route answers 429 RATE_LIMITED with Retry-After.',
         ),
       expiresAt: Timestamp.describe('When it stops working.'),
       /**
@@ -57,7 +57,7 @@ export const Token = representation(
       createdAt: Timestamp.describe('When it was minted.'),
     })
     .describe(
-      'A delegated token (D24), scoped to one project and a capability set. Its secret is shown once, when it is minted, and is never readable again.',
+      'A delegated token, scoped to one project and a capability set. Its secret is shown once, when it is minted, and is never readable again.',
     ),
 )
 
@@ -113,14 +113,14 @@ export const MintTokenRequest = request(
         .array(z.enum(PRIVILEGED_CAPABILITIES))
         .min(1)
         .describe(
-          'The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:submit, launch:rehearse or project:delete, which are person-only and refused outright.',
+          'The explicit set this token may use. None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:submit, launch:rehearse or project:delete, which are person-only and refused outright.',
         ),
       expiresInDays: z
         .int()
         .min(1)
         .max(MAX_TOKEN_DAYS)
         .describe(
-          `How long the token lives, in days. D24: a token has an expiry, and at most ${MAX_TOKEN_DAYS} days of one.`,
+          `How long the token lives, in days. Every token expires, at most ${MAX_TOKEN_DAYS} days after it is minted.`,
         ),
     })
     .describe(

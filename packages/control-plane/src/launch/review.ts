@@ -91,8 +91,8 @@ export const NullReviewer: Reviewer = {
       state: 'not_performed',
       reviewer: 'none',
       reason:
-        'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the ' +
+        'No code reviewer is configured. Manifest reviews manifest.yaml, not code; the ' +
         'controls that make that tolerable are containment — default-deny egress, network ' +
-        'isolation, least privilege and edge protections (§20).',
+        'isolation, least privilege and edge protections.',
     }),
 }

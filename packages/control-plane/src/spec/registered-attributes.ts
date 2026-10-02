@@ -84,7 +84,7 @@ export function assertRegisteredAttributes(
     `manifest.yaml asks for ${missing.length} CWL attribute(s) UBC IAM did not register ` +
       `for '${context.slug}': ${missing.join(', ')}. Registered: ` +
       `${[...new Set(registered)].sort().join(', ')}.`,
-    'A production release must request a subset of what UBC IAM registered (§7, §9) — ' +
+    'A production release must request a subset of what UBC IAM registered — ' +
       'otherwise students hit a broken login on launch day. ' +
       (pending === null
         ? 'Raise an IAM change request' +

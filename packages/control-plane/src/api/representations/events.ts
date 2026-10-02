@@ -26,7 +26,9 @@ const eventFrameOf = <T extends EventType>(type: T) =>
     type: z
       .literal(type)
       .describe('What happened. Switch on it: each type has one `machineDetail` shape.'),
-    humanMessage: z.string().describe('For a person (§14). Never parse it.'),
+    humanMessage: z
+      .string()
+      .describe('What happened, in words for a person. Never parse it.'),
     machineDetail: EVENT_DETAIL_SCHEMAS[type],
     createdAt: Timestamp.describe('When it was recorded.'),
   })
@@ -44,7 +46,7 @@ export const EventFrame = representation(
       ],
     )
     .describe(
-      'An audit Event, as recorded (§20) and redacted at capture (§14). Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect.',
+      'An audit Event, as recorded and redacted at capture. Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect.',
     ),
 )
 
@@ -66,7 +68,7 @@ export const LogFrame = representation(
       stream: z
         .enum(['stdout', 'stderr'])
         .describe('Which of the build’s outputs wrote it.'),
-      text: z.string().describe('Redacted at capture (§14).'),
+      text: z.string().describe('The line’s text, redacted at capture.'),
       createdAt: Timestamp.describe('When it was written.'),
     })
     .describe(

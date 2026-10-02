@@ -82,7 +82,7 @@ export async function checkManifest(
       }),
       'createCommit',
     )
-    // Valid — and whether it changes a field an administrator reviews at production (§13).
+    // Valid — and whether it changes a field an administrator reviews before production.
     return { valid: true, sensitiveFields: outcome.spec.sensitiveDiff.fields }
   } catch (error) {
     // Switch on the CODE, never the message: `details` is there to act on.
@@ -99,6 +99,10 @@ export async function checkManifest(
 ## Asynchronous work, and the stream
 
 An operation that starts something long answers **`202`** with the thing in its first state — `startBuild` answers the build `running`. The answer that arrived is not the outcome. Watch the project’s event stream (*Events*) for the end, then read the resource. A deploy is the exception: it answers when the instance is ready or has failed, as a `200` whose instance `state` says which.
+
+## Dates and waits
+
+An instant is an ISO 8601 date-time in UTC (`2026-10-01T19:00:00.000Z`). A field named for a day a person gave — `sentAt` — is a `YYYY-MM-DD` day in Vancouver, and the platform stamps it at **noon in Vancouver** on that day. So a record sent today can carry a `submittedAt` hours ahead of now: **count a wait in Vancouver days**, from the day of `since` to the day of now, never as now minus `since`. A field that says **`since`** is when a wait began — a record sent to UBC, a sign-off request — or, on a met item, when it was met; `null` when there is nothing to date.
 
 ## Paging
 

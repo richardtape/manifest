@@ -97,7 +97,7 @@ export const ErrorCodeSchema = representation(
   z
     .enum(ERROR_CODE_LIST as unknown as [string, ...string[]])
     .describe(
-      'Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.',
+      'Every code the API answers with, in `error.code`. Stable: a client switches on it. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.',
     ),
 )
 
@@ -106,7 +106,7 @@ export const ManifestErrorCodeSchema = representation(
   z
     .enum(MANIFEST_ERROR_CODE_LIST as unknown as [string, ...string[]])
     .describe(
-      'A code inside `details` of a `422 SPEC_INVALID`: a breach of §7’s schema or policy, or of §25’s blueprint compatibility. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-spec-errors` its remedy.',
+      'A code inside `details` of a `422 SPEC_INVALID`: a breach of manifest.yaml’s schema or policy, or something the project’s blueprint does not support. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-spec-errors` its remedy.',
     ),
 )
 
@@ -127,7 +127,7 @@ export const ManifestErrorSchema = representation(
         ),
     })
     .describe(
-      'One thing wrong with manifest.yaml (§7, §25), inside `details` of a `422 SPEC_INVALID` or a spec validation. Switch on `code`; show `message` and `hint` to a person.',
+      'One thing wrong with manifest.yaml, inside `details` of a `422 SPEC_INVALID` or a spec validation. Switch on `code`; show `message` and `hint` to a person.',
     ),
 )
 

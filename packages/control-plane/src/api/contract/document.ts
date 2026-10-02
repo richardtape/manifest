@@ -69,29 +69,29 @@ type JsonSchema = Record<string, unknown>
  */
 const TAG_DESCRIPTIONS: Record<string, string> = {
   agents:
-    'Model keys for an agent working outside Manifest (§10): a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget; and the intake session a person describing a new app is given before it exists, which the platform pays for.',
+    'Model keys for an agent working outside Manifest: a session on one project, charged to the person the agent works for, capped and short-lived — and that person’s monthly agent budget; and the intake session a person describing a new app is given before it exists, which the platform pays for.',
   administration:
-    'Operations for the platform’s administrators — today, every project on the platform at a glance (§26).',
+    'Operations for the platform’s administrators: every project on the platform at a glance, and everything waiting on an administrator.',
   blueprints:
-    'The blueprints an app is built from (§25): what each provides, its starters, and the knowledge pack an agent reads before writing code.',
+    'The blueprints an app is built from: what each provides, its starters, and the knowledge pack an agent reads before writing code.',
   delivery:
-    'From a commit to a running app (§11–§13): build it, release the build, deploy the release, and — for production — the approval an administrator gives. Incidents say why an instance failed.',
+    'From a commit to a running app: build it, release the build, deploy the release, and — for production — the approval an administrator gives. Incidents say why an instance failed.',
   docs: 'This documentation, served: the guides for a person writing a client and for an AI agent, the reference generated from this document, and the document itself.',
   events:
-    'The project’s event stream (D23.2): every audit event and build log line, live, over a WebSocket.',
+    'The project’s event stream: every audit event and build log line, live, over a WebSocket.',
   identity: 'Who the caller is: the person behind the session, and their platform role.',
   launch:
-    'A first production launch (§9, §13): the checklist computed from what exists, the external records UBC’s IAM and Privacy Office decisions are kept in, and the sign-in rehearsal.',
+    'A first production launch: the checklist computed from what exists; the registration with UBC IAM and the privacy assessment for the Privacy Office, each drafted, sent and answered, and the records their decisions are kept in; the sign-in rehearsal; and asking an administrator to sign a release off.',
   'pending-actions':
-    'D24’s questions: a delegated token that asks for a privileged action waits here until a person confirms or rejects it.',
+    'Questions for a person: a delegated token that asks for a privileged action waits here until a person confirms or rejects it.',
   projects:
-    'A project, its three environments, its members, and the validation of its manifest.yaml (§6, §7, §23).',
+    'A project, its three environments, its members, and the validation of its manifest.yaml.',
   secrets:
-    'The values of an app’s declared secrets, per environment — set and cleared, and never read back (§20).',
+    'The values of an app’s declared secrets, per environment — set and cleared, and never read back.',
   source:
-    'The project’s code: read a tree, a file, the history and one commit, and commit changes against the commit read (§20’s git driver).',
+    'The project’s code: read a tree, a file, the history and one commit, and commit changes against the commit read.',
   tokens:
-    'Delegated tokens (D24): a person mints one for an agent, scoped to one project and a list of capabilities, and revokes it.',
+    'Delegated tokens: a person mints one for an agent, scoped to one project and a list of capabilities, and revokes it.',
 }
 
 /** Codes EVERY `/v1` operation can answer, and every mutation besides. */
@@ -245,7 +245,7 @@ export function manifestYamlSchema(): JsonSchema {
   return {
     ...emitted,
     description:
-      'manifest.yaml, schema version 1 (§7), as a JSON Schema — DOCUMENTATION FOR THE FILE, for whoever writes it. The platform validates with its own code: `validateSpec` and a commit answer each problem as a `ManifestError` with a path, and some rules are not expressible here — the name must equal the project’s slug, a model must be in the catalogue and approved for `data.classification`, and what is asked for must fit the project’s quota.',
+      'manifest.yaml, schema version 1, as a JSON Schema — DOCUMENTATION FOR THE FILE, for whoever writes it. The platform validates with its own code: `validateSpec` and a commit answer each problem as a `ManifestError` with a path, and some rules are not expressible here — the name must equal the project’s slug, a model must be in the catalogue and approved for `data.classification`, and what is asked for must fit the project’s quota.',
   }
 }
 
@@ -386,8 +386,10 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
     info: {
       title: 'Manifest',
       version: CONTRACT_VERSION,
+      // This document is generated from the route definitions; packages/contract/openapi.json is
+      // written by `pnpm contract:write` and never edited by hand.
       description:
-        "Manifest's public API. Generated from the control plane's route definitions; do not edit. " +
+        "Manifest's public API. " +
         'Resource routes are under /v1, and a breaking change gets a new prefix beside it. Response ' +
         'objects may gain fields under /v1, so a client ignores fields it does not know. Every ' +
         'mutation carries an Idempotency-Key, and a mutation made with a session also carries Origin.',

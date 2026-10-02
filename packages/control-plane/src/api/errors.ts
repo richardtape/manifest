@@ -370,7 +370,7 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
         error: {
           code: error.code,
           message: error.message,
-          hint: 'Sign in to the console and do it there. An agent asks a human for the ones D24 makes pending.',
+          hint: 'Sign in to the console and do it there. An agent asks a person to confirm the privileged ones.',
         },
       },
     }

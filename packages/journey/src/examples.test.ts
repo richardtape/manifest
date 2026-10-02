@@ -29,6 +29,13 @@ import { commitOnWhatIsThere } from './example-conflict.js'
 import { releaseToStaging } from './example-deploy.js'
 import { startDescribing, stopDescribing } from './example-intake.js'
 import { whatALaunchNeeds } from './example-launch.js'
+import {
+  askForSignOff,
+  draftARegistration,
+  draftTheAssessment,
+  sayItWasSent,
+  whatWaitsOnUs,
+} from './example-launch-path.js'
 import { whatTheAppPrinted } from './example-output.js'
 import { pendingActionOf, waitForAPerson } from './example-pending.js'
 import { readAFile } from './example-read.js'
@@ -640,6 +647,79 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
     expect(
       questionAbout([asked], asked.method, asked.path, '0'.repeat(64)),
     ).toBeUndefined()
+  })
+
+  /**
+   * THE THREE RECORDS IN UBC'S ORDER, AND SIGN-OFF (the launch path plan's Task 14): each at the
+   * mock's stage where the platform answers it — drafted and sent, and each order refusal with what
+   * to send first.
+   */
+  it('example-launch-path: drafted, sent in UBC’s order, signed off, and the queue read', async () => {
+    ran.add('example-launch-path')
+    const agent = createManifestClient({ origin, token: TOKEN })
+    // Week one: everything drafted, nothing sent.
+    await withMock({ records: 'drafted' }, async (at) => {
+      const agentThere = createManifestClient({ origin: at, token: TOKEN })
+      const assessment = await draftTheAssessment(agentThere, PROJECT_ID)
+      expect(assessment.forYouToAdd.length).toBeGreaterThan(0)
+      const staging = await draftARegistration(agentThere, PROJECT_ID, 'staging')
+      expect(staging.unread).toEqual(['givenName'])
+      expect(staging.warnings.some((w) => w.includes('PIA number'))).toBe(true)
+      // The person sends the assessment first; a registration waits for its approval.
+      expect(
+        await sayItWasSent(asBrowser(at), PROJECT_ID, 'privacy-assessment', {
+          draftGeneratedAt: assessment.generatedAt,
+          reference: 'PRISM-0042',
+        }),
+      ).toMatchObject({ done: true })
+      expect(
+        await sayItWasSent(asBrowser(at), PROJECT_ID, 'staging', {
+          draftGeneratedAt: staging.generatedAt,
+        }),
+      ).toMatchObject({
+        done: false,
+        refused: 'LAUNCH_PIA_NOT_APPROVED',
+        next: expect.stringContaining('Send the privacy assessment first'),
+      })
+    })
+    // The assessment approved: staging goes; production waits for staging.
+    await withMock({ records: 'assessed' }, async (at) => {
+      const agentThere = createManifestClient({ origin: at, token: TOKEN })
+      const staging = await draftARegistration(agentThere, PROJECT_ID, 'staging')
+      expect(staging.warnings.some((w) => w.includes('PIA number'))).toBe(false)
+      expect(
+        await sayItWasSent(asBrowser(at), PROJECT_ID, 'staging', {
+          draftGeneratedAt: staging.generatedAt,
+          reference: 'IAM-2026-0500',
+        }),
+      ).toMatchObject({ done: true })
+      const production = await draftARegistration(agentThere, PROJECT_ID, 'production')
+      expect(
+        await sayItWasSent(asBrowser(at), PROJECT_ID, 'production', {
+          draftGeneratedAt: production.generatedAt,
+        }),
+      ).toMatchObject({ done: false, refused: 'LAUNCH_STAGING_NOT_REGISTERED' })
+    })
+    // Sign-off: nothing to ask for once approved; asked while nobody has decided.
+    expect(await askForSignOff(agent, fixtures.RELEASE_ID)).toMatchObject({
+      done: false,
+      refused: 'APPROVAL_NOT_NEEDED',
+    })
+    await withMock({ approval: 'pending' }, async (at) => {
+      expect(
+        await askForSignOff(
+          createManifestClient({ origin: at, token: TOKEN }),
+          fixtures.RELEASE_ID,
+          'The class starts on Monday.',
+        ),
+      ).toMatchObject({ done: true, open: true })
+    })
+    // The administrators' queue, oldest first.
+    await withMock({ role: 'admin', queue: 'full' }, async (at) => {
+      const queue = await whatWaitsOnUs(asBrowser(at))
+      expect(queue.items.length).toBe(4)
+      expect(queue.oldestSince).not.toBeNull()
+    })
   })
 
   it('ran every example file in this directory', async () => {

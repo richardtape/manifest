@@ -377,7 +377,7 @@ export function unsatisfiedReason(verdict: ProductionApproval, digest: string): 
  * states it, in its own field.
  */
 export const COVERAGE_LIMIT =
-  'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).'
+  'An administrator sees a first launch and any release that changes a sensitive field. A release that changes none reaches production without an administrator, and its code is reviewed by nothing (an accepted risk); containment is the control.'
 
 /**
  * THE NEWEST CODE-REVIEW VERDICT RECORDED FOR A RELEASE (P6b Task 8, Decision 12), or

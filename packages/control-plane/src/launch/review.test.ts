@@ -28,7 +28,7 @@ describe('R4’s seam — the honest NullReviewer (D33, §15, P6a Task 12)', () 
     // §20's control-map row, in the reviewer's own words: nothing reviews code, and the
     // controls are containment. A reason that stopped saying so would be a stub again.
     expect(verdict.reason).toContain('No code reviewer is configured')
-    expect(verdict.reason).toContain('not code (§13)')
+    expect(verdict.reason).toContain('not code;')
     expect(verdict.reason).toContain('containment')
   })
 

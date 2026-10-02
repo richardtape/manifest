@@ -42,7 +42,7 @@ export function requireSession(request: FastifyRequest): SessionActor {
   const actor = requireActor(request)
   if (actor.credential !== 'session') {
     throw new TokenCredentialRefusedError(
-      'this action is only available in an interactive session (D24)',
+      'this action is only available in an interactive session',
     )
   }
   return actor

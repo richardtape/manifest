@@ -21,6 +21,6 @@ export const SlugCheck = representation(
         .describe('Present when `available` is false: every reason that applies.'),
     })
     .describe(
-      '§23: exactly what project creation will answer — advisory, since creation checks again.',
+      'Whether a slug is available: exactly what project creation will answer — advisory, since creation checks again.',
     ),
 )

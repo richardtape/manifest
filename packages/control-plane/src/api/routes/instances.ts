@@ -209,7 +209,7 @@ export const instanceRoutes = [
       if (kind === 'production')
         throw new OutputError(
           'INSTANCE_OUTPUT_PRODUCTION',
-          'a production instance’s output is not readable (§14); its Incident’s log tail is the only window onto it',
+          'a production instance’s output is not readable; its Incident’s log tail is the only window onto it',
         )
       // FE-24 (sitting 10; §14 as Spec action 6 left it): staging serves real people too, so it is
       // refused the same way, by its own code — by the KIND, never the IdP, so a laptop's staging
@@ -217,7 +217,7 @@ export const instanceRoutes = [
       if (kind === 'staging')
         throw new OutputError(
           'INSTANCE_OUTPUT_STAGING',
-          'a staging instance’s output is not readable (§14): staging serves real people; its Incident’s log tail is the only window onto it',
+          'a staging instance’s output is not readable: staging serves real people; its Incident’s log tail is the only window onto it',
         )
       const { instance } = found
       const unavailable = (): OutputError =>

@@ -2,7 +2,7 @@
 
 You are generating an application from this blueprint. This file is the whole of
 what you need to know about the platform; it is served over the Manifest API
-(D25) alongside the blueprint itself.
+alongside the blueprint itself.
 
 **The stack is fixed.** Node 22 on Alpine, Express 4, `express-session`,
 Passport with `passport-ubcshib`, MongoDB, and `ubc-genai-toolkit-llm` for model
@@ -20,7 +20,7 @@ You write `manifest.yaml` and application code. That is all.
 
 ### Never supply a Dockerfile, and never a `runtime.build` block
 
-D13: the build definition belongs to the blueprint, not the app. The platform
+The build definition belongs to the blueprint, not the app. The platform
 writes `Dockerfile` and `.npmrc` into the build context **after** your tree, so a
 committed copy is overwritten rather than honoured — you would be debugging a
 file that is not the one being used.
@@ -30,7 +30,7 @@ through the platform's mirror, and `.npmrc` is how it is told. Do not commit one
 
 ### Never write an origin into `auth.callback`
 
-D15: you supply a **path** and Manifest supplies the origin. Write
+You supply a **path** and Manifest supplies the origin. Write
 
 ```yaml
 auth:
@@ -50,7 +50,7 @@ it, in `manifest.yaml`.
 
 ### Never request an attribute outside `auth.attributes` and expect to receive it
 
-§9's attribute release is enforced **at the IdP**, from the registration Manifest
+Attribute release is enforced **at the IdP**, from the registration Manifest
 writes out of your `auth.attributes` list. An attribute you ask
 `passport-ubcshib` for and do not declare is simply not sent — `bridge()` reports
 it as absent rather than empty, which is how you tell the two apart.
@@ -72,7 +72,7 @@ over time.
 ## The auth component: copy it, do not reimplement it
 
 `skeleton/auth/ubcshib.js` and `skeleton/auth/attributes.js` are the blueprint's
-security surface. §20 calls a blueprint "a security multiplier": what is here is
+security surface. A blueprint is a security multiplier: what is here is
 replicated into every application generated from it, so a defect here is a defect
 in all of them.
 
@@ -102,8 +102,8 @@ any log.
 
 ## The environment you are given
 
-Manifest injects these; you read them and never default them. The full table is
-§8 of the platform design, and a drift test asserts this blueprint against it.
+Manifest injects these; you read them and never default them. The table below is
+the platform's own, and a drift test asserts this blueprint against it.
 
 | Variable | Always? |
 |---|---|
@@ -132,7 +132,7 @@ now.
 ## Two releases run at once, for up to two minutes
 
 When Manifest deploys a new version, the old one keeps serving until its last requests
-finish — that is what makes a deploy invisible to the people using your app (§11). For up
+finish — that is what makes a deploy invisible to the people using your app. For up
 to two minutes, **both versions are running against the same database.**
 
 Two rules follow, and the platform cannot check either of them for you.
@@ -180,7 +180,7 @@ saying so.
 ## AI: call `skeleton/ai/llm.js`, never the toolkit directly
 
 Declare the models you need by **logical name**. The platform mints each deployment
-a key confined to exactly those models and injects §8's AI rows:
+a key confined to exactly those models and injects the AI variables:
 
 ```yaml
 ai:
@@ -214,7 +214,7 @@ so a missing variable fails the first boot rather than a person's first question
 **The budget.** Set `ai.budget.project_monthly_usd`, or leave it out and the
 project's AI quota is used. **Never write `0`**: a zero budget refuses every request,
 so it is refused at validation. `ai.budget.per_user_monthly_usd` — the most one person
-may spend through the app — is **validated, not enforced before Phase 4 (§10)**: it may
+may spend through the app — is **validated, not enforced**: it may
 not exceed the project's AI quota, and it is recorded with the release, but no single
 person is limited by it yet. Setting it makes the validation carry a
 `SPEC_FIELD_NOT_ENFORCED` warning — a warning, never an error.

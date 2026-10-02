@@ -15,7 +15,7 @@ Each page below is served by the API as Markdown at `GET /v1/docs/{slug}` (any c
 - [Building a front-end](/v1/docs/frontend): How to build a front-end on Manifest’s API — a site of your own, served beside the API, where a person describes an app and an agent builds it for them.
 - [Getting started](/v1/docs/getting-started): The shortest correct path from nothing to an app running in staging, for a developer writing a client and for an agent a person has handed a token.
 - [The journey](/v1/docs/journey): Every step from an idea to a launched app, who takes it, and the operations that serve it — including the steps nothing serves yet, and what will.
-- [Launching](/v1/docs/launching): How an app reaches production: the checklist a first launch must meet, the rehearsal of its CWL sign-in, the records of UBC’s decisions, an administrator’s approval of a stored preview — and, once launched, the releases that follow.
+- [Launching](/v1/docs/launching): How an app reaches production.
 - [Secrets](/v1/docs/secrets): How an app gets a credential it needs — an API key, a password — without it ever being in its code: declared by name in manifest.yaml, its value set per environment through the API, and given to the app at deploy.
 
 ## Reference

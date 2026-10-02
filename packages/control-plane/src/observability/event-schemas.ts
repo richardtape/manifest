@@ -100,9 +100,7 @@ const InstanceDetail = z.strictObject({
   environmentId: Uuid.describe('Its environment (`getEnvironment`).'),
   environment: Kind,
   // The database's own enum, as the Instance representation reads it (P5a sitting 6).
-  state: z
-    .enum(instanceState.enumValues)
-    .describe('The state the instance moved to (§11).'),
+  state: z.enum(instanceState.enumValues).describe('The state the instance moved to.'),
 })
 
 /**
@@ -145,7 +143,7 @@ const RetireDetail = z.strictObject({
     .int()
     .nonnegative()
     .describe(
-      'How long, in milliseconds, requests already in flight are given to finish before the container stops (§11).',
+      'How long, in milliseconds, requests already in flight are given to finish before the container stops.',
     ),
 })
 
@@ -154,7 +152,7 @@ const Commit = Sha.describe('A full 40-character commit id.')
 export const EVENT_DETAIL_SCHEMAS = {
   'sso.registered': z
     .strictObject({
-      entityId: z.string().describe('The app’s SAML entity id in this environment (§9).'),
+      entityId: z.string().describe('The app’s SAML entity id in this environment.'),
       acsUrl: z.string().describe('Where the identity provider sends its assertions.'),
       attributes: z
         .array(z.string())
@@ -169,7 +167,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         ),
     })
     .describe(
-      'The app’s SAML Service Provider registration with the identity provider was written for one environment (§9).',
+      'The app’s SAML Service Provider registration with the identity provider was written for one environment.',
     ),
   'sso.acs_changed': z
     .strictObject({
@@ -180,18 +178,16 @@ export const EVENT_DETAIL_SCHEMAS = {
       to: z.string().describe('Where they are sent now.'),
     })
     .describe(
-      'Where the app receives CWL sign-in assertions moved (§9). Worth a person’s attention: it is where a sign-in is sent.',
+      'Where the app receives CWL sign-in assertions moved. Worth a person’s attention: it is where a sign-in is sent.',
     ),
   'build.started': z
     .strictObject({
       buildId: Uuid.describe('The build (`getBuild`); its log streams after this event.'),
       commitSha: Commit,
-      blueprintRef: z
-        .string()
-        .describe('The blueprint it is built with, `name@major` (§25).'),
+      blueprintRef: z.string().describe('The blueprint it is built with, `name@major`.'),
     })
     .describe(
-      'A build began (§14). Its log lines follow on the stream as LogFrames, and `build.succeeded` or `build.failed` ends it.',
+      'A build began. Its log lines follow on the stream as LogFrames, and `build.succeeded` or `build.failed` ends it.',
     ),
   'build.succeeded': z
     .strictObject({
@@ -205,9 +201,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         .nullable()
         .describe('Where the image is stored in the platform’s registry.'),
     })
-    .describe(
-      'A build finished and passed every gate (§12); create a release from it next.',
-    ),
+    .describe('A build finished and passed every gate; create a release from it next.'),
   'build.failed': z
     .strictObject({
       buildId: Uuid.describe(
@@ -222,20 +216,20 @@ export const EVENT_DETAIL_SCHEMAS = {
       reason: z
         .string()
         .describe(
-          'Redacted at capture (§14). For the agent; the human message is for a person.',
+          'Redacted at capture. For the agent; the human message is for a person.',
         ),
     })
     .describe(
       'A build failed. `reason` says why, and `getBuildLog` has the whole output to correct it from.',
     ),
   'instance.provisioning': InstanceDetail.describe(
-    'A deploy made an instance and is binding its services — the first step of a deploy (§11).',
+    'A deploy made an instance and is binding its services — the first step of a deploy.',
   ),
   'instance.starting': InstanceDetail.describe(
-    'The instance’s services are bound and the runtime is starting it, beside the one already serving (§11).',
+    'The instance’s services are bound and the runtime is starting it, beside the one already serving.',
   ),
   'instance.healthy': InstanceDetail.describe(
-    'The instance passed its health check and now serves the environment; a deploy has succeeded (§11).',
+    'The instance passed its health check and now serves the environment; a deploy has succeeded.',
   ),
   'instance.failed': InstanceDetail.extend({
     failedCheck: z
@@ -244,7 +238,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         'Which check it failed, and how — the health check, and what it answered.',
       ),
   }).describe(
-    'The instance never became healthy — whatever was already serving keeps serving — and an Incident records why (§11, §14).',
+    'The instance never became healthy — whatever was already serving keeps serving — and an Incident records why.',
   ),
   'incident.opened': z
     .strictObject({
@@ -254,7 +248,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       environment: Kind,
     })
     .describe(
-      'An Incident was recorded for a failed instance (§14): its logs, redacted, and a prompt an agent can work from.',
+      'An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from.',
     ),
   'ai.key_rotated': z
     .strictObject({
@@ -263,27 +257,27 @@ export const EVENT_DETAIL_SCHEMAS = {
       models: z.array(z.string()).describe('The logical models the new key reaches.'),
     })
     .describe(
-      'The app’s AI key was replaced by a deploy that became healthy (§10). The key itself is never in an event.',
+      'The app’s AI key was replaced by a deploy that became healthy. The key itself is never in an event.',
     ),
   'instance.retiring': RetireDetail.describe(
-    'An instance a deploy replaced is finishing the requests it already had, before it stops (§11).',
+    'An instance a deploy replaced is finishing the requests it already had, before it stops.',
   ),
   'instance.retired': RetireDetail.describe(
-    'A replaced instance finished: its container is gone and its AI key is revoked (§11).',
+    'A replaced instance finished: its container is gone and its AI key is revoked.',
   ),
   'instance.retire_failed': RetireDetail.extend({
-    error: z.string().describe('A code or an error class name — never a message (§14).'),
+    error: z.string().describe('A code or an error class name — never a message.'),
   }).describe(
-    'A replaced instance could not be retired, and will be tried again — never silently (§11).',
+    'A replaced instance could not be retired, and will be tried again — never silently.',
   ),
   'project.created': z
     .strictObject({
       slug: z
         .string()
         .describe(
-          'The project’s slug (§23) — what its hostnames and repository are made from, and never changes.',
+          'The project’s slug — what its hostnames and repository are made from, and never changes.',
         ),
-      blueprint: z.string().describe('Its blueprint, `name@major` (§25).'),
+      blueprint: z.string().describe('Its blueprint, `name@major`.'),
       starter: z
         .string()
         .nullable()
@@ -294,15 +288,15 @@ export const EVENT_DETAIL_SCHEMAS = {
         .strictObject({
           scale: z
             .enum(['solo', 'class', 'large_course', 'public'])
-            .describe('§24: how many people the app is for.'),
+            .describe('How many people the app is for.'),
           burst: z
             .enum(['steady', 'synchronised'])
-            .describe('§24: whether they arrive steadily or all at once.'),
+            .describe('Whether they arrive steadily or all at once.'),
         })
-        .describe('Who the app is for, as its owner answered at creation (§24).'),
+        .describe('Who the app is for, as its owner answered at creation.'),
     })
     .describe(
-      'A project and its three environments were created (§22). `repository.seeded` and `spec.validated` follow.',
+      'A project and its three environments were created. `repository.seeded` and `spec.validated` follow.',
     ),
   'repository.seeded': z
     .strictObject({
@@ -318,7 +312,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         .describe('The starter laid over the skeleton; null for the skeleton alone.'),
     })
     .describe(
-      'The project’s repository was created and its first commit made, from the blueprint’s skeleton and starter (§25).',
+      'The project’s repository was created and its first commit made, from the blueprint’s skeleton and starter.',
     ),
   /**
    * D24 (P5b Task 4). NO `projectId` — the event ROW carries it, and every other detail
@@ -328,11 +322,13 @@ export const EVENT_DETAIL_SCHEMAS = {
   'token.minted': z
     .strictObject({
       tokenId: Uuid.describe('The token (`listTokens`).'),
-      capabilities: z.array(z.string()).describe('What it may do (D24).'),
+      capabilities: z
+        .array(z.string())
+        .describe('The capabilities it was minted with — what it may do.'),
       expiresAt: z.iso.datetime().describe('When it stops working, in UTC.'),
     })
     .describe(
-      'A person minted a delegated token for this project (D24). Never carries the token or its hash.',
+      'A person minted a delegated token for this project. Never carries the token or its hash.',
     ),
   /**
    * D24 (P5b Task 6). The QUESTION, not what was in it: no body, no fingerprint hash and
@@ -343,10 +339,14 @@ export const EVENT_DETAIL_SCHEMAS = {
     .strictObject({
       pendingActionId: Uuid.describe('The question (`getPendingAction`).'),
       tokenId: Uuid.describe('The token that asked.'),
-      action: z.string().describe('The privileged capability it asked to use (D24).'),
+      action: z
+        .string()
+        .describe(
+          'The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`.',
+        ),
     })
     .describe(
-      'A delegated token asked for one of D24’s privileged actions, and a person must confirm or reject it in the console.',
+      'A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console.',
     ),
   /**
    * D24 (P5b Task 7). `resolvedBy` is WHO answered, which is the whole point of the
@@ -357,23 +357,31 @@ export const EVENT_DETAIL_SCHEMAS = {
     .strictObject({
       pendingActionId: Uuid.describe('The question (`getPendingAction`).'),
       tokenId: Uuid.describe('The token that asked.'),
-      action: z.string().describe('The privileged capability it asked to use (D24).'),
+      action: z
+        .string()
+        .describe(
+          'The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`.',
+        ),
       resolvedBy: Uuid.describe('The person who confirmed it.'),
     })
     .describe(
-      'A person confirmed a token’s pending action, which grants that one request exactly one retry (D24).',
+      'A person confirmed a token’s pending action, which grants that one request exactly one retry.',
     ),
   /** The other answer. `reason` is the person's own words, which is what the agent is told. */
   'pending_action.rejected': z
     .strictObject({
       pendingActionId: Uuid.describe('The question (`getPendingAction`).'),
       tokenId: Uuid.describe('The token that asked.'),
-      action: z.string().describe('The privileged capability it asked to use (D24).'),
+      action: z
+        .string()
+        .describe(
+          'The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`.',
+        ),
       resolvedBy: Uuid.describe('The person who rejected it.'),
       reason: z.string().describe('Why, in their own words — what the agent is told.'),
     })
     .describe(
-      'A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED` (D24).',
+      'A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED`.',
     ),
   'spec.validated': z
     .strictObject({
@@ -387,7 +395,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         .describe('How many errors it has; 0 when it is valid.'),
     })
     .describe(
-      'manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not (§7).',
+      'manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not.',
     ),
   /**
    * §9 and R1 (P6a Task 6). **THE TICKET REFERENCE IS HERE AND THE ATTRIBUTES ARE NOT**:
@@ -399,7 +407,7 @@ export const EVENT_DETAIL_SCHEMAS = {
     .strictObject({
       state: z
         .enum(iamRegistrationState.enumValues)
-        .describe('The registration’s state, as UBC IAM gave it (§9).'),
+        .describe('The registration’s state, as UBC IAM gave it.'),
       environment: z
         .enum(['staging', 'production'])
         .describe('Which registration: the staging one, or production’s.'),
@@ -422,14 +430,14 @@ export const EVENT_DETAIL_SCHEMAS = {
     .strictObject({
       state: z
         .enum(privacyAssessmentState.enumValues)
-        .describe('The assessment’s state, as the Privacy Office gave it (§9).'),
+        .describe('The assessment’s state, as the Privacy Office gave it.'),
       externalTicketRef: z
         .string()
         .nullable()
         .describe('The Privacy Office’s own reference; null when none was given.'),
     })
     .describe(
-      'An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment (§9).',
+      'An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment.',
     ),
   /**
    * AN OWNER'S *"I'VE SENT IT"* (the launch path plan's Task 9). The day, never the moment — a person
@@ -529,7 +537,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         .describe('How many attributes the sign-in released.'),
     })
     .describe(
-      'A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21).',
+      'A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not.',
     ),
   /**
    * §13 (P6a Task 10). **THE DIGEST, NOT THE DIFF.** The diff is on the approval row and is
@@ -539,11 +547,11 @@ export const EVENT_DETAIL_SCHEMAS = {
    * recognise and not enough to be mistaken for the binding itself.
    */
   'release.approved': ApprovalDetail.describe(
-    'An administrator approved a release for production, bound to the image digest it froze (§13).',
+    'An administrator approved a release for production, bound to the image digest it froze.',
   ),
   /** The same detail; the reason is in the human message, in the administrator's own words. */
   'release.approval_rejected': ApprovalDetail.describe(
-    'An administrator rejected a release for production, which is final for that release (§13); the sentence carries their reason.',
+    'An administrator rejected a release for production, which is final for that release; the sentence carries their reason.',
   ),
   /**
    * Spec action 5 (the launch path plan's Task 12, FE-25). Who asked is in the sentence, by name;
@@ -578,7 +586,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         ),
     })
     .describe(
-      'The app’s first production launch became healthy (§13 D9). Published once per project, ever.',
+      'The app’s first production launch became healthy. Published once per project, ever.',
     ),
   /**
    * D5 driver 2 (the D5 plan's Task 9). COMMIT IDS AND A REF, NOTHING ELSE: no author, no
@@ -594,7 +602,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       to: Sha.describe('Where it is now.'),
     })
     .describe(
-      'A branch moved on GitHub and Manifest’s copy took it (D5). Commit ids only — never an author or a message.',
+      'A branch moved on GitHub and Manifest’s copy took it. Commit ids only — never an author or a message.',
     ),
   /** `mirror` is what Manifest kept (§13's buildable history); `upstream` is GitHub's now. */
   'repository.history_rewritten': z
@@ -606,7 +614,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       upstream: Sha.describe('What GitHub has now.'),
     })
     .describe(
-      'A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next (§13).',
+      'A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next.',
     ),
   /** `detail` is Manifest's own sentence — never GitHub's error body (Task 10). */
   'repository.visibility_enforced': z
@@ -622,7 +630,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       detail: z.string().describe('Manifest’s own sentence about what happened.'),
     })
     .describe(
-      'The repository was found public on GitHub, and was made private again or could not be (§20).',
+      'The repository was found public on GitHub, and was made private again or could not be.',
     ),
   /**
    * Task 11. WHERE, AND WHICH RULE — NEVER THE VALUE (§14): a finding carries no text of the
@@ -639,7 +647,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       truncated: z.boolean().describe('True when there were more than 50.'),
     })
     .describe(
-      'A commit pushed to GitHub adds a value shaped like a secret (§20). Never the value; the commit is never deployed with it.',
+      'A commit pushed to GitHub adds a value shaped like a secret. Never the value; the commit is never deployed with it.',
     ),
   /**
    * The authoring API plan's Task 12. COMMIT IDS ONLY: the scan read none of these commits'
@@ -653,7 +661,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         .describe('The commits whose own changes were too large to scan, oldest first.'),
     })
     .describe(
-      'Commits pushed to GitHub were too large for Manifest to scan for secrets (§20). Nothing in them was read; a build of any commit still scans the whole tree it builds.',
+      'Commits pushed to GitHub were too large for Manifest to scan for secrets. Nothing in them was read; a build of any commit still scans the whole tree it builds.',
     ),
   /**
    * Task 12. `detail` is MANIFEST's sentence; GitHub's own words are on the project's
@@ -692,7 +700,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       findings: z.array(Finding).min(1).describe('Where each value was, and what kind.'),
     })
     .describe(
-      'A commit Manifest was asked to make carried a value shaped like a secret, and was refused (§20). Never the value.',
+      'A commit Manifest was asked to make carried a value shaped like a secret, and was refused. Never the value.',
     ),
   /**
    * The authoring API plan's Task 8. The environment and the NAME — never the value — and who:
@@ -738,7 +746,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe(
-      'A person was added to the project, or their role on it changed (§13). Not published when nothing changed.',
+      'A person was added to the project, or their role on it changed. Not published when nothing changed.',
     ),
   /**
    * The launch path plan's Task 8 (Spec action 2) adds the two counts — what the removal did to the
@@ -766,7 +774,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe(
-      'A person was taken off the project (§13) — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed (§6, §10, §20). Not published for somebody who was not a member.',
+      'A person was taken off the project — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed. Not published for somebody who was not a member.',
     ),
   /**
    * The front-end enablement plan's Task 10. `userId` is who started it — the person charged, a
@@ -778,7 +786,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       models: z
         .array(z.string())
         .describe(
-          'The logical models its key may call — what D17 allows for the project’s data.',
+          'The logical models its key may call — those approved for the project’s data classification.',
         ),
       capUsd: z.number().describe('The most its key may spend, in US dollars.'),
       expiresAt: z.iso
@@ -789,7 +797,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe(
-      'An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published.',
+      'An agent was given a model key for this project, charged to the person who started it. The key itself is never published.',
     ),
   /**
    * The launch path plan's Task 7 (§7 as Spec action 1 amended it). Nobody asked for it: it is attributed,
@@ -816,7 +824,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe(
-      'An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key.',
+      'An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest. The session goes on with the same key.',
     ),
   'agent_session.ended': z
     .strictObject({
@@ -837,16 +845,18 @@ export const EVENT_DETAIL_SCHEMAS = {
       userId: ActingUser,
       tokenId: ActingToken,
     })
-    .describe('An agent session’s key was revoked at the gateway (§10).'),
+    .describe(
+      'An agent session ended: its key was revoked at the gateway, and `reason` says why.',
+    ),
   /** The front-end enablement plan's Task 11 — an entity id is public in the SP's own metadata. */
   'sso.deregistered': z
     .strictObject({
       entityId: z
         .string()
-        .describe('The app’s SAML entity id in this environment (§9), now unregistered.'),
+        .describe('The app’s SAML entity id in this environment, now unregistered.'),
     })
     .describe(
-      'The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11).',
+      'The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off.',
     ),
   /**
    * The front-end enablement plan's Task 11. Who, as every event since Task 6 records it — and
@@ -860,7 +870,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe(
-      'The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored.',
+      'The project was switched off by its owner: each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored.',
     ),
   'project.restored': z
     .strictObject({
@@ -869,7 +879,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe(
-      'A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.',
+      'A switched-off project was restored. Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.',
     ),
   /** The front-end enablement plan's Task 12 — who, as `project.archived` records it (person-only). */
   'project.deleted': z
@@ -879,6 +889,6 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe(
-      'The project, which never launched, was deleted by its owner (§11): switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has.',
+      'The project, which never launched, was deleted by its owner: switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has.',
     ),
 } satisfies Record<EventType, z.ZodType>

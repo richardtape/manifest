@@ -19,7 +19,7 @@ export const Instance = representation(
       state: z
         .enum(instanceState.enumValues)
         .describe(
-          'Where it is in its life (§11): `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.',
+          'Where it is in its life: `provisioning` and `starting` on the way up, `healthy` when it serves, `failed` when it never did, and `destroying` then `gone` once replaced.',
         ),
       lastSeenAt: Timestamp.nullable().describe(
         'When the platform last saw it running; null before it started. The list is ordered by this, so it says nothing of how old an instance is (`createdAt`).',
@@ -29,7 +29,7 @@ export const Instance = representation(
       ),
     })
     .describe(
-      'A running (or once-running) copy of a release in one environment (§11). Never its driver or handle.',
+      'A running (or once-running) copy of a release in one environment. Never its driver or handle.',
     ),
 )
 
@@ -74,7 +74,7 @@ export const InstanceList = representation(
         ),
     })
     .describe(
-      'An environment’s instances (§11), the one seen most recently first; `createdAt` says which attempt is newest.',
+      'An environment’s instances, the one seen most recently first; `createdAt` says which attempt is newest.',
     ),
 )
 
@@ -104,7 +104,7 @@ export const InstanceOutput = representation(
       environmentKind: z
         .enum(['sandbox', 'staging'])
         .describe(
-          'Only a sandbox instance’s output is readable (§14): a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.',
+          'Only a sandbox instance’s output is readable: a staging instance is refused `INSTANCE_OUTPUT_STAGING`, so this reads `sandbox`. `staging` stays in the list so a client written against an earlier version still compiles.',
         ),
       readAt: Timestamp.describe(
         'When Manifest read it. Nothing is kept: read again to see newer lines.',
@@ -132,7 +132,7 @@ export const InstanceOutput = representation(
         ),
     })
     .describe(
-      'A running instance’s recent output (§14): read on request, never streamed, never stored — in the sandbox only.',
+      'A running instance’s recent output: read on request, never streamed, never stored — in the sandbox only.',
     ),
 )
 

@@ -727,20 +727,20 @@ export async function rehearsalItem(
     return {
       ...base,
       state: 'unmet',
-      why: 'Nothing is serving in staging yet, so there is no candidate release to rehearse. Production runs exactly what staging ran (§13).',
+      why: 'Nothing is serving in staging yet, so there is no candidate release to rehearse. Production runs exactly what staging ran.',
     }
   if (candidate.auth.provider !== 'cwl')
     return {
       ...base,
       state: 'met',
-      why: 'This app signs nobody in, so it registers no Service Provider and there is no registration to rehearse (D21).',
+      why: 'This app signs nobody in, so it registers no Service Provider and there is no registration to rehearse.',
     }
   const row = await latestRehearsalFor(db, projectId)
   if (row === undefined)
     return {
       ...base,
       state: 'unmet',
-      why: 'D21: before an app is public, Manifest deploys the candidate release to its production hostname, registers its Service Provider with production values, completes one CWL sign-in and takes the deployment down again. Nobody has run it for this project yet.',
+      why: 'Before an app is public, Manifest deploys the candidate release to its production hostname, registers its Service Provider with production values, completes one CWL sign-in and takes the deployment down again. Nobody has run it for this project yet.',
     }
   if (!row.passed)
     return {
@@ -764,6 +764,6 @@ export async function rehearsalItem(
   return {
     ...base,
     state: 'met',
-    why: `A production-shaped rehearsal passed on ${row.ranAt.toISOString().slice(0, 10)}: the app was deployed to its production hostname on the ${row.evidence.listener} listener, its Service Provider was registered with production values, one CWL sign-in completed releasing ${row.evidence.attributesReleased.length} attribute(s), and the deployment was taken down again. This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).`,
+    why: `A production-shaped rehearsal passed on ${row.ranAt.toISOString().slice(0, 10)}: the app was deployed to its production hostname on the ${row.evidence.listener} listener, its Service Provider was registered with production values, one CWL sign-in completed releasing ${row.evidence.attributesReleased.length} attribute(s), and the deployment was taken down again. This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth, and a sign-in against UBC's own staging IdP is not part of this rehearsal.`,
   }
 }

@@ -9,7 +9,7 @@ export const Fleet = representation(
     .array(
       z.object({
         id: Uuid.describe('The project.'),
-        slug: z.string().describe('Its slug (§23), which its hostnames are made from.'),
+        slug: z.string().describe('Its slug, which its hostnames are made from.'),
         name: z.string().describe('Its name, as its owner gave it.'),
         state: z
           .enum(['active', 'archived'])
@@ -32,13 +32,13 @@ export const Fleet = representation(
           })
           .describe('Its owner of record.'),
         audience: Audience.nullable().describe(
-          'Who it is for (§24); null for a project created before the question was asked.',
+          'Who it is for; null for a project created before the question was asked.',
         ),
         createdAt: Timestamp.describe('When it was created.'),
         slugReserved: z
           .boolean()
           .describe(
-            '§23: holds a label reserved after it was created. Handle with the owner; never renamed automatically.',
+            'Whether its slug is a label reserved after the project was created. Handle with the owner; it is never renamed automatically.',
           ),
         environments: z
           .array(
@@ -46,7 +46,9 @@ export const Fleet = representation(
               kind: z
                 .enum(['sandbox', 'staging', 'production'])
                 .describe('Which environment.'),
-              hostname: z.string().describe('Its hostname (§23).'),
+              hostname: z
+                .string()
+                .describe('Its hostname: `<slug>.<zone for this kind>`.'),
               state: z
                 .string()
                 .nullable()
@@ -68,7 +70,7 @@ export const Fleet = representation(
       }),
     )
     .describe(
-      '§26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month.',
+      'The fleet — every project, active or archived, but none deleted — for administrators only. It does not carry a project’s department, custom domains or AI spend this month.',
     ),
 )
 

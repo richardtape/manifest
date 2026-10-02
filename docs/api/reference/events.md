@@ -5,7 +5,7 @@ Every event the project’s stream carries, in the order the platform defines th
 
 ## `sso.registered`
 
-The app’s SAML Service Provider registration with the identity provider was written for one environment (§9).
+The app’s SAML Service Provider registration with the identity provider was written for one environment.
 
 ```json
 {
@@ -15,14 +15,14 @@ The app’s SAML Service Provider registration with the identity provider was wr
     "displayName",
     "mail"
   ],
-  "certificateFingerprint": "3A:9C:04:E7:B2:5D:18:6A:C3:47:0E:9B:D2:61:A8:35:7C:E0:4B:93:2D:A6:15:C8:E9:30:7A:4E:B1:6C:D5:08",
+  "certificateFingerprint": "3A:9C:04:E7:B2:5D:18:6A:C3:47:0E:9B:DB:61:A8:35:7C:E0:4B:93:2D:A6:15:C8:E9:30:7A:4E:B1:6C:DF:08",
   "changed": true
 }
 ```
 
 ## `sso.acs_changed`
 
-Where the app receives CWL sign-in assertions moved (§9). Worth a person’s attention: it is where a sign-in is sent.
+Where the app receives CWL sign-in assertions moved. Worth a person’s attention: it is where a sign-in is sent.
 
 ```json
 {
@@ -33,7 +33,7 @@ Where the app receives CWL sign-in assertions moved (§9). Worth a person’s at
 
 ## `build.started`
 
-A build began (§14). Its log lines follow on the stream as LogFrames, and `build.succeeded` or `build.failed` ends it.
+A build began. Its log lines follow on the stream as LogFrames, and `build.succeeded` or `build.failed` ends it.
 
 ```json
 {
@@ -45,7 +45,7 @@ A build began (§14). Its log lines follow on the stream as LogFrames, and `buil
 
 ## `build.succeeded`
 
-A build finished and passed every gate (§12); create a release from it next.
+A build finished and passed every gate; create a release from it next.
 
 ```json
 {
@@ -69,7 +69,7 @@ A build failed. `reason` says why, and `getBuildLog` has the whole output to cor
 
 ## `instance.provisioning`
 
-A deploy made an instance and is binding its services — the first step of a deploy (§11).
+A deploy made an instance and is binding its services — the first step of a deploy.
 
 ```json
 {
@@ -83,7 +83,7 @@ A deploy made an instance and is binding its services — the first step of a de
 
 ## `instance.starting`
 
-The instance’s services are bound and the runtime is starting it, beside the one already serving (§11).
+The instance’s services are bound and the runtime is starting it, beside the one already serving.
 
 ```json
 {
@@ -97,7 +97,7 @@ The instance’s services are bound and the runtime is starting it, beside the o
 
 ## `instance.healthy`
 
-The instance passed its health check and now serves the environment; a deploy has succeeded (§11).
+The instance passed its health check and now serves the environment; a deploy has succeeded.
 
 ```json
 {
@@ -111,7 +111,7 @@ The instance passed its health check and now serves the environment; a deploy ha
 
 ## `instance.failed`
 
-The instance never became healthy — whatever was already serving keeps serving — and an Incident records why (§11, §14).
+The instance never became healthy — whatever was already serving keeps serving — and an Incident records why.
 
 ```json
 {
@@ -126,7 +126,7 @@ The instance never became healthy — whatever was already serving keeps serving
 
 ## `incident.opened`
 
-An Incident was recorded for a failed instance (§14): its logs, redacted, and a prompt an agent can work from.
+An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from.
 
 ```json
 {
@@ -139,7 +139,7 @@ An Incident was recorded for a failed instance (§14): its logs, redacted, and a
 
 ## `ai.key_rotated`
 
-The app’s AI key was replaced by a deploy that became healthy (§10). The key itself is never in an event.
+The app’s AI key was replaced by a deploy that became healthy. The key itself is never in an event.
 
 ```json
 {
@@ -153,7 +153,7 @@ The app’s AI key was replaced by a deploy that became healthy (§10). The key 
 
 ## `instance.retiring`
 
-An instance a deploy replaced is finishing the requests it already had, before it stops (§11).
+An instance a deploy replaced is finishing the requests it already had, before it stops.
 
 ```json
 {
@@ -166,7 +166,7 @@ An instance a deploy replaced is finishing the requests it already had, before i
 
 ## `instance.retired`
 
-A replaced instance finished: its container is gone and its AI key is revoked (§11).
+A replaced instance finished: its container is gone and its AI key is revoked.
 
 ```json
 {
@@ -179,7 +179,7 @@ A replaced instance finished: its container is gone and its AI key is revoked (�
 
 ## `instance.retire_failed`
 
-A replaced instance could not be retired, and will be tried again — never silently (§11).
+A replaced instance could not be retired, and will be tried again — never silently.
 
 ```json
 {
@@ -193,7 +193,7 @@ A replaced instance could not be retired, and will be tried again — never sile
 
 ## `project.created`
 
-A project and its three environments were created (§22). `repository.seeded` and `spec.validated` follow.
+A project and its three environments were created. `repository.seeded` and `spec.validated` follow.
 
 ```json
 {
@@ -209,7 +209,7 @@ A project and its three environments were created (§22). `repository.seeded` an
 
 ## `repository.seeded`
 
-The project’s repository was created and its first commit made, from the blueprint’s skeleton and starter (§25).
+The project’s repository was created and its first commit made, from the blueprint’s skeleton and starter.
 
 ```json
 {
@@ -221,7 +221,7 @@ The project’s repository was created and its first commit made, from the bluep
 
 ## `spec.validated`
 
-manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not (§7).
+manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not.
 
 ```json
 {
@@ -234,7 +234,7 @@ manifest.yaml at a commit was validated — by a commit through the API, a push,
 
 ## `token.minted`
 
-A person minted a delegated token for this project (D24). Never carries the token or its hash.
+A person minted a delegated token for this project. Never carries the token or its hash.
 
 ```json
 {
@@ -249,7 +249,7 @@ A person minted a delegated token for this project (D24). Never carries the toke
 
 ## `pending_action.created`
 
-A delegated token asked for one of D24’s privileged actions, and a person must confirm or reject it in the console.
+A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console.
 
 ```json
 {
@@ -261,7 +261,7 @@ A delegated token asked for one of D24’s privileged actions, and a person must
 
 ## `pending_action.confirmed`
 
-A person confirmed a token’s pending action, which grants that one request exactly one retry (D24).
+A person confirmed a token’s pending action, which grants that one request exactly one retry.
 
 ```json
 {
@@ -274,7 +274,7 @@ A person confirmed a token’s pending action, which grants that one request exa
 
 ## `pending_action.rejected`
 
-A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED` (D24).
+A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED`.
 
 ```json
 {
@@ -302,7 +302,7 @@ An administrator recorded what UBC IAM registered for the app’s staging or pro
 
 ## `privacy_assessment.recorded`
 
-An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment (§9).
+An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment.
 
 ```json
 {
@@ -361,7 +361,7 @@ Manifest drafted the app’s privacy impact assessment for a person to complete 
 
 ## `rehearsal.completed`
 
-A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21).
+A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not.
 
 ```json
 {
@@ -374,7 +374,7 @@ A production-shaped rehearsal of the app’s CWL sign-in ran for the release ser
 
 ## `release.approved`
 
-An administrator approved a release for production, bound to the image digest it froze (§13).
+An administrator approved a release for production, bound to the image digest it froze.
 
 ```json
 {
@@ -386,7 +386,7 @@ An administrator approved a release for production, bound to the image digest it
 
 ## `release.approval_rejected`
 
-An administrator rejected a release for production, which is final for that release (§13); the sentence carries their reason.
+An administrator rejected a release for production, which is final for that release; the sentence carries their reason.
 
 ```json
 {
@@ -410,7 +410,7 @@ A person asked an administrator to approve the release serving staging for produ
 
 ## `project.launched`
 
-The app’s first production launch became healthy (§13 D9). Published once per project, ever.
+The app’s first production launch became healthy. Published once per project, ever.
 
 ```json
 {
@@ -422,7 +422,7 @@ The app’s first production launch became healthy (§13 D9). Published once per
 
 ## `repository.pushed`
 
-A branch moved on GitHub and Manifest’s copy took it (D5). Commit ids only — never an author or a message.
+A branch moved on GitHub and Manifest’s copy took it. Commit ids only — never an author or a message.
 
 ```json
 {
@@ -434,7 +434,7 @@ A branch moved on GitHub and Manifest’s copy took it (D5). Commit ids only —
 
 ## `repository.history_rewritten`
 
-A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next (§13).
+A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next.
 
 ```json
 {
@@ -446,7 +446,7 @@ A branch’s history was rewritten on GitHub; Manifest kept the history its rele
 
 ## `repository.visibility_enforced`
 
-The repository was found public on GitHub, and was made private again or could not be (§20).
+The repository was found public on GitHub, and was made private again or could not be.
 
 ```json
 {
@@ -458,7 +458,7 @@ The repository was found public on GitHub, and was made private again or could n
 
 ## `repository.secret_detected`
 
-A commit pushed to GitHub adds a value shaped like a secret (§20). Never the value; the commit is never deployed with it.
+A commit pushed to GitHub adds a value shaped like a secret. Never the value; the commit is never deployed with it.
 
 ```json
 {
@@ -476,7 +476,7 @@ A commit pushed to GitHub adds a value shaped like a secret (§20). Never the va
 
 ## `repository.scan_incomplete`
 
-Commits pushed to GitHub were too large for Manifest to scan for secrets (§20). Nothing in them was read; a build of any commit still scans the whole tree it builds.
+Commits pushed to GitHub were too large for Manifest to scan for secrets. Nothing in them was read; a build of any commit still scans the whole tree it builds.
 
 ```json
 {
@@ -516,7 +516,7 @@ A commit was made through Manifest’s API (`createCommit`) — the platform’s
 
 ## `repository.secret_refused`
 
-A commit Manifest was asked to make carried a value shaped like a secret, and was refused (§20). Never the value.
+A commit Manifest was asked to make carried a value shaped like a secret, and was refused. Never the value.
 
 ```json
 {
@@ -574,7 +574,7 @@ The project’s name — what people call it — changed. Its slug, and so every
 
 ## `member.added`
 
-A person was added to the project, or their role on it changed (§13). Not published when nothing changed.
+A person was added to the project, or their role on it changed. Not published when nothing changed.
 
 ```json
 {
@@ -589,7 +589,7 @@ A person was added to the project, or their role on it changed (§13). Not publi
 
 ## `member.removed`
 
-A person was taken off the project (§13) — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed (§6, §10, §20). Not published for somebody who was not a member.
+A person was taken off the project — and with them their agent: every delegated token they had minted on it revoked, their agent sessions there ended, and their open event streams closed. Not published for somebody who was not a member.
 
 ```json
 {
@@ -604,7 +604,7 @@ A person was taken off the project (§13) — and with them their agent: every d
 
 ## `agent_session.started`
 
-An agent was given a model key for this project, charged to the person who started it (§10). The key itself is never published.
+An agent was given a model key for this project, charged to the person who started it. The key itself is never published.
 
 ```json
 {
@@ -623,7 +623,7 @@ An agent was given a model key for this project, charged to the person who start
 
 ## `agent_session.narrowed`
 
-An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest (§7, §10). The session goes on with the same key.
+An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest. The session goes on with the same key.
 
 ```json
 {
@@ -646,7 +646,7 @@ An agent session’s key lost the models its project no longer allows — its da
 
 ## `agent_session.ended`
 
-An agent session’s key was revoked at the gateway (§10).
+An agent session ended: its key was revoked at the gateway, and `reason` says why.
 
 ```json
 {
@@ -660,7 +660,7 @@ An agent session’s key was revoked at the gateway (§10).
 
 ## `sso.deregistered`
 
-The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off (§9, §11).
+The app’s SAML Service Provider registration with the Manifest identity provider was removed for one environment — its project was switched off.
 
 ```json
 {
@@ -670,7 +670,7 @@ The app’s SAML Service Provider registration with the Manifest identity provid
 
 ## `project.archived`
 
-The project was switched off by its owner (§11): each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored.
+The project was switched off by its owner: each of its names answers a page saying so, its instances are retired and its services stopped. Its code, data, secrets and records are kept, and it can be restored.
 
 ```json
 {
@@ -682,7 +682,7 @@ The project was switched off by its owner (§11): each of its names answers a pa
 
 ## `project.restored`
 
-A switched-off project was restored (§11). Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.
+A switched-off project was restored. Nothing started: its names answer the switched-off page until its next deploy brings the app back on its kept data. Its delegated tokens stay revoked.
 
 ```json
 {
@@ -694,7 +694,7 @@ A switched-off project was restored (§11). Nothing started: its names answer th
 
 ## `project.deleted`
 
-The project, which never launched, was deleted by its owner (§11): switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has.
+The project, which never launched, was deleted by its owner: switched off, then its repository, every data volume, every secret and its model budgets destroyed, and its names released. Its record and this trail remain; its name (slug) is free for another project. The last event a project has.
 
 ```json
 {

@@ -206,7 +206,7 @@ export const buildRoutes = [
         status: 'failed',
         imageDigest: null,
         error:
-          "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'iam-add': sn. Registered: mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered (§7, §9) — otherwise students hit a broken login on launch …",
+          "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'iam-add': sn. Registered: mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered — otherwise students hit a broken login on launch …",
         scan: null,
         createdAt: '2026-09-26T21:48:49.290Z',
       },

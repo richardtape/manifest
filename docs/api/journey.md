@@ -27,9 +27,9 @@ Every step from an idea to a launched app, who takes it, and the operations that
 | Record what UBC IAM and the Privacy Office said | administrator | `recordIamRegistration`, `recordPrivacyAssessment` |
 | Approve a release from a stored preview | administrator | `createApprovalPreview`, `getApprovalPreview`, `approveRelease`, `rejectRelease`, `getApproval` |
 | Manage who works on the project | person | `listMembers`, `addMember`, `removeMember`, `listProjects`, `getProject` |
-| Change who the app is for | person | *Not yet — the administrators’ queue (§26):* raising an audience is a request an administrator approves (§24) |
+| Change who the app is for | person | *Not yet — not built yet:* raising who an app is for needs an administrator’s approval, and there is no way to ask for it |
 | Roll back a release | person | *Not yet — not yet scheduled:* it is not built yet |
-| Work on a branch in a sandbox, with exec | agent | *Not yet — Phase 3 (§17):* an agent working inside a platform sandbox is not built before then |
+| Work on a branch in a sandbox, with exec | agent | *Not yet — not built yet:* an agent works on an app through the API, from outside the platform; it cannot work inside a platform sandbox |
 | Switch the app off when the course ends, and bring it back | person | `archiveProject`, `restoreProject` |
 | Delete an app that never launched — a trial, or a mistake | person | `deleteProject` |
 

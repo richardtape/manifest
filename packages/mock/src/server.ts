@@ -359,7 +359,7 @@ const ANSWERS: Record<string, Answerer> = {
       throw new MockRefusal(
         403,
         'INSTANCE_OUTPUT_STAGING',
-        'a staging instance’s output is not readable (§14): staging serves real people; its Incident’s log tail is the only window onto it',
+        'a staging instance’s output is not readable: staging serves real people; its Incident’s log tail is the only window onto it',
       )
     if (id !== f.SANDBOX_INSTANCE_ID)
       throw new MockRefusal(
@@ -392,7 +392,7 @@ const ANSWERS: Record<string, Answerer> = {
       throw new MockRefusal(
         403,
         'INCIDENT_LOG_CONFIDENTIAL',
-        `the ${env === f.STAGING_ID ? 'staging' : 'production'} Incidents of a confidential project are not answered to a delegated token while its building agent may use the capable model (§7); a person reads them in their own session`,
+        `the ${env === f.STAGING_ID ? 'staging' : 'production'} Incidents of a confidential project are not answered to a delegated token while its building agent may use the capable model; a person reads them in their own session`,
       )
     return ok(
       'IncidentList',
@@ -1197,8 +1197,8 @@ export function createMockServer(options: MockOptions = {}): Server {
         throw new MockRefusal(
           403,
           'TOKEN_CREDENTIAL_REFUSED',
-          'this action is only available in an interactive session (D24)',
-          'Sign in to the console and do it there. An agent asks a human for the ones D24 makes pending.',
+          'this action is only available in an interactive session',
+          'Sign in to the console and do it there. An agent asks a person to confirm the privileged ones.',
         )
 
       const params: Record<string, string> = {}

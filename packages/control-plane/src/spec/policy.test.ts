@@ -363,7 +363,9 @@ describe('the per-user AI budget — validated, not enforced (§7, §10; Spec ac
       {
         code: 'SPEC_FIELD_NOT_ENFORCED',
         path: 'ai.budget.per_user_monthly_usd',
-        message: expect.stringContaining('not enforced before Phase 4 (§10)'),
+        message: expect.stringContaining(
+          'not enforced: no single person is limited by it yet',
+        ),
         hint: expect.stringContaining('ai.budget.project_monthly_usd'),
       },
     ])

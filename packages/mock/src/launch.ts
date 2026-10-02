@@ -376,7 +376,7 @@ function iamItem(o: LaunchOptions, base: Item, now: number): Item {
     return {
       ...base,
       state: 'unmet',
-      why: 'Every production app that signs people in with CWL needs its own IAM registration, with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference.',
+      why: 'Every production app that signs people in with CWL needs its own registration with UBC IAM, and it takes weeks. Production’s is drafted (draftIamRegistration) and sent (submitIamRegistration) once the privacy assessment is approved and staging’s registration is active. An administrator records UBC IAM’s answer, with its ticket reference.',
       since: null,
     }
   if (row.state === 'active') return base
@@ -394,7 +394,7 @@ function piaItem(o: LaunchOptions, base: Item, now: number): Item {
     return {
       ...base,
       state: 'unmet',
-      why: 'A Privacy Impact Assessment is required before a production launch, with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what the UBC Privacy Office said, with the ticket reference.',
+      why: 'A Privacy Impact Assessment is required before a production launch, and it takes weeks. Draft it (draftPrivacyAssessment), send it to the UBC Privacy Office, and say it was sent (submitPrivacyAssessment); an administrator records the Office’s answer, with its ticket reference.',
       since: null,
     }
   if (row.state === 'approved')
@@ -425,7 +425,7 @@ function approvalItem(o: LaunchOptions, base: Item): Item {
       return {
         ...base,
         state: 'unmet',
-        why: 'An administrator approves the exact image digest, with step-up re-authentication. This release has not been reviewed yet.',
+        why: 'An administrator approves the exact image digest, with step-up re-authentication. This release has not been reviewed yet. Ask an administrator to sign it off (requestApproval).',
         since: null,
       }
     case 'rejected':
