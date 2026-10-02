@@ -137,6 +137,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `rehearsal.completed` | A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not (D21). |
 | `release.approved` | An administrator approved a release for production, bound to the image digest it froze (§13). |
 | `release.approval_rejected` | An administrator rejected a release for production, which is final for that release (§13); the sentence carries their reason. |
+| `approval.requested` | A person asked an administrator to approve the release serving staging for production. It waits in the administrators’ queue until an administrator decides, or another release serves staging. |
 | `project.launched` | The app’s first production launch became healthy (§13 D9). Published once per project, ever. |
 | `repository.pushed` | A branch moved on GitHub and Manifest’s copy took it (D5). Commit ids only — never an author or a message. |
 | `repository.history_rewritten` | A branch’s history was rewritten on GitHub; Manifest kept the history its releases name, and reads GitHub’s for what comes next (§13). |

@@ -58,6 +58,10 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
     'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — drafting the privacy assessment, then saying it was sent',
   submitPrivacyAssessment:
     'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — sending the assessment Task 11 drafts',
+  // Task 12 parks the sign-off request beside them, and the administrators' queue.
+  requestApproval:
+    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — asking an administrator to sign off the release serving staging',
+  listQueue: 'the launch path plan’s Task 13 adds a Queue screen for administrators',
 }
 
 /**

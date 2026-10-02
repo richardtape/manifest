@@ -20,6 +20,9 @@ Answer, `200`:
   {
     "id": "7454ad83-e8c6-43da-a33e-6b0615e53263",
     "slug": "p-7e7d49b6",
+    "name": "p-7e7d49b6",
+    "state": "active",
+    "archivedAt": null,
     "blueprint": "fixture-node@1",
     "starter": null,
     "owner": {
@@ -60,6 +63,9 @@ Answer, `200`:
   {
     "id": "b94629a7-978e-4b18-817b-ad5cf979282f",
     "slug": "p-15e91afe",
+    "name": "p-15e91afe",
+    "state": "active",
+    "archivedAt": null,
     "blueprint": "fixture-node@1",
     "starter": null,
     "owner": {
@@ -98,6 +104,68 @@ Answer, `200`:
     ]
   }
 ]
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `listQueue` — Everything waiting on an administrator
+
+`GET /v1/queue` · a session only — a delegated token is refused
+
+Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
+
+Answer, `200`:
+
+```json
+{
+  "items": [
+    {
+      "kind": "privacy-assessment",
+      "project": {
+        "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+        "slug": "fixture-ad799ea7",
+        "name": "fixture-ad799ea7",
+        "state": "active"
+      },
+      "subjectId": "2576d1c4-1d11-4823-9579-fc8fcba37558",
+      "environment": null,
+      "requestedBy": {
+        "id": "338713d6-02c6-411c-8816-c30821e69e07",
+        "displayName": "Bio Prof"
+      },
+      "since": "2026-09-29T19:00:00.000Z",
+      "summary": "The privacy assessment was sent to the UBC Privacy Office on September 29, 2026 (ticket PIA-2026-0088): record its answer, with the PIA number, when it comes.",
+      "note": null
+    },
+    {
+      "kind": "release-approval",
+      "project": {
+        "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+        "slug": "fixture-ad799ea7",
+        "name": "fixture-ad799ea7",
+        "state": "active"
+      },
+      "subjectId": "1b8cc68f-ce0d-4677-b3e8-e627872802ed",
+      "environment": null,
+      "requestedBy": {
+        "id": "338713d6-02c6-411c-8816-c30821e69e07",
+        "displayName": "Bio Prof"
+      },
+      "since": "2026-10-02T01:29:32.635Z",
+      "summary": "Bio Prof asked for the release serving staging to be approved for the app’s first production launch.",
+      "note": "Week 3 — students start Monday"
+    }
+  ],
+  "oldestSince": "2026-09-29T19:00:00.000Z",
+  "truncated": false
+}
 ```
 
 | Error | Status | What to do |
@@ -711,14 +779,14 @@ Answer, `200`:
 | `RELEASE_AI_BUDGET_MISSING` | 409 | Set `ai.budget.project_monthly_usd` above 0 in manifest.yaml, or ask an administrator to raise the project’s AI quota, then build and release again. A budget of 0 would refuse the app’s every question. |
 | `RELEASE_AI_DISABLED` | 409 | Remove `ai.models` from manifest.yaml and release again to deploy without AI, or ask an administrator to switch AI on. |
 | `RELEASE_DIGEST_MISSING` | 409 | Build the commit again (`startBuild`) and create the release from the new build (`createRelease`). |
-| `RELEASE_DIGEST_NOT_APPROVED` | 409 | Ask an administrator to approve this release — they take a preview (`createApprovalPreview`) and approve naming it — then deploy again. A rejected release stays rejected: build and release a new one. |
+| `RELEASE_DIGEST_NOT_APPROVED` | 409 | Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again. A rejected release stays rejected: build and release a new one. |
 | `RELEASE_MODEL_CLASSIFICATION_TOO_LOW` | 409 | Declare a model approved for the app’s `data.classification`, or lower the classification if it is overstated; then build and release again. |
 | `RELEASE_MODEL_NOT_IN_CATALOGUE` | 409 | Declare a model the catalogue has — `validateSpec` names them when one is unknown — then build and release again. |
 | `RELEASE_MODEL_UNCLASSIFIED` | 409 | Declare another model, or ask an administrator to classify this one; then build and release again. |
 | `RELEASE_NOT_FOUND` | 409 | Check the release id; `listReleases` lists the project’s releases. |
 | `RELEASE_NOT_STAGED` | 409 | Deploy this release to staging first and let it become healthy, then deploy it to production — or deploy the release that is serving staging. |
 | `RELEASE_PRODUCTION_GATE_UNAVAILABLE` | 409 | Read `launchReadiness`: each unmet blocking item says what meets it. Meet them — most are records an administrator keeps, some with long lead times — and deploy again; a retry alone changes nothing. |
-| `RELEASE_REESCALATED` | 409 | Ask an administrator to approve this release: they take a preview (`createApprovalPreview`), read it, and approve naming it (`approveRelease`). Deploy again once they have. |
+| `RELEASE_REESCALATED` | 409 | Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again once they have. |
 | `RELEASE_SECRET_NOT_SET` | 409 | Set each name the message lists in this environment (`setAppSecret`) and deploy again; `listAppSecrets` shows which are set. |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
@@ -2127,6 +2195,7 @@ Answer, `200`:
     "requestedAttributes": null,
     "registeredAt": null,
     "state": "submitted",
+    "changeRequestedFrom": null,
     "externalTicketRef": "IAM-2026-0500",
     "submittedAt": "2026-10-01T19:00:00.000Z",
     "submittedBy": {
@@ -2267,6 +2336,7 @@ Answer, `200`:
   "requestedAttributes": null,
   "registeredAt": null,
   "state": "submitted",
+  "changeRequestedFrom": null,
   "externalTicketRef": "IAM-1",
   "submittedAt": "2026-10-01T06:56:08.961Z",
   "submittedBy": {
@@ -2324,6 +2394,7 @@ Answer, `200`:
   "requestedAttributes": null,
   "registeredAt": null,
   "state": "draft",
+  "changeRequestedFrom": null,
   "externalTicketRef": null,
   "submittedAt": null,
   "submittedBy": null,
@@ -2448,6 +2519,7 @@ Answer, `200`:
   "requestedAttributes": null,
   "registeredAt": null,
   "state": "submitted",
+  "changeRequestedFrom": null,
   "externalTicketRef": "IAM-2026-0500",
   "submittedAt": "2026-10-01T19:00:00.000Z",
   "submittedBy": {
@@ -3222,6 +3294,59 @@ Answer, `200`:
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
 | `STEP_UP_REQUIRED` | 403 | Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up. |
 | `TOKEN_CREDENTIAL_REFUSED` | 403 | Have a person do it in the console, in their own session: no delegated token may, and no confirmation changes that. The operation’s description says when a token is refused. |
+| `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
+
+### `requestApproval` — Ask an administrator to sign off the release serving staging
+
+`POST /v1/releases/{releaseId}/approval-request` · a session or a delegated token
+
+Asks a platform administrator to approve the release serving staging for production — the one approval a first launch needs from a person at the platform, and the one a launched app’s release needs when it changes a sensitive field. The request waits in the administrators’ queue (`listQueue`), oldest first, until an administrator approves or rejects the release or another release serves staging, and the launch checklist’s `admin-approval` item says who asked and since when. Asking again answers the request already made, unchanged. The `note` is shown to administrators and to nobody else. Refused `409 RELEASE_NOT_STAGED` for any release but the one serving staging, with the checklist naming that one; `409 APPROVAL_NOT_NEEDED` when nothing needs approving — an approval already covers it, or the release changes nothing that needs one; and `409 RELEASE_REJECTED` once an administrator has rejected it. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `approval:request` may ask — a request grants nothing and decides nothing.
+
+| Parameter | In | Required | What it is |
+|---|---|---|---|
+| `releaseId` | path | yes | The release’s id, from `createRelease` or `listReleases`. |
+
+Request:
+
+```json
+{
+  "note": "Week 3 — students start Monday"
+}
+```
+
+Answer, `200`:
+
+```json
+{
+  "id": "bdae777e-6de9-49de-9037-ea540b242c63",
+  "releaseId": "1b8cc68f-ce0d-4677-b3e8-e627872802ed",
+  "projectId": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+  "requestedBy": {
+    "id": "338713d6-02c6-411c-8816-c30821e69e07",
+    "displayName": "Bio Prof"
+  },
+  "viaToken": null,
+  "createdAt": "2026-10-02T01:29:32.635Z",
+  "open": true
+}
+```
+
+| Error | Status | What to do |
+|---|---|---|
+| `APPROVAL_NOT_NEEDED` | 409 | Nothing to ask for: read the launch checklist (`getLaunchReadiness`) for what is still unmet, and deploy to production once it is ready. |
+| `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
+| `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
+| `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
+| `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
+| `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
+| `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
+| `RELEASE_NOT_STAGED` | 409 | Deploy this release to staging first and let it become healthy, then deploy it to production — or deploy the release that is serving staging. |
+| `RELEASE_REJECTED` | 409 | Read the administrator’s reason (`getApproval`), change the app, build and release it, deploy that release to staging, and ask for sign-off on it. |
+| `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
+| `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
+| `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
 ## pending-actions

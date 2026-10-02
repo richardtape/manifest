@@ -4,13 +4,14 @@ import { z } from 'zod/v4'
 import {
   appSpecs,
   builds,
+  delegatedTokens,
   environments,
   projects,
   releases,
   users,
   type Db,
 } from '../../db/index.js'
-import { assertLaunchable } from '../../launch/index.js'
+import { assertLaunchable, requestApproval } from '../../launch/index.js'
 import { environmentFloor } from '../../ai/index.js'
 import { incidentPrompt, listIncidents, OutputError } from '../../observability/index.js'
 import {
@@ -42,14 +43,17 @@ import { Instance, toInstance } from '../representations/instances.js'
 import {
   Approval,
   ApprovalPreview,
+  ApprovalRequest,
   ApproveReleaseRequest,
   CreateReleaseRequest,
   DeployRequest,
   RejectReleaseRequest,
   Release,
   ReleaseList,
+  RequestApprovalRequest,
   toApproval,
   toApprovalPreview,
+  toApprovalRequest,
   toRelease,
 } from '../representations/releases.js'
 
@@ -978,6 +982,85 @@ export const releaseRoutes = [
           `nobody has approved or rejected release '${params.releaseId}'`,
         )
       return toApproval(approval, await displayNameOf(deps.db, approval.decidedBy))
+    },
+  }),
+  defineRoute({
+    operationId: 'requestApproval',
+    method: 'POST',
+    path: '/v1/releases/{releaseId}/approval-request',
+    tag: 'launch',
+    summary: 'Ask an administrator to sign off the release serving staging',
+    description:
+      'Asks a platform administrator to approve the release serving staging for production — the one approval a first launch needs from a person at the platform, and the one a launched app’s release needs when it changes a sensitive field. The request waits in the administrators’ queue (`listQueue`), oldest first, until an administrator approves or rejects the release or another release serves staging, and the launch checklist’s `admin-approval` item says who asked and since when. Asking again answers the request already made, unchanged. The `note` is shown to administrators and to nobody else. Refused `409 RELEASE_NOT_STAGED` for any release but the one serving staging, with the checklist naming that one; `409 APPROVAL_NOT_NEEDED` when nothing needs approving — an approval already covers it, or the release changes nothing that needs one; and `409 RELEASE_REJECTED` once an administrator has rejected it. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `approval:request` may ask — a request grants nothing and decides nothing.',
+    params: ReleaseParams,
+    query: NO_QUERY,
+    body: RequestApprovalRequest,
+    success: {
+      status: 200,
+      description: 'The request — made now, or the one already made for this release.',
+      schema: ApprovalRequest,
+    },
+    capability: 'approval:request',
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'RELEASE_NOT_STAGED',
+      'APPROVAL_NOT_NEEDED',
+      'RELEASE_REJECTED',
+    ],
+    examples: {
+      request: { note: 'Week 3 — students start Monday' },
+      response: {
+        id: 'bdae777e-6de9-49de-9037-ea540b242c63',
+        releaseId: '1b8cc68f-ce0d-4677-b3e8-e627872802ed',
+        projectId: '50215560-1c3d-4ba3-b10d-051cf9c4c8ba',
+        requestedBy: {
+          id: '338713d6-02c6-411c-8816-c30821e69e07',
+          displayName: 'Bio Prof',
+        },
+        viaToken: null,
+        createdAt: '2026-10-02T01:29:32.635Z',
+        open: true,
+      },
+    },
+    handler: async ({ deps, actor, params, body }) => {
+      // The project from the release ROW, never the request — `getRelease`'s rule — and a release
+      // nobody may see is indistinguishable from one that does not exist.
+      const [release] = await deps.db
+        .select()
+        .from(releases)
+        .where(eq(releases.id, params.releaseId))
+      if (release === undefined)
+        throw new AuthorizationError('NOT_FOUND', `no release '${params.releaseId}'`)
+      // MINTABLE: no `requireSession` — an agent on its person's token, or a front-end's server acting
+      // for them, may ask. The capability first, so a stranger is `404` and learns nothing.
+      await assertCapability(deps.db, actor, release.projectId, 'approval:request')
+      const asked = await requestApproval(deps.db, deps.bus, {
+        releaseId: release.id,
+        actor: {
+          userId: actor.userId,
+          tokenId: actor.credential === 'token' ? actor.tokenId : null,
+        },
+        // An empty note is no note.
+        ...(body.note === undefined || body.note === '' ? {} : { note: body.note }),
+      })
+      const tokenId = asked.request.requestedByToken
+      const [token] =
+        tokenId === null
+          ? []
+          : await deps.db
+              .select({ id: delegatedTokens.id, name: delegatedTokens.name })
+              .from(delegatedTokens)
+              .where(eq(delegatedTokens.id, tokenId))
+      return toApprovalRequest(
+        asked.request,
+        {
+          id: asked.request.requestedBy,
+          displayName: await displayNameOf(deps.db, asked.request.requestedBy),
+        },
+        token ?? null,
+        asked.open,
+      )
     },
   }),
   defineRoute({

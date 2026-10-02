@@ -1,5 +1,17 @@
-import { eq } from 'drizzle-orm'
-import { iamRegistrations, privacyAssessments, projects, type Db } from '../db/index.js'
+import { randomBytes } from 'node:crypto'
+import { and, eq } from 'drizzle-orm'
+import {
+  appSpecs,
+  builds,
+  environments,
+  iamRegistrations,
+  instances,
+  privacyAssessments,
+  projects,
+  releases,
+  routes,
+  type Db,
+} from '../db/index.js'
 import { manifestSchema } from '../spec/index.js'
 import { mintSpKeypair, publicHalf, type SpCertificate } from '../sso/index.js'
 import { assembleAssessment } from './assessment.js'
@@ -172,4 +184,86 @@ export function vancouverToday(now: Date = new Date()): string {
 /** `days` before today in Vancouver, `YYYY-MM-DD`. */
 export function vancouverDaysAgo(days: number): string {
   return vancouverToday(new Date(Date.now() - days * 86_400_000))
+}
+
+/**
+ * A RELEASE SERVING STAGING — the launch candidate — written straight to the rows (the launch path
+ * plan's Task 12), for the tests whose subject is what the candidate's sign-off request and the
+ * administrators' queue READ, not how a deploy gets there (`api/queue.test.ts` deploys through the
+ * routes). Called again for the same project, the NEW release takes staging's route and the earlier
+ * one stops being the candidate. The app signs nobody in, so no registration is involved.
+ */
+export async function stagedRelease(
+  db: Db,
+  input: { projectId: string; ownerId: string },
+): Promise<{ releaseId: string; imageDigest: string }> {
+  const kind = 'staging' as const
+  const [existing] = await db
+    .select()
+    .from(environments)
+    .where(and(eq(environments.projectId, input.projectId), eq(environments.kind, kind)))
+  const env =
+    existing ??
+    (
+      await db
+        .insert(environments)
+        .values({
+          projectId: input.projectId,
+          kind,
+          hostname: `${input.projectId.slice(0, 8)}.staging.manifest.internal`,
+        })
+        .returning()
+    )[0]!
+  const commitSha = randomBytes(20).toString('hex')
+  const imageDigest = `sha256:${randomBytes(32).toString('hex')}`
+  const [spec] = await db
+    .insert(appSpecs)
+    .values({
+      projectId: input.projectId,
+      commitSha,
+      parsed: {},
+      schemaVersion: 1,
+      valid: true,
+    })
+    .returning()
+  const [build] = await db
+    .insert(builds)
+    .values({
+      projectId: input.projectId,
+      commitSha,
+      appSpecId: spec!.id,
+      status: 'succeeded',
+      imageDigest,
+    })
+    .returning()
+  const resolved = {
+    auth: { provider: 'none', attributes: [] },
+    ai: { models: [] },
+    env: [],
+    services: [],
+  }
+  const [release] = await db
+    .insert(releases)
+    .values({
+      projectId: input.projectId,
+      buildId: build!.id,
+      appSpecId: spec!.id,
+      createdBy: input.ownerId,
+      resolvedConfig: { sandbox: resolved, staging: resolved, production: resolved },
+    })
+    .returning()
+  const [instance] = await db
+    .insert(instances)
+    .values({
+      environmentId: env.id,
+      releaseId: release!.id,
+      driver: 'fake',
+      state: 'healthy',
+    })
+    .returning()
+  await db
+    .insert(routes)
+    .values({ instanceId: instance!.id, hostname: env.hostname, listener: 'internal' })
+    .onConflictDoUpdate({ target: routes.hostname, set: { instanceId: instance!.id } })
+  return { releaseId: release!.id, imageDigest }
 }

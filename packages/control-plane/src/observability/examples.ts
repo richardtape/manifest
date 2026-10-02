@@ -179,6 +179,11 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     imageDigest: DIGEST.slice(0, 19),
     decision: 'rejected',
   },
+  'approval.requested': {
+    requestId: UUID,
+    releaseId: UUID,
+    viaToken: false,
+  },
   'project.launched': {
     releaseId: UUID,
     instanceId: UUID,

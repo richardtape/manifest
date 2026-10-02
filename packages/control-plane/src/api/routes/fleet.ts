@@ -28,6 +28,9 @@ export const fleetRoutes = [
         {
           id: '7454ad83-e8c6-43da-a33e-6b0615e53263',
           slug: 'p-7e7d49b6',
+          name: 'p-7e7d49b6',
+          state: 'active',
+          archivedAt: null,
           blueprint: 'fixture-node@1',
           starter: null,
           owner: {
@@ -68,6 +71,9 @@ export const fleetRoutes = [
         {
           id: 'b94629a7-978e-4b18-817b-ad5cf979282f',
           slug: 'p-15e91afe',
+          name: 'p-15e91afe',
+          state: 'active',
+          archivedAt: null,
           blueprint: 'fixture-node@1',
           starter: null,
           owner: {

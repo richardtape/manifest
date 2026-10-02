@@ -29,6 +29,7 @@ export const DRAFTED_EXAMPLE = {
   requestedAttributes: null,
   registeredAt: null,
   state: 'draft',
+  changeRequestedFrom: null,
   externalTicketRef: null,
   submittedAt: null,
   submittedBy: null,
@@ -120,6 +121,7 @@ export const SUBMITTED_EXAMPLE = {
   requestedAttributes: null,
   registeredAt: null,
   state: 'submitted',
+  changeRequestedFrom: null,
   externalTicketRef: 'IAM-2026-0500',
   submittedAt: '2026-10-01T19:00:00.000Z',
   submittedBy: {
@@ -211,6 +213,7 @@ export const RECORDS_EXAMPLE = {
     requestedAttributes: null,
     registeredAt: null,
     state: 'submitted',
+    changeRequestedFrom: null,
     externalTicketRef: 'IAM-2026-0500',
     submittedAt: '2026-10-01T19:00:00.000Z',
     submittedBy: {

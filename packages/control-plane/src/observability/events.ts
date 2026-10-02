@@ -101,6 +101,12 @@ export const EVENT_TYPES = [
   'release.approved',
   /** The other answer, and a separate type so a client can switch on it rather than read a field. */
   'release.approval_rejected',
+  /**
+   * §13 and §26 (Spec action 5; the launch path plan's Task 12, FE-25): a person asked an
+   * administrator to approve the release serving staging for production — who asked and which
+   * release, NEVER the note, which is for administrators alone (`listQueue`).
+   */
+  'approval.requested',
   /** §13 D9 (P6b Task 4): the app's first production launch — recorded once, by the deploy that made it true. */
   'project.launched',
   /**

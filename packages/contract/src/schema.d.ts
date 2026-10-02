@@ -1068,6 +1068,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Everything waiting on an administrator
+         * @description Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
+         */
+        get: operations["listQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/releases/{releaseId}": {
         parameters: {
             query?: never;
@@ -1142,6 +1162,26 @@ export interface paths {
         get: operations["getApprovalPreview"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/releases/{releaseId}/approval-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask an administrator to sign off the release serving staging
+         * @description Asks a platform administrator to approve the release serving staging for production — the one approval a first launch needs from a person at the platform, and the one a launched app’s release needs when it changes a sensitive field. The request waits in the administrators’ queue (`listQueue`), oldest first, until an administrator approves or rejects the release or another release serves staging, and the launch checklist’s `admin-approval` item says who asked and since when. Asking again answers the request already made, unchanged. The `note` is shown to administrators and to nobody else. Refused `409 RELEASE_NOT_STAGED` for any release but the one serving staging, with the checklist naming that one; `409 APPROVAL_NOT_NEEDED` when nothing needs approving — an approval already covers it, or the release changes nothing that needs one; and `409 RELEASE_REJECTED` once an administrator has rejected it. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `approval:request` may ask — a request grants nothing and decides nothing.
+         */
+        post: operations["requestApproval"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1526,6 +1566,51 @@ export interface components {
             /** @description The digest the preview was taken over (§13). */
             imageDigest: string;
             diff: components["schemas"]["ApprovalDiff"];
+        };
+        /** @description A request that an administrator sign off the release serving staging for production. One per release: asking again answers this one. */
+        ApprovalRequest: {
+            /**
+             * Format: uuid
+             * @description The request.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The release an administrator is asked to approve for production — the one serving staging when it was asked.
+             */
+            releaseId: string;
+            /**
+             * Format: uuid
+             * @description Its project.
+             */
+            projectId: string;
+            /** @description Who asked: the person — also when an agent asked on their token. */
+            requestedBy: {
+                /**
+                 * Format: uuid
+                 * @description Their user id.
+                 */
+                id: string;
+                /** @description Their name. */
+                displayName: string;
+            };
+            /** @description The token an agent asked on; null when the person asked in their own session. */
+            viaToken: {
+                /**
+                 * Format: uuid
+                 * @description The token.
+                 */
+                id: string;
+                /** @description Its name, as its person gave it. */
+                name: string;
+            } | null;
+            /**
+             * Format: date-time
+             * @description When it was asked — what the administrators’ queue measures its wait from.
+             */
+            createdAt: string;
+            /** @description Whether it still waits on an administrator: until one approves or rejects the release, or another release serves staging. */
+            open: boolean;
         };
         /** @description An administrator’s approval, naming the preview they read. */
         ApproveReleaseRequest: {
@@ -1989,7 +2074,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it (§20). `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_DRAFT_CHANGED" | "LAUNCH_DRAFT_REQUIRED" | "LAUNCH_DRAFT_STALE" | "LAUNCH_NOT_CWL" | "LAUNCH_PIA_NOT_APPROVED" | "LAUNCH_RECORD_INVALID" | "LAUNCH_RECORD_SUBMITTED" | "LAUNCH_SENT_AT_INVALID" | "LAUNCH_STAGING_NOT_REGISTERED" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_NOT_NEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_DRAFT_CHANGED" | "LAUNCH_DRAFT_REQUIRED" | "LAUNCH_DRAFT_STALE" | "LAUNCH_NOT_CWL" | "LAUNCH_PIA_NOT_APPROVED" | "LAUNCH_RECORD_INVALID" | "LAUNCH_RECORD_SUBMITTED" | "LAUNCH_SENT_AT_INVALID" | "LAUNCH_STAGING_NOT_REGISTERED" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_REJECTED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape (D23.7): a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -3417,6 +3502,51 @@ export interface components {
              * @description What happened. Switch on it: each type has one `machineDetail` shape.
              * @constant
              */
+            type: "approval.requested";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            /** @description A person asked an administrator to approve the release serving staging for production. It waits in the administrators’ queue until an administrator decides, or another release serves staging. */
+            machineDetail: {
+                /**
+                 * Format: uuid
+                 * @description The request.
+                 */
+                requestId: string;
+                /**
+                 * Format: uuid
+                 * @description The release an administrator is asked to approve — the one serving staging.
+                 */
+                releaseId: string;
+                /** @description Whether an agent asked on a person’s token, rather than the person. */
+                viaToken: boolean;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "project.launched";
             /** @description For a person (§14). Never parse it. */
             humanMessage: string;
@@ -4390,6 +4520,15 @@ export interface components {
             id: string;
             /** @description Its slug (§23), which its hostnames are made from. */
             slug: string;
+            /** @description Its name, as its owner gave it. */
+            name: string;
+            /**
+             * @description Whether it is switched on: `archived` is switched off by its owner, its environments taken down and restorable — not broken.
+             * @enum {string}
+             */
+            state: "active" | "archived";
+            /** @description When it was last archived — kept through a restore, so it says the project once was. Null if it never has been. */
+            archivedAt: string | null;
             /** @description Its blueprint, `name@major`. */
             blueprint: string;
             /** @description Its starter; null for the skeleton alone. */
@@ -4474,6 +4613,8 @@ export interface components {
              * @enum {string}
              */
             state: "draft" | "submitted" | "active" | "change_requested" | "expired";
+            /** @description While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — an administrator filed a change request with UBC IAM, which UBC now holds. Null in any other state. */
+            changeRequestedFrom: ("submitted" | "active") | null;
             /** @description UBC IAM’s own reference for the request; null when none was recorded. */
             externalTicketRef: string | null;
             /** @description When the request now with UBC IAM was sent — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. How long it has waited is measured from here. Null until it is sent. */
@@ -4780,7 +4921,7 @@ export interface components {
             why: string;
             /** @description For a `not_built` item: what will build it. Absent otherwise. */
             builtBy?: string;
-            /** @description When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”. */
+            /** @description When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; while the release waits on an administrator’s approval someone asked for (`requestApproval`), when they asked; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”. */
             since: string | null;
         };
         /** @description The three records a first production launch waits on, in the order UBC works through them: the privacy assessment, the staging registration, then production’s. */
@@ -5146,7 +5287,7 @@ export interface components {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
             /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve, launch:record, launch:submit, launch:rehearse or project:delete, which are person-only and refused outright. */
-            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "agent:session" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "launch:rehearse" | "launch:submit" | "launch:draft" | "quota:set" | "secret:read")[];
+            capabilities: ("project:read" | "project:write" | "project:delete" | "source:write" | "secret:write" | "output:read" | "agent:session" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "launch:rehearse" | "launch:submit" | "launch:draft" | "approval:request" | "quota:set" | "secret:read")[];
             /** @description How long the token lives, in days. D24: a token has an expiry, and at most 365 days of one. */
             expiresInDays: number;
         };
@@ -5341,6 +5482,66 @@ export interface components {
         };
         /** @description Every project the caller is a member of — every project, for an administrator. */
         ProjectList: components["schemas"]["Project"][];
+        /** @description Everything waiting on a platform administrator, oldest first: a release someone asked them to sign off, and the registrations and privacy assessments with UBC whose answers they record. */
+        Queue: {
+            /** @description Everything waiting, oldest first — at most 200. */
+            items: components["schemas"]["QueueItem"][];
+            /** @description When the oldest item began waiting — the queue’s headline: a queue that is long is working, and one that is old is not. Null when nothing waits. */
+            oldestSince: string | null;
+            /** @description True when more than 200 wait, and only the oldest are here. */
+            truncated: boolean;
+        };
+        /** @description One thing waiting on a platform administrator. */
+        QueueItem: {
+            /**
+             * @description What waits: `release-approval` — someone asked for the release serving staging to be approved (`requestApproval`); `iam-registration` — a registration sent to UBC IAM, whose answer an administrator records; `iam-change-request` — a change request an administrator filed with UBC IAM; `privacy-assessment` — an assessment sent to the Privacy Office, whose answer an administrator records.
+             * @enum {string}
+             */
+            kind: "release-approval" | "iam-registration" | "iam-change-request" | "privacy-assessment";
+            /** @description The app it is about. */
+            project: {
+                /**
+                 * Format: uuid
+                 * @description The project.
+                 */
+                id: string;
+                /** @description Its slug, which its hostnames are made from. */
+                slug: string;
+                /** @description Its name, as its owner gave it. */
+                name: string;
+                /**
+                 * @description Whether it is switched on. An archived project’s records still wait on UBC.
+                 * @enum {string}
+                 */
+                state: "active" | "archived";
+            };
+            /**
+             * Format: uuid
+             * @description What it is about: the release for `release-approval`, the registration or the assessment otherwise.
+             */
+            subjectId: string;
+            /** @description Which registration, for a registration’s item; null otherwise. */
+            environment: ("staging" | "production") | null;
+            /** @description Who asked, or who said it was sent; null when nobody was recorded doing so. */
+            requestedBy: {
+                /**
+                 * Format: uuid
+                 * @description Their user id.
+                 */
+                id: string;
+                /** @description Their name. */
+                displayName: string;
+            } | null;
+            /**
+             * Format: date-time
+             * @description Since when it has waited: when it was asked for, or when it was sent to UBC.
+             */
+            since: string;
+            /** @description What waits, in one sentence for a person. */
+            summary: string;
+            /** @description What the person who asked for sign-off wrote to the administrators; null for anything else, or when they wrote nothing. */
+            note: string | null;
+        };
         /** @description What UBC IAM registered for the app’s staging or production sign-in, as an administrator records it from the ticket. UBC’s answer is recorded whatever order it arrives in. */
         RecordIamRegistrationRequest: {
             /**
@@ -5729,6 +5930,11 @@ export interface components {
             protectionDetail: string | null;
             /** @description What Manifest last read of the repository’s visibility on GitHub: `private`, or `public` — and nothing is built from a repository last read public until a read says it is private again. Null on this machine, where a repository has no visibility, and before GitHub has been read. */
             visibility: ("private" | "public") | null;
+        };
+        /** @description Asking an administrator to sign off the release serving staging. */
+        RequestApprovalRequest: {
+            /** @description Anything the administrators should know — a date the app is needed by, say. Shown to administrators in their queue, and to nobody else; never in an event. */
+            note?: string;
         };
         /** @description §12’s scan of the image a build produced (§6 `Build.scan`). */
         ScanSummary: {
@@ -6831,6 +7037,9 @@ export interface operations {
                      *       {
                      *         "id": "7454ad83-e8c6-43da-a33e-6b0615e53263",
                      *         "slug": "p-7e7d49b6",
+                     *         "name": "p-7e7d49b6",
+                     *         "state": "active",
+                     *         "archivedAt": null,
                      *         "blueprint": "fixture-node@1",
                      *         "starter": null,
                      *         "owner": {
@@ -6871,6 +7080,9 @@ export interface operations {
                      *       {
                      *         "id": "b94629a7-978e-4b18-817b-ad5cf979282f",
                      *         "slug": "p-15e91afe",
+                     *         "name": "p-15e91afe",
+                     *         "state": "active",
+                     *         "archivedAt": null,
                      *         "blueprint": "fixture-node@1",
                      *         "starter": null,
                      *         "owner": {
@@ -8597,6 +8809,7 @@ export interface operations {
                      *         "requestedAttributes": null,
                      *         "registeredAt": null,
                      *         "state": "submitted",
+                     *         "changeRequestedFrom": null,
                      *         "externalTicketRef": "IAM-2026-0500",
                      *         "submittedAt": "2026-10-01T19:00:00.000Z",
                      *         "submittedBy": {
@@ -8752,6 +8965,7 @@ export interface operations {
                      *       "requestedAttributes": null,
                      *       "registeredAt": null,
                      *       "state": "submitted",
+                     *       "changeRequestedFrom": null,
                      *       "externalTicketRef": "IAM-1",
                      *       "submittedAt": "2026-10-01T06:56:08.961Z",
                      *       "submittedBy": {
@@ -8814,6 +9028,7 @@ export interface operations {
                      *       "requestedAttributes": null,
                      *       "registeredAt": null,
                      *       "state": "draft",
+                     *       "changeRequestedFrom": null,
                      *       "externalTicketRef": null,
                      *       "submittedAt": null,
                      *       "submittedBy": null,
@@ -8941,6 +9156,7 @@ export interface operations {
                      *       "requestedAttributes": null,
                      *       "registeredAt": null,
                      *       "state": "submitted",
+                     *       "changeRequestedFrom": null,
                      *       "externalTicketRef": "IAM-2026-0500",
                      *       "submittedAt": "2026-10-01T19:00:00.000Z",
                      *       "submittedBy": {
@@ -10737,6 +10953,79 @@ export interface operations {
             };
         };
     };
+    listQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Everything waiting, oldest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "kind": "privacy-assessment",
+                     *           "project": {
+                     *             "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+                     *             "slug": "fixture-ad799ea7",
+                     *             "name": "fixture-ad799ea7",
+                     *             "state": "active"
+                     *           },
+                     *           "subjectId": "2576d1c4-1d11-4823-9579-fc8fcba37558",
+                     *           "environment": null,
+                     *           "requestedBy": {
+                     *             "id": "338713d6-02c6-411c-8816-c30821e69e07",
+                     *             "displayName": "Bio Prof"
+                     *           },
+                     *           "since": "2026-09-29T19:00:00.000Z",
+                     *           "summary": "The privacy assessment was sent to the UBC Privacy Office on September 29, 2026 (ticket PIA-2026-0088): record its answer, with the PIA number, when it comes.",
+                     *           "note": null
+                     *         },
+                     *         {
+                     *           "kind": "release-approval",
+                     *           "project": {
+                     *             "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+                     *             "slug": "fixture-ad799ea7",
+                     *             "name": "fixture-ad799ea7",
+                     *             "state": "active"
+                     *           },
+                     *           "subjectId": "1b8cc68f-ce0d-4677-b3e8-e627872802ed",
+                     *           "environment": null,
+                     *           "requestedBy": {
+                     *             "id": "338713d6-02c6-411c-8816-c30821e69e07",
+                     *             "displayName": "Bio Prof"
+                     *           },
+                     *           "since": "2026-10-02T01:29:32.635Z",
+                     *           "summary": "Bio Prof asked for the release serving staging to be approved for the app’s first production launch.",
+                     *           "note": "Week 3 — students start Monday"
+                     *         }
+                     *       ],
+                     *       "oldestSince": "2026-09-29T19:00:00.000Z",
+                     *       "truncated": false
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Queue"];
+                };
+            };
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getRelease: {
         parameters: {
             query?: never;
@@ -11092,6 +11381,64 @@ export interface operations {
                 };
             };
             /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    requestApproval: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per user action, and the same key when retrying that action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The release’s id, from `createRelease` or `listReleases`. */
+                releaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "note": "Week 3 — students start Monday"
+                 *     }
+                 */
+                "application/json": components["schemas"]["RequestApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description The request — made now, or the one already made for this release. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "bdae777e-6de9-49de-9037-ea540b242c63",
+                     *       "releaseId": "1b8cc68f-ce0d-4677-b3e8-e627872802ed",
+                     *       "projectId": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+                     *       "requestedBy": {
+                     *         "id": "338713d6-02c6-411c-8816-c30821e69e07",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "viaToken": null,
+                     *       "createdAt": "2026-10-02T01:29:32.635Z",
+                     *       "open": true
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApprovalRequest"];
+                };
+            };
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_NOT_NEEDED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_NOT_STAGED, RELEASE_REJECTED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

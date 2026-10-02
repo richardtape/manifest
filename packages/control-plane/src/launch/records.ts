@@ -244,6 +244,18 @@ export async function recordIamRegistration(
         submittedAt: existing?.submittedAt ?? null,
         submittedBy: existing?.submittedBy ?? null,
       }
+  /**
+   * WHERE A CHANGE REQUEST CAME FROM (Task 12; Spec action 10, Rich's (a)): `submitted` — UBC came back
+   * to the owner with questions — or `active` — this administrator filed one with UBC. Set by the
+   * move INTO `change_requested` (the only arrows into it are from those two), kept by a record that
+   * stays there, cleared by any move out. The database's CHECK refuses a row that disagrees.
+   */
+  const changeRequestedFrom: 'submitted' | 'active' | null =
+    state !== 'change_requested'
+      ? null
+      : from === 'submitted' || from === 'active'
+        ? from
+        : (existing?.changeRequestedFrom ?? null)
 
   const [row] = await db
     .insert(iamRegistrations)
@@ -258,6 +270,7 @@ export async function recordIamRegistration(
       requestedAttributes,
       registeredAt,
       state,
+      changeRequestedFrom,
       recordedBy: input.actor.id,
       ...(input.externalTicketRef === undefined
         ? {}
@@ -280,6 +293,7 @@ export async function recordIamRegistration(
         requestedAttributes,
         registeredAt,
         state,
+        changeRequestedFrom,
         recordedBy: input.actor.id,
         // KEPT WHEN NOT GIVEN (the whole-branch review's M2): since Task 9 the owner writes it too, at
         // "I've sent it", and an administrator recording UBC's answer without one must not erase it —
@@ -620,6 +634,8 @@ export async function submitIamRegistration(
       .update(iamRegistrations)
       .set({
         state: 'submitted',
+        // Out of `change_requested`, when it was there (Task 12): the origin goes with the state.
+        changeRequestedFrom: null,
         submittedAt: vancouverNoon(day),
         submittedBy: input.actor.id,
         ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),

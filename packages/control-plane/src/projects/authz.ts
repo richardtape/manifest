@@ -131,6 +131,14 @@ export const CAPABILITIES = [
    * sends nothing and decides nothing, and an agent may prepare one for its person to read.
    */
   'launch:draft',
+  /**
+   * ASKING AN ADMINISTRATOR TO SIGN OFF THE RELEASE SERVING STAGING (§6, §13 and §26 as Spec action 5
+   * amended them; the launch path plan's Task 12, FE-25): `requestApproval`. The OWNER, a COLLABORATOR
+   * and an administrator hold it. **MINTABLE — neither privileged nor person-only**: a request grants
+   * nothing and decides nothing — the decision stays `release:approve`, an administrator's, in their
+   * own session with a step-up — and a front-end's server or an agent acting for the owner may ask.
+   */
+  'approval:request',
   'quota:set',
 ] as const
 
@@ -445,6 +453,8 @@ const OWNER: readonly Capability[] = [
   'launch:submit',
   // Drafting a registration (Task 10): the owner's, so the collaborator's and the administrator's.
   'launch:draft',
+  // Asking for sign-off (Task 12, FE-25): the owner's, so the collaborator's and the administrator's.
+  'approval:request',
 ]
 
 // §13: "same as owner except member management and deletion" — and not promotion,

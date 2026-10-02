@@ -740,6 +740,15 @@ export const iamRegistrations = pgTable(
      */
     registeredAt: timestamp('registered_at', { withTimezone: true }),
     state: iamRegistrationState('state').notNull().default('draft'),
+    /**
+     * WHERE A `change_requested` CAME FROM (§6, Spec action 10; the launch path plan's Task 12, from
+     * Rich's (a)): `submitted` — UBC IAM came back to the OWNER with questions, so the next move is
+     * theirs — or `active` — an administrator FILED a change request with UBC IAM, which UBC now
+     * holds. One state with two people to wait on, told apart here: set by the move INTO
+     * `change_requested`, cleared by any move out (`recordIamRegistration`, `submitIamRegistration`),
+     * and read by the administrators' queue. Text with a CHECK, as `environment_kind` is.
+     */
+    changeRequestedFrom: text('change_requested_from', { enum: ['submitted', 'active'] }),
     /** §15's submission-state hook: "a human submits and pastes a ticket reference". */
     externalTicketRef: text('external_ticket_ref'),
     /**
@@ -781,6 +790,15 @@ export const iamRegistrations = pgTable(
     check(
       'iam_registrations_attributes_present',
       sql`${t.registeredAt} IS NULL OR jsonb_array_length(${t.registeredAttributes}) > 0`,
+    ),
+    /**
+     * A `change_requested` row SAYS WHERE IT CAME FROM, and no other row carries an origin (Task 12):
+     * a writer that forgot either half is refused here, rather than putting an owner's question in an
+     * administrator's queue or dropping a filed change request from it.
+     */
+    check(
+      'iam_registrations_change_requested_from',
+      sql`(${t.state} = 'change_requested') = (${t.changeRequestedFrom} IS NOT NULL) AND (${t.changeRequestedFrom} IS NULL OR ${t.changeRequestedFrom} IN ('submitted', 'active'))`,
     ),
   ],
 )
@@ -961,6 +979,50 @@ export const approvalPreviews = pgTable(
 )
 
 /**
+ * §6's `ApprovalRequest` (Spec action 5; the launch path plan's Task 12, FE-25): an owner's request
+ * that an administrator sign off the release serving staging — what puts *"Release awaiting
+ * approval"* in the administrators' queue, which until now nothing did: an approval began on the
+ * administrator's side, and a refused production deploy writes nothing.
+ *
+ * **ONE PER RELEASE** (`release_id` UNIQUE): a second ask answers the first. **IT IS NEVER CLOSED
+ * BY A WRITE** — open and closed are derived at read (`launch/requests.ts`'s `isOpen`): answered
+ * by an `Approval` recorded since it was made, or no longer the candidate. INSERT ONLY.
+ *
+ * `note` is the asker's own words to the administrators, and is shown to THEM and nobody else —
+ * never in an event, an operator line, or the request's own answer.
+ */
+export const approvalRequests = pgTable(
+  'approval_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    releaseId: uuid('release_id')
+      .notNull()
+      .unique()
+      .references(() => releases.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** The person who asked — a token's own person when an agent asked for them. */
+    requestedBy: uuid('requested_by')
+      .notNull()
+      .references(() => users.id),
+    /** The token an agent asked on; null for a person in their own session. `RESTRICT`, as `pending_actions`' is. */
+    requestedByToken: uuid('requested_by_token').references(() => delegatedTokens.id, {
+      onDelete: 'restrict',
+    }),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('approval_requests_project_idx').on(t.projectId),
+    check(
+      'approval_requests_note_length',
+      sql`${t.note} IS NULL OR length(${t.note}) <= 500`,
+    ),
+  ],
+)
+
+/**
  * D21's PRE-PRODUCTION REHEARSAL, as R2 redefines it for a laptop (P6a Task 14).
  *
  * D21 asks for a run against UBC's staging IdP before anything is public; C1 puts that IdP
@@ -1103,7 +1165,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'iam_registration.drafted', 'privacy_assessment.drafted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'iam_registration.drafted', 'privacy_assessment.drafted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'approval.requested', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
     ),
   ],
 )

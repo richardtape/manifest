@@ -1313,6 +1313,9 @@
                   {
                     "id": "7454ad83-e8c6-43da-a33e-6b0615e53263",
                     "slug": "p-7e7d49b6",
+                    "name": "p-7e7d49b6",
+                    "state": "active",
+                    "archivedAt": null,
                     "blueprint": "fixture-node@1",
                     "starter": null,
                     "owner": {
@@ -1353,6 +1356,9 @@
                   {
                     "id": "b94629a7-978e-4b18-817b-ad5cf979282f",
                     "slug": "p-15e91afe",
+                    "name": "p-15e91afe",
+                    "state": "active",
+                    "archivedAt": null,
                     "blueprint": "fixture-node@1",
                     "starter": null,
                     "owner": {
@@ -3969,6 +3975,15 @@
             }
           },
           {
+            "type": "approval.requested",
+            "description": "A person asked an administrator to approve the release serving staging for production. It waits in the administrators’ queue until an administrator decides, or another release serves staging.",
+            "example": {
+              "requestId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "viaToken": false
+            }
+          },
+          {
             "type": "project.launched",
             "description": "The app’s first production launch became healthy (§13 D9). Published once per project, ever.",
             "example": {
@@ -4461,6 +4476,7 @@
                     "requestedAttributes": null,
                     "registeredAt": null,
                     "state": "submitted",
+                    "changeRequestedFrom": null,
                     "externalTicketRef": "IAM-2026-0500",
                     "submittedAt": "2026-10-01T19:00:00.000Z",
                     "submittedBy": {
@@ -4651,6 +4667,7 @@
                   "requestedAttributes": null,
                   "registeredAt": null,
                   "state": "submitted",
+                  "changeRequestedFrom": null,
                   "externalTicketRef": "IAM-1",
                   "submittedAt": "2026-10-01T06:56:08.961Z",
                   "submittedBy": {
@@ -4761,6 +4778,7 @@
                   "requestedAttributes": null,
                   "registeredAt": null,
                   "state": "draft",
+                  "changeRequestedFrom": null,
                   "externalTicketRef": null,
                   "submittedAt": null,
                   "submittedBy": null,
@@ -4948,6 +4966,7 @@
                   "requestedAttributes": null,
                   "registeredAt": null,
                   "state": "submitted",
+                  "changeRequestedFrom": null,
                   "externalTicketRef": "IAM-2026-0500",
                   "submittedAt": "2026-10-01T19:00:00.000Z",
                   "submittedBy": {
@@ -7335,6 +7354,94 @@
         ]
       }
     },
+    "/v1/queue": {
+      "get": {
+        "operationId": "listQueue",
+        "tags": [
+          "administration"
+        ],
+        "summary": "Everything waiting on an administrator",
+        "description": "Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Everything waiting, oldest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Queue"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "kind": "privacy-assessment",
+                      "project": {
+                        "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+                        "slug": "fixture-ad799ea7",
+                        "name": "fixture-ad799ea7",
+                        "state": "active"
+                      },
+                      "subjectId": "2576d1c4-1d11-4823-9579-fc8fcba37558",
+                      "environment": null,
+                      "requestedBy": {
+                        "id": "338713d6-02c6-411c-8816-c30821e69e07",
+                        "displayName": "Bio Prof"
+                      },
+                      "since": "2026-09-29T19:00:00.000Z",
+                      "summary": "The privacy assessment was sent to the UBC Privacy Office on September 29, 2026 (ticket PIA-2026-0088): record its answer, with the PIA number, when it comes.",
+                      "note": null
+                    },
+                    {
+                      "kind": "release-approval",
+                      "project": {
+                        "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+                        "slug": "fixture-ad799ea7",
+                        "name": "fixture-ad799ea7",
+                        "state": "active"
+                      },
+                      "subjectId": "1b8cc68f-ce0d-4677-b3e8-e627872802ed",
+                      "environment": null,
+                      "requestedBy": {
+                        "id": "338713d6-02c6-411c-8816-c30821e69e07",
+                        "displayName": "Bio Prof"
+                      },
+                      "since": "2026-10-02T01:29:32.635Z",
+                      "summary": "Bio Prof asked for the release serving staging to be approved for the app’s first production launch.",
+                      "note": "Week 3 — students start Monday"
+                    }
+                  ],
+                  "oldestSince": "2026-09-29T19:00:00.000Z",
+                  "truncated": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: FORBIDDEN, INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "FORBIDDEN",
+          "INTERNAL",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/releases/{releaseId}": {
       "get": {
         "operationId": "getRelease",
@@ -7813,6 +7920,104 @@
           "RATE_LIMITED",
           "REQUEST_INVALID",
           "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/releases/{releaseId}/approval-request": {
+      "post": {
+        "operationId": "requestApproval",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Ask an administrator to sign off the release serving staging",
+        "description": "Asks a platform administrator to approve the release serving staging for production — the one approval a first launch needs from a person at the platform, and the one a launched app’s release needs when it changes a sensitive field. The request waits in the administrators’ queue (`listQueue`), oldest first, until an administrator approves or rejects the release or another release serves staging, and the launch checklist’s `admin-approval` item says who asked and since when. Asking again answers the request already made, unchanged. The `note` is shown to administrators and to nobody else. Refused `409 RELEASE_NOT_STAGED` for any release but the one serving staging, with the checklist naming that one; `409 APPROVAL_NOT_NEEDED` when nothing needs approving — an approval already covers it, or the release changes nothing that needs one; and `409 RELEASE_REJECTED` once an administrator has rejected it. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `approval:request` may ask — a request grants nothing and decides nothing.",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "path",
+            "description": "The release’s id, from `createRelease` or `listReleases`.",
+            "required": true,
+            "schema": {
+              "description": "The release’s id, from `createRelease` or `listReleases`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "One per user action, and the same key when retrying that action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApprovalRequest"
+              },
+              "example": {
+                "note": "Week 3 — students start Monday"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request — made now, or the one already made for this release.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequest"
+                },
+                "example": {
+                  "id": "bdae777e-6de9-49de-9037-ea540b242c63",
+                  "releaseId": "1b8cc68f-ce0d-4677-b3e8-e627872802ed",
+                  "projectId": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+                  "requestedBy": {
+                    "id": "338713d6-02c6-411c-8816-c30821e69e07",
+                    "displayName": "Bio Prof"
+                  },
+                  "viaToken": null,
+                  "createdAt": "2026-10-02T01:29:32.635Z",
+                  "open": true
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_NOT_NEEDED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_NOT_STAGED, RELEASE_REJECTED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "APPROVAL_NOT_NEEDED",
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "PROJECT_ARCHIVED",
+          "RATE_LIMITED",
+          "RELEASE_NOT_STAGED",
+          "RELEASE_REJECTED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "UNAUTHENTICATED"
         ]
       }
@@ -9143,6 +9348,99 @@
         ],
         "additionalProperties": false
       },
+      "ApprovalRequest": {
+        "description": "A request that an administrator sign off the release serving staging for production. One per release: asking again answers this one.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The request.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "releaseId": {
+            "description": "The release an administrator is asked to approve for production — the one serving staging when it was asked.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "description": "Its project.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "requestedBy": {
+            "description": "Who asked: the person — also when an agent asked on their token.",
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "Their user id.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "displayName": {
+                "description": "Their name.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "displayName"
+            ],
+            "additionalProperties": false
+          },
+          "viaToken": {
+            "description": "The token an agent asked on; null when the person asked in their own session.",
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "The token.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "name": {
+                    "description": "Its name, as its person gave it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "description": "When it was asked — what the administrators’ queue measures its wait from.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "open": {
+            "description": "Whether it still waits on an administrator: until one approves or rejects the release, or another release serves staging.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "releaseId",
+          "projectId",
+          "requestedBy",
+          "viaToken",
+          "createdAt",
+          "open"
+        ],
+        "additionalProperties": false
+      },
       "ApproveReleaseRequest": {
         "description": "An administrator’s approval, naming the preview they read.",
         "type": "object",
@@ -10425,6 +10723,7 @@
           "AI_ROUTE_NOT_PERMITTED",
           "AI_UNMAPPED",
           "AI_USER_BUDGET_EXCEEDED",
+          "APPROVAL_NOT_NEEDED",
           "APPROVAL_PREVIEW_EXPIRED",
           "APPROVAL_PREVIEW_REQUIRED",
           "APPROVAL_PREVIEW_STALE",
@@ -10499,6 +10798,7 @@
           "RELEASE_PRODUCTION_GATE_UNAVAILABLE",
           "RELEASE_PROJECT_NOT_FOUND",
           "RELEASE_REESCALATED",
+          "RELEASE_REJECTED",
           "RELEASE_SECRET_NOT_SET",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
@@ -10567,6 +10867,7 @@
           "AI_ROUTE_NOT_PERMITTED": "The app’s key does not reach that gateway route.",
           "AI_UNMAPPED": "The gateway answered with a failure this platform does not map.",
           "AI_USER_BUDGET_EXCEEDED": "The person has used their AI allowance for the month.",
+          "APPROVAL_NOT_NEEDED": "The release serving staging needs no administrator’s approval: one already covers it, or — for an app that has launched — it changes nothing that needs one. The message says which. Nothing was asked.",
           "APPROVAL_PREVIEW_EXPIRED": "The preview is older than thirty minutes, so it is no longer what was shown at decision time; take a new one.",
           "APPROVAL_PREVIEW_REQUIRED": "An approval or rejection names no preview. Take one (`POST /v1/releases/{releaseId}/approval-preview`), read it, and decide naming its id.",
           "APPROVAL_PREVIEW_STALE": "What the release would be approved as changed since the preview was taken — in practice another decision moved the last approved release. Take a new preview and read it.",
@@ -10641,6 +10942,7 @@
           "RELEASE_PRODUCTION_GATE_UNAVAILABLE": "A blocking item an approval alone cannot fix is unmet — a first launch’s checklist (§13, D19), or a launched app’s (D9.2), a rejected release included; the body carries LaunchReadiness.",
           "RELEASE_PROJECT_NOT_FOUND": "The environment names a project that does not exist.",
           "RELEASE_REESCALATED": "A launched app’s release changes a sensitive field (§7) since the last approved release, and only an administrator’s approval is missing (§13 D9.2); the body carries LaunchReadiness.",
+          "RELEASE_REJECTED": "An administrator did not approve this release, and a rejection is final for the release it was made on; the message carries their reason. Nothing was asked.",
           "RELEASE_SECRET_NOT_SET": "The release’s manifest.yaml declares a secret (`secret: true`) that has no value in this environment, so nothing was started. Set each name the message lists with `setAppSecret`, then deploy again.",
           "REQUEST_BODY_TOO_LARGE": "The request body is larger than the API accepts.",
           "REQUEST_INVALID": "A field in the request is missing or malformed, or the body could not be read at all; the message says which.",
@@ -13509,6 +13811,86 @@
               "type": {
                 "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
                 "type": "string",
+                "const": "approval.requested"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "A person asked an administrator to approve the release serving staging for production. It waits in the administrators’ queue until an administrator decides, or another release serves staging.",
+                "type": "object",
+                "properties": {
+                  "requestId": {
+                    "description": "The request.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "releaseId": {
+                    "description": "The release an administrator is asked to approve — the one serving staging.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "viaToken": {
+                    "description": "Whether an agent asked on a person’s token, rather than the person.",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "requestId",
+                  "releaseId",
+                  "viaToken"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
                 "const": "project.launched"
               },
               "humanMessage": {
@@ -15529,6 +15911,32 @@
               "description": "Its slug (§23), which its hostnames are made from.",
               "type": "string"
             },
+            "name": {
+              "description": "Its name, as its owner gave it.",
+              "type": "string"
+            },
+            "state": {
+              "description": "Whether it is switched on: `archived` is switched off by its owner, its environments taken down and restorable — not broken.",
+              "type": "string",
+              "enum": [
+                "active",
+                "archived"
+              ]
+            },
+            "archivedAt": {
+              "description": "When it was last archived — kept through a restore, so it says the project once was. Null if it never has been.",
+              "anyOf": [
+                {
+                  "description": "An instant, ISO 8601 in UTC.",
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "blueprint": {
               "description": "Its blueprint, `name@major`.",
               "type": "string"
@@ -15690,6 +16098,9 @@
           "required": [
             "id",
             "slug",
+            "name",
+            "state",
+            "archivedAt",
             "blueprint",
             "starter",
             "owner",
@@ -15806,6 +16217,21 @@
               "expired"
             ]
           },
+          "changeRequestedFrom": {
+            "description": "While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — an administrator filed a change request with UBC IAM, which UBC now holds. Null in any other state.",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "submitted",
+                  "active"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "externalTicketRef": {
             "description": "UBC IAM’s own reference for the request; null when none was recorded.",
             "anyOf": [
@@ -15897,6 +16323,7 @@
           "requestedAttributes",
           "registeredAt",
           "state",
+          "changeRequestedFrom",
           "externalTicketRef",
           "submittedAt",
           "submittedBy",
@@ -16568,7 +16995,7 @@
             "type": "string"
           },
           "since": {
-            "description": "When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”.",
+            "description": "When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; while the release waits on an administrator’s approval someone asked for (`requestApproval`), when they asked; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”.",
             "anyOf": [
               {
                 "description": "An instant, ISO 8601 in UTC.",
@@ -17450,6 +17877,7 @@
                 "launch:rehearse",
                 "launch:submit",
                 "launch:draft",
+                "approval:request",
                 "quota:set",
                 "secret:read"
               ]
@@ -18020,6 +18448,175 @@
         "items": {
           "$ref": "#/components/schemas/Project"
         }
+      },
+      "Queue": {
+        "description": "Everything waiting on a platform administrator, oldest first: a release someone asked them to sign off, and the registrations and privacy assessments with UBC whose answers they record.",
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Everything waiting, oldest first — at most 200.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            }
+          },
+          "oldestSince": {
+            "description": "When the oldest item began waiting — the queue’s headline: a queue that is long is working, and one that is old is not. Null when nothing waits.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "truncated": {
+            "description": "True when more than 200 wait, and only the oldest are here.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "oldestSince",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "QueueItem": {
+        "description": "One thing waiting on a platform administrator.",
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "What waits: `release-approval` — someone asked for the release serving staging to be approved (`requestApproval`); `iam-registration` — a registration sent to UBC IAM, whose answer an administrator records; `iam-change-request` — a change request an administrator filed with UBC IAM; `privacy-assessment` — an assessment sent to the Privacy Office, whose answer an administrator records.",
+            "type": "string",
+            "enum": [
+              "release-approval",
+              "iam-registration",
+              "iam-change-request",
+              "privacy-assessment"
+            ]
+          },
+          "project": {
+            "description": "The app it is about.",
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "The project.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "slug": {
+                "description": "Its slug, which its hostnames are made from.",
+                "type": "string"
+              },
+              "name": {
+                "description": "Its name, as its owner gave it.",
+                "type": "string"
+              },
+              "state": {
+                "description": "Whether it is switched on. An archived project’s records still wait on UBC.",
+                "type": "string",
+                "enum": [
+                  "active",
+                  "archived"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "slug",
+              "name",
+              "state"
+            ],
+            "additionalProperties": false
+          },
+          "subjectId": {
+            "description": "What it is about: the release for `release-approval`, the registration or the assessment otherwise.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "environment": {
+            "description": "Which registration, for a registration’s item; null otherwise.",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "staging",
+                  "production"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requestedBy": {
+            "description": "Who asked, or who said it was sent; null when nobody was recorded doing so.",
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "Their user id.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "displayName": {
+                    "description": "Their name.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "since": {
+            "description": "Since when it has waited: when it was asked for, or when it was sent to UBC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "summary": {
+            "description": "What waits, in one sentence for a person.",
+            "type": "string"
+          },
+          "note": {
+            "description": "What the person who asked for sign-off wrote to the administrators; null for anything else, or when they wrote nothing.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "project",
+          "subjectId",
+          "environment",
+          "requestedBy",
+          "since",
+          "summary",
+          "note"
+        ],
+        "additionalProperties": false
       },
       "RecordIamRegistrationRequest": {
         "description": "What UBC IAM registered for the app’s staging or production sign-in, as an administrator records it from the ticket. UBC’s answer is recorded whatever order it arrives in.",
@@ -19136,6 +19733,18 @@
         ],
         "additionalProperties": false
       },
+      "RequestApprovalRequest": {
+        "description": "Asking an administrator to sign off the release serving staging.",
+        "type": "object",
+        "properties": {
+          "note": {
+            "description": "Anything the administrators should know — a date the app is needed by, say. Shown to administrators in their queue, and to nobody else; never in an event.",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
       "ScanSummary": {
         "description": "§12’s scan of the image a build produced (§6 `Build.scan`).",
         "type": "object",
@@ -19934,6 +20543,11 @@
       "summary": "The person has used their AI allowance for the month.",
       "remedy": "Wait for next month’s allowance, or ask an administrator to raise it."
     },
+    "APPROVAL_NOT_NEEDED": {
+      "status": 409,
+      "summary": "The release serving staging needs no administrator’s approval: one already covers it, or — for an app that has launched — it changes nothing that needs one. The message says which. Nothing was asked.",
+      "remedy": "Nothing to ask for: read the launch checklist (`getLaunchReadiness`) for what is still unmet, and deploy to production once it is ready."
+    },
     "APPROVAL_PREVIEW_EXPIRED": {
       "status": 409,
       "summary": "The preview is older than thirty minutes, so it is no longer what was shown at decision time; take a new one.",
@@ -20247,7 +20861,7 @@
     "RELEASE_DIGEST_NOT_APPROVED": {
       "status": 409,
       "summary": "This production deploy needs an administrator’s approval — a first launch, or a launched app’s change to a sensitive field (§13 D9.2) — and none covers the digest it would run; or an administrator rejected this release, which is final. The message says which.",
-      "remedy": "Ask an administrator to approve this release — they take a preview (`createApprovalPreview`) and approve naming it — then deploy again. A rejected release stays rejected: build and release a new one."
+      "remedy": "Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again. A rejected release stays rejected: build and release a new one."
     },
     "RELEASE_ENVIRONMENT_NOT_FOUND": {
       "status": 409,
@@ -20302,7 +20916,12 @@
     "RELEASE_REESCALATED": {
       "status": 409,
       "summary": "A launched app’s release changes a sensitive field (§7) since the last approved release, and only an administrator’s approval is missing (§13 D9.2); the body carries LaunchReadiness.",
-      "remedy": "Ask an administrator to approve this release: they take a preview (`createApprovalPreview`), read it, and approve naming it (`approveRelease`). Deploy again once they have."
+      "remedy": "Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again once they have."
+    },
+    "RELEASE_REJECTED": {
+      "status": 409,
+      "summary": "An administrator did not approve this release, and a rejection is final for the release it was made on; the message carries their reason. Nothing was asked.",
+      "remedy": "Read the administrator’s reason (`getApproval`), change the app, build and release it, deploy that release to staging, and ask for sign-off on it."
     },
     "RELEASE_SECRET_NOT_SET": {
       "status": 409,

@@ -255,9 +255,12 @@ function checklist(
  */
 function gateHint(error: ProductionGateError): string {
   if (error.code === 'RELEASE_REESCALATED')
-    return 'This release changes a sensitive field (§7) since the last approved release, so an administrator must approve it (D9): they preview what changed and approve it. Deploy again once they have.'
+    // NAMES THE REQUEST (the launch path plan's Task 12): the remedy is to ask, and asking is now
+    // something the platform records — the administrators' queue shows it, with how long it waited.
+    return 'This release changes a sensitive field since the last approved release, so an administrator must approve it — ask them with requestApproval, then deploy again once they have.'
   if (error.code === 'RELEASE_NOT_STAGED')
-    return 'Production runs exactly what staging ran (§13). Deploy this release to staging first, or deploy the release that is serving staging.'
+    // Answered to a sign-off request as well as a deploy (Task 12): the release to name is `candidateReleaseId`.
+    return 'Production runs exactly what staging ran. Deploy this release to staging first, or name the release that is serving staging — `candidateReleaseId` in the checklist below.'
   return error.launchReadiness.launched
     ? 'The unmet items say what to do; none of them is an administrator’s approval alone.'
     : 'These items have multi-week lead times and are tracked from project creation.'

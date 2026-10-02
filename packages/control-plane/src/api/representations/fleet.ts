@@ -10,6 +10,15 @@ export const Fleet = representation(
       z.object({
         id: Uuid.describe('The project.'),
         slug: z.string().describe('Its slug (§23), which its hostnames are made from.'),
+        name: z.string().describe('Its name, as its owner gave it.'),
+        state: z
+          .enum(['active', 'archived'])
+          .describe(
+            'Whether it is switched on: `archived` is switched off by its owner, its environments taken down and restorable — not broken.',
+          ),
+        archivedAt: Timestamp.nullable().describe(
+          'When it was last archived — kept through a restore, so it says the project once was. Null if it never has been.',
+        ),
         blueprint: z.string().describe('Its blueprint, `name@major`.'),
         starter: z
           .string()
@@ -67,6 +76,10 @@ export function toFleet(entries: readonly FleetEntry[]): z.input<typeof Fleet> {
   return entries.map((e) => ({
     id: e.project.id,
     slug: e.project.slug,
+    name: e.project.name,
+    // The fleet lists no deleted project (`listFleet`), so a project here is one or the other.
+    state: e.project.state === 'archived' ? 'archived' : 'active',
+    archivedAt: e.project.archivedAt?.toISOString() ?? null,
     blueprint: e.project.blueprintRef,
     starter: e.project.starter,
     owner: e.owner,

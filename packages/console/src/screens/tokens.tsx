@@ -112,6 +112,12 @@ const CAPABILITIES = everyCapability([
    * prepare one for its person to read.
    */
   'launch:draft',
+  /**
+   * Asking an administrator to sign off the release serving staging (the launch path plan's Task 12):
+   * the owner's, a collaborator's and an administrator's — and MINTABLE: a request grants nothing and
+   * decides nothing.
+   */
+  'approval:request',
   'quota:set',
   'secret:read',
 ] as const)

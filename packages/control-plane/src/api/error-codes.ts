@@ -222,7 +222,7 @@ export const ERROR_CODES = {
     summary:
       'A launched app’s release changes a sensitive field (§7) since the last approved release, and only an administrator’s approval is missing (§13 D9.2); the body carries LaunchReadiness.',
     remedy:
-      'Ask an administrator to approve this release: they take a preview (`createApprovalPreview`), read it, and approve naming it (`approveRelease`). Deploy again once they have.',
+      'Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again once they have.',
   },
   RELEASE_NOT_STAGED: {
     status: 409,
@@ -442,7 +442,7 @@ export const ERROR_CODES = {
   RELEASE_DIGEST_MISSING: release('The release’s build recorded no digest.', REBUILD),
   RELEASE_DIGEST_NOT_APPROVED: release(
     'This production deploy needs an administrator’s approval — a first launch, or a launched app’s change to a sensitive field (§13 D9.2) — and none covers the digest it would run; or an administrator rejected this release, which is final. The message says which.',
-    'Ask an administrator to approve this release — they take a preview (`createApprovalPreview`) and approve naming it — then deploy again. A rejected release stays rejected: build and release a new one.',
+    'Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again. A rejected release stays rejected: build and release a new one.',
   ),
   RELEASE_ENVIRONMENT_NOT_FOUND: release(
     'No environment with this id.',
@@ -565,6 +565,23 @@ export const ERROR_CODES = {
       'The app signs nobody in with CWL — or asks for no attribute, which no registration may — so there is nothing to register with UBC IAM.',
     remedy:
       'An app that signs nobody in needs no registration. To sign people in, set `auth.provider: cwl` and the attributes the app needs in `auth.attributes`, validate the manifest, then draft again.',
+  },
+  // launch/requests.ts — an owner asks for sign-off (the launch path plan's Task 12)
+  APPROVAL_NOT_NEEDED: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'The release serving staging needs no administrator’s approval: one already covers it, or — for an app that has launched — it changes nothing that needs one. The message says which. Nothing was asked.',
+    remedy:
+      'Nothing to ask for: read the launch checklist (`getLaunchReadiness`) for what is still unmet, and deploy to production once it is ready.',
+  },
+  RELEASE_REJECTED: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'An administrator did not approve this release, and a rejection is final for the release it was made on; the message carries their reason. Nothing was asked.',
+    remedy:
+      'Read the administrator’s reason (`getApproval`), change the app, build and release it, deploy that release to staging, and ask for sign-off on it.',
   },
 
   // launch/rehearsal.ts — D21's rehearsal as R2 redefines it (P6a Task 14). Every one of

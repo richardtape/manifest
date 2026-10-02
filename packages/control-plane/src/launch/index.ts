@@ -19,3 +19,7 @@ export * from './package.js'
 export * from './usage.js'
 // D19's privacy-assessment draft (the launch path plan's Task 11).
 export * from './assessment.js'
+// An owner's sign-off request (the launch path plan's Task 12, FE-25) — `openRequestFor` is candidate.ts's.
+export * from './requests.js'
+// The administrators' queue (the launch path plan's Task 12): everything waiting on them, derived.
+export * from './queue.js'

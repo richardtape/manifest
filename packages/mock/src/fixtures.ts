@@ -1011,6 +1011,10 @@ export const FLEET: Schemas['Fleet'] = [
   {
     id: PROJECT_ID,
     slug: 'mock-app',
+    // The launch path plan's Task 12 (M3): its name, and that it is switched on.
+    name: 'Mock course app',
+    state: 'active',
+    archivedAt: null,
     blueprint: 'node-ts-mongo@1',
     starter: 'proof-app',
     owner: {
@@ -1069,6 +1073,8 @@ export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   requestedAttributes: null,
   registeredAt: '2026-09-15T00:00:00.000Z',
   state: 'active',
+  // The launch path plan's Task 12: set only while `change_requested`.
+  changeRequestedFrom: null,
   externalTicketRef: 'IAM-2026-0412',
   // The launch path plan's Task 9: when its owner said it was sent, and who — after staging was
   // registered, IN UBC'S ORDER (see `PRIVACY_ASSESSMENT`).
@@ -1099,6 +1105,7 @@ export const STAGING_REGISTRATION: Schemas['IamRegistration'] = {
   requestedAttributes: null,
   registeredAt: '2026-09-09T00:00:00.000Z',
   state: 'active',
+  changeRequestedFrom: null,
   externalTicketRef: 'IAM-2026-0398',
   // Sent the day after the assessment was approved — the order the platform gates the owner in.
   submittedAt: '2026-09-06T19:00:00.000Z',

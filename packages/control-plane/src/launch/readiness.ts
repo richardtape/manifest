@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { STALENESS_THRESHOLD_DAYS } from '../build/index.js'
 import { builds, environments, projects, releases, type Db } from '../db/index.js'
-import type { StoredAudience } from '../projects/index.js'
+import { personName, type StoredAudience } from '../projects/index.js'
 import {
   approvalCoversDigest,
   latestApprovalFor,
@@ -10,7 +10,7 @@ import {
 } from '../releases/index.js'
 import type { ScanSummary } from '../runtime/index.js'
 import { unregisteredAttributes, type SensitiveField } from '../spec/index.js'
-import { candidateFor, type LaunchCandidate } from './candidate.js'
+import { candidateFor, openRequestFor, type LaunchCandidate } from './candidate.js'
 import {
   getIamRegistration,
   getPrivacyAssessment,
@@ -156,7 +156,7 @@ export async function computeLaunchReadiness(
    * UBC registered, for every production release and not only the first.
    */
   if (project?.launchedAt != null) {
-    const approval = await releaseApprovalItem(db, candidate)
+    const approval = await releaseApprovalItem(db, projectId, candidate)
     const items: LaunchItem[] = [
       { ...DOMAIN_ITEM },
       await liveRegistrationItem(db, projectId, usesCwl, would),
@@ -192,7 +192,7 @@ export async function computeLaunchReadiness(
         : { hostname: production.hostname, auth: candidate.auth },
     ),
     scans,
-    await approvalItem(db, candidate),
+    await approvalItem(db, projectId, candidate),
     ...loadRehearsalItems(audience),
     // LAST, after every blocking item — including `load-rehearsal`, which is conditional —
     // so the checklist reads as the things that gate production followed by the one that
@@ -644,6 +644,27 @@ const NOT_CWL_ITEM: LaunchItem = {
 }
 
 /**
+ * WHO ASKED FOR THE APPROVAL, AND SINCE WHEN (the launch path plan's Task 12, Spec action 5): the open
+ * sign-off request for the candidate, as a sentence the `admin-approval` item ends with and the instant
+ * it waits from. Null when nobody has asked, or the request was answered — then nothing waits on it.
+ * The note is the administrators' (`listQueue`) and never appears here.
+ */
+async function askedFor(
+  db: Db,
+  projectId: string,
+  candidate: { release: typeof releases.$inferSelect },
+): Promise<{ sentence: string; since: string } | null> {
+  const request = await openRequestFor(db, projectId, candidate)
+  if (request === undefined) return null
+  const who = await personName(db, request.requestedBy)
+  const asker = request.requestedByToken === null ? who : `An agent on ${who}’s token`
+  return {
+    sentence: ` ${asker} asked an administrator to approve it on ${vancouverDayInWords(request.createdAt)}.`,
+    since: request.createdAt.toISOString(),
+  }
+}
+
+/**
  * §13's fifth blocking item, and the one Task 10 bought. Until this task it read
  * `not_built` / `builtBy: 'P6'` — *"approvals are built with production environments"* —
  * which stopped being true the moment `POST /v1/releases/{id}/approve` existed.
@@ -661,6 +682,7 @@ const NOT_CWL_ITEM: LaunchItem = {
  */
 async function approvalItem(
   db: Db,
+  projectId: string,
   candidate:
     | { release: typeof releases.$inferSelect; build: typeof builds.$inferSelect }
     | undefined,
@@ -678,26 +700,36 @@ async function approvalItem(
       why: 'Nothing is serving in staging yet, so there is no release to approve. Production runs exactly what staging ran (§13).',
     }
   const approval = await latestApprovalFor(db, candidate.release.id)
-  if (approval === undefined)
+  if (approval === undefined) {
+    const asked = await askedFor(db, projectId, candidate)
     return {
       ...base,
       state: 'unmet',
-      why: 'An administrator approves the exact image digest, with step-up re-authentication (§13, §20). This release has not been reviewed yet.',
+      why:
+        'An administrator approves the exact image digest, with step-up re-authentication (§13, §20). This release has not been reviewed yet.' +
+        (asked?.sentence ?? ''),
+      since: asked?.since ?? null,
     }
+  }
   if (approval.decision === 'rejected')
     return {
       ...base,
       state: 'unmet',
       why: `An administrator did not approve this release: ${approval.reason}`,
     }
-  if (!approvalCoversDigest(approval, candidate.build.imageDigest ?? ''))
+  if (!approvalCoversDigest(approval, candidate.build.imageDigest ?? '')) {
     // DECISION 11, IN WORDS. It reads as a bug the first time somebody meets it, so the
     // checklist explains it rather than reverting to the generic unmet text.
+    const asked = await askedFor(db, projectId, candidate)
     return {
       ...base,
       state: 'unmet',
-      why: 'This release was rebuilt since it was approved, so the approval no longer covers what would be deployed — the approval binds an image digest (§13). Approve the new build.',
+      why:
+        'This release was rebuilt since it was approved, so the approval no longer covers what would be deployed — the approval binds an image digest (§13). Approve the new build.' +
+        (asked?.sentence ?? ''),
+      since: asked?.since ?? null,
     }
+  }
   return {
     ...base,
     state: 'met',
@@ -724,6 +756,7 @@ async function approvalItem(
  */
 async function releaseApprovalItem(
   db: Db,
+  projectId: string,
   candidate: LaunchCandidate | undefined,
 ): Promise<{
   item: LaunchItem
@@ -792,15 +825,18 @@ async function releaseApprovalItem(
       },
     }
   }
+  const asked = await askedFor(db, projectId, candidate)
   return {
     ...facts,
     item: {
       ...base,
       state: 'unmet',
       why:
-        v.requirement.reason === 'sensitive'
+        (v.requirement.reason === 'sensitive'
           ? `This release changes ${fields} since the last approved release, so an administrator must approve it before it goes to production (§13, D9).`
-          : 'This app has launched, but no approved release exists to compare this one with — so it needs an administrator’s approval, and so will every release until one is approved (§13, D9).',
+          : 'This app has launched, but no approved release exists to compare this one with — so it needs an administrator’s approval, and so will every release until one is approved (§13, D9).') +
+        (asked?.sentence ?? ''),
+      since: asked?.since ?? null,
     },
   }
 }

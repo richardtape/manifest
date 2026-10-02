@@ -57,6 +57,8 @@ const PUBLISHED_ELSEWHERE = {
   'rehearsal.completed': 'releases/production.docker.test.ts — runRehearsal, real IdP',
   'release.approved': 'releases/releases.test.ts — recordApproval, through approveFor',
   'release.approval_rejected': 'releases/releases.test.ts — recordApproval, rejected',
+  // The launch path plan's Task 12: a person asks for sign-off, which this lifecycle never does.
+  'approval.requested': 'launch/requests.test.ts — requestApproval',
   // P6b Task 4: published by the first healthy production deploy for purpose `launch`, which
   // this lifecycle never makes.
   'project.launched': 'releases/releases.test.ts — the launch (P6b Decision 1)',

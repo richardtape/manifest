@@ -1104,3 +1104,157 @@ describe('the owner’s “I’ve sent it” for the privacy assessment (Task 9)
     })
   })
 })
+
+/**
+ * WHERE A CHANGE REQUEST CAME FROM (the launch path plan's Task 12; Spec action 10, from Rich's (a) on
+ * `change_requested`'s two meanings): `submitted → change_requested` is UBC IAM asking the OWNER for
+ * changes, and `active → change_requested` is an administrator filing a change request WITH UBC IAM —
+ * one state, two different people to wait on. `change_requested_from` records which, set by the move
+ * INTO the state and cleared by any move out of it, and the queue reads it. One test per arrow.
+ */
+describe('where a change request came from (Task 12, Spec action 10)', () => {
+  it('UBC asking for changes (submitted → change_requested) records `submitted`; a ticket correction keeps it', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const sent = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      // THE POSITIVE CONTROL beside the arrows: outside `change_requested` it is null.
+      expect(sent.changeRequestedFrom).toBeNull()
+      const asked = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        actor,
+      })
+      expect(asked.changeRequestedFrom).toBe('submitted')
+      // Not an arrow: the same state, a ticket corrected — where it came from is unchanged.
+      const corrected = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        externalTicketRef: 'IAM-2026-0600',
+        actor,
+      })
+      expect(corrected.changeRequestedFrom).toBe('submitted')
+    })
+  })
+
+  it('an administrator filing a change request (active → change_requested) records `active`', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(db, bus, { ...IAM, projectId, state, actor })
+      const filed = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        requestedAttributes: ['displayName', 'mail', 'sn'],
+        actor,
+      })
+      expect(filed.changeRequestedFrom).toBe('active')
+    })
+  })
+
+  it('leaving change_requested clears it — to submitted, and to expired', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      for (const state of ['submitted', 'change_requested', 'submitted'] as const)
+        await recordIamRegistration(db, bus, { ...IAM, projectId, state, actor })
+      expect(
+        (await getIamRegistration(db, projectId, 'production'))?.changeRequestedFrom,
+      ).toBeNull()
+      for (const state of ['active', 'change_requested'] as const)
+        await recordIamRegistration(db, bus, {
+          ...IAM,
+          projectId,
+          state,
+          requestedAttributes: ['displayName', 'mail', 'sn'],
+          actor,
+        })
+      expect(
+        (await getIamRegistration(db, projectId, 'production'))?.changeRequestedFrom,
+      ).toBe('active')
+      const lapsed = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'expired',
+        actor,
+      })
+      expect(lapsed.changeRequestedFrom).toBeNull()
+    })
+  })
+
+  it('the owner’s “I’ve sent it” from change_requested clears it', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await recordPrivacyAssessment(db, bus, { projectId, state: 'submitted', actor })
+      await recordPrivacyAssessment(db, bus, {
+        projectId,
+        state: 'approved',
+        externalTicketRef: 'PIA-0001',
+        actor,
+      })
+      const draft = await withDraft(db, { projectId, environment: 'staging' })
+      await submitIamRegistration(db, bus, { projectId, environment: 'staging', actor })
+      const asked = await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        entityId: draft.entityId,
+        acsUrl: draft.acsUrl,
+        sloUrl: draft.sloUrl,
+        projectId,
+        state: 'change_requested',
+        actor,
+      })
+      expect(asked.changeRequestedFrom).toBe('submitted')
+      const again = await submitIamRegistration(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      expect(again.state).toBe('submitted')
+      expect(again.changeRequestedFrom).toBeNull()
+    })
+  })
+
+  it('the database refuses a change_requested row that does not say where it came from, and an origin on any other state', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      // A writer that forgot it — CHECK `iam_registrations_change_requested_from` (23514). Each in
+      // its own SAVEPOINT (a nested transaction), so the first refusal does not abort the second.
+      await expectSqlState(
+        db.transaction((tx) =>
+          tx
+            .update(iamRegistrations)
+            .set({ state: 'change_requested' })
+            .where(eq(iamRegistrations.projectId, projectId)),
+        ),
+        '23514',
+      )
+      await expectSqlState(
+        db.transaction((tx) =>
+          tx
+            .update(iamRegistrations)
+            .set({ changeRequestedFrom: 'submitted' })
+            .where(eq(iamRegistrations.projectId, projectId)),
+        ),
+        '23514',
+      )
+      // THE POSITIVE CONTROL: the two together are a row the database keeps.
+      await db
+        .update(iamRegistrations)
+        .set({ state: 'change_requested', changeRequestedFrom: 'submitted' })
+        .where(eq(iamRegistrations.projectId, projectId))
+    })
+  })
+})

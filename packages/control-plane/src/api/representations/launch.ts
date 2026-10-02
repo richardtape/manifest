@@ -42,7 +42,7 @@ export const LaunchReadinessItem = representation(
         .optional()
         .describe('For a `not_built` item: what will build it. Absent otherwise.'),
       since: Timestamp.nullable().describe(
-        'When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”.',
+        'When the item’s current state began, when Manifest knows it: while a registration or the privacy assessment waits on UBC, the day it was said to be sent; while the release waits on an administrator’s approval someone asked for (`requestApproval`), when they asked; once met, the day UBC registered it or the Privacy Office approved it. Null otherwise. Read it as “waiting since” or “met since”.',
       ),
     })
     .describe('One item of the launch checklist (§13), computed from what exists.'),
@@ -283,6 +283,12 @@ export const IamRegistration = representation(
         .enum(iamRegistrationState.enumValues)
         .describe(
           'Along §9’s states: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.',
+        ),
+      changeRequestedFrom: z
+        .enum(['submitted', 'active'])
+        .nullable()
+        .describe(
+          'While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — an administrator filed a change request with UBC IAM, which UBC now holds. Null in any other state.',
         ),
       externalTicketRef: z
         .string()
@@ -615,6 +621,7 @@ export function toIamRegistration(
     requestedAttributes: row.requestedAttributes,
     registeredAt: row.registeredAt === null ? null : row.registeredAt.toISOString(),
     state: row.state,
+    changeRequestedFrom: row.changeRequestedFrom,
     externalTicketRef: row.externalTicketRef,
     submittedAt: row.submittedAt === null ? null : row.submittedAt.toISOString(),
     submittedBy,

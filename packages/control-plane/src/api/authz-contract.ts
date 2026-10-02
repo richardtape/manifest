@@ -149,6 +149,12 @@ const NOT_CWL = { status: 409, code: 'LAUNCH_NOT_CWL' } as const
  * against `FORBIDDEN` or a missing route; the drafted case is `api/launch.test.ts`'s.
  */
 const RECORD_SUBMITTED = { status: 409, code: 'LAUNCH_RECORD_SUBMITTED' } as const
+/**
+ * The launch path plan's Task 12: asking for sign-off on a release an approval already covers. The
+ * fixture's setup approves its release, and the staging deploy row above makes it the candidate — so
+ * every actor who HOLDS `approval:request` is past the capability and told there is nothing to ask for.
+ */
+const APPROVAL_NOT_NEEDED = { status: 409, code: 'APPROVAL_NOT_NEEDED' } as const
 
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
@@ -1539,6 +1545,32 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
+   * ASKING FOR SIGN-OFF (the launch path plan's Task 12, FE-25): `approval:request` — the owner's, a
+   * collaborator's and an administrator's, and MINTABLE, so a token holding it is answered as a person
+   * is. AFTER the staging deploy row, which makes the fixture's release the candidate; its setup
+   * approval covers it, so every holder is `409 APPROVAL_NOT_NEEDED` — past the capability, and told
+   * why. A token without the capability is `403`; one for another project, and a stranger, `404`.
+   */
+  {
+    method: 'POST',
+    url: '/v1/releases/:releaseId/approval-request',
+    request: (f) => ({
+      url: `/v1/releases/${f.releaseId}/approval-request`,
+      payload: {},
+    }),
+    expect: {
+      owner: APPROVAL_NOT_NEEDED,
+      collaborator: APPROVAL_NOT_NEEDED,
+      stranger: 404,
+      admin: APPROVAL_NOT_NEEDED,
+      anonymous: 401,
+      'token-capable': APPROVAL_NOT_NEEDED,
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': APPROVAL_NOT_NEEDED,
+    },
+  },
+  /**
    * **THE SAME REGISTERED ROUTE, AUTHORIZING `release:promote` INSTEAD** (P5b Task 11).
    *
    * `POST /v1/environments/{id}/deploy` asserts `release:deploy` for a sandbox or a
@@ -1984,6 +2016,24 @@ const ROUTES: RouteCase[] = [
       'token-privileged': SESSION_ONLY,
     },
   },
+  {
+    // The launch path plan's Task 12: the administrators' queue — the fleet's two rules. 403, not
+    // 404, for anyone but an administrator, and the credential class first for every token.
+    method: 'GET',
+    url: '/v1/queue',
+    request: () => ({ url: '/v1/queue' }),
+    expect: {
+      owner: 403,
+      collaborator: 403,
+      stranger: 403,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
   /**
    * D24's delegated tokens (P5b Task 4). Minting is a `project:write`, so a collaborator
    * may mint one — bounded by what they hold themselves, which `api/tokens.test.ts`
@@ -2373,6 +2423,9 @@ export function describeAuthorizationContract(
         // mint route gives an owner's token (neither privileged nor person-only) — and Task 11's
         // `draftPrivacyAssessment` the same.
         'launch:draft',
+        // The launch path plan's Task 12: `requestApproval` asserts `approval:request`, which the mint
+        // route gives an owner's token (neither privileged nor person-only).
+        'approval:request',
       ]
       const tokenFor = async (
         actor: TokenActor,

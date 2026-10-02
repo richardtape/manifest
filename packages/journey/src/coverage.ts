@@ -205,4 +205,9 @@ export const OUTSIDE_THE_JOURNEY: Readonly<Record<string, string>> = {
     'Drafting the privacy assessment for the Privacy Office is a step of launching an app, after it is built; the launch’s own demo drives it.',
   submitPrivacyAssessment:
     'Saying the privacy assessment was sent is a step of launching an app, after it is built and the assessment drafted; the launch’s own demo drives it.',
+  // Task 12.
+  requestApproval:
+    'Asking an administrator to sign off a release is a step of launching an app, once it serves staging; the launch’s own demo drives it.',
+  listQueue:
+    'An administrator’s view of everything waiting on them, not a step in building an app.',
 }

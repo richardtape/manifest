@@ -1,5 +1,11 @@
 import { z } from 'zod/v4'
-import type { approvalPreviews, approvals, builds, releases } from '../../db/index.js'
+import type {
+  approvalPreviews,
+  approvalRequests,
+  approvals,
+  builds,
+  releases,
+} from '../../db/index.js'
 import { REVIEW_STATES } from '../../launch/index.js'
 import type { ResolvedConfigSet } from '../../releases/index.js'
 import type { ScanSummary as DriverScanSummary } from '../../runtime/index.js'
@@ -380,6 +386,82 @@ const PreviewId = z
   .describe(
     'The preview the administrator read (`POST /v1/releases/{releaseId}/approval-preview`). Optional in this schema and REQUIRED by the operation: without it the answer is `400 APPROVAL_PREVIEW_REQUIRED`.',
   )
+
+/**
+ * AN OWNER'S REQUEST THAT AN ADMINISTRATOR SIGN OFF THE RELEASE SERVING STAGING (Spec action 5; the
+ * launch path plan's Task 12, FE-25). **The note is not in it**: the asker's words are for
+ * administrators, in the queue, and nowhere else. PUBLISHED TEXT: no section, decision or plan numbers.
+ */
+export const ApprovalRequest = representation(
+  'ApprovalRequest',
+  z
+    .object({
+      id: Uuid.describe('The request.'),
+      releaseId: Uuid.describe(
+        'The release an administrator is asked to approve for production — the one serving staging when it was asked.',
+      ),
+      projectId: Uuid.describe('Its project.'),
+      requestedBy: z
+        .object({
+          id: Uuid.describe('Their user id.'),
+          displayName: z.string().describe('Their name.'),
+        })
+        .describe('Who asked: the person — also when an agent asked on their token.'),
+      viaToken: z
+        .object({
+          id: Uuid.describe('The token.'),
+          name: z.string().describe('Its name, as its person gave it.'),
+        })
+        .nullable()
+        .describe(
+          'The token an agent asked on; null when the person asked in their own session.',
+        ),
+      createdAt: Timestamp.describe(
+        'When it was asked — what the administrators’ queue measures its wait from.',
+      ),
+      open: z
+        .boolean()
+        .describe(
+          'Whether it still waits on an administrator: until one approves or rejects the release, or another release serves staging.',
+        ),
+    })
+    .describe(
+      'A request that an administrator sign off the release serving staging for production. One per release: asking again answers this one.',
+    ),
+)
+
+export const RequestApprovalRequest = request(
+  'RequestApprovalRequest',
+  z
+    .strictObject({
+      note: z
+        .string()
+        .trim()
+        .max(500)
+        .optional()
+        .describe(
+          'Anything the administrators should know — a date the app is needed by, say. Shown to administrators in their queue, and to nobody else; never in an event.',
+        ),
+    })
+    .describe('Asking an administrator to sign off the release serving staging.'),
+)
+
+export function toApprovalRequest(
+  row: typeof approvalRequests.$inferSelect,
+  requestedBy: { id: string; displayName: string },
+  viaToken: { id: string; name: string } | null,
+  open: boolean,
+): z.input<typeof ApprovalRequest> {
+  return {
+    id: row.id,
+    releaseId: row.releaseId,
+    projectId: row.projectId,
+    requestedBy,
+    viaToken,
+    createdAt: row.createdAt.toISOString(),
+    open,
+  }
+}
 
 export const ApproveReleaseRequest = request(
   'ApproveReleaseRequest',

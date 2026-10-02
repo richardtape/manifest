@@ -1,5 +1,12 @@
-import { eq } from 'drizzle-orm'
-import { builds, environments, releases, type Db } from '../db/index.js'
+import { and, eq, ne, sql } from 'drizzle-orm'
+import {
+  approvalRequests,
+  builds,
+  environments,
+  projects,
+  releases,
+  type Db,
+} from '../db/index.js'
 import { servingInstanceOf } from '../projects/index.js'
 import type { ResolvedConfigSet } from '../releases/index.js'
 import type { ManifestSpec } from '../spec/index.js'
@@ -49,4 +56,48 @@ export async function candidateFor(
   if (row === undefined) return undefined
   const auth = (row.release.resolvedConfig as ResolvedConfigSet).production.auth
   return { release: row.release, build: row.build, auth }
+}
+
+export type ApprovalRequestRow = typeof approvalRequests.$inferSelect
+
+/**
+ * NO DECISION RECORDED FOR THE REQUEST'S RELEASE SINCE THE REQUEST WAS MADE (§6's `ApprovalRequest`:
+ * *"answered by an `Approval`, and closes when one is recorded"*) — an approval or a rejection, at or
+ * after `created_at`. One statement, read by `openRequestFor` and by the administrators' queue.
+ */
+export const undecidedSince = sql`NOT EXISTS (SELECT 1 FROM approvals a WHERE a.release_id = ${approvalRequests.releaseId} AND a.decided_at >= ${approvalRequests.createdAt})`
+
+/**
+ * THE OPEN SIGN-OFF REQUEST FOR A PROJECT — the one an administrator still has to answer (Spec action
+ * 5; the launch path plan's Task 12). DERIVED, never stored: the request for the release serving
+ * staging NOW, with no decision recorded since it was made. A request whose release stopped being the
+ * candidate is closed, and stays so — another release now serves staging, and that is the one to ask
+ * about. At most one per project, since one release is the candidate.
+ *
+ * Here, beside `candidateFor`, rather than in `requests.ts`: the checklist (`readiness.ts`) and the
+ * queue read it, and `requestApproval` reads the checklist — so a `requests.ts` holding both would be
+ * an import cycle. `candidate` is the caller's when it already holds it; absent, it is derived here.
+ */
+export async function openRequestFor(
+  db: Db,
+  projectId: string,
+  candidate?: Pick<LaunchCandidate, 'release'> | null,
+): Promise<ApprovalRequestRow | undefined> {
+  const current = candidate === undefined ? await candidateFor(db, projectId) : candidate
+  if (current == null) return undefined
+  const [row] = await db
+    .select({ request: approvalRequests })
+    .from(approvalRequests)
+    .innerJoin(projects, eq(approvalRequests.projectId, projects.id))
+    .where(
+      and(
+        eq(approvalRequests.projectId, projectId),
+        ne(projects.state, 'deleted'),
+        // STILL THE CANDIDATE: the release serving staging now.
+        eq(approvalRequests.releaseId, current.release.id),
+        undecidedSince,
+      ),
+    )
+    .limit(1)
+  return row?.request
 }

@@ -396,6 +396,18 @@ An administrator rejected a release for production, which is final for that rele
 }
 ```
 
+## `approval.requested`
+
+A person asked an administrator to approve the release serving staging for production. It waits in the administrators’ queue until an administrator decides, or another release serves staging.
+
+```json
+{
+  "requestId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "viaToken": false
+}
+```
+
 ## `project.launched`
 
 The app’s first production launch became healthy (§13 D9). Published once per project, ever.

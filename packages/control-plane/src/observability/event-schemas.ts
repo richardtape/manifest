@@ -546,6 +546,24 @@ export const EVENT_DETAIL_SCHEMAS = {
     'An administrator rejected a release for production, which is final for that release (§13); the sentence carries their reason.',
   ),
   /**
+   * Spec action 5 (the launch path plan's Task 12, FE-25). Who asked is in the sentence, by name;
+   * the NOTE is never here — it is for administrators alone, in `listQueue`. PUBLISHED TEXT: no
+   * section, decision or plan numbers in these descriptions.
+   */
+  'approval.requested': z
+    .strictObject({
+      requestId: Uuid.describe('The request.'),
+      releaseId: Uuid.describe(
+        'The release an administrator is asked to approve — the one serving staging.',
+      ),
+      viaToken: z
+        .boolean()
+        .describe('Whether an agent asked on a person’s token, rather than the person.'),
+    })
+    .describe(
+      'A person asked an administrator to approve the release serving staging for production. It waits in the administrators’ queue until an administrator decides, or another release serves staging.',
+    ),
+  /**
    * §13 D9 (P6b Task 4): the first production deploy for purpose `launch` that became
    * healthy. Written ONCE per project — `recordLaunch`'s WHERE clause, not a read-then-write.
    */

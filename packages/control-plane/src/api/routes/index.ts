@@ -12,6 +12,7 @@ import { meRoutes } from './me.js'
 import { pendingActionReads, pendingActionRoutes } from './pending-actions.js'
 import { projectReadRoutes } from './project-reads.js'
 import { projectWriteRoutes } from './projects.js'
+import { queueRoutes } from './queue.js'
 import { releaseRoutes } from './releases.js'
 import { secretRoutes } from './secrets.js'
 import { slugRoutes } from './slugs.js'
@@ -37,6 +38,7 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...secretRoutes,
   ...launchRoutes,
   ...fleetRoutes,
+  ...queueRoutes,
   ...tokenRoutes,
   ...agentRoutes,
   ...intakeRoutes,
