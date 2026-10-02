@@ -1593,6 +1593,15 @@ async function step10Instances(): Promise<void> {
       .map((i) => `${i.id.slice(0, 8)} ${i.state} ${i.createdAt}`)
       .join('; '),
   )
+  const attempt0 = listed.instances.find((i) => i.id === failed.id)
+  // WHEN IT WAS MADE, NOT WHEN IT WAS LAST SEEN: a failed attempt IS seen — its lastSeenAt is stamped
+  // when its deploy gives up, ~90 s after it was made and after the serving instance's — so the order
+  // alone cannot tell createdAt from lastSeenAt (sitting 12's control (f) stayed green on it).
+  checks.ok(
+    'the failed attempt’s createdAt is when its deploy was asked for — not when it was last seen',
+    attempt0 !== undefined && Math.abs(Date.parse(attempt0.createdAt) - askedAt) < 10_000,
+    `asked ${new Date(askedAt).toISOString()}; created ${attempt0?.createdAt}; last seen ${attempt0?.lastSeenAt}`,
+  )
   const servingNow = listed.instances.find((i) => i.serving)
   const attempt = listed.instances.find((i) => i.id === failed.id)
   checks.ok(
