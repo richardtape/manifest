@@ -1842,7 +1842,9 @@ guide, and the docs gate widened to hold it. **`pnpm test:docker` is NOT owed** 
    the assessment's gaps answered — and a sign-off request (`approval.requested`) emails LTIC too. **Ask Rich to confirm it** — it is a spec action before it is a task, and **until it is decided Task 13's
    mock scripts the records as they are** (no "sent to LTIC" step), and Task 14's *Launching* says what the platform does today. **FE-47**
    (after launch, an owner asks for a new sign-in detail, through LTIC) **and FE-5** (a pending action names what it asks for) were relayed
-   the same evening, PROPOSED too — §8 *Open*; ask with FE-46.
+   the same evening, PROPOSED too — §8 *Open*; ask with FE-46. **Rich's confirmation of all three was RELAYED at ~21:00Z** (*"confirm
+   FE-46, FE-47 and FE-5 to the platform session"*, typed in `manifest-app-d9`) — ask him to say it here, then they go to the planning
+   session for the spec action.
 4. **The console's clicked half needs Rich's typing** (the Chrome extension cannot sign in — §4 trap 6): stage it against the mock first,
    then ask him once (the memory *clicked-half passwords are Rich's*).
 
@@ -1927,7 +1929,7 @@ reasoning is recorded.**
 - **FE-46 — THE OWNER SENDS TO LTIC, NOT TO UBC: A STEP BETWEEN *DRAFT* AND *SUBMITTED*, LTIC TOLD, AND THE ASSESSMENT'S GAPS ANSWERED.
   RELAYED 2026-10-01, PROPOSED** — by the faculty front-end's F5b design session `manifest-app-d9`, at the launch path's sitting 9's close,
   *"carried at Rich's word"*; **NOT YET CONFIRMED by Rich to a platform session** (the house rule: a relayed decision is recorded as Rich's
-  only from his own words). Rich's words as relayed: *"Sent to LTIC. And then submitted to PRISM by LTIC."* — all three records go VIA LTIC
+  only from his own words). **His confirmation was RELAYED by `manifest-app-d9` at ~21:00Z on 2026-10-01** (*"confirm FE-46, FE-47 and FE-5 to the platform session"*, typed in its session) — **still PROPOSED here until he says it in a platform session** (the rule FE-45 was confirmed by). Rich's words as relayed: *"Sent to LTIC. And then submitted to PRISM by LTIC."* — all three records go VIA LTIC
   (the team that runs Manifest), which submits the assessment to PRISM and the registrations to UBC IAM; and *"It emails us and we fill out
   the appropriate forms"* — the PLATFORM tells LTIC. *Today* (sitting 9): an owner's *"I've sent it"* moves a record to `submitted`, which
   every description reads as WITH UBC, `since` counts UBC's wait from that day, nothing emails anybody, and `PrivacyAssessmentDraft`'s gaps
@@ -1945,7 +1947,7 @@ reasoning is recorded.**
 
 - **FE-47 — AFTER LAUNCH, AN OWNER ASKS FOR A NEW SIGN-IN DETAIL (A CHANGE TO THE LIVE REGISTRATION), THROUGH LTIC. RELAYED 2026-10-01,
   PROPOSED** — by `manifest-app-d9` (F6b's design), at sitting 9's close, *"File FE-47, as FE-46"*; **NOT YET CONFIRMED to a platform
-  session.** *Today*: no owner write on an `active` registration — `draftIamRegistration` refuses it (`409 LAUNCH_RECORD_SUBMITTED`) and
+  session.** **His confirmation was RELAYED by `manifest-app-d9` at ~21:00Z on 2026-10-01** (*"confirm FE-46, FE-47 and FE-5 to the platform session"*, typed in its session) — **still PROPOSED here until he says it in a platform session** (the rule FE-45 was confirmed by). *Today*: no owner write on an `active` registration — `draftIamRegistration` refuses it (`409 LAUNCH_RECORD_SUBMITTED`) and
   `submitIamRegistration` moves only from `draft`, `change_requested` or `expired`; only an administrator files a change request
   (`recordIamRegistration` → `change_requested` with `requestedAttributes`), and nothing tells them an owner wants one; meanwhile
   `assertAttributesRegistered` fails every build that asks for the attribute, the sandbox's included. *Option (a), relayed as Rich's*: from
@@ -1954,7 +1956,7 @@ reasoning is recorded.**
   check stays as it is. Rejected, as relayed: (b) no path; (c) the front-end's server emailing LTIC with nothing recorded. *Needs*: Rich's
   confirmation, then a spec action with FE-46's.
 - **FE-5 — A QUESTION AN AGENT RAISES SAYS WHAT IT IS ASKING. CARRIED 2026-10-01, PROPOSED** (relayed with FE-47: *"Build it honest, carry
-  FE-5 now"*; open since 2026-09-27): option (a) — a `PendingAction` carries the specific object, taken from the request and never a secret
+  FE-5 now"*; open since 2026-09-27): **His confirmation was RELAYED by `manifest-app-d9` at ~21:00Z on 2026-10-01** (*"confirm FE-46, FE-47 and FE-5 to the platform session"*, typed in its session) — **still PROPOSED here until he says it in a platform session** (the rule FE-45 was confirmed by). option (a) — a `PendingAction` carries the specific object, taken from the request and never a secret
   (a member: who, as the request named them, and the role; a deploy: which release and environment; a launch record: which). *Today* its
   `summary` is the route's (*"add a member to this project"*) and only `bodySha256` of the request is kept. *Needs*: Rich's confirmation to a
   platform session and a place in the plan order (D24's §20 — the payload rule that keeps a request's contents out).
