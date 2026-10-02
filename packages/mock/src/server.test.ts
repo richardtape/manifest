@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import type { Server } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as fixtures from './fixtures.js'
@@ -84,6 +85,68 @@ describe('manifest-mock answers the whole document', () => {
     expect(m?.slice(1)).toEqual(['p-1', 'u-2'])
     // And it does NOT match one segment too many, which is what an unanchored pattern would.
     expect(remove?.pattern.test('/v1/projects/p-1/members/u-2/extra')).toBe(false)
+  })
+})
+
+/**
+ * THE MOCK'S TEXT CITES NO SECTION, DECISION, CONSTRAINT OR ROADMAP PHASE (Rich, 2026-09-30; the
+ * launch path plan's Task 14) — every string it can answer, in every file it answers from, read with
+ * comments stripped (a comment is the repository's, and may cite what it likes). The platform's
+ * document is held by `api/contract/docs.test.ts`; this holds the copies the mock keeps of its words.
+ */
+describe('manifest-mock’s text', () => {
+  /** Comments out, string bodies kept — quote-aware, so a `//` inside a URL is not a comment. */
+  function strings(source: string): string {
+    let out = ''
+    let i = 0
+    while (i < source.length) {
+      const two = source.slice(i, i + 2)
+      if (two === '//') {
+        while (i < source.length && source[i] !== '\n') i++
+        continue
+      }
+      if (two === '/*') {
+        i += 2
+        while (i < source.length && source.slice(i, i + 2) !== '*/') i++
+        i += 2
+        continue
+      }
+      const ch = source[i]!
+      if (ch === "'" || ch === '"' || ch === '`') {
+        let text = ''
+        i++
+        while (i < source.length && source[i] !== ch) {
+          if (source[i] === '\\') {
+            text += source.slice(i, i + 2)
+            i += 2
+            continue
+          }
+          text += source[i]
+          i++
+        }
+        out += `${text}\n`
+        i++
+        continue
+      }
+      i++
+    }
+    return out
+  }
+
+  it('cites no spec section, decision, constraint or roadmap phase in anything it can answer', async () => {
+    const SPEC_REF =
+      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?![\w:])|(?<![\w:])C\d(?![\w:])|\bPhase \d/
+    const hits: string[] = []
+    let read = 0
+    for (const file of ['fixtures.ts', 'server.ts', 'launch.ts', 'script.ts']) {
+      const text = strings(await readFile(new URL(`./${file}`, import.meta.url), 'utf8'))
+      read += text.length
+      for (const line of text.split('\n'))
+        if (SPEC_REF.test(line)) hits.push(`${file}: ${line.slice(0, 160)}`)
+    }
+    // The positive half: the four files' strings were read.
+    expect(read).toBeGreaterThan(20_000)
+    expect(hits).toEqual([])
   })
 })
 

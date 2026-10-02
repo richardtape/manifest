@@ -297,6 +297,10 @@ describe('a sign-off request (Task 12, Spec action 5)', () => {
       expect(before.state).toBe('unmet')
       expect(before.since).toBeNull()
       expect(before.why).not.toContain('asked an administrator')
+      // NOBODY HAS ASKED, SO THE ITEM SAYS TO (the launch path plan's Task 14; Task 12's review, M6).
+      expect(before.why).toContain(
+        'Ask an administrator to sign it off (requestApproval).',
+      )
       const asked = await ask(db, releaseId, ownerId, NOTE)
       const after = await item()
       expect(after.state).toBe('unmet')
@@ -304,6 +308,8 @@ describe('a sign-off request (Task 12, Spec action 5)', () => {
       expect(after.why).toContain(
         `Test Owner asked an administrator to approve it on ${vancouverDayInWords(asked.request.createdAt)}.`,
       )
+      // Asked, it no longer tells anybody to ask.
+      expect(after.why).not.toContain('Ask an administrator to sign it off')
       // The note is the administrators', never the checklist's.
       expect(after.why).not.toContain('Week 3')
       // Answered, it waits on nobody: the decision is what the item says.
