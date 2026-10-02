@@ -478,10 +478,11 @@ const isoOrNull = (at: Date | null) => (at === null ? null : at.toISOString())
  * every production release and not only the first (§7's last production clause says *"for a
  * production release"*). Met when:
  *
- *  - UBC has registered this SP at least once (`registeredAt`) — a change request on file does
- *    not unregister it, so a launched app keeps shipping while one is outstanding, as long as
- *    what it ships is covered by what UBC registered;
- *  - the registration has not lapsed (`expired`, D20);
+ *  - UBC's registration of this SP is in force (`registeredAt`) — a change request on file does
+ *    not unregister it, so a launched app keeps shipping while one is outstanding (`change_requested`,
+ *    and `submitted` once it is sent), as long as what it ships is covered by what UBC registered;
+ *  - the registration has not lapsed (`expired`, D20) — and entering `expired` clears `registeredAt`,
+ *    so a lapsed registration sent again is not in force until it is recorded `active` (sitting 12, F3);
  *  - and it COVERS the candidate: every attribute asked for is registered, and the ACS and SLO
  *    are the ones UBC registered.
  *
@@ -504,18 +505,22 @@ async function liveRegistrationItem(
       state: 'unmet',
       why: 'This app has launched and signs people in with CWL, but no IAM registration is recorded for it — nothing reaches production until an administrator records what UBC IAM registered.',
     }
-  if (row.registeredAt === null)
-    return {
-      ...IAM_BASE,
-      state: 'unmet',
-      why: `${sentToIam(row)}UBC IAM has never been recorded registering this app: the registration is '${row.state}'${ticket(row.externalTicketRef)}. Nothing reaches production until an administrator records it 'active'.`,
-      since: waitingOnUbc(row),
-    }
+  // EXPIRED FIRST (sitting 12, F3): entering `expired` clears `registered_at`, so a lapsed row reaches
+  // here with none, and says it lapsed rather than that UBC never registered it.
   if (row.state === 'expired')
     return {
       ...IAM_BASE,
       state: 'unmet',
       why: `The registration lapsed${ticket(row.externalTicketRef)} — nothing reaches production until UBC IAM registers it again and an administrator records it 'active'.`,
+    }
+  // NO REGISTRATION IN FORCE: never registered, or lapsed and sent again (`expired → submitted`, which
+  // carries no `registered_at` — sitting 12's F3: it kept the old one, and read `met` again).
+  if (row.registeredAt === null)
+    return {
+      ...IAM_BASE,
+      state: 'unmet',
+      why: `${sentToIam(row)}UBC IAM has no registration of this app in force: the registration is '${row.state}'${ticket(row.externalTicketRef)}. Nothing reaches production until UBC IAM registers it and an administrator records it 'active'.`,
+      since: waitingOnUbc(row),
     }
   const since = `since ${row.registeredAt.toISOString().slice(0, 10)}`
   if (would === undefined)

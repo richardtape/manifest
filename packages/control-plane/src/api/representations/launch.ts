@@ -279,7 +279,7 @@ export const IamRegistration = representation(
         .datetime()
         .nullable()
         .describe(
-          'When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it.',
+          'When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time, and again once the registration lapses (`expired`) until it is recorded `active` again; a launched app’s releases need it.',
         ),
       state: z
         .enum(iamRegistrationState.enumValues)

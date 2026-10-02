@@ -4606,7 +4606,7 @@ export interface components {
             registeredAttributes: string[];
             /** @description What an outstanding CHANGE REQUEST asks UBC IAM for — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again. */
             requestedAttributes: string[] | null;
-            /** @description When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it. */
+            /** @description When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time, and again once the registration lapses (`expired`) until it is recorded `active` again; a launched app’s releases need it. */
             registeredAt: string | null;
             /**
              * @description Where the registration is: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.

@@ -15,8 +15,10 @@ import {
   type Db,
 } from '../db/index.js'
 import { withProject } from '../db/testing.js'
+import { createEventBus } from '../observability/index.js'
 import { assertLaunchable, ProductionGateError } from './gate.js'
 import { computeLaunchReadiness, readyOf, type LaunchItem } from './readiness.js'
+import { recordIamRegistration } from './records.js'
 import { withDraft } from './testing.js'
 
 /**
@@ -1088,6 +1090,103 @@ describe('a draft that no longer covers the app (Task 10)', () => {
       const iam = await item(tx, projectId)
       expect(iam.state).toBe('unmet')
       expect(iam.why).not.toMatch(/no longer matches/)
+    })
+  })
+})
+
+/**
+ * A LAUNCHED APP'S LAPSED REGISTRATION, SENT AGAIN (the launch path plan's sitting 12; found by reading
+ * overnight, `manifest-9f`, and measured here). An administrator records production's registration
+ * `expired`; it is sent to UBC again, `expired → submitted` — and the move KEEPS `registered_at`, which
+ * records when UBC FIRST registered it. The live item read only `registered_at` and `expired`, so the
+ * re-send read `met` again: production deploys resumed before UBC had registered anything, against the
+ * item's own words. Driven through the administrator's real transitions, never a row written by hand.
+ */
+describe('a launched app’s lapsed registration, sent again (sitting 12)', () => {
+  const bus = createEventBus()
+  const IAM = {
+    entityId: 'https://manifest.internal/sp/chem-labs/production',
+    acsUrl: 'https://chem-labs.manifest.internal/auth/ubcshib/callback',
+    sloUrl: 'https://chem-labs.manifest.internal/auth/logout',
+    registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+  }
+  const live = async (tx: Db, projectId: string) =>
+    (await computeLaunchReadiness(tx, projectId)).items.find(
+      (i) => i.id === 'iam-registration',
+    )!
+  const launched = async (tx: Db, projectId: string) =>
+    tx.update(projects).set({ launchedAt: new Date() }).where(eq(projects.id, projectId))
+
+  it('reads unmet once it is sent again — until UBC registers it and an administrator records it active', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const actor = { id: ownerId, puid: 'opr000001' }
+      await launched(tx, projectId)
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(tx, bus, { ...IAM, projectId, state, actor })
+      // THE POSITIVE CONTROL: registered, the live item is met.
+      expect((await live(tx, projectId)).state).toBe('met')
+      await recordIamRegistration(tx, bus, { ...IAM, projectId, state: 'expired', actor })
+      expect((await live(tx, projectId)).state).toBe('unmet')
+      const sentAgain = await recordIamRegistration(tx, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      // A LAPSE ENDS THE REGISTRATION: entering `expired` clears when UBC registered it, and the re-send
+      // carries no registration — so neither the item nor the build reads one that is not in force.
+      expect(sentAgain.registeredAt).toBeNull()
+      const waiting = await live(tx, projectId)
+      expect(waiting.state).toBe('unmet')
+      expect(waiting.why).toContain("'active'")
+      // And registered again, met again.
+      await recordIamRegistration(tx, bus, { ...IAM, projectId, state: 'active', actor })
+      expect((await live(tx, projectId)).state).toBe('met')
+    })
+  })
+
+  it('a re-send UBC sends back (change_requested from submitted) is unmet; one filed from active stays met', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const actor = { id: ownerId, puid: 'opr000001' }
+      await launched(tx, projectId)
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(tx, bus, { ...IAM, projectId, state, actor })
+      // FILED FROM ACTIVE: UBC's registration still stands while it considers the change — met.
+      await recordIamRegistration(tx, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        actor,
+      })
+      expect((await live(tx, projectId)).state).toBe('met')
+      for (const state of ['expired', 'submitted', 'change_requested'] as const)
+        await recordIamRegistration(tx, bus, { ...IAM, projectId, state, actor })
+      // SENT BACK AFTER A LAPSE: nothing stands at UBC — unmet.
+      expect((await live(tx, projectId)).state).toBe('unmet')
+    })
+  })
+
+  it('a change request filed from active and SENT to UBC (change_requested → submitted) stays met — the registration still stands', async () => {
+    // THE PATH A STATE-ONLY RULE BREAKS (the whole-branch review's I1): P6b's change request walks
+    // active → change_requested → submitted → active, and UBC's registration is in force throughout.
+    // A launched app keeps shipping what that registration covers while UBC considers the change.
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const actor = { id: ownerId, puid: 'opr000001' }
+      await launched(tx, projectId)
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(tx, bus, { ...IAM, projectId, state, actor })
+      for (const state of ['change_requested', 'submitted'] as const)
+        await recordIamRegistration(tx, bus, {
+          ...IAM,
+          projectId,
+          state,
+          requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+          actor,
+        })
+      const meanwhile = await live(tx, projectId)
+      expect(meanwhile.state).toBe('met')
+      expect(meanwhile.why).toContain("'submitted'")
     })
   })
 })

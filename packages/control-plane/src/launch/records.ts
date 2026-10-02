@@ -222,11 +222,19 @@ export async function recordIamRegistration(
    * WHEN UBC LAST REGISTERED IT — moved by a record that REACHES `active`, or that changes what
    * an `active` record says UBC registered. **Not by a ticket correction on an `active` record**:
    * nothing new was registered, and a launched app's checklist says *registered since* from it.
+   *
+   * **CLEARED BY A LAPSE** (the launch path plan's sitting 12, F3): a registration that has `expired`
+   * is not in force, and neither is one sent to UBC again after it — `expired → submitted` kept the
+   * old date, so a launched app's checklist read `met` and production deploys resumed before UBC had
+   * registered anything. Only this function moves a registration into `expired`. A change request
+   * filed from `active` keeps it, because UBC's registration stands while it is considered.
    */
   const registeredAt =
-    state === 'active' && (from !== 'active' || registeredValuesChange)
-      ? new Date()
-      : (existing?.registeredAt ?? null)
+    state === 'expired'
+      ? null
+      : state === 'active' && (from !== 'active' || registeredValuesChange)
+        ? new Date()
+        : (existing?.registeredAt ?? null)
   /**
    * WHEN THE REQUEST NOW WITH UBC WENT, AND WHO SAID SO (Task 9; `submitted_at`'s column comment).
    * An administrator's record stamps it when it MOVES the registration into `submitted` — the
