@@ -136,6 +136,17 @@ export const SANDBOX_INSTANCE: Schemas['Instance'] = {
   environmentId: SANDBOX_ID,
 }
 
+/**
+ * PRODUCTION'S OWN INSTANCE (FE-40 (1), the launch path plan's Task 13): what a production deploy
+ * answers once the mock's checklist is ready (`MANIFEST_MOCK_RECORDS=approved`) — never staging's.
+ */
+export const PRODUCTION_INSTANCE_ID = '66666666-6666-4666-8666-666666666663'
+export const PRODUCTION_INSTANCE: Schemas['Instance'] = {
+  ...INSTANCE,
+  id: PRODUCTION_INSTANCE_ID,
+  environmentId: PRODUCTION_ID,
+}
+
 /** `MANIFEST_MOCK_FAIL=1`'s ending of a SANDBOX deploy — the same rule as `FAILED_INSTANCE`. */
 export const FAILED_SANDBOX_INSTANCE: Schemas['Instance'] = {
   ...SANDBOX_INSTANCE,
@@ -1048,6 +1059,395 @@ export const FLEET: Schemas['Fleet'] = [
  * two are checked from both ends.
  */
 /**
+ * WHAT EACH ENVIRONMENT REGISTERS WITH (the launch path plan's Task 13): its certificate — the PUBLIC
+ * half Manifest minted for it once (D20), a real X.509 certificate made for this mock with the
+ * platform's own `openssl` arguments and its private key discarded at once: no private key exists
+ * anywhere in this package — and its SP metadata in UBC's structure, rendered by the platform's own
+ * `assemblePackage` from these values. Generated once, 2026-10-01; a change to the renderer is
+ * caught by nothing here, only by the next generation.
+ */
+const CERTIFICATES: Record<
+  'staging' | 'production',
+  Schemas['RegistrationPackage']['certificate']
+> = {
+  staging: {
+    pem: '-----BEGIN CERTIFICATE-----\nMIIFeTCCA2GgAwIBAgIUfZzzWNbuaSLgMHCAZ6jFZ1+PEUgwDQYJKoZIhvcNAQEL\nBQAwLjEZMBcGA1UEAwwQbW9jay1hcHAtc3RhZ2luZzERMA8GA1UECgwITWFuaWZl\nc3QwHhcNMjYwOTA1MTYxMjAwWhcNMjgwOTA0MTYxMjAwWjAuMRkwFwYDVQQDDBBt\nb2NrLWFwcC1zdGFnaW5nMREwDwYDVQQKDAhNYW5pZmVzdDCCAiIwDQYJKoZIhvcN\nAQEBBQADggIPADCCAgoCggIBAOteWwg7mNldInbWoZyzEo0U0NE4/W150C5fNam5\nRnyKSEta9aYpHo6InAfZEfgs9GmM4/5msmgWh3fCaISKO8BFo6XBM48X97r8G/Mn\n34MOuOhV+m/k5l+qpB1Kw+0huQmM1oeCfjUu9qu1mLVRE0Y5G5NlA0F6IdGVgPAE\nKA+Z4guf4FAJeJxHKifbCu2MgKAm0p5EsPpSG0YuJsO9sWdj5P9PPZYGWY6s6B2P\nO6558+LmtEpOuJdtxrd/FLcnJ4Spdvvilt9TtqEveq1mRJFqSRtXZy+daz7zLM7i\n6Ls/oYWmJhlCp1ajnY1iENwOK2v0mK0VOMlYFLfTYdS5mVbbuPxksJwVbrPZqIXj\nqSbH7gesZc7FeQqPo6GAjpviXkIUNkNkVK4hpgfubNt6KtGhiC8rEmsQCOIB9v6r\nWbvSE+kkUwjqjEvWJ1qFJnmNcepny6ATbCQ3WYhKFoFMxXXpmZPP2szQojDmJfrR\njq1zTQmCYfLt3sQpSMk4IEh0RR/QqpFvYeBkK2ot4RX0bQ9wUGSoNHY1bx8drZzw\nPhUDuCoY06EvGK2EKRihkPuraQ/0+F9mX7HT9leIWm/U6D/puzKaQUHtxH0rGL0n\n+wpmwhJiThXexGKTeXzLJLzPQ5U6yMHce4ge39ZWH1HKeSgegLXzZQE2vCnliqbA\ncHLlAgMBAAGjgY4wgYswHQYDVR0OBBYEFNrElTAxGEjsxeqcpXkF+4VEQQoxMB8G\nA1UdIwQYMBaAFNrElTAxGEjsxeqcpXkF+4VEQQoxMA8GA1UdEwEB/wQFMAMBAf8w\nOAYDVR0RBDEwL4YtaHR0cHM6Ly9tYW5pZmVzdC5pbnRlcm5hbC9zcC9tb2NrLWFw\ncC9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCbK15feT7yCdYd2iTfqYQoxKpO\naCxXqUJdnYeEz/gCiBQGutgFL3wEtPlXweym+prJF4vZdgGUCFFdauexlw/gYdD7\no4a3YHGUgfBkyR7iTNYnhNuVfFSPJFgFh4CSJi/HsuJPv7k9NDj0BGojDEXcxVLf\nduP99SM8i+m77io5PAu8t6R14idh08RNBMTrvU9d/3ywEV98eTO9MUxjMBlZMMwP\nIMFhH24rCc9OnBl529IFqk+/TXCQRV0v4o0X+4FjZx0oX6QUVg0gaxymWS5FypM/\nwNkRIYs5UeSwN3kJmzBYSabAB+UJokYaEn2HKgfWpR8l6kfTNRKa5qpWyOJDiWsG\nrql/nexpP+/5TYcJmHUBR6q/l60Z19MCw1WVVx3GIjK7oFTuwJwD6NpkvGumgkvQ\njgsJLm1CgNVCcTyT63WovY/RVSoeVEsTr8R4qKnG0mf472CTWiULoFefOXRj181m\nr23xO0xQKpXHYZfIkzDsMQOMl+d+ofwfYg5EWFCeZURVvV1FmoHYv2n131nPYV/J\ntZavkSoZX3Wuvc99IqWMlNNoDzIxmmPzfJfI26W8MXUTNWghvUkXReLOWavZLSfq\n0tlaINpO0nnJ71Y3IDFqD7MJtfY5p19n1PX36J2xy8BhUJH+f9D1bTkeSQ2sX6bl\nXYczz7vBkVi70pCuNg==\n-----END CERTIFICATE-----\n',
+    fingerprint:
+      'B0:39:FD:F9:7F:AD:3C:71:79:46:70:F3:BF:A7:90:A6:AF:F0:C5:CF:11:78:A5:2E:50:46:CE:3C:08:48:70:10',
+    expiresAt: '2028-09-04T16:12:00.000Z',
+  },
+  production: {
+    pem: '-----BEGIN CERTIFICATE-----\nMIIFgjCCA2qgAwIBAgIUA/B74ZTBhTIidSvC8MUPgJT731MwDQYJKoZIhvcNAQEL\nBQAwMTEcMBoGA1UEAwwTbW9jay1hcHAtcHJvZHVjdGlvbjERMA8GA1UECgwITWFu\naWZlc3QwHhcNMjYwOTA5MTYxMjAwWhcNMjgwOTA4MTYxMjAwWjAxMRwwGgYDVQQD\nDBNtb2NrLWFwcC1wcm9kdWN0aW9uMREwDwYDVQQKDAhNYW5pZmVzdDCCAiIwDQYJ\nKoZIhvcNAQEBBQADggIPADCCAgoCggIBAJLxmInw3065Yaku2d9JzO5YgC1QntSP\nfNOvIvHi+CZeO6gtPlu94zYToTSH2K5xNFGKCYinm+J/EY7SDxYqW6SzELRSn42I\nlKPt9eO+QYi83LJIsn8Eg44IAmLRJ676goLm/0Bu3kG5j1JDmkt/zQytoVjHIfim\no21kfyuqLUM9GrCQ/87mqLZCs9snHZMp8XOslnp7XA4fGqXE8kdkNjeoetl2mH85\nJHTIkzGGW6yaTDKYPOz98ttp1jlKc9he2TBz27/eAQPnveTc+ywglhC0fZlFJjIa\nHMRYv/n52UujSfomJXlN8Dc0w3u8zNnkF7HSxu1I1SZ8xSpAQVo5ZfDDakKCZySg\ndda3kpCM6AH0BQ5JgPFSLk3PhVKlj8xby86SpxpfePlPyJSoVWu9+2bkXlqGSRty\nbuGuNaufDiPuvsAY5YzEqpG6xBRrgiKxDuxjQfx3NFby3mbXSJXn07n05HTQ5y3a\n6nAepnn1XrZV8YGrmPN9s6e43+exkeIGAIx2PeHO8LwbU57w7wKB+fAtRnQ8vt4n\nbtM9JhSIvsyiJRDdW3UZJ6Pyq9YuN+bL880TwCju0ToT06rYrTy6cUchvYBHj+5n\ncAsT28+M84Y9FOShkbWcqMu6KdHlZjRAs96jMqqJFtgzsh4bRAfvTJhpzGIZ2aam\nDyJsGJuaBgzRAgMBAAGjgZEwgY4wHQYDVR0OBBYEFFSNAJTYfflhIhUzPp20b6Be\nwuAdMB8GA1UdIwQYMBaAFFSNAJTYfflhIhUzPp20b6BewuAdMA8GA1UdEwEB/wQF\nMAMBAf8wOwYDVR0RBDQwMoYwaHR0cHM6Ly9tYW5pZmVzdC5pbnRlcm5hbC9zcC9t\nb2NrLWFwcC9wcm9kdWN0aW9uMA0GCSqGSIb3DQEBCwUAA4ICAQBpWpjSWJJezwsN\nZuNR/XPlLDE3idvZP+wJpI/dou03Ux+say5Y1WpIyxeqfV39y4pQUZALhTjqi+gW\n2pJJZS9oIZBPy+4UV1vVDdwU0USFN6gNw7oun1EdBgu5JsAfr93Vb4DV8kdWa9mY\nwjbahIyDPzzyYsvOT2BnMlbvbE2jZJpZ9EKVwt1aSy28STJrpUZwmMXTgtQf8T0w\nA77QbMYIaj1VuCOIgBBxljEbknjLTwYT6VwaKSEZ/ibJzOpxYpeZKc31eTtSLH1l\n/NR0TxLcHMTIVssdThUtNDkfidHSnbo0BjNydVili6V+3CUPgXB2ZvjKo/bQuyZL\nZBttgekYaLRcIVbAu/QtJX7zfygcFELQ/mIoKanVkuaFxqCJUpyUY8mjKLsDXd4i\nBZG1NOLOAYIxDjFszeV8koMHLTg8yCLm1WPPPr/rebB5XFKy29HPKuwA1V2olKLF\naYK3VTbAqJ5VfupEVws2+sOT+dSUTwswu/vKwdPiItCGYOTaWSjkU/pO5FIidrFF\nq6B5DF4T10vEtBmwrlWPXXI1opfNszA8ZTggzf+05lX824JEY7zyPvhpyY2YCu7n\nKqWhnDy+EGgnJ+jti5G92YjijHt2uoHg7II7efuZzv9kBhoBIsljf7iwvv+a8g9z\nrHYIp5isqzER8M6JN2fq07D9Z8IqDg==\n-----END CERTIFICATE-----\n',
+    fingerprint:
+      '5E:69:65:97:1F:3C:6C:7A:95:EB:96:D1:06:22:D1:51:5B:DA:CF:03:25:AC:4B:3A:4B:09:27:18:42:47:70:D7',
+    expiresAt: '2028-09-08T16:12:00.000Z',
+  },
+}
+
+const METADATA_XML: Record<'staging' | 'production', string> = {
+  staging:
+    '<?xml version="1.0" encoding="UTF-8"?>\n<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport" ID="_fed270105fc87a1667db5022e5f0eafc" entityID="https://manifest.internal/sp/mock-app/staging">\n\n  <md:Extensions>\n    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>\n    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#sha384"/>\n    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/>\n    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>\n    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"/>\n    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"/>\n    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/>\n  </md:Extensions>\n\n  <md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">\n    <md:KeyDescriptor use="signing">\n      <ds:KeyInfo>\n        <ds:KeyName>mock-app.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=mock-app-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFeTCCA2GgAwIBAgIUfZzzWNbuaSLgMHCAZ6jFZ1+PEUgwDQYJKoZIhvcNAQEL\nBQAwLjEZMBcGA1UEAwwQbW9jay1hcHAtc3RhZ2luZzERMA8GA1UECgwITWFuaWZl\nc3QwHhcNMjYwOTA1MTYxMjAwWhcNMjgwOTA0MTYxMjAwWjAuMRkwFwYDVQQDDBBt\nb2NrLWFwcC1zdGFnaW5nMREwDwYDVQQKDAhNYW5pZmVzdDCCAiIwDQYJKoZIhvcN\nAQEBBQADggIPADCCAgoCggIBAOteWwg7mNldInbWoZyzEo0U0NE4/W150C5fNam5\nRnyKSEta9aYpHo6InAfZEfgs9GmM4/5msmgWh3fCaISKO8BFo6XBM48X97r8G/Mn\n34MOuOhV+m/k5l+qpB1Kw+0huQmM1oeCfjUu9qu1mLVRE0Y5G5NlA0F6IdGVgPAE\nKA+Z4guf4FAJeJxHKifbCu2MgKAm0p5EsPpSG0YuJsO9sWdj5P9PPZYGWY6s6B2P\nO6558+LmtEpOuJdtxrd/FLcnJ4Spdvvilt9TtqEveq1mRJFqSRtXZy+daz7zLM7i\n6Ls/oYWmJhlCp1ajnY1iENwOK2v0mK0VOMlYFLfTYdS5mVbbuPxksJwVbrPZqIXj\nqSbH7gesZc7FeQqPo6GAjpviXkIUNkNkVK4hpgfubNt6KtGhiC8rEmsQCOIB9v6r\nWbvSE+kkUwjqjEvWJ1qFJnmNcepny6ATbCQ3WYhKFoFMxXXpmZPP2szQojDmJfrR\njq1zTQmCYfLt3sQpSMk4IEh0RR/QqpFvYeBkK2ot4RX0bQ9wUGSoNHY1bx8drZzw\nPhUDuCoY06EvGK2EKRihkPuraQ/0+F9mX7HT9leIWm/U6D/puzKaQUHtxH0rGL0n\n+wpmwhJiThXexGKTeXzLJLzPQ5U6yMHce4ge39ZWH1HKeSgegLXzZQE2vCnliqbA\ncHLlAgMBAAGjgY4wgYswHQYDVR0OBBYEFNrElTAxGEjsxeqcpXkF+4VEQQoxMB8G\nA1UdIwQYMBaAFNrElTAxGEjsxeqcpXkF+4VEQQoxMA8GA1UdEwEB/wQFMAMBAf8w\nOAYDVR0RBDEwL4YtaHR0cHM6Ly9tYW5pZmVzdC5pbnRlcm5hbC9zcC9tb2NrLWFw\ncC9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCbK15feT7yCdYd2iTfqYQoxKpO\naCxXqUJdnYeEz/gCiBQGutgFL3wEtPlXweym+prJF4vZdgGUCFFdauexlw/gYdD7\no4a3YHGUgfBkyR7iTNYnhNuVfFSPJFgFh4CSJi/HsuJPv7k9NDj0BGojDEXcxVLf\nduP99SM8i+m77io5PAu8t6R14idh08RNBMTrvU9d/3ywEV98eTO9MUxjMBlZMMwP\nIMFhH24rCc9OnBl529IFqk+/TXCQRV0v4o0X+4FjZx0oX6QUVg0gaxymWS5FypM/\nwNkRIYs5UeSwN3kJmzBYSabAB+UJokYaEn2HKgfWpR8l6kfTNRKa5qpWyOJDiWsG\nrql/nexpP+/5TYcJmHUBR6q/l60Z19MCw1WVVx3GIjK7oFTuwJwD6NpkvGumgkvQ\njgsJLm1CgNVCcTyT63WovY/RVSoeVEsTr8R4qKnG0mf472CTWiULoFefOXRj181m\nr23xO0xQKpXHYZfIkzDsMQOMl+d+ofwfYg5EWFCeZURVvV1FmoHYv2n131nPYV/J\ntZavkSoZX3Wuvc99IqWMlNNoDzIxmmPzfJfI26W8MXUTNWghvUkXReLOWavZLSfq\n0tlaINpO0nnJ71Y3IDFqD7MJtfY5p19n1PX36J2xy8BhUJH+f9D1bTkeSQ2sX6bl\nXYczz7vBkVi70pCuNg==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n    </md:KeyDescriptor>\n\n    <md:KeyDescriptor use="encryption">\n      <ds:KeyInfo>\n        <ds:KeyName>mock-app.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=mock-app-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFeTCCA2GgAwIBAgIUfZzzWNbuaSLgMHCAZ6jFZ1+PEUgwDQYJKoZIhvcNAQEL\nBQAwLjEZMBcGA1UEAwwQbW9jay1hcHAtc3RhZ2luZzERMA8GA1UECgwITWFuaWZl\nc3QwHhcNMjYwOTA1MTYxMjAwWhcNMjgwOTA0MTYxMjAwWjAuMRkwFwYDVQQDDBBt\nb2NrLWFwcC1zdGFnaW5nMREwDwYDVQQKDAhNYW5pZmVzdDCCAiIwDQYJKoZIhvcN\nAQEBBQADggIPADCCAgoCggIBAOteWwg7mNldInbWoZyzEo0U0NE4/W150C5fNam5\nRnyKSEta9aYpHo6InAfZEfgs9GmM4/5msmgWh3fCaISKO8BFo6XBM48X97r8G/Mn\n34MOuOhV+m/k5l+qpB1Kw+0huQmM1oeCfjUu9qu1mLVRE0Y5G5NlA0F6IdGVgPAE\nKA+Z4guf4FAJeJxHKifbCu2MgKAm0p5EsPpSG0YuJsO9sWdj5P9PPZYGWY6s6B2P\nO6558+LmtEpOuJdtxrd/FLcnJ4Spdvvilt9TtqEveq1mRJFqSRtXZy+daz7zLM7i\n6Ls/oYWmJhlCp1ajnY1iENwOK2v0mK0VOMlYFLfTYdS5mVbbuPxksJwVbrPZqIXj\nqSbH7gesZc7FeQqPo6GAjpviXkIUNkNkVK4hpgfubNt6KtGhiC8rEmsQCOIB9v6r\nWbvSE+kkUwjqjEvWJ1qFJnmNcepny6ATbCQ3WYhKFoFMxXXpmZPP2szQojDmJfrR\njq1zTQmCYfLt3sQpSMk4IEh0RR/QqpFvYeBkK2ot4RX0bQ9wUGSoNHY1bx8drZzw\nPhUDuCoY06EvGK2EKRihkPuraQ/0+F9mX7HT9leIWm/U6D/puzKaQUHtxH0rGL0n\n+wpmwhJiThXexGKTeXzLJLzPQ5U6yMHce4ge39ZWH1HKeSgegLXzZQE2vCnliqbA\ncHLlAgMBAAGjgY4wgYswHQYDVR0OBBYEFNrElTAxGEjsxeqcpXkF+4VEQQoxMB8G\nA1UdIwQYMBaAFNrElTAxGEjsxeqcpXkF+4VEQQoxMA8GA1UdEwEB/wQFMAMBAf8w\nOAYDVR0RBDEwL4YtaHR0cHM6Ly9tYW5pZmVzdC5pbnRlcm5hbC9zcC9tb2NrLWFw\ncC9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQCbK15feT7yCdYd2iTfqYQoxKpO\naCxXqUJdnYeEz/gCiBQGutgFL3wEtPlXweym+prJF4vZdgGUCFFdauexlw/gYdD7\no4a3YHGUgfBkyR7iTNYnhNuVfFSPJFgFh4CSJi/HsuJPv7k9NDj0BGojDEXcxVLf\nduP99SM8i+m77io5PAu8t6R14idh08RNBMTrvU9d/3ywEV98eTO9MUxjMBlZMMwP\nIMFhH24rCc9OnBl529IFqk+/TXCQRV0v4o0X+4FjZx0oX6QUVg0gaxymWS5FypM/\nwNkRIYs5UeSwN3kJmzBYSabAB+UJokYaEn2HKgfWpR8l6kfTNRKa5qpWyOJDiWsG\nrql/nexpP+/5TYcJmHUBR6q/l60Z19MCw1WVVx3GIjK7oFTuwJwD6NpkvGumgkvQ\njgsJLm1CgNVCcTyT63WovY/RVSoeVEsTr8R4qKnG0mf472CTWiULoFefOXRj181m\nr23xO0xQKpXHYZfIkzDsMQOMl+d+ofwfYg5EWFCeZURVvV1FmoHYv2n131nPYV/J\ntZavkSoZX3Wuvc99IqWMlNNoDzIxmmPzfJfI26W8MXUTNWghvUkXReLOWavZLSfq\n0tlaINpO0nnJ71Y3IDFqD7MJtfY5p19n1PX36J2xy8BhUJH+f9D1bTkeSQ2sX6bl\nXYczz7vBkVi70pCuNg==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n      <md:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>\n      <md:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes256-gcm"/>\n      <md:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes256-cbc"/>\n    </md:KeyDescriptor>\n\n    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://mock-app.staging.manifest.internal/auth/logout"/>\n\n    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://mock-app.staging.manifest.internal/auth/ubcshib/callback" index="1" isDefault="true"/>\n  </md:SPSSODescriptor>\n\n  <md:Organization>\n    <md:OrganizationName>University of British Columbia</md:OrganizationName>\n    <md:OrganizationDisplayName>University of British Columbia</md:OrganizationDisplayName>\n    <md:OrganizationURL>https://www.ubc.ca</md:OrganizationURL>\n  </md:Organization>\n\n  <md:ContactPerson contactType="technical">\n    <md:EmailAddress>instructor@example.test</md:EmailAddress>\n  </md:ContactPerson>\n  <md:ContactPerson contactType="support">\n    <md:EmailAddress>manifest-support@example.test</md:EmailAddress>\n  </md:ContactPerson>\n\n</md:EntityDescriptor>\n',
+  production:
+    '<?xml version="1.0" encoding="UTF-8"?>\n<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport" ID="_3b700bfeaaa6bfb2f34fa61185a2e526" entityID="https://manifest.internal/sp/mock-app/production">\n\n  <md:Extensions>\n    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>\n    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#sha384"/>\n    <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/>\n    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>\n    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"/>\n    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"/>\n    <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/>\n  </md:Extensions>\n\n  <md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">\n    <md:KeyDescriptor use="signing">\n      <ds:KeyInfo>\n        <ds:KeyName>mock-app.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=mock-app-production</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFgjCCA2qgAwIBAgIUA/B74ZTBhTIidSvC8MUPgJT731MwDQYJKoZIhvcNAQEL\nBQAwMTEcMBoGA1UEAwwTbW9jay1hcHAtcHJvZHVjdGlvbjERMA8GA1UECgwITWFu\naWZlc3QwHhcNMjYwOTA5MTYxMjAwWhcNMjgwOTA4MTYxMjAwWjAxMRwwGgYDVQQD\nDBNtb2NrLWFwcC1wcm9kdWN0aW9uMREwDwYDVQQKDAhNYW5pZmVzdDCCAiIwDQYJ\nKoZIhvcNAQEBBQADggIPADCCAgoCggIBAJLxmInw3065Yaku2d9JzO5YgC1QntSP\nfNOvIvHi+CZeO6gtPlu94zYToTSH2K5xNFGKCYinm+J/EY7SDxYqW6SzELRSn42I\nlKPt9eO+QYi83LJIsn8Eg44IAmLRJ676goLm/0Bu3kG5j1JDmkt/zQytoVjHIfim\no21kfyuqLUM9GrCQ/87mqLZCs9snHZMp8XOslnp7XA4fGqXE8kdkNjeoetl2mH85\nJHTIkzGGW6yaTDKYPOz98ttp1jlKc9he2TBz27/eAQPnveTc+ywglhC0fZlFJjIa\nHMRYv/n52UujSfomJXlN8Dc0w3u8zNnkF7HSxu1I1SZ8xSpAQVo5ZfDDakKCZySg\ndda3kpCM6AH0BQ5JgPFSLk3PhVKlj8xby86SpxpfePlPyJSoVWu9+2bkXlqGSRty\nbuGuNaufDiPuvsAY5YzEqpG6xBRrgiKxDuxjQfx3NFby3mbXSJXn07n05HTQ5y3a\n6nAepnn1XrZV8YGrmPN9s6e43+exkeIGAIx2PeHO8LwbU57w7wKB+fAtRnQ8vt4n\nbtM9JhSIvsyiJRDdW3UZJ6Pyq9YuN+bL880TwCju0ToT06rYrTy6cUchvYBHj+5n\ncAsT28+M84Y9FOShkbWcqMu6KdHlZjRAs96jMqqJFtgzsh4bRAfvTJhpzGIZ2aam\nDyJsGJuaBgzRAgMBAAGjgZEwgY4wHQYDVR0OBBYEFFSNAJTYfflhIhUzPp20b6Be\nwuAdMB8GA1UdIwQYMBaAFFSNAJTYfflhIhUzPp20b6BewuAdMA8GA1UdEwEB/wQF\nMAMBAf8wOwYDVR0RBDQwMoYwaHR0cHM6Ly9tYW5pZmVzdC5pbnRlcm5hbC9zcC9t\nb2NrLWFwcC9wcm9kdWN0aW9uMA0GCSqGSIb3DQEBCwUAA4ICAQBpWpjSWJJezwsN\nZuNR/XPlLDE3idvZP+wJpI/dou03Ux+say5Y1WpIyxeqfV39y4pQUZALhTjqi+gW\n2pJJZS9oIZBPy+4UV1vVDdwU0USFN6gNw7oun1EdBgu5JsAfr93Vb4DV8kdWa9mY\nwjbahIyDPzzyYsvOT2BnMlbvbE2jZJpZ9EKVwt1aSy28STJrpUZwmMXTgtQf8T0w\nA77QbMYIaj1VuCOIgBBxljEbknjLTwYT6VwaKSEZ/ibJzOpxYpeZKc31eTtSLH1l\n/NR0TxLcHMTIVssdThUtNDkfidHSnbo0BjNydVili6V+3CUPgXB2ZvjKo/bQuyZL\nZBttgekYaLRcIVbAu/QtJX7zfygcFELQ/mIoKanVkuaFxqCJUpyUY8mjKLsDXd4i\nBZG1NOLOAYIxDjFszeV8koMHLTg8yCLm1WPPPr/rebB5XFKy29HPKuwA1V2olKLF\naYK3VTbAqJ5VfupEVws2+sOT+dSUTwswu/vKwdPiItCGYOTaWSjkU/pO5FIidrFF\nq6B5DF4T10vEtBmwrlWPXXI1opfNszA8ZTggzf+05lX824JEY7zyPvhpyY2YCu7n\nKqWhnDy+EGgnJ+jti5G92YjijHt2uoHg7II7efuZzv9kBhoBIsljf7iwvv+a8g9z\nrHYIp5isqzER8M6JN2fq07D9Z8IqDg==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n    </md:KeyDescriptor>\n\n    <md:KeyDescriptor use="encryption">\n      <ds:KeyInfo>\n        <ds:KeyName>mock-app.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=mock-app-production</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFgjCCA2qgAwIBAgIUA/B74ZTBhTIidSvC8MUPgJT731MwDQYJKoZIhvcNAQEL\nBQAwMTEcMBoGA1UEAwwTbW9jay1hcHAtcHJvZHVjdGlvbjERMA8GA1UECgwITWFu\naWZlc3QwHhcNMjYwOTA5MTYxMjAwWhcNMjgwOTA4MTYxMjAwWjAxMRwwGgYDVQQD\nDBNtb2NrLWFwcC1wcm9kdWN0aW9uMREwDwYDVQQKDAhNYW5pZmVzdDCCAiIwDQYJ\nKoZIhvcNAQEBBQADggIPADCCAgoCggIBAJLxmInw3065Yaku2d9JzO5YgC1QntSP\nfNOvIvHi+CZeO6gtPlu94zYToTSH2K5xNFGKCYinm+J/EY7SDxYqW6SzELRSn42I\nlKPt9eO+QYi83LJIsn8Eg44IAmLRJ676goLm/0Bu3kG5j1JDmkt/zQytoVjHIfim\no21kfyuqLUM9GrCQ/87mqLZCs9snHZMp8XOslnp7XA4fGqXE8kdkNjeoetl2mH85\nJHTIkzGGW6yaTDKYPOz98ttp1jlKc9he2TBz27/eAQPnveTc+ywglhC0fZlFJjIa\nHMRYv/n52UujSfomJXlN8Dc0w3u8zNnkF7HSxu1I1SZ8xSpAQVo5ZfDDakKCZySg\ndda3kpCM6AH0BQ5JgPFSLk3PhVKlj8xby86SpxpfePlPyJSoVWu9+2bkXlqGSRty\nbuGuNaufDiPuvsAY5YzEqpG6xBRrgiKxDuxjQfx3NFby3mbXSJXn07n05HTQ5y3a\n6nAepnn1XrZV8YGrmPN9s6e43+exkeIGAIx2PeHO8LwbU57w7wKB+fAtRnQ8vt4n\nbtM9JhSIvsyiJRDdW3UZJ6Pyq9YuN+bL880TwCju0ToT06rYrTy6cUchvYBHj+5n\ncAsT28+M84Y9FOShkbWcqMu6KdHlZjRAs96jMqqJFtgzsh4bRAfvTJhpzGIZ2aam\nDyJsGJuaBgzRAgMBAAGjgZEwgY4wHQYDVR0OBBYEFFSNAJTYfflhIhUzPp20b6Be\nwuAdMB8GA1UdIwQYMBaAFFSNAJTYfflhIhUzPp20b6BewuAdMA8GA1UdEwEB/wQF\nMAMBAf8wOwYDVR0RBDQwMoYwaHR0cHM6Ly9tYW5pZmVzdC5pbnRlcm5hbC9zcC9t\nb2NrLWFwcC9wcm9kdWN0aW9uMA0GCSqGSIb3DQEBCwUAA4ICAQBpWpjSWJJezwsN\nZuNR/XPlLDE3idvZP+wJpI/dou03Ux+say5Y1WpIyxeqfV39y4pQUZALhTjqi+gW\n2pJJZS9oIZBPy+4UV1vVDdwU0USFN6gNw7oun1EdBgu5JsAfr93Vb4DV8kdWa9mY\nwjbahIyDPzzyYsvOT2BnMlbvbE2jZJpZ9EKVwt1aSy28STJrpUZwmMXTgtQf8T0w\nA77QbMYIaj1VuCOIgBBxljEbknjLTwYT6VwaKSEZ/ibJzOpxYpeZKc31eTtSLH1l\n/NR0TxLcHMTIVssdThUtNDkfidHSnbo0BjNydVili6V+3CUPgXB2ZvjKo/bQuyZL\nZBttgekYaLRcIVbAu/QtJX7zfygcFELQ/mIoKanVkuaFxqCJUpyUY8mjKLsDXd4i\nBZG1NOLOAYIxDjFszeV8koMHLTg8yCLm1WPPPr/rebB5XFKy29HPKuwA1V2olKLF\naYK3VTbAqJ5VfupEVws2+sOT+dSUTwswu/vKwdPiItCGYOTaWSjkU/pO5FIidrFF\nq6B5DF4T10vEtBmwrlWPXXI1opfNszA8ZTggzf+05lX824JEY7zyPvhpyY2YCu7n\nKqWhnDy+EGgnJ+jti5G92YjijHt2uoHg7II7efuZzv9kBhoBIsljf7iwvv+a8g9z\nrHYIp5isqzER8M6JN2fq07D9Z8IqDg==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n      <md:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>\n      <md:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes256-gcm"/>\n      <md:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes256-cbc"/>\n    </md:KeyDescriptor>\n\n    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://mock-app.manifest.internal/auth/logout"/>\n\n    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://mock-app.manifest.internal/auth/ubcshib/callback" index="1" isDefault="true"/>\n  </md:SPSSODescriptor>\n\n  <md:Organization>\n    <md:OrganizationName>University of British Columbia</md:OrganizationName>\n    <md:OrganizationDisplayName>University of British Columbia</md:OrganizationDisplayName>\n    <md:OrganizationURL>https://www.ubc.ca</md:OrganizationURL>\n  </md:Organization>\n\n  <md:ContactPerson contactType="technical">\n    <md:EmailAddress>instructor@example.test</md:EmailAddress>\n  </md:ContactPerson>\n  <md:ContactPerson contactType="support">\n    <md:EmailAddress>manifest-support@example.test</md:EmailAddress>\n  </md:ContactPerson>\n\n</md:EntityDescriptor>\n',
+}
+
+/** Who a package names: the project's owner as its technical contact, and the platform's support. */
+const PACKAGE_CONTACTS: Schemas['RegistrationPackage']['contacts'] = {
+  technical: [
+    {
+      name: 'Instructor One',
+      email: 'instructor@example.test',
+    },
+  ],
+  support: [
+    {
+      name: 'Manifest support',
+      email: 'manifest-support@example.test',
+    },
+  ],
+}
+
+/**
+ * THE ATTRIBUTES, JUSTIFIED BY WHERE THE APP READS THEM — the platform's sentences, verbatim. When the
+ * registrations were SENT the app greeted people by their first name; at the release serving staging
+ * now it no longer does, so a package drafted from it says `givenName` is asked for and unread.
+ */
+const ATTRIBUTES_READ: Schemas['RegistrationPackage']['attributes'] = [
+  {
+    name: 'ubcEduCwlPuid',
+    oid: 'urn:oid:1.3.6.1.4.1.60.6.1.6',
+    purpose:
+      'Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.',
+    usedAt: [
+      {
+        path: 'server.js',
+        line: 41,
+      },
+    ],
+    justification:
+      'Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. The app reads it in server.js:41.',
+    unused: false,
+  },
+  {
+    name: 'mail',
+    oid: 'urn:oid:0.9.2342.19200300.100.1.3',
+    purpose: 'The person’s email address, so the app can show it or write to them.',
+    usedAt: [
+      {
+        path: 'public/app.js',
+        line: 12,
+      },
+    ],
+    justification:
+      'The person’s email address, so the app can show it or write to them. The app shows it to the person in the browser, in public/app.js:12.',
+    unused: false,
+  },
+  {
+    name: 'givenName',
+    oid: 'urn:oid:2.5.4.42',
+    purpose:
+      'The person’s first name, so the app can greet them and show who wrote what.',
+    usedAt: [
+      {
+        path: 'public/app.js',
+        line: 13,
+      },
+    ],
+    justification:
+      'The person’s first name, so the app can greet them and show who wrote what. The app shows it to the person in the browser, in public/app.js:13.',
+    unused: false,
+  },
+]
+
+const ATTRIBUTES_UNREAD: Schemas['RegistrationPackage']['attributes'] = [
+  {
+    name: 'ubcEduCwlPuid',
+    oid: 'urn:oid:1.3.6.1.4.1.60.6.1.6',
+    purpose:
+      'Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.',
+    usedAt: [
+      {
+        path: 'server.js',
+        line: 41,
+      },
+    ],
+    justification:
+      'Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. The app reads it in server.js:41.',
+    unused: false,
+  },
+  {
+    name: 'mail',
+    oid: 'urn:oid:0.9.2342.19200300.100.1.3',
+    purpose: 'The person’s email address, so the app can show it or write to them.',
+    usedAt: [
+      {
+        path: 'public/app.js',
+        line: 12,
+      },
+    ],
+    justification:
+      'The person’s email address, so the app can show it or write to them. The app shows it to the person in the browser, in public/app.js:12.',
+    unused: false,
+  },
+  {
+    name: 'givenName',
+    oid: 'urn:oid:2.5.4.42',
+    purpose:
+      'The person’s first name, so the app can greet them and show who wrote what.',
+    usedAt: [],
+    justification:
+      'The app asks for it and does not read it anywhere Manifest looked — remove it from `auth.attributes` before you send this.',
+    unused: true,
+  },
+]
+
+/** A draft's warnings, in the platform's words: the unread attribute, then the missing PIA number. */
+const UNREAD_WARNING =
+  'The app asks for givenName and does not read it anywhere Manifest looked. Remove it from auth.attributes, validate the manifest and draft this again before you send it — UBC IAM asks why an app needs each attribute.'
+const NO_PIA_NUMBER_WARNING =
+  'The privacy assessment’s PIA number is not recorded yet, and UBC IAM asks for it. Once an administrator records the assessment approved with its number, draft this again so the package carries it.'
+
+/**
+ * THE PRIVACY ASSESSMENT AS IT WAS SENT AGAIN ON 18 SEPTEMBER — the platform's own `assembleAssessment`,
+ * run over this mock's manifest (the release's three attributes, its database, `default-chat`, no
+ * retention declared), its owner and the Docker driver. Generated once, 2026-10-01.
+ */
+const ASSESSMENT_DRAFT_SENT: Schemas['PrivacyAssessmentDraft'] = {
+  ...{
+    project: {
+      slug: 'mock-app',
+      name: 'Mock course app',
+    },
+    generatedAt: '2026-09-18T16:30:00.000Z',
+    fromCommit: '5f3c1b8e2a4d6f7c9b0e1a2d3c4b5a6978e9f0a1',
+    sections: [
+      {
+        id: 'collected',
+        title: 'What personal information the app collects',
+        facts: [
+          {
+            label: 'ubcEduCwlPuid',
+            value:
+              'Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.',
+            source: 'manifest.yaml: auth.attributes',
+          },
+          {
+            label: 'mail',
+            value: 'The person’s email address, so the app can show it or write to them.',
+            source: 'manifest.yaml: auth.attributes',
+          },
+          {
+            label: 'givenName',
+            value:
+              'The person’s first name, so the app can greet them and show who wrote what.',
+            source: 'manifest.yaml: auth.attributes',
+          },
+        ],
+        gaps: [
+          'What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.',
+        ],
+      },
+      {
+        id: 'stored',
+        title: 'Where it is stored',
+        facts: [
+          {
+            label: 'db',
+            value:
+              'A mongodb database, version 7.0, which Manifest runs for the app — one in each environment.',
+            source: 'manifest.yaml: services',
+          },
+          {
+            label: 'Sandbox',
+            value:
+              'Where the app is built and tried: its own copy of each database, never backed up.',
+            source: 'Manifest’s environments',
+          },
+          {
+            label: 'Staging',
+            value:
+              'Where the app is tested before launch: its own copy of each database, never backed up.',
+            source: 'Manifest’s environments',
+          },
+          {
+            label: 'Production',
+            value:
+              'Where people use the app: its own copy of each database, not backed up on this platform yet.',
+            source: 'Manifest’s environments',
+          },
+          {
+            label: 'Incident logs',
+            value:
+              'When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it.',
+            source: 'the platform',
+          },
+        ],
+        gaps: [
+          'Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.',
+        ],
+      },
+      {
+        id: 'flows',
+        title: 'Where it flows',
+        facts: [
+          {
+            label: 'Classification',
+            value: 'Low — every AI model the app uses must be approved for low data.',
+            source: 'manifest.yaml: data.classification',
+          },
+          {
+            label: 'Outside connections',
+            value:
+              'The app may connect to nothing outside the platform: every other address is refused.',
+            source: 'manifest.yaml: egress.allow',
+          },
+          {
+            label: 'default-chat',
+            value:
+              'Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.',
+            source: 'manifest.yaml: ai.models; the model catalogue',
+          },
+        ],
+        gaps: [],
+      },
+      {
+        id: 'retention',
+        title: 'How long it is kept, and how it is disposed of',
+        facts: [
+          {
+            label: 'How long',
+            value: 'The manifest gives no retention period.',
+            source: 'manifest.yaml: data.retention_days',
+          },
+          {
+            label: 'Deletion',
+            value:
+              'Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet.',
+            source: 'the platform',
+          },
+        ],
+        gaps: [
+          'No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.',
+          'How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.',
+        ],
+      },
+      {
+        id: 'accountable',
+        title: 'Who is accountable',
+        facts: [
+          {
+            label: 'Owner',
+            value: 'Instructor One <instructor@example.test>',
+            source: 'the project’s members',
+          },
+          {
+            label: 'Platform contact',
+            value: 'Manifest support <manifest-support@example.test>',
+            source: 'the platform’s contacts',
+          },
+        ],
+        gaps: [
+          'Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.',
+        ],
+      },
+      {
+        id: 'hosting',
+        title: 'Hosting and jurisdiction',
+        facts: [
+          {
+            label: 'Where the app runs',
+            value:
+              'In containers on the machine Manifest runs on, under its Docker driver.',
+            source: 'the platform’s runtime driver',
+          },
+          {
+            label: 'Where its code is kept',
+            value: 'In a repository on the machine Manifest runs on.',
+            source: 'the project’s repository',
+          },
+          {
+            label: 'default-chat',
+            value: 'Approved for internal data at most.',
+            source: 'the model catalogue',
+          },
+        ],
+        gaps: [
+          'Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.',
+          'Whether the app’s low data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.',
+        ],
+      },
+    ],
+    warnings: [],
+  },
+  text: 'Privacy impact assessment — draft\nMock course app (mock-app)\nDrafted by Manifest on September 18, 2026, from commit 5f3c1b8e2a4d.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  - givenName: The person’s first name, so the app can greet them and show who wrote what. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongodb database, version 7.0, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Production: Where people use the app: its own copy of each database, not backed up on this platform yet. (from Manifest’s environments)\n  - Incident logs: When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it. (from the platform)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Low — every AI model the app uses must be approved for low data. (from manifest.yaml: data.classification)\n  - Outside connections: The app may connect to nothing outside the platform: every other address is refused. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The manifest gives no retention period. (from manifest.yaml: data.retention_days)\n  - Deletion: Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet. (from the platform)\n  For you to add:\n  - No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Instructor One <instructor@example.test> (from the project’s members)\n  - Platform contact: Manifest support <manifest-support@example.test> (from the platform’s contacts)\n  For you to add:\n  - Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.\n\n6. Hosting and jurisdiction\n  - Where the app runs: In containers on the machine Manifest runs on, under its Docker driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for internal data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s low data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n',
+}
+
+/** The commit the SENT packages were drawn from — before the app stopped greeting people by name. */
+const SENT_COMMIT = '3e1d0c9b8a7f6e5d4c3b2a1908f7e6d5c4b3a291'
+
+const HOSTS = {
+  staging: 'mock-app.staging.manifest.internal',
+  production: 'mock-app.manifest.internal',
+} as const
+
+/** `sso/entity.ts`'s shapes for `mock-app` — the ACS is the blueprint's default path. */
+export const ENTITY = (environment: 'staging' | 'production') => ({
+  entityId: `https://manifest.internal/sp/mock-app/${environment}`,
+  acsUrl: `https://${HOSTS[environment]}/auth/ubcshib/callback`,
+  sloUrl: `https://${HOSTS[environment]}/auth/logout`,
+})
+
+/**
+ * A REGISTRATION'S PACKAGE AT ONE STAGE OF UBC'S ORDER, as `draftIamRegistration` assembles it:
+ * `sent` — what went to UBC IAM, drawn from `SENT_COMMIT` and carrying the PIA number; `drafted` —
+ * drawn from the release serving staging before the assessment was approved, so it carries no PIA
+ * number and says so; `assessed` — the same draft once the assessment is approved, carrying it.
+ */
+export function registrationPackage(
+  environment: 'staging' | 'production',
+  stage: 'sent' | 'drafted' | 'assessed',
+  generatedAt: string,
+): Schemas['RegistrationPackage'] {
+  return {
+    environment,
+    generatedAt,
+    fromCommit: stage === 'sent' ? SENT_COMMIT : COMMIT,
+    ...ENTITY(environment),
+    certificate: CERTIFICATES[environment],
+    attributes: stage === 'sent' ? ATTRIBUTES_READ : ATTRIBUTES_UNREAD,
+    usedAtTruncated: false,
+    contacts: PACKAGE_CONTACTS,
+    privacyAssessmentReference: stage === 'drafted' ? null : 'PIA-2026-0088',
+    metadataXml: METADATA_XML[environment],
+    warnings:
+      stage === 'sent'
+        ? []
+        : stage === 'drafted'
+          ? [UNREAD_WARNING, NO_PIA_NUMBER_WARNING]
+          : [UNREAD_WARNING],
+  }
+}
+
+/** *"September 18, 2026"* — the platform's `vancouverDayInWords`, which the draft's text carries. */
+const platformDayInWords = (at: string): string =>
+  new Intl.DateTimeFormat('en-CA', {
+    dateStyle: 'long',
+    timeZone: 'America/Vancouver',
+  }).format(new Date(at))
+
+/** The assessment drafted at another moment: the same rows, its text saying when it was drafted. */
+export function assessmentDraft(generatedAt: string): Schemas['PrivacyAssessmentDraft'] {
+  return {
+    ...ASSESSMENT_DRAFT_SENT,
+    generatedAt,
+    text: ASSESSMENT_DRAFT_SENT.text.replace(
+      /^Drafted by Manifest on .*?, from commit/m,
+      `Drafted by Manifest on ${platformDayInWords(generatedAt)}, from commit`,
+    ),
+  }
+}
+
+/**
  * §9's two external records (P6a Task 6). **BOTH PRESENT AND BOTH PART-WAY THROUGH**, so a
  * front-end developer sees the states that actually need rendering: a registration UBC IAM
  * has accepted, and a PIA still with the Privacy Office. A fixture with both `approved`
@@ -1060,11 +1460,10 @@ export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   // THE MOCK'S OWN PROJECT (`mock-app`), in `sso/entity.ts`'s shapes. These said
   // `chem-labs` — a slug no other fixture uses — so the records screen named one app and
   // the project screen above it another.
-  entityId: 'https://manifest.internal/sp/mock-app/production',
-  acsUrl: 'https://mock-app.manifest.internal/auth/callback',
-  sloUrl: 'https://mock-app.manifest.internal/auth/logout',
-  certFingerprint: 'AB:CD:EF:01:23:45',
-  certExpiresAt: '2027-03-01T00:00:00.000Z',
+  ...ENTITY('production'),
+  // THE CERTIFICATE UBC REGISTERED IS THE ONE THAT WAS SENT — the package's (Task 13).
+  certFingerprint: CERTIFICATES.production.fingerprint,
+  certExpiresAt: CERTIFICATES.production.expiresAt,
   // UBC registered ONE MORE than the release asks for, which is legal — `iam-registration`
   // is met when the request is a SUBSET — and is the case a screen must not render as a
   // mismatch.
@@ -1080,10 +1479,9 @@ export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   // registered, IN UBC'S ORDER (see `PRIVACY_ASSESSMENT`).
   submittedAt: '2026-09-10T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
-  // The launch path plan's Task 10 added the package a draft carries; the platform keeps the one
-  // that was sent. NULL HERE UNTIL TASK 13 scripts the mock's drafts — on the platform an owner's
-  // submission always has one, so a screen must not read null as "never drafted" from this fixture.
-  package: null,
+  // WHAT WAS SENT (the launch path plan's Tasks 10 and 13): the platform keeps the package a person
+  // sent, drafted the morning of the day they sent it.
+  package: registrationPackage('production', 'sent', '2026-09-10T16:30:00.000Z'),
   createdAt: '2026-09-09T00:00:00.000Z',
   updatedAt: '2026-09-20T00:00:00.000Z',
 }
@@ -1096,11 +1494,9 @@ export const STAGING_REGISTRATION: Schemas['IamRegistration'] = {
   id: '99999999-9999-4999-8999-999999999993',
   projectId: PROJECT_ID,
   environment: 'staging',
-  entityId: 'https://manifest.internal/sp/mock-app/staging',
-  acsUrl: 'https://mock-app.staging.manifest.internal/auth/callback',
-  sloUrl: 'https://mock-app.staging.manifest.internal/auth/logout',
-  certFingerprint: null,
-  certExpiresAt: null,
+  ...ENTITY('staging'),
+  certFingerprint: CERTIFICATES.staging.fingerprint,
+  certExpiresAt: CERTIFICATES.staging.expiresAt,
   registeredAttributes: ['givenName', 'mail', 'sn', 'ubcEduCwlPuid'],
   requestedAttributes: null,
   registeredAt: '2026-09-09T00:00:00.000Z',
@@ -1110,8 +1506,7 @@ export const STAGING_REGISTRATION: Schemas['IamRegistration'] = {
   // Sent the day after the assessment was approved — the order the platform gates the owner in.
   submittedAt: '2026-09-06T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
-  // Null until Task 13 scripts the mock's drafts (`IAM_REGISTRATION`'s note).
-  package: null,
+  package: registrationPackage('staging', 'sent', '2026-09-06T16:30:00.000Z'),
   createdAt: '2026-09-05T00:00:00.000Z',
   updatedAt: '2026-09-09T00:00:00.000Z',
 }
@@ -1132,10 +1527,9 @@ export const PRIVACY_ASSESSMENT: Schemas['PrivacyAssessment'] = {
   externalTicketRef: 'PIA-2026-0088',
   submittedAt: '2026-09-18T19:00:00.000Z',
   submittedBy: { id: USER_ID, displayName: 'Instructor One' },
-  // The launch path plan's Task 11 added the draft an owner completes and sends; the platform keeps
-  // the one that was sent. NULL HERE UNTIL TASK 13 scripts the mock's drafts (`IAM_REGISTRATION`'s
-  // note) — on the platform an owner's submission always has one.
-  draft: null,
+  // WHAT WAS SENT AGAIN on the 18th (the launch path plan's Tasks 11 and 13): the platform keeps the
+  // draft a person sent.
+  draft: ASSESSMENT_DRAFT_SENT,
   createdAt: '2026-09-01T00:00:00.000Z',
   updatedAt: '2026-09-20T00:00:00.000Z',
 }
@@ -1159,8 +1553,8 @@ export const REHEARSAL: Schemas['Rehearsal'] = {
   projectId: PROJECT_ID,
   releaseId: RELEASE.id,
   passed: true,
-  entityId: 'https://manifest.internal/sp/mock-app/production',
-  acsUrl: 'https://mock-app.manifest.internal/auth/callback',
+  entityId: ENTITY('production').entityId,
+  acsUrl: ENTITY('production').acsUrl,
   // What the Service Provider REGISTRATION listed — the release's request, not UBC's list.
   attributes: ['givenName', 'mail', 'ubcEduCwlPuid'],
   evidence: {
@@ -1248,6 +1642,13 @@ export const FIXTURES: [string, unknown][] = [
   ['PendingActionList', PENDING_ACTIONS],
   ['Fleet', FLEET],
   ['IamRegistration', IAM_REGISTRATION],
+  // The launch path plan's Task 13: the staging registration (unchecked here until then), production's
+  // own instance, and a package and a draft at each stage they are built at.
+  ['IamRegistration', STAGING_REGISTRATION],
+  ['Instance', PRODUCTION_INSTANCE],
+  ['RegistrationPackage', registrationPackage('staging', 'drafted', ISO)],
+  ['RegistrationPackage', registrationPackage('production', 'assessed', ISO)],
+  ['PrivacyAssessmentDraft', assessmentDraft(ISO)],
   ['PrivacyAssessment', PRIVACY_ASSESSMENT],
   ['LaunchRecords', LAUNCH_RECORDS],
   ['Rehearsal', REHEARSAL],

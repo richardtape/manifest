@@ -254,7 +254,7 @@ describe('the console’s data layer against manifest-mock', () => {
               state: 'active',
               externalTicketRef: 'IAM-2026-0412',
               entityId: 'https://manifest.internal/sp/mock-app/production',
-              acsUrl: 'https://mock-app.manifest.internal/auth/callback',
+              acsUrl: 'https://mock-app.manifest.internal/auth/ubcshib/callback',
               sloUrl: 'https://mock-app.manifest.internal/auth/logout',
               registeredAttributes: ['mail', 'ubcEduCwlPuid'],
             },

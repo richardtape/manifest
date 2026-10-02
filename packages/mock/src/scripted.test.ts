@@ -580,3 +580,413 @@ describe('Task 13 — the states the document’s examples cannot show', () => {
     expect(bytes.size).toBe(text.size)
   })
 })
+
+/**
+ * THE LAUNCH PATH PLAN'S TASK 13: THE RECORDS, THE SIGN-OFF REQUEST, THE QUEUE, AND FE-40'S SWITCHES.
+ * The mock keeps no state (P5c Decision 9), so each stage of UBC's order is an option, and every
+ * draft and send is answered as the platform answers it FROM that stage — in its words and its
+ * order of checks. Each refusal is asserted by its code, beside the success it is the other half of.
+ */
+describe('the launch path plan’s Task 13 — the records by stage, the sign-off request, the queue, FE-40', () => {
+  type Registration = {
+    state: string
+    environment: string
+    entityId: string
+    acsUrl: string
+    sloUrl: string
+    certFingerprint: string | null
+    submittedAt: string | null
+    externalTicketRef: string | null
+    package: {
+      environment: string
+      generatedAt: string
+      entityId: string
+      acsUrl: string
+      sloUrl: string
+      certificate: { fingerprint: string; pem: string }
+      attributes: { name: string; unused: boolean }[]
+      privacyAssessmentReference: string | null
+      metadataXml: string
+      warnings: string[]
+    } | null
+  }
+  type Assessment = {
+    state: string
+    submittedAt: string | null
+    externalTicketRef: string | null
+    draft: {
+      generatedAt: string
+      project: { slug: string }
+      sections: { id: string; gaps: string[] }[]
+      text: string
+    } | null
+  }
+  type Records = {
+    iamRegistration: Registration | null
+    stagingRegistration: Registration | null
+    privacyAssessment: Assessment | null
+  }
+  const records = async (at: string) =>
+    (await (
+      await fetch(`${at}/v1/projects/${f.PROJECT_ID}/launch-records`, {
+        headers: SESSION,
+      })
+    ).json()) as Records
+  const readiness = async (at: string) =>
+    (await (
+      await fetch(`${at}/v1/projects/${f.PROJECT_ID}/launch-readiness`, {
+        headers: SESSION,
+      })
+    ).json()) as {
+      ready: boolean
+      items: { id: string; state: string; why: string; since: string | null }[]
+    }
+  const item = async (at: string, id: string) =>
+    (await readiness(at)).items.find((i) => i.id === id)!
+  const post = (at: string, path: string, body?: unknown) =>
+    fetch(`${at}${path}`, {
+      method: 'POST',
+      headers: mutation(SESSION),
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  const records_ = `/v1/projects/${f.PROJECT_ID}/launch-records`
+  const draftIam = (at: string, env: string) =>
+    post(at, `${records_}/iam-registration/${env}/draft`)
+  const sendIam = (at: string, env: string, body: unknown = {}) =>
+    post(at, `${records_}/iam-registration/${env}/submission`, body)
+  const draftPia = (at: string) => post(at, `${records_}/privacy-assessment/draft`)
+  const sendPia = (at: string, body: unknown = {}) =>
+    post(at, `${records_}/privacy-assessment/submission`, body)
+  const today = () =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Vancouver',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+
+  it('carries what was sent by default — a real package for each registration and a real draft for the assessment — and refuses to draft or send them again', async () => {
+    const r = await records(origin)
+    for (const [record, environment] of [
+      [r.stagingRegistration, 'staging'],
+      [r.iamRegistration, 'production'],
+    ] as const) {
+      const sent = record!.package!
+      expect(sent, environment).not.toBeNull()
+      // A package names its own record: its environment, entity, ACS and SLO — the ACS the
+      // platform derives, `/auth/ubcshib/callback`.
+      expect(sent.environment).toBe(environment)
+      expect(sent.entityId).toBe(record!.entityId)
+      expect(sent.acsUrl).toBe(record!.acsUrl)
+      expect(sent.acsUrl).toMatch(/\/auth\/ubcshib\/callback$/)
+      expect(sent.sloUrl).toBe(record!.sloUrl)
+      // UBC registered the certificate that was sent.
+      expect(record!.certFingerprint).toBe(sent.certificate.fingerprint)
+      expect(sent.certificate.pem).toMatch(/^-----BEGIN CERTIFICATE-----/)
+      expect(sent.metadataXml).toContain(`entityID="${record!.entityId}"`)
+      expect(sent.privacyAssessmentReference).toBe('PIA-2026-0088')
+    }
+    expect(r.privacyAssessment!.draft!.project.slug).toBe('mock-app')
+    expect(r.privacyAssessment!.draft!.sections.map((s) => s.id)).toEqual([
+      'collected',
+      'stored',
+      'flows',
+      'retention',
+      'accountable',
+      'hosting',
+    ])
+    // A CERTIFICATE IS PUBLIC; A PRIVATE KEY IS NEVER IN AN ANSWER.
+    expect(JSON.stringify(r)).not.toMatch(/PRIVATE KEY/)
+
+    for (const [refused, code] of [
+      [await draftIam(origin, 'staging'), 'LAUNCH_RECORD_SUBMITTED'],
+      [await draftIam(origin, 'production'), 'LAUNCH_RECORD_SUBMITTED'],
+      [await draftPia(origin), 'LAUNCH_RECORD_SUBMITTED'],
+      [await sendPia(origin), 'LAUNCH_TRANSITION_INVALID'],
+      [await sendIam(origin, 'staging'), 'LAUNCH_TRANSITION_INVALID'],
+    ] as const) {
+      expect(refused.status, code).toBe(409)
+      expect(await codeOf(refused)).toBe(code)
+    }
+  })
+
+  it('MANIFEST_MOCK_RECORDS=none — nothing recorded; a draft is made now; nothing can be sent before it', async () => {
+    const at = await serve({ records: 'none' })
+    expect(await records(at)).toMatchObject({
+      iamRegistration: null,
+      stagingRegistration: null,
+      privacyAssessment: null,
+    })
+    expect((await item(at, 'privacy-assessment')).state).toBe('unmet')
+    expect((await item(at, 'iam-registration')).state).toBe('unmet')
+
+    for (const [refused, code] of [
+      [await sendPia(at), 'LAUNCH_DRAFT_REQUIRED'],
+      [await sendIam(at, 'staging'), 'LAUNCH_DRAFT_REQUIRED'],
+    ] as const) {
+      expect(refused.status, code).toBe(409)
+      expect(await codeOf(refused)).toBe(code)
+    }
+
+    const pia = await draftPia(at)
+    expect(pia.status).toBe(200)
+    const drafted = (await pia.json()) as Assessment
+    expect(drafted.state).toBe('draft')
+    // Times from now: drafted within the last three days.
+    const age = Date.now() - Date.parse(drafted.draft!.generatedAt)
+    expect(age).toBeGreaterThan(0)
+    expect(age).toBeLessThan(3 * 86_400_000)
+
+    const production = await draftIam(at, 'production')
+    expect(production.status).toBe(200)
+    const registration = (await production.json()) as Registration
+    expect(registration).toMatchObject({ state: 'draft', environment: 'production' })
+    expect(registration.package!.environment).toBe('production')
+    expect(registration.package!.entityId).toBe(registration.entityId)
+  })
+
+  it('MANIFEST_MOCK_RECORDS=drafted — all three drafted with their warnings; the assessment is sent as asked; a registration waits for it', async () => {
+    const at = await serve({ records: 'drafted' })
+    const r = await records(at)
+    expect(r.privacyAssessment!.state).toBe('draft')
+    const staging = r.stagingRegistration!
+    expect(staging.state).toBe('draft')
+    // An attribute the app asks for and never reads, and no PIA number yet: both said.
+    expect(staging.package!.attributes.find((a) => a.name === 'givenName')!.unused).toBe(
+      true,
+    )
+    expect(staging.package!.warnings.some((w) => w.includes('givenName'))).toBe(true)
+    expect(staging.package!.warnings.some((w) => w.includes('PIA number'))).toBe(true)
+    expect(staging.package!.privacyAssessmentReference).toBeNull()
+    expect(r.iamRegistration!.state).toBe('draft')
+
+    // A registration is sent only once the assessment is approved — the platform's first gate.
+    const early = await sendIam(at, 'staging', {
+      draftGeneratedAt: staging.package!.generatedAt,
+    })
+    expect(early.status).toBe(409)
+    expect(await codeOf(early)).toBe('LAUNCH_PIA_NOT_APPROVED')
+
+    const draftGeneratedAt = r.privacyAssessment!.draft!.generatedAt
+    // A draft other than the one held, a day still to come: each refused by its code.
+    const changed = await sendPia(at, { draftGeneratedAt: new Date().toISOString() })
+    expect(changed.status).toBe(409)
+    expect(await codeOf(changed)).toBe('LAUNCH_DRAFT_CHANGED')
+    const future = await sendPia(at, { sentAt: '2999-01-01', draftGeneratedAt })
+    expect(future.status).toBe(400)
+    expect(await codeOf(future)).toBe('LAUNCH_SENT_AT_INVALID')
+
+    const sent = await sendPia(at, {
+      sentAt: today(),
+      reference: 'PRISM-0042',
+      draftGeneratedAt,
+    })
+    expect(sent.status).toBe(200)
+    const assessment = (await sent.json()) as Assessment
+    expect(assessment).toMatchObject({
+      state: 'submitted',
+      externalTicketRef: 'PRISM-0042',
+    })
+    // Stamped at noon in Vancouver on the day named — the platform's rule.
+    expect(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Vancouver',
+        hour: '2-digit',
+        hourCycle: 'h23',
+      }).format(new Date(assessment.submittedAt!)),
+    ).toBe('12')
+    expect(assessment.draft!.generatedAt).toBe(draftGeneratedAt)
+  })
+
+  it('MANIFEST_MOCK_RECORDS=assessed — the assessment approved; staging is sent; production waits for staging', async () => {
+    const at = await serve({ records: 'assessed' })
+    const r = await records(at)
+    expect(r.privacyAssessment).toMatchObject({
+      state: 'approved',
+      externalTicketRef: 'PIA-2026-0088',
+    })
+    const staging = r.stagingRegistration!
+    expect(staging.package!.privacyAssessmentReference).toBe('PIA-2026-0088')
+    expect(staging.package!.warnings.some((w) => w.includes('PIA number'))).toBe(false)
+
+    const production = await sendIam(at, 'production', {
+      draftGeneratedAt: r.iamRegistration!.package!.generatedAt,
+    })
+    expect(production.status).toBe(409)
+    expect(await codeOf(production)).toBe('LAUNCH_STAGING_NOT_REGISTERED')
+
+    const sent = await sendIam(at, 'staging', {
+      reference: 'IAM-2026-0500',
+      draftGeneratedAt: staging.package!.generatedAt,
+    })
+    expect(sent.status).toBe(200)
+    expect((await sent.json()) as Registration).toMatchObject({
+      state: 'submitted',
+      environment: 'staging',
+      externalTicketRef: 'IAM-2026-0500',
+    })
+  })
+
+  it('MANIFEST_MOCK_RECORDS=approved is FE-40 (1) — every blocking item met, and a production deploy answers a production instance of its own', async () => {
+    const deployProduction = (at: string) =>
+      post(at, `/v1/environments/${f.PRODUCTION_ID}/deploy`, { releaseId: f.RELEASE_ID })
+    const ready = await serve({ records: 'approved' })
+    expect((await readiness(ready)).ready).toBe(true)
+    const deployed = (await (await deployProduction(ready)).json()) as {
+      environmentId: string
+    }
+    expect(deployed.environmentId).toBe(f.PRODUCTION_ID)
+    // The default is unchanged (FE-40: the defaults do not move) — not ready.
+    expect((await readiness(origin)).ready).toBe(false)
+  })
+
+  it('answers a sign-off request as the platform does: not needed by default, open while pending (FE-40 (3)), refused after a rejection', async () => {
+    const ask = (at: string, releaseId: string = f.RELEASE_ID) =>
+      post(at, `/v1/releases/${releaseId}/approval-request`, { note: 'please look' })
+
+    const needless = await ask(origin)
+    expect(needless.status).toBe(409)
+    expect(await codeOf(needless)).toBe('APPROVAL_NOT_NEEDED')
+
+    const pending = await serve({ approval: 'pending' })
+    const asked = await ask(pending)
+    expect(asked.status).toBe(200)
+    const request = (await asked.json()) as {
+      releaseId: string
+      projectId: string
+      open: boolean
+      createdAt: string
+    }
+    expect(request).toMatchObject({
+      releaseId: f.RELEASE_ID,
+      projectId: f.PROJECT_ID,
+      open: true,
+    })
+    // The note is the administrators' alone: never in the answer.
+    expect(JSON.stringify(request)).not.toContain('please look')
+    expect(Math.abs(Date.now() - Date.parse(request.createdAt))).toBeLessThan(60_000)
+    // Nobody has decided: getApproval is the platform's 404, and the checklist's item is unmet.
+    const none = await fetch(`${pending}/v1/releases/${f.RELEASE_ID}/approval`, {
+      headers: SESSION,
+    })
+    expect(none.status).toBe(404)
+    expect(await codeOf(none)).toBe('NOT_FOUND')
+    expect((await item(pending, 'admin-approval')).state).toBe('unmet')
+    const unknown = await ask(pending, UNKNOWN)
+    expect(unknown.status).toBe(404)
+    expect(await codeOf(unknown)).toBe('NOT_FOUND')
+
+    const rejected = await serve({ approval: 'rejected' })
+    const refused = await ask(rejected)
+    expect(refused.status).toBe(409)
+    expect(await codeOf(refused)).toBe('RELEASE_REJECTED')
+    const decision = (await (
+      await fetch(`${rejected}/v1/releases/${f.RELEASE_ID}/approval`, {
+        headers: SESSION,
+      })
+    ).json()) as { decision: string; reason: string | null }
+    expect(decision.decision).toBe('rejected')
+    expect(decision.reason).not.toBeNull()
+  })
+
+  it('lists the queue for an administrator only — what the fixtures hold by default, four kinds oldest first when MANIFEST_MOCK_QUEUE=full', async () => {
+    const queue = (at: string) => fetch(`${at}/v1/queue`, { headers: SESSION })
+    const member = await queue(origin)
+    expect(member.status).toBe(403)
+    expect(await codeOf(member)).toBe('FORBIDDEN')
+
+    type Queue = {
+      items: {
+        kind: string
+        since: string
+        note: string | null
+        project: { slug: string }
+      }[]
+      oldestSince: string | null
+      truncated: boolean
+    }
+    const admin = (await (await queue(await serve({ role: 'admin' }))).json()) as Queue
+    expect(admin.items.map((i) => i.kind)).toEqual(['privacy-assessment'])
+    expect(admin.items[0]!.project.slug).toBe('mock-app')
+    expect(admin.oldestSince).toBe(admin.items[0]!.since)
+
+    const full = (await (
+      await queue(await serve({ role: 'admin', queue: 'full' }))
+    ).json()) as Queue
+    expect(new Set(full.items.map((i) => i.kind))).toEqual(
+      new Set([
+        'release-approval',
+        'iam-registration',
+        'iam-change-request',
+        'privacy-assessment',
+      ]),
+    )
+    expect(full.items.length).toBe(4)
+    const sinces = full.items.map((i) => Date.parse(i.since))
+    expect(sinces).toEqual([...sinces].sort((a, b) => a - b))
+    expect(full.oldestSince).toBe(full.items[0]!.since)
+    // A sign-off request carries its note for the administrators; nothing else does.
+    expect(full.items.find((i) => i.kind === 'release-approval')!.note).not.toBeNull()
+    expect(full.truncated).toBe(false)
+  })
+
+  it('MANIFEST_MOCK_STEP_UP=1 is FE-40 (2) — a production deploy and a production secret are refused until the session steps up', async () => {
+    const at = await serve({ stepUp: true, records: 'approved' })
+    const deploy = (env: string, cookie = SESSION.cookie) =>
+      fetch(`${at}/v1/environments/${env}/deploy`, {
+        method: 'POST',
+        headers: { ...mutation({ cookie }) },
+        body: JSON.stringify({ releaseId: f.RELEASE_ID }),
+      })
+    const secret = (env: string, cookie = SESSION.cookie) =>
+      fetch(`${at}/v1/environments/${env}/secrets/API_KEY`, {
+        method: 'PUT',
+        headers: { ...mutation({ cookie }) },
+        body: JSON.stringify({ value: 'not-a-real-secret' }),
+      })
+
+    const refused = await deploy(f.PRODUCTION_ID)
+    expect(refused.status).toBe(403)
+    expect(await codeOf(refused)).toBe('STEP_UP_REQUIRED')
+    const refusedSecret = await secret(f.PRODUCTION_ID)
+    expect(refusedSecret.status).toBe(403)
+    expect(await codeOf(refusedSecret)).toBe('STEP_UP_REQUIRED')
+    // Staging is not guarded.
+    expect((await deploy(f.STAGING_ID)).status).toBe(200)
+
+    const stepUp = await fetch(`${at}/auth/step-up?returnTo=/projects/${f.PROJECT_ID}`, {
+      headers: SESSION,
+      redirect: 'manual',
+    })
+    expect(stepUp.status).toBe(302)
+    expect(stepUp.headers.get('location')).toBe(`/projects/${f.PROJECT_ID}`)
+    const stepped = stepUp.headers.get('set-cookie')!.split(';')[0]!
+    const cookie = `${SESSION.cookie}; ${stepped}`
+    expect((await deploy(f.PRODUCTION_ID, cookie)).status).toBe(200)
+    expect((await secret(f.PRODUCTION_ID, cookie)).status).toBe(200)
+    // Unscripted, step-up is not enforced — the default, unchanged.
+    const plain = await fetch(`${origin}/v1/environments/${f.PRODUCTION_ID}/deploy`, {
+      method: 'POST',
+      headers: mutation(SESSION),
+      body: JSON.stringify({ releaseId: f.RELEASE_ID }),
+    })
+    expect(plain.status).toBe(200)
+  })
+
+  it('MANIFEST_MOCK_REHEARSAL=failed is FE-40 (4) — a rehearsal that did not pass is a 200 carrying its evidence, and the item is unmet', async () => {
+    const at = await serve({ rehearsal: 'failed' })
+    const ran = await post(at, `/v1/projects/${f.PROJECT_ID}/rehearsal`)
+    expect(ran.status).toBe(200)
+    const rehearsal = (await ran.json()) as {
+      passed: boolean
+      evidence: { reason: string; signInStatus: number | null }
+    }
+    expect(rehearsal.passed).toBe(false)
+    expect(rehearsal.evidence.reason).not.toBe('')
+    const failed = await item(at, 'rehearsal')
+    expect(failed.state).toBe('unmet')
+    expect(failed.why).toContain(rehearsal.evidence.reason)
+    // The default rehearsal passes.
+    expect((await item(origin, 'rehearsal')).state).toBe('met')
+  })
+})

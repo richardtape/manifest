@@ -9,6 +9,25 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import * as f from './fixtures.js'
 import { READY, REPLAY, scripted, SCAN_SILENCE_MS } from './script.js'
 import { createValidator, type Validate } from './validate.js'
+import { MockRefusal } from './refusal.js'
+import {
+  approvalOf,
+  draftAssessment,
+  draftRegistration,
+  launchReadiness,
+  launchRecords,
+  queueOf,
+  rehearsalOf,
+  requestApproval,
+  submitAssessment,
+  submitRegistration,
+  type ApprovalState,
+  type LaunchOptions,
+  type RecordsStage,
+  type SubmitBody,
+} from './launch.js'
+
+export { MockRefusal }
 
 /**
  * manifest-mock (§5, §16, §21): the published contract served from fixtures, so a front-end
@@ -42,16 +61,18 @@ import { createValidator, type Validate } from './validate.js'
  * `HELD` below. It KEEPS NO STATE (P5c Decision 9): a rename, an archive or a delete is answered
  * as the platform would answer it, and the next read answers the fixtures again.
  *
- * WHAT IT DELIBERATELY DOES NOT ENFORCE: §20's CSRF origin check, and §20's STEP-UP — an archive,
- * a delete or a production secret is answered here without a second sign-in, as every step-up
- * operation always has been; the console's step-up handling is proved against the platform.
- * And §20's CSRF origin check: A browser pointed at the
+ * WHAT IT DOES NOT ENFORCE UNLESS ASKED: the STEP-UP — an archive, a delete or an approval is
+ * answered here without a second sign-in; since the launch path plan's Task 13, `MANIFEST_MOCK_STEP_UP=1`
+ * (FE-40 (2)) refuses a production deploy and a production secret `403 STEP_UP_REQUIRED` until
+ * `/auth/step-up` has been visited. And NEVER the CSRF origin check: A browser pointed at the
  * mock through Vite's proxy sends `Origin: http://127.0.0.1:7104`, and the platform wants
  * the console's origin — so enforcing it here would refuse every mutation the mock exists to
  * let a developer make. It is stated in RUNBOOK as a limit rather than hidden.
  */
 
 const SESSION_COOKIE = 'manifest_session'
+/** The mock's own mark of a step-up (FE-40 (2)): not the platform's, which lives in its session. */
+const STEP_UP_COOKIE = 'manifest_mock_stepped_up'
 /** The one session value the mock issues, and so the one it trusts (FE-26). */
 export const ISSUED_SESSION = 'mock-session'
 const DOCUMENT = new URL('../../contract/openapi.json', import.meta.url)
@@ -87,6 +108,32 @@ export interface MockOptions {
    * MEMBER_MAY_NOT_BUILD` — the person named may not be added. An administrator always may build.
    */
   mayBuild?: boolean
+  /**
+   * WHERE `mock-app` STANDS IN UBC'S ORDER (the launch path plan's Task 13; `launch.ts`):
+   * `MANIFEST_MOCK_RECORDS=none` — nothing recorded; `=drafted` — all three drafted, nothing sent;
+   * `=assessed` — the assessment approved, both registrations drafted carrying its PIA number;
+   * `=approved` — everything approved and registered, so the checklist is ready and a production
+   * deploy answers production's own instance (FE-40 (1)). Unset, `sent`: the story every other
+   * fixture tells — both registrations active, the assessment sent again and with the Privacy Office.
+   * Each draft and send is answered as the platform answers it from that stage.
+   */
+  records?: RecordsStage
+  /**
+   * FE-40 (3): `MANIFEST_MOCK_APPROVAL=pending` — nobody has decided (`getApproval` `404`, the
+   * checklist's `admin-approval` unmet, `requestApproval` answers an open request); `=rejected` — an
+   * administrator rejected it, with a reason (`requestApproval` `409 RELEASE_REJECTED`). Unset,
+   * `approved`, and a request is `409 APPROVAL_NOT_NEEDED`.
+   */
+  approval?: ApprovalState
+  /** FE-40 (4): `MANIFEST_MOCK_REHEARSAL=failed` — the rehearsal did not pass, with its evidence. */
+  rehearsal?: 'passed' | 'failed'
+  /** FE-40 (2): `MANIFEST_MOCK_STEP_UP=1` — see *What it does not enforce unless asked*, above. */
+  stepUp?: boolean
+  /**
+   * `MANIFEST_MOCK_QUEUE=full`: the administrators' queue holds one of each kind — the three beyond
+   * what `mock-app`'s stage leaves with UBC are on projects this mock does not hold.
+   */
+  queue?: 'default' | 'full'
   /** §12's silent scan window; shortened by a test that must not wait ten seconds. */
   scanSilenceMs?: number
 }
@@ -106,6 +153,8 @@ interface Context {
   now: number
   /** Which credential the request carried (FE-26). */
   credential: 'session' | 'token'
+  /** The session visited `/auth/step-up` in the last ten minutes (FE-40 (2)). */
+  steppedUp: boolean
 }
 
 interface Answer {
@@ -130,30 +179,6 @@ function refuseUnlessMayBuild(ctx: Context): void {
 
 const ok = (schema: string, body: unknown): Answer => ({ status: 200, schema, body })
 const created = (schema: string, body: unknown): Answer => ({ status: 201, schema, body })
-
-export class MockRefusal extends Error {
-  // FIELDS, NOT PARAMETER PROPERTIES (FE-26 (b)): the mock starts from source under Node's own
-  // type stripping, which refuses a constructor parameter property.
-  readonly status: number
-  readonly code: string
-  readonly hint: string | undefined
-  /** On `SPEC_INVALID`: each problem, as the platform's envelope carries them. */
-  readonly details: unknown[] | undefined
-  constructor(
-    status: number,
-    code: string,
-    message: string,
-    hint?: string,
-    details?: unknown[],
-  ) {
-    super(message)
-    this.name = 'MockRefusal'
-    this.status = status
-    this.code = code
-    this.hint = hint
-    this.details = details
-  }
-}
 
 /**
  * THE IDS THE MOCK HOLDS, BY THE PATH PARAMETER THAT NAMES THEM (FE-27). Anything else is the
@@ -242,6 +267,39 @@ function documentExample(ctx: Context): Answer {
   return structuredClone(ctx.example)
 }
 
+/** The launch path's options, as `launch.ts` reads them. */
+const launchOf = (ctx: Context): LaunchOptions => ({
+  records: ctx.options.records,
+  approval: ctx.options.approval,
+  rehearsal: ctx.options.rehearsal,
+  queue: ctx.options.queue,
+})
+
+/**
+ * FE-40 (2): A PRODUCTION DEPLOY OR SECRET WITHOUT A RECENT STEP-UP, when scripted — the platform's
+ * `403 STEP_UP_REQUIRED`, whose hint names the route that steps up.
+ */
+function assertSteppedUp(ctx: Context, capability: string): void {
+  if (!ctx.options.stepUp || ctx.steppedUp) return
+  throw new MockRefusal(
+    403,
+    'STEP_UP_REQUIRED',
+    `'${capability}' needs a second authentication round trip`,
+    'Navigate the browser to /auth/step-up?returnTo=<the page you are on>, complete the CWL prompt, and make this request again.',
+  )
+}
+
+/** The `environment` path parameter, as the platform's schema allows it. */
+function environmentOf(ctx: Context): 'staging' | 'production' {
+  const environment = ctx.params.environment
+  if (environment === 'staging' || environment === 'production') return environment
+  throw new MockRefusal(
+    400,
+    'REQUEST_INVALID',
+    `environment must be 'staging' or 'production', not '${String(environment)}'`,
+  )
+}
+
 /**
  * ONE ENTRY PER OPERATION IN THE DOCUMENT, in the document's own order, so a reader can diff
  * the two. Every value here is a fixture from `fixtures.ts` and every fixture is in
@@ -269,10 +327,23 @@ const ANSWERS: Record<string, Answerer> = {
   // against the mock exactly as it fails against the platform. KEYED ON THE ENVIRONMENT for the
   // sandbox since Task 13 (FE-27): a sandbox deploy answers the sandbox's instance, never
   // staging's. Production still answers staging's fixture — the mock scripts no launch.
-  deploy: (ctx) =>
-    ctx.params.environmentId === f.SANDBOX_ID
-      ? ok('Instance', ctx.options.fail ? f.FAILED_SANDBOX_INSTANCE : f.SANDBOX_INSTANCE)
-      : ok('Instance', ctx.options.fail ? f.FAILED_INSTANCE : f.INSTANCE),
+  //
+  // PRODUCTION (FE-40, the launch path plan's Task 13): step-up first when scripted, and production's
+  // own instance once the checklist is ready (`MANIFEST_MOCK_RECORDS=approved`). Otherwise production
+  // still answers staging's fixture — the default does not move (FE-40), and that is a known lie.
+  deploy: (ctx) => {
+    if (ctx.params.environmentId === f.SANDBOX_ID)
+      return ok(
+        'Instance',
+        ctx.options.fail ? f.FAILED_SANDBOX_INSTANCE : f.SANDBOX_INSTANCE,
+      )
+    if (ctx.params.environmentId === f.PRODUCTION_ID) {
+      assertSteppedUp(ctx, 'release:promote')
+      if (launchReadiness(launchOf(ctx), ctx.now).ready)
+        return ok('Instance', f.PRODUCTION_INSTANCE)
+    }
+    return ok('Instance', ctx.options.fail ? f.FAILED_INSTANCE : f.INSTANCE)
+  },
   // EACH ENVIRONMENT'S OWN INSTANCES (FE-27), agreeing with `getProject`'s environments.
   listInstances: (ctx) =>
     ok('InstanceList', f.INSTANCE_LISTS[ctx.params.environmentId ?? '']),
@@ -424,8 +495,31 @@ const ANSWERS: Record<string, Answerer> = {
       'Open it with a WebSocket client; @manifest/contract’s subscribe() does.',
     )
   },
-  getLaunchReadiness: () => ok('LaunchReadiness', f.LAUNCH_READINESS),
-  getLaunchRecords: () => ok('LaunchRecords', f.LAUNCH_RECORDS),
+  // THE CHECKLIST AND THE RECORDS AT THE SCRIPTED STAGE (the launch path plan's Task 13; `launch.ts`).
+  getLaunchReadiness: (ctx) =>
+    ok('LaunchReadiness', launchReadiness(launchOf(ctx), ctx.now)),
+  getLaunchRecords: (ctx) => ok('LaunchRecords', launchRecords(launchOf(ctx), ctx.now)),
+  // THE OWNER'S HALF (Tasks 9–11): each draft and *"I've sent it"* answered as the platform answers
+  // it from the stage — the draft, or the refusal, in its words and its order of checks.
+  draftIamRegistration: (ctx) =>
+    ok('IamRegistration', draftRegistration(launchOf(ctx), environmentOf(ctx), ctx.now)),
+  submitIamRegistration: (ctx) =>
+    ok(
+      'IamRegistration',
+      submitRegistration(
+        launchOf(ctx),
+        environmentOf(ctx),
+        bodyOf<SubmitBody>(ctx),
+        ctx.now,
+      ),
+    ),
+  draftPrivacyAssessment: (ctx) =>
+    ok('PrivacyAssessment', draftAssessment(launchOf(ctx), ctx.now)),
+  submitPrivacyAssessment: (ctx) =>
+    ok(
+      'PrivacyAssessment',
+      submitAssessment(launchOf(ctx), bodyOf<SubmitBody>(ctx), ctx.now),
+    ),
   // BOTH RECORD ROUTES ANSWER THE FIXTURE, NOT THE REQUEST. The mock does not keep state
   // (P5c Decision 9), and a record route that echoed the body back would let a console bug
   // that sends the wrong state look correct here and wrong against the platform.
@@ -436,7 +530,8 @@ const ANSWERS: Record<string, Answerer> = {
   // front-end developer to build for a delay it cannot reproduce, and one that answered
   // `passed: false` would hide the state the screen is for. `script.ts` is where timing is
   // modelled, deliberately, and only for the stream.
-  runRehearsal: () => ok('Rehearsal', f.REHEARSAL),
+  // FE-40 (4): `MANIFEST_MOCK_REHEARSAL=failed` answers one that did not pass — still a `200`.
+  runRehearsal: (ctx) => ok('Rehearsal', rehearsalOf(launchOf(ctx))),
   listMembers: () => ok('MemberList', f.MEMBERS),
   addMember: (ctx) => {
     if (!ctx.options.mayBuild)
@@ -468,7 +563,15 @@ const ANSWERS: Record<string, Answerer> = {
    */
   approveRelease: (ctx) => created('Approval', decisionNamingAPreview(ctx)),
   rejectRelease: (ctx) => created('Approval', decisionNamingAPreview(ctx)),
-  getApproval: () => ok('Approval', f.APPROVAL),
+  // FE-40 (3): none yet (`404`) while pending, or a rejection with its reason.
+  getApproval: (ctx) =>
+    ok('Approval', approvalOf(launchOf(ctx), ctx.params.releaseId ?? '')),
+  // FE-25 (Task 12): asking an administrator to sign off — not needed, refused after a rejection, or
+  // an open request, created now. The note is the administrators' alone and never answered.
+  requestApproval: (ctx) =>
+    ok('ApprovalRequest', requestApproval(launchOf(ctx), ctx.credential, ctx.now)),
+  // §26's queue (Task 12): an administrator's read, what the stage leaves with UBC, oldest first.
+  listQueue: (ctx) => ok('Queue', queueOf(launchOf(ctx), ctx.options.role, ctx.now)),
   // P6b Task 9: the stored preview. Taking one and re-reading it answer the SAME fixture, which
   // is the platform's property (a re-read never recomputes) and also all a stateless mock can do.
   createApprovalPreview: () => created('ApprovalPreview', f.APPROVAL_PREVIEW),
@@ -667,6 +770,15 @@ const ANSWERS: Record<string, Answerer> = {
     return example
   },
   getOpenApiDocument: (ctx) => ok('OpenApiDocument', ctx.document),
+  // A PRODUCTION SECRET NEEDS A STEP-UP when scripted (FE-40 (2)); otherwise the document's example.
+  setAppSecret: (ctx) => {
+    if (ctx.params.environmentId === f.PRODUCTION_ID) assertSteppedUp(ctx, 'secret:write')
+    return documentExample(ctx)
+  },
+  clearAppSecret: (ctx) => {
+    if (ctx.params.environmentId === f.PRODUCTION_ID) assertSteppedUp(ctx, 'secret:write')
+    return documentExample(ctx)
+  },
   // A DRY RUN IS ANSWERED AS ONE — `commitSha: null`, no recorded validation — and it echoes
   // nothing else of the request. The one fact the Check button exists for is that nothing was
   // written; answering it the example's commit would tell a person it had been (the reason
@@ -743,6 +855,8 @@ export const FROM_EXAMPLE: readonly string[] = [
   'listCommits',
   'createCommit',
   'getDoc',
+  'setAppSecret',
+  'clearAppSecret',
 ]
 
 interface Operation {
@@ -932,6 +1046,25 @@ export function createMockServer(options: MockOptions = {}): Server {
       process.env.MANIFEST_MOCK_AGENT_BUDGET === 'unavailable'
         ? process.env.MANIFEST_MOCK_AGENT_BUDGET
         : 'ok'),
+    records:
+      options.records ??
+      (['none', 'drafted', 'assessed', 'approved'].includes(
+        process.env.MANIFEST_MOCK_RECORDS ?? '',
+      )
+        ? (process.env.MANIFEST_MOCK_RECORDS as RecordsStage)
+        : 'sent'),
+    approval:
+      options.approval ??
+      (process.env.MANIFEST_MOCK_APPROVAL === 'pending' ||
+      process.env.MANIFEST_MOCK_APPROVAL === 'rejected'
+        ? process.env.MANIFEST_MOCK_APPROVAL
+        : 'approved'),
+    rehearsal:
+      options.rehearsal ??
+      (process.env.MANIFEST_MOCK_REHEARSAL === 'failed' ? 'failed' : 'passed'),
+    stepUp: options.stepUp ?? process.env.MANIFEST_MOCK_STEP_UP === '1',
+    queue:
+      options.queue ?? (process.env.MANIFEST_MOCK_QUEUE === 'full' ? 'full' : 'default'),
     intake:
       options.intake ??
       (process.env.MANIFEST_MOCK_INTAKE === 'daily-limit' ||
@@ -995,6 +1128,18 @@ export function createMockServer(options: MockOptions = {}): Server {
       response.writeHead(302, {
         location: safe,
         'set-cookie': `${SESSION_COOKIE}=${ISSUED_SESSION}; Path=/; HttpOnly; SameSite=Lax`,
+      })
+      response.end()
+      return
+    }
+    // FE-40 (2): THE STEP-UP, with no IdP — it steps up and sends the browser back, as login does.
+    // A cookie of its own for ten minutes (§20's window), so the mock keeps no state.
+    if (url.pathname === '/auth/step-up') {
+      const returnTo = url.searchParams.get('returnTo') ?? '/'
+      const safe = /^\/(?!\/)[^\s\\]{0,511}$/.test(returnTo) ? returnTo : '/'
+      response.writeHead(302, {
+        location: safe,
+        'set-cookie': `${STEP_UP_COOKIE}=1; Path=/; Max-Age=600; HttpOnly; SameSite=Lax`,
       })
       response.end()
       return
@@ -1134,6 +1279,7 @@ export function createMockServer(options: MockOptions = {}): Server {
         document,
         now: Date.now(),
         credential,
+        steppedUp: cookiesOf(request)[STEP_UP_COOKIE] === '1',
       })
 
       // EVERY BODY IS VALIDATED ON ITS WAY OUT, in-process. A mock that lies is worse than

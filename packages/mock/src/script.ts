@@ -2,12 +2,14 @@ import type { StreamFrame } from '@manifest/contract'
 import {
   BUILD,
   BUILD_ID,
+  ENTITY,
   INSTANCE_ID,
   INCIDENT_ID,
   LOG_LINES,
   PROJECT_ID,
   RELEASE_ID,
   STAGING_ID,
+  STAGING_REGISTRATION,
 } from './fixtures.js'
 
 /**
@@ -224,10 +226,12 @@ export function scripted(
       type: 'sso.registered',
       humanMessage: 'Registered mock-app with the Manifest IdP.',
       machineDetail: {
-        entityId: 'https://mock-app.staging.manifest.internal/auth/metadata',
-        acsUrl: 'https://mock-app.staging.manifest.internal/auth/callback',
+        // STAGING'S OWN ENTITY AND CERTIFICATE (the launch path plan's Task 13): the certificate a
+        // registration package carries is the one this event publishes when the environment deploys.
+        entityId: ENTITY('staging').entityId,
+        acsUrl: ENTITY('staging').acsUrl,
         attributes: ['ubcEduCwlPuid', 'mail', 'givenName'],
-        certificateFingerprint: 'ab:cd:ef:01:23:45:67:89',
+        certificateFingerprint: STAGING_REGISTRATION.package!.certificate.fingerprint,
         changed: true,
       },
       createdAt: ISO,
