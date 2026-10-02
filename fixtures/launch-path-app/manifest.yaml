@@ -1,0 +1,41 @@
+# Office hours: a student signs in and books a slot, and sees where the
+# confirmation goes.
+#
+# `make demo-launch`'s app (the launch path plan's Task 15). The demo writes this
+# file and `server.js` into a project created from the bare `node-ts-mongo@1`
+# skeleton, through nothing but Manifest's API, and takes it to production: the
+# privacy assessment and both registrations drafted, sent and recorded, an
+# administrator's sign-off asked for and given, and the launch. The demo puts its
+# project's slug in `name` as it writes it: §7 refuses a manifest whose name is
+# not its project's (SPEC_NAME_SLUG_MISMATCH).
+manifest: 1
+name: launch-path-app
+blueprint: node-ts-mongo@1
+description: Office hours — a student signs in and books a slot.
+
+runtime:
+  port: 3000
+  health: /healthz
+
+services:
+  - { type: mongo, version: "7", name: db }
+
+auth:
+  provider: cwl
+  # What the app reads, and one it asks for and DOES NOT read — on purpose:
+  #   ubcEduCwlPuid   who booked — a booking is keyed on it, and it is never shown
+  #   givenName       the page greets the person by it
+  #   mail            where the booking's confirmation goes, shown on the page
+  #   sn              NOT READ ANYWHERE. The registration package Manifest drafts
+  #                   flags it unused and warns before it is sent — which is what
+  #                   the demo asserts (UBC IAM asks why an app needs each one).
+  attributes: [ubcEduCwlPuid, mail, givenName, sn]
+  callback: /auth/ubcshib/callback
+  logout: /auth/logout
+
+data:
+  # A booking is a time and who made it: `internal`. The demo raises it to
+  # `confidential` after the launch, while an agent session is open, to watch
+  # the session narrowed to the models a confidential app may use.
+  classification: internal
+  retention_days: 120
