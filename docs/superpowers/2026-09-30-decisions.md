@@ -273,3 +273,24 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     IamRegistration row gains change_requested_from (submitted | active — while change_requested: whether UBC asked the
     owner for changes, or an administrator filed a change request with UBC; null otherwise), after state. APPLIED by
     manifest-8d the same morning; no shared page lists IamRegistration's fields (checked). Built by Task 12.
+
+# Rich's decisions — 2026-10-01, evening (the launch path plan's sitting 9, session manifest-6d)
+
+    FE-46, FE-47 and FE-5, option (a) each — "i approved" (Rich, to manifest-6d, 2026-10-01 19:56 PDT / 02:56Z,
+    answering the question put to him in this session: "reply here with something like 'confirm FE-46, FE-47 and FE-5
+    (a)'"). It confirms the three as the faculty front-end's design session manifest-app-d9 relayed them at sitting 9's
+    close ("carried at Rich's word"), and as it relayed his confirmation at ~21:00Z ("confirm FE-46, FE-47 and FE-5 to
+    the platform session"):
+      - FE-46 (a): the owner's send goes to LTIC, a state of its own between draft and submitted, for all three records;
+        an administrator records LTIC's submission to PRISM or UBC IAM with UBC's reference; `since` dates each step;
+        listQueue lists what LTIC holds; the platform emails LTIC when a record is sent to it AND when approval.requested
+        is published (never the note); the assessment's gaps get stable ids and the send carries the owner's answers,
+        kept on the record.
+      - FE-47 (a): from `active`, the owner (person-only) asks for a change to the live registration — the new
+        attributes, with a package drafted from the newest valid manifest — sent to LTIC as FE-46's sends are; LTIC files
+        it with UBC (change_requested from active), with FE-46's since, queue and email. The build's check stays as it is.
+      - FE-5 (a): a PendingAction carries the specific object, taken from the request and never a secret — a member:
+        who and what role; a deploy: which release and which environment; a launch record: which one.
+    Each needs a spec action before it is a task (the records' states in §6 and §9, §13's waits, §26's queue, an email
+    the platform sends; D24's pending-action payload) — drafted by the planning session, decided by Rich — and a place
+    in the plan order. Full texts: manifest-app's docs/api-findings.md, FE-46, FE-47, FE-5; ORIENTATION §8 Open.

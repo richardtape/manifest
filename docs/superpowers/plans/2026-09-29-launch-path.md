@@ -2487,10 +2487,9 @@ lands, the submission routes have no client that can meet their precondition** �
 >   yet"*, and the first launch's gate hint talks of lead times — nothing tells an owner or an agent to ask. The *Ask for sign-off*
 >   button is this task's remedy; say it in the item's `why` too if it reads naturally.
 >
-> **FE-46 — RELAYED AT SITTING 9's CLOSE, PROPOSED, NOT CONFIRMED** (ORIENTATION §8 *Open*): the owner sends all three records to LTIC, which
+> **FE-46 — RELAYED AT SITTING 9's CLOSE, CONFIRMED BY RICH THE SAME EVENING** (*"i approved"*; ORIENTATION §8 *Open*), with FE-47 and FE-5: the owner sends all three records to LTIC, which
 > submits them to PRISM and UBC IAM — a state between `draft` and `submitted`, LTIC emailed (for a sign-off request too), the assessment's
-> gaps answered. It needs Rich's
-> confirmation and a spec action first; **until then the mock scripts the records as the platform keeps them**, with no "sent to LTIC" step.
+> gaps answered. It needs a spec action first; **until then the mock scripts the records as the platform keeps them**, with no "sent to LTIC" step.
 
 > **FE-40 (relayed 2026-09-29, CONFIRMED by Rich at sitting 3's open — its section above)**: four OPT-IN mock switches so the mock
 > can play a first launch — ready, step-up enforced, `getApproval` `404` before a decision, a failed rehearsal. They are this
@@ -4955,15 +4954,14 @@ select was bounded.
 to LTIC, not to UBC.** All three records go VIA LTIC, which submits the assessment to PRISM and the registrations to UBC IAM, and the
 platform should tell LTIC; today `submitted` is read everywhere as WITH UBC, `since` counts UBC's wait from the owner's press, nothing emails
 anybody, and the assessment's gaps have nowhere to be answered — **and, the same evening (*"Yes, and email it too"*), a sign-off request
-(`approval.requested`) emails LTIC too, never its note**. **PROPOSED, NOT CONFIRMED** to a platform session — ORIENTATION §8 *Open*;
+(`approval.requested`) emails LTIC too, never its note**. **CONFIRMED by Rich in this session after the close** (*"i approved"*, 19:56 PDT) — ORIENTATION §8 *Open*;
 a spec action before it is a task; Task 13's block says the mock scripts the records as they are until it is decided.
 
 **F18 Relayed by the front-end the same evening (`manifest-app-d9`, F6b's design, *"File FE-47, as FE-46"*): FE-47 — after launch an owner
 cannot ask for a new sign-in detail.** No owner write reaches an `active` registration (drafting is `LAUNCH_RECORD_SUBMITTED`, *"I've sent
 it"* moves only from `draft`, `change_requested` or `expired`), only an administrator files a change request and nothing tells them one is
 wanted, and every build asking for the attribute fails meanwhile. Option (a) relayed as Rich's: the owner asks from `active`, through LTIC
-(FE-46). **And FE-5, carried with it** (*"Build it honest, carry FE-5 now"*): a pending action names what it asks for. **Both PROPOSED, NOT
-CONFIRMED** — ORIENTATION §8 *Open*.
+(FE-46). **And FE-5, carried with it** (*"Build it honest, carry FE-5 now"*): a pending action names what it asks for. **Both CONFIRMED with FE-46** (*"i approved"*) — ORIENTATION §8 *Open*.
 
 **The negative controls** (each predicted in the ledger before it ran, applied with its diff read, restored by `git checkout` of a
 committed file):
@@ -4982,7 +4980,7 @@ representation; `openRequestFor` in `candidate.ts`; the queue's per-project `ope
 reworded; re-open is the rule (F11); active projects only (F12); `[sitting 9]` labels (F9).
 
 **Carried — named so it is not lost:**
-- **To Task 13** (its `[sitting 9]`): FE-46, PROPOSED (F17) — and FE-47 and FE-5 (F18), PROPOSED, for the planning session; `requestApproval` and `listQueue` parked; the owner's *Ask for sign-off*; a Queue screen;
+- **To Task 13** (its `[sitting 9]`): FE-46 (F17), FE-47 and FE-5 (F18) — CONFIRMED, for the planning session's spec action first; `requestApproval` and `listQueue` parked; the owner's *Ask for sign-off*; a Queue screen;
   `changeRequestedFrom` on the records screen; the fleet's three fields. **And the review's M6**: when nobody has asked, the
   `admin-approval` item says only *"This release has not been reviewed yet"* — the console's button is the remedy; Task 14's guide says it.
 - **To Task 14** (its `[sitting 9]`): what *Launching* says about sign-off, the queue for operators, `change_requested`'s two meanings.
