@@ -10,7 +10,10 @@
 # instance serving; and raising the app to `confidential` narrows an open agent session in place.
 #
 #   make demo-launch                                  # on whichever driver answers
-#   DEMO_LAUNCH_STOP_AFTER=4 make demo-launch         # stop after step 4 (a negative control)
+#   DEMO_LAUNCH_STOP_AFTER=4 make demo-launch         # stop after step 4
+#   DEMO_LAUNCH_SLUG=launchpath-control DEMO_LAUNCH_STOP_AFTER=2 make demo-launch
+#                                                     # a negative control's short run, on a
+#                                                     # project of its own that never launches
 #   DEMO_LAUNCH_REAL=1 DEMO_LAUNCH_STOP_AFTER=3 make demo-launch   # the real leg — Rich's yes
 #
 # ONE SCRIPT, BOTH DRIVERS, as `make demo-frontend`. Step 0 asks which driver the control plane
@@ -73,6 +76,14 @@ STATE="$WORK/state.json"
 RUN_ID="l$(date +%s)"
 REAL="${DEMO_LAUNCH_REAL:-}"
 STOP_AFTER="${DEMO_LAUNCH_STOP_AFTER:-}"
+# A NEGATIVE CONTROL'S OWN PROJECT. Steps 1–8 run only on a project that has not launched, and the
+# driver's own project launches on its first green run — so a control of steps 1–8 names another,
+# stops before step 7, and the next run with that name deletes it and makes it again.
+SLUG_OVERRIDE="${DEMO_LAUNCH_SLUG:-}"
+case "$SLUG_OVERRIDE" in
+  '' | launchpath-[a-z0-9-]*) ;;
+  *) fail "DEMO_LAUNCH_SLUG is '$SLUG_OVERRIDE' — a slug beginning launchpath-" ;;
+esac
 case "$STOP_AFTER" in
   '' | [0-9] | 1[01]) ;;
   *) fail "DEMO_LAUNCH_STOP_AFTER is '$STOP_AFTER' — a step, 0 to 11" ;;
@@ -195,7 +206,7 @@ else
       ;;
     *) fail "source_driver answered '$DRIVER'" ;;
   esac
-  SLUG="launchpath-$DRIVER"
+  SLUG="${SLUG_OVERRIDE:-launchpath-$DRIVER}"
 fi
 echo "  driver $([ "$DRIVER" = local ] && echo 1 || echo 2) ($DRIVER)$([ -n "$REAL" ] && echo ', the REAL App') — the app is $SLUG"
 
