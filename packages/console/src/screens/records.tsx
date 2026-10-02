@@ -425,7 +425,15 @@ function IamForm({
         ) : (
           <code>{[...requested.attributes].sort().join(', ')}</code>
         )}
-        . A {environment} release may request only what UBC registered.
+        .{' '}
+        {/*
+          ONLY PRODUCTION'S REGISTERED ROW GATES A BUILD (`releases/build.ts`): a staging release is
+          not checked against what UBC registered for staging (the whole-branch review's finding 6 —
+          this sentence said so of both environments).
+        */}
+        {environment === 'production'
+          ? 'A production release may request only what UBC registered.'
+          : 'A staging release is not checked against this list; a production release is checked against production’s.'}
       </p>
       <Refusal error={requestedError} />
       <Field label="Certificate fingerprint">

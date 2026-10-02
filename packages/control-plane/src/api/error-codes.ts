@@ -495,7 +495,7 @@ export const ERROR_CODES = {
     status: 400,
     families: ['LaunchRecordError'],
     summary:
-      'An external record’s fields cannot be accepted — for example an empty registered-attribute list, which the identity provider would read as releasing every attribute; the message names the field.',
+      'An external record’s fields cannot be accepted — for example an empty registered-attribute list, against which every release’s attributes would pass the check that they are registered; the message names the field.',
     remedy:
       'Correct the fields the message names — a registration lists at least one attribute — and record it again.',
   },

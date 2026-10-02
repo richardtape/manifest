@@ -120,7 +120,7 @@ export const lifecycleRoutes = [
     handler: async ({ deps, request, params }) => {
       const actor = requireSession(request)
       await assertCapability(deps.db, actor, params.projectId, 'project:delete')
-      assertStepUp(actor, 'project:delete')
+      assertStepUp(actor, 'project:delete', undefined, 'switching an app off')
       await archiveProject(lifecycleDeps(deps), { projectId: params.projectId, actor })
       return answer(deps, params.projectId)
     },
@@ -195,7 +195,7 @@ export const lifecycleRoutes = [
     handler: async ({ deps, request, params }) => {
       const actor = requireSession(request)
       await assertCapability(deps.db, actor, params.projectId, 'project:delete')
-      assertStepUp(actor, 'project:delete')
+      assertStepUp(actor, 'project:delete', undefined, 'deleting an app')
       const tombstone = await deleteProject(deleteDeps(deps), {
         projectId: params.projectId,
         actor,

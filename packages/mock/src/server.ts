@@ -267,6 +267,13 @@ function documentExample(ctx: Context): Answer {
   return structuredClone(ctx.example)
 }
 
+/** Any launch option set — the opt-in states in which the mock plays a launch's gate (FE-40). */
+const scriptsALaunch = (ctx: Context): boolean =>
+  ctx.options.records !== 'sent' ||
+  ctx.options.approval !== 'approved' ||
+  ctx.options.rehearsal !== 'passed' ||
+  ctx.options.stepUp
+
 /** The launch path's options, as `launch.ts` reads them. */
 const launchOf = (ctx: Context): LaunchOptions => ({
   records: ctx.options.records,
@@ -280,7 +287,10 @@ const launchOf = (ctx: Context): LaunchOptions => ({
  * `403 STEP_UP_REQUIRED`, whose hint names the route that steps up.
  */
 function assertSteppedUp(ctx: Context, capability: string): void {
-  if (!ctx.options.stepUp || ctx.steppedUp) return
+  // A SESSION'S ROUND TRIP ONLY (the whole-branch review's finding 11): a token can never step up, and
+  // the platform answers it otherwise — a production deploy is a question for its person, a production
+  // secret is a person's alone. The mock plays neither, so a token is not refused here.
+  if (!ctx.options.stepUp || ctx.steppedUp || ctx.credential === 'token') return
   throw new MockRefusal(
     403,
     'STEP_UP_REQUIRED',
@@ -339,8 +349,19 @@ const ANSWERS: Record<string, Answerer> = {
       )
     if (ctx.params.environmentId === f.PRODUCTION_ID) {
       assertSteppedUp(ctx, 'release:promote')
-      if (launchReadiness(launchOf(ctx), ctx.now).ready)
-        return ok('Instance', f.PRODUCTION_INSTANCE)
+      const readiness = launchReadiness(launchOf(ctx), ctx.now)
+      if (readiness.ready) return ok('Instance', f.PRODUCTION_INSTANCE)
+      // NOT READY, WHILE A LAUNCH IS SCRIPTED (the whole-branch review's I3): the platform's gate — `409`
+      // with the checklist — so a front-end's *"deploy refused, here is what is missing"* can be played.
+      if (scriptsALaunch(ctx))
+        throw new MockRefusal(
+          409,
+          'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+          'first production launch is a checklist, not a button',
+          'These items have multi-week lead times and are tracked from project creation.',
+          undefined,
+          readiness,
+        )
     }
     return ok('Instance', ctx.options.fail ? f.FAILED_INSTANCE : f.INSTANCE)
   },
@@ -974,6 +995,7 @@ function envelope(
   message: string,
   hint?: string,
   details?: unknown[],
+  launchReadiness?: unknown,
 ): string {
   return JSON.stringify({
     error: {
@@ -981,6 +1003,7 @@ function envelope(
       message,
       ...(hint === undefined ? {} : { hint }),
       ...(details === undefined ? {} : { details }),
+      ...(launchReadiness === undefined ? {} : { launchReadiness }),
     },
   })
 }
@@ -1321,7 +1344,13 @@ export function createMockServer(options: MockOptions = {}): Server {
         send(
           response,
           error.status,
-          envelope(error.code, error.message, error.hint, error.details),
+          envelope(
+            error.code,
+            error.message,
+            error.hint,
+            error.details,
+            error.launchReadiness,
+          ),
         )
         return
       }

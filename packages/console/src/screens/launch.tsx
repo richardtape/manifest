@@ -85,6 +85,12 @@ export function Launch({
   return (
     <Panel title="Request production">
       <Refusal error={readiness.error} />
+      {/*
+        THE APPROVAL READ'S OWN FAILURE IS SHOWN (the whole-branch review's finding 17): `404` is "nobody
+        has decided" and handled above; anything else would otherwise hide *Ask an administrator to sign
+        this off* with nothing saying why.
+      */}
+      <Refusal error={decision.error} />
       {readiness.value !== undefined && (
         <Checklist
           readiness={readiness.value}

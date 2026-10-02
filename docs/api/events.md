@@ -99,7 +99,7 @@ The stream closes with a code that says what to do:
 | `4403` | The upgrade carried a session from another origin. | Send the console’s origin. |
 | `4404` | Not found — or not yours. | Check the project id and the credential. |
 
-**A token's stream learns an app was switched off or deleted from its close code, not from an event.** Switching an app off or deleting it revokes every token on it, so a token's stream closes `4401` before `project.archived` or `project.deleted` reaches it — read the project (`getProject`) to learn which. A deletion closes every stream still open on the app `4404`.
+**A token's stream learns an app was switched off or deleted from its close code, not from an event.** Switching an app off or deleting it revokes every token on it, so a token's stream closes `4401` before `project.archived` or `project.deleted` reaches it, and the token can read nothing more — the person it works for sees which in their own session. A deletion closes every stream still open on the app `4404`.
 
 ## Every event type
 

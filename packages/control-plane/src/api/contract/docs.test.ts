@@ -167,9 +167,42 @@ describe('the published reference is complete (Decision 14)', () => {
    * (an event's `certificateFingerprint`) is hex pairs, so `SPEC_REF` reads no `D2:` or `C3:` between
    * colons as a decision or a constraint.
    */
+  /**
+   * THE PATTERN'S OWN CASES (the whole-branch review's I2): `D21:` and `C4:` — the very forms `[S10]` named —
+   * are references, and a fingerprint's hex pair between or before colons (`9B:D2:61`, `D2:AB`, `C3:0A`) is
+   * not. The same pattern holds the guides and the mock's text, copied there.
+   */
+  it('reads a reference in every form prose writes it, and no hex pair as one', () => {
+    const SPEC_REF =
+      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?!\w)(?!\.\d)(?!:[0-9A-Fa-f]{2})|(?<![\w:])C\d(?!\w)(?!:[0-9A-Fa-f]{2})|\bPhase \d/
+    for (const prose of [
+      'D21: before an app is public',
+      'C4: per app',
+      'the decision D19: a package',
+      '(D24)',
+      'D9.2',
+      'the D23.7 envelope',
+      'the privileged four of D24.',
+      '(§9, C4)',
+      'Phase 2',
+      '§13’s checklist',
+    ])
+      expect(SPEC_REF.test(prose), prose).toBe(true)
+    for (const hex of [
+      '9B:D2:61',
+      'D2:AB',
+      'AB:D2:CD',
+      'DB:DF',
+      'C3:0A',
+      'AB:C3:47',
+      '6C:DF:08',
+    ])
+      expect(SPEC_REF.test(hex), hex).toBe(false)
+  })
+
   it('cites no spec section, decision, constraint or roadmap phase anywhere it publishes', () => {
     const SPEC_REF =
-      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?![\w:])|(?<![\w:])C\d(?![\w:])|\bPhase \d/
+      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?!\w)(?!\.\d)(?!:[0-9A-Fa-f]{2})|(?<![\w:])C\d(?!\w)(?!:[0-9A-Fa-f]{2})|\bPhase \d/
     const hits: string[] = []
     let strings = 0
     const walk = (value: unknown, at: string): void => {

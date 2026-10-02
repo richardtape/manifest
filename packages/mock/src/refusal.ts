@@ -11,12 +11,15 @@ export class MockRefusal extends Error {
   readonly hint: string | undefined
   /** On `SPEC_INVALID`: each problem, as the platform's envelope carries them. */
   readonly details: unknown[] | undefined
+  /** The production gate's checklist, as the platform's `409` carries it (`launchReadiness`). */
+  readonly launchReadiness: unknown
   constructor(
     status: number,
     code: string,
     message: string,
     hint?: string,
     details?: unknown[],
+    launchReadiness?: unknown,
   ) {
     super(message)
     this.name = 'MockRefusal'
@@ -24,5 +27,6 @@ export class MockRefusal extends Error {
     this.code = code
     this.hint = hint
     this.details = details
+    this.launchReadiness = launchReadiness
   }
 }

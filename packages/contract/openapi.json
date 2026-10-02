@@ -10901,7 +10901,7 @@
           "LAUNCH_DRAFT_STALE": "The registration’s draft does not carry the privacy assessment’s PIA number, which UBC IAM asks for: it was drafted before the assessment was approved with it, or the number has changed since. Nothing was recorded.",
           "LAUNCH_NOT_CWL": "The app signs nobody in with CWL — or asks for no attribute, which no registration may — so there is nothing to register with UBC IAM.",
           "LAUNCH_PIA_NOT_APPROVED": "Neither registration is sent until the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
-          "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — for example an empty registered-attribute list, which the identity provider would read as releasing every attribute; the message names the field.",
+          "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — for example an empty registered-attribute list, against which every release’s attributes would pass the check that they are registered; the message names the field.",
           "LAUNCH_RECORD_SUBMITTED": "This record has been sent, and what was sent is kept as it was sent. A registration that is with UBC IAM or registered by it (`submitted` or `active`) is drafted again only once UBC asks for changes or the registration lapses; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back.",
           "LAUNCH_SENT_AT_INVALID": "The day given for when it was sent cannot be true: it is after today in Vancouver, or before the draft that was sent was made.",
           "LAUNCH_STAGING_NOT_REGISTERED": "The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.",
@@ -20714,7 +20714,7 @@
     },
     "LAUNCH_RECORD_INVALID": {
       "status": 400,
-      "summary": "An external record’s fields cannot be accepted — for example an empty registered-attribute list, which the identity provider would read as releasing every attribute; the message names the field.",
+      "summary": "An external record’s fields cannot be accepted — for example an empty registered-attribute list, against which every release’s attributes would pass the check that they are registered; the message names the field.",
       "remedy": "Correct the fields the message names — a registration lists at least one attribute — and record it again."
     },
     "LAUNCH_RECORD_SUBMITTED": {

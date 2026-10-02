@@ -257,7 +257,7 @@ describe('the guides (Decisions 16 and 19)', () => {
    */
   it('cite no spec section, decision, constraint or roadmap phase', async () => {
     const SPEC_REF =
-      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?![\w:])|(?<![\w:])C\d(?![\w:])|\bPhase \d/
+      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?!\w)(?!\.\d)(?!:[0-9A-Fa-f]{2})|(?<![\w:])C\d(?!\w)(?!:[0-9A-Fa-f]{2})|\bPhase \d/
     const generated = await generateDocs()
     const pages = [...generated].filter(
       ([key]) => key.endsWith('.md') || key.endsWith('llms.txt'),

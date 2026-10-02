@@ -339,10 +339,16 @@ describe('archive and restore (§11, Task 11)', () => {
 
   it('needs step-up to archive, and not to restore', async () => {
     await withLifecycleServer(async (ctx) => {
-      expect(refusal(await archive(ctx, ctx.ownerCookies))).toEqual({
+      const refused = await archive(ctx, ctx.ownerCookies)
+      expect(refusal(refused)).toEqual({
         status: 403,
         code: 'STEP_UP_REQUIRED',
       })
+      // IN A PERSON'S WORDS FOR WHAT THEY DID (the launch path plan's [S8]; sitting 10's review, 15): archive
+      // shares `project:delete` with delete, and a person switching an app off was told about deleting.
+      const said = (refused.json() as { error: { message: string } }).error.message
+      expect(said).toContain('switching an app off')
+      expect(said).not.toContain('project:delete')
       // The refusal took nothing down: the project is still active.
       const [before] = await ctx.db
         .select({ state: projects.state })
@@ -1171,10 +1177,14 @@ describe('delete (§11, Task 12)', () => {
 
   it('needs step-up, and is a person’s alone', async () => {
     await withLifecycleServer(async (ctx) => {
-      expect(refusal(await remove(ctx, ctx.ownerCookies))).toEqual({
+      const refused = await remove(ctx, ctx.ownerCookies)
+      expect(refusal(refused)).toEqual({
         status: 403,
         code: 'STEP_UP_REQUIRED',
       })
+      expect((refused.json() as { error: { message: string } }).error.message).toContain(
+        'deleting an app',
+      )
       const collaborator = await sessionFor(ctx, 'bio_student', 'collaborator', {
         steppedUp: true,
       })

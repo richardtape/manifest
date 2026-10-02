@@ -298,8 +298,20 @@ export const STEP_UP_GUARDED: ReadonlySet<PrivilegedCapability> = new Set([
  * from *who are you* and needs a different client behaviour (D23.7).
  */
 export class StepUpRequiredError extends Error {
-  constructor(readonly capability: PrivilegedCapability) {
-    super(`'${capability}' needs a second authentication round trip`)
+  constructor(
+    readonly capability: PrivilegedCapability,
+    /**
+     * THE ACTION IN A PERSON'S WORDS, when the capability's name would mislead them (the launch path plan's
+     * `[S8]`): archiving and deleting share `project:delete`, and a person switching an app off was told
+     * about deleting it.
+     */
+    action?: string,
+  ) {
+    super(
+      action === undefined
+        ? `'${capability}' needs a second authentication round trip`
+        : `${action} needs a second authentication round trip`,
+    )
     this.name = 'StepUpRequiredError'
   }
 }
@@ -321,6 +333,8 @@ export function assertStepUp(
   actor: Actor,
   capability: PrivilegedCapability,
   now: number = Date.now(),
+  /** What the refusal calls the action, when the capability's name is not it — `StepUpRequiredError`'s. */
+  action?: string,
 ): void {
   /**
    * **A TOKEN, AND THE PLAN'S PREMISE ABOUT THIS LINE IS FALSE.** Task 9's snippet says
@@ -350,10 +364,11 @@ export function assertStepUp(
    */
   if (actor.credential !== 'session') {
     if (actor.grant === capability) return
-    throw new StepUpRequiredError(capability)
+    throw new StepUpRequiredError(capability, action)
   }
   if (!STEP_UP_GUARDED.has(capability)) return
-  if (!isSteppedUp(actor.steppedUpAt, now)) throw new StepUpRequiredError(capability)
+  if (!isSteppedUp(actor.steppedUpAt, now))
+    throw new StepUpRequiredError(capability, action)
 }
 
 /**

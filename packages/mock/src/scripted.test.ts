@@ -973,6 +973,58 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(plain.status).toBe(200)
   })
 
+  it('refuses a production deploy that is not ready with the platform’s gate and checklist, while a launch is scripted (the whole-branch review’s I3)', async () => {
+    const at = await serve({ records: 'drafted' })
+    const refused = await post(at, `/v1/environments/${f.PRODUCTION_ID}/deploy`, {
+      releaseId: f.RELEASE_ID,
+    })
+    expect(refused.status).toBe(409)
+    const body = (await refused.json()) as {
+      error: {
+        code: string
+        launchReadiness: { ready: boolean; items: { id: string; state: string }[] }
+      }
+    }
+    expect(body.error.code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
+    expect(body.error.launchReadiness.ready).toBe(false)
+    expect(
+      body.error.launchReadiness.items.find((i) => i.id === 'iam-registration')!.state,
+    ).toBe('unmet')
+    // The positive halves: ready, it deploys (FE-40 (1), above); unscripted, the default is unchanged.
+    const plain = await post(origin, `/v1/environments/${f.PRODUCTION_ID}/deploy`, {
+      releaseId: f.RELEASE_ID,
+    })
+    expect(plain.status).toBe(200)
+  })
+
+  it('asks a SESSION to step up, never a token — which can never step up (the whole-branch review’s finding 11)', async () => {
+    const at = await serve({ stepUp: true, records: 'approved' })
+    const asToken = (method: string, path: string, body: unknown) =>
+      fetch(`${at}${path}`, {
+        method,
+        headers: mutation(BEARER),
+        body: JSON.stringify(body),
+      })
+    const deployed = await asToken('POST', `/v1/environments/${f.PRODUCTION_ID}/deploy`, {
+      releaseId: f.RELEASE_ID,
+    })
+    expect(deployed.status).toBe(200)
+    const secret = await asToken(
+      'PUT',
+      `/v1/environments/${f.PRODUCTION_ID}/secrets/API_KEY`,
+      {
+        value: 'not-a-real-secret',
+      },
+    )
+    expect(secret.status).not.toBe(403)
+    // The positive half: a session is still asked.
+    const session = await post(at, `/v1/environments/${f.PRODUCTION_ID}/deploy`, {
+      releaseId: f.RELEASE_ID,
+    })
+    expect(session.status).toBe(403)
+    expect(await codeOf(session)).toBe('STEP_UP_REQUIRED')
+  })
+
   it('MANIFEST_MOCK_REHEARSAL=failed is FE-40 (4) — a rehearsal that did not pass is a 200 carrying its evidence, and the item is unmet', async () => {
     const at = await serve({ rehearsal: 'failed' })
     const ran = await post(at, `/v1/projects/${f.PROJECT_ID}/rehearsal`)

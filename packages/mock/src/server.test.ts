@@ -135,7 +135,7 @@ describe('manifest-mock’s text', () => {
 
   it('cites no spec section, decision, constraint or roadmap phase in anything it can answer', async () => {
     const SPEC_REF =
-      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?![\w:])|(?<![\w:])C\d(?![\w:])|\bPhase \d/
+      /§\s?\d|(?<![\w:])D\d{1,2}(\.\d+)?(?!\w)(?!\.\d)(?!:[0-9A-Fa-f]{2})|(?<![\w:])C\d(?!\w)(?!:[0-9A-Fa-f]{2})|\bPhase \d/
     const hits: string[] = []
     let read = 0
     for (const file of ['fixtures.ts', 'server.ts', 'launch.ts', 'script.ts']) {

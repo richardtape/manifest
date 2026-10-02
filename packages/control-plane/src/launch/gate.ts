@@ -28,12 +28,12 @@ export class ProductionGateError extends Error {
     // the message is what a person reads, so it must not describe the wrong clause of D9.
     super(
       code === 'RELEASE_REESCALATED'
-        ? 'this release changes a sensitive field since the last approved release, so it needs an administrator’s approval before production (§13, D9)'
+        ? 'this release changes a sensitive field since the last approved release, so it needs an administrator’s approval before production'
         : code === 'RELEASE_NOT_STAGED'
-          ? 'production runs exactly what staging ran, and this release is not the one serving staging (§13)'
+          ? 'production runs exactly what staging ran, and this release is not the one serving staging'
           : launchReadiness.launched
-            ? 'this release cannot go to production until the unmet items are met (§13)'
-            : 'first production launch is a checklist, not a button (§13, D19)',
+            ? 'this release cannot go to production until the unmet items are met'
+            : 'first production launch is a checklist, not a button',
     )
     this.name = 'ProductionGateError'
   }
