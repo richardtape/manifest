@@ -25,9 +25,17 @@ export const db = drizzle(pool, { schema })
  * holder works — and every holder's work queries through `db`. On ONE pool, ten holders at once (the
  * boot schedules a retire pass for every environment together) took all ten connections and each
  * waited for an eleventh: the control plane answered nothing that needed the database, its sign-in
- * included, for ever. On two, a holder's lock can never take the connection its own work needs. Its
- * size bounds how many holders — and waiters — hold at once; the rest wait in this pool's queue, in
- * the process, for one to finish.
+ * included, for ever.
+ *
+ * **TWO POOLS, BECAUSE LOCKS NEST** (the same sitting's whole-branch review, I2): an archive or a
+ * delete holds its PROJECT's lock and takes each ENVIRONMENT's inside it, and a rehearsal its own lock
+ * and then the deploy's environment lock. On one lock pool, ten outer holders each waiting for an
+ * inner connection wedged it the same way. So the outer locks take `outerLockPool` and the
+ * environment locks take `lockPool`; nothing holding an environment lock ever takes another lock, so
+ * `lockPool` always drains, and an outer holder waiting for it always gets one. Each pool's size bounds
+ * how many hold — and wait — at once; the rest wait in its queue, in the process.
  */
 export const lockPool = new pg.Pool({ connectionString, max: 10 })
+/** The project and rehearsal locks' connections — the OUTER locks, which hold an environment lock inside. */
+export const outerLockPool = new pg.Pool({ connectionString, max: 10 })
 export type Db = typeof db

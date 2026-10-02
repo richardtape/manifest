@@ -151,6 +151,33 @@ describe('withEnvironmentLock (P4c Task 6)', () => {
  * serialises two archives, an archive and a restore, or an archive and a delete.
  */
 describe('withProjectLock (Task 11)', () => {
+  it('lets more NESTED holders than the lock pool has connections finish — a project lock, then an environment lock inside it (sitting 12, the review’s I2)', async () => {
+    // F1 MOVED THE LOCKS TO A POOL OF THEIR OWN, AND NESTING COULD STILL EXHAUST IT: an archive or a
+    // delete holds its project's lock and takes each environment's inside it, and a rehearsal its own
+    // lock and then the deploy's environment lock. Ten outer holders on one pool of ten, each waiting
+    // for an eleventh connection for the inner lock, wedged every deploy, archive and rehearsal on the
+    // platform with no line logged. Twelve here.
+    const holders = Promise.all(
+      Array.from({ length: 12 }, () =>
+        withProjectLock(randomUUID(), async () => {
+          await sleep(100)
+          return withEnvironmentLock(randomUUID(), async () => {
+            const result = await db.execute(sql`SELECT 1 AS one`)
+            return result.rows.length
+          })
+        }),
+      ),
+    )
+    const outcome = await Promise.race([
+      holders.then((counts) => counts.join(',')),
+      sleep(10_000).then(
+        () =>
+          'deadlocked: every lock connection an outer holder waiting for an inner one',
+      ),
+    ])
+    expect(outcome).toBe(Array.from({ length: 12 }, () => 1).join(','))
+  }, 20_000)
+
   it('serializes two holders of the SAME project, and never waits on an environment’s lock of the same id', async () => {
     const id = randomUUID()
     const order: string[] = []

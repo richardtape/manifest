@@ -1,4 +1,5 @@
-import { lockPool } from './client.js'
+import type pg from 'pg'
+import { lockPool, outerLockPool } from './client.js'
 
 /**
  * One deploy or retire per environment at a time (§11: "one reconciliation loop per
@@ -15,18 +16,18 @@ import { lockPool } from './client.js'
  * against one database, and only Postgres sees both.
  *
  * WHAT IT COSTS, stated rather than discovered (Decision 14): each holder keeps one
- * connection for the length of its deploy — from `lockPool`, NEVER from `pool`, which its own
- * work queries through. This said the pool's size "bounds how many DIFFERENT environments can
+ * connection for the length of its deploy — from a lock pool, NEVER from `pool`, which its own
+ * work queries through (`db/client.ts` says why there are two lock pools). This said the pool's size "bounds how many DIFFERENT environments can
  * deploy at once"; on one pool it did not bound them, it DEADLOCKED them: ten holders took every
  * connection and each waited for another (the launch path plan's sitting 12, F1 — the boot's retire
- * passes, one per environment, all at once). `lockPool`'s size now bounds the holders, and the rest
- * wait in its queue; a real queue still belongs with Phase 4's reconciler.
+ * passes, one per environment, all at once). The lock pools' sizes now bound the holders, and the rest
+ * wait in their queues; a real queue still belongs with Phase 4's reconciler.
  */
 export async function withEnvironmentLock<T>(
   environmentId: string,
   fn: () => Promise<T>,
 ): Promise<T> {
-  return withAdvisoryLock(`manifest:environment:${environmentId}`, fn)
+  return withAdvisoryLock(lockPool, `manifest:environment:${environmentId}`, fn)
 }
 
 /**
@@ -36,13 +37,15 @@ export async function withEnvironmentLock<T>(
  *
  * **LOCK ORDER IS ALWAYS PROJECT, THEN ENVIRONMENT.** An archive takes this, then each
  * environment's lock in turn; a deploy takes only the environment's. Nothing takes them the other
- * way round, so the two cannot deadlock.
+ * way round, so the two cannot deadlock in Postgres — and since sitting 12's I2 they take their
+ * connections from two pools, so they cannot deadlock waiting for a connection either.
  */
 export async function withProjectLock<T>(
   projectId: string,
   fn: () => Promise<T>,
 ): Promise<T> {
-  return withAdvisoryLock(`manifest:project:${projectId}`, fn)
+  // OUTER: an archive or a delete takes each environment's lock inside this one (`db/client.ts`).
+  return withAdvisoryLock(outerLockPool, `manifest:project:${projectId}`, fn)
 }
 
 /**
@@ -57,14 +60,16 @@ export async function withProjectLock<T>(
  * lock ends with its connection, a control plane that dies mid-rehearsal leaves no lock behind.
  *
  * Its own key, so it can never wait on — or be waited on by — a project's or an environment's lock:
- * it is taken first, before the rehearsal's deploy takes the environment's, and it never waits.
+ * it is taken first, before the rehearsal's deploy takes the environment's, and it never waits for
+ * another holder (a connection from `outerLockPool` it may wait for, in that pool's queue).
  */
 export async function tryWithRehearsalLock<T>(
   projectId: string,
   fn: () => Promise<T>,
 ): Promise<T | undefined> {
   const key = `manifest:rehearsal:${projectId}`
-  const client = await lockPool.connect()
+  // OUTER: the rehearsal's deploy and take-down take production's environment lock inside this one.
+  const client = await outerLockPool.connect()
   try {
     const { rows } = await client.query<{ held: boolean }>(
       'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS held',
@@ -81,8 +86,12 @@ export async function tryWithRehearsalLock<T>(
   }
 }
 
-async function withAdvisoryLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const client = await lockPool.connect()
+async function withAdvisoryLock<T>(
+  from: pg.Pool,
+  key: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const client = await from.connect()
   try {
     await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [key])
     try {
