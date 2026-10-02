@@ -1844,8 +1844,9 @@ review over its whole range. Then the plan is EXECUTED, and the close-out sweeps
    left rows).
 2. **`make refresh-vulndb` — due after 2026-10-06** (the network on, ~1–3 minutes); past it, §13's `scans` refuses every launch, and
    `make demo-launch` and `make demo-production` go red at their scan step.
-3. **Did Rich click sitting 10's platform half?** WALKTHROUGH, *A launch's three records and the administrators' queue, clicked* — if he did,
-   its findings are Task 15's input; if not, Task 15's Step 4 covers it.
+3. **Rich clicked sitting 10's platform half that night** (~22:35–23:05 PDT, WALKTHROUGH's *A launch's three records and the
+   administrators' queue, clicked*, rows 1–8 and 10; no finding — the plan's *After sitting 10's close*). Task 15's Step 4 repeats the whole
+   path and adds rows 9's approval and the launch.
 4. **Step 2's `make reset`** (the third green on each driver) and **Step 5's real leg** (`DEMO_LAUNCH_REAL=1`, a real private repository) are
    each **Rich's yes**; the reset removes the faculty front-end's projects if any are still there — ask it first.
 5. **The clicked half (Step 4) is Rich's typing** (the Chrome extension cannot sign in — §4 trap 6): stage it, then ask him once.
@@ -1869,9 +1870,10 @@ review over its whole range. Then the plan is EXECUTED, and the close-out sweeps
   `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh` (unchanged; `nohup`, detached). Boot line: `"source":"github"`,
   `"github":"api.github.com"`, `capableModel: registered`, `rehearsalsTakenDown: 0`. It was STOPPED from 20:59 for the Docker tier and the
   unit runs, so the capable model was out of LiteLLM from 20:59 to 21:56.
-- **The control database: EMPTY** — 0 projects, 0 users, 0 registrations, 0 assessments, 0 sign-off requests; **49 migrations**
-  (`0048_fixed_major_mapleleaf` newest). `MANIFEST_ADMIN_PUIDS` is NOT set in `.env` — `operator` needs `scripts/admin-grant.sh` after its
-  first sign-in.
+- **The control database, as Rich's clicked half left it (queried 22:55)**: **2 users** — Test Instructor (`member`) and **Test Operator
+  (`admin`, granted that night by `scripts/admin-grant.sh`, audited)** — and **1 project, `exit-tickets`, `deleted`** (a tombstone, its
+  repository gone from GitHub), with its 1 registration, 1 assessment and 1 sign-off request; **49 migrations** (`0048_fixed_major_mapleleaf`
+  newest). `MANIFEST_ADMIN_PUIDS` is NOT set in `.env`. **The first Vitest run truncates all of it** — nothing here is anybody's work.
 - **GitHub**: `Manifest-local-dev` holds **1 repository, `f6-watch`, owned by NO project** (`scripts/github-real-repos.sh`) — the faculty
   front-end's F6 sitting 1 made it; **deleting it on github.com is Rich's**.
 - **Containers: 0 `mf-`**, 10 `manifest-`. `dead-app-resources.sh --apply` (7 networks, 1 volume) and `app-images.sh --apply` (14 images),
@@ -1879,7 +1881,7 @@ review over its whole range. Then the plan is EXECUTED, and the close-out sweeps
   `litellm-orphans.sh` lists its orphans — **not applied**, for sitting 5's reason (a budget's deletion resets its month).
 - `make doctor` **21/0/0**, `make verify` **64/0/0**.
 - **7102 and 7105 are the faculty front-end's** (node 24850 — its mock, restarted by it on `6d76459` — and 65295). **Nothing on 7104 or 7118**
-  (the sitting's scratch mock and console dev server, stopped).
+  (the sitting's scratch mock, and the console preview served for Rich's click — stopped after it, as at open).
 - Ollama **0.35.0**; **free disk 53 GiB** (55 at open). Load ~4–5 through the gates (13 for a minute at the close, the front-end's tests
   resuming).
 - Not Manifest's, left alone: `cwl-spike-*` (4 up) and `openwebui-openwebui-1`.

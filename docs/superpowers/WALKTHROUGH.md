@@ -243,8 +243,9 @@ labels, so row 3's refusal cannot be seen there.
 
 ### A launch's three records and the administrators' queue, clicked
 
-*Added by the launch path plan's sitting 10, 2026-10-01 — clicked against the MOCK that night; the platform half is Rich's
-typing (§4 trap 6) and repeats in Task 15's clicked acceptance.* Any project whose release serves staging and signs people in
+*Added by the launch path plan's sitting 10, 2026-10-01 — clicked against the MOCK that night, and **on the platform by Rich the
+same night** (rows 1–8 and 10, every one as written; ~22:35–23:05 PDT). It repeats in Task 15's clicked acceptance; a password is
+always the person's typing (§4 trap 6).* Any project whose release serves staging and signs people in
 with CWL will do — `proof-app` does. **On driver 2 (Rich's `.env`) the project is a real private repository in
 `Manifest-local-dev`**: creating one is his call, and deleting it at the end (it never launched) removes the repository.
 `operator` must be an administrator: after its first sign-in, `bash scripts/admin-grant.sh grant opr000001 "<reason>"`,
