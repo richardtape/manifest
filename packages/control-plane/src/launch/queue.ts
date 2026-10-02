@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, ne, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, or, sql } from 'drizzle-orm'
 import {
   approvalRequests,
   iamRegistrations,
@@ -7,6 +7,7 @@ import {
   users,
   type Db,
 } from '../db/index.js'
+import { nameOrNobody } from '../projects/index.js'
 import { openRequestFor, undecidedSince } from './candidate.js'
 import { vancouverDayInWords } from './records.js'
 
@@ -24,7 +25,7 @@ export const QUEUE_LIMIT = 200
 
 export interface QueueItem {
   kind: QueueKind
-  project: { id: string; slug: string; name: string; state: 'active' | 'archived' }
+  project: { id: string; slug: string; name: string }
   /** The release asked about, or the registration or assessment with UBC. */
   subjectId: string
   /** Which registration, for a registration's item; null for anything else. */
@@ -60,10 +61,13 @@ export interface Queue {
  *    owner (FROM `submitted`) is the owner's move, and not here (Rich's (a), Spec action 10).
  *  - **`privacy-assessment`** — an assessment `submitted` to the Privacy Office.
  *
- * A deleted project's records are not in it; an archived project's are, saying so — UBC's answer still
- * comes. Pending actions are not in it: they are the requesting person's own question (§26). Each
- * select is bounded to the oldest `QUEUE_LIMIT + 1`, which is enough to know the oldest `QUEUE_LIMIT`
- * of all of them and whether there are more.
+ * **ACTIVE PROJECTS ONLY** (the sitting's whole-branch review, I2): an archived project refuses every
+ * administrator's write but reading it — `launch:record`, `release:approve` — so its items could not be
+ * acted on and would only age, holding `oldestSince` for ever; restored, they return with their true
+ * days. A deleted project is a tombstone. Pending actions are not in it: they are the requesting
+ * person's own question (§26). Each RECORD select is bounded to the oldest `QUEUE_LIMIT + 1`, which is
+ * enough to know the oldest `QUEUE_LIMIT` of all and whether there are more; the sign-off select is
+ * bounded by the projects — at most one open request each.
  */
 export async function listQueue(db: Db): Promise<Queue> {
   const all = [
@@ -89,11 +93,14 @@ const projectOf = (p: ProjectRow): QueueItem['project'] => ({
   id: p.id,
   slug: p.slug,
   name: p.name,
-  state: p.state === 'archived' ? 'archived' : 'active',
 })
 
+/** A person by name — `personName`'s rule for a blank one (the review's M4), never a sentence naming nobody. */
 const personOf = (u: { id: string | null; displayName: string | null } | null) =>
-  u?.id == null ? null : { id: u.id, displayName: u.displayName ?? '' }
+  u?.id == null ? null : { id: u.id, displayName: nameOrNobody(u.displayName) }
+
+/** Only an active project's items can be acted on (I2, above). */
+const isActive = eq(projects.state, 'active')
 
 const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
 
@@ -107,7 +114,7 @@ async function signOffRequests(db: Db): Promise<QueueItem[]> {
     .selectDistinct({ projectId: approvalRequests.projectId })
     .from(approvalRequests)
     .innerJoin(projects, eq(approvalRequests.projectId, projects.id))
-    .where(and(ne(projects.state, 'deleted'), undecidedSince))
+    .where(and(isActive, undecidedSince))
   const open: string[] = []
   for (const { projectId } of undecided) {
     const request = await openRequestFor(db, projectId)
@@ -125,16 +132,14 @@ async function signOffRequests(db: Db): Promise<QueueItem[]> {
     .innerJoin(users, eq(approvalRequests.requestedBy, users.id))
     .where(inArray(approvalRequests.id, open))
   return rows.map(({ request, project, asker }) => {
-    const who =
-      request.requestedByToken === null
-        ? asker.displayName
-        : `An agent on ${asker.displayName}’s token`
+    const name = nameOrNobody(asker.displayName)
+    const who = request.requestedByToken === null ? name : `An agent on ${name}’s token`
     return {
       kind: 'release-approval' as const,
       project: projectOf(project),
       subjectId: request.releaseId,
       environment: null,
-      requestedBy: { id: asker.id, displayName: asker.displayName },
+      requestedBy: { id: asker.id, displayName: name },
       since: request.createdAt,
       summary:
         project.launchedAt === null
@@ -165,7 +170,7 @@ async function registrationsWithUbc(db: Db): Promise<QueueItem[]> {
     .leftJoin(users, eq(iamRegistrations.submittedBy, users.id))
     .where(
       and(
-        ne(projects.state, 'deleted'),
+        isActive,
         or(
           eq(iamRegistrations.state, 'submitted'),
           // FILED WITH UBC by an administrator — not UBC's questions back to the owner.
@@ -219,7 +224,7 @@ async function assessmentsWithUbc(db: Db): Promise<QueueItem[]> {
     .from(privacyAssessments)
     .innerJoin(projects, eq(privacyAssessments.projectId, projects.id))
     .leftJoin(users, eq(privacyAssessments.submittedBy, users.id))
-    .where(and(ne(projects.state, 'deleted'), eq(privacyAssessments.state, 'submitted')))
+    .where(and(isActive, eq(privacyAssessments.state, 'submitted')))
     .orderBy(asc(sentAt(privacyAssessments)), asc(privacyAssessments.id))
     .limit(QUEUE_LIMIT + 1)
   return rows.map(({ record, project, sender }) => {

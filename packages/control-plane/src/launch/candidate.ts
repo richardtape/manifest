@@ -70,9 +70,13 @@ export const undecidedSince = sql`NOT EXISTS (SELECT 1 FROM approvals a WHERE a.
 /**
  * THE OPEN SIGN-OFF REQUEST FOR A PROJECT — the one an administrator still has to answer (Spec action
  * 5; the launch path plan's Task 12). DERIVED, never stored: the request for the release serving
- * staging NOW, with no decision recorded since it was made. A request whose release stopped being the
- * candidate is closed, and stays so — another release now serves staging, and that is the one to ask
- * about. At most one per project, since one release is the candidate.
+ * staging NOW, with no decision recorded since it was made. While another release serves staging the
+ * request is closed — that release is the one to ask about — and **if its own release serves staging
+ * again** (a rollback through staging; an archive, a restore and a redeploy) **it is open again, from
+ * when it was asked**: the ask for that release still stands (the plan's Decision 17, *"derived at read
+ * … when the release is no longer the candidate"*; the sitting's whole-branch review, I1, ruled so).
+ * Its `since` then counts the time another release served — the known cost. At most one per project,
+ * since one release is the candidate.
  *
  * Here, beside `candidateFor`, rather than in `requests.ts`: the checklist (`readiness.ts`) and the
  * queue read it, and `requestApproval` reads the checklist — so a `requests.ts` holding both would be

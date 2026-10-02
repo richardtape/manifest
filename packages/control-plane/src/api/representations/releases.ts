@@ -422,7 +422,7 @@ export const ApprovalRequest = representation(
       open: z
         .boolean()
         .describe(
-          'Whether it still waits on an administrator: until one approves or rejects the release, or another release serves staging.',
+          'Whether it waits on an administrator now: until one approves or rejects the release, and while the release serves staging — closed while another release does, and waiting again if this one serves staging again.',
         ),
     })
     .describe(

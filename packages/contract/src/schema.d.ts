@@ -1077,7 +1077,7 @@ export interface paths {
         };
         /**
          * Everything waiting on an administrator
-         * @description Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
+         * @description Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here; nor is anything of an archived project, which cannot be acted on until it is restored. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
          */
         get: operations["listQueue"];
         put?: never;
@@ -1179,7 +1179,7 @@ export interface paths {
         put?: never;
         /**
          * Ask an administrator to sign off the release serving staging
-         * @description Asks a platform administrator to approve the release serving staging for production — the one approval a first launch needs from a person at the platform, and the one a launched app’s release needs when it changes a sensitive field. The request waits in the administrators’ queue (`listQueue`), oldest first, until an administrator approves or rejects the release or another release serves staging, and the launch checklist’s `admin-approval` item says who asked and since when. Asking again answers the request already made, unchanged. The `note` is shown to administrators and to nobody else. Refused `409 RELEASE_NOT_STAGED` for any release but the one serving staging, with the checklist naming that one; `409 APPROVAL_NOT_NEEDED` when nothing needs approving — an approval already covers it, or the release changes nothing that needs one; and `409 RELEASE_REJECTED` once an administrator has rejected it. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `approval:request` may ask — a request grants nothing and decides nothing.
+         * @description Asks a platform administrator to approve the release serving staging for production — the one approval a first launch needs from a person at the platform, and the one a launched app’s release needs when it changes a sensitive field. The request waits in the administrators’ queue (`listQueue`), oldest first, until an administrator approves or rejects the release or another release serves staging — and if this release serves staging again, rolled back to it, it waits again from when it was asked — and the launch checklist’s `admin-approval` item says who asked and since when. Asking again answers the request already made, unchanged. The `note` is shown to administrators and to nobody else. Refused `409 RELEASE_NOT_STAGED` for any release but the one serving staging, with the checklist naming that one; `409 APPROVAL_NOT_NEEDED` when nothing needs approving — an approval already covers it, or the release changes nothing that needs one; and `409 RELEASE_REJECTED` once an administrator has rejected it. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `approval:request` may ask — a request grants nothing and decides nothing.
          */
         post: operations["requestApproval"];
         delete?: never;
@@ -1609,7 +1609,7 @@ export interface components {
              * @description When it was asked — what the administrators’ queue measures its wait from.
              */
             createdAt: string;
-            /** @description Whether it still waits on an administrator: until one approves or rejects the release, or another release serves staging. */
+            /** @description Whether it waits on an administrator now: until one approves or rejects the release, and while the release serves staging — closed while another release does, and waiting again if this one serves staging again. */
             open: boolean;
         };
         /** @description An administrator’s approval, naming the preview they read. */
@@ -5482,7 +5482,7 @@ export interface components {
         };
         /** @description Every project the caller is a member of — every project, for an administrator. */
         ProjectList: components["schemas"]["Project"][];
-        /** @description Everything waiting on a platform administrator, oldest first: a release someone asked them to sign off, and the registrations and privacy assessments with UBC whose answers they record. */
+        /** @description Everything waiting on a platform administrator, oldest first: a release someone asked them to sign off, and the registrations and privacy assessments with UBC whose answers they record. Only switched-on projects: an archived project’s records cannot be acted on until it is restored, and come back with it. */
         Queue: {
             /** @description Everything waiting, oldest first — at most 200. */
             items: components["schemas"]["QueueItem"][];
@@ -5509,11 +5509,6 @@ export interface components {
                 slug: string;
                 /** @description Its name, as its owner gave it. */
                 name: string;
-                /**
-                 * @description Whether it is switched on. An archived project’s records still wait on UBC.
-                 * @enum {string}
-                 */
-                state: "active" | "archived";
             };
             /**
              * Format: uuid
@@ -10976,8 +10971,7 @@ export interface operations {
                      *           "project": {
                      *             "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
                      *             "slug": "fixture-ad799ea7",
-                     *             "name": "fixture-ad799ea7",
-                     *             "state": "active"
+                     *             "name": "fixture-ad799ea7"
                      *           },
                      *           "subjectId": "2576d1c4-1d11-4823-9579-fc8fcba37558",
                      *           "environment": null,
@@ -10994,8 +10988,7 @@ export interface operations {
                      *           "project": {
                      *             "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
                      *             "slug": "fixture-ad799ea7",
-                     *             "name": "fixture-ad799ea7",
-                     *             "state": "active"
+                     *             "name": "fixture-ad799ea7"
                      *           },
                      *           "subjectId": "1b8cc68f-ce0d-4677-b3e8-e627872802ed",
                      *           "environment": null,

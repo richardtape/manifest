@@ -119,7 +119,7 @@ Answer, `200`:
 
 `GET /v1/queue` · a session only — a delegated token is refused
 
-Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
+Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here; nor is anything of an archived project, which cannot be acted on until it is restored. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
 
 Answer, `200`:
 
@@ -131,8 +131,7 @@ Answer, `200`:
       "project": {
         "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
         "slug": "fixture-ad799ea7",
-        "name": "fixture-ad799ea7",
-        "state": "active"
+        "name": "fixture-ad799ea7"
       },
       "subjectId": "2576d1c4-1d11-4823-9579-fc8fcba37558",
       "environment": null,
@@ -149,8 +148,7 @@ Answer, `200`:
       "project": {
         "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
         "slug": "fixture-ad799ea7",
-        "name": "fixture-ad799ea7",
-        "state": "active"
+        "name": "fixture-ad799ea7"
       },
       "subjectId": "1b8cc68f-ce0d-4677-b3e8-e627872802ed",
       "environment": null,
@@ -784,7 +782,7 @@ Answer, `200`:
 | `RELEASE_MODEL_NOT_IN_CATALOGUE` | 409 | Declare a model the catalogue has — `validateSpec` names them when one is unknown — then build and release again. |
 | `RELEASE_MODEL_UNCLASSIFIED` | 409 | Declare another model, or ask an administrator to classify this one; then build and release again. |
 | `RELEASE_NOT_FOUND` | 409 | Check the release id; `listReleases` lists the project’s releases. |
-| `RELEASE_NOT_STAGED` | 409 | Deploy this release to staging first and let it become healthy, then deploy it to production — or deploy the release that is serving staging. |
+| `RELEASE_NOT_STAGED` | 409 | Deploy this release to staging first and let it become healthy — or name the release serving staging (`candidateReleaseId` in the body): deploy that one to production, or ask for sign-off on it. |
 | `RELEASE_PRODUCTION_GATE_UNAVAILABLE` | 409 | Read `launchReadiness`: each unmet blocking item says what meets it. Meet them — most are records an administrator keeps, some with long lead times — and deploy again; a retry alone changes nothing. |
 | `RELEASE_REESCALATED` | 409 | Ask an administrator to approve this release (`requestApproval`) — the request waits in their queue — then deploy again once they have. |
 | `RELEASE_SECRET_NOT_SET` | 409 | Set each name the message lists in this environment (`setAppSecret`) and deploy again; `listAppSecrets` shows which are set. |
@@ -3300,7 +3298,7 @@ Answer, `200`:
 
 `POST /v1/releases/{releaseId}/approval-request` · a session or a delegated token
 
-Asks a platform administrator to approve the release serving staging for production — the one approval a first launch needs from a person at the platform, and the one a launched app’s release needs when it changes a sensitive field. The request waits in the administrators’ queue (`listQueue`), oldest first, until an administrator approves or rejects the release or another release serves staging, and the launch checklist’s `admin-approval` item says who asked and since when. Asking again answers the request already made, unchanged. The `note` is shown to administrators and to nobody else. Refused `409 RELEASE_NOT_STAGED` for any release but the one serving staging, with the checklist naming that one; `409 APPROVAL_NOT_NEEDED` when nothing needs approving — an approval already covers it, or the release changes nothing that needs one; and `409 RELEASE_REJECTED` once an administrator has rejected it. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `approval:request` may ask — a request grants nothing and decides nothing.
+Asks a platform administrator to approve the release serving staging for production — the one approval a first launch needs from a person at the platform, and the one a launched app’s release needs when it changes a sensitive field. The request waits in the administrators’ queue (`listQueue`), oldest first, until an administrator approves or rejects the release or another release serves staging — and if this release serves staging again, rolled back to it, it waits again from when it was asked — and the launch checklist’s `admin-approval` item says who asked and since when. Asking again answers the request already made, unchanged. The `note` is shown to administrators and to nobody else. Refused `409 RELEASE_NOT_STAGED` for any release but the one serving staging, with the checklist naming that one; `409 APPROVAL_NOT_NEEDED` when nothing needs approving — an approval already covers it, or the release changes nothing that needs one; and `409 RELEASE_REJECTED` once an administrator has rejected it. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `approval:request` may ask — a request grants nothing and decides nothing.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|
@@ -3342,7 +3340,7 @@ Answer, `200`:
 | `NOT_FOUND` | 404 | Check the id. If it is right you cannot see it: ask one of the project’s owners to add you (`addMember`), or use a token minted for that project. |
 | `PROJECT_ARCHIVED` | 409 | Restore it (`restoreProject`, the owner or an administrator, in their own session), then deploy to bring it back. A delegated token of an archived project was revoked with it: mint a new one after the restore. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
-| `RELEASE_NOT_STAGED` | 409 | Deploy this release to staging first and let it become healthy, then deploy it to production — or deploy the release that is serving staging. |
+| `RELEASE_NOT_STAGED` | 409 | Deploy this release to staging first and let it become healthy — or name the release serving staging (`candidateReleaseId` in the body): deploy that one to production, or ask for sign-off on it. |
 | `RELEASE_REJECTED` | 409 | Read the administrator’s reason (`getApproval`), change the app, build and release it, deploy that release to staging, and ask for sign-off on it. |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |

@@ -20,11 +20,6 @@ export const QueueItem = representation(
           id: Uuid.describe('The project.'),
           slug: z.string().describe('Its slug, which its hostnames are made from.'),
           name: z.string().describe('Its name, as its owner gave it.'),
-          state: z
-            .enum(['active', 'archived'])
-            .describe(
-              'Whether it is switched on. An archived project’s records still wait on UBC.',
-            ),
         })
         .describe('The app it is about.'),
       subjectId: Uuid.describe(
@@ -74,7 +69,7 @@ export const Queue = representation(
         ),
     })
     .describe(
-      'Everything waiting on a platform administrator, oldest first: a release someone asked them to sign off, and the registrations and privacy assessments with UBC whose answers they record.',
+      'Everything waiting on a platform administrator, oldest first: a release someone asked them to sign off, and the registrations and privacy assessments with UBC whose answers they record. Only switched-on projects: an archived project’s records cannot be acted on until it is restored, and come back with it.',
     ),
 )
 

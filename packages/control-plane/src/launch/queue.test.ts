@@ -5,6 +5,7 @@ import {
   iamRegistrations,
   privacyAssessments,
   projects,
+  users,
   type Db,
   type DiffSnapshotColumn,
 } from '../db/index.js'
@@ -168,7 +169,14 @@ describe('the administrators’ queue (Task 12, Spec action 5)', () => {
         summary:
           'The staging registration was sent to UBC IAM on January 1, 2001 (ticket IAM-2001-0001): record UBC IAM’s answer when it comes.',
       })
-      expect(items[0]!.project).toMatchObject({ id: projectId, state: 'active' })
+      expect(items[0]!.project).toEqual({
+        id: projectId,
+        slug: expect.stringMatching(/^fixture-/),
+        name: expect.stringMatching(/^fixture-/),
+      })
+      // THE NAME, NOT THE SLUG (the review's M8): `anotherProject`'s two differ.
+      expect(items[2]!.project.name).toMatch(/^Queue /)
+      expect(items[2]!.project.slug).toMatch(/^queue-/)
       expect(items[1]!.summary).toBe(
         'The privacy assessment was sent to the UBC Privacy Office on January 2, 2001: record its answer, with the PIA number, when it comes.',
       )
@@ -257,17 +265,57 @@ describe('the administrators’ queue (Task 12, Spec action 5)', () => {
     })
   })
 
-  it('a deleted project’s records are not in it; an archived project’s are, and say so', async () => {
-    await withProject(async (db, { ownerId }) => {
+  it('an archived or deleted project’s records are not in it — nothing on them can be acted on until it is restored', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
       const archived = await anotherProject(db, ownerId, 'archived')
       const deleted = await anotherProject(db, ownerId, 'deleted')
       await assessment(db, { projectId: archived, state: 'submitted', day: '2001-04-01' })
+      await registration(db, {
+        projectId: archived,
+        environment: 'staging',
+        state: 'submitted',
+        day: '2001-04-01',
+      })
       await assessment(db, { projectId: deleted, state: 'submitted', day: '2001-04-02' })
-      const items = mine((await listQueue(db)).items, [archived, deleted])
-      expect(items).toHaveLength(1)
-      expect(items[0]!.project).toMatchObject({ id: archived, state: 'archived' })
-      // Sent by nobody Manifest recorded — an administrator's record from before submissions were kept.
+      // THE POSITIVE CONTROL: the same record on an active project is an item — sent by nobody Manifest
+      // recorded (an administrator's record from before submissions were kept), so it names nobody.
+      await assessment(db, { projectId, state: 'submitted', day: '2001-04-03' })
+      const items = mine((await listQueue(db)).items, [archived, deleted, projectId])
+      expect(items.map((i) => i.project.id)).toEqual([projectId])
       expect(items[0]!.requestedBy).toBeNull()
+    })
+  })
+
+  it('a person with no display name is named as a Manifest user, never as nobody', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const [nameless] = await db
+        .insert(users)
+        .values({
+          ubcCwlPuid: `puid-${randomUUID().slice(0, 8)}`,
+          email: `nameless-${randomUUID().slice(0, 8)}@example.ubc.ca`,
+          displayName: ' ',
+        })
+        .returning()
+      const { releaseId } = await stagedRelease(db, { projectId, ownerId })
+      await requestApproval(db, bus, {
+        releaseId,
+        actor: { userId: nameless!.id, tokenId: null },
+      })
+      const other = await anotherProject(db, ownerId)
+      await assessment(db, {
+        projectId: other,
+        state: 'submitted',
+        day: '2001-05-01',
+        by: nameless!.id,
+      })
+      const items = mine((await listQueue(db)).items, [projectId, other])
+      expect(items.map((i) => i.requestedBy?.displayName)).toEqual([
+        'A Manifest user',
+        'A Manifest user',
+      ])
+      expect(items.find((i) => i.kind === 'release-approval')!.summary).toBe(
+        'A Manifest user asked for the release serving staging to be approved for the app’s first production launch.',
+      )
     })
   })
 

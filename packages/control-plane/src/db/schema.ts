@@ -985,7 +985,7 @@ export const approvalPreviews = pgTable(
  * administrator's side, and a refused production deploy writes nothing.
  *
  * **ONE PER RELEASE** (`release_id` UNIQUE): a second ask answers the first. **IT IS NEVER CLOSED
- * BY A WRITE** — open and closed are derived at read (`launch/requests.ts`'s `isOpen`): answered
+ * BY A WRITE** — open and closed are derived at read (`launch/candidate.ts`'s `openRequestFor`): answered
  * by an `Approval` recorded since it was made, or no longer the candidate. INSERT ONLY.
  *
  * `note` is the asker's own words to the administrators, and is shown to THEM and nobody else —

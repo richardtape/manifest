@@ -181,7 +181,11 @@ describe('an owner asks for sign-off (Task 12, FE-25)', () => {
             'Bio Prof asked for the release serving staging to be approved for the app’s first production launch.',
         }),
       ])
-      expect(mine[0]!.project).toMatchObject({ id: ctx.projectId, state: 'active' })
+      expect(mine[0]!.project).toEqual({
+        id: ctx.projectId,
+        slug: expect.any(String),
+        name: expect.any(String),
+      })
       expect(body.oldestSince).toBe(body.items[0]!.since)
       expect(body.truncated).toBe(false)
 

@@ -28,6 +28,9 @@ const named = (displayName: string | null | undefined): string =>
     ? NOBODY_NAMED
     : displayName
 
+/** The same rule for a name already read with its row — the administrators' queue reads people by join. */
+export const nameOrNobody = named
+
 /**
  * A PERSON, BY NAME — never a PUID (P6b's F14; the authoring API plan's Task 12, which found five
  * event sentences still naming one). THE ONE LOOKUP every sentence that names a person uses: a

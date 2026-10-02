@@ -228,9 +228,9 @@ export const ERROR_CODES = {
     status: 409,
     families: ['ProductionGateError'],
     summary:
-      'Production deploys only the release serving staging — production runs exactly what staging ran (§13); the body carries the LaunchReadiness of the one that is.',
+      'Only the release serving staging may go to production, or be asked about for sign-off — production runs exactly what staging ran; the body carries the LaunchReadiness of the one that is.',
     remedy:
-      'Deploy this release to staging first and let it become healthy, then deploy it to production — or deploy the release that is serving staging.',
+      'Deploy this release to staging first and let it become healthy — or name the release serving staging (`candidateReleaseId` in the body): deploy that one to production, or ask for sign-off on it.',
   },
 
   // projects/authz.ts

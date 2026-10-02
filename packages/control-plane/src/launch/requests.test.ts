@@ -4,7 +4,9 @@ import {
   approvalRequests,
   approvals,
   events,
+  instances,
   projects,
+  routes,
   type Db,
   type DiffSnapshotColumn,
 } from '../db/index.js'
@@ -164,6 +166,34 @@ describe('a sign-off request (Task 12, Spec action 5)', () => {
       const asked = await ask(db, second.releaseId, ownerId)
       expect(asked.open).toBe(true)
       expect((await openRequestFor(db, projectId))?.id).toBe(asked.request.id)
+    })
+  })
+
+  it('a request whose release serves staging AGAIN is open again, from when it was asked — closed only while another serves', async () => {
+    // THE RULE (the sitting's review, I1; the plan's Decision 17: a request closes "derived at read … when
+    // the release is no longer the candidate"): a rollback through staging puts the asked-about release
+    // back, and the ask for it stands. Its `since` is the original ask — the known cost (the record).
+    await withProject(async (db, { projectId, ownerId }) => {
+      const first = await stagedRelease(db, { projectId, ownerId })
+      const asked = await ask(db, first.releaseId, ownerId)
+      await stagedRelease(db, { projectId, ownerId })
+      expect(await openRequestFor(db, projectId)).toBeUndefined()
+      // Staging's route back to the first release's instance — what a redeploy of it does.
+      const [instance] = await db
+        .select()
+        .from(instances)
+        .where(eq(instances.releaseId, first.releaseId))
+      const [route] = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.hostname, `${projectId.slice(0, 8)}.staging.manifest.internal`))
+      await db
+        .update(routes)
+        .set({ instanceId: instance!.id })
+        .where(eq(routes.id, route!.id))
+      const reopened = await openRequestFor(db, projectId)
+      expect(reopened?.id).toBe(asked.request.id)
+      expect(reopened?.createdAt).toEqual(asked.request.createdAt)
     })
   })
 
