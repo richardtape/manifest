@@ -18,4 +18,16 @@ if (!connectionString) {
 
 export const pool = new pg.Pool({ connectionString })
 export const db = drizzle(pool, { schema })
+
+/**
+ * THE ADVISORY LOCKS' OWN CONNECTIONS (`db/locks.ts`), never `pool`'s (the launch path plan's sitting
+ * 12, F1). A session-level advisory lock is held by the connection that took it, for as long as its
+ * holder works — and every holder's work queries through `db`. On ONE pool, ten holders at once (the
+ * boot schedules a retire pass for every environment together) took all ten connections and each
+ * waited for an eleventh: the control plane answered nothing that needed the database, its sign-in
+ * included, for ever. On two, a holder's lock can never take the connection its own work needs. Its
+ * size bounds how many holders — and waiters — hold at once; the rest wait in this pool's queue, in
+ * the process, for one to finish.
+ */
+export const lockPool = new pg.Pool({ connectionString, max: 10 })
 export type Db = typeof db

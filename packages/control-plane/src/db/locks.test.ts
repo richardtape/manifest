@@ -118,6 +118,31 @@ describe('withEnvironmentLock (P4c Task 6)', () => {
     await holder
     expect(await held()).toBe(0)
   })
+
+  it('lets more holders than the pool has connections finish, each querying the database while it holds (sitting 12, F1)', async () => {
+    // THE CONTROL PLANE DEADLOCKED AT BOOT ON THIS (the launch path plan's sitting 12, F1):
+    // `recoverAtBoot` schedules a retire pass for every environment at once, and each pass holds
+    // its environment's lock and then queries. With as many passes as the pool had connections,
+    // every connection was a lock holder waiting for one more — and every request after it, the
+    // sign-in included, waited for ever. Twelve holders here: past `pg.Pool`'s default of ten.
+    const holders = Promise.all(
+      Array.from({ length: 12 }, () =>
+        withEnvironmentLock(randomUUID(), async () => {
+          // Every holder holds at once before any of them queries.
+          await sleep(100)
+          const result = await db.execute(sql`SELECT 1 AS one`)
+          return result.rows.length
+        }),
+      ),
+    )
+    const outcome = await Promise.race([
+      holders.then((counts) => counts.join(',')),
+      sleep(10_000).then(
+        () => 'deadlocked: every connection a lock holder waiting for another',
+      ),
+    ])
+    expect(outcome).toBe(Array.from({ length: 12 }, () => 1).join(','))
+  }, 20_000)
 })
 
 /**

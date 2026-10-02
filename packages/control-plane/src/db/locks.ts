@@ -1,4 +1,4 @@
-import { pool } from './client.js'
+import { lockPool } from './client.js'
 
 /**
  * One deploy or retire per environment at a time (§11: "one reconciliation loop per
@@ -15,10 +15,12 @@ import { pool } from './client.js'
  * against one database, and only Postgres sees both.
  *
  * WHAT IT COSTS, stated rather than discovered (Decision 14): each holder keeps one
- * pooled connection for the length of its deploy, so the pool's size bounds how many
- * DIFFERENT environments can deploy at once — `pg.Pool`'s default maximum is 10. One
- * developer's laptop is nowhere near that; a queue belongs with Phase 4's reconciler,
- * and §20's *Availability* already bounds builds the same way.
+ * connection for the length of its deploy — from `lockPool`, NEVER from `pool`, which its own
+ * work queries through. This said the pool's size "bounds how many DIFFERENT environments can
+ * deploy at once"; on one pool it did not bound them, it DEADLOCKED them: ten holders took every
+ * connection and each waited for another (the launch path plan's sitting 12, F1 — the boot's retire
+ * passes, one per environment, all at once). `lockPool`'s size now bounds the holders, and the rest
+ * wait in its queue; a real queue still belongs with Phase 4's reconciler.
  */
 export async function withEnvironmentLock<T>(
   environmentId: string,
@@ -62,7 +64,7 @@ export async function tryWithRehearsalLock<T>(
   fn: () => Promise<T>,
 ): Promise<T | undefined> {
   const key = `manifest:rehearsal:${projectId}`
-  const client = await pool.connect()
+  const client = await lockPool.connect()
   try {
     const { rows } = await client.query<{ held: boolean }>(
       'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS held',
@@ -80,7 +82,7 @@ export async function tryWithRehearsalLock<T>(
 }
 
 async function withAdvisoryLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const client = await pool.connect()
+  const client = await lockPool.connect()
   try {
     await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [key])
     try {
