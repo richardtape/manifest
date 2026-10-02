@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
 import { stepUpUrl } from './auth'
+import { sinceWords } from './launch-records-state'
 import { href } from './router'
 
 /** Every screen reads through this, so every refusal reaches one renderer. */
@@ -160,6 +161,17 @@ export function ReadinessItems({
             {item.why} Owner: {item.owner}.
             {item.builtBy !== undefined && ` Built by ${item.builtBy}.`}
           </span>
+          {/*
+            WAITING SINCE, OR MET SINCE (the launch path plan's Tasks 9 and 12): the platform's
+            instant, read as Vancouver days — a record with UBC, a sign-off request, or the day a
+            record was met. Nothing when the platform gives none.
+          */}
+          {item.since !== null && (
+            <>
+              <br />
+              <span className="since">{sinceWords(item, new Date())}</span>
+            </>
+          )}
           {actions[item.id] !== undefined && (
             <div className="item-action">{actions[item.id]}</div>
           )}

@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import type { Schemas, StreamFrame } from '@manifest/contract'
+import { ManifestApiError, type Schemas, type StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
 import { approvalLinkWanted } from '../approval-state'
+import { dayInWords, signOffAction } from '../launch-records-state'
 import { href } from '../router'
 import { instanceFrameCount } from './deploy'
 import {
@@ -68,6 +69,19 @@ export function Launch({
     () => api.getLaunchReadiness(projectId),
     [projectId, instanceFrames],
   )
+  // THE CANDIDATE'S NEWEST DECISION — read only to know whether it was REJECTED, which is final
+  // for that release and so the one unmet state where asking for sign-off is no errand at all.
+  // `404` is "nobody has decided", and it is not an error here.
+  const candidate = readiness.value?.candidateReleaseId ?? null
+  const decision = useAsync(async () => {
+    if (candidate === null) return null
+    try {
+      return (await api.getApproval(candidate)).decision
+    } catch (error) {
+      if (error instanceof ManifestApiError && error.status === 404) return null
+      throw error
+    }
+  }, [candidate, instanceFrames])
   return (
     <Panel title="Request production">
       <Refusal error={readiness.error} />
@@ -76,14 +90,23 @@ export function Launch({
           readiness={readiness.value}
           launchedAt={launchedAt}
           actions={{
-            ...approvalAction(readiness.value, isAdmin),
+            ...approvalAction(
+              readiness.value,
+              isAdmin,
+              <AskForSignOff
+                api={api}
+                readiness={readiness.value}
+                decision={decision.value}
+                onAsked={readiness.reload}
+              />,
+            ),
             ...rehearsalAction({
               api,
               projectId,
               readiness: readiness.value,
               onChanged: readiness.reload,
             }),
-            ...(isAdmin ? adminActions(projectId) : {}),
+            ...recordsActions(projectId, isAdmin),
           }}
         />
       )}
@@ -103,12 +126,25 @@ export function Launch({
  * - **`rehearsal` is `rehearsalAction`'s**, because since the launch path plan's Task 6b it is
  *   not an administrator's alone either: it is anybody's who can read this checklist.
  */
-function adminActions(projectId: string): Partial<Record<LaunchItemId, React.ReactNode>> {
+function recordsActions(
+  projectId: string,
+  isAdmin: boolean,
+): Partial<Record<LaunchItemId, React.ReactNode>> {
   const records = href(`/projects/${projectId}/records`)
-  return {
-    'iam-registration': <a {...records}>Record what UBC IAM said</a>,
-    'privacy-assessment': <a {...records}>Record what the Privacy Office said</a>,
-  }
+  // THE OWNER'S ERRAND SINCE THE LAUNCH PATH PLAN'S TASKS 9–11: Manifest drafts each record and the
+  // owner sends it and says so — on the same screen where an administrator records UBC's answer.
+  return isAdmin
+    ? {
+        'iam-registration': <a {...records}>Record what UBC IAM said</a>,
+        'privacy-assessment': <a {...records}>Record what the Privacy Office said</a>,
+      }
+    : {
+        // NEUTRAL, because what the owner may do depends on the record, not the item: a draft to
+        // send, a record with UBC to wait on, or one registered (found clicking — *"Draft it"* beside
+        // a registration that is met).
+        'iam-registration': <a {...records}>Open the launch records</a>,
+        'privacy-assessment': <a {...records}>Open the launch records</a>,
+      }
 }
 
 /**
@@ -156,15 +192,100 @@ function rehearsalAction({
 function approvalAction(
   readiness: Schemas['LaunchReadiness'],
   isAdmin: boolean,
+  ask: React.ReactNode,
 ): Partial<Record<LaunchItemId, React.ReactNode>> {
   if (readiness.candidateReleaseId === null || !approvalLinkWanted(readiness)) return {}
   return {
     'admin-approval': (
-      <a {...href(`/releases/${readiness.candidateReleaseId}/approval`)}>
-        {isAdmin ? 'Review this release' : 'See this release’s approval'}
-      </a>
+      <>
+        <a {...href(`/releases/${readiness.candidateReleaseId}/approval`)}>
+          {isAdmin ? 'Review this release' : 'See this release’s approval'}
+        </a>
+        {ask}
+      </>
     ),
   }
+}
+
+/**
+ * *ASK AN ADMINISTRATOR TO SIGN THIS OFF* (FE-25; the launch path plan's Tasks 12 and 13; the review's
+ * M6 — until this, nothing told an owner or an agent that asking was theirs to do). Offered by
+ * `signOffAction` — while the item is unmet, something serves staging, nobody has asked and the
+ * release was not rejected — to everyone who can read this checklist: the owner, a collaborator and
+ * an administrator hold `approval:request`, and the platform refuses anybody else.
+ *
+ * **THE NOTE IS FOR ADMINISTRATORS ALONE**: it is shown in their queue and never answered back, so
+ * the form says so rather than letting a person think their colleagues will read it.
+ */
+function AskForSignOff({
+  api,
+  readiness,
+  decision,
+  onAsked,
+}: {
+  api: Api
+  readiness: Schemas['LaunchReadiness']
+  decision: 'approved' | 'rejected' | null | undefined
+  onAsked: () => void
+}) {
+  const [note, setNote] = useState('')
+  // THE ANSWER'S OWN WORD THAT IT TOOK — the checklist is re-read as well, and says who asked.
+  const [asked, setAsked] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(undefined)
+  const attemptKey = useRef<string | undefined>(undefined)
+  // Until the decision is read, offer nothing: a button that appears and then vanishes after a
+  // rejection is read would be pressed in between.
+  if (decision === undefined) return null
+  const offer = signOffAction(readiness, decision)
+  if (offer !== 'ask') return null
+  const releaseId = readiness.candidateReleaseId!
+
+  async function ask() {
+    setBusy(true)
+    setError(undefined)
+    attemptKey.current ??= api.newKey()
+    try {
+      const request = await api.requestApproval(
+        releaseId,
+        note.trim() === '' ? {} : { note: note.trim() },
+        attemptKey.current,
+      )
+      attemptKey.current = undefined
+      setAsked(request.createdAt)
+      onAsked()
+    } catch (e) {
+      setError(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="ask">
+      <label>
+        A note for the administrators{' '}
+        <span className="hint">(optional — only administrators see it)</span>
+        <br />
+        <textarea
+          value={note}
+          maxLength={500}
+          rows={2}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </label>
+      <br />
+      <button type="button" disabled={busy} onClick={() => void ask()}>
+        {busy ? 'asking…' : 'Ask an administrator to sign this off'}
+      </button>{' '}
+      {asked !== null && (
+        <span className="ok">
+          Asked — it waits in the administrators’ queue, asked on {dayInWords(asked)}.
+        </span>
+      )}
+      <Refusal error={error} />
+    </div>
+  )
 }
 
 function Checklist({

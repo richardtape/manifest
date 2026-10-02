@@ -484,6 +484,96 @@ describe('the console’s data layer against manifest-mock', () => {
   })
 
   /**
+   * THE SIX OPERATIONS THE LAUNCH PATH PLAN ADDS (its Task 13): the owner's half of the records, the
+   * sign-off request and the administrators' queue — each called at the mock's stage where the
+   * platform would answer it, and each refusal the screens render asserted by its code.
+   */
+  it('calls every operation the launch path plan adds', async () => {
+    // Week one, drafted: the assessment can be sent; a registration waits for it.
+    await withMock(
+      async (origin) => {
+        const a = api(origin)
+        const records = await a.getLaunchRecords(PROJECT_ID)
+        const draft = records.privacyAssessment!.draft!
+        expect(
+          (await a.draftPrivacyAssessment(PROJECT_ID, a.newKey())).draft!.generatedAt,
+        ).toBe(draft.generatedAt)
+        const sent = await a.submitPrivacyAssessment(
+          PROJECT_ID,
+          { reference: 'PRISM-0042', draftGeneratedAt: draft.generatedAt },
+          a.newKey(),
+        )
+        expect(sent).toMatchObject({
+          state: 'submitted',
+          externalTicketRef: 'PRISM-0042',
+        })
+
+        const staging = await a.draftIamRegistration(PROJECT_ID, 'staging', a.newKey())
+        expect(staging.package!.environment).toBe('staging')
+        await expect(
+          a.submitIamRegistration(
+            PROJECT_ID,
+            'staging',
+            { draftGeneratedAt: staging.package!.generatedAt },
+            a.newKey(),
+          ),
+        ).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      },
+      { records: 'drafted' },
+    )
+
+    // The assessment approved: staging is sent, with UBC's ticket.
+    await withMock(
+      async (origin) => {
+        const a = api(origin)
+        const staging = (await a.getLaunchRecords(PROJECT_ID)).stagingRegistration!
+        const sent = await a.submitIamRegistration(
+          PROJECT_ID,
+          'staging',
+          { reference: 'IAM-2026-0500', draftGeneratedAt: staging.package!.generatedAt },
+          a.newKey(),
+        )
+        expect(sent).toMatchObject({ state: 'submitted', environment: 'staging' })
+      },
+      { records: 'assessed' },
+    )
+
+    // Nobody has decided the release serving staging: ask, with a note only administrators read.
+    await withMock(
+      async (origin) => {
+        const a = api(origin)
+        const request = await a.requestApproval(
+          RELEASE_ID,
+          { note: 'The class starts on Monday.' },
+          a.newKey(),
+        )
+        expect(request).toMatchObject({ releaseId: RELEASE_ID, open: true })
+        expect(JSON.stringify(request)).not.toContain('Monday')
+      },
+      { approval: 'pending' },
+    )
+
+    // The default: the release is approved, so there is nothing to ask for.
+    await withMock(async (origin) => {
+      const a = api(origin)
+      await expect(a.requestApproval(RELEASE_ID, {}, a.newKey())).rejects.toMatchObject({
+        code: 'APPROVAL_NOT_NEEDED',
+      })
+      await expect(a.listQueue()).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    })
+
+    // An administrator's queue, oldest first.
+    await withMock(
+      async (origin) => {
+        const queue = await api(origin).listQueue()
+        expect(queue.items.length).toBe(4)
+        expect(queue.oldestSince).toBe(queue.items[0]!.since)
+      },
+      { role: 'admin', queue: 'full' },
+    )
+  })
+
+  /**
    * THE DOCS SCREEN'S THREE CALLS (the authoring API plan's Task 11): the index, one page, and
    * the OpenAPI document — whose `info.version` the screen shows. Against the mock, a page is
    * answered for its own slug alone, so the one the index names first is the one read here.

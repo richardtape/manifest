@@ -17,6 +17,13 @@ import { describe, expect, it } from 'vitest'
  * and the list is where that claim is recorded.
  */
 const DELIBERATELY_UNCALLED: Record<string, string> = {
+  // **EMPTY AGAIN SINCE THE LAUNCH PATH PLAN'S TASK 13 (sitting 10, 2026-10-01)**, and that is a
+  // measurement: all 72 operations have a caller. Its Tasks 9–12 parked SIX here naming Task 13 as
+  // their remover — `draftIamRegistration` and `submitIamRegistration`, `draftPrivacyAssessment` and
+  // `submitPrivacyAssessment` for the Launch records screen's owner half, `requestApproval` for the
+  // launch checklist's *Ask an administrator to sign this off*, and `listQueue` for the
+  // administrators' Queue screen — and Task 13 added their callers and removed the six in one commit.
+  //
   // **EMPTY AGAIN SINCE THE FRONT-END ENABLEMENT PLAN'S TASK 13 (sitting 10, 2026-09-28)**, and
   // that is a measurement: all 66 operations have a caller. That plan parked TWELVE here naming
   // Task 13 as their remover — `listInstances` and `getInstanceOutput` (Task 3), `updateProject`
@@ -44,24 +51,6 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   // before the decision. P6b Task 9's stored preview is that missing operation, and this
   // list being empty again is only half of the evidence; the other half is a person reading
   // the preview before deciding (Task 10's click, Task 11's clicked acceptance).
-  //
-  // THE LAUNCH PATH PLAN'S TASK 9 PARKS TWO, naming its Task 13 as their remover: until Tasks 10
-  // and 11 draft a package and an assessment, no client can meet their precondition (a draft), so
-  // a console button for them could only ever answer `409 LAUNCH_DRAFT_REQUIRED`.
-  // Task 10 parks its draft beside them, for the same screen.
-  draftIamRegistration:
-    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — drafting each registration, then saying it was sent',
-  submitIamRegistration:
-    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — sending the package Task 10 drafts',
-  // Task 11 parks the assessment's draft beside them.
-  draftPrivacyAssessment:
-    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — drafting the privacy assessment, then saying it was sent',
-  submitPrivacyAssessment:
-    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — sending the assessment Task 11 drafts',
-  // Task 12 parks the sign-off request beside them, and the administrators' queue.
-  requestApproval:
-    'the launch path plan’s Task 13 adds the owner’s half of the Launch records screen — asking an administrator to sign off the release serving staging',
-  listQueue: 'the launch path plan’s Task 13 adds a Queue screen for administrators',
 }
 
 /**

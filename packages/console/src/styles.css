@@ -510,3 +510,59 @@ img.preview {
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+/* The launch path plan's Task 13: the owner's half of the launch records — what Manifest drafted,
+   with what to fix first, the attributes and their reasons, the questions' gaps, and the text to
+   paste — the administrators' queue's notes, and a checklist item's wait. */
+.owner {
+  margin: 0.8rem 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.owner h3 {
+  margin: 0.2rem 0;
+  font-size: 1rem;
+}
+
+.package .attributes,
+.package .sections,
+.package .gaps {
+  margin: 0.2rem 0 0.6rem;
+  padding-left: 1.2rem;
+}
+
+.package .sections > li {
+  margin-bottom: 0.6rem;
+}
+
+.package .gaps li::marker {
+  content: '☐ ';
+}
+
+.copy pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 18rem;
+  overflow-y: auto;
+  margin: 0.3rem 0 0.6rem;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.since {
+  font-size: 0.9em;
+}
+
+.ask textarea {
+  width: 100%;
+  max-width: 32rem;
+}
+
+.note {
+  margin: 0.3rem 0;
+  padding-left: 0.6rem;
+  border-left: 3px solid var(--line);
+}

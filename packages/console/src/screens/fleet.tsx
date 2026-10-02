@@ -1,5 +1,6 @@
 import type { Schemas } from '@manifest/contract'
 import type { Api } from '../api'
+import { fleetStateWords } from '../launch-records-state'
 import { href } from '../router'
 import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 
@@ -62,9 +63,17 @@ function FleetProject({ project }: { project: Schemas['Fleet'][number] }) {
           administrator does on a project they do not own. They may read it: a platform
           administrator holds every owner capability (`projects/authz.ts`).
         */}
-        <a {...href(`/projects/${project.id}`)}>
-          <code>{project.slug}</code>
-        </a>{' '}
+        {/*
+          THE NAME PEOPLE READ, then the slug (the launch path plan's Task 12, M3) — the fixture and a
+          real project both name themselves apart from their slug, so showing one for the other is seen.
+        */}
+        <a {...href(`/projects/${project.id}`)}>{project.name}</a>{' '}
+        <code>{project.slug}</code>{' '}
+        {/*
+          AN ARCHIVED PROJECT IS SWITCHED OFF, NOT BROKEN: nothing serves, its environments say so,
+          and it can be restored. Said in words beside the name, never as a failure.
+        */}
+        <Pill tone="plain">{fleetStateWords(project)}</Pill>{' '}
         {/*
           §23: a project holding a label that was RESERVED after it was created. The schema
           says what to do with it — "Handle with the owner; never renamed automatically" —

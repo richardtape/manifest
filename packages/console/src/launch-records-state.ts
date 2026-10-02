@@ -56,9 +56,15 @@ const waited = (since: string, now: Date): string => {
   return days <= 0 ? 'since today' : `${days} day${days === 1 ? '' : 's'}`
 }
 
-/** *"Sent on 1 October 2026 — waiting 12 days"*: a record with UBC, from its `submittedAt`. */
-export function sentLine(submittedAt: string, now: Date): string {
-  return `Sent on ${dayInWords(submittedAt)} — waiting ${waited(submittedAt, now)}`
+/**
+ * *"Sent on 1 October 2026 — waiting 12 days"*: a record with UBC, from its `submittedAt`. **Only
+ * while it waits** — a registration UBC registered, or an assessment it approved, was sent and waits
+ * for nothing, so `waiting: false` says only when it went (found clicking the mock's default stage,
+ * which read *"waiting 25 days"* beside `active`).
+ */
+export function sentLine(submittedAt: string, now: Date, waiting = true): string {
+  const sent = `Sent on ${dayInWords(submittedAt)}`
+  return waiting ? `${sent} — waiting ${waited(submittedAt, now)}` : sent
 }
 
 /**

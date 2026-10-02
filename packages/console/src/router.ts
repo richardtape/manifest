@@ -18,6 +18,7 @@ export type Route =
   | { name: 'projects' }
   | { name: 'blueprints' }
   | { name: 'fleet' }
+  | { name: 'queue' }
   | { name: 'docs' }
   | { name: 'doc'; slug: string }
   | {
@@ -33,6 +34,8 @@ export function parse(path: string): Route {
   if (parts.length === 0) return { name: 'projects' }
   if (parts[0] === 'blueprints' && parts.length === 1) return { name: 'blueprints' }
   if (parts[0] === 'fleet' && parts.length === 1) return { name: 'fleet' }
+  // §26's queue, the administrators' (the launch path plan's Task 13).
+  if (parts[0] === 'queue' && parts.length === 1) return { name: 'queue' }
   // The API's documentation (the authoring API plan's Task 11): the index, and one page by slug.
   if (parts[0] === 'docs' && parts.length === 1) return { name: 'docs' }
   if (parts[0] === 'docs' && parts[1] !== undefined && parts.length === 2)

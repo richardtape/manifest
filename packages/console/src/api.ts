@@ -654,6 +654,82 @@ export function createApi(options: ApiOptions) {
       )
     },
 
+    /**
+     * THE OWNER'S HALF OF A REGISTRATION (the launch path plan's Tasks 9–10): Manifest drafts what a
+     * person sends UBC IAM for one environment — the entity, the certificate's public half, every
+     * attribute with where the app reads it, the contacts, the metadata — and keeps it on the record.
+     * BODYLESS. Drafted again until it is sent; then `409 LAUNCH_RECORD_SUBMITTED` until UBC asks for
+     * changes or the registration lapses.
+     */
+    async draftIamRegistration(
+      projectId: string,
+      environment: 'staging' | 'production',
+      idempotency: string,
+    ): Promise<Schemas['IamRegistration']> {
+      return unwrap(
+        await client.POST(
+          '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/draft',
+          { params: { path: { projectId, environment }, ...key(idempotency) } },
+        ),
+        'draftIamRegistration',
+      )
+    },
+
+    /**
+     * *"I'VE SENT IT"* (Task 9): the person says the draft went to UBC IAM, on a day and with UBC's
+     * ticket. Person-only. **`draftGeneratedAt` is ALWAYS sent** — the draft the person read — so a
+     * draft made again since is refused `409 LAUNCH_DRAFT_CHANGED` rather than recorded as sent. In
+     * UBC's order: `409 LAUNCH_PIA_NOT_APPROVED` until the assessment is approved with its PIA number,
+     * and production's `409 LAUNCH_STAGING_NOT_REGISTERED` until staging is registered.
+     */
+    async submitIamRegistration(
+      projectId: string,
+      environment: 'staging' | 'production',
+      body: Schemas['SubmitLaunchRecordRequest'],
+      idempotency: string,
+    ): Promise<Schemas['IamRegistration']> {
+      return unwrap(
+        await client.POST(
+          '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/submission',
+          { params: { path: { projectId, environment }, ...key(idempotency) }, body },
+        ),
+        'submitIamRegistration',
+      )
+    },
+
+    /**
+     * THE PRIVACY ASSESSMENT'S DRAFT (Task 11), FIRST IN UBC'S ORDER: six questions as what Manifest
+     * knows, each with where it read it, and the gaps only the owner can fill; and the whole as text
+     * to paste. BODYLESS. `409 LAUNCH_RECORD_SUBMITTED` while it is with the Privacy Office or approved.
+     */
+    async draftPrivacyAssessment(
+      projectId: string,
+      idempotency: string,
+    ): Promise<Schemas['PrivacyAssessment']> {
+      return unwrap(
+        await client.POST(
+          '/v1/projects/{projectId}/launch-records/privacy-assessment/draft',
+          { params: { path: { projectId }, ...key(idempotency) } },
+        ),
+        'draftPrivacyAssessment',
+      )
+    },
+
+    /** *"I've sent it"* for the assessment — the registration's rules, with nothing before it. */
+    async submitPrivacyAssessment(
+      projectId: string,
+      body: Schemas['SubmitLaunchRecordRequest'],
+      idempotency: string,
+    ): Promise<Schemas['PrivacyAssessment']> {
+      return unwrap(
+        await client.POST(
+          '/v1/projects/{projectId}/launch-records/privacy-assessment/submission',
+          { params: { path: { projectId }, ...key(idempotency) }, body },
+        ),
+        'submitPrivacyAssessment',
+      )
+    },
+
     /** The same shape over §9's three PIA states (`draft → submitted → approved`). */
     async recordPrivacyAssessment(
       projectId: string,
@@ -791,6 +867,36 @@ export function createApi(options: ApiOptions) {
      *  no tenant's resource to hide (P5a Task 16). */
     async listFleet(): Promise<Schemas['Fleet']> {
       return unwrap(await client.GET('/v1/fleet'), 'listFleet')
+    },
+
+    /**
+     * *ASK AN ADMINISTRATOR TO SIGN THIS OFF* (FE-25; the launch path plan's Task 12): the release
+     * serving staging, into the administrators' queue. Asking again answers the same request, `200`
+     * both times — `createdAt` says when it was first asked. The `note` is for administrators alone
+     * and is never in the answer. Refused `409 APPROVAL_NOT_NEEDED`, `409 RELEASE_REJECTED` (final for
+     * that release) or `409 RELEASE_NOT_STAGED` (with the checklist naming the candidate).
+     */
+    async requestApproval(
+      releaseId: string,
+      body: Schemas['RequestApprovalRequest'],
+      idempotency: string,
+    ): Promise<Schemas['ApprovalRequest']> {
+      return unwrap(
+        await client.POST('/v1/releases/{releaseId}/approval-request', {
+          params: { path: { releaseId }, ...key(idempotency) },
+          body,
+        }),
+        'requestApproval',
+      )
+    },
+
+    /**
+     * §26's QUEUE (the launch path plan's Task 12): everything waiting on an administrator, oldest
+     * first — sign-off requests with their notes, and the records with UBC. An administrator's session
+     * only: anybody else `403 FORBIDDEN`, a token `403 TOKEN_CREDENTIAL_REFUSED`.
+     */
+    async listQueue(): Promise<Schemas['Queue']> {
+      return unwrap(await client.GET('/v1/queue'), 'listQueue')
     },
 
     /**

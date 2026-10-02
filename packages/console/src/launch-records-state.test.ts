@@ -54,6 +54,17 @@ describe('waits are counted in Vancouver days, never as now − since', () => {
     )
   })
 
+  it('says a record UBC has answered was sent, and not that it is still waiting (found clicking the default stage)', () => {
+    // A registered registration, or an approved assessment, was sent — and waits for nothing.
+    expect(
+      sentLine('2026-09-06T19:00:00.000Z', at('2026-10-01T16:00:00.000Z'), false),
+    ).toBe('Sent on 6 September 2026')
+    // The positive half: while UBC holds it, the wait is counted.
+    expect(
+      sentLine('2026-09-06T19:00:00.000Z', at('2026-10-01T16:00:00.000Z'), true),
+    ).toBe('Sent on 6 September 2026 — waiting 25 days')
+  })
+
   it('reads a checklist item’s since as a wait while unmet, and as a date once met', () => {
     const now = at('2026-10-13T16:00:00.000Z')
     expect(sinceWords({ state: 'unmet', since: '2026-10-01T19:00:00.000Z' }, now)).toBe(

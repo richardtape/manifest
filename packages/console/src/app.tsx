@@ -7,6 +7,7 @@ import { Approval } from './screens/approvals'
 import { Blueprints } from './screens/blueprints'
 import { Doc, Docs } from './screens/docs'
 import { Fleet } from './screens/fleet'
+import { AdminQueue } from './screens/queue-admin'
 import { Project } from './screens/project'
 import { Projects } from './screens/projects'
 import { Field, Panel, Pill, Refusal, useAsync } from './ui'
@@ -78,6 +79,8 @@ export function App() {
             console could be replaced by `curl` without weakening anything.
           */}
           {person.role === 'admin' && <a {...href('/fleet')}>Fleet</a>}
+          {/* §26's queue — the same affordance as the Fleet link, and the same refusal behind it. */}
+          {person.role === 'admin' && <a {...href('/queue')}>Queue</a>}
         </nav>
         <span className="who">
           {person.displayName} <code>{person.puid}</code>
@@ -152,6 +155,8 @@ function Screen({ route, isAdmin }: { route: Route; isAdmin: boolean }) {
     // which is what proves the console enforces nothing.
     case 'fleet':
       return <Fleet api={api} />
+    case 'queue':
+      return <AdminQueue api={api} />
     case 'project':
       // Keyed on the id so a move between two projects REMOUNTS rather than reusing the
       // mounted one: the stream's effect would otherwise tear down and re-open on one
