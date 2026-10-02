@@ -43,10 +43,20 @@ async function step1SignedIn(): Promise<void> {
   checks.step('1. Signed in with CWL, through the edge')
   const me = unwrap(await client.GET('/v1/me'), 'getMe')
   checks.ok('GET /v1/me is the instructor', me.puid === 'ins000001', JSON.stringify(me))
+  // THE FIELDS THE CONTRACT NAMES, READ FROM THE DOCUMENT THE API PUBLISHES — never a list written
+  // here: one was, `Me` gained `mayBuild` (the launch path plan's Task 8a), and this demo went red for
+  // two days with nobody running it (sitting 12's F2). The check is that the answer carries nothing
+  // the contract does not name, and lacks nothing it does.
+  const document = unwrap(await client.GET('/v1/openapi.json'), 'getOpenApiDocument') as {
+    components?: { schemas?: Record<string, { properties?: Record<string, unknown> }> }
+  }
+  const named = Object.keys(document.components?.schemas?.Me?.properties ?? {})
+    .sort()
+    .join(',')
   checks.ok(
     'and carries exactly the fields the contract names',
-    Object.keys(me).sort().join(',') === 'displayName,email,id,puid,role',
-    Object.keys(me).join(','),
+    named !== '' && Object.keys(me).sort().join(',') === named,
+    `${Object.keys(me).sort().join(',')} — the contract names ${named || 'nothing'}`,
   )
 }
 
