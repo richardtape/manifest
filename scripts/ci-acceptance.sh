@@ -173,8 +173,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then its sitting 9 (2026-10-01, the sign-off request and the administrators' queue, and its fix wave): +52 and four files —
 # `launch/requests.test.ts` (11, new), `api/queue.test.ts` (11, new), `launch/queue.test.ts` (6, new), `api/fleet.test.ts` (1, new),
 # `launch/records.test.ts` (5) and the matrix's two rows (18).
-EXPECT_TESTS=3159
-EXPECT_FILES=195
+# Then its sitting 10 (2026-10-01, the console and the mock, the guides and the published-text pass, and its fix wave): +33 and
+# one file — `console/src/launch-records-state.test.ts` (16, new), `mock/src/scripted.test.ts` (11), the guides' gates (2), the
+# document's pattern cases (1), the mock's text check (1), `console/src/api.test.ts` (1) and `journey/src/examples.test.ts` (1).
+EXPECT_TESTS=3192
+EXPECT_FILES=196
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 

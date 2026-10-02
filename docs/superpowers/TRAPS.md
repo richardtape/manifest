@@ -2455,3 +2455,14 @@ dates, and a test-file list built from it fed Vitest a command line it ran nothi
 **`[S9]` AND `[S10]` IN THE LAUNCH PATH PLAN ARE RICH'S, NOT SITTINGS'** (sitting 9, F9): a block at a task head labelled `[S6]`, `[S7]`,
 `[S8]` came from that sitting, but `[S9]` labels Spec action 9's blocks and `[S10]` Rich's published-text decision. From sitting 9 the
 hand-forward blocks are `[sitting N]`; grep for both before trusting a label.
+
+**`pnpm docs:write` MUST RUN AFTER `prettier --write`, NEVER BEFORE** (the launch path plan's sitting 10, measured: *"are exactly what
+`pnpm docs:write` writes"* went RED 1 after a clean `docs:write`). `docs:write` inlines each `packages/journey/src/example-*.ts` into its
+guide; a `prettier --write` over that example afterwards reflows it, and the committed guide then differs from what `docs:write` would write.
+Format first, then generate — and `format:check` does not see it, because Prettier does not own `docs/api/`.
+
+**IMPORTING A CONTROL-PLANE MODULE FROM `dist/` IN A ONE-OFF NODE SCRIPT THROWS AT IMPORT** without `MANIFEST_DATABASE_URL` (sitting 10:
+generating the mock's registration packages with the platform's own `assemblePackage`). `dist/launch/package.js` imports `sso/index.js`, which
+imports the database client, which refuses to load with the variable unset. A dummy value that is never connected to —
+`MANIFEST_DATABASE_URL=postgres://nobody@127.0.0.1:1/none node script.mjs` — is enough: a pool connects on its first query, not at import.
+`dist/` is whatever the control plane's last `dev` start built, so check its age against `HEAD` first.

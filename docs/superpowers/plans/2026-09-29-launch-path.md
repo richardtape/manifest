@@ -68,6 +68,12 @@
 > says who asked and since when; the fleet names each project and says when it is archived. Contract still `1.5.0`. *Sitting 9* is the
 > record; **sitting 10 (Tasks 13 and 14) is next.**
 
+> **SITTING 10 — TASKS 13 AND 14 — DONE 2026-10-01.** The mock plays a launch: UBC's order by stage (`MANIFEST_MOCK_RECORDS`), real packages
+> and a real draft, the sign-off request and the queue, FE-40's four switches. The console calls every operation again (72 of 72): the owner's
+> half of the launch records, *Ask an administrator to sign this off*, a Queue screen. *Launching* is rewritten around UBC's order, and no
+> published text cites a section, decision, constraint or phase — held by a widened gate. Contract still `1.5.0`. *Sitting 10* is the record;
+> **sitting 12 (Task 15, the acceptance) is next, and last** — the platform half of sitting 10's clicked check is Rich's (WALKTHROUGH).
+
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
@@ -156,8 +162,9 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | **DONE 2026-10-01** — INLINE, by `manifest-8e`, beside the faculty front-end's F6 (mock-only — 7100 the sitting's throughout): `draftIamRegistration` (`launch:draft`, mintable) and `IamRegistration.package` — the entity, the certificate's public half through the registrar, every attribute justified by where the app reads it (the bridge skipped, bounded), the contacts (`MANIFEST_LAUNCH_CONTACTS`), the PIA number, the metadata in the tool's structure (`[M6]`); production from the candidate; `LAUNCH_RECORD_SUBMITTED`, `LAUNCH_NOT_CWL`; Review Focus 1's checklist half; `cwlFakes` on the real keypair store; ten controls red as predicted; one whole-branch review beside the Docker tier (271/271), one fix wave (`dec71d8`: one mint per environment under a lock; `LAUNCH_DRAFT_STALE`; `draftGeneratedAt` and `LAUNCH_DRAFT_CHANGED`) with six more controls; contract `1.5.0`; the front-end told before each contract commit |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | **DONE 2026-10-01** — INLINE, by `manifest-8d`, beside the faculty front-end's F6 (7100 handed over at open; its sitting 2 mock-only): `draftPrivacyAssessment` (`launch:draft`, mintable) and `PrivacyAssessment.draft` — §9's six rows as facts with their source and the owner's gaps, a text to paste, drawn from the candidate's manifest; the YAML read for what the owner WROTE (`declaredData`); kept as sent; the send-day the draft's; one whole-branch review beside the Docker tier (271/271), one fix wave (`4aaf0ef`: only what the platform does — retention and classification defaults named, no backup or deletion claimed, Manifest's Incident logs, breach and GitHub gaps; the driver-2 route test; the checklist's drift sentence); contract `1.5.0`; the front-end told before each contract commit |
 | 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30; **and 10** (§6's `change_requested_from`, from Rich's (a) on `change_requested`) — ✅ APPLIED 2026-10-01 | **DONE 2026-10-01** — INLINE, by `manifest-6d`, beside the faculty front-end's F6 sittings 3–4 (mock-only; told before each contract commit, held Vitest for the tiers): `requestApproval` (`approval:request`, MINTABLE; one request per release, `200` for a first ask and a second; `RELEASE_NOT_STAGED`, `APPROVAL_NOT_NEEDED`, a new `RELEASE_REJECTED`; the note the administrators' alone) and `approval.requested`; `openRequestFor` (derived: the candidate's, undecided since asked — open again if its release serves staging again); `listQueue` (administrators, session-only; active projects; oldest first, ≤ 200); `iam_registrations.change_requested_from` (`0048`, a CHECK both ways); the checklist's `admin-approval` dated from the request; the fleet's three fields; one whole-branch review beside the Docker tier (271/271), one fix wave (`a230c1a`: active projects only, re-open ruled and pinned, the remedies, a nameless person named); contract `1.5.0` |
-| 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | ← **next** — read Tasks 13 and 14's `[sitting 9]` blocks first (their `[S7]`, `[S8]` and `[S10]` too) |
-| 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | |
+| 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | **DONE 2026-10-01** — INLINE, by `manifest-3d`, beside the faculty front-end's F6 sittings 5–6 (mock-only; held for every mock edit, the contract regeneration and the tiers): Task 13 — the mock plays UBC's order by stage (`MANIFEST_MOCK_RECORDS`), real packages and a real draft, `requestApproval` and `listQueue`, FE-40's four switches; the console's owner half of the launch records, *Ask an administrator to sign this off*, a Queue screen, the fleet's name and state, `DELIBERATELY_UNCALLED` empty (72/72), clicked against the mock; Task 14 — *Launching* rewritten, the guides brought up to it, and `[S10]`: 442 references in 268 published strings rewritten by four agents, the gates widened; contract `1.5.0` text only; the platform half of the clicked check left for Rich's morning (WALKTHROUGH) |
+| 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | ← **next** — and LAST. Read Task 15's `[S7]`, `[S8]` and `[sitting 9]` blocks, and sitting 10's *Carried* list |
+
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -2625,6 +2632,23 @@ lands, the submission routes have no client that can meet their precondition** �
 > leaves it as the administrator records UBC's answer. Both routes have been driven only by the unit tier (`inject`); this is their
 > first run over HTTP.
 
+> **`[sitting 10]` (2026-10-01 — Tasks 13–14, `0969d45`…`9e43588`): WHAT THE ACCEPTANCE INHERITS, MEASURED.**
+> - **Step 1's step 4 has two expectations the code does not answer** — a token saying a record was sent is refused **`403
+>   TOKEN_CREDENTIAL_REFUSED`** (both submission routes are session-only: the document's `security`, the authorization matrix's
+>   `SESSION_ONLY`), not `TOKEN_PERSON_ONLY`; and `requestApproval` answers **`200`**, not `201` (sitting 9's F1: one success status per
+>   operation). Assert the codes the platform answers.
+> - **Step 4 (the clicked half) has a written path now**: WALKTHROUGH, *A launch's three records and the administrators' queue, clicked* —
+>   ten rows, clicked against the mock in sitting 10; the platform half is still Rich's typing.
+> - **The checklist's words moved** (M6, M7): with nothing recorded, the two records' items name `draftPrivacyAssessment`/`submitPrivacyAssessment`
+>   and `draftIamRegistration`/`submitIamRegistration`; `admin-approval`, while nobody has asked, ends *"Ask an administrator to sign it off
+>   (requestApproval)."*; no item's `owner` or `why` cites a section — assert the new words, never the old.
+> - **Every text the acceptance publishes cites no section, decision, constraint or phase** — the widened gates
+>   (`api/contract/docs.test.ts`, `packages/journey/src/docs.test.ts`, the mock's text check) refuse it; `coverage.ts`'s `JOURNEY` rows too.
+> - **The mock plays this path** for the journey package's own tests: `MANIFEST_MOCK_RECORDS=none|drafted|assessed|approved`,
+>   `MANIFEST_MOCK_APPROVAL`, `MANIFEST_MOCK_REHEARSAL`, `MANIFEST_MOCK_STEP_UP`, `MANIFEST_MOCK_QUEUE` (RUNBOOK's table).
+> - **Named, not done**: about seventy runtime refusal messages outside the document still cite a section (sitting 10's F18); two
+>   error-envelope descriptions are narrower than the code (F19).
+
 **ALONE, AND LAST.**
 
 **Files:**
@@ -5009,3 +5033,195 @@ reworded; re-open is the rule (F11); active projects only (F12); `[sitting 9]` l
 `a230c1a`, REAL GitHub, the capable model registered; the database EMPTY, 49 migrations; `Manifest-local-dev` holding `f6-watch` owned by no
 project (Rich's to delete); 0 `mf-` containers, 12 Docker networks, 7 dead networks, 1 volume and 14 images removed; doctor 21/0/0, verify
 64/0/0; free disk 55 GiB; the faculty front-end on 7102 and 7105.
+
+### Sitting 10 — 2026-10-01: Tasks 13 and 14 — the console and the mock; *Launching* rewritten, and no published text cites a section
+
+**Run by session `manifest-3d`, INLINE** (`superpowers:executing-plans`: one context, TDD per step, one fresh whole-branch review beside
+the Docker tier, one fix wave) on `main`, from `ddc76d7`. **Rich's word, in this session's chat**: *"please read @docs/superpowers/ORIENTATION.md
+and proceed"*. §7e's four first-message items needed no question: the database was EMPTY at open (0 projects, 0 users, 49 migrations —
+nothing to dump); `make refresh-vulndb` is due after 2026-10-06; FE-46, FE-47 and FE-5 are the planning session's (the mock scripts the
+records as the platform keeps them, *Launching* says what the platform does today); the clicked half is Rich's typing. **Relayed during
+the sitting** (by `manifest-app-3a`, *"Rich's overnight decisions, given in my session tonight… He can confirm it in your session"* — followed
+as an operational arrangement, not recorded as his words): finish sitting 10 and nothing after; stage the clicked half for the morning; a
+standby `manifest-t14` for Task 14 if Task 13 ran long (it did not, and was stood down); holds to `manifest-app-3a`; **a freeze at 07:00
+PDT** — no truncating Vitest, no Docker tier, no make target after it, the control plane left running on the last commit. **The faculty
+front-end** (`manifest-app-00`, then `manifest-app-3a` coordinating, `-s6` its F6 sitting 6) held its fixture-reading tests and mock
+restarts around each mock edit and the contract regeneration, and its Vitest for the Docker tier and the closing runs.
+
+**What it made true** (`0969d45`, `e55b0bf` — Task 13; `b571471`, `9e43588` — Task 14):
+- **The mock plays the launch path** (`packages/mock/src/launch.ts`, stateless): `MANIFEST_MOCK_RECORDS=none|drafted|assessed|approved` places
+  `mock-app` in UBC's order, and every draft and *"I've sent it"* is answered as the platform answers it FROM that stage — its words, its
+  order of checks (`LAUNCH_DRAFT_REQUIRED`, `LAUNCH_TRANSITION_INVALID`, `LAUNCH_PIA_NOT_APPROVED`, `LAUNCH_STAGING_NOT_REGISTERED`,
+  `LAUNCH_DRAFT_CHANGED`, `LAUNCH_DRAFT_STALE`, `LAUNCH_SENT_AT_INVALID`, noon in Vancouver); unset, the default story with drafts and sends
+  refused as the platform refuses them. Its fixtures carry **real packages** (mock-app's own public certificates, minted with the platform's
+  `openssl` arguments and their keys discarded; the metadata and justifications from the platform's own `assemblePackage`) and **a real
+  assessment draft** (`assembleAssessment`). `requestApproval` and `listQueue` scripted (`MANIFEST_MOCK_QUEUE=full`). **FE-40's four**:
+  `approved` is (1) — ready, and a production deploy answers production's own instance; `MANIFEST_MOCK_STEP_UP=1` (2) — a production deploy
+  and secret refused until `/auth/step-up` sets a ten-minute cookie; `MANIFEST_MOCK_APPROVAL=pending|rejected` (3); `MANIFEST_MOCK_REHEARSAL=failed`
+  (4). `MockRefusal` moved to `refusal.ts`.
+- **The console** (`packages/console`): the six parked operations called — **`DELIBERATELY_UNCALLED` empty again, 72 of 72**; *Launch records*
+  in UBC's order, each record's owner half (*Draft it*, the package or the six questions, **I've sent it** with a day and a ticket, always
+  naming the draft read, and how long it has waited) above the administrator's form, now per environment; *Ask an administrator to sign this
+  off* on the launch checklist; each item's *waiting since* / *met since*; **a Queue screen** at `/queue` for administrators; the fleet's
+  name and *switched off*. Its decisions are pure functions in `launch-records-state.ts` (no DOM tier — P5c Decision 7).
+- **The guides**: *Launching* rewritten around the three records in UBC's order (drafting, the package, sending and every refusal that
+  holds the order, UBC's answer and `changeRequestedFrom`, the rehearsal, signing off, the queue for administrators, a first launch in order,
+  what a token may and may not do); `example-launch-path.ts` run against the mock's stages; *Events* (a token's stream learns an archive or a
+  delete from its `4401`), *Building a front-end* (the mock's launch options; the queue is not yours), *Conventions* (dates and waits).
+- **Rich's published-text pass (`[S10]`)**: the whole document — tags, schemas, fields, error meanings and remedies, events, examples, the
+  unversioned endpoints — every guide, and the blueprint's knowledge pack cite no section, decision, constraint or roadmap phase: **442
+  references in 268 strings** (2026-09-30 measured 101 with a narrower pattern), rewritten in the present tense by four agents on disjoint
+  files under one rules file, every code, capability, limit and who-may kept; the info paragraph's *"do not edit"* moved to a comment. The
+  checklist now tells an owner to **draft and send** each record (M7) and to **ask for sign-off** when nobody has (M6). Contract `1.5.0`, text
+  only.
+- **The gates**: `api/contract/docs.test.ts` walks the whole document (`SPEC_REF`, hex-safe); the guides' test every page `docs:write` writes;
+  *Launching*'s two token lists held against the mint request's own refused set (Task 14's Step 4 found nothing held them); the mock's text;
+  the checklist's new sentences.
+
+**What sitting 10 found** (the count is derived by the command at the head of this section):
+
+**F1 There is no DOM test tier** (P5c Decision 7), so the plan's *"`*.test.tsx` beside each screen"* cannot run: the screens' decisions are pure
+functions in `launch-records-state.ts`, the calls in `api.test.ts` against the mock, and the screens were clicked (`approval-state.ts`'s precedent).
+
+**F2 The mock's ACS was `/auth/callback`**, a path the platform never derives (the blueprint's default is `/auth/ubcshib/callback`) — in both
+registrations and the rehearsal; and its stream's `sso.registered` frame published an entity id that is no entity's (`…/auth/metadata`) and an
+invented fingerprint. All now the platform's shapes, the frame staging's real certificate.
+
+**F3 `STAGING_REGISTRATION` was in no fixture table**, so Ajv never checked it except on the way out of a request (P6a Task 17's shape, again).
+
+**F4 The mock's six launch operations answered ANOTHER project's document example** — a captured package for `cwl-6513709a`, project
+`72bc…`, under `mock-app`'s id. Now `mock-app`'s, by stage.
+
+**F5 Clicked against the mock: a registered record read *"Sent on 6 September 2026 — waiting 25 days"*.** A record UBC has answered waits for
+nothing — `sentLine` counts the wait only while UBC holds it (RED→GREEN).
+
+**F6 Clicked: an owner's checklist link read *"Draft it, or say you sent it"* beside a registration that is met** — neutral now (*Open the
+launch records*).
+
+**F7 Clicked: on a stateless mock a send or an ask changed nothing visible** — each now confirms from its own answer (*Recorded. Sent on…*;
+*Asked — it waits in the administrators' queue…*).
+
+**F8 A control predicted one red turned two** (the mock's `ready` always true): `api.test`'s read case also asserts the default checklist is not
+ready — a second holder, not a defect.
+
+**F9 The default production deploy still answers staging's fixture** — FE-40 asked that the defaults not move; named as the mock's one known
+lie (its comment says so), not fixed.
+
+**F10 `[S10]` measured 101 references; the widened gate found 442 in 268 strings** — the 2026-09-30 count did not include decision numbers in
+schemas and events, or *Phase n*.
+
+**F11 The widened pattern read a fingerprint's hex `D2:` as a decision** (agent A's report) — `SPEC_REF` is hex-safe for `D` as for `C` now.
+
+**F12 Agent B's new `SLUG_RESERVED` meaning said *"a name no project may take"*** — the slug-wording gate went red; *"a slug"*.
+
+**F13 `prettier --write` after `docs:write` desynced the guides** — *"exactly what `pnpm docs:write` writes"* red; format first, then generate
+(TRAPS).
+
+**F14 Nothing held *Launching*'s token lists** (Task 14's Step 4: *"read `docs.test.ts` first"*) — the check added; its control red.
+
+**F15 The checklist's new wording was held by nothing**: the agent that wrote it updated only the OLD pins — `readiness.test` and
+`requests.test` now assert it; controls red.
+
+**F16 The mock's rule — no reference in its text — was held by hand only**: `server.test.ts` reads every string it answers from; control red.
+
+**F17 I edited `packages/mock/src/server.ts` about two minutes before sending the front-end the HOLD I had promised** — text only (four refusal
+messages), typecheck-clean; said so to it at once.
+
+**F18 About seventy runtime refusal messages outside the document still cite a section** (agents B and D listed them) — ruled out of `[S10]`'s
+scope (the document, the guides, the mock's text); the six the mock restates were cleaned on both sides. Named for the code-comments plan.
+
+**F19 Agent B's note: two error-envelope descriptions are narrower than the code** — `launchReadiness` is carried by every production-gate refusal,
+not only `RELEASE_PRODUCTION_GATE_UNAVAILABLE`; `pendingAction` by `TOKEN_ACTION_REJECTED` too. Named, not this pass.
+
+**F20 The tool shell's `ls` bit again** (`O=$(ls -d …)` captured the long listing; nothing was written) — §4 trap 2.
+
+**F21 A one-off Node import of a control-plane module from `dist/` throws without `MANIFEST_DATABASE_URL`** — a dummy, never connected, is
+enough (TRAPS).
+
+**The whole-branch review** (one fresh reviewer, the most capable model, read-only, beside the Docker tier, over `ddc76d7..9e43588`):
+*"ready with fixes"* — 0 Critical, 3 Important, 16 Minor, 12 declined to judge. Re-graded by what a person gets; one fix wave, `6d76459`:
+
+**F22 The review's I1: *Launching* said both registrations are drawn from the release serving staging** — staging's is drawn from the newest
+valid manifest (`records.ts`'s `drawnFrom`); the guide now says which each is drawn from.
+
+**F23 The review's I2: the widened pattern could not see `D21:` or `C4:`** — the very forms `[S10]` named (`(?![\w:])` refused the colon). Now
+`(?!\w)(?!\.\d)(?!:[0-9A-Fa-f]{2})`: measured, the old pattern missed three of ten prose forms and the new none, and neither reads a hex pair;
+a case test holds it.
+
+**F24 The review's I3: in the NEW opt-in stages the mock still answered a not-ready production deploy `200` with staging's instance** — now the
+platform's `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE` carrying the checklist while any launch option is set; the default is unchanged (F9).
+
+**F25 The review's 5, re-graded Important: *Launching* said only the sender may say a record was sent** — the owner, a collaborator or an
+administrator may, in their own session.
+
+**F26 The review's 6, re-graded Important — MY REGRESSION: the administrator's form said *"A staging release may request only what UBC
+registered"*** when I generalized its sentence per environment; only production's registered row gates a build.
+
+**F27 The review's 8, re-graded Important: *Events* told a revoked token to read the project** — it can read nothing more.
+
+**F28 The review's 11, re-graded Important: `MANIFEST_MOCK_STEP_UP=1` refused a TOKEN `STEP_UP_REQUIRED`** — a token can never step up; the
+mock asks a session only.
+
+**F29 The review's 13, re-graded Important: agent B's new `LAUNCH_RECORD_INVALID` meaning named the wrong harm** — for a recorded registration
+an empty list makes the registered-attributes check always pass.
+
+**F30 The review's 15, re-graded Important: `[S8]`'s archive step-up wording was not done** — archive's and delete's `STEP_UP_REQUIRED` now say
+*switching an app off* / *deleting an app* (`assertStepUp`'s optional action), never `'project:delete'`; the gate's four messages cite nothing.
+
+**F31 The review's 17, re-graded Important: the *Ask* button vanished silently when the approval read failed** with anything but `404` — the
+failure is rendered.
+
+**Minors deferred** (the review's, each in the ledger): 4 the console ignores `ApprovalRequest.open` (a closed answer is unreachable today);
+7 a change request that is the owner's move reads *waiting* (the platform's `waitingOnUbc` counts it too); 9 the mock's release classification
+`'low'` (pre-existing) shows in the new assessment draft; 10 the mock answers `404` for its production instance's output; 12 the mock's queue
+`FORBIDDEN` lacks the platform's hint (itself wrong for an admin-only read); 14 one runtime message beside a cleaned hint still cites `§7`; 16 the
+console writes *1 October 2026* where the platform writes *October 1, 2026*, and met sentences use UTC days; 18 *Building a front-end*'s *"one
+queue item of each kind"* is true at the default stage only; 19 *Launching* omits `REHEARSAL_LAUNCHED` and `LAUNCH_NOT_CWL` for an app that
+asks for no attribute.
+
+**The negative controls** (each predicted in the ledger first, applied with its diff read, restored by `git checkout` of a committed file;
+the mock's with the front-end held):
+- Task 13, console, on `e55b0bf`: **(a)** the plan's — `requestApproval`'s caller removed → RED 2 (the coverage gate, `api.test`'s launch-path
+  case); **(b)** `sentLine` ignoring `waiting` → RED 1; **(c)** `signOffAction` ignoring a rejection → RED 1; **(d)** waits as raw now − since →
+  RED 5, predicted ≥ 1.
+- Task 13, mock, on `0969d45`: **(e)** no assessment gate on a registration's send → RED 2; **(f)** the queue unsorted → RED 1; **(g)** the
+  step-up guard a no-op → RED 1; **(h)** `ready` always true → RED 2, predicted 1 (F8); **(i)** the default stage drafting → RED 1.
+- Task 14, on `9e43588`: **(a)** the plan's — `launch:submit` on *Launching*'s *May* line → RED 1; **(b)** a `§20` back in a field
+  description → RED 2; **(c)** a `§9` in *Events*' prose → RED 1; **(d)** the ask-for-sign-off sentence removed → RED 1; **(e)** the
+  assessment's draft-it sentence without its operation → RED 1; **(f)** `(D24)` back in a mock message → RED 1; **(g)** *"do not edit"* back in
+  the info paragraph → RED 2.
+- The fix wave: I3's and 11's tests RED on the committed mock (`200`; a Bearer's `STEP_UP_REQUIRED`) then GREEN; 15's two RED (*"'project:delete'
+  needs a second aut…"*) then GREEN; I2's measured on the old pattern.
+
+**Rulings** (each in the ledger with its cost): no DOM tier (F1); the mock's records by stage, opt-in, the defaults refusing as the platform
+does; the mock's ACS path; FE-40 as opt-in options; the queue's default and full forms; the platform half of the clicked check left for Rich's
+morning; the published-text pass by four agents on disjoint files; `SPEC_REF` hex-safe; runtime messages outside the document out of scope
+(F18); prose and console fixes with no red-first test.
+
+**Carried — named so it is not lost:**
+- **To Task 15** (its `[sitting 10]` block): a token saying a record was sent is `403 TOKEN_CREDENTIAL_REFUSED`, not `TOKEN_PERSON_ONLY`;
+  `requestApproval` answers `200`; the clicked half's written path (WALKTHROUGH); the checklist's new words; the gates on published text; the
+  mock's launch options.
+- **To Rich, in the morning** (relayed arrangement): WALKTHROUGH's *A launch's three records and the administrators' queue, clicked* — the
+  platform half of Task 13's Step 4. On Rich's `.env` (real GitHub) its project is a real private repository; deleting it removes it.
+- **To the code-comments plan**: about seventy runtime refusal messages outside the document still cite a section (F18).
+- **FE-46, FE-47 and FE-5 (a)**: unchanged — the planning session's spec action first; the mock and *Launching* say what the platform does today.
+
+**Gates on the final tree** (`6d76459` code):
+- `pnpm test` **3192 passed, 0 skipped, in 196 files (882 s, load ~4–5, 0 `deadlock detected`)**, then **3192 / 196 (887 s, 0 `deadlock
+  detected`)** — twice, alone, identical. Up 33 from 3159 and one file (`console/src/launch-records-state.test.ts`); `EXPECT_TESTS`/`EXPECT_FILES`
+  moved.
+- `pnpm test:docker` — the whole tier on `9e43588`: **271 passed, 0 failed, 271 in 42 files**, 1261 s (load ~4–5) — unchanged; the fix wave
+  `6d76459` ruled untouched BY GREP (no `*.docker.test.ts` names a step-up message, the gate's messages or `LAUNCH_RECORD_INVALID`). **271 in
+  42**, ORIENTATION §2's row.
+- `pnpm lint`, `typecheck` (all six packages) and `format:check` clean.
+- `make doctor` **21 / 0 / 0**, `make verify` **64 / 0 / 0** (after the restart and the cleanup).
+- The shared HTML pages checked — they describe the design, and nothing this sitting made is visible to an outsider; Task 15's Step 7 names the
+  two that gain a sentence when the plan closes: unchanged. RUNBOOK (the mock's five launch options), WALKTHROUGH (*What is built*'s launch
+  sentence, and the new clicked section), TRAPS (two), ORIENTATION §3 (*The API*: nothing published cites a section) swept. CLAUDE.md's
+  *Outstanding*: unchanged (`f6-watch` still the one real repository no project owns).
+
+**The machine at the close**, queried at 21:56 on 2026-10-01 — ORIENTATION §7e has it in full: the control plane PID 14109 on 7100, on
+`6d76459`, REAL GitHub, the capable model registered; the database EMPTY, 49 migrations; `Manifest-local-dev` holding `f6-watch` owned by no
+project (Rich's to delete); 0 `mf-` containers, 12 Docker networks, 7 dead networks, 1 volume and 14 images removed; doctor 21/0/0, verify
+64/0/0; free disk 53 GiB; the faculty front-end on 7102 and 7105.
