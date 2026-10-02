@@ -927,6 +927,72 @@ After the example, add: *"**A blueprint the platform keeps for its own tests dec
 
 ---
 
+## Asked by the faculty front-end before this plan runs — answered 2026-10-01, overnight (`manifest-9f`)
+
+**Where the questions came from.** The front-end's adoption note asked this plan seven questions:
+`~/Developer/manifest-app/docs/research/2026-10-01-faculty-ready-adoption.md`, *Open questions* 1–7. These are the answers sent to its
+coordinator, `manifest-app-3a`. They were read from this plan and from the code at `df62a72`, and every citation was checked.
+
+**How to read them.** Where the plan does not say, the answer says so and RECOMMENDS. **Each recommendation is the executing sitting's to
+keep or change**, and the sitting tells the front-end which at Task 1's close.
+
+1. **Which cookie name does the platform read on a request sent straight to `http://127.0.0.1:7100`?** **The plan doesn't say.**
+   - **What the server would read.** Decision 7 reads `cookieNames(originOf(request))`. For a `Host` that names no configured origin,
+     `originOf` falls back to the FIRST one, the console's `https` origin (`api/origins.ts:6`, `:18-21`; `config.ts:598`). So the server
+     would read `__Host-manifest_session` there, and Decision 8 ignores a plain one.
+   - **What the client would send.** Task 5 gives `sessionCookieFor(baseUrl)` no body. If it follows Decision 7's scheme rule, it answers
+     the plain name for `http://127.0.0.1:7100`. The client and the server would then disagree.
+   - **Who that breaks.** The front-end's `whoIs` replays a session straight to 7100 (its `packages/server/src/config.ts:44`). It would
+     be refused `401`.
+   - **Today, a direct session-bearing mutation is already refused there by CSRF.** The client sends `Origin: http://127.0.0.1:7100`
+     (`packages/contract/src/client.ts:46`, `:58`), and the server expects the console's origin (`api/server.ts:339`). Only reads work.
+   - **Recommended: the front-end's server asks through the edge**, at `https://app.manifest.internal/v1/me`, where the `Host` and the
+     scheme agree. That is §21's control-plane row (*"Clients reach it through the edge … never on this port"*), and it is what
+     `journey/src/frontend.ts:166`, `:205` already does.
+   - **What Task 5 should add:** a test that pins the name the fallback reads; and `sessionCookieFor`'s doc should say it names the cookie
+     for an origin the platform serves.
+2. **`ManifestApiError`'s constructor.**
+   - **Today** it is `(status, envelope, operation)` (`packages/contract/src/errors.ts:18`).
+   - **What Task 3 adds:** `requestId: string | null`, *"from the body, else the header"*. It does not say how the value arrives.
+   - **Recommended: an optional fourth parameter, defaulting to `null`.** Every existing construction then still compiles: the front-end's
+     nineteen in its tests, `client.ts:85`, and two in `journey/src/examples.test.ts`.
+3. **Is `Manifest-Admin-Reason` optional or required?** **The plan doesn't say how the header is declared.** Task 10 enforces it
+   centrally.
+   - **Today**, the one header parameter, `Idempotency-Key`, is `required: true` on every mutation (`api/contract/document.ts:294-302`).
+     That makes it required in the generated client's types.
+   - **Recommended: declare it `required: false`.** The header is required only of an administrator who is not a member. A required
+     declaration would force it on every mutation's call site, the console's included.
+   - **Task 10's file list should name `document.ts`.** It does not.
+4. **How does a streamed `422` arrive after Task 6?** **The plan leaves the shape to Task 1's `[M3]`**: *"A STREAMED `422` is fixed too,
+   or the sitting stops and asks Rich"* (Decision 9).
+   - Only a measurement can say whether it arrives as a non-200 before the body, or as an error event mid-stream.
+   - **Today**, a streamed `400` is answered before any stream begins (`ai/fallback-guard.docker.test.ts:348-359`). A `422` is answered
+     `200` with `null` (`:372-381`, F8).
+   - **The sitting tells the front-end `[M3]`'s recorded answer at Task 1's close.**
+5. **Where does `requestId` go in the mock's envelope?** Task 3 says only *"`envelope()` adds a UUID"*.
+   - **Today**, the mock writes `code` and `message`, then `hint`, `details` and `launchReadiness` when present
+     (`packages/mock/src/server.ts:993-1009`).
+   - **The platform's sketch** in Task 3 is `{ error: { ...error, requestId } }`, which puts `requestId` LAST.
+   - **Recommended: the mock appends it last too**, so the two agree and `"code":"…","message"` stays adjacent. The front-end was also
+     told that its substring check is brittle, and that parsing the body is the honest check.
+6. **Whose server holds 7105 at Task 11's clicked half?** **The plan doesn't say.**
+   - What Rich clicks there — a refusal's reference, and a reason asked of an administrator — are the reference console's features
+     (Tasks 3 and 10).
+   - 7105 is the front-end's port (`infra/caddy/Caddyfile:117-121`).
+   - **Recommended: the reference console's `preview` on 7105, lent by the front-end's session and returned after**, as the front-end
+     enablement plan's clicked half was (that plan's Task 15, Step 4).
+   - If Rich wants the front-end's own server in the walk, its steps 3–5 must land first.
+7. **Is there a window between Task 5's commit and 7100's restart?** **The plan doesn't name one, and its order leaves none.**
+   - **Step 1** tells the front-end and *"agree[s] when it adopts"*.
+   - **Step 6** runs `make demo-journey`, `demo-token` and `demo-frontend` through the edge on the new names. That needs 7100 restarted on
+     Task 5's code BEFORE the commit: the control plane runs `tsc`, then `node dist/index.js`.
+   - **Step 7** commits *"after the front-end's reply"*.
+   - **So the front-end's edge-mode adoption must land before Step 6's restart.** Its mock mode is untouched throughout.
+   - Every restart also signs everybody out: `cp-start.sh` makes a new `MANIFEST_SESSION_SECRET`.
+   - **Recommended: Step 1's message names the restart as the moment, and the sitting announces the restart when it comes.**
+
+---
+
 ## What executing this plan found
 
 *Empty until sitting 1.*

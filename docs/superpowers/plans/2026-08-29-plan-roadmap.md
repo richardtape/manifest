@@ -92,6 +92,40 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
+### Spec actions raised by the faculty front-end's FE-46, FE-47 and FE-5 (confirmed by Rich 2026-10-01) — THREE DRAFTED 2026-10-01, OVERNIGHT; NONE APPLIED
+
+**Where the words are.** [`2026-10-01-fe46-fe47-fe5-spec-actions.md`](./2026-10-01-fe46-fe47-fe5-spec-actions.md) gives, for each, the
+current text, the proposed text, its options and a recommendation, all checked against the code at `df62a72`.
+
+**Who drafted them.** `manifest-9f`, a session for documents only. The faculty front-end's overnight coordinator delegated the drafting
+to it, because the planning session had ended.
+
+**What Rich decides.** **None is applied until he has read the words**, and where they go in the plan order is his. The draft recommends
+a small plan of their own, after the launch path and before *faculty-ready*.
+
+1. **§6, §9, §13, §21, §26, §27 and D24: FE-46.** The owner sends each launch record to the Manifest team (LTIC), which submits it to
+   UBC. The team is emailed on each send and on each sign-off request, and the assessment's gaps are answered.
+   - **The design:**
+     - a state `sent`, between `draft` and `submitted`, which keeps its meaning, *with UBC*;
+     - a column `sent_from`;
+     - the platform's first email, to one configured address, carrying nothing a person wrote.
+   - **Two choices inside it, each recommended yes:**
+     - may the team hand a send back;
+     - must every gap be answered.
+2. **§6, §9, §13 and §26: FE-47.** From `active`, the owner asks for a change to a live registration, through the team. Rich
+   chooses:
+   - **(a), recommended:** `sent`, with `sent_from: active`. This is the pattern of Spec action 10 (the launch path plan's list,
+     below).
+   - **(a′):** a state of its own, `change_sent`.
+3. **§6 and D24: FE-5.** A pending action says what it would do, and to what. `payload` gains the specific object, taken from the
+   request and never a secret.
+
+**Shared pages each names.** `manifest-decisions.html`'s D19 and D24, and `manifest-phases.html`'s stage 2. The schematic and the
+stories are to be checked.
+
+**Found while drafting:** a defect in today's code, by reading only. A launched app's lapsed registration that is sent again reads as
+registered. It is in the launch path plan's last *After sitting 10's close*, for that plan's sitting 12 to measure.
+
 ### Spec action raised by the interface design brief — ✅ APPROVED BY RICH AND APPLIED 2026-09-27
 
 **§26's *Scope*, one paragraph** ([the brief's §13](./2026-09-19-interface-design-brief.md), which carries the

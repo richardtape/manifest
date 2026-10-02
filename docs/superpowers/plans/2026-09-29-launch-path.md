@@ -5238,3 +5238,19 @@ repository is gone from `Manifest-local-dev` (`github-real-repos.sh`: `f6-watch`
 `.submitted`, `iam_registration.drafted`, `approval.requested` and `project.deleted`; 0 `mf-` containers. Row 4's confirmation is the component's
 own state and was not kept; the queue in row 7 is its evidence. **Rows 9 and 10 of the table's ten** (the assessment recorded approved, then
 staging drafted again and sent) were not clicked — the Task 15 acceptance's.
+
+**After sitting 10's close — 2026-10-01, overnight (`manifest-9f`, a session for documents only): FE-46, FE-47 and FE-5's spec actions
+DRAFTED, and one defect found BY READING.**
+- **The three spec actions are drafted, not applied**, in [`2026-10-01-fe46-fe47-fe5-spec-actions.md`](./2026-10-01-fe46-fe47-fe5-spec-actions.md).
+  Each has its current words, the proposed words, its options and a recommendation. Rich decides them, and where they go in the plan order.
+- **Nothing in Task 15 changes.** Its acceptance proves today's shape, which those actions would change afterwards.
+- **For Task 15's whole-branch review — UNMEASURED.** This session ran no Vitest; the defect is found only by reading.
+  - **The path.** A launched app's production registration lapses, and an administrator records it `expired`. It is then sent again,
+    `expired → submitted`: either by the owner's *"I've sent it"* (`SUBMIT_ARROWS`), or by an administrator's record (`IAM_ARROWS`).
+  - **What the move keeps.** Both keep `registered_at` (`launch/records.ts:226-229`, `:633-645`), and nothing in the control plane clears it.
+  - **What the checklist then reads.** `liveRegistrationItem` is unmet for a null `registered_at` and for `expired` only
+    (`launch/readiness.ts:507-518`), so it reads `met` again for any release that asks for nothing more (`:520-545`). Production deploys
+    resume before UBC has registered anything, against the item's own *"nothing reaches production until UBC IAM registers it again"*.
+  - **No test reaches it.** In `readiness.test.ts`, `'expired'` appears only in a type (l.148).
+  - **What the review should do.** Write the test, watch it go red, then fix the defect or name it. The spec actions' *Found while
+    drafting* has the detail, and FE-46's plan rewrites this arrow in any case.

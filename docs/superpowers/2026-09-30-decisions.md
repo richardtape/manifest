@@ -294,3 +294,9 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     Each needs a spec action before it is a task (the records' states in §6 and §9, §13's waits, §26's queue, an email
     the platform sends; D24's pending-action payload) — drafted by the planning session, decided by Rich — and a place
     in the plan order. Full texts: manifest-app's docs/api-findings.md, FE-46, FE-47, FE-5; ORIENTATION §8 Open.
+    => DRAFTED 2026-10-01, overnight, by manifest-9f (a session for documents only, delegated by manifest-app-3a; the
+    planning session had ended), in plans/2026-10-01-fe46-fe47-fe5-spec-actions.md. NOT APPLIED: each waits for Rich to
+    read its words and decide, and he also decides where they go in the plan order (recommended: a small plan of their own,
+    after the launch path and before faculty-ready). The choices the draft puts to him:
+      - FE-46: may the Manifest team hand a send back, and must every gap be answered (both recommended yes);
+      - FE-47: (a) `sent` with `sent_from: active` (recommended), or (a′) a `change_sent` state.

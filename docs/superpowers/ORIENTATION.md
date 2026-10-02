@@ -1864,6 +1864,13 @@ review over its whole range. Then the plan is EXECUTED, and the close-out sweeps
   minors deferred by sitting 10's review are in its record.
 - **`pnpm docs:write` runs AFTER `prettier --write`, never before** (TRAPS).
 - **Commit BEFORE a negative control.** **From sittings 10, 9, 8, 7, 6, 5a, 5b and 5**: the plan's *Carried* lists.
+- **A defect found BY READING overnight, UNMEASURED, for the whole-branch review** (2026-10-01, `manifest-9f`, documents only; the plan's
+  last *After sitting 10's close*):
+  - **The path.** A launched app's lapsed production registration is sent again, `expired → submitted`, by the owner or by an
+    administrator. The move keeps `registered_at`.
+  - **The read.** `liveRegistrationItem` then reads `met` (`launch/readiness.ts:507-545`), so production deploys resume before UBC has
+    registered anything.
+  - **No test reaches it.** Write the test, and watch it go red first.
 
 **THE MACHINE, AS SITTING 10 LEFT IT** — queried at 21:56 on 2026-10-01, not remembered:
 - **The control plane: PID 14109 on 7100, on `6d76459`, REAL GitHub** (Rich's `.env`), restarted LAST — after the two unit runs — by
@@ -1898,7 +1905,9 @@ morning demo (2026-10-02, ~09:00 PDT) and the front-end will have used it since.
   server on 7105, and its tests read `@manifest/contract` and our fixtures live. It asks for a message before every contract or mock edit and
   commit and at the close, and HOLDS its Vitest during our Docker tier and each closing `pnpm test` run when told start and end.
 - **The planning session** (`manifest-60` / `manifest-00`): decisions and records; `docs/superpowers/2026-09-30-decisions.md` is where Rich's
-  words go — FE-46, FE-47 and FE-5 (a) wait there for their spec action.
+  words go. **FE-46, FE-47 and FE-5 (a)'s spec actions are DRAFTED, not applied** (2026-10-01, overnight, `manifest-9f`), in
+  [`plans/2026-10-01-fe46-fe47-fe5-spec-actions.md`](plans/2026-10-01-fe46-fe47-fe5-spec-actions.md). Rich decides them, and where they
+  go in the plan order. None is sitting 12's.
 
 A session name changes at every handover — `ListAgents` immediately before every promised message.
 
@@ -1943,6 +1952,12 @@ reasoning is recorded.**
   Rejected, as relayed: (b) reading the owner's submit as *sent to LTIC* and a ticket as *now with UBC* (a state read from a field); (c) the
   front-end waiting. Full text: `~/Developer/manifest-app/docs/api-findings.md`, FE-46. *Needs*: a spec action (§6's `IamRegistration` and `PrivacyAssessment` states, §9's process, §13's waits, §26's queue, an email the
   platform sends) and a place in the plan order — it touches the launch path's Task 13 (the mock's half), 14 (*Launching*) and 15 (the demo).
+  **ITS SPEC ACTION IS DRAFTED, NOT APPLIED** (2026-10-01, overnight, `manifest-9f`): Spec action 1 of
+  [`plans/2026-10-01-fe46-fe47-fe5-spec-actions.md`](plans/2026-10-01-fe46-fe47-fe5-spec-actions.md).
+  - **The design:** a state `sent`, while `submitted` keeps its meaning, *with UBC*; a column `sent_from`; and the platform's first
+    email, to one configured address, carrying nothing a person wrote.
+  - **Two choices inside it, each recommended yes:** may the team hand a send back; and must every gap be answered.
+  - **Where it goes in the plan order:** the draft recommends a small plan of its own, before *faculty-ready*.
 
 - **FE-47 — AFTER LAUNCH, AN OWNER ASKS FOR A NEW SIGN-IN DETAIL (A CHANGE TO THE LIVE REGISTRATION), THROUGH LTIC. RELAYED 2026-10-01,
   CONFIRMED THE SAME EVENING** — by `manifest-app-d9` (F6b's design), at sitting 9's close, *"File FE-47, as FE-46"*. **CONFIRMED BY RICH in the platform's sitting 9, 2026-10-01 19:56 PDT** (*"i approved"*, answering the question put to him there — his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-01 evening section). *Today*: no owner write on an `active` registration — `draftIamRegistration` refuses it (`409 LAUNCH_RECORD_SUBMITTED`) and
@@ -1952,11 +1967,18 @@ reasoning is recorded.**
   `active` the owner (person-only) asks for the attributes wanted, with a package drafted from the newest valid manifest, sent to LTIC
   (FE-46's step), which files it with UBC (`change_requested` from `active`); dated and queued by FE-46's rules; LTIC emailed. The build's
   check stays as it is. Rejected, as relayed: (b) no path; (c) the front-end's server emailing LTIC with nothing recorded. *Needs*: a spec action
-  with FE-46's.
+  with FE-46's. **DRAFTED, NOT APPLIED** (2026-10-01, overnight): Spec action 2 of the same file. Rich chooses how a change with the team is
+  recorded:
+  - **(a), recommended:** `active → sent`, with `sent_from: active`. This is Spec action 10's pattern.
+  - **(a′):** a state of its own, `change_sent`.
 - **FE-5 — A QUESTION AN AGENT RAISES SAYS WHAT IT IS ASKING. CARRIED 2026-10-01, CONFIRMED THE SAME EVENING** (relayed with FE-47: *"Build it honest, carry
   FE-5 now"*; open since 2026-09-27): **CONFIRMED BY RICH in the platform's sitting 9, 2026-10-01 19:56 PDT** (*"i approved"*, answering the question put to him there — his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-01 evening section). option (a) — a `PendingAction` carries the specific object, taken from the request and never a secret
   (a member: who, as the request named them, and the role; a deploy: which release and environment; a launch record: which). *Today* its
   `summary` is the route's (*"add a member to this project"*) and only `bodySha256` of the request is kept. *Needs*: a spec action and a place in the plan order (D24's §20 — the payload rule that keeps a request's contents out).
+  **DRAFTED, NOT APPLIED** (2026-10-01, overnight): Spec action 3 of the same file.
+  - **The words:** §6's `payload` says what it holds, and D24 says the question names what it would do.
+  - **Three operations raise a question today:** `addMember`, `removeMember`, and `deploy` to production.
+  - **A launch record never does:** it is person-only, so a token is refused outright.
 
 - **FE-45 — AN APP THAT HAS BEEN LIVE IS NEVER DELETED; IT IS MARKED REMOVED, AND ONLY AN ADMINISTRATOR DELETES ITS DATA. RELAYED
   2026-10-01** by the faculty front-end's session `manifest-app-34`, from Rich's words in its F6 design, **and CONFIRMED by Rich to the
