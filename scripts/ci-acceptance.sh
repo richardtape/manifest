@@ -170,8 +170,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then its sitting 8 (2026-10-01, D19's privacy-assessment draft, and its fix wave): +36 and two files —
 # `launch/assessment.test.ts` (14, new), `spec/declares.test.ts` (2, new), `api/launch.test.ts` (11) and the matrix's
 # assessment-draft row (9).
-EXPECT_TESTS=3107
-EXPECT_FILES=191
+# Then its sitting 9 (2026-10-01, the sign-off request and the administrators' queue, and its fix wave): +52 and four files —
+# `launch/requests.test.ts` (11, new), `api/queue.test.ts` (11, new), `launch/queue.test.ts` (6, new), `api/fleet.test.ts` (1, new),
+# `launch/records.test.ts` (5) and the matrix's two rows (18).
+EXPECT_TESTS=3159
+EXPECT_FILES=195
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 

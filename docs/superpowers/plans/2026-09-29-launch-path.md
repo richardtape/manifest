@@ -61,6 +61,13 @@
 > not what launches. Contract still `1.5.0`. *Sitting 8* is the record; **sitting 9 (Task 12) is next** — Rich answered `change_requested`
 > at the close (*"(a) Record the origin"*), and its column's spec row, Spec action 10, is APPLIED.
 
+> **SITTING 9 — TASK 12 — DONE 2026-10-01** (Spec actions 5 and 10). FE-25: an owner asks an administrator to sign off the release
+> serving staging (`requestApproval`, `approval:request`, mintable; one request per release; `RELEASE_REJECTED` new), and §26's queue
+> (`listQueue`) shows an administrator everything waiting on them, oldest first — open sign-off requests with their note, registrations
+> and assessments with UBC, change requests an administrator filed (`change_requested_from`, `0048`); the checklist's `admin-approval`
+> says who asked and since when; the fleet names each project and says when it is archived. Contract still `1.5.0`. *Sitting 9* is the
+> record; **sitting 10 (Tasks 13 and 14) is next.**
+
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
 > result. **Task 6c, its own sitting 5b, after sitting 5.** The combined words are under *Spec actions*, 8 — **APPLIED at his word the same
@@ -148,8 +155,8 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 6 | 9 | **The three clocks' records**: `IamRegistration` per environment (the staging registration); `submitted_at`, `submitted_by`; an owner's *"I've sent it"* (`launch:submit`, person-only); a draft that never gates a build; `LaunchRecords.stagingRegistration`; `LaunchReadinessItem.since` | **Yes** — `launch/`, `releases/` | **Spec action 3** — ✅ APPLIED 2026-09-30; **and 9** — ✅ APPLIED 2026-09-30 (the order: `[S9]`) | **DONE 2026-09-30/10-01** — INLINE, by `manifest-92`, after Mailpit (the database dumped first; the front-end's 7100 window in the middle, migration held until it closed): `0045` (the staging kind, the submission columns, the CHECK on a registered row only); `launch:submit` (person-only) and the two submission routes, refused in UBC's order — **the assessment first for EITHER registration (the spec's words, wider than `[S9]`)**, staging before production — with a draft required and a real day; the build reads only production's registered row; `since` on the checklist; `[M8]`'s administrator hint; one whole-branch review beside the Docker tier (270/270), one fix wave (one locked transaction per submission, held by two deterministic lock tests; `z.iso.date()`; the kept reference; the mock in UBC's order; examples captured); contract `1.5.0`; the front-end told before each contract commit |
 | 7 | 10 | **D19's registration package**, staging and production: the SP metadata XML in UBC's structure, the certificate the app signs with (D20's keypair, minted once), every attribute with its justification and the lines that read it, contacts; stored on the draft and frozen when sent | **Yes** — `sso/`, `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 | **DONE 2026-10-01** — INLINE, by `manifest-8e`, beside the faculty front-end's F6 (mock-only — 7100 the sitting's throughout): `draftIamRegistration` (`launch:draft`, mintable) and `IamRegistration.package` — the entity, the certificate's public half through the registrar, every attribute justified by where the app reads it (the bridge skipped, bounded), the contacts (`MANIFEST_LAUNCH_CONTACTS`), the PIA number, the metadata in the tool's structure (`[M6]`); production from the candidate; `LAUNCH_RECORD_SUBMITTED`, `LAUNCH_NOT_CWL`; Review Focus 1's checklist half; `cwlFakes` on the real keypair store; ten controls red as predicted; one whole-branch review beside the Docker tier (271/271), one fix wave (`dec71d8`: one mint per environment under a lock; `LAUNCH_DRAFT_STALE`; `draftGeneratedAt` and `LAUNCH_DRAFT_CHANGED`) with six more controls; contract `1.5.0`; the front-end told before each contract commit |
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | **DONE 2026-10-01** — INLINE, by `manifest-8d`, beside the faculty front-end's F6 (7100 handed over at open; its sitting 2 mock-only): `draftPrivacyAssessment` (`launch:draft`, mintable) and `PrivacyAssessment.draft` — §9's six rows as facts with their source and the owner's gaps, a text to paste, drawn from the candidate's manifest; the YAML read for what the owner WROTE (`declaredData`); kept as sent; the send-day the draft's; one whole-branch review beside the Docker tier (271/271), one fix wave (`4aaf0ef`: only what the platform does — retention and classification defaults named, no backup or deletion claimed, Manifest's Incident logs, breach and GitHub gaps; the driver-2 route test; the checklist's drift sentence); contract `1.5.0`; the front-end told before each contract commit |
-| 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30; **and 10** (§6's `change_requested_from`, from Rich's (a) on `change_requested`) — ✅ APPLIED 2026-10-01 | ← **next** — read Task 12's `[S6]` block (Rich's answer is in it) |
-| 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | |
+| 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30; **and 10** (§6's `change_requested_from`, from Rich's (a) on `change_requested`) — ✅ APPLIED 2026-10-01 | **DONE 2026-10-01** — INLINE, by `manifest-6d`, beside the faculty front-end's F6 sittings 3–4 (mock-only; told before each contract commit, held Vitest for the tiers): `requestApproval` (`approval:request`, MINTABLE; one request per release, `200` for a first ask and a second; `RELEASE_NOT_STAGED`, `APPROVAL_NOT_NEEDED`, a new `RELEASE_REJECTED`; the note the administrators' alone) and `approval.requested`; `openRequestFor` (derived: the candidate's, undecided since asked — open again if its release serves staging again); `listQueue` (administrators, session-only; active projects; oldest first, ≤ 200); `iam_registrations.change_requested_from` (`0048`, a CHECK both ways); the checklist's `admin-approval` dated from the request; the fleet's three fields; one whole-branch review beside the Docker tier (271/271), one fix wave (`a230c1a`: active projects only, re-open ruled and pinned, the remedies, a nameless person named); contract `1.5.0` |
+| 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | ← **next** — read Tasks 13 and 14's `[sitting 9]` blocks first (their `[S7]`, `[S8]` and `[S10]` too) |
 | 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -2457,6 +2464,34 @@ lands, the submission routes have no client that can meet their precondition** �
 >   serving staging (*"…draft it again before you send it."*). **Its no-record sentence predates drafting** — it still says an
 >   administrator records it (the sitting's review, M7): the owner's first step is now *Draft it*; reword it here or in Task 14.
 
+> **`[sitting 9]` (2026-10-01 — Task 12, `a1d4baa`): THE SIGN-OFF REQUEST AND THE QUEUE, AS THE CONSOLE AND THE MOCK MEET THEM.**
+> - **`requestApproval` and `listQueue` are parked** in `DELIBERATELY_UNCALLED` beside the four above, naming this task. Until the mock
+>   scripts them they answer from their DOCUMENT EXAMPLES (captured): an open request, and a queue of two items — an assessment with the
+>   Privacy Office and a sign-off request with its note.
+> - **The owner's half** — beside the checklist's `admin-approval` item while it is unmet and not rejected: *Ask an administrator to sign
+>   off*, `requestApproval` with an optional note (≤ 500 characters; shown to administrators and nobody else, never in the answer). The
+>   item's `why` then ends *"<who> asked an administrator to approve it on <day>."* and its `since` dates the wait. A second ask answers
+>   the first — the same request, `200` (the API has ONE success status per operation; `open` and `createdAt` say what it is). Refusals,
+>   each with its code: `RELEASE_NOT_STAGED` (the checklist in the refusal names `candidateReleaseId`), `APPROVAL_NOT_NEEDED`,
+>   `RELEASE_REJECTED` (new — a rejection is final for its release; ask about the next one).
+> - **A Queue screen for administrators** — `listQueue`: oldest first; `oldestSince` is the headline (*the oldest has waited N days*);
+>   each item's `kind`, `project` (`name`, `slug`, and `archived` said as such), who asked or sent it, `since`, `summary`, and the `note`
+>   of a sign-off request; each links to where it is acted on — the release's preview and approval for `release-approval`, the launch
+>   records' administrator half for the three record kinds; `truncated` past 200.
+> - **`IamRegistration.changeRequestedFrom`** — the records screen says which `change_requested` is the owner's move (`submitted`: UBC
+>   asked them; draft again and send it) and which waits on UBC (`active`: an administrator's filed change request).
+> - **The fleet's `name`, `state` and `archivedAt`** — show an archived project as switched off, not broken.
+> - **The queue lists active projects only** (the sitting's fix wave, `a230c1a`): `QueueItem.project` is `{ id, slug, name }`. A request
+>   is closed WHILE another release serves staging and **open again — from when it was asked — if its release serves staging again**.
+> - **The review's M6, deferred here**: when nobody has asked, the `admin-approval` item says only *"This release has not been reviewed
+>   yet"*, and the first launch's gate hint talks of lead times — nothing tells an owner or an agent to ask. The *Ask for sign-off*
+>   button is this task's remedy; say it in the item's `why` too if it reads naturally.
+>
+> **FE-46 — RELAYED AT SITTING 9's CLOSE, PROPOSED, NOT CONFIRMED** (ORIENTATION §8 *Open*): the owner sends all three records to LTIC, which
+> submits them to PRISM and UBC IAM — a state between `draft` and `submitted`, LTIC emailed (for a sign-off request too), the assessment's
+> gaps answered. It needs Rich's
+> confirmation and a spec action first; **until then the mock scripts the records as the platform keeps them**, with no "sent to LTIC" step.
+
 > **FE-40 (relayed 2026-09-29, CONFIRMED by Rich at sitting 3's open — its section above)**: four OPT-IN mock switches so the mock
 > can play a first launch — ready, step-up enforced, `getApproval` `404` before a decision, a failed rehearsal. They are this
 > task's, beside the defaults, which do not move.
@@ -2565,6 +2600,15 @@ lands, the submission routes have no client that can meet their precondition** �
 
 ---
 
+> **`[sitting 9]` (2026-10-01 — Task 12, `a1d4baa`): WHAT *LAUNCHING* MUST SAY ABOUT SIGN-OFF.** Once the release you will launch
+> serves staging, ask an administrator to sign it off — `requestApproval`, `approval:request`, MINTABLE (an agent may ask for its
+> person, and never decides); the note is for administrators alone; asking again answers the first request; it closes when an
+> administrator approves or rejects the release, or another release serves staging — then ask about that one; the checklist's
+> `admin-approval` says who asked and since when; `APPROVAL_NOT_NEEDED`, `RELEASE_REJECTED` and `RELEASE_NOT_STAGED` with their
+> remedies. A launched app's re-escalated release: the refusal's hint now names `requestApproval`. **For operators** (*Building a
+> front-end*'s administrator half, or a short section): `listQueue` and what each kind asks of them. **`change_requested`'s two
+> meanings** for the owner, by `changeRequestedFrom`. *Events*: `approval.requested` (`viaToken`; never the note).
+
 ## Task 15: The acceptance — `make demo-launch`, and a person clicking it
 
 > **`[S7]` (sitting 7, 2026-10-01 — Task 10, `6cbb489`):** the demo drafts BOTH registrations through `@manifest/contract`, and checks end
@@ -2575,6 +2619,12 @@ lands, the submission routes have no client that can meet their precondition** �
 > **`[S8]` (sitting 8, 2026-10-01 — Task 11, `81892d4`):** the demo drafts the ASSESSMENT first (UBC's order), reads its gaps, and says
 > it was sent naming its `generatedAt`; on driver 2 its *where it flows* names the organisation the people who change the app are sent
 > to as authors (`[M1]`). The route has been driven only by the unit tier (`inject`); this demo is its first run over HTTP.
+
+> **`[sitting 9]` (2026-10-01 — Task 12, `a1d4baa`):** the demo's owner asks for sign-off on the candidate with a note
+> (`requestApproval`, through `@manifest/contract`); the administrator reads it in `listQueue` — oldest first, with the note — beside the
+> assessment and registrations the owner sent, approves the release through its preview, and the request leaves the queue; each record
+> leaves it as the administrator records UBC's answer. Both routes have been driven only by the unit tier (`inject`); this is their
+> first run over HTTP.
 
 **ALONE, AND LAST.**
 
@@ -4805,3 +4855,159 @@ read is validation's `503`, declared); `membersOf`/`platformContacts`; the authz
 `4aaf0ef`, REAL GitHub, the capable model registered; the database EMPTY, 48 migrations; `Manifest-local-dev` holding `f6-watch` owned by no
 project (Rich's to delete); 0 `mf-` containers, 12 Docker networks, `f6-watch`'s six orphaned containers and their networks, volumes and
 image removed; doctor 21/0/0, verify 64/0/0; free disk 60 GiB; the faculty front-end on 7102 and 7105.
+
+### Sitting 9 — 2026-10-01: Task 12 — FE-25's sign-off request and §26's queue: an owner asks, an administrator sees every wait, oldest first
+
+**Run by session `manifest-6d`, INLINE** (`superpowers:executing-plans`: one context, TDD per step, one fresh whole-branch review beside
+the Docker tier, one fix wave) on `main`, from `04d3182`. **Rich's word, in this session's chat**: *"Please read ORIENTATION.md and proceed
+with the next sitting. Which I believe is sitting 9."* §7e's three first-message items needed no question: `change_requested` was decided
+(Rich's (a)) and its spec row applied before the sitting; the database was EMPTY at open (0 projects, 0 users, 48 migrations — nothing to
+dump before the first Vitest run); `make refresh-vulndb` is due after 2026-10-06. **The faculty front-end** (`manifest-app-fc`, then
+`manifest-app-00` from ~18:45 — F6 sittings 3 and 4, MOCK-ONLY, holding 7102 and 7105) was told before the contract regeneration and after
+the commit (it held its typechecks, adopted `a1d4baa` with nothing moved — 1905/1905 of its tests, contract 1.5.0 with 72 operations — and
+restarted its mock), and held every Vitest run during the Docker tier and the two closing `pnpm test` runs, each announced start and end.
+
+**What it made true** (`a1d4baa`, and the fix wave's `a230c1a`):
+- **`requestApproval`** — `POST /v1/releases/{releaseId}/approval-request`, capability **`approval:request`** (owner, collaborator,
+  administrator; MINTABLE — a request grants nothing and decides nothing). One request per release (`approval_requests`, `release_id`
+  UNIQUE, `INSERT … ON CONFLICT DO NOTHING`); a second ask answers the first, unchanged, **`200`** both times (F1). Refused, in order:
+  `409 RELEASE_NOT_STAGED` (thrown as the gate's `ProductionGateError`, carrying the checklist that names `candidateReleaseId`),
+  `409 APPROVAL_NOT_NEEDED` (the `admin-approval` item met — its own words in the message), `409 RELEASE_REJECTED` (NEW, F3). The note
+  (≤ 500, trimmed; empty is none) is the administrators' alone: never in the answer, the event or the checklist. `ApprovalRequest` answers
+  `{ id, releaseId, projectId, requestedBy, viaToken, createdAt, open }`. Event `approval.requested` (`{ requestId, releaseId, viaToken }`).
+- **Open and closed are DERIVED** — `openRequestFor` (in `candidate.ts`, beside `candidateFor`, F2): the request for the release serving
+  staging NOW, with no decision recorded for it AT OR AFTER the request was made (`undecidedSince`, one SQL fragment, F7), in a project
+  not deleted.
+- **`listQueue`** — `GET /v1/queue`, session-only, administrator-only (the fleet's two rules): `release-approval` (open requests, with
+  their note), `iam-registration` (`submitted`, staging or production), `iam-change-request` (`change_requested` FROM `active` — an
+  administrator's filed request; FROM `submitted` is the owner's move and not here), `privacy-assessment` (`submitted`); oldest first by
+  `since` (`submitted_at`, else `updated_at`), at most 200, `oldestSince`, `truncated`; deleted projects out, archived in and said so.
+- **`iam_registrations.change_requested_from`** (Spec action 10, Rich's (a)): set by `recordIamRegistration` on the move INTO
+  `change_requested`, kept while it stays, cleared by any move out (`recordIamRegistration`, `submitIamRegistration`); a CHECK both ways;
+  `0048_fixed_major_mapleleaf` with a hand-placed backfill before the CHECK; `IamRegistration.changeRequestedFrom`.
+- **The checklist's `admin-approval` item** — both clauses — ends *"<who> asked an administrator to approve it on <day>."* and carries
+  `since` while a request is open.
+- **The fleet's `name`, `state`, `archivedAt`** (M3). The production gate's `RELEASE_REESCALATED` hint and the `RELEASE_REESCALATED` and
+  `RELEASE_DIGEST_NOT_APPROVED` remedies name `requestApproval`; `RELEASE_NOT_STAGED`'s hint fits a request as well as a deploy.
+- Examples CAPTURED (a temporary capture test, deleted); two authz rows; the journey's and console's parking lines (Task 13); the mock's
+  fixtures. **Contract still `1.5.0`.**
+- **The fix wave** (`a230c1a`, from the whole-branch review): the queue lists ACTIVE projects only (an archived project's items could not
+  be acted on and would hold `oldestSince` for ever), and `QueueItem.project` lost `state`; a request is closed WHILE another release
+  serves staging and open again when its own does — the rule, said in the descriptions and pinned by a test; `RELEASE_NOT_STAGED`'s
+  words fit a request; the queue names a person with no display name as every sentence does; two untrue comments; a test that tells a
+  project's name from its slug.
+
+**What sitting 9 found** (the count is derived by the command at the head of this section):
+
+**F1 The plan's *"`201` … or `200` with the existing one"* cannot be expressed**: the contract layer declares ONE success status per
+operation (`api/contract/route.ts`'s `success`, `document.ts`'s one response; the mock and `docs-write` read the first 2xx). Both asks
+answer `200` — a `201` for an ask that created nothing would be false; `open` and `createdAt` say what the request is.
+
+**F2 The plan's `openRequestFor` in `requests.ts` would be an import cycle**: the checklist (`readiness.ts`) and the queue read it, and
+`requestApproval` reads the checklist. It lives in `candidate.ts`, beside `candidateFor`, with the shared fragment `undecidedSince`.
+
+**F3 A rejected release had no refusal**: the plan's request could only be created closed at birth, or a second ask answer `200` with
+`open: false` — which an agent reads as *asked*. `409 RELEASE_REJECTED` (new), in the administrator's words; a rejection is final for its
+release (Decision 17).
+
+**F4 The plan's control for `change_requested_from` — *the column never set* — cannot reach the queue's read**: the CHECK (both ways)
+refuses the write first (control (d): RED 16, every move into `change_requested`). Control (d') holds the READ instead.
+
+**F5 Control (b) — the note in the event — went red 14, not 2**: `publishEvent` parses `machineDetail` with the strict schema, so every ask
+threw before the tests' own no-note assertions spoke. (b') put the note in the schema too: RED 2, the tests' own assertions.
+
+**F6 Control (e) went red 2 where I predicted 3**: the queue's pre-select applies the same `undecidedSince` fragment before `openRequestFor`
+is asked, so the queue's *answered* case stayed green — one statement read twice. A wrong prediction, not a defect.
+
+**F7 A refused statement inside `withRollback` aborts the transaction** (`25P02`): a test making two SQLSTATE checks needs a savepoint
+(`db.transaction(...)`) around each — the second check otherwise reads the abort, not the CHECK (TRAPS).
+
+**F8 The tool shell's `ls` is a long listing**: a list of test files built from `ls` fed Vitest the permissions and sizes; the run
+reported nothing useful until the paths were named (TRAPS).
+
+**F9 `[S9]` and `[S10]` already label Rich's items in this plan** (Spec action 9's blocks; the published-text decision), so a block
+labelled by its sitting from here on is ambiguous: this sitting's hand-forward blocks are `[sitting 9]`.
+
+**F10 The gate's words named the wrong person's errand**: `RELEASE_NOT_STAGED`'s hint told a requester to deploy, and the
+`RELEASE_REESCALATED` and `RELEASE_DIGEST_NOT_APPROVED` remedies named the ADMINISTRATOR's operations (`createApprovalPreview`,
+`approveRelease`) as the owner's remedy. Each now names `requestApproval` or the release to name (the plan named the hint only).
+
+**F11 The review's I1: a closed request RE-OPENS, with its original date, when its release serves staging again** — a rollback through
+staging, or an archive, a restore and a redeploy — while `candidate.ts` said it *"stays so"*. Ruled (A), re-open is the rule (the plan's
+Decision 17: closed *"derived at read … when the release is no longer the candidate"*); the comment and two descriptions corrected, a test
+pins it; the overstated `since` is the known cost.
+
+**F12 The review's I2: an archived project's records were queue items no administrator could act on** — `launch:record` and
+`release:approve` are refused on an archived project — and they held `oldestSince`, the queue's headline, for ever. Active projects only.
+
+**F13 The review's M3, re-graded Important: `RELEASE_NOT_STAGED`'s REGISTRY remedy still told an asker to deploy to production** — now
+`requestApproval`'s published remedy too.
+
+**F14 The review's M4, re-graded Important: the queue's sentences could name nobody** — a blank display name gave *" asked for…"*;
+`nameOrNobody`, `personName`'s rule.
+
+**F15 The review's M5: two untrue comments** — `schema.ts` named a function that does not exist (`isOpen`), and `queue.ts` said every
+select was bounded.
+
+**F16 The review's M8: no test told a project's `name` from its `slug`** — a fixture project's name defaults to its slug.
+
+**F17 Relayed by the faculty front-end at the close (`manifest-app-d9`, F5b's design, *"carried at Rich's word"*): FE-46 — the owner sends
+to LTIC, not to UBC.** All three records go VIA LTIC, which submits the assessment to PRISM and the registrations to UBC IAM, and the
+platform should tell LTIC; today `submitted` is read everywhere as WITH UBC, `since` counts UBC's wait from the owner's press, nothing emails
+anybody, and the assessment's gaps have nowhere to be answered — **and, the same evening (*"Yes, and email it too"*), a sign-off request
+(`approval.requested`) emails LTIC too, never its note**. **PROPOSED, NOT CONFIRMED** to a platform session — ORIENTATION §8 *Open*;
+a spec action before it is a task; Task 13's block says the mock scripts the records as they are until it is decided.
+
+**F18 Relayed by the front-end the same evening (`manifest-app-d9`, F6b's design, *"File FE-47, as FE-46"*): FE-47 — after launch an owner
+cannot ask for a new sign-in detail.** No owner write reaches an `active` registration (drafting is `LAUNCH_RECORD_SUBMITTED`, *"I've sent
+it"* moves only from `draft`, `change_requested` or `expired`), only an administrator files a change request and nothing tells them one is
+wanted, and every build asking for the attribute fails meanwhile. Option (a) relayed as Rich's: the owner asks from `active`, through LTIC
+(FE-46). **And FE-5, carried with it** (*"Build it honest, carry FE-5 now"*): a pending action names what it asks for. **Both PROPOSED, NOT
+CONFIRMED** — ORIENTATION §8 *Open*.
+
+**The negative controls** (each predicted in the ledger before it ran, applied with its diff read, restored by `git checkout` of a
+committed file):
+- On `a1d4baa`: **(a)** no *still the candidate* → RED 3; **(b)** the note in the event → RED 14 (F5), **(b')** in the schema too → RED 2;
+  **(c)** newest first → RED 3; **(d)** the origin never set → RED 16 (F4), **(d')** the queue reads every `change_requested` → RED 2;
+  **(e)** no `undecidedSince` in `openRequestFor` → RED 2, predicted 3 (F6); **(f)** any decision closes it, however old → RED 1;
+  **(g)** no `APPROVAL_NOT_NEEDED` → RED 7 (two tests and the matrix's five holders); **(h)** no `RELEASE_REJECTED` → RED 2; **(i)** the
+  first launch's item without the request → RED 2, the launched case green (its own call); **(j)** a submission keeping the origin → RED 2;
+  **(k)** the queue without its administrator check → RED 4; **(l)** the note in the request's own answer → RED 1.
+- On `a230c1a`: **(m)** archived projects back in → RED 1; **(o)** a raw display name → RED 1; **(p)** the name read from the slug → RED 1.
+
+**Rulings** (each in the ledger with its cost): `200` for both asks; `RELEASE_NOT_STAGED` as the gate's class; `RELEASE_REJECTED`;
+*closed when decided AT OR AFTER the request*; the CHECK both ways and the hand-placed backfill; `changeRequestedFrom` on the
+representation; `openRequestFor` in `candidate.ts`; the queue's per-project `openRequestFor`; `since` falling back to `updated_at`;
+`environment` null but for a registration; the matrix row after the staging deploy (every holder `APPROVAL_NOT_NEEDED`); the remedies
+reworded; re-open is the rule (F11); active projects only (F12); `[sitting 9]` labels (F9).
+
+**Carried — named so it is not lost:**
+- **To Task 13** (its `[sitting 9]`): FE-46, PROPOSED (F17) — and FE-47 and FE-5 (F18), PROPOSED, for the planning session; `requestApproval` and `listQueue` parked; the owner's *Ask for sign-off*; a Queue screen;
+  `changeRequestedFrom` on the records screen; the fleet's three fields. **And the review's M6**: when nobody has asked, the
+  `admin-approval` item says only *"This release has not been reviewed yet"* — the console's button is the remedy; Task 14's guide says it.
+- **To Task 14** (its `[sitting 9]`): what *Launching* says about sign-off, the queue for operators, `change_requested`'s two meanings.
+- **To Task 15** (its `[sitting 9]`): the demo asks, the administrator reads the queue and approves; both routes' first run over HTTP.
+- **Minors deferred** (the review's): M7 — an approval recorded between the checklist read and the insert leaves an approved release in
+  the queue (a millisecond window; the administrator's next decision clears it); M9 — the queue reads `openRequestFor` once per project
+  with a superseded, undecided request, ~5 queries each, for ever (a SQL pre-filter on the staging route's release would remove most).
+  And from its *declined to judge*: `approveRelease` accepts an approval after a rejection while `RELEASE_REJECTED` calls one final
+  (P6a's, predating this task).
+
+**Gates on the final tree** (`a230c1a` code):
+- `pnpm test` **3159 passed, 0 skipped, in 195 files (897 s, load ~4–6, 0 `deadlock detected`)**, then **3159 / 195 (885 s, 0 `deadlock
+  detected`)** — twice, alone, identical. Up 52 from 3107 and four files (`launch/requests.test.ts`, `launch/queue.test.ts`,
+  `api/queue.test.ts`, `api/fleet.test.ts`); `EXPECT_TESTS`/`EXPECT_FILES` moved.
+- `pnpm test:docker` — the whole tier on `a1d4baa`: **271 passed, 0 failed, 271 in 42 files**, 1255 s (load ~3–6) — unchanged; the fix wave
+  `a230c1a` ruled untouched BY GREP (no `*.docker.test.ts` names the queue, the request, `openRequestFor`, `nameOrNobody` or
+  `RELEASE_NOT_STAGED`; its other changes are comments, descriptions and registry text). **271 in 42**, ORIENTATION §2's row.
+- `pnpm lint`, `typecheck` (all six packages) and `format:check` clean.
+- `make verify` **64 / 0 / 0**, `make doctor` **21 / 0 / 0** (after the restart and the cleanup).
+- The shared HTML pages checked — `manifest-phases.html` stage 2 already says *"asking for a release to be signed off puts it in the
+  administrators' queue"* (Spec action 5's sweep); nothing else describes it: unchanged. WALKTHROUGH, RUNBOOK and README: unchanged (no
+  command, setting or demo moved). CLAUDE.md's *Outstanding*: unchanged (`f6-watch` still the one real repository no project owns). TRAPS
+  gains three (F7, F8, F9).
+
+**The machine at the close**, queried at 19:50 on 2026-10-01 — ORIENTATION §7e has it in full: the control plane PID 68983 on 7100, on
+`a230c1a`, REAL GitHub, the capable model registered; the database EMPTY, 49 migrations; `Manifest-local-dev` holding `f6-watch` owned by no
+project (Rich's to delete); 0 `mf-` containers, 12 Docker networks, 7 dead networks, 1 volume and 14 images removed; doctor 21/0/0, verify
+64/0/0; free disk 55 GiB; the faculty front-end on 7102 and 7105.

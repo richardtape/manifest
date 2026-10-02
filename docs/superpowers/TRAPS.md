@@ -2443,3 +2443,15 @@ fixture once, and the rows run in the order they are written — so a row's answ
 (the administrator's record rows move the fixture's privacy assessment to `submitted`, so a draft row below them is `409
 LAUNCH_RECORD_SUBMITTED` for every holder, not a pass). Predict a new row from the fixture's state at that point, assert the code, and put
 a row that CREATES state below the rows that must not see it.
+
+**A REFUSED STATEMENT INSIDE `withRollback` ABORTS THE TRANSACTION** (the launch path plan's sitting 9, F7, measured: a test making two
+SQLSTATE checks read `25P02` — *current transaction is aborted* — for the second, not the CHECK's `23514`). `withProject` and `withRollback`
+run the whole test in ONE transaction, so the first refused statement poisons every statement after it. Wrap each statement that must be
+refused in its own savepoint — `db.transaction((tx) => tx.update(…))` nests as one — and `expectSqlState` sees each refusal's own code.
+
+**THE TOOL SHELL'S `ls` IS A LONG LISTING** (sitting 9, F8): the profile aliases it, so `ls a b c > files.txt` writes permissions, sizes and
+dates, and a test-file list built from it fed Vitest a command line it ran nothing useful from. Name the paths, or use `ls -1` / `find`.
+
+**`[S9]` AND `[S10]` IN THE LAUNCH PATH PLAN ARE RICH'S, NOT SITTINGS'** (sitting 9, F9): a block at a task head labelled `[S6]`, `[S7]`,
+`[S8]` came from that sitting, but `[S9]` labels Spec action 9's blocks and `[S10]` Rich's published-text decision. From sitting 9 the
+hand-forward blocks are `[sitting N]`; grep for both before trusting a label.
