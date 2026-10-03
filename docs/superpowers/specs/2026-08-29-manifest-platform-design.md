@@ -217,7 +217,7 @@ boundary intact even when the code inside is actively hostile.
 | D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | An app whose first contact with real Shibboleth is production launch day will fail on launch day. **Staging now makes that contact every day**, signing people in against UBC's staging IdP through its own registration (§9). What the rehearsal adds is therefore narrower: it exercises the **production** registration, its attribute release and its certificate before anything is public. Whether that still needs a blocking item once staging is registered is an open question (§19); until it is answered, the rehearsal stays. *(Rationale changed 2026-09-27: it rested on staging using the Manifest IdP.)* |
 | D22 | **This repo ships a `console/` — a reference console — as a Phase 1 deliverable.** It is the executable proof that the public API is complete and sufficient, not the product. It imports *only* the generated client from `contract/`, enforced by a lint boundary and a test. | Without it, the faculty journey is undemonstrable until Phase 3, and API gaps surface when the front-end team hits them rather than while they are cheap to fix. The import rule converts "is the API complete?" from an opinion into a build failure. |
 | D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
-| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. **Four actions are stricter still — *person-only*: approving a release (§13), recording UBC's IAM registration or Privacy Office assessment, or saying that a request to either was sent (§9), running D21's pre-production rehearsal (§9), and archiving or deleting a project (§11).** A delegated token can never be minted holding any of them, and a token that asks is refused outright rather than given a pending action: three of them are records that a named person decided — and a confirmed retry would let the token make that record — and the rehearsal puts an unapproved release on production's public listener while its sign-in runs, past anything a token deploys (§20). *(Added 2026-09-22.)* | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: read everything about its project, trigger builds, deploy to sandbox and staging, set its app's sandbox and staging secrets, start a model session for its agent, stream logs and events — the entire build loop. Only four things need a human. **A token is scoped to one project and so does not create projects**: a human creates the project in an interactive session and mints the token for it, which is the natural order anyway. *(Reconciled 2026-09-17: this sentence previously listed project creation, which contradicts the scope rule in the decision beside it — a project-scoped token cannot use what it creates. The scope rule wins; an unscoped "creator" token is left to the phase that needs one.)* |
+| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action**, saying exactly what it would do and to what, that a human confirms interactively. **Four actions are stricter still — *person-only*: approving a release (§13), recording UBC's IAM registration or Privacy Office assessment, or sending a request for either to the Manifest team (§9), running D21's pre-production rehearsal (§9), and archiving or deleting a project (§11).** A delegated token can never be minted holding any of them, and a token that asks is refused outright rather than given a pending action: three of them are records that a named person decided — and a confirmed retry would let the token make that record — and the rehearsal puts an unapproved release on production's public listener while its sign-in runs, past anything a token deploys (§20). *(Added 2026-09-22.)* | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: read everything about its project, trigger builds, deploy to sandbox and staging, set its app's sandbox and staging secrets, start a model session for its agent, stream logs and events — the entire build loop. Only four things need a human. **A token is scoped to one project and so does not create projects**: a human creates the project in an interactive session and mints the token for it, which is the natural order anyway. *(Reconciled 2026-09-17: this sentence previously listed project creation, which contradicts the scope rule in the decision beside it — a project-scoped token cannot use what it creates. The scope rule wins; an unscoped "creator" token is left to the phase that needs one.)* |
 | D25 | **The agent knowledge pack is served over the API**, versioned with its blueprint — not only baked into sandbox images. | A third-party agent on someone's laptop cannot read a file inside a container it never runs. Without this, a BYO agent has no way to learn how to write a valid `manifest.yaml` or wire CWL auth, which is exactly the knowledge that makes an app work on this platform. |
 | D26 | **Every app has a permanent canonical hostname. A custom production domain is an addition to it, never a replacement.** | The canonical name is what Manifest controls, what its wildcard certificate covers, and what internal tooling, health checks and the SP `entityID` are pinned to. Letting a vanity domain *replace* it would make the identity registration (§9) a function of a field a faculty member can edit, which is precisely the assertion-phishing shape D15 exists to prevent. Keeping both means a broken or lapsed custom domain degrades to a working app on an ugly URL, rather than to an outage. |
 | D27 | **A custom domain on a CWL app must be chosen before its UBC IAM registration is submitted.** Adding or changing one afterwards is an IAM change request, not a platform setting. | The ACS URL is part of what UBC IAM registers (§9, D15), and it must contain the hostname the browser is actually on or the assertion will not be accepted. This is the ordering constraint faculty are most likely to get wrong: choosing a domain is a five-second decision in week one that costs a multi-week change request in week twelve. Manifest therefore asks for the domain *at* registration time rather than offering it as a later convenience. Apps with `auth.provider: none` have no such constraint and may change domain freely. |
@@ -335,11 +335,11 @@ admin-ui/       React admin front-end
 | **Secret** | `id`, `project_id`, `environment_kind`, `name`, `ciphertext`, `created_at` |
 | **Approval** | `id`, `release_id`, `decision`, `decided_by`, `reason`, `diff_snapshot` |
 | **ApprovalRequest** | `id`, `release_id`, `project_id`, `requested_by`, `requested_by_token`, `note`, `created_at` — an owner's request that an administrator sign off the release serving staging. It is answered by an `Approval` and closes when one is recorded or the release stops being the launch candidate; its `note` is shown to administrators and to nobody else |
-| **IamRegistration** | `id`, `project_id`, `environment` (`staging` \| `production`), `entity_id`, `acs_url`, `slo_url`, `cert_fingerprint`, `cert_expires_at`, `registered_attributes`, `state` (`draft` \| `submitted` \| `active` \| `change_requested` \| `expired`), `change_requested_from` (`submitted` \| `active` — while `change_requested`: whether UBC asked the owner for changes, or an administrator filed a change request with UBC; null otherwise), `external_ticket_ref`, `submitted_at`, `submitted_by`, `generated_package` — one per environment that signs people in against UBC |
-| **PrivacyAssessment** | `id`, `project_id`, `generated_draft`, `state` (`draft` \| `submitted` \| `approved`), `reviewer`, `approved_at`, `external_ticket_ref` (the PIA number), `submitted_at`, `submitted_by` |
+| **IamRegistration** | `id`, `project_id`, `environment` (`staging` \| `production`), `entity_id`, `acs_url`, `slo_url`, `cert_fingerprint`, `cert_expires_at`, `registered_attributes`, `requested_attributes` (what a change request asks UBC IAM for), `state` (`draft` \| `sent` \| `submitted` \| `active` \| `change_requested` \| `expired`), `sent_from` (`draft` \| `change_requested` \| `expired` \| `active` — while `sent`: the state it was sent from, and where it returns if the team hands it back; `active` is a change asked of a live registration, which the team files as a change request; null otherwise), `change_requested_from` (`submitted` \| `active` — while `change_requested`: whether UBC asked the owner for changes, or a change request was filed with UBC; null otherwise), `external_ticket_ref`, `sent_at`, `sent_by`, `submitted_at`, `submitted_by`, `generated_package` — one per environment that signs people in against UBC. `sent_at` and `sent_by` are the owner's send to the Manifest team; `submitted_at` is the day the team submitted it to UBC IAM, and `submitted_by` the administrator who recorded that |
+| **PrivacyAssessment** | `id`, `project_id`, `generated_draft`, `state` (`draft` \| `sent` \| `submitted` \| `approved`), `reviewer`, `approved_at`, `external_ticket_ref` (the PIA number), `sent_at`, `sent_by`, `gap_answers` (each gap's id and the owner's answer, as sent), `submitted_at`, `submitted_by` |
 | **LaunchReadiness** | `project_id`, checklist state across IAM registration, PIA, rehearsal, security scan, admin approval |
 | **DelegatedToken** | `id`, `user_id`, `project_id`, `name`, `token_hash`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `revoked_at`, `last_used_at`, `rate_limit` — the plaintext exists only at minting and is never stored, so `token_hash` is what authenticates a presented token, `name` is what makes one reviewable in a list, and `revoked_at` is how one is ended **before** its expiry. **A token is revoked when its minter is removed from its project**, because it acts for that person there and nowhere else. Revocation is not optional for a credential an agent holds, which is why a delegated token has a server-side record where a Phase 1 session does not (§20) |
-| **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `expires_at`, `resolved_by`, `resolved_at`, `consumed_at` — `expires_at` is what makes the `expired` state reachable rather than decorative, and `consumed_at` records that a confirmation has been **spent**, so confirming grants exactly one retry rather than a standing permission. `consumed_at` is a column and not a fifth state: "confirmed but not yet retried" and "confirmed and used" are one decision at two moments |
+| **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `expires_at`, `resolved_by`, `resolved_at`, `consumed_at` — `expires_at` is what makes the `expired` state reachable rather than decorative, and `consumed_at` records that a confirmation has been **spent**, so confirming grants exactly one retry rather than a standing permission. `consumed_at` is a column and not a fifth state: "confirmed but not yet retried" and "confirmed and used" are one decision at two moments. **`payload` is what was asked, never the request itself**: the method and the concrete path, a hash of the body so a client can match its own request, the operation's summary, and **the specific thing it would act on, taken from the request and never a secret** — for adding or changing a member, the person as the request named them and the role; for removing one, who; for a deploy, which release and which environment. A person asked to confirm reads exactly what the retry would do |
 | **AgentSession** | `id`, `project_id`, `user_id` (the person it works for, and is charged to), `instance_id` (the sandbox it runs in — null for an agent outside Manifest), `requested_by_token` (null when a person started it in a session), `litellm_key_id`, `cap_usd`, `expires_at`, `ended_at` — a session outlives neither its `expires_at` nor the credential that started it, and its key is answered once, when it starts, and never stored |
 | **IntakeSession** | `id`, `user_id` (the person who started it, who is never charged), `model`, `cap_usd`, `expires_at`, `created_at`, `ended_at`. It has no project and no token: only an interactive session starts one, before a project exists, and it is paid from the platform's intake budget (§10). Its key is answered once and never stored. The row is the record that the key was issued, because there is no project stream to publish on |
 | **Event** | `id`, `project_id`, `subject`, `type`, `machine_detail`, `human_message`, `actor_user_id`, `acted_as_admin`, `reason`, `created_at` |
@@ -749,24 +749,33 @@ with Manifest's own derived values:
 - technical and privacy contacts from the project owner and platform admins
 - the privacy assessment's reference (the PIA number), which UBC IAM asks for
 
-`IamRegistration` tracks state (`draft → submitted → active`, plus
+`IamRegistration` tracks state (`draft → sent → submitted → active`, plus
 `change_requested` and `expired`) against an external ticket reference. **The owner
-moves it to `submitted`** — *I've sent it* — with the day they sent it, which is how
-Manifest can say how long it has waited; **UBC's answers are an administrator's
-record**. The same holds for a `PrivacyAssessment`. A registration no reviewer has
+sends it to the Manifest team from Manifest** — at UBC, LTIC, the team that runs it —
+and it moves to `sent`; **the team submits it to UBC IAM and records that it has**,
+with UBC's reference and the day, and it moves to `submitted`; **UBC's answers are an
+administrator's record**. The same holds for a `PrivacyAssessment`, which the team
+submits to the Privacy Office, through PRISM. Each step is dated, which is how
+Manifest can say who has it and for how long. A registration no reviewer has
 registered gates nothing: a production build is checked against
 `registered_attributes` only once UBC has registered them.
 
 **The production registration is sent only once the staging registration is
 `active`** — the app has signed people in at staging and its owner judges it tested.
 What UBC decides — a registration `active`, an assessment `approved` — is an
-administrator's record of UBC's answer, and is never refused for order.
+administrator's record of UBC's answer, and is never refused for order; **nor is the
+team's record that it submitted what the owner sent**, which was held to the order
+when it was sent.
 
 **Attribute drift is a build-time failure, not a login-time one.** Manifest stores
 `registered_attributes` and validates every production release against it (§7). If
 the agent adds an attribute IAM never registered, the build fails with a plain
 message and a pre-generated change request, long before a student would have hit
-a broken login.
+a broken login. **The owner asks for the change from Manifest**: from an `active`
+registration they send the attributes wanted, with a package drafted for them from
+the newest valid manifest, to the Manifest team, which files the change request with
+UBC IAM. The registration says who has it and for how long, as a first one does, and
+the build keeps failing until UBC has registered them.
 
 **Certificate lifecycle.** Manifest issues each environment's SP certificate itself,
 once, at registration (D20), for a fixed term. An expired SP certificate silently breaks authentication for a
@@ -793,14 +802,19 @@ nothing:
 
 **What Manifest cannot know, the draft names as a gap for the owner** — what the app
 keeps in its own database, where UBC will host it — rather than leaving it out.
+**Each gap has a stable id, and the owner answers every one when they send the
+assessment** — an answer may say it does not apply. The answers are kept on the
+record beside the draft as it was sent, and shown to administrators, who carry them
+into the Privacy Office's form. A front-end may suggest an answer from what it knows
+of the app; what is kept is what the owner sent.
 
-`PrivacyAssessment` tracks `draft → submitted → approved`. Production deployment
+`PrivacyAssessment` tracks `draft → sent → submitted → approved`. Production deployment
 is blocked until it is `approved`.
 
 ### Toward automated submission (direction, not a v1 feature)
 
-Today Manifest **drafts and tracks**; a person submits, and colleagues at UBC IAM
-and the Privacy Office review. That division is correct for v1 and is not a
+Today Manifest **drafts and tracks**; the owner sends, a person on the Manifest
+team submits, and colleagues at UBC IAM and the Privacy Office review. That division is correct for v1 and is not a
 workaround — but it is not the end state either.
 
 Everything needed to submit directly already exists in the design: the registration
@@ -1590,7 +1604,9 @@ its staging registration with UBC's staging IdP (§9), which gates signing in at
 staging address rather than going live; then, once staging is registered and the owner
 has tested it there, the production registration. All three are surfaced the moment a
 project is created, each saying what it waits on. Each of the three is drafted by
-Manifest and sent by the owner, and each says, while it waits, how long it has waited.
+Manifest, sent by the owner to the Manifest team, and submitted by the team to UBC,
+and each says, while it waits, **who has it and for how long** — the team from the day
+the owner sent it, UBC from the day the team submitted it.
 
 **The owner asks for the administrator's approval** on the release serving staging,
 and the request waits in the administrators' queue (§26) with how long it has waited —
@@ -1604,8 +1620,8 @@ without being asked for.
 2. **Subsequent releases** — self-serve, *unless* `spec/isSensitiveDiff()` reports
    a change to a sensitive field (§7), in which case the release re-escalates. A
    change to `auth.attributes` that adds an attribute UBC IAM has not registered
-   additionally requires an IAM change request to reach `active` before the
-   release can deploy (§9). A removal re-escalates like any sensitive change, and
+   additionally requires an IAM change request — which the owner asks for, through
+   the Manifest team (§9) — to reach `active` before the release can deploy. A removal re-escalates like any sensitive change, and
    does not wait on IAM: the app then asks for less than UBC releases, which a
    change request can narrow later.
 
@@ -2149,7 +2165,7 @@ created per build and destroyed:
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
 | GitHub fake | 7110 | **Opt-in** (`make github-up`, compose profile `github`) — a GitHub-compatible test double for D5's driver 2: App installation tokens, private repositories, git over HTTP and HMAC-signed webhooks. **It is not GitHub**: its answers are held to GitHub's own published schemas and test vector, and checked against a real GitHub App by an opt-in conformance run. |
-| Mailpit | 7111 (SMTP), 7112 (inbox) | The laptop's mail sink: the faculty front-end's server, and later the platform's own notices, send to it. Messages in memory only; no relay, so nothing leaves the laptop. On UBC infrastructure, UBC's SMTP relay takes its place. |
+| Mailpit | 7111 (SMTP), 7112 (inbox) | The laptop's mail sink: the faculty front-end's server, and the platform's own emails to the Manifest team (§26), send to it. Messages in memory only; no relay, so nothing leaves the laptop. On UBC infrastructure, UBC's SMTP relay takes its place. |
 | Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. **It cannot reach container IPs** on Docker Desktop (S1), so health checks and readiness polling go through the edge or a published port, never the container address. **Clients reach it through the edge on the console's origin (§21), never on this port**; the edge refuses those routes to app and sandbox networks (§12). |
 | Admin UI (Vite) | 7101 | Host process |
 | `manifest-mock` | 7102 | Host process; needed only when working on the front-end without the platform |
@@ -2909,8 +2925,8 @@ Every queue item is derived from an entity that already exists:
 |---|---|---|
 | Release awaiting approval | `ApprovalRequest`, answered by an `Approval` (D9) | admin |
 | Confirmation of a delegated-token action | `PendingAction` (D24) | the requesting user, in *their* queue — listed here because it is the same mechanism |
-| IAM registration to submit or amend | `IamRegistration` (D19) | admin + UBC IAM |
-| Privacy assessment to review | `PrivacyAssessment` | owner, then Privacy Office |
+| IAM registration to submit or amend | `IamRegistration` (D19): `sent` — the owner sent it, for the team to submit to UBC IAM; `sent` from `active` — a change for the team to file with UBC IAM; `submitted`, or a change request filed — with UBC IAM, for its answer to be recorded | admin + UBC IAM |
+| Privacy assessment to submit | `PrivacyAssessment` (D19): `sent` — the owner sent it with their answers, for the team to submit to the Privacy Office; `submitted` — with the Office, for its answer to be recorded | admin + Privacy Office |
 | Verified domain awaiting attach | `Domain` (D28) | admin |
 | Audience upgrade request | `Project.audience` (D29) | admin |
 | Launch item needing an override | `LaunchReadiness` | admin, recorded as an override |
@@ -2919,6 +2935,15 @@ Each item shows what is being asked, by whom, what changes if it is granted, the
 diff where there is one, and **how long it has waited**. The console's headline
 health number is the age of the oldest item, because a queue that is merely long is
 working and a queue that is stale is not.
+
+**The Manifest team is told, not left to look.** When an owner sends a launch record
+(§9), or asks for a release's sign-off (§13), Manifest emails the team's address — one
+address, set as deployment configuration — saying which app, what was sent or asked,
+and by whom, with a link to the item in the admin console. The email carries nothing a
+person wrote: not the draft, not the owner's answers, not a sign-off request's note.
+Those are read in the console, where reading is authorised and audited. An email that
+cannot be delivered is logged and changes nothing else: the queue is the record, and
+the email is how the team hears of it.
 
 ### The other screens
 
@@ -3038,7 +3063,7 @@ a cohort and a purpose.
 ### What forking does inherit, usefully
 
 The generated PIA draft and registration package for a fork are seeded from the
-source project's approved ones. The owner still reviews, signs and submits their own
+source project's approved ones. The owner still reviews, signs and sends their own
 — but they start from a document that a reviewer has already accepted for a
 substantially similar app, rather than from nothing. Over time this is where most of
 the showcase's value accrues.

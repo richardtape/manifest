@@ -2,7 +2,10 @@
 
 > **✅ THE WORDS APPROVED BY RICH 2026-10-03, ~12:45 PDT, AS DRAFTED, WITH EVERY RECOMMENDED CHOICE** (*"I agree with all of your
 > recommendations"*; [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), that section): Spec action 1 with (i) yes and (ii) yes,
-> Spec action 2's (a), Spec action 3 as worded. **NOT YET APPLIED** at that entry; the *Placement* below was decided 2026-10-02 ((b)).
+> Spec action 2's (a), Spec action 3 as worded. **✅ ALL THREE APPLIED THE SAME DAY, ~13:05 PDT, by `manifest-94`**: action 1's twelve
+> edits and action 2's four, composed (§6's two rows as *The two rows, composed* gives them), action 3's two; the shared pages swept
+> (`manifest-decisions.html` D19, D24 twice; `manifest-phases.html` stage 2; the rest checked, unchanged, as each action says). The
+> *Placement* below was decided 2026-10-02 ((b)).
 > Before applying, re-read each *Today* against the code: it was read at `df62a72`, before *faculty-ready* moved `tokens/pending.ts`
 > and the launch records' neighbours. *Found while drafting* (a lapsed registration re-sent read as registered) was FIXED by the launch
 > path plan's sitting 12 (its F3; `launch/readiness.ts:508-523`).

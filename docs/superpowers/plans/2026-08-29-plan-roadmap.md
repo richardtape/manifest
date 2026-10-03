@@ -92,7 +92,7 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
-### Spec actions raised by the faculty front-end's FE-46, FE-47 and FE-5 (confirmed by Rich 2026-10-01) — THREE DRAFTED 2026-10-01, OVERNIGHT; ✅ WORDS APPROVED BY RICH 2026-10-03, WITH THE RECOMMENDED CHOICES; NOT YET APPLIED
+### Spec actions raised by the faculty front-end's FE-46, FE-47 and FE-5 (confirmed by Rich 2026-10-01) — THREE DRAFTED 2026-10-01, OVERNIGHT; ✅ WORDS APPROVED BY RICH 2026-10-03, WITH THE RECOMMENDED CHOICES, AND ✅ ALL THREE APPLIED THE SAME DAY
 
 **Where the words are.** [`2026-10-01-fe46-fe47-fe5-spec-actions.md`](./2026-10-01-fe46-fe47-fe5-spec-actions.md) gives, for each, the
 current text, the proposed text, its options and a recommendation, all checked against the code at `df62a72`.
@@ -104,8 +104,8 @@ to it, because the planning session had ended.
 a small plan of their own, after the launch path and before *faculty-ready*. **PLACED 2026-10-02: AFTER *faculty-ready*** (Rich, at its
 sitting 1's open: *"After faculty-ready"*), before FE-32. **THE WORDS APPROVED 2026-10-03, ~12:45 PDT** (*"I agree with all of your
 recommendations"* — [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), that section; `manifest-94`): all three as drafted, with FE-46's
-(i) yes, the team may hand a send back, and (ii) yes, every gap answered; FE-47's (a), `active → sent` with `sent_from: active`. **Not yet
-applied**: applying them sweeps the four shared HTML pages. **FE-53** (the front-end's m130: the asking token's `expiresAt` on
+(i) yes, the team may hand a send back, and (ii) yes, every gap answered; FE-47's (a), `active → sent` with `sent_from: active`. **✅ All three
+APPLIED the same day, ~13:05 PDT** (`manifest-94`), the shared pages swept; their plan is being written (`manifest-c7`). **FE-53** (the front-end's m130: the asking token's `expiresAt` on
 `pending_action.created`; additive, no spec action) is confirmed the same morning and **goes into their plan, with FE-5**.
 
 1. **§6, §9, §13, §21, §26, §27 and D24: FE-46.** The owner sends each launch record to the Manifest team (LTIC), which submits it to

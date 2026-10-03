@@ -424,6 +424,8 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
            - FE-5: (a) as worded (§6's PendingAction.payload, D24).
          Their placement stands (2026-10-02: after faculty-ready, before FE-32). APPROVED, NOT YET APPLIED at this entry:
          applying them, with the four shared HTML pages swept, is the next step's.
+         => ALL THREE APPLIED the same day, ~13:05 PDT, by manifest-94: §6's two rows composed, §9, §13, §21, §26, §27
+            and D24; manifest-decisions.html (D19, D24) and manifest-phases.html (stage 2) swept, the rest checked.
 
       4. THE SMALL ONES, each as recommended:
            - Decision 7 (cookie names by scheme: __Host- on https, plain on loopback http) — KEPT, though [M1] measured

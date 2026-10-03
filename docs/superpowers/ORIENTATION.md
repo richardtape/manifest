@@ -1895,8 +1895,8 @@ named in the row below.*
 - **It starts at Rich's word** (asked 2026-10-03 by `manifest-94`).
 
 **RICH'S, NONE BLOCKING SITTING 5:**
-1. **Applying FE-46, FE-47 and FE-5's spec actions.** Their words were approved 2026-10-03 (§8 *Decided*). Applying them, with the four
-   shared HTML pages swept, is the next document step, and then their plan is written. That plan also carries FE-53 (m130).
+1. **FE-46, FE-47 and FE-5's plan.** Their spec actions were approved AND APPLIED 2026-10-03 (§8 *Decided*). Their plan, carrying FE-53
+   (m130) too, is being written by `manifest-c7`, for Rich's review.
 2. **`make refresh-vulndb` is due after 2026-10-06** (the network on). Sitting 7's acceptance launches.
 3. **Three real repositories in `Manifest-local-dev` belong to no project** (`f6-watch`, `keep-walk-1002`, `f6b-measure-1`), and there are
    12 orphan driver-2 mirrors in `.manifest/repos` (`dead-app-resources.sh`). Removing them is his (`bash scripts/github-real-repos.sh`).
@@ -2045,8 +2045,8 @@ reasoning is recorded.**
   with all of your recommendations"*: [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~12:45 section. Rejected: (b) §26 as worded.
 - **FE-46, FE-47 AND FE-5 — THEIR SPEC ACTIONS' WORDS APPROVED BY RICH 2026-10-03, with the recommended choices** (the same section of
   [`2026-09-30-decisions.md`](2026-09-30-decisions.md)): FE-46's (i) the team MAY hand a send back, to `sent_from`, and (ii) EVERY gap answered, *"does not apply"* allowed; FE-47's (a)
-  `active → sent` with `sent_from: active`, over (a′) `change_sent`; FE-5 as worded. **APPROVED, NOT YET APPLIED** — applying them, with the
-  four shared HTML pages, is the next step; their full text is
+  `active → sent` with `sent_from: active`, over (a′) `change_sent`; FE-5 as worded. **✅ APPLIED THE SAME DAY (~13:05 PDT, `manifest-94`)**,
+  the shared pages swept; their plan is being written (`manifest-c7`). Their full text is
   [`plans/2026-10-01-fe46-fe47-fe5-spec-actions.md`](plans/2026-10-01-fe46-fe47-fe5-spec-actions.md). Placed 2026-10-02: after *faculty-ready*,
   before FE-32 (the roadmap). The designs, as relayed and confirmed on 2026-10-01: `~/Developer/manifest-app/docs/api-findings.md`, FE-46,
   FE-47, FE-5.
