@@ -177,7 +177,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then its sitting 10 (2026-10-01, the console and the mock, the guides and the published-text pass, and its fix wave): +33 and
 # one file — `console/src/launch-records-state.test.ts` (16, new), `mock/src/scripted.test.ts` (11), the guides' gates (2), the
 # document's pattern cases (1), the mock's text check (1), `console/src/api.test.ts` (1) and `journey/src/examples.test.ts` (1).
-EXPECT_TESTS=3192
+# Then its sitting 12 (2026-10-02, the acceptance, and its fix wave — the plan EXECUTED): +5, no new file — `db/locks.test.ts` (2:
+# more holders than the pool, F1; nested holders, the review's I2) and `launch/readiness.test.ts` (3: a lapsed registration sent
+# again, F3). Measured twice on the final tree, 3197 in 196, 0 `deadlock detected`.
+EXPECT_TESTS=3197
 EXPECT_FILES=196
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64

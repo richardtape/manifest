@@ -2466,3 +2466,21 @@ generating the mock's registration packages with the platform's own `assemblePac
 imports the database client, which refuses to load with the variable unset. A dummy value that is never connected to —
 `MANIFEST_DATABASE_URL=postgres://nobody@127.0.0.1:1/none node script.mjs` — is enough: a pool connects on its first query, not at import.
 `dist/` is whatever the control plane's last `dev` start built, so check its age against `HEAD` first.
+
+**A CONTROL PLANE THAT ANSWERS `/v1/me` CAN STILL BE DEAD** (the launch path plan's sitting 12, F1). With ten or more environments, a restart
+listened on 7100 and answered `401` at once — and never printed its boot line, and every sign-in hung for ever. A route that needs no database
+answers; one that does waits for a connection that never comes. **Read the boot line after every restart** (`"source":…` appears only once boot
+finished), and when a request hangs, `pg_stat_activity` for `manifest_app`: ten connections idle after `SELECT pg_advisory_lock` was this one.
+Fixed (`3549fa4`, `37b223d`): the advisory locks take `lockPool` and `outerLockPool`, never `pool`. **Anything new that holds a connection while
+it waits for another must not share a pool with what it waits for.**
+
+**A DEMO NOBODY RUNS ROTS WITHOUT A SOUND** (sitting 12, F2): `make demo-journey` compared `/v1/me`'s keys with a list written in the demo, and
+went red on 2026-09-30 when `Me` gained `mayBuild` — found two days later only because sitting 12 ran every demo. A demo's expectation of the
+contract's shape is read from the published document (`GET /v1/openapi.json`), never written beside it; and "every other demo" in an
+acceptance means every one.
+
+**THE DRIVER-2 DEMOS REFUSE THE FAKE WHILE `.env` CARRIES THE REAL APP** (sitting 12): `require_fake_github` reads `.env`, not the running
+process, so a control plane restarted onto the fake with the real-App settings unset in its own shell still fails the guard. Comment out `.env`'s
+real-App block for the fake's runs (back it up 0600 first), and restore it byte for byte — `cmp` against the backup — before the real leg or the
+close. **And an ORPHAN bare repository makes the console's create answer `409 SOURCE_CONFLICT`** *"main moved…"* on driver 1 (F7): `ls
+.manifest/repos/<slug>.git` when a create fails that way; the demos clear orphans with `clear_orphan_repository`, the console does not.

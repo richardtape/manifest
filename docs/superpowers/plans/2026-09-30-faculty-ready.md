@@ -245,6 +245,18 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
     - `revokeToken` is minter-only.
     - An administrator can mint a token on a project they are not a member of (`mintToken` needs `project:write`).
 
+**INHERITED FROM THE LAUNCH PATH PLAN'S SITTING 12 (2026-10-02 — its last; the plan is EXECUTED).** Its *Sitting 12* is the record.
+- **The advisory locks are on pools of their own** (its F1 and F4): `db/client.ts`'s `lockPool` (environment locks) and `outerLockPool` (project
+  and rehearsal locks, which hold an environment lock inside). Before them, ten or more environments deadlocked a restarted control plane at
+  boot. Anything new that holds a lock or a connection while it waits for another must not share a pool with what it waits for.
+- **A lapse ends a registration** (its F3): entering `expired` clears `registered_at`; a change request filed from `active` keeps it.
+- **F7 — NOT IN ANY TASK, A CANDIDATE FOR THIS PLAN** (Rich, 2026-10-02: *"record that as a better error message needed"*): a person creating a
+  project whose slug an ORPHAN bare repository still holds (left by a truncation or `make reset`) is answered `409 SOURCE_CONFLICT` *"main
+  moved while this commit was being made"* on driver 1 — a race that did not happen, and nothing they can act on. Driver 2 answers
+  `SOURCE_REPOSITORY_EXISTS`. A real faculty member meets it on the first day a name is reused on a reset machine. Rich places it.
+- **`make demo-launch`** exists on either driver (RUNBOOK); this plan's acceptance runs beside it, and its `DEMO_LAUNCH_SLUG` override is
+  `launchpath-*` only. Four minors were deferred by that plan's review (M1 instances left `destroying`; M3–M5 the demo's own) — its record.
+
 **The contract.** It is **`1.5.0`** in three places, held equal by `api/contract/document.test.ts:56-63`. Additive changes bump the minor (`document.ts:20-61`). The launch path plan takes no bump, so **this plan's Task 3 makes it `1.6.0`**, once.
 
 ---

@@ -12,10 +12,10 @@ names the next job** and the current plan's sittings table says how far it has g
 `EXPECT_` lines and ORIENTATION §2's `pnpm test:docker` row, stated nowhere else; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every document on status (Rich, 2026-09-24 and 2026-09-30).*
 
-**The design is approved and complete, five spikes are done, and fourteen plans are executed** — each with an acceptance that
-passes. **The launch path plan** (`docs/superpowers/plans/2026-09-29-launch-path.md`) is approved and in execution, every one of its
-spec actions decided and applied. **The plan after it, *faculty-ready*** (`docs/superpowers/plans/2026-09-30-faculty-ready.md`), is
-written and approved; then FE-32's plan; then the vulnerability database in the console. Rich's decisions of 2026-09-30 are in
+**The design is approved and complete, five spikes are done, and fifteen plans are executed** — each with an acceptance that
+passes; the newest is **the launch path plan** (`docs/superpowers/plans/2026-09-29-launch-path.md`), EXECUTED 2026-10-02. **The next
+plan, *faculty-ready*** (`docs/superpowers/plans/2026-09-30-faculty-ready.md`), is written and approved; then FE-32's plan; then the
+vulnerability database in the console. FE-46, FE-47 and FE-5's spec actions are drafted, not applied, and Rich places them. Rich's decisions of 2026-09-30 are in
 `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
@@ -34,6 +34,7 @@ written and approved; then FE-32's plan; then the vulnerability database in the 
 | D5 driver 2 | 2026-09-25 | An app's code in a GitHub organisation: private and kept private, pushes by HMAC-verified webhook, every commit scanned for secrets, `main` protected, built offline from a mirror — against a GitHub fake, checked against a real App | `make demo-github` (driver 2), **and a person clicking both drivers** |
 | Authoring API | 2026-09-27 | An app CREATED through the API: files read and committed against the commit read (git plumbing, no worktree, both drivers), history attributed by the platform's own record, app secrets set write-only, a build of exactly the commit written with its own manifest — and the API's documentation served by the API | `make demo-authoring` (either driver), **and a person clicking it** |
 | Front-end enablement | 2026-09-29 | A second origin (`app.`) for the faculty front-end; a project's name, people by CWL login, agent and intake model keys, recent output (sandbox), binary files, archive/restore and delete, the capable model and its on-premise fallback, the building agent's models as a setting | `make demo-frontend` (either driver), **and a person clicking it** |
+| Launch path | 2026-10-02 | A faculty member takes their own app to production: the privacy assessment and both UBC IAM registrations drafted from the app, sent in UBC's order and dated; the sign-off request and the administrators' queue; the owner's rehearsal; a session narrowed, not ended; a removed member's access gone; only faculty build; the advisory locks on pools of their own | `make demo-launch` (either driver), **and a person clicking a launch** |
 
 **Outstanding, and Rich's** (ORIENTATION §2 and §8 have the detail):
 - **the offline acceptance** — `scripts/offline-acceptance.sh`, run by hand, because turning the network off from a tool call cuts the
@@ -41,8 +42,8 @@ written and approved; then FE-32's plan; then the vulnerability database in the 
 - **the second-machine clean clone**;
 - **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-06**; past seven days `make doctor` warns and
   §13's `scans` item refuses every production launch;
-- **any real repository in `Manifest-local-dev` that no project owns** — ONE on 2026-10-01, `f6-watch` (the faculty front-end's F6 sitting 1;
-  its rows truncated by the launch path plan's sitting 8) (`bash scripts/github-real-repos.sh`);
+- **any real repository in `Manifest-local-dev` that no project owns** — TWO on 2026-10-02, `f6-watch` and `keep-walk-1002` (the faculty
+  front-end's F6 sitting 1 and its F6 walk; their rows truncated by the launch path plan's sittings 8 and 12) (`bash scripts/github-real-repos.sh`);
   removing one is his;
 - **the UBC external track — DEFERRED by Rich, 2026-09-30** (*"I have to get all of this working first locally. And then show
   demos"*): not a blocker; do not raise it as urgent;

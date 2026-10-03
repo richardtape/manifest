@@ -1,5 +1,9 @@
 # The Launch Path Implementation Plan
 
+> **THIS PLAN IS EXECUTED — 2026-10-02, SITTING 12 (Task 15, the acceptance).** `make demo-launch` is green three times on each driver;
+> its controls, the real leg and a clicked launch by Rich are done, and the plan's one whole-branch review was answered by one fix wave.
+> *Sitting 12* (the last section) is the record. **The next plan is *faculty-ready*** (`2026-09-30-faculty-ready.md`).
+
 > **SITTING 1 — TASK 1 — DONE 2026-09-29, THE SAME SESSION, AT RICH'S WORD: THE CONTROL PLANE HAS RUN ON REAL GITHUB.** A project
 > created through the platform (`lp-real-a`) is a real private repository in `Manifest-local-dev`, holding a commit made through
 > the API; it was built from its mirror and served in the sandbox; and a scratch project was deleted and its repository gone
@@ -73,6 +77,12 @@
 > half of the launch records, *Ask an administrator to sign this off*, a Queue screen. *Launching* is rewritten around UBC's order, and no
 > published text cites a section, decision, constraint or phase — held by a widened gate. Contract still `1.5.0`. *Sitting 10* is the record;
 > **sitting 12 (Task 15, the acceptance) is next, and last** — Rich clicked sitting 10's platform half the same night (*After sitting 10's close*).
+
+> **SITTING 12 — TASK 15 — DONE 2026-10-02; THE PLAN IS EXECUTED.** `make demo-launch` on either driver — a faculty member drafts, reads and
+> sends the three records in UBC's order, an agent drafts and asks, an administrator works the queue, rehearses and approves, the owner
+> launches; then 4401, 4404, `createdAt` and a session narrowed. Green three times on each driver; the controls seen red; the real leg; Rich's
+> clicked launch; every other demo. Seven findings, among them a boot deadlock with ten or more environments (F1) and a lapsed registration
+> sent again reading registered (F3). *Sitting 12* is the record.
 
 > **AFTER SITTING 4a's CLOSE — SPEC ACTION 8 DECIDED BY RICH, 2026-09-30: (b) AND (c) TOGETHER** (*"b and c together, in its own
 > small sitting after 5"*): a step-up before a rehearsal, and the rehearsal takes its production instance down before it records its
@@ -163,7 +173,7 @@ The additions reuse what is there. The trim is LiteLLM's `/key/update` on the se
 | 8 | 11 | **D19's privacy-assessment draft**: §9's six rows derived from the manifest, the members and the catalogue, with the gaps an owner must fill named; a document to paste | **Yes** — `launch/` | **Spec action 4** — ✅ APPLIED 2026-09-30 (Rich: *"Keep Task 11"*) | **DONE 2026-10-01** — INLINE, by `manifest-8d`, beside the faculty front-end's F6 (7100 handed over at open; its sitting 2 mock-only): `draftPrivacyAssessment` (`launch:draft`, mintable) and `PrivacyAssessment.draft` — §9's six rows as facts with their source and the owner's gaps, a text to paste, drawn from the candidate's manifest; the YAML read for what the owner WROTE (`declaredData`); kept as sent; the send-day the draft's; one whole-branch review beside the Docker tier (271/271), one fix wave (`4aaf0ef`: only what the platform does — retention and classification defaults named, no backup or deletion claimed, Manifest's Incident logs, breach and GitHub gaps; the driver-2 route test; the checklist's drift sentence); contract `1.5.0`; the front-end told before each contract commit |
 | 9 | 12 | **FE-25 and §26's queue**: `requestApproval` on the launch candidate (`approval.requested`); `listQueue` — sign-off requests, registrations and assessments waiting on UBC, oldest first, each with how long it has waited; the fleet's `name`, `state` and `archivedAt` (M3) | **Yes** — `launch/`, `projects/` | **Spec action 5** — ✅ APPLIED 2026-09-30; **and 10** (§6's `change_requested_from`, from Rich's (a) on `change_requested`) — ✅ APPLIED 2026-10-01 | **DONE 2026-10-01** — INLINE, by `manifest-6d`, beside the faculty front-end's F6 sittings 3–4 (mock-only; told before each contract commit, held Vitest for the tiers): `requestApproval` (`approval:request`, MINTABLE; one request per release, `200` for a first ask and a second; `RELEASE_NOT_STAGED`, `APPROVAL_NOT_NEEDED`, a new `RELEASE_REJECTED`; the note the administrators' alone) and `approval.requested`; `openRequestFor` (derived: the candidate's, undecided since asked — open again if its release serves staging again); `listQueue` (administrators, session-only; active projects; oldest first, ≤ 200); `iam_registrations.change_requested_from` (`0048`, a CHECK both ways); the checklist's `admin-approval` dated from the request; the fleet's three fields; one whole-branch review beside the Docker tier (271/271), one fix wave (`a230c1a`: active projects only, re-open ruled and pinned, the remedies, a nameless person named); contract `1.5.0` |
 | 10 | 13, 14 | **MERGED BY RICH, 2026-09-30** (*"(a) Merge"* — sitting 11 folded in; if Task 13 runs long, stop after it and give Task 14 its own sitting). **The console and the mock**: every new operation called (`DELIBERATELY_UNCALLED` empty again); the Launch records screen gains the owner's half; a Queue screen for an administrator; the mock scripting drafts, submissions, requests and the queue. **Then the guides**: *Launching* rewritten around the three steps IN UBC'S ORDER (Spec action 9); *Building a front-end*, *For an AI agent*, *Events* and *Conventions* brought up to it — `4401`, a narrowed session, the fallback's header; every code block a run example **And Rich's published-text pass (`[S10]` at Task 14)**: every schema, field, tag, error and event text and every guide cites no section, decision or plan, and the docs gate is widened to hold it | **No** — unless a change reaches an owing path | — | **DONE 2026-10-01** — INLINE, by `manifest-3d`, beside the faculty front-end's F6 sittings 5–6 (mock-only; held for every mock edit, the contract regeneration and the tiers): Task 13 — the mock plays UBC's order by stage (`MANIFEST_MOCK_RECORDS`), real packages and a real draft, `requestApproval` and `listQueue`, FE-40's four switches; the console's owner half of the launch records, *Ask an administrator to sign this off*, a Queue screen, the fleet's name and state, `DELIBERATELY_UNCALLED` empty (72/72), clicked against the mock; Task 14 — *Launching* rewritten, the guides brought up to it, and `[S10]`: 442 references in 268 published strings rewritten by four agents, the gates widened; contract `1.5.0` text only; the platform half of the clicked check **clicked by Rich the same night** (WALKTHROUGH; *After sitting 10's close*) |
-| 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | ← **next** — and LAST. Read Task 15's `[S7]`, `[S8]` and `[sitting 9]` blocks, and sitting 10's *Carried* list |
+| 12 | 15 | **The acceptance**: `make demo-launch` on either driver, green three times on each; every other demo; the offline acceptance's step 16; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | **Yes** if any code changes | — | **DONE 2026-10-02** — INLINE, by `manifest-5a`, after the faculty front-end's F6 walk on 7100: `make demo-launch` on both drivers (green three times each, on the final code), the controls, the real leg at Rich's yes, a `make reset` at his yes, Rich's clicked launch (`click-launch-1002`), every other demo; the whole-branch review over `862851c..316633e` and one fix wave (the advisory locks on pools of their own; a lapse ends a registration). **THE PLAN IS EXECUTED** |
 
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -5254,3 +5264,143 @@ DRAFTED, and one defect found BY READING.**
   - **No test reaches it.** In `readiness.test.ts`, `'expired'` appears only in a type (l.148).
   - **What the review should do.** Write the test, watch it go red, then fix the defect or name it. The spec actions' *Found while
     drafting* has the detail, and FE-46's plan rewrites this arrow in any case.
+
+### Sitting 12 — 2026-10-02: Task 15 — the acceptance: `make demo-launch` on both drivers, the controls, the real leg, a clicked launch, and the plan's one whole-branch review
+
+**Run by session `manifest-5a`, INLINE** (`superpowers:executing-plans`: one context; two read-only research agents at the start; one fresh
+whole-branch review over the plan's whole range; one fix wave) on `main`, from `6c77c15`. **Rich's word, in this session's chat**: introduce
+this session to the faculty front-end's, determine the next sitting, and liaise; then *"let's do the walk first"* (the front-end's F6 walk on
+7100 ran first, `manifest-app-c0`, WALK DONE 12:05 PDT); then *"co-ordinate with them to determine whether you can work or need to hold"* — GO
+at ~12:20, START sent. §7e's first-message items: the database at open held 6 users and 3 projects (one active, the front-end's walk app,
+which it said need not survive) — no dump; `make refresh-vulndb` not due (built 2026-09-29T06:32Z, stale after 2026-10-06T06:32Z); the reset
+and the real leg asked of Rich (*"Yes, once (Recommended)"*, *"Yes, run it"*); the clicked half his typing. **The faculty front-end**
+(`manifest-app-c0`, then `manifest-app-b8`) held its Vitest for the contract regeneration and treated 7100 as unavailable from START to END.
+
+**What it made true** (`e7efa86`, `2231e54`, `94dc0d0`, `316633e` — the acceptance; `3549fa4`, `c7e400d`, `f619376`, `37b223d` — the fixes):
+- **`make demo-launch`** — `scripts/demo-launch.sh` (sign-ins, step-ups) and `packages/journey/src/launch.ts` (every client call, through
+  `@manifest/contract`), on `fixtures/launch-path-app/` (an office-hours app that reads `ubcEduCwlPuid`, `givenName` and `mail`, and asks for
+  `sn` without reading it). Steps 0–11 (RUNBOOK has the table): the drafts read and checked (each package's own entity id, ACS, SLO and
+  certificate — staging's the one `sso.registered` published — `sn` alone unread, no private key anywhere); a build after the drafts; a token
+  that drafts and asks but is refused saying anything was sent; the records sent and recorded **in UBC's order**, every refusal of the order
+  asserted by its code; the queue; the rehearsal, a preview and the approval, stepped up; the launch on `127.0.0.3`; then 4401, 4404, `createdAt`,
+  and a session narrowed by raising the app to `confidential`. A launched project re-runs steps 9–11; one left unlaunched is deleted and made
+  again; `DEMO_LAUNCH_SLUG` gives a control its own project; `DEMO_LAUNCH_REAL=1` is the real leg.
+- **Step 2 — green three times on each driver, on the final code**: driver 2 on the FAKE — fresh (124 ok, 201 s), re-used (35 ok, 138 s), from
+  the `make reset` machine (125 ok, 212 s); driver 1 — fresh on the reset machine (125 ok, 260 s), re-used (35 ok, 154 s), and fresh again after
+  the fix wave (125 ok, 225 s). Driver 1's first two greens (12:3x) predate F1's fix and F5's check.
+- **Step 3 — the controls**, below. **Step 5 — the real leg** at Rich's yes (133 s): `lp-launchpath` made PRIVATE on the real App, built,
+  staging answering as the app, both packages drafted from the real repository and read, the token's half — then deleted;
+  `github-real-repos.sh` read `f6-watch` and `keep-walk-1002` only. **Step 6 — the whole-branch review**, below.
+- **Every other demo** on driver 1 after the reset: `demo` 27 s, `demo-identity` 31 s, `demo-ai` 42 s, `demo-redeploy` 183 s, `demo-token`
+  35 s, `demo-production` 50 s, `demo-releases` 167 s, `demo-authoring` 70 s, `demo-frontend` 172 s — green; **`demo-journey` red (F2)**, then
+  green after its fix; `demo-github` on the fake (65 ok, 58 s) — green.
+- **The acceptance's homes**: `make ci-acceptance` runs it on either driver; the offline acceptance gains **step 16** (Rich's, by hand, with the
+  network off); RUNBOOK's section; WALKTHROUGH's clicked section; `coverage.ts` makes the six launch operations journey steps.
+
+**What executing it found:**
+
+1. **F1 A RESTARTED CONTROL PLANE DEADLOCKED AT BOOT WITH TEN OR MORE ENVIRONMENTS** — found when control (b)'s restart (12:55) never printed
+   its boot line: 7100 answered `/v1/me`, and the demo's sign-in callback hung for ever. `pg_stat_activity`: all ten pool connections idle after
+   `SELECT pg_advisory_lock`. `recoverAtBoot` schedules a retire pass for every environment at once (`createRetirer` runs them concurrently),
+   each held its session advisory lock on a POOLED connection and then queried through the SAME pool — twelve environments (four projects)
+   took every connection. Latent since P4c; `db/locks.ts` said the pool "bounds" concurrent environments. **Fixed** (`3549fa4`): the locks take
+   their own pool (`lockPool`). `locks.test.ts`: twelve holders each querying — RED (deadlocked; the next case hung on the exhausted pool), GREEN.
+2. **F2 `make demo-journey` HAD BEEN RED SINCE SITTING 5a** — its step 1 compared `GET /v1/me`'s keys with a list written in the demo; Task 8a
+   added `Me.mayBuild` and nobody ran the demo. **Fixed** (`c7e400d`): the fields are read from `GET /v1/openapi.json`. Control: compared
+   against `Member`'s → RED 1.
+3. **F3 A LAUNCHED APP'S LAPSED REGISTRATION, SENT AGAIN, READ AS REGISTERED** (found by reading overnight, `manifest-9f`; confirmed by the
+   review's I1) — `expired → submitted` kept `registered_at`, so production deploys resumed before UBC had registered anything. **My first
+   fix, a state-only rule, was wrong**: the review showed a change request filed from `active` walks `change_requested → submitted` with UBC's
+   registration in force, which that rule would have blocked. **Fixed** (`f619376`) as the review proposed: entering `expired` clears
+   `registered_at`; the live item reads `expired` first and *"UBC IAM has no registration of this app in force"* for a row with none.
+   `readiness.test.ts`, three cases through the administrator's real transitions: RED on the committed code (twice), RED on the state-only fix
+   (twice), GREEN. `IamRegistration.registeredAt`'s published description moved (text only, `1.5.0`; the front-end told before and at the commit).
+4. **F4 THE LOCK POOL COULD STILL BE WEDGED BY NESTED HOLDERS** (the review's I2) — a project lock (archive, delete) or a rehearsal lock holds
+   an environment lock inside it; ten outer holders on one lock pool of ten wedged every deploy, archive and rehearsal. **Fixed** (`37b223d`):
+   the outer locks take `outerLockPool`. `locks.test.ts`: twelve project-lock holders each taking an environment lock — RED (deadlocked), GREEN.
+5. **F5 STEP 10'S ORDER COULD NOT TELL `createdAt` FROM `lastSeenAt`** — the plan's control (f) stayed GREEN: a failed attempt IS seen (its
+   `last_seen_at` is stamped when its deploy gives up, ~91 s after it was made and after the serving instance's), so ordering by either gives the
+   same answer. **Fixed** (`94dc0d0`): the failed attempt's `createdAt` must be within 10 s of the moment its deploy was asked for. Control (f)
+   again → RED 1.
+6. **F6 TASK 15'S WRITTEN STEP 1 COULD NOT RUN AS WRITTEN** — written before Spec action 9 was applied: *"sentAt two days ago"* is refused (a
+   send may not predate its draft — `LAUNCH_SENT_AT_INVALID`); *"I've sent it for all three"* at once is refused by UBC's order; *"four items"*
+   in the queue cannot coexist; a sent assessment cannot be redrafted by the token. Ruled (the ledger): today's date, the records one by one with
+   each refusal asserted, the queue read at each stage by kind, the token before the sends; steps renumbered 0–11.
+
+7. **F7 A PERSON CREATING A PROJECT OVER AN ORPHAN REPOSITORY IS TOLD THE WRONG THING** — found in Rich's clicked half: `createProject`
+   `click-launch` answered **`409 SOURCE_CONFLICT`** *"main moved while this commit was being made; read the tree again and retry"*, twice. An
+   orphan bare repository, `.manifest/repos/click-launch.git`, seeded by P6a sitting 11's click on 2026-09-22, survived every truncation since:
+   `checkSlug` reads the database (available), the repository step meets the old repository after the row is written, and the create rolls
+   back and leaves the repository alone — all right — but the message names a race that did not happen, and a person can do nothing with it
+   (driver 2 answers `SOURCE_REPOSITORY_EXISTS`; the demos clear orphans first with `clear_orphan_repository`). **Rich: *"record that as a
+   better error message needed"* — RECORDED, not fixed** (carried to *faculty-ready*'s inheritance). He used `click-launch-1002`.
+
+**The negative controls** (each predicted in the ledger first, applied, restored by `git checkout`; on driver 2, the fake):
+**(a)** Task 9's `registered_at` condition made always-true → RED 1 (`SPEC_ATTRIBUTE_NOT_REGISTERED` at step 2's build); **(b)** as written —
+`launch:submit` out of `PERSON_ONLY` → GREEN, as predicted (the submission routes refuse a token as session-only first); **(b′)** the route's
+`credential: 'session'` removed → GREEN, NOT predicted — chased: the handler calls `requireSession` itself, so the two refusals are independent;
+**(b″)** both removed → RED 1 (`403 TOKEN_PERSON_ONLY`); **(c)** the queue newest first → RED 1; **(d)** `closeToken` a no-op → RED 1 (still open
+after 2006 ms; the removed colleague's streams, `closeTokens` and `closePerson`, still closed); **(e)** every withdrawal ends the session → RED 3;
+**(f)** `createdAt` from `lastSeenAt` → GREEN, NOT predicted (F5) → after `94dc0d0`, RED 1. The fixes' own: F1, F3, F4 and F2 RED-then-GREEN above.
+
+**The whole-branch review** (opus, fresh, read-only, over `862851c..316633e`, while every other demo ran): *"fix first"* — I1 (F3) and I2 (F4),
+both fixed; **minors deferred** (each in the ledger): M1 a failed attempt followed by a healthy deploy leaves a row `destroying` for ever
+(predates the plan, `fd65cf2`); M3 the real leg does not delete what it made when a step goes red; M4 step 9's *"a new stream is refused"* passes
+on any rejection; M5 `DEMO_LAUNCH_SLUG` without `DEMO_LAUNCH_STOP_AFTER` launches that project. It confirmed: no transaction callback reaches the
+outer pool; the seams hold (a removed member's or revoked token's sign-off request stays in the queue, attributed — harmless; `requested_by_token`
+RESTRICT is inert; archived projects' items leave the queue and return on restore; the narrowing floor matches §10).
+
+**Rulings** (each in the ledger with its cost): Step 1 re-ordered to UBC's order as built (F6); steps 10 and 11 swapped, the failed attempt in
+sandbox; a build after the drafts in step 2 (control (a)'s step); `DEMO_LAUNCH_SLUG`; `.env`'s real-App block commented for the fake's runs and
+restored byte for byte (`cmp`); one reset for both drivers (Rich's choice); the advisory locks on pools of their own (F1, F4); F3's fix the
+review's, not mine.
+
+**What went wrong in the sitting's own work** (not the platform's): **the first Docker-tier run went RED on network exhaustion** — 39 failed and
+46 skipped of 271, every one *"all predefined address pools have been fully subnetted"* or downstream of it — because it was started with **30
+Docker networks** counted and not acted on (ORIENTATION §2's row: the pools hold ~31, the tier needs 7). A sitting that runs every demo leaves
+one network per environment of every app it deployed, and the tier's own truncation orphans them all. **Rich ran the cleanup** (54 `mf-`
+containers, the classifier having refused the agent's `docker rm`), the networks fell to 12, and the tier ran again. **Count, and clear, before
+the tier — every time.** And the session's first fix for F3 was wrong (above): the review is what caught it.
+
+**Carried — named so it is not lost:**
+- **FE-49 and FE-50** (relayed by `manifest-app-c0`, written on the front-end's side, NOT carried): `Token` has no `mintedBy`, yet only its minter
+  may revoke it; `docs/api/authentication.md:50` and `TOKEN_ACTION_PENDING`'s remedy say *the person who minted it confirms*, while
+  `pending-actions.ts:90` lets anyone holding the capability confirm. **Rich decides whether they are carried.**
+- **The orphan cleanup was refused by the classifier** (`docker rm -f -v` of 30 `mf-` containers whose rows the unit runs truncated) and not
+  retried; Rich's `make reset` removed them.
+- The four deferred minors above; sitting 10's F18 (about seventy runtime messages cite a section — the code-comments plan).
+
+**The clicked half — Rich's, 2026-10-02, ~18:15–18:31 PDT** (Task 15's Step 4), on driver 1, the console served by `vite preview` on 7104:
+WALKTHROUGH's new *A faculty member launches an app themselves, clicked*, rows 1–13, `instructor` in his window and `operator` in a private one,
+four passwords typed by him — *"That all went well!"* (F7 at the first create, above). **Queried after**: `click-launch-1002` launched at
+01:31:41Z; the assessment approved (`PIA-1002`), staging's and production's registrations `active` with five attributes each; the release
+approved at 01:30:59Z after `rehearsal.completed`; his sign-off request answered; production `healthy`, `127.0.0.3` answering `/healthz`
+`{"status":"ok","mongo":true}`; `audit.events` in UBC's order, the assessment drafted at 18:20 to `project.launched` at 18:31.
+
+**Gates on the final tree** (`37b223d` code):
+- `pnpm test` **3197 passed, 0 skipped, in 196 files (904 s, load ~4–5, 0 `deadlock detected`)**, then **3197 / 196 (916 s, 0 `deadlock
+  detected`)** — twice, alone, identical. Up 5 from 3192, no new file; `EXPECT_TESTS` moved.
+- `pnpm test:docker` — the whole tier on `37b223d`: **271 passed, 0 failed, 271 in 42 files**, 1266 s — unchanged count; owed by `db/` and
+  `launch/`, RUN. **Its first run, from 30 networks, was RED on network exhaustion** (above). **271 in 42**, ORIENTATION §2's row.
+- `pnpm lint`, `typecheck` (all six packages) and `format:check` clean.
+- `make doctor` **21 / 0 / 0**, `make verify` **64 / 0 / 0** (after the restart and the cleanup).
+- The shared HTML pages: `manifest-phases.html` (the *Now* line) and `manifest-schematic.html` (the *Status* line) each gain the launch, as
+  Task 15's Step 7 named; `manifest-decisions.html` and `manifest-stories.html` checked — no decision and no hostname moved. RUNBOOK (the
+  demo's section, the CI paragraph, the offline count), WALKTHROUGH (*What is built*, the clicked section), TRAPS (three), ORIENTATION (top
+  box, §2, §3, §7, §7e, §8), CLAUDE.md's *State* (a plan finished), the roadmap's ledger and defect-rate table, and *faculty-ready*'s
+  *Read this first* swept.
+
+**The machine at the close**, queried at 19:50 PDT on 2026-10-02, not remembered:
+- **The control plane: PID 80267 on 7100, on `37b223d`, REAL GitHub** (Rich's `.env`, restored byte for byte after the fake's runs — `cmp`),
+  started LAST by `.superpowers/sdd/2026-09-29-launch-path/cp-start.sh`. Boot line: `"source":"github"`, `"github":"api.github.com"`,
+  `capableModel: registered`, `rehearsalsTakenDown: 0`.
+- **The control database: EMPTY** — 0 users, 0 projects, 49 migrations (the closing runs truncated it; `click-launch-1002`, Rich's clicked launch,
+  is in the plan's record, not the database). **`operator` is not an administrator now** — a sign-in, then `scripts/admin-grant.sh grant opr000001`.
+- **GitHub**: `Manifest-local-dev` holds **2 repositories, `f6-watch` and `keep-walk-1002`, owned by NO project** — deleting them is Rich's.
+- **Containers: 0 `mf-`**, 10 `manifest-` (the GitHub fake stopped and removed, as at open); **12 Docker networks**. `dead-app-resources.sh --apply`
+  (7 networks, 1 volume) and `app-images.sh --apply` (65 images) — both ALLOWED, re-measured to 0. `litellm-orphans.sh` lists 14 — **not applied**,
+  for sitting 5's reason (a budget's deletion resets its month). **Count `docker network ls -q` before any Docker tier** (sitting 12's red run).
+- `make doctor` **21/0/0**, `make verify` **64/0/0**.
+- **7102 and 7105 are the faculty front-end's** (its mock and its server, mock mode). **Nothing on 7104, 7110 or 7118.**
+- **Not Manifest's**: `cwl-spike-*` (4 up), and **`openwebui-openwebui-1` EXITED — OOM-killed at 18:47 PDT during sitting 12's first Docker tier run**
+  (up at open); restarting it is Rich's call. Ollama **0.35.1** (0.35.0 at open — it updated itself; not this sitting's). Free disk 65 GiB (55 at open).
