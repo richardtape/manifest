@@ -723,3 +723,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         LiteLLM's environment; the review's other C1 fixes (fail closed, the four cases measured, a fingerprint) still apply.
       - THE VIRTUAL KEY'S CEILING — "Yes, before sitting 2 (Recommended)": Rich sets a max budget and budget duration on it in
         the gateway's admin UI; the figure is recorded when he gives it.
+
+    And at 16:23 PDT, Rich's ceiling on the gateway's virtual key (UBC_AI_GATEWAY_API_KEY), set by him in the gateway's admin
+    UI: a 20 USD budget that resets monthly, and a 90-day expiry — about 2027-01-01. Recorded in CLAUDE.md's Outstanding (rotate
+    before it expires: an expired key answers 401, which the fallback turns into a silent switch to the on-prem model).

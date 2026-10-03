@@ -42,6 +42,9 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
 - **the second-machine clean clone**;
 - **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-10** (the faculty-ready plan's sitting 5's `make seed` refreshed it, built 2026-10-03T06:31:58Z); past seven days `make doctor` warns and
   §13's `scans` item refuses every production launch;
+- **the UBC AI Gateway's virtual key** (`UBC_AI_GATEWAY_API_KEY`; Rich created it 2026-10-03 with a **20 USD budget that resets monthly
+  and a 90-day expiry — it expires about 2027-01-01**). Rotate it before then: an expired key answers 401, which today's fallback turns
+  into a silent switch to the on-prem model. Until the gateway plan's sitting 1 scrubs it, its `.env` line is commented out;
 - **any real repository in `Manifest-local-dev` that no project owns** — THREE on 2026-10-03, `f6-watch`, `keep-walk-1002` and
   `f6b-measure-1` (the faculty front-end's F6 sitting 1, its F6 walk and its F6b measurements; their rows truncated by the launch path
   plan's sittings 8 and 12 and the faculty-ready plan's sitting 2, at Rich's word) (`bash scripts/github-real-repos.sh`);
