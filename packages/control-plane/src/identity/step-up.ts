@@ -8,9 +8,11 @@ import type { Session } from './session.js'
  *
  * Its OWN cookie rather than reusing `manifest_login`, because the two flows differ in
  * what the callback must then do, and a callback that guessed from one cookie would have
- * to guess right every time (P6a Decision 17). `path=/auth`, like the login cookie;
- * `SameSite=None` on https for the same measured reason — the IdP's auto-submitting POST
- * is cross-site.
+ * to guess right every time (P6a Decision 17). `Path=/`, like the login cookie (FE-28: a
+ * `__Host-` cookie must be); `SameSite=None` on https for the same measured reason — the IdP's
+ * auto-submitting POST is cross-site.
+ *
+ * THIS IS THE NAME ON LOOPBACK HTTP; on https it is `__Host-manifest_stepup` (`cookie-names.ts`).
  */
 export const STEP_UP_COOKIE = 'manifest_stepup'
 

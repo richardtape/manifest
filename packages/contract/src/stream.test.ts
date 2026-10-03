@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import http from 'node:http'
 import type { Duplex } from 'node:stream'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { subscribe, type StreamFrame } from './index.js'
 
 /** One unmasked server text frame (RFC 6455 §5.2) — enough for a test's short JSON. */
@@ -182,5 +182,40 @@ describe('subscribe (D23.2)', () => {
     await expect(stream.ready).rejects.toThrow(/closed before it was ready \(1006\)/)
     expect((await stream.closed).code).toBe(1006)
     server.close()
+  })
+})
+
+describe('subscribe names the session cookie by the origin’s scheme (FE-28)', () => {
+  it('sends __Host-manifest_session on an https origin’s upgrade', () => {
+    const opened: { url: string; headers: Record<string, string> }[] = []
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        constructor(url: string, init: { headers: Record<string, string> }) {
+          opened.push({ url, headers: init.headers })
+        }
+        addEventListener(): void {}
+        close(): void {}
+      },
+    )
+    try {
+      subscribe({
+        origin: 'https://console.manifest.internal',
+        session: 'good',
+        projectId: '6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f',
+        onFrame: () => undefined,
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    expect(opened).toEqual([
+      {
+        url: 'wss://console.manifest.internal/v1/projects/6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f/events',
+        headers: {
+          origin: 'https://console.manifest.internal',
+          cookie: '__Host-manifest_session=good',
+        },
+      },
+    ])
   })
 })

@@ -20,7 +20,7 @@ import {
 import type { BlueprintRegistry } from '../blueprints/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
-import { SESSION_COOKIE, verifySession } from '../identity/index.js'
+import { cookieNames, verifySession } from '../identity/index.js'
 import type { Actor, ReservedLabels } from '../projects/index.js'
 import {
   RateLimitedError,
@@ -292,7 +292,12 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
    */
   app.addHook('onRequest', async (request) => {
     const bearer = readBearer(request.headers.authorization)
-    const cookie = request.cookies[SESSION_COOKIE]
+    // THE SESSION COOKIE OF THE ORIGIN THIS ARRIVED ON, by that origin's name (FE-28): on https
+    // only `__Host-manifest_session`, which no sibling host can set — so a plain `manifest_session`
+    // tossed with `Domain=manifest.internal` is not a credential here at all, neither a session
+    // nor half of an ambiguity.
+    const cookie =
+      request.cookies[cookieNames(originOf(request, deps.config.origins)).session]
     // TWO CREDENTIALS IS AMBIGUOUS, and an ambiguity resolved silently is the shape every
     // confused-deputy bug has. Refused before either is read, so the answer does not
     // depend on which one would have won.

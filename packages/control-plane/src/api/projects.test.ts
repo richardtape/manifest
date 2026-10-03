@@ -35,13 +35,15 @@ afterAll(resetDatabase)
 async function loggedIn(puid: TestUserPuid = 'bio_prof') {
   const deps = await testDeps()
   const app = await buildServer(deps)
-  const { manifest_session: session } = await loginAs(deps, puid)
+  const { '__Host-manifest_session': session } = await loginAs(deps, puid)
   /**
    * The SAME person with §20's step-up claim stamped (P6a Task 9). `members:manage` is
    * guarded, and the two tests below are about who may add a member rather than about
    * the second round trip — which `auth.test.ts` and `step-up-guarded.test.ts` own.
    */
-  const { manifest_session: steppedUp } = await loginAs(deps, puid, { steppedUp: true })
+  const { '__Host-manifest_session': steppedUp } = await loginAs(deps, puid, {
+    steppedUp: true,
+  })
   return { app, deps, session, steppedUp }
 }
 
@@ -574,7 +576,7 @@ describe('GET /v1/projects/:id', () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const id = created.json().id
@@ -582,14 +584,14 @@ describe('GET /v1/projects/:id', () => {
     const plain = await app.inject({
       method: 'GET',
       url: `/v1/projects/${id}`,
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
     })
     expect(plain.json().environments).toBeUndefined()
 
     const expanded = await app.inject({
       method: 'GET',
       url: `/v1/projects/${id}?expand=environments`,
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
     })
     expect(expanded.json().environments).toHaveLength(3)
     await app.close()
@@ -599,13 +601,13 @@ describe('GET /v1/projects/:id', () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const spec = await app.inject({
       method: 'GET',
       url: `/v1/projects/${created.json().id}/spec`,
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
     })
     expect(spec.statusCode).toBe(200)
     expect(spec.json().spec.name).toBe('chem-labs')
@@ -617,15 +619,15 @@ describe('GET /v1/projects/:id', () => {
     const { app, deps, session } = await loggedIn('bio_prof')
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
-    const { manifest_session: otherSession } = await loginAs(deps, 'bio_student')
+    const { '__Host-manifest_session': otherSession } = await loginAs(deps, 'bio_student')
 
     const response = await app.inject({
       method: 'GET',
       url: `/v1/projects/${created.json().id}`,
-      cookies: { manifest_session: otherSession },
+      cookies: { '__Host-manifest_session': otherSession },
     })
     expect(response.statusCode).toBe(404)
     await app.close()
@@ -869,7 +871,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
@@ -901,7 +903,7 @@ describe('POST /v1/projects/:id/spec', () => {
       method: 'POST',
       url: `/v1/projects/${projectId}/spec`,
       payload: {},
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     expect(response.statusCode).toBe(201)
@@ -912,7 +914,7 @@ describe('POST /v1/projects/:id/spec', () => {
     // seeded manifest and its empty service list, whatever the repository said.
     const latest = await app.inject({
       url: `/v1/projects/${projectId}/spec`,
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
     })
     expect(latest.json().spec.services).toEqual([
       { name: 'db', type: 'mongo', version: '7' },
@@ -947,7 +949,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
@@ -961,7 +963,7 @@ describe('POST /v1/projects/:id/spec', () => {
       method: 'POST',
       url: `/v1/projects/${projectId}/spec`,
       payload: {},
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     expect(response.statusCode, response.body).toBe(201)
@@ -1008,7 +1010,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
@@ -1017,7 +1019,7 @@ describe('POST /v1/projects/:id/spec', () => {
         method: 'POST',
         url: `/v1/projects/${projectId}/spec`,
         payload: { commitSha },
-        cookies: { manifest_session: session },
+        cookies: { '__Host-manifest_session': session },
         headers: mutationHeaders(deps),
       })
     const before = await deps.db
@@ -1042,7 +1044,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
@@ -1072,7 +1074,7 @@ describe('POST /v1/projects/:id/spec', () => {
       method: 'POST',
       url: `/v1/projects/${projectId}/spec`,
       payload: {},
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     // Adding a service is sensitive under D9. It is REPORTED and not enforced —
@@ -1091,7 +1093,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
@@ -1120,7 +1122,7 @@ describe('POST /v1/projects/:id/spec', () => {
         method: 'POST',
         url: `/v1/projects/${projectId}/spec`,
         payload: {},
-        cookies: { manifest_session: session },
+        cookies: { '__Host-manifest_session': session },
         headers: mutationHeaders(deps),
       })
     expect((await validate()).json().sensitiveDiff.sensitive).toBe(true)
@@ -1134,7 +1136,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
@@ -1149,7 +1151,7 @@ describe('POST /v1/projects/:id/spec', () => {
       method: 'POST',
       url: `/v1/projects/${projectId}/spec`,
       payload: {},
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     // 201: the validation RAN and its answer is "no". A build then refuses with
@@ -1166,20 +1168,23 @@ describe('POST /v1/projects/:id/members', () => {
     const { app, deps, session, steppedUp } = await loggedIn('bio_prof')
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const id = created.json().id
 
     // The invitee needs a §6 User row — a session names a userId, and a member
     // row references it. `loginAs` creates it, exactly as the shim's login did.
-    const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_colleague')
+    const { '__Host-manifest_session': inviteeSession } = await loginAs(
+      deps,
+      'bio_colleague',
+    )
 
     const added = await app.inject({
       method: 'POST',
       url: `/v1/projects/${id}/members`,
       payload: { puid: 'bio_colleague', role: 'collaborator' },
-      cookies: { manifest_session: steppedUp },
+      cookies: { '__Host-manifest_session': steppedUp },
       headers: mutationHeaders(deps),
     })
     expect(added.statusCode).toBe(201)
@@ -1187,7 +1192,7 @@ describe('POST /v1/projects/:id/members', () => {
     const read = await app.inject({
       method: 'GET',
       url: `/v1/projects/${id}`,
-      cookies: { manifest_session: inviteeSession },
+      cookies: { '__Host-manifest_session': inviteeSession },
     })
     expect(read.statusCode).toBe(200)
     await app.close()
@@ -1197,17 +1202,20 @@ describe('POST /v1/projects/:id/members', () => {
     const { app, deps, session, steppedUp } = await loggedIn('bio_prof')
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     const id = created.json().id
 
-    const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_colleague')
+    const { '__Host-manifest_session': inviteeSession } = await loginAs(
+      deps,
+      'bio_colleague',
+    )
     await app.inject({
       method: 'POST',
       url: `/v1/projects/${id}/members`,
       payload: { puid: 'bio_colleague', role: 'collaborator' },
-      cookies: { manifest_session: steppedUp },
+      cookies: { '__Host-manifest_session': steppedUp },
       headers: mutationHeaders(deps),
     })
 
@@ -1215,7 +1223,7 @@ describe('POST /v1/projects/:id/members', () => {
       method: 'POST',
       url: `/v1/projects/${id}/members`,
       payload: { puid: 'unrelated_user', role: 'collaborator' },
-      cookies: { manifest_session: inviteeSession },
+      cookies: { '__Host-manifest_session': inviteeSession },
       headers: mutationHeaders(deps),
     })
     // 403, not 404: a collaborator already knows this project exists.
@@ -1234,7 +1242,7 @@ describe('the model catalogue a spec is validated against', () => {
   async function withCatalogue(catalogue: ModelCatalogue) {
     const deps = { ...(await testDeps()), catalogue }
     const app = await buildServer(deps)
-    const { manifest_session: session } = await loginAs(deps, 'bio_prof')
+    const { '__Host-manifest_session': session } = await loginAs(deps, 'bio_prof')
     return { app, deps, session }
   }
 
@@ -1263,7 +1271,7 @@ describe('the model catalogue a spec is validated against', () => {
   ) {
     const created = await app.inject({
       ...create(slug),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     expect(created.statusCode).toBe(201)
@@ -1277,7 +1285,7 @@ describe('the model catalogue a spec is validated against', () => {
       method: 'POST',
       url: `/v1/projects/${created.json().id as string}/spec`,
       payload: {},
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
   }
@@ -1348,7 +1356,7 @@ describe('the model catalogue a spec is validated against', () => {
     const { app, deps, session } = await withCatalogue({ enabled: true, get })
     const created = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies: { '__Host-manifest_session': session },
       headers: mutationHeaders(deps),
     })
     expect(created.statusCode).toBe(201)
@@ -1367,7 +1375,7 @@ describe('the model catalogue a spec is validated against', () => {
       }),
     )
     const { app, deps, session } = await withCatalogue({ enabled: true, get })
-    const cookies = { manifest_session: session }
+    const cookies = { '__Host-manifest_session': session }
     const refused = await app.inject({
       method: 'POST',
       url: '/v1/projects',
@@ -1402,7 +1410,7 @@ describe('the model catalogue a spec is validated against', () => {
     const declared = declaredCatalogue()
     const get = vi.fn().mockImplementation(() => declared.get())
     const ctx = await withCatalogue({ enabled: true, get })
-    const cookies = { manifest_session: ctx.session }
+    const cookies = { '__Host-manifest_session': ctx.session }
     // The gateway is down for exactly one read — the push's, since creation reads none.
     get.mockRejectedValueOnce(
       new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, { status: 0, reason: 'unreachable' }),
@@ -1443,7 +1451,7 @@ describe('the model catalogue a spec is validated against', () => {
 
   it('an omitted AI budget is stored as the project quota', async () => {
     const ctx = await withCatalogue(declaredCatalogue())
-    const cookies = { manifest_session: ctx.session }
+    const cookies = { '__Host-manifest_session': ctx.session }
     const noBudget = aiManifest('chem-labs', 'internal')
       .split('\n')
       .filter((line) => !/budget|project_monthly_usd/.test(line))

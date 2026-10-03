@@ -95,7 +95,7 @@ describe('CSRF by Origin (§20, P5a Task 4)', () => {
     // signed in-process with no IdP handle, so next is the console's home.
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ redirectTo: '/' })
-    expect(res.cookies.find((c) => c.name === 'manifest_session')?.value).toBe('')
+    expect(res.cookies.find((c) => c.name === '__Host-manifest_session')?.value).toBe('')
     await app.close()
   })
 
@@ -108,7 +108,7 @@ describe('CSRF by Origin (§20, P5a Task 4)', () => {
       headers: { origin: APP_ORIGIN },
     })
     expect(res.statusCode).toBe(403)
-    expect(res.cookies.find((c) => c.name === 'manifest_session')).toBeUndefined()
+    expect(res.cookies.find((c) => c.name === '__Host-manifest_session')).toBeUndefined()
     await app.close()
   })
 

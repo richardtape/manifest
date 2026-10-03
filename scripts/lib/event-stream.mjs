@@ -16,7 +16,13 @@
 // an `error` event and close code 1006. The unit tier proves the refusals, with `ws`.
 import { appendFileSync, readFileSync } from 'node:fs'
 
-const SESSION_COOKIE = 'manifest_session'
+/**
+ * The session cookie's name on `api`'s origin (FE-28): `__Host-manifest_session` on https, the
+ * plain name on loopback http — the rule `sessionCookieFor` states in `@manifest/contract`, which
+ * this file (no dependency, by design) restates.
+ */
+const sessionCookieOf = (api) =>
+  new URL(api).protocol === 'https:' ? '__Host-manifest_session' : 'manifest_session'
 const READY = 'manifest.stream.ready'
 
 const [mode, ...args] = process.argv.slice(2)
@@ -27,12 +33,12 @@ function die(message) {
 }
 
 /** The Manifest session out of a curl cookie jar (Netscape format, tab-separated). */
-function sessionFrom(jarPath) {
+function sessionFrom(jarPath, name) {
   for (const line of readFileSync(jarPath, 'utf8').split('\n')) {
     const fields = line.split('\t')
-    if (fields.length === 7 && fields[5] === SESSION_COOKIE) return fields[6]
+    if (fields.length === 7 && fields[5] === name) return fields[6]
   }
-  return die(`no ${SESSION_COOKIE} cookie in ${jarPath} — log in to Manifest first`)
+  return die(`no ${name} cookie in ${jarPath} — log in to Manifest first`)
 }
 
 function watch([api, projectId, jarPath, outPath]) {
@@ -44,7 +50,7 @@ function watch([api, projectId, jarPath, outPath]) {
     // session from any other origin is refused 403 before it opens — which reaches this
     // watcher as an `error` and close 1006, never as a status.
     headers: {
-      cookie: `${SESSION_COOKIE}=${sessionFrom(jarPath)}`,
+      cookie: `${sessionCookieOf(api)}=${sessionFrom(jarPath, sessionCookieOf(api))}`,
       origin: new URL(api).origin,
     },
   })

@@ -93,7 +93,9 @@ case "$REAL" in
   *) fail "DEMO_LAUNCH_REAL is '$REAL' — 1, or unset" ;;
 esac
 
-session_of() { awk -F'\t' 'NF==7 && $6=="manifest_session" {print $7}' "$1"; }
+# The Manifest session out of a curl jar, under its name on an https origin — every origin this
+# demo signs in on is one, through the edge (FE-28: the plain name is loopback http's alone).
+session_of() { awk -F'\t' 'NF==7 && $6=="__Host-manifest_session" {print $7}' "$1"; }
 
 # Quiet when it builds, and LOUD when it does not: `tsc` writes its errors to STDOUT.
 build() {
@@ -223,7 +225,7 @@ say "1. The instructor signs in with CWL"
 idp_login "$CP_JAR" "$IDP_JAR" "$ORIGIN/auth/login" instructor instructor \
   "$ORIGIN/auth/saml/callback" "$CA"
 SESSION="$(session_of "$CP_JAR")"
-[ -n "$SESSION" ] || fail "the sign-in left no manifest_session cookie"
+[ -n "$SESSION" ] || fail "the sign-in left no __Host-manifest_session cookie"
 # The slug's repository, if a `pnpm test` or `make reset` left it without its project.
 [ -n "$REAL" ] || clear_orphan_repository "$SLUG"
 run_phase find

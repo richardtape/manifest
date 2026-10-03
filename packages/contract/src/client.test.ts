@@ -2,7 +2,13 @@ import { readFile } from 'node:fs/promises'
 import http from 'node:http'
 import openapiTS, { astToString } from 'openapi-typescript'
 import { describe, expect, it } from 'vitest'
-import { createManifestClient, ManifestApiError, unwrap } from './index.js'
+import {
+  createManifestClient,
+  ManifestApiError,
+  SESSION_COOKIE,
+  sessionCookieFor,
+  unwrap,
+} from './index.js'
 
 /** The generated file without the banner the CLI puts above it. */
 const body = (text: string) => text.replace(/^\/\*\*[\s\S]*?\*\/\s*/, '')
@@ -164,5 +170,43 @@ describe('@manifest/contract', () => {
         token: 'mft_b_c',
       }),
     ).toThrow(/either a session or a delegated token/)
+  })
+
+  /**
+   * FE-28: the platform reads the session cookie by the SCHEME of the origin a request arrives on
+   * — `__Host-manifest_session` on https, which no sibling `<slug>.manifest.internal` can set, and
+   * the plain name on loopback http (the mock, the platform's own test servers). A client that is
+   * not a browser names the cookie the way the origin it talks to reads it.
+   */
+  it('names the session cookie by the origin’s scheme: __Host- on https, the plain name on http', () => {
+    expect(sessionCookieFor('https://console.manifest.internal')).toBe(
+      '__Host-manifest_session',
+    )
+    expect(sessionCookieFor('https://app.manifest.internal/some/path')).toBe(
+      '__Host-manifest_session',
+    )
+    expect(sessionCookieFor('http://127.0.0.1:7102')).toBe('manifest_session')
+    expect(sessionCookieFor('http://localhost:7105')).toBe('manifest_session')
+    // Kept, deprecated: the http name, for a client written before the rename.
+    expect(SESSION_COOKIE).toBe('manifest_session')
+  })
+
+  it('sends __Host-manifest_session to an https origin', async () => {
+    const seen: (string | null)[] = []
+    const client = createManifestClient({
+      origin: 'https://console.manifest.internal',
+      session: 'good',
+      fetch: (input, init) => {
+        seen.push(new Request(input, init).headers.get('cookie'))
+        return Promise.resolve(
+          new Response(JSON.stringify({ error: { code: 'X', message: 'x' } }), {
+            status: 418,
+            headers: { 'content-type': 'application/json' },
+          }),
+        )
+      },
+    })
+    await client.GET('/v1/me')
+    expect(seen).toEqual(['__Host-manifest_session=good'])
   })
 })

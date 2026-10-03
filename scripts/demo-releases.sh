@@ -60,7 +60,9 @@ RUN_ID="r$(date +%s)"
 RUN_HOST="$RUN_ID.example.org"
 COMMIT=""
 
-session_of() { awk -F'\t' 'NF==7 && $6=="manifest_session" {print $7}' "$1"; }
+# The Manifest session out of a curl jar, under its name on an https origin — every origin this
+# demo signs in on is one, through the edge (FE-28: the plain name is loopback http's alone).
+session_of() { awk -F'\t' 'NF==7 && $6=="__Host-manifest_session" {print $7}' "$1"; }
 state_field() { field "$1" < "$STATE"; }
 
 build() {
@@ -161,7 +163,7 @@ say "1. The instructor signs in with CWL"
 idp_login "$CP_JAR" "$IDP_JAR" "$ORIGIN/auth/login" instructor instructor \
   "$ORIGIN/auth/saml/callback" "$CA"
 SESSION="$(session_of "$CP_JAR")"
-[ -n "$SESSION" ] || fail "the sign-in left no manifest_session cookie"
+[ -n "$SESSION" ] || fail "the sign-in left no __Host-manifest_session cookie"
 run_phase status
 if ! grep -q '"launched": true' "$STATE"; then
   say "1. launch-app has not launched on this machine — running \`make demo-production\` first (Decision 17)"

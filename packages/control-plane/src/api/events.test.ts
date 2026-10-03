@@ -8,7 +8,7 @@ import { and, asc, eq } from 'drizzle-orm'
 import { fakeLiteLlm } from '../ai/testing.js'
 import { events } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
-import { SESSION_COOKIE, SESSION_TTL_MS } from '../identity/index.js'
+import { HOST_SESSION_COOKIE, SESSION_TTL_MS } from '../identity/index.js'
 import {
   ensureTestUser,
   testSessionCookies,
@@ -91,13 +91,13 @@ async function streamServer(
     const cookie =
       typeof who === 'object'
         ? 'cookies' in who
-          ? who.cookies[SESSION_COOKIE]
+          ? who.cookies[HOST_SESSION_COOKIE]
           : undefined
         : who === 'anonymous'
           ? undefined
-          : (await loginAs(deps, who))[SESSION_COOKIE]
+          : (await loginAs(deps, who))[HOST_SESSION_COOKIE]
     const headers = {
-      ...(cookie === undefined ? {} : { cookie: `${SESSION_COOKIE}=${cookie}` }),
+      ...(cookie === undefined ? {} : { cookie: `${HOST_SESSION_COOKIE}=${cookie}` }),
       ...(bearer === undefined ? {} : { authorization: `Bearer ${bearer}` }),
       // A TOKEN SENDS NO ORIGIN, as `packages/contract`'s `subscribe` sends none for one: §20's
       // origin check is for a credential a browser sends by itself.

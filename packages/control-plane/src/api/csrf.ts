@@ -1,5 +1,5 @@
 import type { FastifyRequest } from 'fastify'
-import { SESSION_COOKIE } from '../identity/index.js'
+import { cookieNames } from '../identity/index.js'
 
 /**
  * §20: "CSRF protection on every state-changing route" — as an ORIGIN check (P5a
@@ -31,13 +31,18 @@ export class CsrfRefusedError extends Error {
   }
 }
 
-export function carriesSession(request: FastifyRequest): boolean {
-  return request.cookies[SESSION_COOKIE] !== undefined
+/**
+ * Whether the request carries `origin`'s session cookie — by THAT origin's name (FE-28): a plain
+ * `manifest_session` on an https origin is no credential there (the credential hook does not read
+ * it), so there is nothing to forge with and nothing to check.
+ */
+export function carriesSession(request: FastifyRequest, origin: string): boolean {
+  return request.cookies[cookieNames(origin).session] !== undefined
 }
 
 /** Throws `CsrfRefusedError` unless a session-bearing request came from `origin`. */
 export function assertSameOrigin(request: FastifyRequest, origin: string): void {
-  if (!carriesSession(request)) return
+  if (!carriesSession(request, origin)) return
   const received = request.headers.origin
   if (received !== origin) {
     throw new CsrfRefusedError(

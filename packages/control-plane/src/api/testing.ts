@@ -13,7 +13,8 @@ import { loadBlueprints } from '../blueprints/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import {
-  SESSION_COOKIE,
+  HOST_SESSION_COOKIE,
+  cookieNames,
   createSamlSpFor,
   issueSession,
   signSession,
@@ -148,12 +149,21 @@ export async function loginAs(
      */
     steppedUp?: boolean
   } = {},
-): Promise<Record<typeof SESSION_COOKIE, string>> {
+): Promise<Record<typeof HOST_SESSION_COOKIE, string>> {
+  // THE HTTPS ORIGIN'S JAR (FE-28): `__Host-manifest_session` is the only session an https origin
+  // reads, and every server `testDeps` builds is on https origins. A test that moved its first
+  // origin to loopback http signs in through the route instead — this would hand it a cookie
+  // that server ignores, so it says so rather than answering a quiet `401`.
+  if (cookieNames(deps.config.sp.origin).session !== HOST_SESSION_COOKIE) {
+    throw new Error(
+      `loginAs makes an https origin's session cookie; this server's first origin is ${deps.config.sp.origin}`,
+    )
+  }
   const user = await ensureTestUser(deps.db, puid)
   if (options.steppedUp !== true)
     return testSessionCookies(user, deps.config.sessionSecret)
   return {
-    [SESSION_COOKIE]: signSession(
+    [HOST_SESSION_COOKIE]: signSession(
       stepUpSession(issueSession(user)),
       deps.config.sessionSecret,
     ),
@@ -1190,4 +1200,30 @@ export function refusal(res: { statusCode: number; body: string }): {
     code = undefined
   }
   return { status: res.statusCode, code }
+}
+
+/**
+ * WHETHER A BROWSER KEEPS A `Set-Cookie` AT ALL — the cookie-prefix rules (RFC 6265bis, the
+ * `__Host-` and `__Secure-` prefixes), which `app.inject` does not apply and a browser does,
+ * SILENTLY (FE-28). A `__Host-` cookie must be `Secure`, `Path=/` and carry no `Domain`; a
+ * `__Secure-` one must be `Secure`. A browser drops one that breaks a rule as if it had never
+ * been sent — so a sign-in whose login cookie broke one fails at the callback, and a CLEAR that
+ * broke one leaves the cookie it meant to remove in place. `[M1]` measured exactly this in
+ * Chrome 154 and curl 8.7.1 (the faculty-ready plan's sitting 1).
+ *
+ * Every helper that reads a sign-in's cookies the way a browser would applies it, so a server
+ * that sets or clears a `__Host-` cookie wrongly is red at the helper, not only where a test
+ * remembered to look at the attributes.
+ */
+export function browserKeeps(cookie: {
+  name: string
+  secure?: boolean
+  path?: string
+  domain?: string
+}): boolean {
+  if (cookie.name.startsWith('__Host-')) {
+    return cookie.secure === true && cookie.path === '/' && cookie.domain === undefined
+  }
+  if (cookie.name.startsWith('__Secure-')) return cookie.secure === true
+  return true
 }

@@ -60,6 +60,12 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * BUILDS one against these types must now supply an id (the mock's fixtures did). Tasks 4, 5, 10, 12
  * and 13 ride on this one bump — a limit's facts, the `__Host-` cookie names, the administrator's
  * reason, the hint's words, `Token.mintedBy` — because nothing is published between its tasks.
+ * **Task 5's break, stated (FE-28):** on an https origin the session cookie is now
+ * `__Host-manifest_session` (`securitySchemes.session`), and a plain `manifest_session` there is
+ * not read — so a client that is not a browser and sends the cookie itself must name it by the
+ * origin's scheme (`sessionCookieFor` in `@manifest/contract`; `SESSION_COOKIE` is kept, deprecated,
+ * as the http name). A browser is unaffected but for signing in once more. The cookie is issued by
+ * the sign-in endpoints, which stand outside the versioned contract, so this rides on the minor.
  *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
@@ -421,9 +427,9 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
         session: {
           type: 'apiKey',
           in: 'cookie',
-          name: 'manifest_session',
+          name: '__Host-manifest_session',
           description:
-            'A person, signed in with CWL at /auth/login in a browser. It carries their platform role and expires on its own; a mutation made with it must carry `Origin`. Some operations take nothing else — their `security` names this scheme alone — and a few need it stepped up within the last ten minutes (`STEP_UP_REQUIRED`).',
+            'A person, signed in with CWL at /auth/login in a browser. The cookie is `__Host-manifest_session` on an https origin — Secure, `Path=/` and set for that host alone, so no other site on the same domain can set it — and `manifest_session` on a loopback http origin; an https origin does not read the plain name at all. It carries their platform role and expires on its own; a mutation made with it must carry `Origin`. Some operations take nothing else — their `security` names this scheme alone — and a few need it stepped up within the last ten minutes (`STEP_UP_REQUIRED`).',
         },
         delegatedToken: {
           type: 'http',

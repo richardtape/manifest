@@ -150,7 +150,7 @@ through the edge, serves the console on 7104 and prints this checklist. Then ope
   sign-in at `https://console.manifest.internal/` writes. Doing it in an **incognito window** adds
   the row without disturbing whoever is signed in to your main window. `pnpm test` empties `users`
   on every run, so this is needed again after any gate run (P5c sitting 9, F14).
-- **The sign-in has a ten-minute clock.** `manifest_login` carries `Max-Age=600`, so a sign-in left
+- **The sign-in has a ten-minute clock.** `__Host-manifest_login` carries `Max-Age=600`, so a sign-in left
   sitting on the IdP page loses its `returnTo` and lands you on `/` instead of the screen you asked
   for. If that happens, it is the clock, not the router.
 

@@ -75,7 +75,9 @@ RUN_ID="g$(date +%s)"
 MARK="make demo-github $RUN_ID"
 COMMIT=""
 
-session_of() { awk -F'\t' 'NF==7 && $6=="manifest_session" {print $7}' "$1"; }
+# The Manifest session out of a curl jar, under its name on an https origin — every origin this
+# demo signs in on is one, through the edge (FE-28: the plain name is loopback http's alone).
+session_of() { awk -F'\t' 'NF==7 && $6=="__Host-manifest_session" {print $7}' "$1"; }
 
 build() {
   local out
@@ -172,7 +174,7 @@ say "1. The instructor signs in with CWL"
 idp_login "$CP_JAR" "$IDP_JAR" "$ORIGIN/auth/login" instructor instructor \
   "$ORIGIN/auth/saml/callback" "$CA"
 SESSION="$(session_of "$CP_JAR")"
-[ -n "$SESSION" ] || fail "the sign-in left no manifest_session cookie"
+[ -n "$SESSION" ] || fail "the sign-in left no __Host-manifest_session cookie"
 
 say "2. An orphan $SLUG — on GitHub or in the mirror — that no project holds, cleared"
 clear_orphan_repository "$SLUG"

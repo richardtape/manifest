@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
+/** The name on loopback http; on https it is `__Host-manifest_session` (FE-28, `cookie-names.ts`). */
 export const SESSION_COOKIE = 'manifest_session'
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000
 

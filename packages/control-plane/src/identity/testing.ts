@@ -5,7 +5,8 @@ import { SignedXml } from 'xml-crypto'
 import type { Db } from '../db/index.js'
 import { users } from '../db/index.js'
 import { mintSpKeypair, SP_NAME_ID_FORMAT, type SpKeypair } from '../sso/index.js'
-import { SESSION_COOKIE, issueSession, signSession } from './session.js'
+import { HOST_SESSION_COOKIE } from './cookie-names.js'
+import { issueSession, signSession } from './session.js'
 
 /**
  * `identity/`'s test surface — what replaced `POST /auth/dev-login`.
@@ -145,7 +146,7 @@ export async function ensureTestUser(
  * The signed session token — the cookie's VALUE.
  *
  * The one producer; the two functions below are encodings of it. `app.inject`
- * wants `{ manifest_session: <value> }` and an HTTP client wants a `Cookie`
+ * wants `{ '__Host-manifest_session': <value> }` and an HTTP client wants a `Cookie`
  * header, and neither is worth a second signing path.
  */
 export function testSessionToken(
@@ -157,13 +158,14 @@ export function testSessionToken(
   return signSession(issueSession(user, issuedAt), secret)
 }
 
-/** The `Cookie` header form, for anything driving real HTTP. */
+/** The `Cookie` header form, for anything driving real HTTP — to an https origin (FE-28). */
 export function testSessionCookie(user: SessionUser, secret: string): string {
-  return `${SESSION_COOKIE}=${testSessionToken(user, secret)}`
+  return `${HOST_SESSION_COOKIE}=${testSessionToken(user, secret)}`
 }
 
 /**
- * The `app.inject({ cookies })` form.
+ * The `app.inject({ cookies })` form — the jar a browser holds on an HTTPS origin, which every
+ * in-process test server's origins are (`testDeps`), so the `__Host-` name (FE-28).
  *
  * The return type names the cookie rather than being `Record<string, string>`,
  * and that is load-bearing under this repository's `noUncheckedIndexedAccess`:
@@ -178,8 +180,8 @@ export function testSessionCookies(
   user: SessionUser,
   secret: string,
   issuedAt?: number,
-): Record<typeof SESSION_COOKIE, string> {
-  return { [SESSION_COOKIE]: testSessionToken(user, secret, issuedAt) }
+): Record<typeof HOST_SESSION_COOKIE, string> {
+  return { [HOST_SESSION_COOKIE]: testSessionToken(user, secret, issuedAt) }
 }
 
 /* ------------------------------------------------------------------------- *

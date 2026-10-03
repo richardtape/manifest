@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import type { Server } from 'node:http'
+import { sessionCookieFor } from '@manifest/contract'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as fixtures from './fixtures.js'
 import {
@@ -182,6 +183,18 @@ describe('manifest-mock refuses what the platform refuses', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ redirectTo: '/' })
     expect(response.headers.get('set-cookie')).toContain('manifest_session=;')
+  })
+
+  it('keeps the plain session name, because it is http only — the name sessionCookieFor gives its origin (FE-28)', async () => {
+    // The platform names its cookies by the origin's scheme: `__Host-` on https, the plain name on
+    // loopback http. The mock serves http alone, so the same rule, applied, changes nothing here —
+    // and the front-end's mock mode with it.
+    expect(sessionCookieFor(origin)).toBe('manifest_session')
+    const login = await fetch(`${origin}/auth/login`, { redirect: 'manual' })
+    expect(login.headers.get('set-cookie')).toMatch(
+      new RegExp(`^${sessionCookieFor(origin)}=mock-session;`),
+    )
+    expect((await fetch(`${origin}/v1/me`, { headers: session })).status).toBe(200)
   })
 
   it('answers every request with an id, and a refusal with the same id in its body (FE-30, 1.6.0)', async () => {

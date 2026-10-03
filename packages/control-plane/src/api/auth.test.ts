@@ -10,10 +10,21 @@ import {
   testSessionCookies,
   type TestIdp,
 } from '../identity/testing.js'
-import { isSteppedUp, verifySession } from '../identity/index.js'
+import {
+  HOST_LOGIN_COOKIE,
+  HOST_SESSION_COOKIE,
+  HOST_STEP_UP_COOKIE,
+  LOGIN_COOKIE,
+  SESSION_COOKIE,
+  STEP_UP_COOKIE,
+  cookieNames,
+  encodeLoginCookie,
+  isSteppedUp,
+  verifySession,
+} from '../identity/index.js'
 import { mintSpKeypair } from '../sso/index.js'
 import { buildServer } from './server.js'
-import { loginAs, refusal, testDeps } from './testing.js'
+import { browserKeeps, loginAs, refusal, testDeps } from './testing.js'
 
 const OID = {
   ubcEduCwlPuid: 'urn:oid:1.3.6.1.4.1.60.6.1.6',
@@ -37,6 +48,26 @@ const INSTRUCTOR: Record<string, string> = {
 
 const SP_ENTITY = 'https://manifest.internal/sp/manifest-control-plane/platform'
 const ACS = 'https://console.manifest.internal/auth/saml/callback'
+
+/**
+ * THE COOKIES A BROWSER ON A `Host` HOLDS (FE-28): named by the scheme of the origin that host
+ * names — the unit tier's loopback hosts are http, every other host here is https — so a helper
+ * sends and reads what a browser there would.
+ */
+const namesOn = (host?: string) =>
+  cookieNames(
+    host !== undefined && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)
+      ? `http://${host}`
+      : `https://${host ?? 'console.manifest.internal'}`,
+  )
+
+/** The cookie a browser KEEPS from a response — `browserKeeps` applied, as a browser does (FE-28). */
+const kept = <
+  C extends { name: string; secure?: boolean; path?: string; domain?: string },
+>(
+  res: { cookies: C[] },
+  name: string,
+): C | undefined => res.cookies.find((c) => c.name === name && browserKeeps(c))
 
 describe('auth routes', () => {
   it('returns the session holder from /v1/me', async () => {
@@ -105,12 +136,12 @@ describe('auth routes', () => {
   it('refuses a tampered session cookie', async () => {
     const deps = await testDeps()
     const app = await buildServer(deps)
-    const { manifest_session: value } = await loginAs(deps, 'bio_prof')
+    const { [HOST_SESSION_COOKIE]: value } = await loginAs(deps, 'bio_prof')
     const tampered = `${value.slice(0, -4)}AAAA`
     const me = await app.inject({
       method: 'GET',
       url: '/v1/me',
-      cookies: { manifest_session: tampered },
+      cookies: { [HOST_SESSION_COOKIE]: tampered },
     })
     expect(me.statusCode).toBe(401)
     await app.close()
@@ -162,7 +193,7 @@ describe('Manifest is its own SP (§9)', () => {
     })
     expect(res.statusCode).toBe(302)
     const location = res.headers.location as string
-    const cookie = res.cookies.find((c) => c.name === 'manifest_login')
+    const cookie = kept(res, namesOn(host).login)
     expect(cookie).toBeDefined()
     return {
       location,
@@ -215,7 +246,7 @@ describe('Manifest is its own SP (§9)', () => {
       },
       ...(binding.loginCookie === undefined
         ? {}
-        : { cookies: { manifest_login: binding.loginCookie } }),
+        : { cookies: { [namesOn(binding.host).login]: binding.loginCookie } }),
     })
 
   it('GET /auth/login redirects to the Manifest IdP with a signed SAMLRequest', async () => {
@@ -257,8 +288,8 @@ describe('Manifest is its own SP (§9)', () => {
     expect(res.headers.location).toBe('/')
     // The login cookie is spent: cleared on the way out, so it cannot bind a second
     // assertion.
-    expect(res.cookies.find((c) => c.name === 'manifest_login')?.value).toBe('')
-    const cookie = res.cookies.find((c) => c.name === 'manifest_session')
+    expect(kept(res, HOST_LOGIN_COOKIE)?.value).toBe('')
+    const cookie = kept(res, HOST_SESSION_COOKIE)
     expect(cookie?.httpOnly).toBe(true)
     expect(cookie?.sameSite?.toLowerCase()).toBe('lax')
     // Secure because the ORIGIN is https (P5a Task 3), in development too.
@@ -269,7 +300,7 @@ describe('Manifest is its own SP (§9)', () => {
     const me = await app.inject({
       method: 'GET',
       url: '/v1/me',
-      cookies: { manifest_session: cookie!.value },
+      cookies: { [HOST_SESSION_COOKIE]: cookie!.value },
     })
     expect(me.json()).toMatchObject({
       puid: 'ins000001',
@@ -378,11 +409,11 @@ describe('Manifest is its own SP (§9)', () => {
       const login = await pendingLogin(app)
       const res = await post(app, assertion(idp, login.requestId, { attributes }), login)
       expect(res.statusCode, res.body).toBe(302)
-      const session = res.cookies.find((c) => c.name === 'manifest_session')!.value
+      const session = kept(res, HOST_SESSION_COOKIE)!.value
       const me = await app.inject({
         method: 'GET',
         url: '/v1/me',
-        cookies: { manifest_session: session },
+        cookies: { [HOST_SESSION_COOKIE]: session },
       })
       expect(me.statusCode, me.body).toBe(200)
       return me.json() as { puid: string; role: string; mayBuild: boolean }
@@ -606,10 +637,17 @@ describe('Manifest is its own SP (§9)', () => {
     }
     const app = await buildServer(loopback)
     const idp = await testSamlIdp()
-    const login = await pendingLogin(app)
-    const res = await post(app, assertion(idp, login.requestId), login)
+    const host = '127.0.0.1:7100'
+    const login = await pendingLogin(app, undefined, host)
+    const res = await post(app, assertion(idp, login.requestId), { ...login, host })
     expect(res.statusCode).toBe(302)
-    expect(res.cookies.find((c) => c.name === 'manifest_session')?.secure).toBeFalsy()
+    // FE-28: the PLAIN names on loopback http — the `__Host-` names are https's alone (Decision 7).
+    const session = res.cookies.find((c) => c.name === SESSION_COOKIE)
+    expect(session?.secure).toBeFalsy()
+    expect(session?.path).toBe('/')
+    expect(res.cookies.map((c) => c.name).filter((n) => n.startsWith('__Host-'))).toEqual(
+      [],
+    )
     await app.close()
   })
 
@@ -782,12 +820,13 @@ describe('Manifest is its own SP (§9)', () => {
     await app.close()
   })
 
-  it('sets a login cookie bound to the RelayState it sends, for ten minutes, on /auth only', async () => {
+  it('sets a login cookie bound to the RelayState it sends, for ten minutes, at Path=/', async () => {
     const app = await buildServer(await testDeps())
     const res = await app.inject({ method: 'GET', url: '/auth/login' })
-    const cookie = res.cookies.find((c) => c.name === 'manifest_login')!
+    const cookie = kept(res, HOST_LOGIN_COOKIE)!
     expect(cookie.httpOnly).toBe(true)
-    expect(cookie.path).toBe('/auth')
+    // `Path=/` since FE-28 (`/auth` before): a `__Host-` cookie must be, or a browser drops it.
+    expect(cookie.path).toBe('/')
     expect(cookie.maxAge).toBe(600)
     // `SameSite=None; Secure` on the https origin: the IdP's auto-submitting POST is
     // cross-site wherever the IdP is on another registrable domain, and Lax would drop
@@ -818,7 +857,7 @@ describe('Manifest is its own SP (§9)', () => {
     })
     expect(res.statusCode).toBe(401)
     expect(res.json().error.code).toBe('SAML_LOGIN_NOT_BOUND')
-    expect(res.cookies.find((c) => c.name === 'manifest_session')).toBeUndefined()
+    expect(res.cookies.find((c) => c.name === HOST_SESSION_COOKIE)).toBeUndefined()
 
     // AND THE REQUEST ID IS NOT SPENT: the refusal happened before node-saml was asked,
     // so the browser that DID start this sign-in still completes it. Without this, a
@@ -902,7 +941,7 @@ describe('Manifest is its own SP (§9)', () => {
       ...(host === undefined ? {} : { host }),
     })
     expect(res.statusCode).toBe(302)
-    return res.cookies.find((c) => c.name === 'manifest_session')!.value
+    return kept(res, namesOn(host).session)!.value
   }
 
   /** The step-up half of `pendingLogin`: it needs a session, and it sets its own cookie. */
@@ -930,12 +969,12 @@ describe('Manifest is its own SP (§9)', () => {
         returnTo === undefined
           ? '/auth/step-up'
           : `/auth/step-up?returnTo=${encodeURIComponent(returnTo)}`,
-      cookies: { manifest_session: session },
+      cookies: { [namesOn(host).session]: session },
       ...(host === undefined ? {} : { headers: { host } }),
     })
     expect(res.statusCode).toBe(302)
     const location = res.headers.location as string
-    const cookie = res.cookies.find((c) => c.name === 'manifest_stepup')
+    const cookie = kept(res, namesOn(host).stepUp)
     expect(cookie).toBeDefined()
     return {
       location,
@@ -968,8 +1007,10 @@ describe('Manifest is its own SP (§9)', () => {
       cookies: {
         ...(binding.stepUpCookie === undefined
           ? {}
-          : { manifest_stepup: binding.stepUpCookie }),
-        ...(binding.session === undefined ? {} : { manifest_session: binding.session }),
+          : { [namesOn(binding.host).stepUp]: binding.stepUpCookie }),
+        ...(binding.session === undefined
+          ? {}
+          : { [namesOn(binding.host).session]: binding.session }),
       },
     })
 
@@ -996,7 +1037,7 @@ describe('Manifest is its own SP (§9)', () => {
     expect(res.statusCode).toBe(302)
     // To where the browser asked to go back to, re-checked on the way out.
     expect(res.headers.location).toBe('/projects/7')
-    const stamped = res.cookies.find((c) => c.name === 'manifest_session')!.value
+    const stamped = kept(res, HOST_SESSION_COOKIE)!.value
     const after = verifySession(stamped, deps.config.sessionSecret)!
     expect(isSteppedUp(after.steppedUpAt)).toBe(true)
     // THE SAME SESSION, re-signed — not a new one. A step-up is an addition to a
@@ -1015,7 +1056,7 @@ describe('Manifest is its own SP (§9)', () => {
       expiresAt: before.expiresAt,
     })
     // The step-up cookie is spent: it cannot bind a second assertion.
-    expect(res.cookies.find((c) => c.name === 'manifest_stepup')?.value).toBe('')
+    expect(kept(res, HOST_STEP_UP_COOKIE)?.value).toBe('')
     await app.close()
   })
 
@@ -1075,7 +1116,7 @@ describe('Manifest is its own SP (§9)', () => {
 
     expect(refusal(res)).toEqual({ status: 401, code: 'SAML_STEP_UP_WRONG_USER' })
     // NO new session cookie at all — the old one is untouched and is still not stepped up.
-    expect(res.cookies.find((c) => c.name === 'manifest_session')).toBeUndefined()
+    expect(res.cookies.find((c) => c.name === HOST_SESSION_COOKIE)).toBeUndefined()
     expect(verifySession(session, deps.config.sessionSecret)!.steppedUpAt).toBeNull()
     await app.close()
   })
@@ -1095,7 +1136,7 @@ describe('Manifest is its own SP (§9)', () => {
       // and no session cookie
     })
     expect(refusal(res)).toEqual({ status: 401, code: 'SAML_STEP_UP_NO_SESSION' })
-    expect(res.cookies.find((c) => c.name === 'manifest_session')).toBeUndefined()
+    expect(res.cookies.find((c) => c.name === HOST_SESSION_COOKIE)).toBeUndefined()
     await app.close()
   })
 
@@ -1139,16 +1180,19 @@ describe('Manifest is its own SP (§9)', () => {
         SAMLResponse: assertion(idp, login.requestId),
         RelayState: login.relayState,
       },
-      cookies: { manifest_login: login.loginCookie, manifest_stepup: stale.stepUpCookie },
+      cookies: {
+        [HOST_LOGIN_COOKIE]: login.loginCookie,
+        [HOST_STEP_UP_COOKIE]: stale.stepUpCookie,
+      },
     })
     expect(res.statusCode).toBe(302)
-    const minted = res.cookies.find((c) => c.name === 'manifest_session')!.value
+    const minted = kept(res, HOST_SESSION_COOKIE)!.value
     // Signed in, and NOT stepped up: a sign-in is not a second round trip (§20).
     expect(verifySession(minted, deps.config.sessionSecret)!.steppedUpAt).toBeNull()
     await app.close()
   })
 
-  it('sets a step-up cookie bound to the RelayState it sends, for ten minutes, on /auth only', async () => {
+  it('sets a step-up cookie bound to the RelayState it sends, for ten minutes, at Path=/', async () => {
     const deps = await testDeps()
     const app = await buildServer(deps)
     const idp = await testSamlIdp()
@@ -1156,7 +1200,7 @@ describe('Manifest is its own SP (§9)', () => {
     const stepUp = await pendingStepUp(app, session)
 
     expect(stepUp.cookie.httpOnly).toBe(true)
-    expect(stepUp.cookie.path).toBe('/auth')
+    expect(stepUp.cookie.path).toBe('/')
     expect(stepUp.cookie.maxAge).toBe(600)
     expect(stepUp.cookie.secure).toBe(true)
     expect(String(stepUp.cookie.sameSite).toLowerCase()).toBe('none')
@@ -1208,7 +1252,7 @@ describe('Manifest is its own SP (§9)', () => {
       expect(res.statusCode, res.body).toBe(302)
       // A PATH, so the browser stays on the origin it signed in on.
       expect(res.headers.location).toBe('/projects')
-      const session = res.cookies.find((c) => c.name === 'manifest_session')
+      const session = kept(res, HOST_SESSION_COOKIE)
       expect(verifySession(session!.value, deps.config.sessionSecret)?.puid).toBe(
         'ins000001',
       )
@@ -1270,7 +1314,7 @@ describe('Manifest is its own SP (§9)', () => {
       })
       expect(res.statusCode, res.body).toBe(302)
       expect(res.headers.location).toBe('/deploy')
-      const stamped = res.cookies.find((c) => c.name === 'manifest_session')!.value
+      const stamped = kept(res, HOST_SESSION_COOKIE)!.value
       expect(
         isSteppedUp(verifySession(stamped, deps.config.sessionSecret)!.steppedUpAt),
       ).toBe(true)
@@ -1294,7 +1338,7 @@ describe('Manifest is its own SP (§9)', () => {
         url: '/auth/login',
         headers: { host: 'localhost:7100' },
       })
-      const loginCookie = onHttp.cookies.find((c) => c.name === 'manifest_login')
+      const loginCookie = onHttp.cookies.find((c) => c.name === LOGIN_COOKIE)
       expect(loginCookie?.secure).toBeFalsy()
       expect(String(loginCookie?.sameSite).toLowerCase()).toBe('lax')
       const onHttps = await app.inject({
@@ -1302,7 +1346,7 @@ describe('Manifest is its own SP (§9)', () => {
         url: '/auth/login',
         headers: { host: 'console.manifest.internal' },
       })
-      const httpsCookie = onHttps.cookies.find((c) => c.name === 'manifest_login')
+      const httpsCookie = onHttps.cookies.find((c) => c.name === HOST_LOGIN_COOKIE)
       expect(httpsCookie?.secure).toBe(true)
       expect(String(httpsCookie?.sameSite).toLowerCase()).toBe('none')
       await app.close()
@@ -1325,10 +1369,189 @@ describe('Manifest is its own SP (§9)', () => {
         const login = await pendingLogin(app, undefined, host)
         const res = await post(app, assertion(idp, login.requestId), { ...login, host })
         expect(res.statusCode, res.body).toBe(302)
-        return res.cookies.find((c) => c.name === 'manifest_session')
+        return res.cookies.find((c) => c.name === namesOn(host).session)
       }
       expect((await sessionOn('localhost:7100'))?.secure).toBeFalsy()
       expect((await sessionOn('console.manifest.internal'))?.secure).toBe(true)
+      await app.close()
+    })
+  })
+
+  /* ----------------------------------------------------------------------- *
+   * FE-28: `__Host-` COOKIES, AND THE LOGIN DOOR CLOSED (the faculty-ready plan's Task 5).
+   *
+   * Every deployed app is a sibling `<slug>.manifest.internal`, and a sibling can set a cookie
+   * with `Domain=manifest.internal` that the console and `app` receive. A `__Host-` name is one
+   * a browser accepts only Secure, `Path=/` and host-only — so on https the platform reads ONLY
+   * those names, and a tossed plain cookie changes nothing. Loopback http keeps the plain names
+   * (Decision 7), which is the Docker tier's and the mock's case.
+   * ----------------------------------------------------------------------- */
+  describe('FE-28: __Host- cookies on https, the plain names on loopback http', () => {
+    it('the browser model drops a __Host- cookie that is not Secure, Path=/ and host-only', () => {
+      const good = { name: HOST_SESSION_COOKIE, secure: true, path: '/' }
+      expect(browserKeeps(good)).toBe(true)
+      expect(browserKeeps({ ...good, secure: false })).toBe(false)
+      expect(browserKeeps({ ...good, path: '/auth' })).toBe(false)
+      expect(browserKeeps({ ...good, domain: 'manifest.internal' })).toBe(false)
+      // A plain name is kept whatever its attributes — which is why a sibling can toss one.
+      expect(
+        browserKeeps({
+          name: SESSION_COOKIE,
+          path: '/auth',
+          domain: 'manifest.internal',
+        }),
+      ).toBe(true)
+    })
+
+    it('an https origin sets __Host-manifest_session: Secure, Path=/, no Domain — on both origins', async () => {
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      for (const host of ['console.manifest.internal', 'app.manifest.internal']) {
+        const login = await pendingLogin(app, undefined, host)
+        const res = await post(app, assertion(idp, login.requestId), { ...login, host })
+        expect(res.statusCode, res.body).toBe(302)
+        const session = res.cookies.find((c) => c.name === HOST_SESSION_COOKIE)
+        expect(session).toMatchObject({ secure: true, path: '/', httpOnly: true })
+        expect(String(session?.sameSite).toLowerCase()).toBe('lax')
+        expect(session?.domain).toBeUndefined()
+        expect(browserKeeps(session!)).toBe(true)
+        expect(verifySession(session!.value, deps.config.sessionSecret)?.puid).toBe(
+          'ins000001',
+        )
+        // NOT the plain name as well: one session, under the name this origin reads.
+        expect(res.cookies.find((c) => c.name === SESSION_COOKIE)).toBeUndefined()
+      }
+      await app.close()
+    })
+
+    it('the login and step-up cookies are __Host- on https, at Path=/, and their clears carry Secure', async () => {
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+
+      const loginRes = await app.inject({ method: 'GET', url: '/auth/login' })
+      const login = loginRes.cookies.find((c) => c.name === HOST_LOGIN_COOKIE)
+      expect(login).toMatchObject({ secure: true, path: '/', httpOnly: true })
+      expect(login?.domain).toBeUndefined()
+      expect(browserKeeps(login!)).toBe(true)
+      expect(loginRes.cookies.find((c) => c.name === LOGIN_COOKIE)).toBeUndefined()
+
+      const session = await signedIn(app, idp)
+      const stepUpRes = await app.inject({
+        method: 'GET',
+        url: '/auth/step-up',
+        cookies: { [HOST_SESSION_COOKIE]: session },
+      })
+      expect(stepUpRes.statusCode).toBe(302)
+      const stepUp = stepUpRes.cookies.find((c) => c.name === HOST_STEP_UP_COOKIE)
+      expect(stepUp).toMatchObject({ secure: true, path: '/', httpOnly: true })
+      expect(stepUp?.domain).toBeUndefined()
+      expect(browserKeeps(stepUp!)).toBe(true)
+      expect(stepUpRes.cookies.find((c) => c.name === STEP_UP_COOKIE)).toBeUndefined()
+
+      // EACH SPENT COOKIE'S CLEAR is one a browser accepts — Secure, Path=/, no Domain — or the
+      // browser keeps the cookie it was meant to remove (Review Focus 1's shape, for these two).
+      const pending = await pendingLogin(app)
+      const signIn = await post(app, assertion(idp, pending.requestId), pending)
+      const loginClear = signIn.cookies.find((c) => c.name === HOST_LOGIN_COOKIE)
+      expect(loginClear).toMatchObject({ value: '', secure: true, path: '/', maxAge: 0 })
+      expect(loginClear?.domain).toBeUndefined()
+
+      const up = await pendingStepUp(app, session)
+      const done = await postStepUp(app, assertion(idp, up.requestId), {
+        relayState: up.relayState,
+        stepUpCookie: up.stepUpCookie,
+        session,
+      })
+      expect(done.statusCode, done.body).toBe(302)
+      const stepUpClear = done.cookies.find((c) => c.name === HOST_STEP_UP_COOKIE)
+      expect(stepUpClear).toMatchObject({ value: '', secure: true, path: '/', maxAge: 0 })
+      expect(stepUpClear?.domain).toBeUndefined()
+      await app.close()
+    })
+
+    it('POSITIVE CONTROL: the __Host- session on https is a session', async () => {
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const cookies = await loginAs(deps, 'bio_prof')
+      for (const host of ['console.manifest.internal', 'app.manifest.internal']) {
+        const res = await app.inject({
+          method: 'GET',
+          url: '/v1/me',
+          cookies,
+          headers: { host },
+        })
+        expect(res.statusCode, res.body).toBe(200)
+      }
+      await app.close()
+    })
+
+    it('a plain-named session on an https origin is not a session (Review Focus 2)', async () => {
+      // A VALID session, signed with this server's secret — exactly what a sibling host could
+      // replay with `Domain=manifest.internal` after reading it from its own visitor. Under the
+      // plain name it is not read at all on https, so the request is anonymous.
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const { [HOST_SESSION_COOKIE]: valid } = await loginAs(deps, 'bio_prof')
+      for (const host of ['console.manifest.internal', 'app.manifest.internal']) {
+        const res = await app.inject({
+          method: 'GET',
+          url: '/v1/me',
+          cookies: { [SESSION_COOKIE]: valid },
+          headers: { host },
+        })
+        expect(refusal(res)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
+      }
+      // NOR IS IT AMBIGUOUS beside a token: it is not a credential here, so a bearer request that
+      // also carries a tossed plain cookie is judged by its token alone, never refused 400.
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/me',
+        cookies: { [SESSION_COOKIE]: valid },
+        headers: { authorization: 'Bearer mft_nope_nope' },
+      })
+      expect(refusal(res)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
+      await app.close()
+    })
+
+    it('the ACS reads only the __Host- login cookie: a tossed plain one with the attacker’s nonce is refused', async () => {
+      // LOGIN CSRF BY COOKIE TOSSING. The attacker starts their OWN sign-in, finishes it at the
+      // IdP as themselves, tosses `manifest_login=<their nonce>` onto the victim's browser from a
+      // sibling host, and auto-posts their assertion with their RelayState through it.
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const idp = await testSamlIdp()
+      const attacker = await pendingLogin(app)
+      const tossed = await app.inject({
+        method: 'POST',
+        url: '/auth/saml/callback',
+        payload: {
+          SAMLResponse: assertion(idp, attacker.requestId),
+          RelayState: attacker.relayState,
+        },
+        cookies: { [LOGIN_COOKIE]: attacker.loginCookie },
+      })
+      expect(refusal(tossed)).toEqual({ status: 401, code: 'SAML_LOGIN_NOT_BOUND' })
+      expect(tossed.cookies.find((c) => c.name === HOST_SESSION_COOKIE)).toBeUndefined()
+      // The same, carrying a nonce it made up rather than one the platform issued.
+      const forged = await app.inject({
+        method: 'POST',
+        url: '/auth/saml/callback',
+        payload: {
+          SAMLResponse: assertion(idp, attacker.requestId),
+          RelayState: 'x'.repeat(32),
+        },
+        cookies: { [LOGIN_COOKIE]: encodeLoginCookie('x'.repeat(32), '/') },
+      })
+      expect(refusal(forged)).toEqual({ status: 401, code: 'SAML_LOGIN_NOT_BOUND' })
+
+      // THE POSITIVE CONTROL: the same assertion, bound by the `__Host-` cookie this origin set,
+      // signs in — so the refusals above are the cookie's NAME, not a broken assertion. (A
+      // refusal before validation never consumed the request id.)
+      const bound = await post(app, assertion(idp, attacker.requestId), attacker)
+      expect(bound.statusCode, bound.body).toBe(302)
+      expect(kept(bound, HOST_SESSION_COOKIE)).toBeDefined()
       await app.close()
     })
   })

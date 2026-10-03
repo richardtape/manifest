@@ -1,13 +1,11 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import {
-  LOGIN_COOKIE,
   LOGIN_TTL_SECONDS,
-  SESSION_COOKIE,
   SESSION_TTL_MS,
-  STEP_UP_COOKIE,
   STEP_UP_TTL_SECONDS,
   SamlError,
+  cookieNames,
   encodeLoginCookie,
   issueSession,
   newLoginNonce,
@@ -110,8 +108,23 @@ export async function registerAuthRoutes(
    */
   const arrival = (request: FastifyRequest) => {
     const origin = originOf(request, deps.config.origins)
-    return { origin, sp: deps.samlSpFor(origin), https: origin.startsWith('https://') }
+    return {
+      origin,
+      sp: deps.samlSpFor(origin),
+      https: origin.startsWith('https://'),
+      // FE-28: `__Host-` names on https, the plain names on loopback http — this origin's own.
+      names: cookieNames(origin),
+    }
   }
+
+  /**
+   * A CLEAR A BROWSER ACCEPTS (FE-28, Review Focus 1). A `__Host-` cookie is replaced only by a
+   * `Set-Cookie` that is itself Secure, `Path=/` and host-only, and a clear without `Secure` is
+   * DROPPED by the browser without a word — which leaves the person signed in after *Sign out*
+   * (`[M1]`, Chrome 154 and curl 8.7.1). So every clear goes through here, Secure by the origin.
+   */
+  const clear = (reply: FastifyReply, name: string, https: boolean) =>
+    reply.clearCookie(name, { path: '/', secure: https })
 
   /**
    * §9: *"Manifest itself is an SP."* This is where a person starts.
@@ -131,10 +144,11 @@ export async function registerAuthRoutes(
     // nonce goes to the IdP as RelayState and into a cookie only this browser holds, and
     // the callback refuses an assertion whose RelayState is not the cookie's.
     const nonce = newLoginNonce()
-    const { sp, https } = arrival(request)
-    reply.setCookie(LOGIN_COOKIE, encodeLoginCookie(nonce, safeReturnTo(returnTo)), {
+    const { sp, https, names } = arrival(request)
+    reply.setCookie(names.login, encodeLoginCookie(nonce, safeReturnTo(returnTo)), {
       httpOnly: true,
-      path: '/auth',
+      // `Path=/`, not `/auth` (FE-28): a `__Host-` cookie must be, or the browser drops it.
+      path: '/',
       maxAge: LOGIN_TTL_SECONDS,
       secure: https,
       // The IdP's auto-submitting POST is CROSS-site wherever the IdP is on another
@@ -163,10 +177,11 @@ export async function registerAuthRoutes(
     const actor = requireSession(request)
     const { returnTo } = loginQuery.parse(request.query ?? {})
     const nonce = newLoginNonce()
-    const { sp, https } = arrival(request)
-    reply.setCookie(STEP_UP_COOKIE, encodeLoginCookie(nonce, safeReturnTo(returnTo)), {
+    const { sp, https, names } = arrival(request)
+    reply.setCookie(names.stepUp, encodeLoginCookie(nonce, safeReturnTo(returnTo)), {
       httpOnly: true,
-      path: '/auth',
+      // `Path=/`, as the login cookie (FE-28).
+      path: '/',
       maxAge: STEP_UP_TTL_SECONDS,
       secure: https,
       // The IdP's auto-submitting POST is CROSS-site, exactly as at `/auth/login`.
@@ -189,18 +204,19 @@ export async function registerAuthRoutes(
       const { SAMLResponse, RelayState } = callbackBody.parse(request.body)
       // Validated by the client of the origin the IdP posted to — which it did only because
       // that origin's AuthnRequest named its ACS (Decision 17).
-      const { origin, sp } = arrival(request)
+      const { origin, sp, https, names } = arrival(request)
 
       /**
        * §20's STEP-UP, told apart from an ordinary sign-in BY ITS OWN COOKIE (Decision
        * 17) and not by a second ACS path — because the ACS is registered with the IdP in
        * the platform's SP row, so a second one would be a registration change (§9).
        *
-       * This branch runs FIRST and is entered only when `manifest_stepup`'s nonce is the
+       * This branch runs FIRST and is entered only when the step-up cookie's nonce is the
        * `RelayState` in hand, so an ordinary sign-in is unaffected by a stale step-up
        * cookie and a step-up cannot be completed by an assertion bound to a sign-in.
        */
-      const stepUp = readLoginCookie(request.cookies[STEP_UP_COOKIE])
+      // ONLY THIS ORIGIN'S NAME (FE-28): on https a plain `manifest_stepup` a sibling tossed is not read.
+      const stepUp = readLoginCookie(request.cookies[names.stepUp])
       if (
         stepUp !== undefined &&
         RelayState !== undefined &&
@@ -211,7 +227,7 @@ export async function registerAuthRoutes(
         // does — and answering it by minting a session would make this route a second,
         // quieter front door.
         const current = verifySession(
-          request.cookies[SESSION_COOKIE] ?? '',
+          request.cookies[names.session] ?? '',
           deps.config.sessionSecret,
         )
         if (current === null) {
@@ -250,7 +266,7 @@ export async function registerAuthRoutes(
           )
         }
         reply.setCookie(
-          SESSION_COOKIE,
+          names.session,
           // The IdP's NEWEST handle on this person: a sign-out quotes the session the IdP
           // holds now, and the step-up's assertion is the most recent word on that.
           signSession(
@@ -267,14 +283,16 @@ export async function registerAuthRoutes(
           ),
         )
         // Spent, exactly as the login cookie is: it cannot bind a second assertion.
-        reply.clearCookie(STEP_UP_COOKIE, { path: '/auth' })
+        clear(reply, names.stepUp, https)
         console.error(`[auth] step-up COMPLETED for ${current.puid}`)
         return reply.redirect(stepUp.returnTo, 302)
       }
 
       // BOUND BEFORE IT IS VALIDATED: a refusal here never touches the SAML library, and
       // never consumes the request ID node-saml is holding for the real browser.
-      const binding = readLoginCookie(request.cookies[LOGIN_COOKIE])
+      // ONLY THIS ORIGIN'S NAME (FE-28): on https a plain `manifest_login` carrying a sibling's own
+      // nonce — login CSRF by cookie tossing — is not read, so its assertion is not bound.
+      const binding = readLoginCookie(request.cookies[names.login])
       if (
         binding === undefined ||
         RelayState === undefined ||
@@ -319,7 +337,7 @@ export async function registerAuthRoutes(
         adminPuids: deps.config.adminPuids,
       })
       reply.setCookie(
-        SESSION_COOKIE,
+        names.session,
         signSession(
           issueSession(user, Date.now(), identity.idpSession),
           deps.config.sessionSecret,
@@ -327,7 +345,7 @@ export async function registerAuthRoutes(
         sessionCookie(SESSION_TTL_MS / 1000, origin),
       )
       // The login cookie is spent: a second assertion cannot be bound with it.
-      reply.clearCookie(LOGIN_COOKIE, { path: '/auth' })
+      clear(reply, names.login, https)
       // 302, not 200 with a body: the browser arrives here from the IdP's
       // auto-submitting form, so whatever this returns is what the person sees.
       //
@@ -461,7 +479,8 @@ export async function registerAuthRoutes(
 
       // ONLY after the request verified. A session must not be ended by a request
       // this process could not prove came from its own IdP.
-      reply.clearCookie(SESSION_COOKIE, { path: '/' })
+      const here = arrival(request)
+      clear(reply, here.names.session, here.https)
       console.error('[auth] single logout: ACCEPTED — session cleared')
       return reply.redirect(redirectTo, 302)
     },
@@ -482,11 +501,12 @@ export async function registerAuthRoutes(
     '/auth/logout',
     { config: { idempotency: 'exempt' } },
     async (request, reply) => {
+      const { https, names } = arrival(request)
       const session = verifySession(
-        request.cookies[SESSION_COOKIE] ?? '',
+        request.cookies[names.session] ?? '',
         deps.config.sessionSecret,
       )
-      reply.clearCookie(SESSION_COOKIE, { path: '/' })
+      clear(reply, names.session, https)
       if (session?.idp == null) {
         if (session !== null) {
           console.error(

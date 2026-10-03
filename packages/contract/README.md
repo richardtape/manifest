@@ -48,8 +48,10 @@ const me = unwrap(await client.GET('/v1/me'), 'getMe')
 
 **A client that is not a browser sends two headers**, and `createManifestClient` adds both:
 
-- **the session** — `cookie: manifest_session=<value>`, the value a CWL sign-in set. A
-  browser sends its own cookie.
+- **the session** — `cookie: __Host-manifest_session=<value>` on an https origin, the value a
+  CWL sign-in set; `manifest_session` on a loopback http one (the mock). `sessionCookieFor(origin)`
+  names it, and an https origin does not read the plain name at all (contract 1.6.0;
+  `SESSION_COOKIE` is kept, deprecated, as the http name). A browser sends its own cookie.
 - **`Origin`** — the console's own. Node's `fetch` sends none unless told to, and a request
   that carries a session and changes something without the console's `Origin` is refused as
   `403 CSRF_ORIGIN_REFUSED` (§20). A browser sets it itself.

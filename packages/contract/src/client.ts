@@ -2,7 +2,25 @@ import createClient, { type Client } from 'openapi-fetch'
 import type { components, paths } from './schema.js'
 import { ManifestApiError, type ErrorEnvelope } from './errors.js'
 
+/**
+ * The session cookie's name on a loopback http origin.
+ *
+ * @deprecated Since contract 1.6.0 the name depends on the origin's scheme: an https origin reads
+ * only `__Host-manifest_session`. Use `sessionCookieFor(origin)`.
+ */
 export const SESSION_COOKIE = 'manifest_session'
+
+/**
+ * THE SESSION COOKIE'S NAME ON THE ORIGIN `baseUrl` NAMES: `__Host-manifest_session` on https —
+ * a name a browser accepts only Secure, `Path=/` and host-only, so no sibling app on the same
+ * domain can set one — and `manifest_session` on http (loopback: the mock, and the platform's own
+ * test servers). An https origin does not read the plain name at all.
+ */
+export function sessionCookieFor(baseUrl: string): string {
+  return new URL(baseUrl).protocol === 'https:'
+    ? '__Host-manifest_session'
+    : SESSION_COOKIE
+}
 
 export type Schemas = components['schemas']
 export type ManifestClient = Client<paths>
@@ -11,8 +29,9 @@ export interface ManifestClientOptions {
   /** The console's origin — `https://console.manifest.internal` on a laptop. No path. */
   origin: string
   /**
-   * The `manifest_session` cookie's VALUE, for a client that is not a browser. A browser
-   * sends its own cookie and its own Origin, and may set neither.
+   * The session cookie's VALUE, for a client that is not a browser — sent under the name the
+   * origin reads (`sessionCookieFor`). A browser sends its own cookie and its own Origin, and
+   * may set neither.
    */
   session?: string
   /**
@@ -58,7 +77,7 @@ export function createManifestClient(options: ManifestClientOptions): ManifestCl
             ...(options.token === undefined ? { origin } : {}),
             ...(options.session === undefined
               ? {}
-              : { cookie: `${SESSION_COOKIE}=${options.session}` }),
+              : { cookie: `${sessionCookieFor(origin)}=${options.session}` }),
             ...(options.token === undefined
               ? {}
               : { authorization: `Bearer ${options.token}` }),

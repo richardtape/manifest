@@ -1,4 +1,4 @@
-import { SESSION_COOKIE } from './client.js'
+import { sessionCookieFor } from './client.js'
 import type { components } from './schema.js'
 
 export type StreamFrame = components['schemas']['StreamFrame']
@@ -79,7 +79,7 @@ export function subscribe(options: SubscribeOptions): Subscription {
           ...(options.token === undefined ? { origin } : {}),
           ...(options.session === undefined
             ? {}
-            : { cookie: `${SESSION_COOKIE}=${options.session}` }),
+            : { cookie: `${sessionCookieFor(origin)}=${options.session}` }),
           ...(options.token === undefined
             ? {}
             : { authorization: `Bearer ${options.token}` }),

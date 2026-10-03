@@ -13,6 +13,9 @@ import { randomBytes, timingSafeEqual } from 'node:crypto'
  * The RETURN PATH rides in the cookie, not in `RelayState`: SAML Bindings §3.4.3 caps
  * `RelayState` at 80 bytes, which a path does not fit. It is re-checked on the way out,
  * because a cookie is the client's input too.
+ *
+ * THIS IS THE NAME ON LOOPBACK HTTP; on https it is `__Host-manifest_login`, at `Path=/`, so a
+ * sibling host cannot toss one carrying its own nonce (FE-28, `cookie-names.ts`).
  */
 export const LOGIN_COOKIE = 'manifest_login'
 export const LOGIN_TTL_SECONDS = 600

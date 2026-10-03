@@ -47,7 +47,9 @@ IDP_JAR="$WORK/instructor-idp.jar"
 # The session's VALUE out of a curl jar (Netscape format, tab-separated). curl writes an
 # HttpOnly cookie's line with a `#HttpOnly_` prefix on the domain, which leaves the seven
 # fields where they are.
-session_of() { awk -F'\t' 'NF==7 && $6=="manifest_session" {print $7}' "$1"; }
+# The Manifest session out of a curl jar, under its name on an https origin — every origin this
+# demo signs in on is one, through the edge (FE-28: the plain name is loopback http's alone).
+session_of() { awk -F'\t' 'NF==7 && $6=="__Host-manifest_session" {print $7}' "$1"; }
 
 # Quiet when it builds, and LOUD when it does not. `tsc` writes its errors to STDOUT, so a
 # `build >/dev/null` throws them away and a demo that no longer type-checks against the
@@ -84,7 +86,7 @@ say "1. Sign in to Manifest with CWL, as the instructor, through the edge"
 idp_login "$CP_JAR" "$IDP_JAR" "$ORIGIN/auth/login" instructor instructor \
   "$ORIGIN/auth/saml/callback" "$CA"
 SESSION="$(session_of "$CP_JAR")"
-[ -n "$SESSION" ] || fail "the sign-in left no manifest_session cookie"
+[ -n "$SESSION" ] || fail "the sign-in left no __Host-manifest_session cookie"
 echo "  signed in as the instructor"
 
 say "1b. The instructor steps up (§20) — confirming a privileged action needs it, since P6a"

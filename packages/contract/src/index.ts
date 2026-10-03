@@ -1,4 +1,10 @@
-export { createManifestClient, idempotencyKey, SESSION_COOKIE, unwrap } from './client.js'
+export {
+  createManifestClient,
+  idempotencyKey,
+  SESSION_COOKIE,
+  sessionCookieFor,
+  unwrap,
+} from './client.js'
 export type { ManifestClient, ManifestClientOptions, Schemas } from './client.js'
 export { ManifestApiError } from './errors.js'
 export type { ErrorCode, ErrorEnvelope } from './errors.js'

@@ -1,7 +1,11 @@
 import { deflateRawSync } from 'node:zlib'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetDatabase } from '../db/testing.js'
-import { verifySession } from '../identity/index.js'
+import {
+  HOST_LOGIN_COOKIE,
+  HOST_SESSION_COOKIE,
+  verifySession,
+} from '../identity/index.js'
 import {
   authnRequestId,
   logoutRequestXml,
@@ -12,7 +16,7 @@ import {
 import { mintSpKeypair } from '../sso/index.js'
 import { buildServer } from './server.js'
 import { rawQueryValues } from './routes/auth.js'
-import { testDeps } from './testing.js'
+import { browserKeeps, testDeps } from './testing.js'
 
 type App = Awaited<ReturnType<typeof buildServer>>
 type Deps = Awaited<ReturnType<typeof testDeps>>
@@ -58,11 +62,11 @@ async function signIn(
       RelayState: new URL(location).searchParams.get('RelayState') ?? '',
     },
     cookies: {
-      manifest_login: login.cookies.find((c) => c.name === 'manifest_login')!.value,
+      [HOST_LOGIN_COOKIE]: login.cookies.find((c) => c.name === HOST_LOGIN_COOKIE)!.value,
     },
   })
   expect(res.statusCode, res.body).toBe(302)
-  return res.cookies.find((c) => c.name === 'manifest_session')!.value
+  return res.cookies.find((c) => c.name === HOST_SESSION_COOKIE)!.value
 }
 
 /** The console's sign-out, as a browser sends it: the session, and §20's Origin. */
@@ -71,12 +75,23 @@ const consoleSignOut = (app: App, session?: string) =>
     method: 'POST',
     url: '/auth/logout',
     headers: { origin: ORIGIN },
-    ...(session === undefined ? {} : { cookies: { manifest_session: session } }),
+    ...(session === undefined ? {} : { cookies: { [HOST_SESSION_COOKIE]: session } }),
   })
 
-/** The session cookie a response set: '' when it CLEARED it, undefined when it said nothing. */
-const sessionSet = (res: { cookies: { name: string; value: string }[] }) =>
-  res.cookies.find((c) => c.name === 'manifest_session')?.value
+/**
+ * The session cookie a response set: '' when it CLEARED it, undefined when it said nothing —
+ * AS A BROWSER READS IT (FE-28): a `__Host-` clear without `Secure` is dropped by the browser,
+ * which keeps the session, so here it reads as nothing said (`browserKeeps`).
+ */
+const sessionSet = (res: {
+  cookies: {
+    name: string
+    value: string
+    secure?: boolean
+    path?: string
+    domain?: string
+  }[]
+}) => res.cookies.find((c) => c.name === HOST_SESSION_COOKIE && browserKeeps(c))?.value
 
 const code = (res: { json: <T>() => T }) =>
   res.json<{ error?: { code?: string } }>().error?.code
@@ -142,7 +157,7 @@ describe('single logout — the IdP’s LogoutRequest (§9, D15; P5c sitting 9, 
     // No session, so nothing to tell the IdP: back to the console's home.
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ redirectTo: '/' })
-    expect(String(res.headers['set-cookie'] ?? '')).toContain('manifest_session=')
+    expect(String(res.headers['set-cookie'] ?? '')).toContain('__Host-manifest_session=')
     await app.close()
   })
 })
@@ -168,7 +183,7 @@ describe('the IdP’s logout messages must be signed', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/auth/logout?${idp.redirect({ kind: 'LogoutRequest', destination: SLO, unsigned: true })}`,
-      cookies: { manifest_session: session },
+      cookies: { [HOST_SESSION_COOKIE]: session },
     })
 
     expect(res.statusCode).toBe(400)
@@ -210,7 +225,7 @@ describe('the IdP’s logout messages must be signed', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/auth/logout?${idp.redirect({ kind: 'LogoutRequest', destination: SLO, relayState: 'r1' })}`,
-      cookies: { manifest_session: session },
+      cookies: { [HOST_SESSION_COOKIE]: session },
     })
 
     expect(res.statusCode, res.body).toBe(302)
@@ -298,7 +313,7 @@ describe('the console’s sign-out ends the IdP session (P6b F10)', () => {
       deps.config.sessionSecret,
     )
 
-    const res = await consoleSignOut(app, cookies.manifest_session)
+    const res = await consoleSignOut(app, cookies[HOST_SESSION_COOKIE])
 
     expect(res.statusCode, res.body).toBe(200)
     expect(res.json()).toEqual({ redirectTo: '/' })
@@ -399,11 +414,12 @@ describe('a sign-out begun on the front-end’s origin ends there (Task 8)', () 
         RelayState: new URL(location).searchParams.get('RelayState') ?? '',
       },
       cookies: {
-        manifest_login: login.cookies.find((c) => c.name === 'manifest_login')!.value,
+        [HOST_LOGIN_COOKIE]: login.cookies.find((c) => c.name === HOST_LOGIN_COOKIE)!
+          .value,
       },
     })
     expect(res.statusCode, res.body).toBe(302)
-    return res.cookies.find((c) => c.name === 'manifest_session')!.value
+    return res.cookies.find((c) => c.name === HOST_SESSION_COOKIE)!.value
   }
 
   const signOutOn = (app: App, session: string, host: string, origin: string) =>
@@ -411,7 +427,7 @@ describe('a sign-out begun on the front-end’s origin ends there (Task 8)', () 
       method: 'POST',
       url: '/auth/logout',
       headers: { host, origin },
-      cookies: { manifest_session: session },
+      cookies: { [HOST_SESSION_COOKIE]: session },
     })
 
   const requestIdOf = (redirectTo: string) =>
@@ -619,5 +635,63 @@ describe('a logout message is inflated only so far, before anything reads it ([S
       `SAMLResponse=${deflated(small)}&SAMLRequest=${deflated(bomb)}&${SIGNED}`,
     )
     expect(lines.join('\n')).toMatch(/SAMLRequest beside/)
+  })
+})
+
+/**
+ * REVIEW FOCUS 1 — A SIGN-OUT THAT SILENTLY STOPS WORKING (FE-28). A `__Host-` cookie is
+ * replaced only by a `Set-Cookie` the browser accepts, and a browser accepts a `__Host-` one
+ * only Secure, `Path=/` and host-only. A clear without `Secure` is dropped without a word, and
+ * the person stays signed in after *Sign out*. `[M1]` measured it in Chrome 154 and curl 8.7.1.
+ */
+describe('a clear on https carries Secure — or the browser keeps the session (FE-28)', () => {
+  const clearOf = (res: {
+    cookies: {
+      name: string
+      value: string
+      secure?: boolean
+      path?: string
+      domain?: string
+      maxAge?: number
+    }[]
+  }) => res.cookies.find((c) => c.name === HOST_SESSION_COOKIE)
+
+  it('the console’s sign-out, on both origins', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signIn(app, idp)
+    for (const host of ['console.manifest.internal', 'app.manifest.internal']) {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/auth/logout',
+        headers: { host, origin: `https://${host}` },
+        cookies: { [HOST_SESSION_COOKIE]: session },
+      })
+      expect(res.statusCode, res.body).toBe(200)
+      const clear = clearOf(res)
+      expect(clear).toMatchObject({ value: '', secure: true, path: '/', maxAge: 0 })
+      expect(clear?.domain).toBeUndefined()
+      expect(browserKeeps(clear!)).toBe(true)
+    }
+    await app.close()
+  })
+
+  it('the IdP’s single logout', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signIn(app, idp)
+    const res = await app.inject({
+      method: 'GET',
+      url: `/auth/logout?${idp.redirect({ kind: 'LogoutRequest', destination: SLO })}`,
+      cookies: { [HOST_SESSION_COOKIE]: session },
+    })
+    expect(res.statusCode, res.body).toBe(302)
+    const clear = clearOf(res)
+    expect(clear).toMatchObject({ value: '', secure: true, path: '/', maxAge: 0 })
+    expect(clear?.domain).toBeUndefined()
+    expect(browserKeeps(clear!)).toBe(true)
+    await app.close()
   })
 })

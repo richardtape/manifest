@@ -84,11 +84,13 @@ case "$STOP_AFTER" in
   *) fail "DEMO_FRONTEND_STOP_AFTER is '$STOP_AFTER' — a step, 0 to 10" ;;
 esac
 
-session_of() { awk -F'\t' 'NF==7 && $6=="manifest_session" {print $7}' "$1"; }
-# Every host the jar holds a manifest_session cookie for. curl writes an HttpOnly cookie's domain
+# The Manifest session out of a curl jar, under its name on an https origin — every origin this
+# demo signs in on is one, through the edge (FE-28: the plain name is loopback http's alone).
+session_of() { awk -F'\t' 'NF==7 && $6=="__Host-manifest_session" {print $7}' "$1"; }
+# Every host the jar holds a __Host-manifest_session cookie for. curl writes an HttpOnly cookie's domain
 # as `#HttpOnly_<host>`.
 session_hosts() {
-  awk -F'\t' 'NF==7 && $6=="manifest_session" {d=$1; sub(/^#HttpOnly_/, "", d); print d}' "$1" \
+  awk -F'\t' 'NF==7 && $6=="__Host-manifest_session" {d=$1; sub(/^#HttpOnly_/, "", d); print d}' "$1" \
     | sort -u | tr '\n' ' ' | sed 's/ $//'
 }
 
@@ -191,10 +193,10 @@ say "1. The instructor signs in with CWL ON THE APP ORIGIN"
 idp_login "$CP_JAR" "$IDP_JAR" "$ORIGIN/auth/login" instructor instructor \
   "$ORIGIN/auth/saml/callback" "$CA"
 SESSION="$(session_of "$CP_JAR")"
-[ -n "$SESSION" ] || fail "the sign-in left no manifest_session cookie"
+[ -n "$SESSION" ] || fail "the sign-in left no __Host-manifest_session cookie"
 HOSTS="$(session_hosts "$CP_JAR")"
 [ "$HOSTS" = "app.$ZONE" ] || fail "the session cookie is set for '$HOSTS', not app.$ZONE alone"
-echo "  the assertion came back to $ORIGIN/auth/saml/callback, and manifest_session is app.$ZONE's alone"
+echo "  the assertion came back to $ORIGIN/auth/saml/callback, and __Host-manifest_session is app.$ZONE's alone"
 NAME="$(api GET /v1/me | field displayName)" || fail "GET /v1/me with the app's cookie did not answer a person"
 [ "$NAME" = "Test Instructor" ] || fail "signed in as '$NAME', not Test Instructor"
 echo "  signed in as $NAME"
@@ -294,7 +296,7 @@ STU_CP_JAR="$WORK/student.jar"; STU_CP_IDP_JAR="$WORK/student-idp.jar"
 idp_login "$STU_CP_JAR" "$STU_CP_IDP_JAR" "$ORIGIN/auth/login" student student \
   "$ORIGIN/auth/saml/callback" "$CA"
 STUDENT_SESSION="$(session_of "$STU_CP_JAR")"
-[ -n "$STUDENT_SESSION" ] || fail "the student's sign-in to Manifest left no manifest_session cookie"
+[ -n "$STUDENT_SESSION" ] || fail "the student's sign-in to Manifest left no __Host-manifest_session cookie"
 # WHO MAY BUILD (FE-39): only a faculty member is added to a project, so the person added is the
 # laptop IdP's second faculty member, `colleague` (the launch path plan's Decision 31); the student
 # is shown refused. Its own jars, for the reason above.
@@ -302,7 +304,7 @@ COL_CP_JAR="$WORK/colleague.jar"; COL_CP_IDP_JAR="$WORK/colleague-idp.jar"
 idp_login "$COL_CP_JAR" "$COL_CP_IDP_JAR" "$ORIGIN/auth/login" colleague colleague \
   "$ORIGIN/auth/saml/callback" "$CA"
 COLLEAGUE_SESSION="$(session_of "$COL_CP_JAR")"
-[ -n "$COLLEAGUE_SESSION" ] || fail "the colleague's sign-in to Manifest left no manifest_session cookie"
+[ -n "$COLLEAGUE_SESSION" ] || fail "the colleague's sign-in to Manifest left no __Host-manifest_session cookie"
 run_phase people MANIFEST_SESSION="$SESSION" MANIFEST_SESSION_STEPPED="$SESSION_STEPPED" \
   MANIFEST_STUDENT_SESSION="$STUDENT_SESSION" MANIFEST_COLLEAGUE_SESSION="$COLLEAGUE_SESSION"
 stop_after 7
