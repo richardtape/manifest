@@ -1888,7 +1888,7 @@ named in the row below.*
 - **Sittings 1–6 and 5b are DONE** (2026-10-02/03; each one's *Sitting N* is the record). **The contract is `1.6.0`. All five of its first spec
   actions are APPLIED; a SIXTH, proposed by sitting 5b, is HELD FOR RICH** (Spec action 6: §8 and §9's facts about `passport-ubcshib` after
   0.1.7 — no code, and nothing in sitting 7 depends on it).
-- **Sitting 5b closed 2026-10-03, ~16:35 PDT** (`manifest-9d`; its *Sitting 5b* is the record): **`node-ts-mongo@1` and `fixtures/saml-sp`
+- **Sitting 5b closed 2026-10-03, ~16:33 PDT** (`manifest-9d`; its *Sitting 5b* is the record): **`node-ts-mongo@1` and `fixtures/saml-sp`
   pin `passport-ubcshib@0.1.7-rc.1`** (`1dcb905`) — on `@node-saml/passport-saml` 5.1.1, no `passport-saml` in an app's tree, the `@xmldom`
   override gone, `npm audit` 5 (2 critical) → 2 moderate. **An app now tells the IdP it signed the person out** (F2: the new library answered
   `UnknownPrincipal` by default; the blueprint's `logout()` ends the session first and its verify returns `null`; the Docker tier decodes the
@@ -1926,7 +1926,7 @@ written by a fresh session; Rich creates the key) → FE-46/47/5 → A1 → B �
    driver-2 mirrors in `.manifest/repos` (`dead-app-resources.sh` names them). Removing them is his (`bash scripts/github-real-repos.sh`).
 5. **The front-end's F5b sitting on 7100 is pre-authorised for AFTER sitting 7** (`2026-09-30-decisions.md`, the ~13:43–13:46 entry).
 
-**THE MACHINE, AS SITTING 5b LEFT IT.** Queried at ~16:35 PDT on 2026-10-03, not remembered.
+**THE MACHINE, AS SITTING 5b LEFT IT.** Queried at ~16:31 PDT on 2026-10-03, not remembered.
 - **The control plane:** PID 16927 on 7100, **REAL GitHub** (`Manifest-local-dev`), restarted from `.env` after the Docker tier; its ready line
   says the capable model is registered and its fallback set. `make doctor` 21, `make verify` 66, 0 warnings each — and *"0 missing from the
   mirror"* of 294 pinned tarballs.
