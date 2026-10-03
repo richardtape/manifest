@@ -55,10 +55,15 @@
 # message raised here lands in that debug text AND in LiteLLM's ERROR log line, so it is a fixed sentence: never
 # the provider's message, which could quote the request.
 #
-# A 422 NEVER REACHES THIS FILE (F8, read at Task 6): with `drop_params: true`, LiteLLM's OpenAI provider answers a
-# 422 by dropping params and retrying once (llms/openai/openai.py, `for _ in range(2)`), and when the retry is
-# refused too the loop ends without returning — `None`, which the proxy answers as HTTP 200 with the body `null`.
-# No exception, so no fallback and no hook. It stays in the set below for a LiteLLM that fixes it.
+# A PROVIDER'S 422 IS ANSWERED 422 — THE SECOND GUARD, BELOW (F8; the faculty-ready plan's Task 6, its Task 1's
+# [M3] guard (E)). With `drop_params: true`, LiteLLM 1.98.0's OpenAI provider answers a 422 by dropping params and
+# retrying once (llms/openai/openai.py, `for _ in range(2)`), and when the retry is refused too the loop ends
+# without returning: `None`. No exception, so no fallback is asked and the hook above never runs. Unguarded, the
+# proxy answered that `None` as HTTP 200 with the body `null`, and a STREAMED request as 500 with LiteLLM's own
+# Python error ("'async for' requires an object with __aiter__ method, got NoneType"). So two proxy hooks refuse a
+# `None` answer as 422 before anything is sent: the post-call success hook (a request) and the streaming iterator
+# hook (a stream, checked BEFORE it is iterated — the stream object itself is `None`). The provider's own 422 is
+# swallowed by then, so the refusal is a fixed sentence. 422 stays in the set below for the fallback guard too.
 #
 # PRINTS NOTHING FROM A REQUEST — no message, key, header or prompt: one line at load (`make verify` reads the
 # callback list instead, which proves it is REGISTERED and not merely imported), and one per refusal naming the
@@ -117,6 +122,24 @@ class ManifestFallbackGuard(CustomLogger):
         )
         raise _refusal(status, str(kwargs.get("model")))
 
+    # F8 (above): a provider's 422 leaves LiteLLM with no answer at all. Refused 422 here, never sent as `null`.
+    async def async_post_call_success_hook(self, data, user_api_key_dict, response):
+        if response is None:
+            print("manifest_guard: a provider's 422 left no answer; refused 422", flush=True)
+            raise _unprocessable()
+        return response
+
+    # The same for a stream: the stream object itself is `None`, so it is checked BEFORE it is iterated, and the
+    # refusal is raised at the first chunk the proxy asks for — before any byte of a stream is sent. Every other
+    # stream passes through unchanged. Defining this hook on the class is what puts it in LiteLLM's iterator chain
+    # (proxy/utils.py reads the class's own attributes).
+    async def async_post_call_streaming_iterator_hook(self, user_api_key_dict, response, request_data):
+        if response is None:
+            print("manifest_guard: a provider's 422 left no stream; refused 422", flush=True)
+            raise _unprocessable()
+        async for item in response:
+            yield item
+
 
 def _refusal(status, model):
     """The class LiteLLM gives the provider's status (the controller's ruling 3). The client never sees it — the
@@ -129,6 +152,23 @@ def _refusal(status, model):
             message=message, model=model, llm_provider="manifest", response=httpx.Response(422, request=request)
         )
     return litellm.BadRequestError(message=message, model=model, llm_provider="manifest")
+
+
+def _unprocessable():
+    """F8's refusal: what the client sees, streamed or not — `422`, `invalid_request_error`, code `"422"`, and a
+    fixed message (the provider's own is swallowed by then). The streaming path takes its status from
+    `status_code` (proxy/common_request_processing.py: `getattr(e, "status_code", 500)`), and a ProxyException
+    carries only `code`, so both are set ([M3]: without `status_code` a stream is answered 500)."""
+    from litellm.proxy._types import ProxyException  # at call time: the proxy imports this module while it loads
+
+    refusal = ProxyException(
+        message="the provider could not process this request (422), so it was not answered; correct the request",
+        type="invalid_request_error",
+        param=None,
+        code=422,
+    )
+    refusal.status_code = 422
+    return refusal
 
 
 proxy_handler_instance = ManifestFallbackGuard()

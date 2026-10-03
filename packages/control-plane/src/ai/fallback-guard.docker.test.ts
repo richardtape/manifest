@@ -61,7 +61,10 @@ const FALLBACK_PATH = '/fallback/ok/v1/chat/completions'
 const USER = probe('user')
 const KEY_ALIAS = probe('key')
 
-/** The provider refused the request as malformed: answered as its refusal. */
+/**
+ * The provider refused the request as malformed: answered as its refusal. `422` is malformed too, and has its
+ * own two cases below (F8), because `drop_params` asks its provider twice where these are asked once.
+ */
 const REFUSED = [400, 413] as const
 /** The provider failed, or could not be reached: answered by the fallback. */
 const FAILED = [
@@ -90,6 +93,11 @@ const PRIMARIES: Record<string, { apiBase: string; path?: string }> = {
   'stream-400': {
     apiBase: `${STUB}/stream/s400/v1`,
     path: '/stream/s400/v1/chat/completions',
+  },
+  // F8's streamed half (the faculty-ready plan's Task 6): a provider's 422, asked for as a stream.
+  'stream-422': {
+    apiBase: `${STUB}/stream/s422/v1`,
+    path: '/stream/s422/v1/chat/completions',
   },
 }
 // The fix round's: requests that share a client-supplied id, each pair on its own deployments (cooldown is per
@@ -359,24 +367,34 @@ describeDocker(
     })
 
     /**
-     * KNOWN (F8): LITELLM 1.98.0 ANSWERS A PROVIDER'S 422 AS HTTP 200 WITH THE BODY `null` — measured at Task 1
-     * and again at Task 6, with the guard loaded and without it. With `drop_params: true` (config.yaml keeps it),
-     * its OpenAI provider answers a 422 by dropping params and retrying once (`llms/openai/openai.py`,
-     * `for _ in range(2)`); when the retry is refused too, the loop ends without returning, and the proxy answers
-     * the `None` it got. No exception is raised, so no fallback runs and the guard is never asked. The guides say
-     * a `200` whose body is `null` is a refusal, not an answer.
-     *
-     * THIS CASE ASSERTS THE DEFECT, so that a LiteLLM which fixes it turns it red: then it becomes the refusal case
-     * above with `422`, and this comment goes.
+     * F8, FIXED (the faculty-ready plan's Task 6): A PROVIDER'S 422 IS ANSWERED 422. LiteLLM 1.98.0, with
+     * `drop_params: true` (config.yaml keeps it), answers a 422 by dropping params and retrying once
+     * (`llms/openai/openai.py`, `for _ in range(2)`); when the retry is refused too, the loop ends without
+     * returning, and without the guard's post-call hooks the proxy answered the `None` it got as `200` with the
+     * body `null` — and a STREAMED one as `500`, LiteLLM's own Python error (Task 1's `[M3]`). No exception is
+     * raised, so the fallback is never asked: the provider is hit twice, the call and the drop-params retry, and
+     * nothing else. The provider's own 422 is swallowed, so the message is the guard's fixed sentence.
      */
-    it('KNOWN (F8): 422 — LiteLLM 1.98.0 answers 200 with a null body, and the fallback is never asked', async () => {
+    it('a provider’s 422 answers 422 with the provider’s refusal type, and never falls back (F8, fixed)', async () => {
       const before = stub!.hits(FALLBACK_PATH)
       const r = await chat(probe('422'))
-      expect(r.status, r.seen).toBe(200)
-      expect(r.text, r.seen).toBe('null')
+      expectTheProvidersRefusal(r, 422)
       expect(r.fellBack, r.seen).toBeNull()
-      // The drop-params retry: the provider is asked twice.
+      // The drop-params retry: the provider is asked twice, then nothing.
       expect(stub!.hits('/s422/v1/chat/completions')).toBe(2)
+      expect(stub!.hits(FALLBACK_PATH), 'the fallback was called').toBe(before)
+    })
+
+    /**
+     * A STREAMED 422 IS A REFUSAL THE CLIENT SEES (Review Focus 5): the same `422` and JSON body, before any
+     * stream begins — never `200` with an empty stream that closes cleanly, and never LiteLLM's `500`.
+     */
+    it('a STREAMED 422 is a refusal the client sees — 422 before any stream, never by the fallback (Review Focus 5)', async () => {
+      const before = stub!.hits(FALLBACK_PATH)
+      const r = await chat(probe('stream-422'), {}, { stream: true })
+      expectTheProvidersRefusal(r, 422)
+      expect(r.text, r.seen).not.toContain('data:')
+      expect(stub!.hits(PRIMARIES['stream-422']!.path!)).toBe(2)
       expect(stub!.hits(FALLBACK_PATH), 'the fallback was called').toBe(before)
     })
 

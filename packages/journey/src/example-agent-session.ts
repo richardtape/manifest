@@ -99,8 +99,9 @@ export async function startAModelSession(
  * Ask the model: an OpenAI-compatible request at the session's `baseUrl`, the key as a Bearer.
  * When the capable model's provider cannot answer, the platform's on-premise model answers in
  * its place — a smaller model's work, at its own price — and says so in a header. A request the
- * provider refuses as malformed is answered as its refusal instead, to correct — and so is a
- * `200` whose body is `null`.
+ * provider refuses as malformed is answered as its refusal instead, to correct: `400`, `413` or
+ * `422`. An older gateway answered a `422` as a `200` whose body is `null`, so that is read as a
+ * refusal too.
  */
 export async function askTheModel(
   session: { baseUrl: string; key: string; model: string },

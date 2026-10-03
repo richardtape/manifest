@@ -2315,6 +2315,8 @@ process `MANIFEST_DATABASE_URL`: `dist/db/client.js` throws at import without it
 **LITELLM 1.98.0 ANSWERS A PROVIDER'S `422` WITH HTTP `200` AND A BODY OF LITERAL `null`** (sitting 1, F8). A stub provider
 answering `422` was called twice, and the client got `200`, `null`, no `x-litellm-attempted-fallbacks` header, in 19 ms. Every
 other error status fell back (F7). **A `200` is not an answer until its body is**: read `choices`, never the status alone.
+**FIXED IN MANIFEST 2026-10-03** (the faculty-ready plan's sitting 4, Task 6): `infra/litellm/manifest_guard.py`'s post-call and
+streaming-iterator hooks refuse that `None` as `422`, streamed too — LiteLLM itself is unchanged, so a guard that is not loaded brings it back.
 
 **LITELLM'S `metadata.previous_models` IS THE ROUTER'S, SHARED ACROSS REQUESTS** (sitting 1, F9). A callback on a fallback's call
 sees up to four recent failures from ANY request; the second request's hook saw the first request's `BadRequestError`. **Pick your
@@ -2405,8 +2407,11 @@ per-request state on either** — two requests of one agent session share it. Th
 request and passed by reference through every fallback attempt.
 
 **A PROVIDER'S `422` REACHES THE CLIENT AS `200` WITH A BODY OF `null`** (sitting 1's F8, still true under the guard — sitting 4's F16):
-LiteLLM 1.98.0's `drop_params` retry loop returns `None` before any fallback. `ai/fallback-guard.docker.test.ts` asserts it as `KNOWN
-(F8)` so a LiteLLM that fixes it turns red; the guides tell a client that a `200` whose body is `null` is a refusal.
+LiteLLM 1.98.0's `drop_params` retry loop returns `None` before any fallback. **FIXED 2026-10-03 by the faculty-ready plan's sitting 4**: the
+guard's two post-call hooks answer `422` (a streamed one was a `500` with LiteLLM's Python error, Task 1's `[M3]`), and
+`ai/fallback-guard.docker.test.ts`'s `KNOWN (F8)` case is now the fixed case and a streamed one. **The streaming-iterator hook is defined
+on the guard's own class ON PURPOSE**: LiteLLM 1.98.0 puts a callback in its iterator chain only when the class's OWN `__dict__` has the
+hook (`proxy/utils.py`, `_callback_capabilities`), so an inherited one is silently skipped.
 
 **THE AGENT'S EDIT TOOL REPLACES A FILE'S INODE — A SINGLE-FILE BIND MOUNT THEN SHOWS THE CONTAINER NO FILE AT ALL** (sitting 4's final
 wave, measured: `infra/litellm/manifest_guard.py` 87984135 → 88068457, and `/app/manifest_guard.py` did not exist in `manifest-litellm`

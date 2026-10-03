@@ -2083,7 +2083,9 @@ reasoning is recorded.**
 - **RICH'S DECISIONS OF 2026-09-30, WITH THE PLANNING SESSION `manifest-00`** — each in his words in
   [`2026-09-30-decisions.md`](2026-09-30-decisions.md); moved here from *Open*:
   - **A provider's `422` answered `200 null` (F8)** — *"(b) next plan; (a) meanwhile"*: a hook in `manifest_guard.py`, in the
-    *faculty-ready* plan's Task 6 (streamed too, or that sitting stops and asks him); documented as a refusal until then.
+    *faculty-ready* plan's Task 6 (streamed too, or that sitting stops and asks him); documented as a refusal until then. **BUILT by the
+    faculty-ready plan's sitting 4 (2026-10-03)**: the guard's post-call and streaming-iterator hooks answer `422`, streamed and not
+    (Task 1's `[M3]` guard (E)); the guides keep reading an older gateway's `200 null` as a refusal.
   - **LiteLLM's headers and debug text** — *"Strip two, before prod"*, then *"All four leaks"*: a TRACKED item for before any production
     deployment (the roadmap's hardening table) — `x-litellm-model-api-base`, `x-litellm-model-name`, the body's underlying `model`
     (rewritten to the logical name) and `llm_provider-*`; KEEP `x-litellm-attempted-fallbacks`, which the front-end reads.
