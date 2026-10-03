@@ -662,3 +662,27 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - THE REVISED PLANS (2d74a5d) — "A1 and FE-32 now; B and A2 later (Recommended)": A1 (production instances) and
         FE-32 (dependencies, with the allowlist) APPROVED as revised; B (the load rehearsal) and A2 (hibernation) get a
         second fresh review when they are next in line.
+
+    And at 15:28 PDT, the ORDER RE-CUT, in his words: "I think your suggestion of FE-46/47/5 → A1 → B → FE-32 → Phase 3 → A2
+    is good. Let's document that." (manifest-94 had suggested it because A2 mostly saves idle cost, while FE-32 and Phase 3
+    — a real harness that can sign in and test its own pages, S5 — are what make faculty apps work.) The order after
+    faculty-ready is now: the UBC AI Gateway (below) → FE-46/47/5 → A1 → B → FE-32 → Phase 3 (sandboxes; unwritten) → A2 →
+    the vulnerability database → FE-45.
+
+    And, the same message: "I also need to add in the ability to use some infrastructure that we have spun up on prem (even
+    locally, yes it will need the network on). We have an API service (which is actually LiteLLM) running at
+    ai-gateway.apps.ltic.ubc.ca … we need manifest to be able to talk to that as an LLM provider. I can generate API keys on
+    that service directly (I am an admin). Can we get this built into manifest fairly soon so we're not going direct to
+    OpenAI, but rather through the LiteLLM 'AI Gateway' hosted at UBC?" Measured by manifest-94 first: the gateway answers
+    from this laptop (/health/liveliness 200 "I'm alive!", /v1/models 401 without a key; 142.103.94.46/47); today
+    `MANIFEST_CAPABLE_MODEL` registers `openai/<model>` with no api_key, so LiteLLM calls OpenAI directly with .env's
+    OPENAI_API_KEY (ai/capable.ts), and the on-prem stand-in and `default-chat` are the laptop's Ollama. Through the
+    question tool:
+      - THE SHAPE — "As the upstream provider (Recommended)": Manifest keeps its own LiteLLM (per-person keys, budgets, the
+        guard) and routes the capable model, and real on-prem models, through the UBC AI Gateway with one key Rich
+        generates (held in .env, referenced, never printed); `default-chat` stays local, the offline floor. This DECIDES §8's
+        open "should Manifest at UBC use UBC's existing LiteLLM?": keep our own, name UBC's as its provider. Over: replacing
+        Manifest's LiteLLM with UBC's.
+      - WHEN — "Right after faculty-ready (Recommended)": a small plan of its own, before FE-46/47/5.
+      - WHO WRITES IT — "A fresh platform session now (Recommended)", documents only; Rich creates the key and adds it to
+        .env before its sitting 1.
