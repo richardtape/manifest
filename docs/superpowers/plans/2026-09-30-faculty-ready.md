@@ -17,6 +17,11 @@
 > faculty-ready"*). **FE-50 joins Task 12**, because it rewrites the same remedy text as FE-51. **FE-49 joins Task 13.** **F7 is Task 14,
 > in sitting 2.** The plan now has 14 tasks in seven sittings. None of the three needs a spec action. The same message placed FE-46,
 > FE-47 and FE-5 AFTER this plan, and chose inline execution (*Decided by Rich*).
+>
+> **AMENDED 2026-10-03, THREE TIMES, AT RICH'S WORD** (`../2026-09-30-decisions.md`): **Tasks 15 and 16** (~12:45 — §26's collaborator,
+> sitting 4's M1) and **Task 16b** (~13:34 — `member.removed`, sitting 5's own finding), all in sitting 5; and **Task 17** (~14:24 —
+> `passport-ubcshib` 0.1.7-rc.1) as a new **sitting 5b**, run by a fresh session (~14:33). **The plan now has 18 tasks (1–17 and 16b) in
+> eight sittings.** Task 11 is still the acceptance, alone and last.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (native) or superpowers:subagent-driven-development, **whichever Rich chooses at sitting 1's open** (2026-09-30: *"Probably not subagent driven though"*). Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -74,7 +79,8 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 | 2 | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | **DONE 2026-10-03** (`3d73adf`, `f1e7255`, `71df40d`, `95843e2`, `e355d10`; the review's fixes `70c3964`; *Sitting 2* below) |
 | 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | **DONE 2026-10-03** (`7b85326`; the review's fix `d4291dd`; **Step 6, through the edge, Rich ran as a script on 2026-10-03, ~12:00 PDT: all 12 checks passed and control (c) went red as predicted** — *Sitting 3* below) |
 | 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | **DONE 2026-10-03** (`5effd5e`, `2dd6fdd`, `0d5a743`; the review's fix `d8ce094`; **the driver-1 demos Rich ran as `s4-edge-proof.sh` on 2026-10-03, ~12:05 PDT: all three green, control (a) red at exactly its two step-9 checks** — *Sitting 4* below) |
-| 5 — **after 6** ← **next** | 7, 9, **15, 16** | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`). **Task 15** (added 2026-10-03 by Rich's (a) on I2): an administrator who is a collaborator gives a reason beyond their role. **Task 16** (added the same morning, sitting 4's M1): a question's end recorded in the transaction that ends it | Yes — `build/`, `blueprints/`, `infra/`, `projects/` | **5** (§26) for Task 15 — **APPLIED 2026-10-03** | **Follows sitting 6** (Rich's night order, 2026-10-03). Both Rich-steps are his already: `make seed` with the network on is PRE-AUTHORISED, and `SSP_STORE_PASSWORD` is in `.env` |
+| 5 — **after 6** | 7, 9, **15, 16, 16b** | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`). **Task 15** (added 2026-10-03 by Rich's (a) on I2): an administrator who is a collaborator gives a reason beyond their role. **Task 16** (added the same morning, sitting 4's M1): a question's end recorded in the transaction that ends it. **Task 16b** (added ~13:34 by Rich): `member.removed` recorded the same way | Yes — `build/`, `blueprints/`, `infra/`, `projects/` | **5** (§26) for Task 15 — **APPLIED 2026-10-03** | **DONE 2026-10-03** (`56c614a`, `9b216d3`, `7d789b3`, `af99b80`, `16ac01c`; **its driver-1 demos Rich ran as `s5-edge-proof.sh` the same afternoon, 13:58–14:00 PDT: `make demo`, `demo-identity` and `demo-ai` green, both apps on Node v24.21.0, the IdP's sessions in `ssp_store`** — *Sitting 5* below) |
+| 5b ← **next** (added ~14:24 by Rich) | **17** | **`passport-ubcshib` 0.1.7-rc.1** in `node-ts-mongo@1` (and `fixtures/saml-sp`): off the deprecated `passport-saml` 3.2.4 and GHSA-4mxg-3p6v-xgq3, onto `@node-saml/passport-saml` 5.1.1 — the single-logout path measured, a real CWL sign-in through a Manifest-built app. **A FRESH session** (Rich, ~14:33) | Yes — `blueprints/` | — | `make seed` with the network on is Rich's yes (*"make seed mirrors it"*); the rc is on npm since 14:30 PDT |
 | 6 (pulled ahead of 5 by Rich, 2026-10-03) | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | **DONE 2026-10-03** (`beb4827`, `1312504`; the review's fixes `8481440`; the whole suite's `efcaaeb`; **its through-the-edge half Rich ran as `s6-edge-proof.sh` on 2026-10-03, ~12:15 PDT: the refusal, the reason and the three demos green; its two stream/audit FAILs were the SCRIPT's, and both assertions hold** (the addendum after *Sitting 6*); **I2 DECIDED (a) by Rich the same morning — Task 15, in sitting 5**; *Sitting 6* below) |
 | 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
 
@@ -1219,6 +1225,88 @@ their tests (`tokens/expiry.test.ts` or the routes' own — find the ones Task 1
 
 ---
 
+## Task 16b: `member.removed` is recorded in the removal's transaction (sitting 5's own finding)
+
+**Added 2026-10-03, ~13:34 PDT, by Rich** (the question tool, through `manifest-94`: *fix it in sitting 5, after Task 9, before the
+driver-1 script and the gates*; his words are in `../2026-09-30-decisions.md`). Sitting 5's Task 16 found it. No spec action. **Executed
+by sitting 5** (`16ac01c`); its design is that sitting's, recorded here as built.
+
+**Before** (`7d789b3`): `removeMember`'s route published `member.removed` after the commit — and after `endSessionsOf`, which needs the
+model gateway. A write that failed left the person off the project, their tokens revoked, and nothing recorded; the retry, finding them
+no member, records nothing (its own comment said so). **`project.archived` does not share it**: `publishArchivedOnce` reads the trail since
+`archived_at`, so the retry or the boot publishes a lost one.
+
+**The design (sitting 5's ruling; `manifest-94` measured the readers' constraint first):**
+- Recorded with `recordEvent` on the removal's own transaction, its frame pushed after the commit with the questions' (Task 16's shape).
+- `tokensRevoked` is known there. **`sessionsEnded` is the person's sessions live at the removal**, counted by `endSessionsOf`'s own
+  predicate (`ai/`'s `liveSessionsCount`): the same number whenever every session ends. Nothing can add to that set once the removal
+  commits — the person is no member, their tokens revoked.
+- The sentence loses its failure tail (*"At least one … could not be ended; repeating the removal ends it."*); the request's `503`/`500`
+  and each `agent_session.ended` carry it. The field's description says so.
+- **Readers measured:** the faculty front-end reads `memberId` and the actor, never the counts or the sentence (`happenings.ts`); the console
+  renders `humanMessage` as text; the mock only emits the type. The front-end was told by NOTICE and saw no objection.
+- **And the removal takes the project row `FOR KEY SHARE` first** (`projects/`'s `removeMember`): an event's foreign key takes that lock,
+  and taken after the membership row it deadlocked a racing `addMember` (project `FOR UPDATE`, then the membership) — measured, sitting 5's
+  findings.
+
+**Files:** `api/routes/project-reads.ts`, `ai/sessions.ts` (`liveSessionsCount`, one predicate with `endSessionsOf`), `projects/repository.ts`,
+`projects/source-attribution.ts` (`Pick<Db, 'select'>`), `observability/event-schemas.ts`; tests `api/questions-end-atomic.test.ts` (its last
+case) and `api/members.test.ts` (the AI-off case, and the race test's wait).
+
+---
+
+## Task 17: `passport-ubcshib` 0.1.7-rc.1 in the `node-ts-mongo` blueprint — off the deprecated `passport-saml` (sitting 5b)
+
+**Added 2026-10-03, ~14:24 PDT, by Rich** (the question tool, through `manifest-94`: the source *"npm prerelease 0.1.7-rc.1"*, and *"b9, as
+sitting 5b"* — then, at ~14:33, *a fresh session for each next job*, so sitting 5b is a FRESH session's). His words: `../2026-09-30-decisions.md`,
+commits `43fff2e` and `21dc368`. **It runs as sitting 5b, after sitting 5's close and before sitting 7.** No spec action.
+
+**What changed upstream.** `passport-ubcshib` is Rich's library (npm maintainer `richtape`, `github.com/ubc/passport-ubcshib`). Its 0.1.6 —
+pinned by `node-ts-mongo@1`, so in every faculty app — sits on the npm-DEPRECATED `passport-saml` 3.2.4, with the critical signature-verification
+advisory GHSA-4mxg-3p6v-xgq3 at range `*` (§12's gate records it and does not block: no fix in that line). **0.1.7-rc.1** swaps in
+`@node-saml/passport-saml` 5.1.1 (`@node-saml/node-saml` 5.1.0, `@xmldom/xmldom` 0.8.15), keeps the library's public API, and fixes the MACE PUID
+and the missing `uid` / `eduPersonPrincipalName` OIDs. **Published by Rich at 14:30 PDT under the dist-tag `next`** (`latest` stays 0.1.6, and no
+`^0.1.x` range resolves a prerelease): gitHead `5f90fd6`, 7 files, integrity
+`sha512-t94gNbCHMxq1ObEz8AI0DQpzoyV0fQzgdkyS4gBRy7fwDzt0ilceOFQLaMZ3nerknxQjwITKIEPG93mj8eXJGQ==` (checked by `manifest-94`). Draft PR
+https://github.com/ubc/passport-ubcshib/pull/1; the source is `~/Developer/passport-ubcshib`, branch `fix/node-saml-5` — **read it, never edit
+it.** **Its `CHANGELOG.md`, `## 0.1.7`, is the compatibility table**: `cert` still the option (mapped to `idpCert`); `validateInResponseTo` still a
+boolean (mapped to the enum); both signature flags default false while at least one valid signature over the assertion is still required
+(measured upstream); audience not validated by default, as in 0.1.6; the logout verify callback `@node-saml` requires is supplied.
+
+**Files** (each confirmed at sitting 5's close, 2026-10-03, on `16ac01c`):
+- `blueprints/node-ts-mongo/blueprint.yaml:97` (`pinned_dependencies`, and the comment at `:87` on *"these five … with the `@xmldom/xmldom`
+  override"*), `blueprints/node-ts-mongo/skeleton/package.json:12,16` and its `package-lock.json` (regenerated THROUGH Verdaccio);
+  `fixtures/saml-sp/package.json:12,15` and its lockfile — **a test holds the fixture equal to the blueprint**.
+- **The `@xmldom/xmldom` 0.8.15 override** in both: drop it only where `@node-saml/node-saml` resolves 0.8.15 itself — measure it (`npm ls`).
+- `blueprints/node-ts-mongo/skeleton/auth/ubcshib.js` — **`:161`'s comment says the strategy accepts an UNSIGNED LogoutRequest**
+  (*"passport-saml checks a signature only when one is present"*); `@node-saml` may verify it. `:45` cites passport-ubcshib's `index.js:120` and
+  `:307`; `:75` and `:98`, and `auth/session.js:34`, describe passport-saml's behaviour. Re-read each against 0.1.7-rc.1.
+- `packages/control-plane/src/build/scan.ts:~78-88` — the narrative of the unfixable `passport-ubcshib@0.1.6` finding; `spec/injection.ts:~176` —
+  *"copied from `passport-ubcshib@0.1.6`'s own `UBC_CONFIG.PRODUCTION` (index.js:23–27)"*; `blueprints/node-ts-mongo/agents/AGENTS.md`'s mentions;
+  the tests naming the library (`blueprints/attribute-bridge.test.ts`, `blueprints/blueprints.test.ts`, `spec/injection.test.ts`,
+  `spec/injection-drift.test.ts`, `runtime/docker/node-ts-mongo.docker.test.ts`).
+- `docs/external-track.md` item 9 (`:73`, and a dated log line) — *"fixed upstream; the rc in the blueprint; the final 0.1.7 pending UBC
+  staging"*; `TRAPS.md`'s `passport-ubcshib` entries; ORIENTATION §8 *Open*'s *"The long-term fix for `passport-ubcshib` is UBC's"*.
+
+- [ ] **Step 1: Measure before changing.** In a scratch copy (never the source tree): the rc's dependency closure (`npm ls` — node-saml,
+  xmldom), `npm audit`, and whether the xmldom override is still needed.
+- [ ] **Step 2: `make seed` with the network ON** — Rich's yes is *"make seed mirrors it"* — so Verdaccio holds the new closure. **It also
+  rebuilds and recreates the edge** (TRAPS: *`make seed` WITH THE NETWORK ON*).
+- [ ] **Step 3: The pins and lockfiles**, the fixture with the blueprint, the comments and narratives above; `contract:write` / `docs:write` if
+  the knowledge pack or an example changes.
+- [ ] **Step 4: The sign-out paths Manifest guarantees** — an IdP-begun SLO into an app (`:161`), P4c's redeploy that signs out nobody, and
+  the console's sign-out — each measured on the new library; a change in any is a finding, and the demos below carry it.
+- [ ] **Step 5: Gates.** The four, and **the Docker tier** (`blueprints/` is owed; `node-ts-mongo.docker.test.ts` and the identity tier sign
+  in through it). **A real CWL sign-in inside a Node-24 app on the new library** — `make demo-identity` through the edge, and `make
+  demo-redeploy` if the SLO path changed — **in a restore-safe script for Rich** in `s5-edge-proof.sh`'s shape (7100 runs real GitHub; the
+  restart onto driver 1 is refused to an agent).
+- [ ] **Step 6: Commit, then the negative control**: the pin back to 0.1.6 (or the fixture unequal to the blueprint) — predict which named test
+  goes red. Restore.
+- **Named, not this task's:** when `0.1.7` FINAL is published, the pin moves `0.1.7-rc.1 → 0.1.7` — a one-line follow-up (two `package.json`s,
+  the descriptor, the lockfiles, a `make seed`).
+
+---
+
 ## What this plan does not build
 
 - **FE-32**, *an agent can add a dependency*. It is the next plan (Rich, 2026-09-30).
@@ -2008,3 +2096,124 @@ and the logs they left in `$TMPDIR` (`s3-edge-proof.FhmBvNM9br`, `s4-edge-proof.
   - 7100 is PID 51789, real GitHub, started by the s6 script's restore.
   - The tree is clean at `34aa6fd`.
   - The four protected containers are up.
+
+### Sitting 5 — 2026-10-03, afternoon: Tasks 7, 9, 15, 16 and 16b — `node:24-alpine`, the IdP store's own role, §26's collaborator, M1 and `member.removed` (`manifest-b9`)
+
+**What happened.**
+- **Opened ~13:00 PDT on `432f88c`** at Rich's word, relayed by the coordinator `manifest-94`; executed inline. 7100 was PID 51789 (real GitHub,
+  built from `34aa6fd`). Beside it ran `manifest-c7` (a plan, docs only) and the faculty front-end's `manifest-app-5a` (mock mode). Every HOLD,
+  FREE and NOTICE went to the front-end and into `.superpowers/sdd/platform-window`; every commit was reported to `manifest-94`.
+- **The commits, in order:**
+  - `56c614a` — **Task 7.** `make seed` (pre-authorised, the network on; 13:03:47–13:06:01 PDT, exit 0) pulled `node:24-alpine` and mirrored it:
+    the registry answers **`sha256:38a36422…`** (single-arch; Docker Hub's index, which `images.lock` records, is `sha256:ebfe2f90…` and absent
+    from the registry). **Node v24.21.0, npm 11.19.0, Alpine 3.24.2.** Both descriptors pin it; 22 stays mirrored beside it. Doctor's two base
+    checks read by TAG (F1); verify's offline check asserts both node tags; the knowledge pack, its served example and the mock's build-log
+    lines say Node 24.
+  - `9b216d3` — **Task 15.** `requireAdminReason` exempts a member only for what `capabilitiesFor(role, 'member')` allows; beyond it the refusal
+    says *"… is beyond your role on it"*, and the act is recorded `asAdministrator: true` with the reason. `ADMIN_REASON_REQUIRED`'s meaning,
+    `conventions.md`, `events.md` and the console's reason panel (shown to a collaborator-administrator too, F7) follow; the mock's person is a
+    non-member, unchanged.
+  - `7d789b3` — **Task 16.** `publishQuestionsEnded` split: `recordQuestionsEnded` writes on the act's own transaction, `announceQuestionsEnded`
+    pushes after the commit, at all three callers. `questions-end-atomic.test.ts` (new) fails the event write through a partial `vi.mock` of
+    `observability/index.js`.
+  - `af99b80` — **Task 9.** `ssp_store` (LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE) owns schema `ssp_store`, `search_path = ssp_store`;
+    `config.php` (written in place), compose, `.env.example` and the scrub list carry `SSP_STORE_PASSWORD`; `ensure-idp-sql.sh` drops the old
+    `public` copies once, saying so — **every IdP session ended; everyone signs in again** (the front-end was told). `make up` recreated
+    `manifest-idp` onto the image the seed rebuilt (F3). A real CWL sign-in made both tables in `ssp_store`, owned by `ssp_store`. Two verify
+    checks: **`EXPECT_VERIFY` 64 → 66**.
+  - `16ac01c` — **Task 16b, added by Rich at ~13:34** (F9): `member.removed` recorded in the removal's transaction, and the removal takes the
+    project row `FOR KEY SHARE` first (F10). The front-end was told by NOTICE and saw no objection.
+- **Contract: still `1.6.0`.** Three text-only changes, each NOTICEd before its commit: the knowledge-pack example (Task 7),
+  `ADMIN_REASON_REQUIRED`'s meaning (Task 15), and `member.removed.sessionsEnded`'s description (Task 16b).
+
+**Findings.**
+
+1. **F1 — doctor's lock check asserted `n >= 1`** under the name *"pins every base image"*, so a tag added to `images.txt` and never seeded
+   passed it (as the registry check passed by REPOSITORY, which the plan knew). Both now read every line's own tag; both went red for
+   `node:24-alpine` before the seed (21 checks, 2 failed) and green after it.
+2. **F2 — a plan defect: Task 7 Step 5's control broke `node-ts-mongo`, which `make demo` does not build** (`fixture-node@1`), so it could not turn
+   `make demo` red. Ruled: break `fixture-node`'s `base_image` (Hub's index digest) and run the same build through
+   `source/github/build.docker.test.ts` — doctor stayed green (21/0, it reads the TAG) and the build went red *"failed to solve: …: failed to
+   resolve source metadata … not found"*. Restored.
+3. **F3 — `make seed` with the network on REBUILT and RECREATED the edge.** BuildKit re-resolved `caddy:2.11.4`, `php:8.3-apache` and
+   `composer:2` online and rebuilt `manifest-caddy:local`, `manifest-idp:local` and `manifest-github-fake:local`; its step 5 RECREATED
+   `manifest-caddy` and both dnsmasq containers (every runtime route dropped); the next `make up` recreated `manifest-idp` (SimpleSAMLphp
+   v2.5.3.1 unchanged, PHP 8.3.33 → 8.3.35). Nothing said a re-seed touches the edge. TRAPS and RUNBOOK's `make seed` row say so now.
+4. **F4 — `make seed` refreshes the vulnerability database** (its step 4c): built **`2026-10-03T06:31:58Z`**, read with doctor's own command —
+   so `make refresh-vulndb` is next due after **2026-10-10** (06:31 UTC), not 2026-10-06.
+5. **F5 — `node:24-alpine` clears every Critical** (Grype v0.118.0, that database): `node:22-alpine` carries 5 Critical / 28 High (the four
+   `libcrypto3`/`libssl3` 3.5.7 Criticals §8's apk-mirror item named, and npm's `tar`), `node:24-alpine` **0 Critical / 9 High**. Put to Rich
+   by `manifest-94`; his decision that afternoon closed the apk-mirror question.
+6. **F6 — the authorization contract's `admin` IS a collaborator-administrator**, so Task 15 turned exactly eight matrix rows red (archive,
+   delete, restore, add and remove a member, a production deploy, confirm and reject) — the beyond-role set, the rule working. Ruled: the column
+   sends a reason on every row; a new measurement asks without one and pins those eight, each a declared one.
+7. **F7 — the console's reason panel showed only to a non-member administrator**, so a collaborator-administrator would be refused with nowhere
+   to type a reason. It shows to both now; the owner-administrator sees none.
+8. **F8 — Task 9 Step 5's control as written (the username alone) would fail for the wrong reason**: `manifest` with `ssp_store`'s password
+   cannot connect, and the store probe goes red instead of the new checks. Ruled: revert both lines. Seen: the store wrote
+   `public.simplesamlphp_*` as `manifest` again, and exactly the two new checks went red (66, 2 failed); restored in place, `ensure-idp-sql.sh`
+   dropped the copies, 66/0.
+9. **F9 — `member.removed` was lost to a failure after its commit**, the shape Task 16 fixed for the questions: published after the commit
+    and after the sessions; the retry, finding no member, records nothing. **Rich: fix it here, as Task 16b.** `manifest-94` corrected the first
+    report from the code: **`project.archived` does not share it** — `publishArchivedOnce` reads the trail since `archived_at`.
+10. **F10 — recording an event inside the removal's transaction DEADLOCKED a racing role change** — measured: the race test's `addMember`
+    answered `500`, Postgres's log *"deadlock detected"* (the membership `SELECT … FOR UPDATE` against the events `INSERT`). The events foreign key
+    takes `FOR KEY SHARE` on the project row after the membership row; `addMember` takes the project `FOR UPDATE` first. **Task 16's in-transaction
+    `pending_action.expired` had the same latent race whenever questions existed**, from `7d789b3` to `16ac01c`. Fixed: `removeMember` takes the
+    project row `FOR KEY SHARE` first. The race test now accepts either queue position, so its `409` is what tells a fix from a deadlock.
+11. **F11 — a first attempt at Task 16b's control (1) matched nothing after Prettier and ran GREEN** (trap 11): caught because the break script
+    asserts its match, re-applied with the diff shown, then red at exactly the 16b case.
+
+**Not findings, but recorded:**
+- **Rulings** (the ledger has each with its cost): Task 7 committed before its driver-1 demos (a script for Rich, run green the same
+  afternoon); Task 7's control on `fixture-node` through the Docker build test (F2); no new doctor check for `SSP_STORE_PASSWORD` — doctor's
+  `.env`-against-`.env.example` check requires it once declared; Task 9's control reverting both store lines (F8); the authorization table's
+  administrator sending a reason on every row, and a new measurement pinning the collaborator's eight (F6); the archive's teardown resume path
+  needs nothing for Task 16 (the record is in the archive's own transaction, so a failed write leaves the project active); Task 16b's
+  `sessionsEnded` as the sessions live at the removal, and its sentence without the failure tail; `removeMember`'s lock `FOR KEY SHARE` (F10).
+- **Measured, for the record:** `make up` recreated `manifest-idp` once onto the seed's image (SimpleSAMLphp v2.5.3.1, PHP 8.3.35, Apache
+  2.4.68); a real CWL sign-in (`instructor` → `ins000001`) made both store tables in `ssp_store`; Rich's script then found 20 kvstore rows there,
+  0 in `public`. Two builds of one commit, the second with GitHub stopped, gave one digest (`sha256:44bad10f…`), running Node v24.21.0.
+- **The readers of `member.removed`** (measured before Task 16b): the faculty front-end reads `memberId` and the actor only (`happenings.ts`);
+  the console renders the sentence; the mock emits the type. It saw no objection to the NOTICE.
+- **A slip, not a finding:** a `$(ls …)` in a Vitest command (trap 2's alias) put a long listing on the command line; re-run with the path named.
+- **The shared HTML pages and WALKTHROUGH were checked:** none names a Node version, the IdP's store or an administrator's reason; none changes.
+
+**Negative controls**, each committed first, its break shown in a diff, and restored:
+- **Task 7**: `fixture-node`'s `base_image` at Hub's index digest → doctor 21/0 (it reads the tag), the build RED at `FROM` (F2). Predicted.
+- **Task 15**: `projectRole !== null` as the whole exemption → RED at exactly 2 (the collaborator case and the new measurement), 793 green.
+  Predicted.
+- **Task 16**: the removal's record moved after its commit → RED at exactly that caller's case, 12 green. Predicted.
+- **Task 9**: `store.sql.*` back to `manifest` / `POSTGRES_PASSWORD` → `make verify` 66 checks, RED at exactly the two new ones (the store wrote
+  `public.simplesamlphp_*` again). Predicted; restored in place, and `ensure-idp-sql.sh` dropped the copies.
+- **Task 16b**: (1) `member.removed` recorded after the commit → RED at exactly the 16b case, 30 green; (2) the project lock removed → RED at
+  exactly the race test, `500 INTERNAL` — the deadlock. Both predicted.
+
+**The gates at the close.**
+- **`pnpm test` twice on the final tree (`16ac01c`): 3285 in 201, identical** — 986 s and 982 s, at load ~4–8 (the first started at 7.7, after
+  Rich's demos). `EXPECT_TESTS` moves 3277 → **3285** and `EXPECT_FILES` 200 → **201** (`scripts/ci-acceptance.sh` says where the 8 came from).
+- `pnpm lint`, `pnpm typecheck` (every workspace) and `pnpm format:check` are clean.
+- **`make doctor` 21, 0 warnings** (its two base checks by tag); **`make verify` 66, 0 warnings** — `EXPECT_VERIFY` 64 → **66** (Task 9).
+- **The contract is still `1.6.0`**: three description changes, each NOTICEd.
+- **The driver-1 demos**: `s5-edge-proof.sh`, run by Rich 13:58–14:00 PDT on `5e62fe0` — `make demo`, `make demo-identity` and `make demo-ai`
+  green, every step and *Done.*; both apps on Node v24.21.0; 7100 restored on real GitHub, `make verify` 66/0/0.
+- **`pnpm test:docker`: 273 in 42, green, ONCE** — on `16ac01c`, 14:38–14:59 PDT (1264 s), from a shell with the driver-2 block unset and
+  the chat model warm; it started with 22 networks and ended with 29. **Unchanged in count**: no `*.docker.test.ts` changed. Then 7100 was
+  restarted from `.env` (allowed; its ready line: the capable model registered, its fallback set), the cleanup scripts ran, and `make doctor`
+  (21/0/0) and `make verify` (66/0/0) were read again.
+
+**The machine at the close** (queried at ~15:01 PDT, not remembered):
+- **The control plane: PID 91949 on 7100, REAL GitHub** (`api.github.com`, `Manifest-local-dev`), started from `.env` after the tier, as it was
+  found (PID 51789 at the open; Rich's script's restore was 13119).
+- **The control database: 0 users, 0 projects** (`psql`) — the tier truncates it.
+- **Containers:** 10 `manifest-`, the four protected (up), and **28 `mf-` containers, every one ROWLESS**: the demos' apps — `fixture-app` and
+  `proof-app` from Rich's script, `journey-app`, `frontend-local`, `launch-app`, `launchpath-local` and `token-app` from earlier sittings' — whose
+  rows sitting 5's first Vitest run and then the tier truncated, as §7e predicted. Left running as found; the next run of each demo recreates its
+  project, and `make reset` removes them. **`manifest-caddy` and both dnsmasq were RECREATED by the seed (F3), and `manifest-idp` by `make up`.**
+- **The three cleanup scripts ran bare and then `--apply`, none refused**: 7 dead networks and 1 volume (the tier's); 3 LiteLLM orphans deleted —
+  `mf-platform-intake`, `p4b-probe-user` and one app user (its own re-read said *"5 user(s) remain (was 9)"*, one more than it deleted: not
+  chased); and 17 dead app images (0.3 GB). Re-run, each reads 0 dead. **22 Docker networks** (21 at the open). The 12 orphan driver-2 mirrors are
+  named, never removed.
+- **`docker-simple-saml` is clean** but for its long-standing untracked `cert.zip`. **7102 and 7105 are the faculty front-end's** (mock mode).
+- **Free disk 55 → 51 GiB** (`snapshot-machine.sh`): `node:24-alpine` and the rebuilt Caddy, IdP and GitHub-fake images.
+- **The vulnerability database is built `2026-10-03T06:31:58Z`** — fresh until 2026-10-10 (F4).

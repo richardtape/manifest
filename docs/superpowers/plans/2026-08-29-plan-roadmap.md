@@ -1446,7 +1446,7 @@ need **Spec actions 5 and 6** (above); and the rest is placed here.
 - **Keeping in step**: every sitting's close-out lists what it changed in the contract, which Rich relays; `packages/contract`
   stays buildable at every commit, because the front-end links this working tree.
 
-### *Faculty-ready* — "before faculty use it for real" — IN PROGRESS (approved 2026-09-30; SITTINGS 1, 2, 3, 4 AND 6 DONE, 2026-10-02 and 2026-10-03 — 6 pulled ahead of 5 by Rich; SITTING 5 NEXT): [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), 14 tasks in 7 sittings, after the launch path
+### *Faculty-ready* — "before faculty use it for real" — IN PROGRESS (approved 2026-09-30; SITTINGS 1–6 DONE, 2026-10-02 and 2026-10-03 — 6 pulled ahead of 5 by Rich; SITTING 5b (TASK 17, `passport-ubcshib` 0.1.7-rc.1) NEXT, THEN 7, THE ACCEPTANCE): [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), 18 tasks in 8 sittings, after the launch path
 
 *Which sitting is next: its sittings table, and ORIENTATION §7e.* **Sitting 1 (Task 1, the measurements) is DONE, 2026-10-02** (`3c80587`, inline
 at Rich's word; five findings, each written into the head of the task it changes; no split moved). Its *Sitting 1* is the record. **Sitting 2
@@ -1469,8 +1469,15 @@ who is not a member, using an owner's capability, sends `Manifest-Admin-Reason` 
 `reason` (migrations `0050`, `0051`); **`EventFrame.actor` on every frame**; deploy, build and validate name who acted; the console's reason
 field; still `1.6.0`. **Its through-the-edge half is a script for Rich** (`s6-edge-proof.sh`), and **its review's I2 — an administrator who is a
 collaborator — is his question** (ORIENTATION §8), drafted as **the plan's Spec action 5, PROPOSED and HELD FOR RICH** (`manifest-3d`
-judged it not minor: it changes §26's WHO). Its *Sitting 6* is the record. **Sitting 5 (Tasks 7 and 9) is next**, both of its Rich-steps
-already his. **Written by the planning session `manifest-00` in parallel
+judged it not minor: it changes §26's WHO). Its *Sitting 6* is the record. **Sitting 5 (Tasks 7, 9, 15, 16 and 16b) is DONE, 2026-10-03**
+(`manifest-b9`, inline, coordinated by `manifest-94`; `56c614a`, `9b216d3`, `7d789b3`, `af99b80`, `16ac01c`): **faculty apps build FROM
+`node:24-alpine`** (`make seed` with the network on, pre-authorised; 0 Critical where 22 carries 5 — which closed §8's apk mirror); **the IdP's
+session store is `ssp_store`'s own schema**, never the superuser (`EXPECT_VERIFY` 66; everyone signed in again); **an administrator who is a
+collaborator gives a reason beyond their role**; **a question's end — and, by Rich's word at ~13:34 (Task 16b), `member.removed` — is recorded in
+the transaction that ends it**, and a removal locks its project row first (a deadlock with a racing role change, measured). Still `1.6.0`.
+Its driver-1 demos Rich ran as `s5-edge-proof.sh` the same afternoon, green. Its *Sitting 5* is the record. **Sitting 5b (Task 17, added
+~14:24 by Rich) is next** — `passport-ubcshib` 0.1.7-rc.1 (published by Rich at 14:30 under `next`) in `node-ts-mongo@1`, off the deprecated
+`passport-saml`, by a fresh session — **then sitting 7 (Task 11, the acceptance).** **Written by the planning session `manifest-00` in parallel
 with the launch path's sitting 5, at Rich's word** (*"Now, in parallel"*), from two read-only code surveys; **approved** (*"plan looks good"*);
 **the execution method is his, at its sitting 1's open** (*"Probably not subagent driven though"*). Its scope, each his decision of 2026-09-30
 ([`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): FE-28 widened (`__Host-` session, login and step-up cookies by origin scheme),
@@ -1850,6 +1857,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | Faculty-ready Task 5 (sitting 3, FE-28's `__Host-` cookies, unattended — the plan's control (c) resting on a browser model that did not exist (built: `browserKeeps`); a Docker file's https leg that does not exist; Step 6's restart of 7100 REFUSED by the classifier (a script for Rich); the fresh review's R1 — a client calling 7100 directly signed out, which the plan's own answer to the front-end had asked for; Decision 8 reaching the ambiguity check; a control red wider than predicted; the contract's dist stale to every non-Vitest consumer) | 1 | 7 | 7.0 |
 | Faculty-ready Tasks 6, 8, 13 (sitting 4, F8's `422`, `Init: true`, FE-52/FE-49, unattended — LiteLLM chaining an iterator hook only from a class's own `__dict__`; Task 6's control producing Review Focus 5's exact false success; the plan's archive row answering `PROJECT_ARCHIVED`; the authz contract's questions asked by the token its revoke row revokes; a positive control's student refused by *only faculty build*; the driver-1 demos a script for Rich; the stream contract's unreached-types list; the fresh review's I1 — an ask racing its token's end left a question nothing could spend (fixed with `FOR SHARE`) — and M3/M4, published words FE-52 made false; a NOTICE sent after its commit) | 3 | 10 | 3.3 |
 | Faculty-ready Task 10 (sitting 6, §26's administrator reason, unattended — the plan's preHandler, which could know neither the project nor the membership (the check moved into `assertCapability`); a header that carries only Latin-1 (a reason percent-decoded); three demos where the operator acts on the instructor's app; the authz table's member administrator and its throwaways; four rehearsal tests; a control restored by `git checkout` of an uncommitted file; the fresh review's I1 — shared work stamping the triggering request's actor — and I3 — `actor` blind to a token — fixed, its I2 — an administrator who is a collaborator — Rich's, a proposed spec action; a false guide sentence; the mock's member administrator; the missing operator-line test; and 15 reds only the whole suite found) | 1 | 13 | 13.0 |
+| Faculty-ready Tasks 7, 9, 15, 16, 16b (sitting 5, `node:24-alpine`, the IdP store's own role, §26's collaborator, M1 and `member.removed` — doctor's lock check asserting `n >= 1`; the plan's Task 7 control aimed at a blueprint `make demo` does not build; `make seed` with the network on rebuilding and RECREATING the edge, and refreshing the vulnerability database; `node:24-alpine` at 0 Critical where 22 carries 5; the authz table's collaborator-administrator and the console's panel a collaborator-administrator never saw; Task 9's control red for the wrong reason as written; `member.removed` lost after its commit (Task 16b, Rich's word); an event recorded inside the removal DEADLOCKING a racing role change — Task 16's latent race too; and a control that matched nothing after Prettier) | 5 | 11 | 2.2 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each

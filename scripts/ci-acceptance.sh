@@ -201,8 +201,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # declared exactly where a non-member administrator is answered it — `[M5]`'s 24), `api/idempotency.test.ts` (1),
 # `releases/retire.test.ts` (1) and `projects/source-events.test.ts` (1: shared work names nobody), `mock/src/scripted.test.ts` (1) and
 # `console/src/api.test.ts` (1). Measured twice on the final tree, 3277 in 200.
-EXPECT_TESTS=3277
-EXPECT_FILES=200
+# Then its sitting 5 (2026-10-03, Tasks 7, 9, 15, 16 and 16b): +8, one new file — `api/questions-end-atomic.test.ts` (5, new: an
+# event write that fails undoes a revoke, a removal and an archive, and the retry records it once; a positive control; and
+# `member.removed` recorded in the removal's transaction), `api/admin-reason.test.ts` (2: a collaborator-administrator asked beyond
+# the role, and the owner-administrator not) and `api/authz-contract.ts` (1: the collaborator-administrator's exact eight).
+EXPECT_TESTS=3285
+EXPECT_FILES=201
 EXPECT_DOCTOR=21
 # EXPECT_VERIFY 64 -> 66 (2026-10-03, the faculty-ready plan's sitting 5, Task 9): the IdP's session store is
 # ssp_store's own and cannot read the SP metadata; ssp_ro cannot read the session store.

@@ -40,7 +40,7 @@ vulnerability database in the console; then FE-45 (Rich, 2026-10-03). Rich's dec
 - **the offline acceptance** — `scripts/offline-acceptance.sh`, run by hand, because turning the network off from a tool call cuts the
   agent off too;
 - **the second-machine clean clone**;
-- **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-06**; past seven days `make doctor` warns and
+- **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-10** (the faculty-ready plan's sitting 5's `make seed` refreshed it, built 2026-10-03T06:31:58Z); past seven days `make doctor` warns and
   §13's `scans` item refuses every production launch;
 - **any real repository in `Manifest-local-dev` that no project owns** — THREE on 2026-10-03, `f6-watch`, `keep-walk-1002` and
   `f6b-measure-1` (the faculty front-end's F6 sitting 1, its F6 walk and its F6b measurements; their rows truncated by the launch path

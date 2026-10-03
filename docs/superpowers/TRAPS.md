@@ -2534,8 +2534,12 @@ is `400 ADMIN_REASON_REQUIRED` unless it carries `Manifest-Admin-Reason`. So:
   trusting a targeted set; a
   test that sees a new `400` where it expected `STEP_UP_REQUIRED` or `TOKEN_CAPABILITY_FORBIDDEN` met this, because the reason is asked in
   `assertCapability`, after the capability and BEFORE the archived state, the step-up and any handler check;
-- **the authz table's `admin` is a MEMBER administrator** (a collaborator of the fixture and, through `adminIsMember`, of every throwaway),
-  so its column needs no reason; the reason's own measurement is the table's last `it`, after the archive;
+- **the authz table's `admin` is a COLLABORATOR administrator** (of the fixture and, through `adminIsMember`, of every throwaway). **Since
+  sitting 5 (Task 15) an administrator who is a collaborator is asked a reason for what a collaborator may not do** — people, archive,
+  restore, delete, a production deploy, an agent's question about one — so the column SENDS a reason on every row, and two measurements after
+  the archive ask without one: as the collaborator (exactly eight operations) and as a stranger (the 24);
+- **an administrator who is a COLLABORATOR, beyond that role, is asked too** (sitting 5, `9b216d3`): a test that adds `platform_admin` as a
+  collaborator and then removes people, archives or promotes must send the header — and an administrator who is the OWNER is never asked;
 - **a header carries only Latin-1**: a browser's `fetch` and Node's (undici) THROW on `—` or `é` in one. Send the reason
   `encodeURIComponent`-ed; the platform decodes it (and takes an invalid encoding as sent). Keep a TEST's reason ASCII anyway: `app.inject`
   sends what a real client could not;
@@ -2543,3 +2547,21 @@ is `400 ADMIN_REASON_REQUIRED` unless it carries `Manifest-Admin-Reason`. So:
   and nobody is asked on a GET.
 - **`git checkout -- <file>` to undo a control on an UNCOMMITTED file reverts every edit in it**, not just the break (sitting 6 lost its mock
   edits that way, and re-applied them). Run a control after the commit, as the plans say.
+
+**`make seed` WITH THE NETWORK ON REBUILDS AND RECREATES THE EDGE** (2026-10-03, the faculty-ready plan's sitting 5, Task 7). Its step 2
+(`compose --profile github build`) lets BuildKit re-resolve every moving upstream tag online — `caddy:2.11.4`, `php:8.3-apache`, `composer:2`
+— so a seed weeks after the last one REBUILDS `manifest-caddy:local`, `manifest-idp:local` and `manifest-github-fake:local`. Then:
+- **its step 5 (`compose up -d dns-containers dns-host caddy`) RECREATES `manifest-caddy` and both dnsmasq containers** — every runtime
+  route is dropped (§4 trap 19), so every deployed app answers the edge's wildcard until it is redeployed;
+- **the next `make up` recreates `manifest-idp`** on the rebuilt image (measured: SimpleSAMLphp v2.5.3.1 unchanged, PHP 8.3.33 → 8.3.35) —
+  which ends nothing by itself, but is a new image under the IdP;
+- **its step 4c refreshes the vulnerability database** (`grype db update`), exactly what `make refresh-vulndb` does — so the weekly due date
+  moves with any seed.
+Read `docker ps`'s *Up* column after a seed; don't assume a seed touches only the registry.
+
+**AN EVENT RECORDED INSIDE A TRANSACTION LOCKS THE PROJECT ROW — TAKE IT FIRST, OR DEADLOCK** (2026-10-03, sitting 5, Task 16b).
+`audit.events.project_id`'s foreign key takes `FOR KEY SHARE` on the project row at the INSERT. `addMember` locks the project `FOR UPDATE` and
+then the membership row; a removal that deletes the membership row and THEN records an event takes the two in the other order. A role change
+racing a removal answered `500` — Postgres's log: `deadlock detected`, the membership `SELECT … FOR UPDATE` against the events `INSERT`.
+`removeMember` now takes the project row `FOR KEY SHARE` before anything else. **Any new transaction that holds a row and then records an
+event: lock the project first** — and read `docker logs manifest-postgres | grep -A4 deadlock` before believing a `500` from a race test.
