@@ -604,3 +604,17 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         MANIFEST_TERMS says a term begins.
       - B, VEGETA — "Build it locally (Recommended)": an image built from the mirrored alpine plus vegeta's official
         release binary, checksum-verified; its download a Rich-step at that sitting.
+
+    And at 14:42 PDT (the clock read 14:43 at this entry), the faculty front-end's minors that needed his choice or words,
+    read by manifest-94 from manifest-app's docs/minors.md, through the question tool:
+      - m69 + m76, the "we need you" email to someone whose own switch-off, delete or removal stopped their build — "A
+        different email" (over the recommended "no email", and "leave as is"): it says plainly why the work stopped, e.g.
+        "Your change to <App> stopped because the app was switched off."; the variants' exact words come back to him.
+      - m104, [Leave it out] after an addition still saying "needs a Manifest administrator's look" — "Judge the net change
+        (Recommended)": said from the net change against the live version, as the platform's gate decides. (Premise checked:
+        the platform's sensitive diff counts a removal too, spec/diff.ts:107, so only the net change is self-serve.)
+      - m119 — "You said no. It'll find out next time it tries." (Recommended), replacing "You said no, and it has been told."
+      - m123, machinery words in a change plan's "Things we assumed" — "Re-ask once (Recommended)".
+      - m109, a helper's band — "An agent is waiting for an owner's answer." (Recommended): "<App>: an agent is waiting for
+        an owner's answer." with no [Agents] button.
+    Built by the fresh front-end session manifest-app-f6, after manifest-app-5a's close.
