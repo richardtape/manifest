@@ -16,11 +16,12 @@ import {
   type PrivilegedCapability,
 } from '../../projects/index.js'
 import {
+  announceQuestionsEnded,
   createToken,
   EVERY_QUESTION,
   expirePendingActions,
   mintToken,
-  publishQuestionsEnded,
+  recordQuestionsEnded,
   revokeToken,
   tokenById,
   tokensForProject,
@@ -355,23 +356,27 @@ export const tokenRoutes = [
       // THE REVOKE AND ITS QUESTIONS' END IN ONE TRANSACTION (FE-52; the faculty-ready plan's Task 13,
       // Decision 17 — the archive's rule, applied here): a question a revoked token asked can never be
       // retried, so it must not stay `pending` for a person to be told "confirmed". Both are the
-      // database's alone, so no failure can leave one without the other.
+      // database's alone, so no failure can leave one without the other. AND THE EVENTS SAYING SO, in
+      // the same transaction (Task 16): a write that fails undoes the revoke, so the retry says it.
       const ended = await deps.db.transaction(async (tx) => {
         await revokeToken(tx, params.tokenId, actor.userId)
-        return expirePendingActions(tx, EVERY_QUESTION, { tokenId: params.tokenId })
+        const questions = await expirePendingActions(tx, EVERY_QUESTION, {
+          tokenId: params.tokenId,
+        })
+        return recordQuestionsEnded(tx, questions, {
+          cause: 'token_revoked',
+          by: actor.userId,
+        })
       })
       // EVERY EVENT STREAM IT HOLDS OPEN, `4401` (the launch path plan's Task 5, FE-33) — after the
       // revoke has committed, and BEFORE the sessions below: ending a session needs the model gateway
       // and can answer `503`, closing a stream needs nothing, and an outage must never leave a revoked
       // token listening. On a retry it finds nothing left to close.
       deps.streams.closeToken(params.tokenId)
-      // THEN WHAT THE REVOKE ENDED, SAID — after the commit, for the streams' reason: an event that
-      // announced a rollback would be false. Before the sessions, so a gateway outage never silences
-      // it. A retry ends nothing more, and so says nothing more.
-      await publishQuestionsEnded(deps, ended, {
-        cause: 'token_revoked',
-        by: actor.userId,
-      })
+      // THEN WHAT THE REVOKE ENDED, ON THE STREAM — after the commit, for the streams' reason: a frame
+      // that announced a rollback would be false. Its rows were recorded with the revoke. Before the
+      // sessions, so a gateway outage never silences it. A retry ends nothing more, and so says nothing.
+      announceQuestionsEnded(deps.bus, ended)
       // THEN EVERY AGENT SESSION IT STARTED (the front-end enablement plan's Task 10, Decision 25):
       // a model key never outlives the credential that asked for it. REACHED ON A RETRY TOO — the
       // token is already revoked then, and this is how the sessions a failed first attempt could

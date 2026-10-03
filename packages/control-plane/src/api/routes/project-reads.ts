@@ -21,9 +21,10 @@ import {
   servingInstanceOf,
 } from '../../projects/index.js'
 import {
+  announceQuestionsEnded,
   EVERY_QUESTION,
   expirePendingActions,
-  publishQuestionsEnded,
+  recordQuestionsEnded,
   revokeTokensOfMember,
   type ExpiredQuestion,
 } from '../../tokens/index.js'
@@ -596,7 +597,9 @@ export const projectReadRoutes = [
       //
       // AND EVERY QUESTION THOSE TOKENS ASKED, ENDED IN THE SAME TRANSACTION (FE-52; the faculty-ready
       // plan's Task 13, Decision 17): a revoked token can retry nothing, so a person must never be told
-      // "confirmed" for its question. Said on the stream after the commit, below.
+      // "confirmed" for its question. AND THE EVENTS SAYING SO, recorded in it too (Task 16): a write
+      // that fails undoes the removal, so the retry says it. On the stream after the commit, below. The
+      // person who acted: for a token, the person who minted it.
       const { outcome, revoked, questions } = await deps.db.transaction(async (tx) => {
         const removal = await removeMember(tx, projectId, userId)
         const ids =
@@ -605,7 +608,11 @@ export const projectReadRoutes = [
         for (const tokenId of ids) {
           ended.push(...(await expirePendingActions(tx, EVERY_QUESTION, { tokenId })))
         }
-        return { outcome: removal, revoked: ids, questions: ended }
+        const recorded = await recordQuestionsEnded(tx, ended, {
+          cause: 'member_removed',
+          by: actor.userId,
+        })
+        return { outcome: removal, revoked: ids, questions: recorded }
       })
       if (outcome === 'last owner') throw new LastOwnerError()
       if (outcome === 'removed') {
@@ -616,12 +623,9 @@ export const projectReadRoutes = [
         // token's `4401`, then the person's own session streams, `4404`: the project is not theirs now.
         deps.streams.closeTokens(revoked)
         deps.streams.closePerson(projectId, userId)
-        // What the removal ended, said once it has committed — before the sessions, which need the
-        // model gateway and can fail. The person who acted: for a token, the person who minted it.
-        await publishQuestionsEnded(deps, questions, {
-          cause: 'member_removed',
-          by: actor.userId,
-        })
+        // What the removal ended, on the stream once it has committed — before the sessions, which
+        // need the model gateway and can fail.
+        announceQuestionsEnded(deps.bus, questions)
       }
       // THEN THEIR AGENT SESSIONS on the project — token-started and browser-started — `member_removed`.
       // REACHED FOR SOMEBODY WHO IS NOT A MEMBER TOO, as `revokeToken`'s end is reached for a token

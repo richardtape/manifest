@@ -1,6 +1,12 @@
 import { and, eq, lte } from 'drizzle-orm'
 import { pendingActions, type Db } from '../db/index.js'
-import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import {
+  eventFrame,
+  makeRedactor,
+  recordEvent,
+  type Event,
+  type EventBus,
+} from '../observability/index.js'
 import { personName } from '../projects/index.js'
 
 /**
@@ -33,9 +39,9 @@ import { personName } from '../projects/index.js'
  *
  * **A PERSON'S ACT THAT ENDS A TOKEN DOES PUBLISH** (FE-52; the faculty-ready plan's Task 13,
  * Decision 17): a revoke, a minter's removal and an archive each pass `EVERY_QUESTION` here,
- * inside the transaction that ends the token, and then — after it commits — hand the rows this
- * answers to `publishQuestionsEnded`, which names the person. So this answers the rows it
- * expired, not a count.
+ * inside the transaction that ends the token, and hand the rows this answers to
+ * `recordQuestionsEnded` in the SAME transaction, which names the person; the frames go out after the
+ * commit (`announceQuestionsEnded`). So this answers the rows it expired, not a count.
  *
  * `scope` narrows it to one token's rows, or one project's. The rule is stated once, as a
  * parameter — the same shape `pendingActionsFor`'s `tokenId` uses for the same reason (sitting
@@ -105,40 +111,55 @@ export type QuestionsEndedCause = 'token_revoked' | 'member_removed' | 'project_
 /**
  * ONE `pending_action.expired` PER QUESTION A PERSON'S ACT ENDED (FE-52; Decision 17), naming them.
  *
- * **CALLED AFTER THE COMMIT, NEVER INSIDE ONE** — for the reason the event streams close after it: an
- * event that announced a rollback would be false. Its three callers are the act's own: `revokeToken`,
- * a member's removal and the archive. The clock's sweep never calls it (above: expiry has no actor).
+ * **RECORDED ON THE TRANSACTION THAT ENDED THEM** (the faculty-ready plan's Task 16; sitting 4's M1, Rich's
+ * (a)). Until then they were written after the commit, so a write that failed answered `500` with the
+ * act already done — and the retry found nothing pending, so the record the project's people read was
+ * never written. Now a failed write rolls the whole act back, and the same request repeated does all of
+ * it. Its three callers are the act's own: `revokeToken`, a member's removal and the archive. The
+ * clock's sweep never calls it (above: expiry has no actor).
+ *
+ * **NOTHING IS STREAMED HERE**: the rows are answered, and the caller hands them to
+ * `announceQuestionsEnded` AFTER its commit — for the reason the event streams close after it: a frame
+ * that announced a rollback would be false.
  *
  * `by` is the person whose act it was — for a removal by a delegated token, the person who minted
  * it. The sentence names them, and the question by its summary; never the body.
  */
-export async function publishQuestionsEnded(
-  deps: { db: Db; bus: EventBus },
+export async function recordQuestionsEnded(
+  tx: Pick<Db, 'insert' | 'select'>,
   rows: readonly ExpiredQuestion[],
   input: { cause: QuestionsEndedCause; by: string },
-): Promise<void> {
-  if (rows.length === 0) return
-  const who = await personName(deps.db, input.by)
+): Promise<Event[]> {
+  if (rows.length === 0) return []
+  const who = await personName(tx, input.by)
+  const recorded: Event[] = []
   for (const row of rows) {
-    await publishEvent(
-      deps.db,
-      deps.bus,
-      {
-        projectId: row.projectId,
-        subject: `pending-action:${row.id}`,
-        type: 'pending_action.expired',
-        machineDetail: {
-          pendingActionId: row.id,
-          tokenId: row.tokenId,
-          action: row.action,
-          cause: input.cause,
-          by: input.by,
+    recorded.push(
+      await recordEvent(
+        tx,
+        {
+          projectId: row.projectId,
+          subject: `pending-action:${row.id}`,
+          type: 'pending_action.expired',
+          machineDetail: {
+            pendingActionId: row.id,
+            tokenId: row.tokenId,
+            action: row.action,
+            cause: input.cause,
+            by: input.by,
+          },
+          humanMessage: `${ENDED_BY[input.cause](who)}, so an agent's question — to ${row.summary.toLowerCase()} — expired unanswered: nothing can retry it now.`,
         },
-        humanMessage: `${ENDED_BY[input.cause](who)}, so an agent's question — to ${row.summary.toLowerCase()} — expired unanswered: nothing can retry it now.`,
-      },
-      makeRedactor([]),
+        makeRedactor([]),
+      ),
     )
   }
+  return recorded
+}
+
+/** `recordQuestionsEnded`'s rows on the project's stream — called once the transaction has committed. */
+export function announceQuestionsEnded(bus: EventBus, recorded: readonly Event[]): void {
+  for (const event of recorded) bus.publish(eventFrame(event))
 }
 
 const ENDED_BY: Record<QuestionsEndedCause, (who: string) => string> = {

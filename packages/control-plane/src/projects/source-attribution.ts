@@ -37,7 +37,11 @@ export const nameOrNobody = named
  * launch record, a rehearsal, a minted token, an answered request, an approval, and the actor
  * phrase below. A missing user or a blank name is `NOBODY_NAMED`, never the PUID.
  */
-export async function personName(db: Db, userId: string): Promise<string> {
+// `select` alone, so a transaction can name the person whose act it records (the faculty-ready plan's Task 16).
+export async function personName(
+  db: Pick<Db, 'select'>,
+  userId: string,
+): Promise<string> {
   const [who] = await db
     .select({ name: users.displayName })
     .from(users)

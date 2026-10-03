@@ -34,9 +34,10 @@ import { deleteSecretsOf, type AppSecretResolver } from '../secrets/index.js'
 import type { SourceDriver } from '../source/index.js'
 import type { SsoDeregistrar } from '../sso/index.js'
 import {
+  announceQuestionsEnded,
   EVERY_QUESTION,
   expirePendingActions,
-  publishQuestionsEnded,
+  recordQuestionsEnded,
   revokeTokensOf,
 } from '../tokens/index.js'
 import type { ResolvedConfigSet } from './release.js'
@@ -428,6 +429,12 @@ async function switchOffUnderLock(
   // three are the database's alone, so no failure after this — the gateway's included — can leave
   // an archived project with a live token that a restore would revive. The steps below revoke and
   // expire again, idempotently, for a boot finishing an archive.
+  //
+  // AND THE EVENTS SAYING WHAT IT ENDED (the faculty-ready plan's Task 16; sitting 4's M1): one
+  // `pending_action.expired` each, naming the person who switched it off, RECORDED IN THIS TRANSACTION,
+  // so a write that fails leaves the project active and the same request repeated does all of it. Only
+  // this transaction's: the teardown's own expiry step re-runs for a boot finishing an archive, and
+  // finds nothing — this transaction ended every question, and a rolled-back one ended none.
   const { revoked, questions } = await deps.db.transaction(async (tx) => {
     await tx
       .update(projects)
@@ -439,20 +446,19 @@ async function switchOffUnderLock(
       .where(and(eq(projects.id, projectId), eq(projects.state, 'active')))
     const ids = await revokeTokensOf(tx, projectId)
     const ended = await expirePendingActions(tx, EVERY_QUESTION, { projectId })
-    return { revoked: ids, questions: ended }
+    const recorded = await recordQuestionsEnded(tx, ended, {
+      cause: 'project_archived',
+      by: actor.userId,
+    })
+    return { revoked: ids, questions: recorded }
   })
   // THEIR STREAMS, `4401`, ONCE THE TRANSACTION HAS COMMITTED (FE-33) — never inside it, where a close
   // would announce a revoke that could still roll back. A member's session stream stays open:
   // `project:read` is allowed on an archived project, so a person may still watch it.
   deps.streams.closeTokens(revoked)
-  // AND THE QUESTIONS IT ENDED, SAID — after the commit, for the same reason (FE-52; the faculty-ready
-  // plan's Task 13): one `pending_action.expired` each, naming the person who switched it off. Only
-  // this transaction's: the teardown's own expiry step below re-runs for a boot finishing an archive,
-  // where the tokens were revoked by this transaction and nothing is left to end.
-  await publishQuestionsEnded(deps, questions, {
-    cause: 'project_archived',
-    by: actor.userId,
-  })
+  // AND THE QUESTIONS IT ENDED, ON THE STREAM — after the commit, for the same reason (FE-52; the
+  // faculty-ready plan's Task 13). Recorded above, with the archive.
+  announceQuestionsEnded(deps.bus, questions)
   await runTeardown(deps, { projectId, by }, { deleteData: false })
   return by
 }
