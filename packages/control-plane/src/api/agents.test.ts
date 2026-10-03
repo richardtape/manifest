@@ -7,6 +7,7 @@ import {
   disabledCatalogue,
   endSessionsOf,
   narrowSessionsHoldingMore,
+  personSpend,
   type BuilderModels,
   type LiteLlmClient,
   type ModelCatalogue,
@@ -1851,5 +1852,63 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
       await app.close()
       await resetDatabase()
     }
+  })
+})
+
+/**
+ * FE-29 (the faculty-ready plan's Task 4; §20 as its Spec action 3 has it): A REFUSAL ABOUT A LIMIT
+ * CARRIES THE LIMIT AS FIELDS, and one that names something already started carries its id — so a
+ * client acts on fields rather than parsing a sentence.
+ */
+describe('an agent session refusal carries its facts as fields (FE-29)', () => {
+  interface Facts {
+    limit?: Record<string, unknown>
+    session?: Record<string, unknown>
+  }
+  const factsOf = (res: { json: () => unknown }) => (res.json() as { error: Facts }).error
+
+  it('AGENT_BUDGET_EXHAUSTED says the person’s month: the amount, and the reset the gateway reports', async () => {
+    await withAgentServer(async (ctx, lite) => {
+      expect((await start(ctx, { cookies: ctx.ownerCookies })).statusCode).toBe(201)
+      lite.spend(`mf-person-${ctx.userId}`, ctx.deps.config.agent.monthlyUsd)
+      const res = await start(ctx, { cookies: ctx.ownerCookies })
+      expect(refusal(res)).toEqual({ status: 409, code: 'AGENT_BUDGET_EXHAUSTED' })
+      const reported = (await personSpend(lite, ctx.userId)).resetsAt
+      expect(reported).toMatch(/^\d{4}-\d{2}-01T00:00:00\.000Z$/)
+      expect(factsOf(res).limit).toEqual({
+        scope: 'person',
+        period: 'month',
+        amountUsd: ctx.deps.config.agent.monthlyUsd,
+        resetsAt: reported,
+      })
+    })
+  })
+
+  it('a reset the gateway does not report is null, never absent and never invented', async () => {
+    await withAgentServer(async (ctx, lite) => {
+      expect((await start(ctx, { cookies: ctx.ownerCookies })).statusCode).toBe(201)
+      lite.withoutReset(`mf-person-${ctx.userId}`)
+      lite.spend(`mf-person-${ctx.userId}`, ctx.deps.config.agent.monthlyUsd)
+      const res = await start(ctx, { cookies: ctx.ownerCookies })
+      expect(refusal(res)).toEqual({ status: 409, code: 'AGENT_BUDGET_EXHAUSTED' })
+      const { limit } = factsOf(res)
+      expect(limit).toHaveProperty('resetsAt', null)
+      expect(limit).toMatchObject({ scope: 'person', period: 'month' })
+    })
+  })
+
+  it('AGENT_SESSION_ALREADY_STARTED names the session the first start made', async () => {
+    await withAgentServer(async (ctx) => {
+      const idem = randomUUID()
+      const first = await start(ctx, { cookies: ctx.ownerCookies }, undefined, idem)
+      expect(first.statusCode, first.body).toBe(201)
+      const again = await start(ctx, { cookies: ctx.ownerCookies }, undefined, idem)
+      expect(refusal(again)).toEqual({
+        status: 409,
+        code: 'AGENT_SESSION_ALREADY_STARTED',
+      })
+      const { session } = first.json() as Started
+      expect(factsOf(again).session).toEqual({ id: session.id, name: session.name })
+    })
   })
 })

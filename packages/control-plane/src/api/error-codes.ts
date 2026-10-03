@@ -789,7 +789,7 @@ export const ERROR_CODES = {
     summary:
       'This request — its Idempotency-Key — already started an agent session, and its key was answered then. A key is shown once and never again.',
     remedy:
-      'Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key.',
+      'Use the key from the first answer. If it was lost, end the session this refusal names in `session` (`endAgentSession` with its `id`) and start another with a new Idempotency-Key.',
   },
   AGENT_BUDGET_EXHAUSTED: {
     status: 409,
@@ -797,7 +797,7 @@ export const ERROR_CODES = {
     summary:
       'The monthly agent budget of the person this credential acts for is spent, so no key was issued.',
     remedy:
-      'Wait for the month to reset (`getAgentBudget` says when), or ask a platform administrator to raise this person’s agent budget.',
+      'Wait for the month to reset — `limit.resetsAt` says when, `null` if the AI gateway does not say — or ask a platform administrator to raise this person’s agent budget.',
   },
   AGENT_NO_MODEL_FOR_CLASSIFICATION: {
     status: 409,
@@ -817,7 +817,7 @@ export const ERROR_CODES = {
     summary:
       'This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.',
     remedy:
-      'Use the key from the first answer. If it was lost, end the session this refusal names (`endIntakeSession`) and start another with a new Idempotency-Key.',
+      'Use the key from the first answer. If it was lost, end the session this refusal names in `session` (`endIntakeSession` with its `id`) and start another with a new Idempotency-Key.',
   },
   INTAKE_DAILY_LIMIT_REACHED: {
     status: 409,
@@ -825,7 +825,7 @@ export const ERROR_CODES = {
     summary:
       'This person has started the intake sessions a person may start in a day, so describing new apps is paused for them until midnight, Vancouver time.',
     remedy:
-      'Try again tomorrow, or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead.',
+      'Try again once `limit.resetsAt` has passed — the next midnight, Vancouver time — or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead.',
   },
   INTAKE_BUDGET_EXHAUSTED: {
     status: 409,
@@ -833,7 +833,7 @@ export const ERROR_CODES = {
     summary:
       'The platform’s monthly intake budget is spent, so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.',
     remedy:
-      'Wait for the month to reset — the first of the month, 00:00 UTC — or ask a platform administrator to raise the intake budget.',
+      'Wait for the month to reset — `limit.resetsAt` says when, `null` if the AI gateway does not say — or ask a platform administrator to raise the intake budget.',
   },
   INTAKE_MODEL_UNAVAILABLE: {
     status: 503,

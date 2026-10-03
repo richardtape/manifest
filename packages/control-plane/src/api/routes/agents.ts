@@ -220,6 +220,8 @@ export const agentRoutes = [
         return new AgentSessionError(
           'AGENT_SESSION_ALREADY_STARTED',
           `this request already started the agent session '${session.name}' (${session.id}); its key was answered then and is never shown again — end it with endAgentSession and start another if that answer was lost`,
+          // FE-29: the session as fields, so a client ends it without parsing the sentence.
+          { session: { id: session.id, name: session.name } },
         )
       },
     },

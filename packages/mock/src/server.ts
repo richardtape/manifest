@@ -640,6 +640,17 @@ const ANSWERS: Record<string, Answerer> = {
         409,
         'AGENT_BUDGET_EXHAUSTED',
         "this month's agent budget of $10 is spent ($10.00 so far)",
+        undefined,
+        undefined,
+        undefined,
+        {
+          limit: {
+            scope: 'person',
+            period: 'month',
+            amountUsd: 10,
+            resetsAt: f.agentBudget(ctx.now, 'exhausted').resetsAt,
+          },
+        },
       )
     const body = bodyOf<{ name: string; capUsd: number; durationMinutes: number }>(ctx)
     const minutes = body.durationMinutes ?? 60
@@ -695,12 +706,34 @@ const ANSWERS: Record<string, Answerer> = {
         409,
         'INTAKE_DAILY_LIMIT_REACHED',
         'you have started the 10 intake sessions a person may start in a day, so describing new apps is paused for today',
+        undefined,
+        undefined,
+        undefined,
+        {
+          limit: {
+            scope: 'person',
+            period: 'day',
+            count: 10,
+            resetsAt: nextVancouverMidnight(ctx.now),
+          },
+        },
       )
     if (ctx.options.intake === 'budget-spent')
       throw new MockRefusal(
         409,
         'INTAKE_BUDGET_EXHAUSTED',
         "the platform's monthly intake budget of $25 is spent, so describing new apps is paused until the month resets",
+        undefined,
+        undefined,
+        undefined,
+        {
+          limit: {
+            scope: 'platform',
+            period: 'month',
+            amountUsd: 25,
+            resetsAt: nextMonth(ctx.now),
+          },
+        },
       )
     return created('IntakeSessionStarted', {
       session: f.intakeSession(ctx.now),
@@ -1003,6 +1036,7 @@ function envelope(
   hint?: string,
   details?: unknown[],
   launchReadiness?: unknown,
+  facts: { limit?: unknown; session?: unknown } = {},
 ): string {
   return JSON.stringify({
     error: {
@@ -1011,9 +1045,46 @@ function envelope(
       ...(hint === undefined ? {} : { hint }),
       ...(details === undefined ? {} : { details }),
       ...(launchReadiness === undefined ? {} : { launchReadiness }),
+      ...(facts.limit === undefined ? {} : { limit: facts.limit }),
+      ...(facts.session === undefined ? {} : { session: facts.session }),
       requestId,
     },
   })
+}
+
+/**
+ * The next midnight in Vancouver, as the platform's database computes it for the intake day (FE-29):
+ * 07:00 or 08:00 UTC by the season. The mock asks the platform's zone of Node's own tz data.
+ */
+function nextVancouverMidnight(now: number): string {
+  const ymd = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Vancouver',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .format(new Date(now))
+    .split('-')
+    .map(Number) as [number, number, number]
+  const hourThere = (t: number) =>
+    Number(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Vancouver',
+        hour: '2-digit',
+        hourCycle: 'h23',
+      }).format(new Date(t)),
+    )
+  for (const offset of [7, 8]) {
+    const t = Date.UTC(ymd[0], ymd[1] - 1, ymd[2] + 1, offset)
+    if (hourThere(t) === 0) return new Date(t).toISOString()
+  }
+  return new Date(Date.UTC(ymd[0], ymd[1] - 1, ymd[2] + 1, 8)).toISOString()
+}
+
+/** The first of next month, 00:00 UTC — when the gateway's monthly budgets reset. */
+const nextMonth = (now: number): string => {
+  const d = new Date(now)
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)).toISOString()
 }
 
 function send(response: ServerResponse, status: number, body: string): void {
@@ -1273,6 +1344,10 @@ export function createMockServer(options: MockOptions = {}): Server {
               409,
               'AGENT_SESSION_ALREADY_STARTED',
               `this request already started the agent session '${session.name}' (${session.id}); its key was answered then and is never shown again — end it with endAgentSession and start another if that answer was lost`,
+              undefined,
+              undefined,
+              undefined,
+              { session: { id: session.id, name: session.name } },
             )
           }
           if (operation.operationId === 'startIntakeSession') {
@@ -1281,6 +1356,10 @@ export function createMockServer(options: MockOptions = {}): Server {
               409,
               'INTAKE_SESSION_ALREADY_STARTED',
               `this request already started the intake session '${session.id}'; its key was answered then and is never shown again — end it with endIntakeSession and start another if that answer was lost`,
+              undefined,
+              undefined,
+              undefined,
+              { session: { id: session.id, name: null } },
             )
           }
           // A MINT IS NEVER REPLAYED (the platform's `withholdOnReplay`, the authoring API plan's
@@ -1369,6 +1448,7 @@ export function createMockServer(options: MockOptions = {}): Server {
             error.hint,
             error.details,
             error.launchReadiness,
+            error.facts,
           ),
         )
         return

@@ -500,6 +500,76 @@ describe('Task 13 — the states the document’s examples cannot show', () => {
     }
   })
 
+  it('carries a limit’s facts and a started session’s as fields, as the platform does (FE-29)', async () => {
+    const errorOf = async (response: Response) =>
+      ((await response.json()) as { error: Record<string, unknown> }).error
+    const now = new Date()
+    const nextMonth = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    ).toISOString()
+    const startAgent = (at: string, key = crypto.randomUUID()) =>
+      fetch(`${at}/v1/projects/${f.PROJECT_ID}/agent-sessions`, {
+        method: 'POST',
+        headers: { ...mutation(SESSION), 'idempotency-key': key },
+        body: JSON.stringify({ name: 'Build the bulletin board' }),
+      })
+    const startIntake = (at: string, key = crypto.randomUUID()) =>
+      fetch(`${at}/v1/intake-sessions`, {
+        method: 'POST',
+        headers: { ...mutation(SESSION), 'idempotency-key': key },
+      })
+
+    expect(
+      (await errorOf(await startAgent(await serve({ agentBudget: 'exhausted' })))).limit,
+    ).toEqual({
+      scope: 'person',
+      period: 'month',
+      amountUsd: 10,
+      resetsAt: nextMonth,
+    })
+    expect(
+      (await errorOf(await startIntake(await serve({ intake: 'budget-spent' })))).limit,
+    ).toEqual({
+      scope: 'platform',
+      period: 'month',
+      amountUsd: 25,
+      resetsAt: nextMonth,
+    })
+    const day = (await errorOf(await startIntake(await serve({ intake: 'daily-limit' }))))
+      .limit as { resetsAt: string }
+    expect(day).toEqual({
+      scope: 'person',
+      period: 'day',
+      count: 10,
+      resetsAt: expect.any(String),
+    })
+    // The next midnight in Vancouver: 07:00 or 08:00 UTC, within the next day.
+    const lifts = Date.parse(day.resetsAt)
+    expect(
+      new Date(lifts).getUTCHours() === 7 || new Date(lifts).getUTCHours() === 8,
+    ).toBe(true)
+    expect(lifts - Date.now()).toBeGreaterThan(0)
+    expect(lifts - Date.now()).toBeLessThanOrEqual(25 * 3_600_000)
+
+    const agentKey = crypto.randomUUID()
+    const started = (await (await startAgent(origin, agentKey)).json()) as {
+      session: { id: string; name: string }
+    }
+    const replayed = await startAgent(origin, agentKey)
+    expect(replayed.status).toBe(409)
+    expect((await errorOf(replayed)).session).toEqual({
+      id: started.session.id,
+      name: started.session.name,
+    })
+    const intakeKey = crypto.randomUUID()
+    const intake = (await (await startIntake(origin, intakeKey)).json()) as {
+      session: { id: string }
+    }
+    const again = await startIntake(origin, intakeKey)
+    expect(again.status).toBe(409)
+    expect((await errorOf(again)).session).toEqual({ id: intake.session.id, name: null })
+  })
+
   it('pauses describing a new app when scripted: the day’s limit, or the platform’s month', async () => {
     for (const [intake, code] of [
       ['daily-limit', 'INTAKE_DAILY_LIMIT_REACHED'],

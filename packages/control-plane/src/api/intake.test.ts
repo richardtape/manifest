@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
+import { sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { intakeSessions } from '../db/index.js'
 import { declaredCatalogue, fakeLiteLlm, type FakeLiteLlm } from '../ai/testing.js'
-import { disabledCatalogue } from '../ai/index.js'
+import { disabledCatalogue, intakeSpend } from '../ai/index.js'
 import { ensureTestUser, testSessionCookies } from '../identity/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import {
@@ -329,6 +330,76 @@ describe('intake sessions (Spec action 5, FE-1)', () => {
       const started = await start(ctx, ctx.ownerCookies)
       expect(started.statusCode, started.body).toBe(201)
       expect(mints(lite)).toHaveLength(1)
+    })
+  })
+})
+
+/**
+ * FE-29 (the faculty-ready plan's Task 4; §20 as its Spec action 3 has it): A REFUSAL ABOUT A LIMIT
+ * CARRIES THE LIMIT AS FIELDS — whose, over what period, how much, and when it lifts — and one that
+ * names something already started carries its id, so a client acts on fields, never a sentence.
+ */
+describe('an intake refusal carries its facts as fields (FE-29)', () => {
+  interface Facts {
+    limit?: Record<string, unknown>
+    session?: Record<string, unknown>
+  }
+  const factsOf = (res: { json: () => unknown }) => (res.json() as { error: Facts }).error
+
+  it('INTAKE_DAILY_LIMIT_REACHED says the count and when it lifts — the next midnight in Vancouver, by the database’s clock', async () => {
+    await withIntakeServer(async (ctx) => {
+      ctx.deps.config.intake.dailyKeys = 1
+      expect((await start(ctx, ctx.ownerCookies)).statusCode).toBe(201)
+      const res = await start(ctx, ctx.ownerCookies)
+      expect(refusal(res)).toEqual({ status: 409, code: 'INTAKE_DAILY_LIMIT_REACHED' })
+      const { limit } = factsOf(res)
+      expect(limit).toEqual({
+        scope: 'person',
+        period: 'day',
+        count: 1,
+        resetsAt: expect.any(String),
+      })
+      // ONE clock decides both the count and the reset: the database's, in the zone the count uses.
+      const { rows } = await ctx.db.execute<{ next: Date | string }>(
+        sql`select (date_trunc('day', now() at time zone 'America/Vancouver') + interval '1 day') at time zone 'America/Vancouver' as next`,
+      )
+      expect(new Date(limit!.resetsAt as string).toISOString()).toBe(
+        new Date(rows[0]!.next).toISOString(),
+      )
+    })
+  })
+
+  it('INTAKE_BUDGET_EXHAUSTED says the platform’s month: the amount, and the reset the gateway reports', async () => {
+    await withIntakeServer(async (ctx, lite) => {
+      expect((await start(ctx, ctx.ownerCookies)).statusCode).toBe(201)
+      lite.spend('mf-platform-intake', ctx.deps.config.intake.monthlyUsd)
+      const res = await start(ctx, ctx.ownerCookies)
+      expect(refusal(res)).toEqual({ status: 409, code: 'INTAKE_BUDGET_EXHAUSTED' })
+      const reported = (await intakeSpend(lite)).resetsAt
+      expect(reported).toMatch(/^\d{4}-\d{2}-01T00:00:00\.000Z$/)
+      expect(factsOf(res).limit).toEqual({
+        scope: 'platform',
+        period: 'month',
+        amountUsd: ctx.deps.config.intake.monthlyUsd,
+        resetsAt: reported,
+      })
+    })
+  })
+
+  it('INTAKE_SESSION_ALREADY_STARTED names the session it started — an intake session has no name', async () => {
+    await withIntakeServer(async (ctx) => {
+      const idem = randomUUID()
+      const first = await start(ctx, ctx.ownerCookies, idem)
+      expect(first.statusCode, first.body).toBe(201)
+      const again = await start(ctx, ctx.ownerCookies, idem)
+      expect(refusal(again)).toEqual({
+        status: 409,
+        code: 'INTAKE_SESSION_ALREADY_STARTED',
+      })
+      expect(factsOf(again).session).toEqual({
+        id: (first.json() as Started).session.id,
+        name: null,
+      })
     })
   })
 })

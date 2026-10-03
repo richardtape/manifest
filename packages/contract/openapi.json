@@ -11013,6 +11013,14 @@
               "pendingAction": {
                 "description": "On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed.",
                 "$ref": "#/components/schemas/PendingAction"
+              },
+              "limit": {
+                "description": "On AGENT_BUDGET_EXHAUSTED, INTAKE_BUDGET_EXHAUSTED and INTAKE_DAILY_LIMIT_REACHED: the limit, and when it lifts.",
+                "$ref": "#/components/schemas/Limit"
+              },
+              "session": {
+                "description": "On AGENT_SESSION_ALREADY_STARTED and INTAKE_SESSION_ALREADY_STARTED: the session this request already started.",
+                "$ref": "#/components/schemas/StartedSession"
               }
             },
             "required": [
@@ -17056,6 +17064,58 @@
         ],
         "additionalProperties": false
       },
+      "Limit": {
+        "description": "A limit a refusal is about.",
+        "type": "object",
+        "properties": {
+          "scope": {
+            "description": "Whose limit: the person the credential acts for, or the platform’s own.",
+            "type": "string",
+            "enum": [
+              "person",
+              "platform"
+            ]
+          },
+          "period": {
+            "description": "What it counts over.",
+            "type": "string",
+            "enum": [
+              "day",
+              "month"
+            ]
+          },
+          "resetsAt": {
+            "description": "When it lifts. `null` when the AI gateway does not report a reset — never a guess.",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-]\\d{2}:\\d{2})))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "amountUsd": {
+            "description": "On a budget: the amount the period allows, in US dollars.",
+            "type": "number",
+            "minimum": 0
+          },
+          "count": {
+            "description": "On a count: how many the period allows.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "scope",
+          "period",
+          "resetsAt"
+        ],
+        "additionalProperties": false
+      },
       "LogFrame": {
         "description": "One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all.",
         "type": "object",
@@ -20216,6 +20276,34 @@
         },
         "additionalProperties": false
       },
+      "StartedSession": {
+        "description": "The session a request already started.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The session that request started.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "name": {
+            "description": "Its name, as given; `null` for an intake session, which has none.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false
+      },
       "StreamFrame": {
         "description": "Every message on WS /v1/projects/{projectId}/events is one of these, as JSON. Switch on `kind`, then `type`.",
         "anyOf": [
@@ -20451,7 +20539,7 @@
     "AGENT_BUDGET_EXHAUSTED": {
       "status": 409,
       "summary": "The monthly agent budget of the person this credential acts for is spent, so no key was issued.",
-      "remedy": "Wait for the month to reset (`getAgentBudget` says when), or ask a platform administrator to raise this person’s agent budget."
+      "remedy": "Wait for the month to reset — `limit.resetsAt` says when, `null` if the AI gateway does not say — or ask a platform administrator to raise this person’s agent budget."
     },
     "AGENT_NO_MODEL_FOR_CLASSIFICATION": {
       "status": 409,
@@ -20461,7 +20549,7 @@
     "AGENT_SESSION_ALREADY_STARTED": {
       "status": 409,
       "summary": "This request — its Idempotency-Key — already started an agent session, and its key was answered then. A key is shown once and never again.",
-      "remedy": "Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key."
+      "remedy": "Use the key from the first answer. If it was lost, end the session this refusal names in `session` (`endAgentSession` with its `id`) and start another with a new Idempotency-Key."
     },
     "AI_BACKEND_UNAVAILABLE": {
       "status": 503,
@@ -20651,12 +20739,12 @@
     "INTAKE_BUDGET_EXHAUSTED": {
       "status": 409,
       "summary": "The platform’s monthly intake budget is spent, so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.",
-      "remedy": "Wait for the month to reset — the first of the month, 00:00 UTC — or ask a platform administrator to raise the intake budget."
+      "remedy": "Wait for the month to reset — `limit.resetsAt` says when, `null` if the AI gateway does not say — or ask a platform administrator to raise the intake budget."
     },
     "INTAKE_DAILY_LIMIT_REACHED": {
       "status": 409,
       "summary": "This person has started the intake sessions a person may start in a day, so describing new apps is paused for them until midnight, Vancouver time.",
-      "remedy": "Try again tomorrow, or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead."
+      "remedy": "Try again once `limit.resetsAt` has passed — the next midnight, Vancouver time — or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead."
     },
     "INTAKE_MODEL_UNAVAILABLE": {
       "status": 503,
@@ -20666,7 +20754,7 @@
     "INTAKE_SESSION_ALREADY_STARTED": {
       "status": 409,
       "summary": "This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.",
-      "remedy": "Use the key from the first answer. If it was lost, end the session this refusal names (`endIntakeSession`) and start another with a new Idempotency-Key."
+      "remedy": "Use the key from the first answer. If it was lost, end the session this refusal names in `session` (`endIntakeSession` with its `id`) and start another with a new Idempotency-Key."
     },
     "INTERNAL": {
       "status": 500,

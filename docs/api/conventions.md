@@ -30,6 +30,8 @@ Every refusal is one shape:
 - **`details`** comes with `422 SPEC_INVALID`: one entry per problem in manifest.yaml, each with its `path`, its own `code`, a `message` and a `hint`.
 - **`pendingAction`** comes with `403 TOKEN_ACTION_PENDING` and `TOKEN_ACTION_REJECTED`: the question a person answers.
 - **`launchReadiness`** comes with `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE`, a first production launch refused: everything the launch still needs.
+- **`limit`** comes with a refusal about a limit — `409 AGENT_BUDGET_EXHAUSTED`, `INTAKE_BUDGET_EXHAUSTED` and `INTAKE_DAILY_LIMIT_REACHED`: whose it is (`scope`, the person's or the platform's), over what `period`, how much (`amountUsd` for a budget, `count` for the day), and when it lifts (`resetsAt`, `null` when the AI gateway does not say). Tell the person when, from `resetsAt`; never parse the sentence.
+- **`session`** comes with `409 AGENT_SESSION_ALREADY_STARTED` and `INTAKE_SESSION_ALREADY_STARTED`: the session that request already started — its `id`, to end it, and its `name` (`null` for an intake session).
 
 The same code always comes with the same status. Several different refusals are a `403` — `FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `TOKEN_ACTION_PENDING`, `TOKEN_ACTION_REJECTED`, `STEP_UP_REQUIRED` — and each needs something different of you, which is why the status alone is never enough.
 

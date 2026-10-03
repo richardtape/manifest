@@ -52,13 +52,34 @@ export type AgentSessionCode =
   | 'INTAKE_MODEL_UNAVAILABLE'
 
 /**
+ * FE-29 (the faculty-ready plan's Task 4, Decision 5): a limit a refusal is about, as fields — the
+ * API's `Limit` checks the shape on the way out. `resetsAt` is `null` when the gateway reports none.
+ */
+export interface LimitFacts {
+  scope: 'person' | 'platform'
+  period: 'day' | 'month'
+  resetsAt: string | null
+  amountUsd?: number
+  count?: number
+}
+
+/** FE-29: the session a retried start already made; `name` is `null` for an intake session. */
+export interface StartedSessionFacts {
+  id: string
+  name: string | null
+}
+
+/**
  * A model session's refusals — agent and intake — each raised BEFORE anything is minted (Decisions
  * 22–23; Spec action 5's intake bounds). Each code's status is the registry's (`api/error-codes.ts`).
+ * Since FE-29 a limit's refusal carries the limit, and an already-started refusal the session, as
+ * `facts` — never in the message alone.
  */
 export class AgentSessionError extends Error {
   constructor(
     readonly code: AgentSessionCode,
     message: string,
+    readonly facts: { limit?: LimitFacts; session?: StartedSessionFacts } = {},
   ) {
     super(message)
     this.name = 'AgentSessionError'
@@ -208,13 +229,15 @@ export async function startAgentSession(
   //    mint against spend a cached read had not seen yet.
   const person = input.actor.userId
   const monthly = deps.agent.monthlyUsd
-  const { spentUsd } = await personSpend(llm, person)
+  const { spentUsd, resetsAt } = await personSpend(llm, person)
   const remaining = toCap(monthly - spentUsd)
   // Decided on what REMAINS, never on the cap asked for: a small cap is not a spent month.
   if (remaining <= 0) {
     throw new AgentSessionError(
       'AGENT_BUDGET_EXHAUSTED',
       `this month's agent budget of $${monthly} is spent ($${spentUsd.toFixed(2)} so far)`,
+      // FE-29: the reset is the gateway's own, `null` when it reports none.
+      { limit: { scope: 'person', period: 'month', amountUsd: monthly, resetsAt } },
     )
   }
   const capUsd = toCap(

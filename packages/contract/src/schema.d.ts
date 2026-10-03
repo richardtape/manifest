@@ -2095,6 +2095,10 @@ export interface components {
                 launchReadiness?: components["schemas"]["LaunchReadiness"];
                 /** @description On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed. */
                 pendingAction?: components["schemas"]["PendingAction"];
+                /** @description On AGENT_BUDGET_EXHAUSTED, INTAKE_BUDGET_EXHAUSTED and INTAKE_DAILY_LIMIT_REACHED: the limit, and when it lifts. */
+                limit?: components["schemas"]["Limit"];
+                /** @description On AGENT_SESSION_ALREADY_STARTED and INTAKE_SESSION_ALREADY_STARTED: the session this request already started. */
+                session?: components["schemas"]["StartedSession"];
             };
         };
         /** @description An audit Event, as recorded and redacted at capture. Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect. */
@@ -4943,6 +4947,25 @@ export interface components {
             /** @description The privacy assessment; null until it is drafted or recorded. */
             privacyAssessment: components["schemas"]["PrivacyAssessment"] | null;
         };
+        /** @description A limit a refusal is about. */
+        Limit: {
+            /**
+             * @description Whose limit: the person the credential acts for, or the platform’s own.
+             * @enum {string}
+             */
+            scope: "person" | "platform";
+            /**
+             * @description What it counts over.
+             * @enum {string}
+             */
+            period: "day" | "month";
+            /** @description When it lifts. `null` when the AI gateway does not report a reset — never a guess. */
+            resetsAt: string | null;
+            /** @description On a budget: the amount the period allows, in US dollars. */
+            amountUsd?: number;
+            /** @description On a count: how many the period allows. */
+            count?: number;
+        };
         /** @description One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all. */
         LogFrame: {
             /**
@@ -6104,6 +6127,16 @@ export interface components {
         StartBuildRequest: {
             /** @description The full id of the commit to build. Without it, the commit of the project’s newest recorded validation — which need not be `main`’s head: name the commit you mean. */
             commitSha?: string;
+        };
+        /** @description The session a request already started. */
+        StartedSession: {
+            /**
+             * Format: uuid
+             * @description The session that request started.
+             */
+            id: string;
+            /** @description Its name, as given; `null` for an intake session, which has none. */
+            name: string | null;
         };
         /** @description Every message on WS /v1/projects/{projectId}/events is one of these, as JSON. Switch on `kind`, then `type`. */
         StreamFrame: components["schemas"]["EventFrame"] | components["schemas"]["LogFrame"] | components["schemas"]["ControlFrame"];

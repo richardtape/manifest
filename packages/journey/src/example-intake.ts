@@ -13,7 +13,7 @@ export type Describing =
       baseUrl: string
       model: string
     }
-  | { started: false; code: string; why: string }
+  | { started: false; code: string; why: string; until: string | null }
 
 /**
  * A person describing an app they have not created yet: a key for the platform's intake model,
@@ -53,6 +53,8 @@ export async function startDescribing(page: ManifestClient): Promise<Describing>
         started: false,
         code: error.code,
         why: error.envelope?.error.message ?? error.message,
+        // When it lifts — tomorrow in Vancouver, or the month's reset — from the refusal's `limit`.
+        until: error.envelope?.error.limit?.resetsAt ?? null,
       }
     throw error
   }

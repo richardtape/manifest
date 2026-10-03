@@ -952,7 +952,8 @@ export function createApi(options: ApiOptions) {
      * agent working outside Manifest, charged to the person, capped and short-lived. **The key is
      * answered ONCE** — Manifest keeps no copy — so a screen shows it exactly as it shows a
      * token's secret and never keeps it past the page; a retry with the same key is `409
-     * AGENT_SESSION_ALREADY_STARTED`, never the key again.
+     * AGENT_SESSION_ALREADY_STARTED`, never the key again — naming the session in its `session`
+     * (FE-29), and a spent month is `AGENT_BUDGET_EXHAUSTED` with its `limit`.
      */
     async startAgentSession(
       projectId: string,
@@ -998,7 +999,8 @@ export function createApi(options: ApiOptions) {
      * THE INTAKE KEY (FE-1; Spec action 5): a model key for describing a NEW app, before any
      * project exists — the platform's money, a person's session only, answered once. Paused for a
      * person at the day's limit (`INTAKE_DAILY_LIMIT_REACHED`) and for everyone when the
-     * platform's month is spent (`INTAKE_BUDGET_EXHAUSTED`).
+     * platform's month is spent (`INTAKE_BUDGET_EXHAUSTED`) — each with its `limit`, whose
+     * `resetsAt` says when it lifts (FE-29).
      */
     async startIntakeSession(
       idempotency: string,

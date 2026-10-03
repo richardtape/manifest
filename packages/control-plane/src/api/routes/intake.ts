@@ -77,6 +77,8 @@ export const intakeRoutes = [
         return new AgentSessionError(
           'INTAKE_SESSION_ALREADY_STARTED',
           `this request already started the intake session '${session.id}'; its key was answered then and is never shown again — end it with endIntakeSession and start another if that answer was lost`,
+          // FE-29: an intake session has no name.
+          { session: { id: session.id, name: null } },
         )
       },
     },

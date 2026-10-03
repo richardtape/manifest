@@ -70,12 +70,21 @@ export async function startIntakeSession(
   }
 
   // 2. THE PLATFORM'S MONTH — the platform's own LiteLLM user, never the person's budget.
-  const { spentUsd } = await intakeSpend(llm)
+  const { spentUsd, resetsAt } = await intakeSpend(llm)
   const remaining = toCap(deps.intake.monthlyUsd - spentUsd)
   if (remaining <= 0) {
     throw new AgentSessionError(
       'INTAKE_BUDGET_EXHAUSTED',
       `the platform's monthly intake budget of $${deps.intake.monthlyUsd} is spent, so describing new apps is paused until the month resets`,
+      // FE-29: the gateway's own reset, `null` when it reports none.
+      {
+        limit: {
+          scope: 'platform',
+          period: 'month',
+          amountUsd: deps.intake.monthlyUsd,
+          resetsAt,
+        },
+      },
     )
   }
   const capUsd = toCap(Math.min(deps.intake.keyCapUsd, remaining))
@@ -96,8 +105,16 @@ export async function startIntakeSession(
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtext(${`intake:${actor.userId}`}))`,
       )
+      // The count AND the next midnight, in ONE statement (FE-29, Decision 5): one clock — the
+      // database's, in the zone the count uses — decides both, so a refusal never says the day
+      // lifts at a moment the count disagrees with (BC's clock rules against Node's tz data).
       const [today] = await tx
-        .select({ n: sql<number>`count(*)::int` })
+        .select({
+          n: sql<number>`count(*)::int`,
+          next: sql<
+            Date | string
+          >`(date_trunc('day', now() at time zone ${INTAKE_DAY_ZONE}) + interval '1 day') at time zone ${INTAKE_DAY_ZONE}`,
+        })
         .from(intakeSessions)
         .where(
           and(
@@ -112,6 +129,14 @@ export async function startIntakeSession(
         throw new AgentSessionError(
           'INTAKE_DAILY_LIMIT_REACHED',
           `you have started the ${deps.intake.dailyKeys} intake sessions a person may start in a day, so describing new apps is paused for today`,
+          {
+            limit: {
+              scope: 'person',
+              period: 'day',
+              count: deps.intake.dailyKeys,
+              resetsAt: today === undefined ? null : new Date(today.next).toISOString(),
+            },
+          },
         )
       }
       const [row] = await tx

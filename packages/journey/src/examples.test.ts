@@ -406,6 +406,7 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
         why: expect.stringMatching(
           /^This month’s \$10\.00 of agent budget is spent; it resets /,
         ),
+        until: fixtures.agentBudget(Date.now(), 'exhausted').resetsAt,
       })
     })
     await withMock({ agentBudget: 'unavailable' }, async (unknown) => {
@@ -487,6 +488,7 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
         ).toEqual({
           started: false,
           why: expect.stringContaining('no chat model'),
+          until: null,
         })
         expect(heard.map((h) => `${h.method} ${h.url}`)).toEqual([
           'GET /v1/agent-budget',
@@ -513,6 +515,8 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
         ).toEqual({
           started: false,
           why: "this month's agent budget of $10 is spent",
+          // FE-29: when it lifts, from the refusal's own `limit` — `null` where it carries none.
+          until: null,
         })
       },
     )
@@ -534,6 +538,8 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
         code: 'INTAKE_DAILY_LIMIT_REACHED',
         // The platform's own sentence, for a person — never the client's "… failed with 409 …".
         why: expect.stringMatching(/^you have started the 10 intake sessions/),
+        // FE-29: when it lifts, read from the refusal's `limit` — never parsed from the sentence.
+        until: expect.stringMatching(/T0[78]:00:00\.000Z$/),
       })
     })
   })

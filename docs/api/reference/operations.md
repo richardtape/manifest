@@ -293,10 +293,10 @@ Answer, `201`:
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
-| `INTAKE_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset — the first of the month, 00:00 UTC — or ask a platform administrator to raise the intake budget. |
-| `INTAKE_DAILY_LIMIT_REACHED` | 409 | Try again tomorrow, or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead. |
+| `INTAKE_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset — `limit.resetsAt` says when, `null` if the AI gateway does not say — or ask a platform administrator to raise the intake budget. |
+| `INTAKE_DAILY_LIMIT_REACHED` | 409 | Try again once `limit.resetsAt` has passed — the next midnight, Vancouver time — or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead. |
 | `INTAKE_MODEL_UNAVAILABLE` | 503 | A platform administrator names an intake model the catalogue approves for internal data (`MANIFEST_INTAKE_MODEL`). |
-| `INTAKE_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names (`endIntakeSession`) and start another with a new Idempotency-Key. |
+| `INTAKE_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names in `session` (`endIntakeSession` with its `id`) and start another with a new Idempotency-Key. |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |
 | `REQUEST_BODY_TOO_LARGE` | 413 | Send a smaller body. Every operation accepts at most 1 MiB except `createCommit`, which accepts 8 MiB — split a larger change into several commits. |
@@ -485,9 +485,9 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
-| `AGENT_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset (`getAgentBudget` says when), or ask a platform administrator to raise this person’s agent budget. |
+| `AGENT_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset — `limit.resetsAt` says when, `null` if the AI gateway does not say — or ask a platform administrator to raise this person’s agent budget. |
 | `AGENT_NO_MODEL_FOR_CLASSIFICATION` | 409 | Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release. |
-| `AGENT_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names (`endAgentSession`) and start another with a new Idempotency-Key. |
+| `AGENT_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names in `session` (`endAgentSession` with its `id`) and start another with a new Idempotency-Key. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |

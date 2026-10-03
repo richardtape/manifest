@@ -15,7 +15,7 @@ export type ModelSession =
       model: string
       expiresAt: string
     }
-  | { started: false; why: string }
+  | { started: false; why: string; until: string | null }
 
 const dollars = (usd: number): string => `$${usd.toFixed(2)}`
 
@@ -40,7 +40,7 @@ export async function startAModelSession(
   const client = createManifestClient({ origin, token })
   const month = unwrap(await client.GET('/v1/agent-budget'), 'getAgentBudget')
   if (month.remainingUsd !== null && month.remainingUsd <= 0)
-    return { started: false, why: monthIsSpent(month) }
+    return { started: false, why: monthIsSpent(month), until: month.resetsAt }
   try {
     const { session, key, baseUrl } = unwrap(
       await client.POST('/v1/projects/{projectId}/agent-sessions', {
@@ -70,6 +70,7 @@ export async function startAModelSession(
       return {
         started: false,
         why: `This project's key offers no chat model (${session.models.join(', ')}).`,
+        until: null,
       }
     }
     return {
@@ -83,8 +84,13 @@ export async function startAModelSession(
   } catch (error) {
     // Spent between the read and the start — another of the person's agents, most likely.
     if (error instanceof ManifestApiError && error.code === 'AGENT_BUDGET_EXHAUSTED')
-      // The platform's own sentence, for a person — not the client's "… failed with 409 …".
-      return { started: false, why: error.envelope?.error.message ?? error.message }
+      // The platform's own sentence, for a person — not the client's "… failed with 409 …" — and
+      // when the month lifts, from the refusal's `limit`, never parsed from the sentence.
+      return {
+        started: false,
+        why: error.envelope?.error.message ?? error.message,
+        until: error.envelope?.error.limit?.resetsAt ?? null,
+      }
     throw error
   }
 }

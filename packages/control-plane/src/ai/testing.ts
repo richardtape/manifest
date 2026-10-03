@@ -218,6 +218,11 @@ export interface FakeLiteLlm extends LiteLlmClient {
   /** Sets a user's month spent, in USD. */
   spend(litellmUserId: string, usd: number): void
   /**
+   * The user's `/user/info` answers NO `budget_reset_at`, as LiteLLM's does for a user with no
+   * budget duration (FE-29: a reset the gateway does not report is `null`, never invented).
+   */
+  withoutReset(litellmUserId: string): void
+  /**
    * `default-chat-large`'s fallbacks and every other model's, as LiteLLM's router holds them (the front-end
    * enablement plan's Task 12b): a model NAME to the names that answer for it, by `fallback_type`. Keyed by
    * name, never by deployment — measured at sitting 9b: an entry outlives its primary's deletion.
@@ -290,6 +295,7 @@ function configDeployments(): FakeDeployment[] {
 export function fakeLiteLlm(): FakeLiteLlm {
   const calls: FakeLiteLlmCall[] = []
   const users = new Map<string, FakeUser>()
+  const noReset = new Set<string>()
   const keys = new Map<string, FakeKey>()
   const failures = new Map<string, { status: number; n: number }>()
   const delays = new Map<string, number>()
@@ -546,7 +552,7 @@ export function fakeLiteLlm(): FakeLiteLlm {
       user_info: {
         spend: user.spend,
         max_budget: user.maxBudget,
-        budget_reset_at: next.toISOString(),
+        ...(noReset.has(id) ? {} : { budget_reset_at: next.toISOString() }),
       },
       keys: [...keys.values()]
         .filter((k) => k.userId === id)
@@ -599,6 +605,9 @@ export function fakeLiteLlm(): FakeLiteLlm {
       const user = users.get(id)
       if (user === undefined) throw new Error(`fakeLiteLlm: no user '${id}'`)
       user.spend = usd
+    },
+    withoutReset: (id) => {
+      noReset.add(id)
     },
     charge: (alias, usd) => {
       const k = [...keys.values()].find((x) => x.alias === alias)

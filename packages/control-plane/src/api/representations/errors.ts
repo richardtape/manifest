@@ -8,6 +8,57 @@ import { LaunchReadiness } from './launch.js'
 import { PendingAction } from './pending-actions.js'
 
 /**
+ * FE-29 (the faculty-ready plan's Task 4, Decision 5; §20): A LIMIT, AS FIELDS — whose it is, over
+ * what period, how much, and when it lifts — on a refusal about one, so a client acts on fields
+ * rather than parsing the sentence.
+ */
+export const Limit = representation(
+  'Limit',
+  z
+    .object({
+      scope: z
+        .enum(['person', 'platform'])
+        .describe(
+          'Whose limit: the person the credential acts for, or the platform’s own.',
+        ),
+      period: z.enum(['day', 'month']).describe('What it counts over.'),
+      resetsAt: z
+        .string()
+        .datetime({ offset: true })
+        .nullable()
+        .describe(
+          'When it lifts. `null` when the AI gateway does not report a reset — never a guess.',
+        ),
+      amountUsd: z
+        .number()
+        .nonnegative()
+        .optional()
+        .describe('On a budget: the amount the period allows, in US dollars.'),
+      count: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .describe('On a count: how many the period allows.'),
+    })
+    .describe('A limit a refusal is about.'),
+)
+
+/** FE-29: the session a retried start already made — the one to end, or to keep using. */
+export const StartedSession = representation(
+  'StartedSession',
+  z
+    .object({
+      id: z.string().uuid().describe('The session that request started.'),
+      name: z
+        .string()
+        .nullable()
+        .describe('Its name, as given; `null` for an intake session, which has none.'),
+    })
+    .describe('The session a request already started.'),
+)
+
+/**
  * THE shape of every failure the API answers with — the one statement of it (P5a Task 15).
  *
  * It lives here rather than in `contract/schemas.ts` so it can name `LaunchReadiness`
@@ -60,6 +111,12 @@ export const ErrorEnvelope = representation(
            */
           pendingAction: PendingAction.optional().describe(
             'On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed.',
+          ),
+          limit: Limit.optional().describe(
+            'On AGENT_BUDGET_EXHAUSTED, INTAKE_BUDGET_EXHAUSTED and INTAKE_DAILY_LIMIT_REACHED: the limit, and when it lifts.',
+          ),
+          session: StartedSession.optional().describe(
+            'On AGENT_SESSION_ALREADY_STARTED and INTAKE_SESSION_ALREADY_STARTED: the session this request already started.',
           ),
         })
         .describe(

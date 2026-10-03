@@ -19,6 +19,7 @@ import { TokenCredentialRefusedError } from './actor.js'
 import { RateLimitedError } from './rate-limit.js'
 import type { ErrorEnvelopeShape } from './representations/errors.js'
 import { LaunchReadiness } from './representations/launch.js'
+import { Limit, StartedSession } from './representations/errors.js'
 import {
   LaunchRecordError,
   RehearsalError,
@@ -258,6 +259,34 @@ function checklist(
     }),
   )
   return {}
+}
+
+/**
+ * FE-29 (the faculty-ready plan's Task 4): a model session refusal's FACTS, THROUGH THEIR
+ * REPRESENTATIONS, for `checklist`'s reason above. It FAILS CLOSED the same way: a fact that does
+ * not parse is dropped and the operator hears which, and the refusal still goes — its code says what
+ * happened. Never a 500 on the way to the wire.
+ */
+function sessionFacts(error: AgentSessionError): Pick<ErrorBody, 'limit' | 'session'> {
+  const out: Pick<ErrorBody, 'limit' | 'session'> = {}
+  for (const [field, schema, value] of [
+    ['limit', Limit, error.facts.limit],
+    ['session', StartedSession, error.facts.session],
+  ] as const) {
+    if (value === undefined) continue
+    const parsed = schema.safeParse(value)
+    if (parsed.success) Object.assign(out, { [field]: parsed.data })
+    else
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          msg: `a refusal's ${field} is not the shape the API describes; the refusal was sent without it`,
+          code: error.code,
+          issues: parsed.error.issues.map((i) => i.path.join('.')),
+        }),
+      )
+  }
+  return out
 }
 
 /**
@@ -761,7 +790,9 @@ function mapError(error: unknown): { status: number; body: UnsentRefusal } {
   if (error instanceof AgentSessionError) {
     return {
       status: ERROR_CODES[error.code].status,
-      body: { error: { code: error.code, message: error.message } },
+      body: {
+        error: { code: error.code, message: error.message, ...sessionFacts(error) },
+      },
     }
   }
 

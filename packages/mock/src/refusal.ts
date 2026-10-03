@@ -13,6 +13,8 @@ export class MockRefusal extends Error {
   readonly details: unknown[] | undefined
   /** The production gate's checklist, as the platform's `409` carries it (`launchReadiness`). */
   readonly launchReadiness: unknown
+  /** FE-29 (contract 1.6.0): a limit's facts (`limit`) or a started session's (`session`). */
+  readonly facts: { limit?: unknown; session?: unknown }
   constructor(
     status: number,
     code: string,
@@ -20,6 +22,7 @@ export class MockRefusal extends Error {
     hint?: string,
     details?: unknown[],
     launchReadiness?: unknown,
+    facts: { limit?: unknown; session?: unknown } = {},
   ) {
     super(message)
     this.name = 'MockRefusal'
@@ -28,5 +31,6 @@ export class MockRefusal extends Error {
     this.hint = hint
     this.details = details
     this.launchReadiness = launchReadiness
+    this.facts = facts
   }
 }
