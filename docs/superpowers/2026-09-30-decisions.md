@@ -373,3 +373,9 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         an agent). Sitting 5 runs overnight only if sittings 2–4 close first.
       - F6b SITTING 6's CLICK — "Tonight if ready, else morning (Recommended)": manifest-app-a1 staged it within minutes, so
         he clicks before bed; 7100 is released to platform sitting 2 after it.
+      - PASSWORDS ON manifest.internal — said as he left for bed, ~01:35 PDT, in his own words: "I give permission to type
+        passwords here on manifest.internal - it's completely local. If you can run chrome headlessly, feel free to do so,
+        you can enter usernames and passwords here, no harm will be done. This is also true for any agents you spawn."
+        A STANDING yes for the laptop IdP's test users, typed by an agent or a headless Chrome it drives (the front-end's
+        scripts/walk/ already does this "only at Rich's yes"). It does not cover a real UBC credential, `sudo`, or a
+        clicked half's purpose (a PERSON seeing it work), and a classifier refusal is still not worked around.
