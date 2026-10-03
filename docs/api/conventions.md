@@ -1,6 +1,6 @@
 # Conventions
 
-The rules every operation follows — versioning, idempotency keys, the error envelope, asynchronous work and the stream, paging, and limits — so that a client written against one operation is right about the rest. For a developer writing a client and for an agent deciding what to do with an answer.
+The rules every operation follows — versioning, idempotency keys, an administrator's reason, the error envelope, asynchronous work and the stream, paging, and limits — so that a client written against one operation is right about the rest. For a developer writing a client and for an agent deciding what to do with an answer.
 
 ## Versions
 
@@ -15,6 +15,16 @@ Every resource route is under `/v1`. Within `/v1` the API only grows: an answer 
 - **A new action is a new key.** The same key with a different body — or on another resource, such as another environment's secret — is `409 IDEMPOTENCY_KEY_REUSED`.
 - **A dry run is a new key every time**: it writes nothing, so a replay protects nothing, and would answer a check made before the code moved.
 - A retry that spans the platform rotating its session secret is `409 IDEMPOTENCY_KEY_REUSED`: send it again with a new key.
+
+## An administrator acting on somebody else's project
+
+**A platform administrator who is not a member of a project, changing it with an owner's capability, says why** — in a `Manifest-Admin-Reason` header on the request. Without one it is `400 ADMIN_REASON_REQUIRED`, and its `hint` says what to send. The operations that can ask list the header and the code in the OpenAPI document; they are every change an owner can make: renaming, committing, setting or clearing a secret, adding or removing a person, building, validating, releasing, deploying, the launch records' drafts and sends, asking for sign-off, the rehearsal, archiving, restoring or deleting, starting or ending an agent session, minting a token, and answering an agent's question.
+
+- **The reason is 1 to 500 characters once trimmed.** A header carries only Latin-1 text, and a browser's `fetch` and Node's refuse to send anything else, so **percent-encode it as UTF-8 (`encodeURIComponent`) when it is not plain ASCII**; the platform decodes it.
+- **Nobody else is asked**: the project's owner and collaborators, an administrator who is a member, an administrator doing their own duty — approving or rejecting a release, recording what UBC answered, or answering an agent's question about a quota — and anyone reading. A header sent when none is asked is ignored.
+- **It is part of the request.** A retry with the same `Idempotency-Key` sends the same reason; another reason under the same key is `409 IDEMPOTENCY_KEY_REUSED`.
+- **A token is asked once, at its mint.** An administrator minting a token on somebody else's project gives the reason then; the token's later actions are not asked, and the stream names them as that person's agent.
+- **The project's people see it.** The reason is stored with the audit event beside the administrator's name, redacted like every event, and every event the change causes carries it in `actor` ([Events](events.md)).
 
 ## Errors
 

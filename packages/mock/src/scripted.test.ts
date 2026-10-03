@@ -1043,6 +1043,46 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(plain.status).toBe(200)
   })
 
+  it('MANIFEST_MOCK_ADMIN_REASON=1 plays an administrator who is not a member — an owner’s change is refused ADMIN_REASON_REQUIRED without the header, and made with it (the faculty-ready plan’s Task 10)', async () => {
+    const at = await serve({ adminReason: true })
+    const rename = (reason?: string, key = crypto.randomUUID()) =>
+      fetch(`${at}/v1/projects/${f.PROJECT_ID}`, {
+        method: 'PATCH',
+        headers: {
+          ...mutation(SESSION),
+          'idempotency-key': key,
+          ...(reason === undefined ? {} : { 'manifest-admin-reason': reason }),
+        },
+        body: JSON.stringify({ name: 'Renamed by an administrator' }),
+      })
+    const refused = await rename()
+    expect(refused.status).toBe(400)
+    const body = (await refused.json()) as { error: { code: string; hint: string } }
+    expect(body.error.code).toBe('ADMIN_REASON_REQUIRED')
+    expect(body.error.hint).toMatch(/Manifest-Admin-Reason/)
+    expect((await rename('x'.repeat(501))).status).toBe(400)
+    // With a reason — percent-encoded, as a browser must send a person's own words — it is made.
+    const key = crypto.randomUUID()
+    expect((await rename(encodeURIComponent('Élève — page cassée'), key)).status).toBe(
+      200,
+    )
+    // The reason is part of the request: another reason under the same key is another request.
+    const reused = await rename('Another reason', key)
+    expect(reused.status).toBe(409)
+    expect(await codeOf(reused)).toBe('IDEMPOTENCY_KEY_REUSED')
+    // A read asks nothing.
+    expect(
+      (await fetch(`${at}/v1/projects/${f.PROJECT_ID}`, { headers: SESSION })).status,
+    ).toBe(200)
+    // Unscripted, nobody is asked — the default, unchanged.
+    const plain = await fetch(`${origin}/v1/projects/${f.PROJECT_ID}`, {
+      method: 'PATCH',
+      headers: mutation(SESSION),
+      body: JSON.stringify({ name: 'Renamed by the owner' }),
+    })
+    expect(plain.status).toBe(200)
+  })
+
   it('refuses a production deploy that is not ready with the platform’s gate and checklist, while a launch is scripted (the whole-branch review’s I3)', async () => {
     const at = await serve({ records: 'drafted' })
     const refused = await post(at, `/v1/environments/${f.PRODUCTION_ID}/deploy`, {

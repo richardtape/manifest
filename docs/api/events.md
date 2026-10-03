@@ -79,9 +79,11 @@ export async function buildAndWatch(
 
 Every message is one JSON frame, of three kinds:
 
-- **`event`** — something happened: its `type`, the `subject` it is about (`build:<id>`, `instance:<id>`, `project:<id>`), a `humanMessage` for a person, and a `machineDetail` to act on. Every event is also a line in the project’s audit trail, which nothing can change or remove.
+- **`event`** — something happened: its `type`, the `subject` it is about (`build:<id>`, `instance:<id>`, `project:<id>`), a `humanMessage` for a person, a `machineDetail` to act on, and **`actor`** — who acted. Every event is also a line in the project’s audit trail, which nothing can change or remove.
 - **`log`** — one line of a build’s log, in order.
 - **`control`** — about the stream itself.
+
+**`actor` says who acted, on every event**: `{ name, asAdministrator, reason }` — the person whose request caused it (for a delegated token, the person who minted it; never a PUID), or `null` when no request did, such as the platform finishing work after a restart, or a push straight to GitHub. An event that a request's work publishes later — a build ending, a deploy becoming healthy — names who started it. **`asAdministrator` is true when a platform administrator who is not a member of the project changed it with an owner's capability**, and `reason` is then why, in their words, redacted; for everyone else it is false and `reason` is null — an administrator approving a release or acting as a member of the project included. The sentence says so too: *"Preparing bio-lab in staging, deployed by Ada Lovelace."*, and for an administrator *"… Sam Admin acted as a platform administrator — reason: 'Student reported a broken page'."* Read `actor`, never the sentence.
 
 On opening, the stream **replays the newest 50 events**, then sends one `control` frame of type `manifest.stream.ready`, then everything live. Subscribe before you start the thing you are watching, and nothing is missed.
 

@@ -656,6 +656,42 @@ describe('the console’s data layer against manifest-mock', () => {
   })
 
   /**
+   * §26'S REASON (the faculty-ready plan's Task 10): an administrator who is not a member of the
+   * project gives one on every change, and the console sends what the person typed — percent-encoded,
+   * because a browser's `fetch` refuses a header holding anything but Latin-1 — as the
+   * `Manifest-Admin-Reason` header on every mutation. Against the mock playing exactly that
+   * administrator; the refusal without it is the positive control that the mock asks at all.
+   */
+  it('sends the administrator’s reason as Manifest-Admin-Reason on a mutation — and is refused ADMIN_REASON_REQUIRED without one', async () => {
+    await withMock(
+      async (origin) => {
+        await expect(
+          api(origin).updateProject(PROJECT_ID, { name: 'Renamed' }, 'admin-reason-0001'),
+        ).rejects.toMatchObject({ status: 400, code: 'ADMIN_REASON_REQUIRED' })
+        let reason: string | null = 'Élève — page cassée'
+        const asking = createApi({
+          origin,
+          session: 'mock-session',
+          adminReason: () => reason,
+        })
+        const renamed = await asking.updateProject(
+          PROJECT_ID,
+          { name: 'Renamed' },
+          'admin-reason-0002',
+        )
+        expect(renamed.id).toBe(PROJECT_ID)
+        // A read sends nothing and needs nothing; an emptied field sends nothing again.
+        expect((await asking.getProject(PROJECT_ID)).id).toBe(PROJECT_ID)
+        reason = null
+        await expect(
+          asking.updateProject(PROJECT_ID, { name: 'Renamed' }, 'admin-reason-0003'),
+        ).rejects.toMatchObject({ status: 400, code: 'ADMIN_REASON_REQUIRED' })
+      },
+      { adminReason: true },
+    )
+  })
+
+  /**
    * THE STREAM, WHICH IS THE HALF OPENAPI CANNOT DESCRIBE. `stream.ts`'s `useProjectStream`
    * is a React hook and cannot run here, but the thing it calls can — and the two properties
    * a client most easily gets wrong are both asserted:

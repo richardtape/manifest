@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
 import type { Api } from '../api'
+import { setAdminReason } from '../admin-reason'
 import { href, navigate, type Route } from '../router'
 import { useProjectStream } from '../stream'
 import { deleteRefusalAdvice, RESTORE_SENTENCE } from '../ending-state'
@@ -26,6 +27,7 @@ export function Project({
   projectId,
   tab,
   isAdmin,
+  meId,
 }: {
   api: Api
   projectId: string
@@ -36,6 +38,8 @@ export function Project({
    * and the console could be replaced by `curl` without weakening anything (`app.tsx`).
    */
   isAdmin: boolean
+  /** The signed-in person's id: whether they are a member of this project (§26's reason). */
+  meId: string
 }) {
   // ONE SOCKET FOR THE WHOLE SCREEN (D23.2), AND IT SPANS THE TABS. The hook lives here
   // rather than in a tab, so moving between Overview and Tokens does not tear the socket
@@ -57,6 +61,7 @@ export function Project({
   const [releaseTick, setReleaseTick] = useState(0)
   return (
     <>
+      {isAdmin && <AdminReason api={api} projectId={projectId} meId={meId} />}
       <Tabs projectId={projectId} tab={tab} />
       {tab === 'code' ? (
         <Code api={api} projectId={projectId} frames={stream.frames} />
@@ -107,6 +112,54 @@ export function Project({
         </>
       )}
     </>
+  )
+}
+
+/**
+ * §26'S REASON (the faculty-ready plan's Task 10): a platform administrator who is not a member of
+ * this project gives one with every change they make to it, and the project's people read it beside
+ * their name on the stream. Shown only to an administrator who is not a member — for affordance; the
+ * platform decides, and refuses `400 ADMIN_REASON_REQUIRED` without one. What is typed here is sent
+ * on every change made from this screen (`api.ts`), and forgotten when the screen closes.
+ */
+function AdminReason({
+  api,
+  projectId,
+  meId,
+}: {
+  api: Api
+  projectId: string
+  meId: string
+}) {
+  const members = useAsync(() => api.listMembers(projectId), [projectId])
+  const [reason, setReason] = useState('')
+  useEffect(() => {
+    setAdminReason(null)
+    setReason('')
+    return () => setAdminReason(null)
+  }, [projectId])
+  if (members.value === undefined || members.value.some((m) => m.userId === meId))
+    return null
+  return (
+    <Panel title="You are not a member of this project">
+      <p>
+        As a platform administrator you can change it. Say why first: your reason is sent
+        with every change you make here, and the project’s people read it beside your
+        name.
+      </p>
+      <label>
+        Reason{' '}
+        <input
+          value={reason}
+          maxLength={500}
+          placeholder="Student reported a broken page"
+          onChange={(e) => {
+            setReason(e.target.value)
+            setAdminReason(e.target.value)
+          }}
+        />
+      </label>
+    </Panel>
   )
 }
 

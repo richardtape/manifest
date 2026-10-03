@@ -131,6 +131,14 @@ export interface MockOptions {
   /** FE-40 (2): `MANIFEST_MOCK_STEP_UP=1` — see *What it does not enforce unless asked*, above. */
   stepUp?: boolean
   /**
+   * `MANIFEST_MOCK_ADMIN_REASON=1` (the faculty-ready plan's Task 10): the signed-in person is a platform
+   * administrator who is NOT a member of `mock-app` — so every operation the document declares
+   * `Manifest-Admin-Reason` on is refused `400 ADMIN_REASON_REQUIRED` without one (or with one longer
+   * than 500 characters), in the platform's words, and answered as usual with it. The mock keeps no
+   * events, so the reason shows nowhere else here.
+   */
+  adminReason?: boolean
+  /**
    * `MANIFEST_MOCK_QUEUE=full`: the administrators' queue holds one of each kind — the three beyond
    * what `mock-app`'s stage leaves with UBC are on projects this mock does not hold.
    */
@@ -298,6 +306,44 @@ function assertSteppedUp(ctx: Context, capability: string): void {
     `'${capability}' needs a second authentication round trip`,
     'Navigate the browser to /auth/step-up?returnTo=<the page you are on>, complete the CWL prompt, and make this request again.',
   )
+}
+
+/**
+ * THE PLATFORM'S DECODING of `Manifest-Admin-Reason`: percent-encoded UTF-8 is decoded, text that is
+ * not a valid encoding is taken as sent, and it is trimmed — `null` when nothing is left.
+ */
+function adminReasonOf(header: string | string[] | undefined): string | null {
+  if (header === undefined) return null
+  const raw = Array.isArray(header) ? header.join(', ') : header
+  let decoded = raw
+  try {
+    decoded = decodeURIComponent(raw)
+  } catch {
+    decoded = raw
+  }
+  const trimmed = decoded.trim()
+  return trimmed === '' ? null : trimmed
+}
+
+/** Task 10, when scripted: the platform's `400 ADMIN_REASON_REQUIRED`, in its words. */
+function assertAdminReason(header: string | string[] | undefined): void {
+  const reason = adminReasonOf(header)
+  const hint =
+    "Send why in the Manifest-Admin-Reason header — 1 to 500 characters, percent-encoded as UTF-8 when it is not plain ASCII. The project's people read it beside your name."
+  if (reason === null)
+    throw new MockRefusal(
+      400,
+      'ADMIN_REASON_REQUIRED',
+      'you are a platform administrator and not a member of this project, so this needs a reason',
+      hint,
+    )
+  if (reason.length > 500)
+    throw new MockRefusal(
+      400,
+      'ADMIN_REASON_REQUIRED',
+      `the reason is ${reason.length} characters; at most 500 are kept`,
+      hint,
+    )
 }
 
 /** The `environment` path parameter, as the platform's schema allows it. */
@@ -924,6 +970,8 @@ interface Operation {
   needsIdempotencyKey: boolean
   /** The operation's `security` names the session alone (FE-26): a Bearer is refused. */
   sessionOnly: boolean
+  /** The document declares `Manifest-Admin-Reason` on it: an owner's capability (Task 10). */
+  asksAdminReason: boolean
   /**
    * THE DOCUMENT'S OWN ANSWER (the authoring API plan's Decision 15): the success response's
    * `example`, its status and the component it claims to be — what an operation with no
@@ -1000,6 +1048,9 @@ export function operationsOf(document: Document): Operation[] {
         names,
         needsIdempotencyKey: (operation.parameters ?? []).some(
           (p) => p.in === 'header' && p.name === 'Idempotency-Key' && p.required === true,
+        ),
+        asksAdminReason: (operation.parameters ?? []).some(
+          (p) => p.in === 'header' && p.name === 'Manifest-Admin-Reason',
         ),
         // An operation's own `security` overrides the document's global one (either credential).
         sessionOnly:
@@ -1165,6 +1216,7 @@ export function createMockServer(options: MockOptions = {}): Server {
       options.rehearsal ??
       (process.env.MANIFEST_MOCK_REHEARSAL === 'failed' ? 'failed' : 'passed'),
     stepUp: options.stepUp ?? process.env.MANIFEST_MOCK_STEP_UP === '1',
+    adminReason: options.adminReason ?? process.env.MANIFEST_MOCK_ADMIN_REASON === '1',
     queue:
       options.queue ?? (process.env.MANIFEST_MOCK_QUEUE === 'full' ? 'full' : 'default'),
     intake:
@@ -1327,7 +1379,10 @@ export function createMockServer(options: MockOptions = {}): Server {
             'Generate a UUID per user action and reuse it across retries of that action.',
           )
         const stored = seen.get(`${key}|${operation.method} ${operation.path}`)
-        const hash = JSON.stringify(body ?? null)
+        // The reason is part of the request, as on the platform: another reason under one key is
+        // another request. Only when one was sent, so every other hash is what it always was.
+        const reason = adminReasonOf(request.headers['manifest-admin-reason'])
+        const hash = JSON.stringify(body ?? null) + (reason === null ? '' : `\0${reason}`)
         if (stored !== undefined) {
           if (stored.hash !== hash)
             throw new MockRefusal(
@@ -1383,6 +1438,10 @@ export function createMockServer(options: MockOptions = {}): Server {
 
       // FE-27: an id the mock does not hold is the platform's 404, before any answer is built.
       assertHeld(params)
+      // Task 10: an administrator who is not a member, when scripted — a person's session only; a token
+      // is never asked (its minter was, at the mint).
+      if (resolved.adminReason && operation.asksAdminReason && credential === 'session')
+        assertAdminReason(request.headers['manifest-admin-reason'])
 
       const {
         status,

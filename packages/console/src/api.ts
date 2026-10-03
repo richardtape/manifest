@@ -23,6 +23,14 @@ export interface ApiOptions {
   origin: string
   /** For a NODE caller only. A browser sends its own cookie and its own Origin. */
   session?: string
+  /**
+   * §26'S REASON (the faculty-ready plan's Task 10): what the signed-in administrator typed for why
+   * they are changing a project they are not a member of — read at each MUTATION and sent as
+   * `Manifest-Admin-Reason`, percent-encoded as UTF-8 because a browser's `fetch` refuses a header
+   * holding anything but Latin-1. `null` sends nothing. The platform decides who must give one; the
+   * console only carries what the person said.
+   */
+  adminReason?: () => string | null
 }
 
 export type Api = ReturnType<typeof createApi>
@@ -39,6 +47,16 @@ const key = (k: string) => ({ header: { 'Idempotency-Key': k } })
 
 export function createApi(options: ApiOptions) {
   const client = createManifestClient(options)
+  const reasonOf = options.adminReason
+  if (reasonOf !== undefined)
+    client.use({
+      onRequest({ request }) {
+        const reason = request.method === 'GET' ? null : reasonOf()?.trim()
+        if (reason !== null && reason !== undefined && reason !== '')
+          request.headers.set('Manifest-Admin-Reason', encodeURIComponent(reason))
+        return request
+      },
+    })
 
   return {
     /** The idempotency key for one user action; hold it and reuse it on a retry. */

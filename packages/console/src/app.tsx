@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
 import { createApi } from './api'
+import { currentAdminReason } from './admin-reason'
 import { signIn, signOut } from './auth'
 import { href, useRoute, type Route } from './router'
 import { Approval } from './screens/approvals'
@@ -24,7 +25,8 @@ import { Field, Panel, Pill, Refusal, useAsync } from './ui'
  * why this page must be reached at `console.manifest.internal` and never at
  * `127.0.0.1:7104`, where a mutation would be refused `403 CSRF_ORIGIN_REFUSED`.
  */
-const api = createApi({ origin: window.location.origin })
+// §26's reason (Task 10): what an administrator typed on a project they are not a member of.
+const api = createApi({ origin: window.location.origin, adminReason: currentAdminReason })
 
 export function App() {
   const me = useAsync(() => api.getMe(), [])
@@ -99,7 +101,7 @@ export function App() {
       <main className="shell">
         <Refusal error={signOutError} />
         <You person={person} />
-        <Screen route={route} isAdmin={person.role === 'admin'} />
+        <Screen route={route} isAdmin={person.role === 'admin'} meId={person.id} />
       </main>
     </>
   )
@@ -140,7 +142,15 @@ function You({ person }: { person: Schemas['Me'] }) {
  * keep an honest placeholder rather than a blank page — a person who deep-links to
  * `/projects/<id>` before Task 6 should be told which task builds it, not shown nothing.
  */
-function Screen({ route, isAdmin }: { route: Route; isAdmin: boolean }) {
+function Screen({
+  route,
+  isAdmin,
+  meId,
+}: {
+  route: Route
+  isAdmin: boolean
+  meId: string
+}) {
   switch (route.name) {
     case 'projects':
       return <Projects api={api} />
@@ -168,6 +178,7 @@ function Screen({ route, isAdmin }: { route: Route; isAdmin: boolean }) {
           projectId={route.projectId}
           tab={route.tab}
           isAdmin={isAdmin}
+          meId={meId}
         />
       )
     case 'approval':
