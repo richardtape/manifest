@@ -1,0 +1,223 @@
+# faculty-ready Task 1 — raw results, 2026-10-02 (sitting 1, manifest-96), HEAD b32ce14 (code = d5c76d5)
+# macOS 26.6.2 25G83; Docker 29.7.2; Node v24.12.0; Chrome 154.0.8037.93; curl 8.7.1; LiteLLM 1.98.0
+
+===== m1-chrome
+m1-server listening on 7195 (http) and 7196 (https)
+chrome: Chrome/154.0.8037.93
+[https] S1 __Host- Secure Path=/                     __Host-x=1 domain=probe.manifest.internal path=/ secure=true
+[https] S2 __Host- no Secure                         (none kept)
+[https] S3 __Host- with Domain=manifest.internal     (none kept)
+[https] S4 __Host- Path=/auth                        (none kept)
+[https] S7 plain name, control                       manifest_session=1 domain=probe.manifest.internal path=/ secure=false
+[https] S5 clear WITHOUT Secure (before: 1 kept)     __Host-x=1 domain=probe.manifest.internal path=/ secure=true
+[https] S6 clear WITH Secure (before: 1 kept)        (none kept)
+[http-127] S1 __Host- Secure Path=/                  __Host-x=1 domain=127.0.0.1 path=/ secure=true
+[http-127] S2 __Host- no Secure                      (none kept)
+[http-127] S3 __Host- with Domain=manifest.internal  (none kept)
+[http-127] S4 __Host- Path=/auth                     (none kept)
+[http-127] S7 plain name, control                    manifest_session=1 domain=127.0.0.1 path=/ secure=false
+[http-127] S5 clear WITHOUT Secure (before: 1 kept)  __Host-x=1 domain=127.0.0.1 path=/ secure=true
+[http-127] S6 clear WITH Secure (before: 1 kept)     (none kept)
+[http-localhost] S1 __Host- Secure Path=/            __Host-x=1 domain=localhost path=/ secure=true
+[http-localhost] S2 __Host- no Secure                (none kept)
+[http-localhost] S3 __Host- with Domain=manifest.internal (none kept)
+[http-localhost] S4 __Host- Path=/auth               (none kept)
+[http-localhost] S7 plain name, control              manifest_session=1 domain=localhost path=/ secure=false
+[http-localhost] S5 clear WITHOUT Secure (before: 1 kept) __Host-x=1 domain=localhost path=/ secure=true
+[http-localhost] S6 clear WITH Secure (before: 1 kept) (none kept)
+[toss] T1 sibling tosses plain manifest_session, Domain= -> sent to console. manifest_session=tossed domain=.manifest.internal path=/
+[toss] T2 sibling tosses __Host-manifest_session, Domain= -> sent to console. (none kept)
+[toss] T3 sibling tosses plain manifest_login, Path=/auth -> sent to console. manifest_login=tossed domain=.manifest.internal path=/auth
+[edge] E1 edge: JS sets __Host- Secure Path=/ (all __Host-e* now) __Host-e1=1 domain=console.manifest.internal path=/ secure=true
+[edge] E2 edge: JS sets __Host- without Secure (all __Host-e* now) __Host-e1=1 domain=console.manifest.internal path=/ secure=true
+[edge] E3 edge: JS sets __Host- Path=/auth (all __Host-e* now) __Host-e1=1 domain=console.manifest.internal path=/ secure=true
+[edge] E4 JS clears __Host-e1 WITHOUT Secure         __Host-e1=1 domain=console.manifest.internal path=/ secure=true
+[edge] E5 JS clears __Host-e1 WITH Secure            (none kept)
+rm: /private/tmp/claude-501/-Users-rich-Developer-manifest/57d7af17-af29-40cf-b499-95e9a7761c9d/scratchpad/t1/chrome-profile/Default: Directory not empty
+rm: /private/tmp/claude-501/-Users-rich-Developer-manifest/57d7af17-af29-40cf-b499-95e9a7761c9d/scratchpad/t1/chrome-profile: Directory not empty
+
+===== m1-curl
+curl: curl 8.7.1 (x86_64-apple-darwin25.0) libcurl/8.7.1 (SecureTransport) LibreSSL/3.3.6 zlib/1.2.12 nghttp2/1.68.1
+[https://probe.manifest.internal:7196] __Host-x=1; Secure; Path=/                              __Host-x=1 domain=probe.manifest.internal path=/ secure=TRUE|
+[https://probe.manifest.internal:7196] __Host-x=1; Path=/                                      
+[https://probe.manifest.internal:7196] __Host-x=1; Secure; Path=/; Domain=manifest.internal    
+[https://probe.manifest.internal:7196] __Host-x=1; Secure; Path=/auth                          
+[https://probe.manifest.internal:7196] manifest_session=1; Path=/                              manifest_session=1 domain=probe.manifest.internal path=/ secure=FALSE|
+[https://probe.manifest.internal:7196] clear __Host-x=; Path=/; Max-Age=0                      before: __Host-x=1 domain=probe.manifest.internal path=/ secure=TRUE| after: __Host-x=1 domain=probe.manifest.internal path=/ secure=TRUE|
+[https://probe.manifest.internal:7196] clear __Host-x=; Secure; Path=/; Max-Age=0              before: __Host-x=1 domain=probe.manifest.internal path=/ secure=TRUE| after: 
+[http://127.0.0.1:7195] __Host-x=1; Secure; Path=/                              __Host-x=1 domain=127.0.0.1 path=/ secure=TRUE|
+[http://127.0.0.1:7195] __Host-x=1; Path=/                                      
+[http://127.0.0.1:7195] __Host-x=1; Secure; Path=/; Domain=manifest.internal    
+[http://127.0.0.1:7195] __Host-x=1; Secure; Path=/auth                          
+[http://127.0.0.1:7195] manifest_session=1; Path=/                              manifest_session=1 domain=127.0.0.1 path=/ secure=FALSE|
+[http://127.0.0.1:7195] clear __Host-x=; Path=/; Max-Age=0                      before: __Host-x=1 domain=127.0.0.1 path=/ secure=TRUE| after: __Host-x=1 domain=127.0.0.1 path=/ secure=TRUE|
+[http://127.0.0.1:7195] clear __Host-x=; Secure; Path=/; Max-Age=0              before: __Host-x=1 domain=127.0.0.1 path=/ secure=TRUE| after: 
+[http://localhost:7195] __Host-x=1; Secure; Path=/                              __Host-x=1 domain=localhost path=/ secure=TRUE|
+[http://localhost:7195] __Host-x=1; Path=/                                      
+[http://localhost:7195] __Host-x=1; Secure; Path=/; Domain=manifest.internal    
+[http://localhost:7195] __Host-x=1; Secure; Path=/auth                          
+[http://localhost:7195] manifest_session=1; Path=/                              manifest_session=1 domain=localhost path=/ secure=FALSE|
+[http://localhost:7195] clear __Host-x=; Path=/; Max-Age=0                      before: __Host-x=1 domain=localhost path=/ secure=TRUE| after: __Host-x=1 domain=localhost path=/ secure=TRUE|
+[http://localhost:7195] clear __Host-x=; Secure; Path=/; Max-Age=0              before: __Host-x=1 domain=localhost path=/ secure=TRUE| after: 
+[toss] sibling sets plain manifest_session Domain=manifest.internal; jar: manifest_session=tossed domain=.manifest.internal path=/ secure=FALSE|; console would be sent: cookie: manifest_session=tossed
+[http://127.0.0.1:7195] curl sends back: cookie: __Host-x=1
+[http://localhost:7195] curl sends back: cookie: __Host-x=1
+
+===== m2
+hook: added; origin: https://console.manifest.internal
+PRESENT  302  POSITIVE CONTROL: an answer that is not a refusal (GET /auth/login, a redirect to the IdP)
+          id=req-1 type=- body=
+PRESENT  401  setErrorHandler, its early 401 (GET /v1/me, no credential)
+          id=req-2 type=application/json; charset=utf-8 body={"error":{"code":"UNAUTHENTICATED","message":"a valid credential is required","hint":"Sign in at /auth/login for a session, or send Authorization: Bearer <token…
+ABSENT   400  frameworkErrors: a path parameter over 100 characters
+          id=- type=application/json; charset=utf-8 body={"error":{"code":"REQUEST_INVALID","message":"the request could not be read as sent: an empty or malformed body, or a URL the router cannot read (malformed, or …
+ABSENT   400  frameworkErrors: a malformed URL
+          id=- type=application/json; charset=utf-8 body={"error":{"code":"REQUEST_INVALID","message":"the request could not be read as sent: an empty or malformed body, or a URL the router cannot read (malformed, or …
+PRESENT  404  setNotFoundHandler (GET /v1/nothing-here)
+          id=req-5 type=application/json; charset=utf-8 body={"error":{"code":"ROUTE_NOT_FOUND","message":"no route GET /v1/nothing-here","hint":"Every resource route is under /v1/ (D23.8). Signing in is /auth/login; `GET…
+PRESENT  400  setErrorHandler: a malformed JSON body (POST /v1/projects, with key and Origin)
+          id=req-6 type=application/json; charset=utf-8 body={"error":{"code":"REQUEST_INVALID","message":"the request could not be read as sent: an empty or malformed body, or a URL the router cannot read (malformed, or …
+PRESENT  404  webhooks' local refuse (POST /webhooks/github, no signature)
+          id=req-7 type=application/json; charset=utf-8 body={"error":{"code":"WEBHOOKS_NOT_CONFIGURED","message":"this control plane runs the local source driver, which receives no webhooks","hint":"Restart it with MANIF…
+[auth] single logout: LogoutRequest ABSENT
+PRESENT  400  SLO's local refusal, JSON (GET /auth/logout, no SAMLRequest)
+          id=req-8 type=application/json; charset=utf-8 body={"error":{"code":"SAML_LOGOUT_REJECTED","message":"the single-logout request could not be verified","hint":"This is the SP’s single-logout endpoint, where the M…
+[auth] single logout: LogoutRequest ABSENT
+PRESENT  400  SLO's local refusal as the HTML page (Accept: text/html)
+          id=req-9 type=text/html; charset=utf-8 body=<!doctype html> <html lang="en"> <head> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title>Sign-in could not be …
+PRESENT  400  setErrorHandler: a mutation without Origin (POST /v1/projects)
+          id=req-a type=application/json; charset=utf-8 body={"error":{"code":"IDEMPOTENCY_KEY_REQUIRED","message":"every mutating request needs an Idempotency-Key header of at least 8 characters","hint":"Generate a UUID …
+{"level":"error","msg":"unhandled error","method":"GET","url":"/v1/blueprints","error":"Failed query: select \"delegated_tokens\".\"id\", \"delegated_tokens\".\"user_id\", \"delegated_tokens\".\"project_id\", \"delegated_tokens\".\"name\", \"delegated_tokens\".\"token_hash\", \"delegated_tokens\".\"capabilities\", \"delegated_tokens\".\"rate_limit\", \"delegated_tokens\".\"expires_at\", \"delegated_tokens\".\"revoked_at\", \"delegated_tokens\".\"last_used_at\", \"delegated_tokens\".\"created_at\", \"projects\".\"state\" from \"delegated_tokens\" inner join \"projects\" on \"projects\".\"id\" = \"delegated_tokens\".\"project_id\" where \"delegated_tokens\".\"id\" = $1\nparams: 00000000-0000-0000-0000-000000000000"}
+Error: Failed query: select "delegated_tokens"."id", "delegated_tokens"."user_id", "delegated_tokens"."project_id", "delegated_tokens"."name", "delegated_tokens"."token_hash", "delegated_tokens"."capabilities", "delegated_tokens"."rate_limit", "delegated_tokens"."expires_at", "delegated_tokens"."revoked_at", "delegated_tokens"."last_used_at", "delegated_tokens"."created_at", "projects"."state" from "delegated_tokens" inner join "projects" on "projects"."id" = "delegated_tokens"."project_id" where "delegated_tokens"."id" = $1
+params: 00000000-0000-0000-0000-000000000000
+    at NodePgPreparedQuery.queryWithCache (/Users/rich/Developer/manifest/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.0_@types+pg@8.23.1_pg@8.23.0/node_modules/src/pg-core/session.ts:73:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async <anonymous> (/Users/rich/Developer/manifest/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.0_@types+pg@8.23.1_pg@8.23.0/node_modules/src/node-postgres/session.ts:154:19)
+    at async tokenForAuthentication (/Users/rich/Developer/manifest/packages/control-plane/src/tokens/repository.ts:66:17)
+    at async tokenActor (/Users/rich/Developer/manifest/packages/control-plane/src/tokens/actor.ts:42:17)
+    at async Object.<anonymous> (/Users/rich/Developer/manifest/packages/control-plane/src/api/server.ts:288:21)
+ABSENT   500  setErrorHandler: a 500 (a well-formed bearer, so the hook reads the DEAD database)
+          id=- type=application/json; charset=utf-8 body={"error":{"code":"INTERNAL","message":"the control plane failed to handle this request"}}
+
+===== m3
+m3 stub on 7198
+--- guard 0-today (ready after ~14 s)
+  [0-today stream=false] status=200 stub_hits=2
+    headers: content-type: application/json;x-litellm-call-id: 293d7c47-836d-4b2d-a9a5-b76e67ef32c5;x-litellm-model-name: openai/probe-underlying;x-litellm-version: 1.98.0;x-litellm-response-cost-original: 0.0;x-litellm-response-cost-discount-amount: 0.0;x-litellm-response-cost-margin-amount: 0.0;x-litellm-response-cost-margin-percent: 0.0;x-litellm-response-cost-input: 0.0;x-litellm-response-cost-output: 0.0;
+    body: null
+  [0-today stream=true] status=500 stub_hits=2
+    headers: x-litellm-call-id: c7fa1d85-f9e5-4db7-83da-2ba37388940c;x-litellm-model-name: openai/probe-underlying;x-litellm-version: 1.98.0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"'async for' requires an object with __aiter__ method, got NoneType","type":"None","param":"None","code":"500"}}
+    guard log:    1 manifest_guard: loaded — the capable model's fallback answers a provider that failed;
+--- guard A (ready after ~10 s)
+  [A stream=false] status=422 stub_hits=2
+    headers: x-litellm-call-id: e15ad2ca-84a3-46db-854e-67e808743d95;x-litellm-response-cost: 0;x-litellm-key-spend: 0.0;x-litellm-timeout: 6000.0;content-type: application/json;
+    body: {"error":{"message":"litellm.UnprocessableEntityError: the provider refused this request as malformed, so no fallback model answers it. Received Model Group=probe-chat\nAvailable Model Group Fallbacks=None","type":null,"param":null,"code":"422"}}
+  [A stream=true] status=500 stub_hits=2
+    headers: x-litellm-call-id: 3cdbb4e0-970b-48ba-b09e-e8cfcba8c530;x-litellm-model-name: openai/probe-underlying;x-litellm-version: 1.98.0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"'async for' requires an object with __aiter__ method, got NoneType","type":"None","param":"None","code":"500"}}
+    guard log:    1 manifest_guard: loaded — the capable model's fallback answers a provider that failed;   1 manifest_guard.py";   1 manifest_guard[A]: deployment success hook saw NoneType;
+--- guard B (ready after ~10 s)
+  [B stream=false] status=422 stub_hits=2
+    headers: x-litellm-call-id: ebbf6664-6851-4b1c-b1f6-0e50fdc81eeb;x-litellm-response-cost: 0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"the provider refused this request as malformed","type":"invalid_request_error","param":null,"code":"422"}}
+  [B stream=true] status=500 stub_hits=2
+    headers: x-litellm-call-id: bb3e5ac6-0bde-4b99-9198-11ca8d9b3c76;x-litellm-model-name: openai/probe-underlying;x-litellm-version: 1.98.0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"'async for' requires an object with __aiter__ method, got NoneType","type":"None","param":"None","code":"500"}}
+    guard log:    1 manifest_guard: loaded — the capable model's fallback answers a provider that failed;   1 manifest_guard.py";   1 manifest_guard[B]: proxy success hook saw NoneType;
+--- guard C (ready after ~10 s)
+  [C stream=false] status=200 stub_hits=2
+    headers: content-type: application/json;x-litellm-call-id: bb5351fd-7578-4800-a5f5-85a7d59bfd21;x-litellm-model-name: openai/probe-underlying;x-litellm-version: 1.98.0;x-litellm-response-cost-original: 0.0;x-litellm-response-cost-discount-amount: 0.0;x-litellm-response-cost-margin-amount: 0.0;x-litellm-response-cost-margin-percent: 0.0;x-litellm-response-cost-input: 0.0;x-litellm-response-cost-output: 0.0;
+    body: null
+  [C stream=true] status=500 stub_hits=2
+    headers: x-litellm-call-id: a793a9b5-a0a1-4da4-9ab7-ce2bca880bb5;x-litellm-model-name: openai/probe-underlying;x-litellm-version: 1.98.0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"'async for' requires an object with __aiter__ method, got NoneType","type":"None","param":"None","code":"500"}}
+    guard log:    1 manifest_guard: loaded — the capable model's fallback answers a provider that failed;   1 manifest_guard.py";
+removed f8-probe, fr-m3-net and the stub
+m3 stub on 7198
+--- guard D (ready after ~10 s)
+  [D stream=false] status=422 stub_hits=2
+    headers: x-litellm-call-id: e5a83261-61b8-4026-ba17-9535dccd9608;x-litellm-response-cost: 0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"the provider refused this request as malformed","type":"invalid_request_error","param":null,"code":"422"}}
+  [D stream=true] status=500 stub_hits=2
+    headers: x-litellm-call-id: 04c657f1-ccd0-4624-8aa2-055086ffe610;x-litellm-model-name: openai/probe-underlying;x-litellm-version: 1.98.0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"the provider refused this request as malformed","type":"invalid_request_error","param":null,"code":"500"}}
+    guard log:    1 manifest_guard: loaded — the capable model's fallback answers a provider that failed;   2 manifest_guard.py";   1 manifest_guard[D]: proxy success hook saw NoneType;   1 manifest_guard[D]: streaming iterator hook saw NoneType;
+removed f8-probe, fr-m3-net and the stub
+m3 stub on 7198
+--- guard E (ready after ~10 s)
+  [E stream=false] status=422 stub_hits=2
+    headers: x-litellm-call-id: 4aa529b7-c542-48aa-88d7-e9d67e2b9120;x-litellm-response-cost: 0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"the provider refused this request as malformed","type":"invalid_request_error","param":null,"code":"422"}}
+  [E stream=true] status=422 stub_hits=2
+    headers: x-litellm-call-id: 154e7171-b729-4e9d-88f8-539cc92ffa25;x-litellm-model-name: openai/probe-underlying;x-litellm-version: 1.98.0;x-litellm-key-spend: 0.0;content-type: application/json;
+    body: {"error":{"message":"the provider refused this request as malformed","type":"invalid_request_error","param":null,"code":"422"}}
+    guard log:    1 manifest_guard: loaded — the capable model's fallback answers a provider that failed;   2 manifest_guard.py";   1 manifest_guard[E]: proxy success hook saw NoneType;   1 manifest_guard[E]: streaming iterator hook saw NoneType;
+removed f8-probe, fr-m3-net and the stub
+
+===== m4
+image: sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a 127.0.0.1:7107/base/node@sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a
+docker: 29.7.2  InitBinary: docker-init
+--- WITH --init
+proc1_comm: docker-init
+pids.current baseline: 9
+pids.current just after 20 orphans: 29
+pids.current 6 s later (sleeps long done): 9
+zombies 6 s later: 0
+docker stop -t 10 wall: 0.15 s
+exit code: 143 OOMKilled=false
+removed fr-m4-init
+--- CONTROL: without --init (today's app shape)
+proc1_comm: node
+pids.current baseline: 8
+pids.current just after 20 orphans: 28
+pids.current 6 s later (sleeps long done): 28
+zombies 6 s later: 20
+docker stop -t 10 wall: 10.19 s
+exit code: 137 OOMKilled=false
+removed fr-m4-init
+
+===== m5
+operations: 71; mutating (not GET): 33
+
+MUTATING, capability in OWNER (an administrator who is not a member would need a reason):
+  startAgentSession                POST   agent:session      auth=-          agents.ts
+  endAgentSession                  DELETE agent:session      auth=-          agents.ts
+  startBuild                       POST   build:create       auth=-          builds.ts
+  draftIamRegistration             POST   launch:draft       auth=-          launch.ts
+  draftPrivacyAssessment           POST   launch:draft       auth=-          launch.ts
+  submitIamRegistration            POST   launch:submit      auth=-          launch.ts
+  submitPrivacyAssessment          POST   launch:submit      auth=-          launch.ts
+  runRehearsal                     POST   launch:rehearse    auth=-          launch.ts
+  archiveProject                   POST   project:delete     auth=-          lifecycle.ts
+  restoreProject                   POST   project:delete     auth=-          lifecycle.ts
+  deleteProject                    DELETE project:delete     auth=-          lifecycle.ts
+  addMember                        POST   members:manage     auth=-          project-reads.ts
+  removeMember                     DELETE members:manage     auth=-          project-reads.ts
+  validateSpec                     POST   project:write      auth=-          project-reads.ts
+  updateProject                    PATCH  project:write      auth=-          projects.ts
+  createRelease                    POST   release:create     auth=-          releases.ts
+  requestApproval                  POST   approval:request   auth=-          releases.ts
+  deploy                           POST   release:deploy|release:promote auth=-          releases.ts
+  setAppSecret                     PUT    secret:write       auth=-          secrets.ts
+  clearAppSecret                   DELETE secret:write       auth=-          secrets.ts
+  createCommit                     POST   source:write       auth=-          source.ts
+  mintToken                        POST   project:write      auth=-          tokens.ts
+  count: 22
+
+MUTATING, an administrator's own capability (exempt):
+  recordIamRegistration            POST   launch:record      auth=-          launch.ts
+  recordPrivacyAssessment          POST   launch:record      auth=-          launch.ts
+  approveRelease                   POST   release:approve    auth=-          releases.ts
+  rejectRelease                    POST   release:approve    auth=-          releases.ts
+  createApprovalPreview            POST   release:approve    auth=-          releases.ts
+  count: 5
+
+MUTATING, no project capability declared (session-only, platform-wide, or outside a project):
+  startIntakeSession               POST   -                  auth=-          intake.ts
+  endIntakeSession                 DELETE -                  auth=-          intake.ts
+  confirmPendingAction             POST   -                  auth=-          pending-actions.ts
+  rejectPendingAction              POST   -                  auth=-          pending-actions.ts
+  createProject                    POST   -                  auth=-          projects.ts
+  revokeToken                      DELETE -                  auth=-          tokens.ts
+  count: 6

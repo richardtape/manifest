@@ -1,0 +1,12 @@
+# [M3] A throwaway's config: ONE deployment, at the 422 stub, with the platform's own drop_params and guard.
+model_list:
+  - model_name: probe-chat
+    litellm_params:
+      model: openai/probe-underlying
+      api_base: http://host.docker.internal:7198/v1
+      api_key: probe-not-a-key
+litellm_settings:
+  drop_params: true
+  callbacks: manifest_guard.proxy_handler_instance
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
