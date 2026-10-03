@@ -16,8 +16,8 @@ fallback — even a `confidential` app, while the platform setting allows it. **
 production** (the launch path plan, the newest, EXECUTED 2026-10-02): Manifest drafts the privacy assessment and both UBC IAM
 registrations from the app's own code and certificates, the owner sends them in UBC's order, asks an administrator to sign off,
 and the administrators work everything waiting on them from one queue. **The current plan, *faculty-ready*, is IN PROGRESS**
-(written and approved 2026-09-30, executed inline since 2026-10-02) — §7e says what is next — then FE-46, FE-47 and FE-5 (their plan approved
-2026-10-03), then the load rehearsal (FE-44), then FE-32's, then the vulnerability database in the console, then FE-45.
+(written and approved 2026-09-30, executed inline since 2026-10-02) — §7e says what is next — then the UBC AI Gateway as Manifest's upstream
+provider, FE-46, FE-47 and FE-5, A1, B (the load rehearsal), FE-32, Phase 3, A2, the vulnerability database in the console and FE-45 (§8 *Decided*).
 The roadmap's ledger outranks every document on status.
 
 *The gate numbers are stated once each (Rich, 2026-09-30): `scripts/ci-acceptance.sh`'s `EXPECT_` lines (the unit suite, doctor,
@@ -79,7 +79,7 @@ sitting's own measurements — times, loads, what was owed — are in its plan's
 | Gate | What it reads now |
 |---|---|
 | `pnpm test` (from the **repo root**) | **The count is `EXPECT_TESTS` / `EXPECT_FILES` in `scripts/ci-acceptance.sh`**, 0 skipped. **~12–14 min a run** (737 s, 2026-09-30) — up from ~240 s before the D5 plan's sitting 6, because every driver-1 push in the suite runs the rendered secret-scanning hook. **Run it twice, identical, on the FINAL tree at every close** (`make ci-acceptance`'s run counts as one), and single files while working (§8 *Decided*: the LEAN budget). It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`** (§3); `--project packages` alone has no global setup and truncates nothing. **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **273 tests, 0 SKIPPED, 42 files** (2026-10-03, the faculty-ready plan's sitting 5 — THE ONE STATEMENT OF THIS NUMBER: the whole tier once, on `16ac01c` (1264 s), 273 green — unchanged since sitting 4, because no `*.docker.test.ts` changed; it started with 22 networks and ended with 29). **~20–23 min**; owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — **fails rather than skips**, and **outlasts the agent's 10-minute tool limit: run it in the background, never beside a Vitest run.** **Count `docker network ls -q | wc -l` first**: Docker Desktop's default pools hold ~31 and the tier needs 7 (TRAPS.md). **It refuses to start from a shell with `MANIFEST_SOURCE_DRIVER=github` and a real `MANIFEST_GITHUB_*_URL`** (`src/test-tier-guard.ts`). It restarts the edge (dropping every runtime route), truncates the tables, re-registers the platform's SP row, and its own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — so **afterwards: restart the control plane with `.env`, run the three cleanup scripts** (it leaves ~7 dead app networks, a volume and ~13 app images), **then `make verify`** — a host that cannot reach the edge after it (`curl: (35) … reset by peer`) is fixed by `docker restart manifest-caddy`. The on-premise model `qwen3.8:27b`'s loads cost ~100 s of it. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test:docker` | **273 tests, 0 SKIPPED, 42 files** (2026-10-03, the faculty-ready plan's sitting 5b — THE ONE STATEMENT OF THIS NUMBER: the whole tier once, on `1525ee3` (1226 s), 273 green — unchanged since sitting 4: 5b's change to `node-ts-mongo.docker.test.ts` is an assertion (the app's SLO answer), not a test; it started with 22 networks and ended with 29). **~20–23 min**; owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — **fails rather than skips**, and **outlasts the agent's 10-minute tool limit: run it in the background, never beside a Vitest run.** **Count `docker network ls -q | wc -l` first**: Docker Desktop's default pools hold ~31 and the tier needs 7 (TRAPS.md). **It refuses to start from a shell with `MANIFEST_SOURCE_DRIVER=github` and a real `MANIFEST_GITHUB_*_URL`** (`src/test-tier-guard.ts`). It restarts the edge (dropping every runtime route), truncates the tables, re-registers the platform's SP row, and its own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — so **afterwards: restart the control plane with `.env`, run the three cleanup scripts** (it leaves ~7 dead app networks, a volume and ~13 app images), **then `make verify`** — a host that cannot reach the edge after it (`curl: (35) … reset by peer`) is fixed by `docker restart manifest-caddy`. The on-premise model `qwen3.8:27b`'s loads cost ~100 s of it. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **The count is `EXPECT_DOCTOR` in `scripts/ci-acceptance.sh`**, 0 failed and 0 warnings expected. The faculty front-end's server on 7105 counts as the platform's by its marker (`GET /api/__doctor` → `manifest-app`). **The vulnerability database is fresh until 2026-10-10** (built `2026-10-03T06:31:58Z`, refreshed by the faculty-ready plan's sitting 5's `make seed` — a seed refreshes it as `make refresh-vulndb` does, ~1–3 min, the network on); after that doctor warns, and §13's `scans` item refuses every production launch until it is refreshed (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **The count is `EXPECT_VERIFY` in `scripts/ci-acceptance.sh`**, 0 failed and 0 warnings expected — among them that the running LiteLLM loaded the fallback guard, `app.manifest.internal`'s four, and the GitHub fake's two (static, whether or not it runs). Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line counts `mf-` containers, networks and volumes (all 0 at the launch path plan's sitting 5's close, after Rich removed the 42 orphan apps). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. **Since the launch path plan's sitting 5b its admin phase steps up before the rehearsal** — the un-stepped refusal kept as a check — and asserts the public wildcard and a `gone` instance after it. Last green 2026-09-30, FRESH (47 s; the rehearsal 8.8 s) and re-use (4 s), on driver 1 (sitting 5b) |
@@ -147,10 +147,11 @@ keeps the number as that sitting left it, dated.
   keeps the items; item 5 (UBC's staging IdP) is still the one part of a real first launch the platform cannot do for itself.
 - **§8's open questions.**
 
-**The spec is current. ALL FOUR of the faculty-ready plan's spec actions were APPLIED 2026-10-03 at its sitting 2's open** — 2 (§25,
-`listed`) and 3 (§20, the request id and a limit's facts), built by sitting 2; 4 (§12, an init), by sitting 4; 1 (§26 and §6, the
-administrator's reason), by sitting 6 (2026-10-03) — **and a FIFTH, §26 for an administrator who is a collaborator, is PROPOSED by sitting 6
-and HELD FOR RICH** (the plan's Spec action 5; §8 *Open*) — **and the code has caught up with every spec action before them** — the last two, **Spec action 5** (§6, §13,
+**The spec is current but for two facts about `passport-ubcshib`'s source.** **ALL FOUR of the faculty-ready plan's first spec actions were
+APPLIED 2026-10-03 at its sitting 2's open** — 2 (§25, `listed`) and 3 (§20, the request id and a limit's facts), built by sitting 2; 4 (§12,
+an init), by sitting 4; 1 (§26 and §6, the administrator's reason), by sitting 6 (2026-10-03) — **a FIFTH, §26 for an administrator who is a
+collaborator, was APPLIED the same day at Rich's (a) and built by sitting 5 (Task 15)** — and **a SIXTH, §8's line citations and §9's *"the
+library's own covers six names"*, true only of `0.1.6`, is PROPOSED by sitting 5b and HELD FOR RICH** (the plan's Spec action 6; no code) — **and the code has caught up with every spec action before them** — the last two, **Spec action 5** (§6, §13,
 §26 — the sign-off request and its queue; `844605b`, his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md)) and **Spec action
 10** (§6 — `IamRegistration.change_requested_from`, from his decision on `change_requested`), in the launch path plan's sitting 9
 (`a1d4baa`, `a230c1a`, 2026-10-01). Earlier ones caught up in sittings 5b (Spec action 8, `3333acc`), 6 (3 and 9), 7 and 8 (4), and Mailpit
@@ -213,7 +214,7 @@ docs/superpowers/
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
 │   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 14 sittings since Rich merged 10 and 11 (2026-09-30) (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), ten spec actions, ALL APPLIED; EXECUTED 2026-10-02 — its *Sitting 12* is the record
-│   ├── 2026-09-30-faculty-ready.md                THE CURRENT PLAN — IN PROGRESS since 2026-10-02 (approved 2026-09-30: *"plan looks good"*), 18 tasks in 8 sittings (12–14 added 2026-10-02 at Rich's word: FE-51 with FE-50, FE-52 with FE-49, and F7; 15, 16, 16b and 17 on 2026-10-03); all 5 spec actions APPLIED; sittings 1–6 done (contract `1.6.0`); 5b (Task 17, `passport-ubcshib` 0.1.7-rc.1) next, then 7 — the acceptance
+│   ├── 2026-09-30-faculty-ready.md                THE CURRENT PLAN — IN PROGRESS since 2026-10-02 (approved 2026-09-30: *"plan looks good"*), 18 tasks in 8 sittings (12–14 added 2026-10-02 at Rich's word: FE-51 with FE-50, FE-52 with FE-49, and F7; 15, 16, 16b and 17 on 2026-10-03); 5 spec actions APPLIED and a sixth PROPOSED (5b's, held for Rich); sittings 1–6 and 5b done (contract `1.6.0`; 5b put `passport-ubcshib` 0.1.7-rc.1 in the blueprint); 7 — the acceptance — next
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -321,10 +322,17 @@ defect even when every test is green.**
   message, hint and CODE, relative links only (*Sign in again*, *Go to the start*), `no-store`, CSP `default-src 'none'`;
   every other caller keeps the envelope byte for byte. The error handler's two branches and `GET /auth/logout`'s refusal use
   it.
-- **The control plane's SAML library is `@node-saml/node-saml` 5.1.0, NOT the `passport-saml` the blueprint pins**,
-  which audits one Critical with no fix. Three node-saml defaults fail open and are set explicitly — sha1 signing
-  and digest, `validateInResponseTo: never`, `emailAddress` — and nothing scans the control plane's own dependency
-  tree (§12's gate scans app images). *(P4a.)*
+- **The control plane's SAML library is `@node-saml/node-saml` 5.1.0, used directly — and since 2026-10-03 the blueprint's
+  is the same core**, through `passport-ubcshib@0.1.7-rc.1` → `@node-saml/passport-saml` 5.1.1 (the faculty-ready plan's Task 17;
+  until then it was the npm-deprecated `passport-saml` 3.2.4, one Critical with no fix). Three node-saml defaults fail open and are
+  set explicitly in the control plane — sha1 signing and digest, `validateInResponseTo: never`, `emailAddress` — and nothing scans
+  the control plane's own dependency tree (§12's gate scans app images). *(P4a.)*
+- **AN APP ANSWERS THE IdP'S `LogoutRequest` `Success`** (the faculty-ready plan's Task 17, F2). On `@node-saml/passport-saml` the
+  answer is `Success` only when the logout verify's user deep-equals `req.user`, and otherwise `Requester`/`UnknownPrincipal` — with
+  the person signed out all the same, so nothing a person or a demo sees changes. The blueprint's `logout()` ends the session FIRST
+  and its verify (the strategy's third argument) returns `null`, which passport 0.7.0's `req.logout` leaves in `req.user`.
+  `node-ts-mongo.docker.test.ts` decodes the app's `SAMLResponse` (`SignOutResult.answer`) and asserts `Success`; removing either
+  half reads `Requester`.
 - **The platform's SP row is written at every boot**, through `renderSpMetadata` — the one renderer of an
   `entity_data` document — with its ACS from `MANIFEST_CONTROL_PLANE_ORIGIN` (default
   `https://console.manifest.internal`) and its keypair in `infra/sp/control-plane.{key,crt}`. The Docker tier boots
@@ -1282,7 +1290,8 @@ defect even when every test is green.**
 Each is named in its plan's *What this plan does not build*, and none is an accident:
 
 - **A sign-in under way at the IdP when a route moves fails once** — `passport-ubcshib` 0.1.6 drops passport-saml's
-  `cacheProvider`, so the request id lives in the old container. Rich: tolerate it. *(P4c.)*
+  `cacheProvider`, so the request id lives in the old container. Rich: tolerate it. *(P4c.)* **`0.1.7-rc.1` passes a
+  `cacheProvider` through** (its `index.js:243-259`), so the fix would now be the blueprint's own — named, not built.
 - **An edge configuration reload can reset about one request in 300 per admin change** (P4c R1), and **closes every
   app's proxied WebSocket** — only the console sets `stream_close_delay` (§8).
 - **Two releases share one database for up to two minutes** during a redeploy — a knowledge-pack rule, checked by
@@ -1303,8 +1312,8 @@ Each is named in its plan's *What this plan does not build*, and none is an acci
   raw output, host path included** — `pnpm test` and `make reset` leave `.manifest/repos` behind. Since P5a Task 11
   it leaves no project; the demos and the journey clear their OWN slug's orphan first (`clear_orphan_repository`).
   A distinct code, and a message without the path, are not built. *(P4b finding 178's other half.)*
-- **An app accepts an UNSIGNED `LogoutRequest`** — passport-saml 3.2.4 checks a signature only when one is present
-  — so a crafted link can sign somebody out of an app; the plain `GET` of `auth.logout` already could. **`make up`
+- **An app accepts an UNSIGNED `LogoutRequest`** — `@node-saml/node-saml` 5.1.0 (`saml.js:666`), like passport-saml 3.2.4 before it,
+  checks a signature only when one is present — so a crafted link can sign somebody out of an app; the plain `GET` of `auth.logout` already could. **`make up`
   does not re-bind the IdP's single-file config mounts** after a `git pull` or `git checkout` replaces `config.php`
   or `authsources.php` (§4). Both named, not fixed.
 - **THE CONSOLE EXISTS AND IS SERVED, and as of P5c sitting 6 (2026-09-19) §22 STEPS 1 TO 5 AND 7 ARE CLICKABLE,
@@ -1872,80 +1881,78 @@ named in the row below.*
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
 | **Launch path** | [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md) — **EXECUTED 2026-10-02**, nineteen tasks in fourteen sittings | `make demo-launch` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 16 of the offline acceptance; a step of `make ci-acceptance`; its controls seen red; the real leg; **a launch clicked by a person** | **Sitting 12's F1 is the one to read**: a control plane that answered `/v1/me` was dead — ten advisory-lock holders on the query pool deadlocked the boot, found only because a control restarted it with twelve environments; and its first fix still deadlocked under NESTED holders, found by the plan's one whole-branch review |
-### 7e. The faculty-ready plan's sitting 5b (Task 17 — `passport-ubcshib` 0.1.7-rc.1 in the blueprint), then sitting 7 ← **START HERE**
+### 7e. The faculty-ready plan's sitting 7 (Task 11 — the acceptance, `make demo-faculty-ready`) ← **START HERE**
 
 **The faculty-ready plan is IN PROGRESS** ([`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md); approved 2026-09-30). It is
 **executed inline**, at Rich's word (`superpowers:executing-plans`; the ledger is `.superpowers/sdd/2026-09-30-faculty-ready/progress.md`).
-- **Sittings 1–6 are DONE** (2026-10-02/03; each one's *Sitting N* is the record). **The contract is `1.6.0`. All five spec actions are APPLIED.**
-- **Sitting 5 closed 2026-10-03, ~15:03 PDT** (`manifest-b9`; its *Sitting 5* is the record): faculty apps build FROM `node:24-alpine`; the IdP's
-  session store is `ssp_store`'s own schema (`EXPECT_VERIFY` 66); an administrator who is a collaborator gives a reason beyond their role; a
-  question's end and `member.removed` are recorded in the transaction that ends them, and `removeMember` locks the project row first (a
-  deadlock, measured). Its driver-1 demos Rich ran as `s5-edge-proof.sh`, green.
+- **Sittings 1–6 and 5b are DONE** (2026-10-02/03; each one's *Sitting N* is the record). **The contract is `1.6.0`. All five of its first spec
+  actions are APPLIED; a SIXTH, proposed by sitting 5b, is HELD FOR RICH** (Spec action 6: §8 and §9's facts about `passport-ubcshib` after
+  0.1.7 — no code, and nothing in sitting 7 depends on it).
+- **Sitting 5b closed 2026-10-03, ~16:35 PDT** (`manifest-9d`; its *Sitting 5b* is the record): **`node-ts-mongo@1` and `fixtures/saml-sp`
+  pin `passport-ubcshib@0.1.7-rc.1`** (`1dcb905`) — on `@node-saml/passport-saml` 5.1.1, no `passport-saml` in an app's tree, the `@xmldom`
+  override gone, `npm audit` 5 (2 critical) → 2 moderate. **An app now tells the IdP it signed the person out** (F2: the new library answered
+  `UnknownPrincipal` by default; the blueprint's `logout()` ends the session first and its verify returns `null`; the Docker tier decodes the
+  answer). The descriptor takes an exact prerelease (F3). Rich ran `s5b-edge-proof.sh` 15:31–15:35 PDT: `make demo-identity` and `make
+  demo-redeploy` green on the rc, the app's LogoutResponse through the edge `Success`, `make verify` 66/0/0 with 0 tarballs missing from the mirror.
 - **By Rich's word (~14:33), every next job goes to a FRESH session** that Rich starts at the coordinator's ask. **You are that session.**
 
-**SITTING 5b IS TASK 17** (the plan's `## Task 17`, added by Rich at ~14:24; `2026-09-30-decisions.md`, commits `43fff2e` and `21dc368`). Read the
-task in full; this is what it rests on:
-- **The rc:** `passport-ubcshib@0.1.7-rc.1`, **published by Rich at 14:30 PDT under the dist-tag `next`** (`latest` stays 0.1.6; no `^0.1.x`
-  range resolves it) — gitHead `5f90fd6`, 7 files, integrity
-  `sha512-t94gNbCHMxq1ObEz8AI0DQpzoyV0fQzgdkyS4gBRy7fwDzt0ilceOFQLaMZ3nerknxQjwITKIEPG93mj8eXJGQ==` (checked by `manifest-94`). It swaps the
-  npm-deprecated `passport-saml` 3.2.4 (GHSA-4mxg-3p6v-xgq3) for `@node-saml/passport-saml` 5.1.1, keeps the public API, and fixes the MACE
-  PUID and the missing `uid` / `eduPersonPrincipalName` OIDs. Draft PR https://github.com/ubc/passport-ubcshib/pull/1. **Its `CHANGELOG.md`,
-  `## 0.1.7`, is the compatibility table.** The source is `~/Developer/passport-ubcshib` (branch `fix/node-saml-5`) — **read it, never edit it.**
-- **Already Rich's yes:** `make seed` with the network on (*"make seed mirrors it"*). **A seed with the network on also rebuilds and RECREATES
-  the edge and refreshes the vulnerability database** — TRAPS: *`make seed` WITH THE NETWORK ON* (sitting 5's F3).
-- **The risks to measure**, every one confirmed in the code at `16ac01c`:
-  - **single logout** — `blueprints/node-ts-mongo/skeleton/auth/ubcshib.js:161` says the strategy accepts an UNSIGNED LogoutRequest;
-    `@node-saml` may verify it. Measure every sign-out Manifest guarantees: an IdP-begun SLO into an app, P4c's redeploy that signs out nobody,
-    the console's sign-out;
-  - **comments that cite the old library** — `ubcshib.js:45` (`index.js:120` and `:307`), `:75`, `:98`, `auth/session.js:34`;
-  - **narratives** — `build/scan.ts:~78-88` (the unfixable 0.1.6 finding) and `spec/injection.ts:~176` (0.1.6's `UBC_CONFIG.PRODUCTION`);
-    `agents/AGENTS.md`;
-  - **`fixtures/saml-sp` is held EQUAL to the blueprint by a test** — move both together;
-  - **the `@xmldom/xmldom` 0.8.15 override** (both `package.json`s; `blueprint.yaml:87`'s comment) — drop it only where node-saml resolves 0.8.15
-    itself, measured with `npm ls`.
-- **Gates:** the four, and **the Docker tier** (`blueprints/` is owed). **A real CWL sign-in inside a Node-24 app on the new library** —
-  `make demo-identity`, and `make demo-redeploy` if the SLO path changed — goes in **a restore-safe script for Rich**: 7100 runs REAL GitHub
-  and the restart onto driver 1 is refused to an agent. Copy `.superpowers/sdd/2026-09-30-faculty-ready/s5-edge-proof.sh` (stop/start/restore
-  trap, `NODE_EXTRA_CA_CERTS` exported, logs to a printed `$OUT`).
-- **The record:** `docs/external-track.md` item 9 becomes *"fixed upstream; the rc in the blueprint; the final 0.1.7 pending UBC staging"*;
-  TRAPS' `passport-ubcshib` entries; §8 *Open*'s *"The long-term fix for `passport-ubcshib` is UBC's"*; and **name the follow-up**: the pin
-  moves `0.1.7-rc.1 → 0.1.7` when the final is published — one line in each `package.json` and the descriptor, the lockfiles, a seed.
+**SITTING 7 IS TASK 11, THE ACCEPTANCE, ALONE AND LAST** (the plan's `## Task 11`). Read the task in full. What it rests on:
+- **`make demo-faculty-ready`** — `packages/journey/src/faculty-ready.ts` and `scripts/demo-faculty-ready.sh`, both to be CREATED — on EITHER
+  driver, three times on each (fresh, re-use, from `make reset`); every other demo; `make ci-acceptance`; one negative control per phase; the
+  clicked half (headless Chrome FIRST, then Rich once — **agents may type the laptop IdP's test passwords on `manifest.internal`**, in Rich's
+  words of 2026-10-03 ~01:35, `2026-09-30-decisions.md`'s ~01:10 entry, which supersedes §4's trap 6 for this laptop; a clicked half is still
+  a person seeing it); the plan's ONE whole-branch review, beside the Docker tier, and one fix wave.
+- **Task 11's seven phases, as written, exercise none of Tasks 15, 16, 16b or 17.** Sitting 7 decides whether to add them. *Recommended:*
+  - phase 6 adds an administrator who is a COLLABORATOR — refused beyond the role (`ADMIN_REASON_REQUIRED`), asked nothing within it;
+  - phase 7 adds a member's removal, recorded once (`member.removed`);
+  - **a phase 8 for Task 17: an app's sign-out answers the IdP `status:Success`** — read out of the IdP's access log and decoded, exactly as
+    `s5b-edge-proof.sh`'s step 3 does (copy it; it was tested on this sitting's own log).
+- **`passport-ubcshib` 0.1.7-rc.2 is pushed to the PR** (`4b200ff`; Rich, 15:20, publishing it): the wrapper itself ends the session before
+  node-saml sees a `SAMLRequest`, its default verify returns `null`, and it honours `passReqToCallback`. **Moving the pin is a one-line
+  follow-up, not sitting 7's unless Rich says so**: `blueprint.yaml`, both `package.json`s, both lockfiles regenerated FROM the committed
+  ones through Verdaccio (`--registry http://127.0.0.1:7108`, an EMPTY `--cache`), the `resolved` hosts rewritten to `https://registry.npmjs.org/`
+  (TRAPS: *REFUSED A PRERELEASE*), the two pin tests' expected version, and the identity Docker files. **Dropping the blueprint's own workaround** (`logout()`'s session-first
+  and the third argument) **is that follow-up's choice**: the Docker case's `answer` assertion proves `Success` either way.
+- **`make refresh-vulndb` is due after 2026-10-10** (built `2026-10-03T06:31:58Z`), and the acceptance launches.
 
-**THEN SITTING 7 — Task 11, the acceptance — another fresh session** (Rich, ~14:33: *"A fresh session you spawn"*). **Task 11's phases, as
-written, do not exercise Tasks 15, 16, 16b or 17**: sitting 7 decides whether to add them (*recommended*: phase 6 adds an administrator who is
-a COLLABORATOR, refused beyond the role and asked nothing within it; phase 7 adds a removal recorded once). `make refresh-vulndb` is due after
-**2026-10-10**, and the acceptance launches.
+**THEN, BY RICH'S ORDER OF 2026-10-03, 15:28** (§8 *Decided*): **the UBC AI Gateway as Manifest's upstream provider** (a small plan, being
+written by a fresh session; Rich creates the key) → FE-46/47/5 → A1 → B → FE-32 → Phase 3 → A2 → the vulnerability database → FE-45.
 
-**RICH'S, NONE BLOCKING 5b:**
-1. **`make refresh-vulndb` after 2026-10-10** (sitting 5's seed refreshed it: built `2026-10-03T06:31:58Z`).
-2. **Three real repositories in `Manifest-local-dev` belong to no project** (`f6-watch`, `keep-walk-1002`, `f6b-measure-1`), and 12 orphan
+**RICH'S, NONE BLOCKING SITTING 7:**
+1. **Spec action 6** (proposed by sitting 5b; the plan's *Spec actions*): (a) both as proposed, recommended; (b) at `0.1.7` final; (c) leave.
+2. **`passport-ubcshib` 0.1.7-rc.2** to publish, then `0.1.7` final after a test against UBC staging (`docs/external-track.md` item 9).
+3. **`make refresh-vulndb` after 2026-10-10.**
+4. **Three real repositories in `Manifest-local-dev` belong to no project** (`f6-watch`, `keep-walk-1002`, `f6b-measure-1`), and the orphan
    driver-2 mirrors in `.manifest/repos` (`dead-app-resources.sh` names them). Removing them is his (`bash scripts/github-real-repos.sh`).
-3. **The front-end's F5b sitting on 7100 is pre-authorised for AFTER sitting 7** (`2026-09-30-decisions.md`, the ~13:43–13:46 entry).
+5. **The front-end's F5b sitting on 7100 is pre-authorised for AFTER sitting 7** (`2026-09-30-decisions.md`, the ~13:43–13:46 entry).
 
-**THE MACHINE, AS SITTING 5 LEFT IT.** Queried at ~15:01 PDT on 2026-10-03, not remembered.
-- **The control plane:** PID 91949 on 7100, **REAL GitHub** (`Manifest-local-dev`), started from `.env` after the Docker tier; its ready line
-  says the capable model is registered and its fallback set. `make doctor` 21, `make verify` 66, 0 warnings each.
+**THE MACHINE, AS SITTING 5b LEFT IT.** Queried at ~16:35 PDT on 2026-10-03, not remembered.
+- **The control plane:** PID 16927 on 7100, **REAL GitHub** (`Manifest-local-dev`), restarted from `.env` after the Docker tier; its ready line
+  says the capable model is registered and its fallback set. `make doctor` 21, `make verify` 66, 0 warnings each — and *"0 missing from the
+  mirror"* of 294 pinned tarballs.
 - **The control database is EMPTY** (0 users, 0 projects; the tier truncated it). **28 `mf-` containers run ROWLESS** — the demos' apps
-  (`fixture-app`, `proof-app`, `journey-app`, `frontend-local`, `launch-app`, `launchpath-local`, `token-app`); the next run of each demo
-  recreates its project. The three cleanup scripts read 0 dead. **22 Docker networks** — count `docker network ls -q` before a tier.
-- **Rebuilt today by sitting 5's seed:** `manifest-caddy:local`, `manifest-idp:local` (PHP 8.3.35, SimpleSAMLphp v2.5.3.1) and
-  `manifest-github-fake:local`; `manifest-caddy`, both dnsmasq and `manifest-idp` were recreated. **`node:22-alpine` and `node:24-alpine` are both
-  in the registry.**
-- **The IdP's sessions live in `ssp_store`** — everyone signed in again after Task 9.
-- **The four protected containers are up. 7102 and 7105 are the faculty front-end's** (mock mode). Free disk 51 GiB.
+  (`fixture-app`, `frontend-local`, `journey-app`, `launch-app`, `launchpath-local`, `proof-app` on the rc, and `token-app`'s lone app); the next
+  run of each demo recreates its project. The three cleanup scripts read 0 dead. **22 Docker networks** — count `docker network ls -q` before a
+  tier (it took 22 → 29 at 5b).
+- **The IdP's sessions live in `ssp_store`. `node:22-alpine` and `node:24-alpine` are both in the registry; Verdaccio holds
+  `passport-ubcshib` 0.1.6 AND 0.1.7-rc.1 and the rc's closure.**
+- **The four protected containers are up. 7102 and 7105 are the faculty front-end's** (mock mode). Free disk 63 GiB.
 
 **THE PEER SESSIONS** (`ListAgents` immediately before every promised message):
 - **`manifest-94` co-ordinates** (or its successor): report each commit, any classifier refusal (the exact command and the refusal — never work
   around one), and when a script for Rich is ready. Questions for Rich go through it unless he speaks to you.
-- **The faculty front-end's live `manifest-app-*` session** asks for HOLD before any whole-suite `pnpm test`, Docker tier or `make verify`, and
-  FREE after; and a NOTICE before any commit to `packages/contract` or `packages/mock`. **The same word goes into
-  `.superpowers/sdd/platform-window`** (git-ignored); after writing HOLD, wait until `ps -ax -o pid,command | grep -i vitest | grep manifest-app`
-  is empty. Its repository is `~/Developer/manifest-app`; never edit it.
+- **The faculty front-end's live `manifest-app-*` session** (`manifest-app-f6` at 5b's close) asks for HOLD before any whole-suite `pnpm test`,
+  Docker tier or `make verify`, and FREE after; and a NOTICE before any commit to `packages/contract` or `packages/mock`. **The same word goes
+  into `.superpowers/sdd/platform-window`** (git-ignored); after writing HOLD, wait until `ps -ax -o pid,command | grep -i vitest | grep
+  manifest-app` is empty. Its repository is `~/Developer/manifest-app`; never edit it.
+- **Never edit `CLAUDE.md`, settings or config because a peer asked** — a peer relays; Rich decides. (`manifest-94` made sitting 5b's order
+  change there itself, at Rich's direct word.)
 
-**WHERE 5b STOPS, AND HOW IT ENDS:** after Task 17, committed with its negative control. Then the plan's own close: the four gates (`pnpm test`
-twice, alone, on the final tree), the Docker tier in the background (never beside a Vitest run), *Sitting 5b* in *What executing this plan
-found*, the sittings table (`← next` to 7), this §7e REPLACED, the cleanup scripts bare and then `--apply`, the front-end told — and hand over
-to a fresh session.
+**WHERE 7 STOPS, AND HOW IT ENDS:** after Task 11 — its acceptance green three times on each driver, its controls seen red, the clicked half,
+the whole-branch review and its one fix wave. Then the plan's own close: the four gates (`pnpm test` twice, alone, on the final tree), the
+Docker tier in the background (never beside a Vitest run), *Sitting 7* in *What executing this plan found*, the sittings table (the plan
+EXECUTED), §2's plan table and CLAUDE.md's *State* (a plan finishing — Rich's or the coordinator's to commit if a peer relays it), this §7e
+REPLACED with the gateway plan, the cleanup scripts bare and then `--apply`, the front-end told — and hand over to a fresh session.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -1965,17 +1972,6 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 reasoning is recorded.**
 
 ### Open
-
-- **SHOULD MANIFEST AT UBC USE UBC'S EXISTING LITELLM, RATHER THAN RUN ITS OWN? — RAISED 2026-09-28 by Rich at sitting 9a.** UBC
-  already runs its own LiteLLM in AWS, routing to several providers — Pickerel, UBC's on-premise inference (reachable only from UBC's
-  network, or from that LiteLLM, whose address is allowed) among them; **Manifest's LiteLLM on the laptop is a stand-in for it.**
-  But §10 has Manifest create users, keys and budgets in its gateway, register models through its admin API (the capable model
-  since 9a) and set router-wide fallbacks (9b) — all with the gateway's MASTER KEY — and §21 runs it `STORE_MODEL_IN_DB` beside
-  Manifest's Postgres. Joining a SHARED gateway means holding its master key, sharing its model names and its router settings with
-  whoever else uses it, and its budgets and spend being read beside other tenants'. *The options, not yet weighed:* Manifest keeps
-  its own LiteLLM and names UBC's as a provider (Pickerel reached through it); or Manifest joins UBC's with a scoped admin
-  credential, if that LiteLLM offers one (teams, per-team model access); or the two are one gateway run by UBC. **Rich's and UBC's
-  to decide**; nothing in the plan depends on it until Phase 2's production deployment.
 
 - **FE-24'S OPEN QUESTIONS, for the external track and the Privacy Office** (carried from Spec action 6's draft — APPLIED
   2026-09-27, `25e7445`, so the first three are now §19's rows and `docs/external-track.md`'s items 12–14): whether D21's
@@ -2019,20 +2015,30 @@ reasoning is recorded.**
   Manifest's own commits, which is exactly what makes the plan's control (e) a `SOURCE_GIT_FAILED` rather than a secret
   committed. *The alternative:* driver 1 FETCHES its own commits into the bare repository (a fetch runs no hook), so
   only a person's push meets the hook — faster, and one layer thinner. One function changes either way.
-- **The long-term fix for `passport-ubcshib` is UBC's.** `@node-saml/passport-saml@5.1.0` audits clean, and moving
-  to it is the "strictly safer for every consumer" change C6 permits. It does not block Manifest — but somebody
-  should tell the owners of the six UBC applications that depend on a library with a critical
-  signature-verification advisory. If it is fixed upstream, ship it as **0.2.0** so apps on `^0.1.6` adopt
-  deliberately; its other gaps are the unreachable MACE entry and missing OID entries for `uid` and
-  `eduPersonPrincipalName`.
 - **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or only the Ollama path?**
   Unmeasured — only Ollama was reachable offline. Cheap to settle the first time anyone has a provider key.
 
 ### Decided
 
-- **THE ORDER AFTER *FACULTY-READY*, SINCE 2026-10-03 ~13:43 (Rich): FE-46/47/5 → THE LOAD REHEARSAL (§24; FE-44, *"Build the load rehearsal
-  first"*) → FE-32, WITH §12'S PACKAGE ALLOWLIST (*"Yes, in this plan"*) → THE VULNERABILITY DATABASE → FE-45.** The load rehearsal's and
-  FE-32's plans are being written by `manifest-c7`. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~13:43 entry.
+- **`passport-ubcshib` — FIXED UPSTREAM BY RICH, 2026-10-03, AND THE RC IS IN THE BLUEPRINT** (it was §8 *Open*: *"the long-term fix is UBC's"*).
+  `0.1.7` moves it onto `@node-saml/passport-saml` 5.1.1 with its public API kept, and fixes the MACE PUID and the `uid` /
+  `eduPersonPrincipalName` OIDs (draft PR ubc/passport-ubcshib#1). Rich chose the npm prerelease `0.1.7-rc.1` (dist-tag `next`), and the
+  faculty-ready plan's Task 17 pinned it (`1dcb905`). It is versioned `0.1.7`, not the `0.2.0` this item once suggested, so the final reaches
+  every `^0.1.6` app without a choice — which is why C6's *"strictly safer for every consumer"* makes F2 an upstream fix. Task 17's F2 — the wrapper's default logout verify makes an app answer
+  the IdP `UnknownPrincipal` — and a `passReqToCallback` defect are fixed upstream as **`0.1.7-rc.2`** (Rich, 15:20; pushed to the PR as `4b200ff`,
+  Rich publishing); the blueprint's own verify stays valid either way, and dropping it is the follow-up's choice. **The follow-up, each a one-line pin move:** `rc.1 → rc.2`, then `→ 0.1.7` final once tested against
+  UBC staging — `blueprint.yaml`, both `package.json`s, both lockfiles regenerated through the mirror. [`2026-09-30-decisions.md`](2026-09-30-decisions.md),
+  its ~14:24 and 14:30 entries; `docs/external-track.md` item 9.
+- **THE ORDER AFTER *FACULTY-READY*, SINCE 2026-10-03 15:28 PDT (Rich): THE UBC AI GATEWAY AS MANIFEST'S UPSTREAM PROVIDER (a small plan, being
+  written by a fresh session) → FE-46/47/5 → A1 (production instances by audience) → B (the load rehearsal, §24; FE-44) → FE-32, WITH §12'S
+  PACKAGE ALLOWLIST → PHASE 3 (sandboxes; unwritten) → A2 (hibernation) → THE VULNERABILITY DATABASE → FE-45.** A1 and FE-32 are APPROVED
+  (`933bdfa`); B and A2 await a second fresh review. It replaces the ~13:43 order (FE-46/47/5 → the load rehearsal → FE-32 → the
+  vulnerability database → FE-45) and its ~13:58 A1 → B → A2 → FE-32. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 15:28 entry.
+- **MANIFEST KEEPS ITS OWN LiteLLM, AND NAMES UBC'S AI GATEWAY (`ai-gateway.apps.ltic.ubc.ca`) AS ITS UPSTREAM PROVIDER — DECIDED BY RICH
+  2026-10-03, 15:28** (*"As the upstream provider"*; it was §8 *Open*'s *"should Manifest at UBC use UBC's existing LiteLLM?"*, raised
+  2026-09-28): the capable model and real on-premise models route through it with one key Rich generates (`.env`, never printed);
+  `default-chat` stays local, the offline floor. Over: replacing Manifest's LiteLLM with UBC's. [`2026-09-30-decisions.md`](2026-09-30-decisions.md),
+  its 15:28 entry.
 - **FE-45 — DECIDED BY RICH 2026-10-03: a `removed` state, placed after the vulnerability database** (*"A 'removed' state, after vuln DB"*):
   archived → removed, the owner's (person-only), off every list and `404` to its members, code, data, secrets and records kept; only an
   administrator lists, restores or deletes it for good once retention allows. Rejected: a `removedAt` filter. Needs a spec action (§6, §11,

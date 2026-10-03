@@ -80,9 +80,9 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 | 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | **DONE 2026-10-03** (`7b85326`; the review's fix `d4291dd`; **Step 6, through the edge, Rich ran as a script on 2026-10-03, ~12:00 PDT: all 12 checks passed and control (c) went red as predicted** — *Sitting 3* below) |
 | 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | **DONE 2026-10-03** (`5effd5e`, `2dd6fdd`, `0d5a743`; the review's fix `d8ce094`; **the driver-1 demos Rich ran as `s4-edge-proof.sh` on 2026-10-03, ~12:05 PDT: all three green, control (a) red at exactly its two step-9 checks** — *Sitting 4* below) |
 | 5 — **after 6** | 7, 9, **15, 16, 16b** | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`). **Task 15** (added 2026-10-03 by Rich's (a) on I2): an administrator who is a collaborator gives a reason beyond their role. **Task 16** (added the same morning, sitting 4's M1): a question's end recorded in the transaction that ends it. **Task 16b** (added ~13:34 by Rich): `member.removed` recorded the same way | Yes — `build/`, `blueprints/`, `infra/`, `projects/` | **5** (§26) for Task 15 — **APPLIED 2026-10-03** | **DONE 2026-10-03** (`56c614a`, `9b216d3`, `7d789b3`, `af99b80`, `16ac01c`; **its driver-1 demos Rich ran as `s5-edge-proof.sh` the same afternoon, 13:58–14:00 PDT: `make demo`, `demo-identity` and `demo-ai` green, both apps on Node v24.21.0, the IdP's sessions in `ssp_store`** — *Sitting 5* below) |
-| 5b ← **next** (added ~14:24 by Rich) | **17** | **`passport-ubcshib` 0.1.7-rc.1** in `node-ts-mongo@1` (and `fixtures/saml-sp`): off the deprecated `passport-saml` 3.2.4 and GHSA-4mxg-3p6v-xgq3, onto `@node-saml/passport-saml` 5.1.1 — the single-logout path measured, a real CWL sign-in through a Manifest-built app. **A FRESH session** (Rich, ~14:33) | Yes — `blueprints/` | — | `make seed` with the network on is Rich's yes (*"make seed mirrors it"*); the rc is on npm since 14:30 PDT |
+| 5b (added ~14:24 by Rich) | **17** | **`passport-ubcshib` 0.1.7-rc.1** in `node-ts-mongo@1` (and `fixtures/saml-sp`): off the deprecated `passport-saml` 3.2.4 and GHSA-4mxg-3p6v-xgq3, onto `@node-saml/passport-saml` 5.1.1 — the single-logout path measured, a real CWL sign-in through a Manifest-built app. **A FRESH session** (Rich, ~14:33) | Yes — `blueprints/` | — | **DONE 2026-10-03** (`1dcb905`; no `make seed` — ruled, and proved by `make verify`'s mirror check; **Rich ran `s5b-edge-proof.sh` 15:31–15:35 PDT: `make demo-identity` and `make demo-redeploy` green on the rc, the app's LogoutResponse through the edge `Success`**; Spec action 6 PROPOSED and held for Rich — *Sitting 5b* below) |
 | 6 (pulled ahead of 5 by Rich, 2026-10-03) | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | **DONE 2026-10-03** (`beb4827`, `1312504`; the review's fixes `8481440`; the whole suite's `efcaaeb`; **its through-the-edge half Rich ran as `s6-edge-proof.sh` on 2026-10-03, ~12:15 PDT: the refusal, the reason and the three demos green; its two stream/audit FAILs were the SCRIPT's, and both assertions hold** (the addendum after *Sitting 6*); **I2 DECIDED (a) by Rich the same morning — Task 15, in sitting 5**; *Sitting 6* below) |
-| 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
+| 7 ← **next** | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -1023,7 +1023,7 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 - [ ] **Step 3: The negative controls**, each seen red and restored: one per phase.
 - [ ] **Step 4: The clicked half.** Stage everything; ask Rich once; he types the passwords. **In headless Chrome FIRST** (Task 5's control (c)): the browser refuses a `__Host-` cookie at `Path=/auth`.
 - [ ] **Step 5: The plan's one whole-branch review**, beside the Docker tier; one fix wave.
-- [ ] **Step 6: Close out**: the ledger, ORIENTATION §7e's next job (FE-32's plan to write), and the front-end told.
+- [ ] **Step 6: Close out**: the ledger, ORIENTATION §7e's next job (FE-32's plan to write — **superseded by Rich's order of 2026-10-03, 15:28: the UBC AI Gateway plan is next, then FE-46/47/5's; ORIENTATION §8 *Decided*** — sitting 5b), and the front-end told.
 
 ---
 
@@ -1288,19 +1288,19 @@ boolean (mapped to the enum); both signature flags default false while at least 
 - `docs/external-track.md` item 9 (`:73`, and a dated log line) — *"fixed upstream; the rc in the blueprint; the final 0.1.7 pending UBC
   staging"*; `TRAPS.md`'s `passport-ubcshib` entries; ORIENTATION §8 *Open*'s *"The long-term fix for `passport-ubcshib` is UBC's"*.
 
-- [ ] **Step 1: Measure before changing.** In a scratch copy (never the source tree): the rc's dependency closure (`npm ls` — node-saml,
+- [x] **Step 1: Measure before changing.** *(Done, sitting 5b: node-saml resolves xmldom 0.8.15 itself, so the override is dropped; audit 5 → 2 moderate; *Sitting 5b*.)* In a scratch copy (never the source tree): the rc's dependency closure (`npm ls` — node-saml,
   xmldom), `npm audit`, and whether the xmldom override is still needed.
-- [ ] **Step 2: `make seed` with the network ON** — Rich's yes is *"make seed mirrors it"* — so Verdaccio holds the new closure. **It also
+- [x] **Step 2: `make seed` with the network ON** *(Ruled, sitting 5b: NOT run — the lockfiles' regeneration through Verdaccio with an empty cache is the seed's step 4b for the two that changed, and `make verify`'s mirror check is the proof; a whole seed recreates the edge.)* — Rich's yes is *"make seed mirrors it"* — so Verdaccio holds the new closure. **It also
   rebuilds and recreates the edge** (TRAPS: *`make seed` WITH THE NETWORK ON*).
-- [ ] **Step 3: The pins and lockfiles**, the fixture with the blueprint, the comments and narratives above; `contract:write` / `docs:write` if
+- [x] **Step 3: The pins and lockfiles** *(`1dcb905`; the descriptor had to accept a prerelease, F3.)*, the fixture with the blueprint, the comments and narratives above; `contract:write` / `docs:write` if
   the knowledge pack or an example changes.
-- [ ] **Step 4: The sign-out paths Manifest guarantees** — an IdP-begun SLO into an app (`:161`), P4c's redeploy that signs out nobody, and
+- [x] **Step 4: The sign-out paths Manifest guarantees** *(F2: the IdP-begun SLO changed — fixed in the blueprint and asserted; the console's sign-out shares no code with the blueprint; P4c's redeploy is in Rich's script.)* — an IdP-begun SLO into an app (`:161`), P4c's redeploy that signs out nobody, and
   the console's sign-out — each measured on the new library; a change in any is a finding, and the demos below carry it.
-- [ ] **Step 5: Gates.** The four, and **the Docker tier** (`blueprints/` is owed; `node-ts-mongo.docker.test.ts` and the identity tier sign
+- [x] **Step 5: Gates.** *(The four green, `pnpm test` twice 3287/201; the Docker tier 273/42; Rich's `s5b-edge-proof.sh` green 15:31–15:35 PDT, `make demo-redeploy` included because the SLO path changed; *Sitting 5b*.)* The four, and **the Docker tier** (`blueprints/` is owed; `node-ts-mongo.docker.test.ts` and the identity tier sign
   in through it). **A real CWL sign-in inside a Node-24 app on the new library** — `make demo-identity` through the edge, and `make
   demo-redeploy` if the SLO path changed — **in a restore-safe script for Rich** in `s5-edge-proof.sh`'s shape (7100 runs real GitHub; the
   restart onto driver 1 is refused to an agent).
-- [ ] **Step 6: Commit, then the negative control**: the pin back to 0.1.6 (or the fixture unequal to the blueprint) — predict which named test
+- [x] **Step 6: Commit, then the negative control** *(four controls, each red exactly where predicted; *Sitting 5b*.)*: the pin back to 0.1.6 (or the fixture unequal to the blueprint) — predict which named test
   goes red. Restore.
 - **Named, not this task's:** when `0.1.7` FINAL is published, the pin moves `0.1.7-rc.1 → 0.1.7` — a one-line follow-up (two `package.json`s,
   the descriptor, the lockfiles, a `make seed`).
@@ -1320,7 +1320,7 @@ boolean (mapped to the enum); both signature flags default false while at least 
 
 ## Spec actions
 
-**FOUR, DRAFTED 2026-09-30 WITH THIS PLAN. ALL FOUR APPLIED 2026-10-03 at sitting 2's open; A FIFTH, PROPOSED BY SITTING 6, APPLIED 2026-10-03 at Rich's (a)** (Rich: (a) for each; 1 with the quota duty added — below). Each is decided by Rich before the sitting that builds it, and applied only after he has read the words.
+**FOUR, DRAFTED 2026-09-30 WITH THIS PLAN. ALL FOUR APPLIED 2026-10-03 at sitting 2's open; A FIFTH, PROPOSED BY SITTING 6, APPLIED 2026-10-03 at Rich's (a)**; **A SIXTH, PROPOSED BY SITTING 5b (§8 and §9's facts about `passport-ubcshib` after 0.1.7), HELD FOR RICH** (Rich: (a) for each; 1 with the quota duty added — below). Each is decided by Rich before the sitting that builds it, and applied only after he has read the words.
 
 ### 1. §26 and §6 — the administrator's reason: who, how it is carried, where it is kept (before sitting 6)
 
@@ -1421,6 +1421,28 @@ and promote a release, none of which a collaborator can, with no reason and `asA
 `!capabilitiesFor(projectRole, 'member').has(capability)` — and a test row each way; the declared 24 are unchanged.
 
 *Options:* **(a) as proposed** (recommended); **(b) keep §26 as worded.** **Shared pages:** none mentions audit or a reason (checked by sitting 6).
+
+### 6. §8 and §9 — what the spec says about `passport-ubcshib`'s source, after 0.1.7 (PROPOSED by sitting 5b, 2026-10-03; HELD FOR RICH)
+
+**Raised by Task 17** (sitting 5b). Since `1dcb905` the blueprint pins `passport-ubcshib@0.1.7-rc.1`, and two sentences in the spec are true
+only of `0.1.6`. Neither changes a rule; both are facts the spec states about the library's source. **Not applied: the spec is Rich's.**
+
+**Proposed** — §8, the first of *"Two facts about `passport-ubcshib`"* (spec l.582–583):
+- **Old:** *"`SAML_ENVIRONMENT` (`index.js:120` and again at `:307`) and `SAML_LOGOUT_URL` (`index.js:305`)"*
+- **New:** *"`SAML_ENVIRONMENT` (read twice in its `index.js`) and `SAML_LOGOUT_URL`; §16's drift test checks both, and the fail-open
+  `'STAGING'` default, against the source of the PINNED version"* — no line numbers, because they move with every release (`0.1.7-rc.1` has
+  them at `:155`, `:409` and `:407`, and `rc.2` is being made).
+
+**Proposed** — §9, *"S2 closed most of that gap"* (spec l.944–947):
+- **Old:** *"because the library's own covers six names, has **no OID entry at all for `uid` or `eduPersonPrincipalName`**, and its MACE
+  entry for `ubcEduCwlPuid` is unreachable (a reverse-map collision)"*
+- **New:** *"because the library's own — up to `0.1.6` — covered six names, had **no OID entry at all for `uid` or
+  `eduPersonPrincipalName`**, and never reached its MACE entry for `ubcEduCwlPuid` (a reverse-map collision). `0.1.7` maps all three; the
+  bridge stays, because it reads the OID first and so answers the same on either version"*
+
+*Options:* **(a) both as proposed** (recommended — the §8 wording survives `rc.2` and the final); **(b) apply when `0.1.7` final is pinned**,
+with that version's line numbers; **(c) leave the spec as it is.** **Shared pages:** none of the four names the library (checked by sitting 5b:
+`grep -c` reads 0 in each). **Code:** none.
 
 ## What the self-review caught
 
@@ -2217,3 +2239,107 @@ and the logs they left in `$TMPDIR` (`s3-edge-proof.FhmBvNM9br`, `s4-edge-proof.
 - **`docker-simple-saml` is clean** but for its long-standing untracked `cert.zip`. **7102 and 7105 are the faculty front-end's** (mock mode).
 - **Free disk 55 → 51 GiB** (`snapshot-machine.sh`): `node:24-alpine` and the rebuilt Caddy, IdP and GitHub-fake images.
 - **The vulnerability database is built `2026-10-03T06:31:58Z`** — fresh until 2026-10-10 (F4).
+
+### Sitting 5b — 2026-10-03, afternoon: Task 17 — `passport-ubcshib` 0.1.7-rc.1 in `node-ts-mongo@1` (`manifest-9d`, a fresh session)
+
+**What happened.**
+- **Opened ~15:03 PDT on `b941b44`**, at `manifest-94`'s *go* after sitting 5's close; executed inline. 7100 was PID 91949 (real GitHub). Beside
+  it: `manifest-27` (revising four other plans, docs only), `manifest-c7`, and the faculty front-end's `manifest-app-5a` (closing) and
+  `manifest-app-f6` (taking over), both in mock mode; HOLD went to both and into `.superpowers/sdd/platform-window` at 15:10.
+- **One code commit, `1dcb905`**: the descriptor, both `package.json`s and both lockfiles pin `0.1.7-rc.1`; the `@xmldom/xmldom` override is
+  gone; the blueprint answers the IdP's single logout `Success` (F2); the descriptor takes an exact prerelease (F3); a test holds the fixture to
+  the blueprint (F1); the probe decodes the app's LogoutResponse (F4); every comment and narrative that cited `0.1.6` or `passport-saml` re-read
+  against the rc. **No contract or mock change.**
+- **Step 1, measured in scratch** (through Verdaccio, empty cache): the rc's integrity and gitHead are the plan's; its closure is
+  `@node-saml/passport-saml` 5.1.1 → `@node-saml/node-saml` 5.1.0 → `@xmldom/xmldom` 0.8.15 (node-saml asks `^0.8.10` and resolves 0.8.15
+  itself, with or without the override). `npm audit` of the committed lockfiles: **5 findings, 2 critical** (`passport-saml` `*`), 3 moderate
+  (`qs` through express 4.22.2, `xml2js` < 0.5.0); of the new ones: **2 moderate** (`qs`). The rc's `index.js` still reads
+  `process.env.SAML_ENVIRONMENT || 'STAGING'` (now `:155` and `:409`) and `SAML_LOGOUT_URL` (`:407`); `UBC_CONFIG.PRODUCTION` is unchanged
+  (`:30–34`); passport-saml 3.2.4's `validateInResponseTo: true` refused a MISSING `InResponseTo`, so the rc's `true → 'always'` is faithful.
+- **Step 3**: both lockfiles regenerated FROM the committed ones (163 and 111 tarballs fetched through 7108, uncached); only the SAML subtree
+  moved — `passport-saml` 3.2.4 gone, `xml-crypto` 2.1.6 → 6.3.2, `xml-encryption` 2.0.0 → 3.1.0, `xml2js` 0.4.23 → 0.6.2, `xpath` 0.0.32 →
+  0.0.34, and `@node-saml/*`, `@xmldom/is-dom-node` and 16–18 `@types/*` (runtime dependencies of `@node-saml`: they ship in every app image —
+  recorded, not trimmed).
+- **Step 2 was ruled, not run**: no `make seed`. The regeneration through the mirror with an empty cache IS the seed's step 4b for the two
+  changed lockfiles, and a whole seed would rebuild and recreate the edge (sitting 5's F3). **Proved by Rich's script's `make verify`: *"294 pinned
+  tarballs across every blueprint and fixture lockfile; 0 missing from the mirror"*.**
+- **Step 5's through-the-edge half**: `s5b-edge-proof.sh`, run by Rich 15:31–15:35 PDT on `c4a0532` — `make demo-identity` *Done.*, its proof
+  app on Node v24.21.0 with `passport-ubcshib` 0.1.7-rc.1, `@node-saml/passport-saml` 5.1.1 and NO `passport-saml`; **the app's LogoutResponse
+  from step 9's sign-out, decoded out of the IdP's access log: `status:Success`**; `make demo-redeploy` *Done.*; 7100 restored on real GitHub
+  (PID 50676), `make verify` 66/0/0.
+- **Rich's word the same afternoon** (through `manifest-94`, 15:20): F2's default and F6 are fixed UPSTREAM as `0.1.7-rc.2` — pushed to the PR
+  as `4b200ff` before this sitting closed (the wrapper ends the session before node-saml sees a `SAMLRequest`, its default verify returns `null`,
+  and it honours `passReqToCallback`). **The follow-up, NOT 5b's, each a one-line pin move:** `rc.1 → rc.2`, then `→ 0.1.7` final once tested
+  against UBC staging — `blueprint.yaml`, both `package.json`s, both lockfiles regenerated through the mirror with an empty cache, the `resolved`
+  hosts rewritten, the two pin tests — and, its choice, dropping the blueprint's own workaround (the Docker case's answer assertion holds either way).
+
+**Findings.**
+
+1. **F1 — the plan's premise *"a test holds the fixture equal to the blueprint"* was false**: no test read `fixtures/saml-sp/package.json`;
+   only `blueprint.yaml`'s comment tied them. Ruled: the test exists now (`blueprints.test.ts`, *"holds fixtures/saml-sp to the versions it
+   shares with it, overrides included"*), and control (b) turns it red alone.
+2. **F2 — on the new library every app told the IdP it had NOT signed the person out, after it had.** `@node-saml/passport-saml` 5.1.1 answers an
+   IdP's `LogoutRequest` `Success` only when the logout verify's user deep-equals `req.user` (`strategy.js:44–60`); the rc's default verify
+   (`index.js:293–297`) returns the logout profile, which never does — so `Requester`/`UnknownPrincipal` (node-saml `saml.js:298–320`), with the
+   session ended anyway. passport-saml 3.2.4 always answered `Success`. **Measured**: red on the rc, `Received: …status:Requester`. **Fixed in the
+   blueprint**: `logout()` ends the session first, and the strategy's third argument returns `null`, which passport 0.7.0's `req.logout` leaves in
+   `req.user` (`request.js:63`) — green, and green through the edge. The Manifest IdP answered `303` to `ReturnTo` either way, so nothing a person
+   sees changed here; **what UBC's Shibboleth shows for `UnknownPrincipal` is unmeasured.** Upstream: `0.1.7-rc.2` (Rich, 15:20).
+3. **F3 — the descriptor refused an exact prerelease pin**: `pinned_dependencies`' regex was `^\d+\.\d+\.\d+$`, so `0.1.7-rc.1` failed every
+   load with `BLUEPRINT_DESCRIPTOR_INVALID` and 22 unit tests went red at once. Ruled: an exact prerelease is *"an exact version"* (§2's
+   `passport-ubcshib` row) — no spec change; the regex takes `-<dot-separated identifiers>` and still refuses build metadata and every range.
+   The new test went red first (*"0.1.7-rc.1 is exact: expected false to be true"*).
+4. **F4 — the Docker tier's SLO case could not see F2**: it asserted where the person landed and that the app and the IdP forgot them — all
+   true while the app answered `Requester`. `sso/testing.ts`'s probe now keeps the app's `SAMLResponse` and decodes it (`SignOutResult.answer`);
+   the case asserts `status:Success`. Green on 0.1.6 (the baseline), red on the unfixed rc, green with the fix.
+5. **F5 — a lockfile regenerated through Verdaccio writes `http://127.0.0.1:7108/` into `resolved`** for each newly fetched package (33 and
+   35 entries), where the committed convention is `https://registry.npmjs.org/` (npm's default `replace-registry-host` rewrites only that host
+   to the mirror). Rewritten before the commit; a trap now (TRAPS.md).
+6. **F6 — an upstream defect found by reading, not measured**: `index.js:243–259` passes `passReqToCallback` through to the strategy, but its
+   `wrappedVerify` is `(profile, done)`, so a consumer passing `passReqToCallback: true` has the REQUEST handed in as the profile. The blueprint
+   does not pass it. Reported through `manifest-94`; Rich's `rc.2` fixes it.
+
+**Not findings, but recorded:**
+- **Rulings** (the ledger has each with its cost): no `make seed` (Step 2, above); F1's new test; F3's regex; F2 fixed in the blueprint and not
+  upstream (the library is read-only to us; the blueprint's verify is harmless after any upstream fix).
+- **Measured, for the record:** the fixture's six login tests (`sso/login.docker.test.ts`) green on the rc unfixed — the bridge's attributes
+  unchanged and single values still strings; `0.1.7-rc.1` passes a `cacheProvider` through (`index.js:243–259`), so P4c's *"a sign-in under way
+  when a route moves fails once"* would now be the blueprint's to fix (named in ORIENTATION §3, not built); the console's sign-out shares no code
+  with the blueprint (`identity/` imports no `passport-ubcshib`).
+- **A spec action is PROPOSED, and held for Rich**: Spec action 6 — §8's line citations and §9's *"the library's own covers six names …"*, both
+  true only of `0.1.6`. No code. **The four shared HTML pages name no library** (`grep -c` 0 each); WALKTHROUGH and README name none either.
+
+**Negative controls**, each committed first (`1dcb905`), its break asserted to match, and restored with `git checkout`:
+- **(a)** the descriptor alone back to `0.1.6` → RED at exactly 4: *pins every app-side library exactly*, *agrees with its own skeleton
+  package.json*, *holds fixtures/saml-sp …*, and the drift test's *PINNED version*; 35 green. Predicted.
+- **(b)** the fixture alone back to `0.1.6` → RED at exactly 1: *holds fixtures/saml-sp …*; 38 green. Predicted.
+- **(c)** the logout verify removed → `node-ts-mongo.docker.test.ts` RED at exactly the answer assertion, `Requester`; 4 of 5 green. Predicted.
+- **(d)** the session-first ordering removed (the verify kept) → the same, `Requester` (`req.user` undefined is not `null`). Predicted: both
+  halves are load-bearing.
+- **And the IdP's own log agrees**: its access log's five app answers from this sitting's Docker runs decode, in order, `Success` (0.1.6),
+  `Requester` (the rc unfixed), `Success` (fixed), `Requester` (c), `Requester` (d).
+
+**The gates at the close.**
+- **`pnpm test` twice on the final code tree (`1dcb905`'s code; `HEAD` moved under it by others' docs commits): 3287 in 201, identical** —
+  988 s and 961 s, at load ~4–6. `EXPECT_TESTS` moves 3285 → **3287** (`blueprints/blueprints.test.ts`'s two: F3's prerelease and F1's
+  fixture); `EXPECT_FILES` stays **201**.
+- `pnpm lint`, `pnpm typecheck` (every workspace) and `pnpm format:check` are clean.
+- **`pnpm test:docker`: 273 in 42, green, ONCE** — on `1525ee3`, 16:09–16:29 PDT (1226 s), the chat model warm, from a shell with no
+  `MANIFEST_*`; 22 networks at the start, 29 at the end. **Unchanged in count**: the Docker change is an assertion. Then 7100 was restarted
+  from `.env` (PID 16927; its ready line: `capableModel: registered`, `capableFallback: set`).
+- **`make doctor` 21, 0 warnings; `make verify` 66, 0 warnings** — *"294 pinned tarballs across every blueprint and fixture lockfile; 0 missing
+  from the mirror"*. **The contract is still `1.6.0`**; nothing in `packages/contract` or `packages/mock` changed.
+
+**The machine at the close** (queried at ~16:31 PDT, not remembered):
+- **The control plane: PID 16927 on 7100, REAL GitHub** (`api.github.com`, `Manifest-local-dev`), restarted from `.env` after the tier, as it was
+  found (PID 91949 at the open; Rich's script's restore was 50676).
+- **The control database: 0 users, 0 projects** (`psql`) — the tier truncates it.
+- **Containers:** 10 `manifest-`, the four protected (up), and **28 `mf-` containers, every one ROWLESS** — `fixture-app`, `frontend-local`,
+  `journey-app`, `launch-app` (staging and production), `launchpath-local` (sandbox, staging and production), `proof-app` (Rich's
+  `demo-redeploy`'s instance, on the rc) and `token-app`'s lone app. Left running as found.
+- **The cleanup scripts ran bare and then `--apply` twice — before the tier and after it — none refused**: before, 3 dead networks, 2 LiteLLM
+  orphans and 10 dead images; after, 7 dead networks and 1 volume (the tier's), 2 LiteLLM orphans (`mf-platform-intake`, `p4b-probe-user`; its
+  re-read said *"5 user(s) remain (was 8)"*, one more than it deleted, as at sitting 5: not chased) and 14 dead images. Re-run, each reads 0
+  dead. **22 Docker networks** (25 at the open).
+- **`docker-simple-saml` is clean** but for its long-standing untracked `cert.zip`; **`~/Developer/passport-ubcshib` was only read** (`git show`).
+  **7102 and 7105 are the faculty front-end's** (mock mode). **Free disk 63 GiB.** **The vulnerability database is fresh until 2026-10-10.**

@@ -205,7 +205,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # event write that fails undoes a revoke, a removal and an archive, and the retry records it once; a positive control; and
 # `member.removed` recorded in the removal's transaction), `api/admin-reason.test.ts` (2: a collaborator-administrator asked beyond
 # the role, and the owner-administrator not) and `api/authz-contract.ts` (1: the collaborator-administrator's exact eight).
-EXPECT_TESTS=3285
+# Then its sitting 5b (2026-10-03, Task 17, passport-ubcshib 0.1.7-rc.1): +2, no new file — `blueprints/blueprints.test.ts` (2: an
+# exact prerelease pin accepted and every range naming one refused (F3), and fixtures/saml-sp held to the blueprint's versions (F1)).
+# Measured twice on the final tree, 3287 in 201.
+EXPECT_TESTS=3287
 EXPECT_FILES=201
 EXPECT_DOCTOR=21
 # EXPECT_VERIFY 64 -> 66 (2026-10-03, the faculty-ready plan's sitting 5, Task 9): the IdP's session store is

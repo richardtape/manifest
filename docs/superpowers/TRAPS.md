@@ -247,7 +247,7 @@ it belongs among the traps the next sitting is most likely to hit.
   redeploys nothing and tests the first image it ever built.
 - **`passport-ubcshib` exports `Strategy`, not `UBCStrategy`.** It is CommonJS ending
   `module.exports = { Strategy: UBCStrategy, … }`, so a named import is `undefined` and
-  `new undefined(...)` throws at construction.
+  `new undefined(...)` throws at construction. (Still so in `0.1.7-rc.1`, 2026-10-03.)
 - **`AuthState` comes out of an HTML attribute and carries a query string**, so it
   arrives with `&amp;`. Posting it undecoded means SimpleSAMLphp cannot match the
   pending authentication and the SAML flow loops rather than failing.
@@ -256,6 +256,9 @@ it belongs among the traps the next sitting is most likely to hit.
   underneath it. `@node-saml/passport-saml@5.1.0` audits clean. §12's scan gate now
   blocks only on findings that **have a published fix** (Rich, 2026-09-08) — and it
   still has teeth: the xmldom highs blocked until an npm `override` to 0.8.15.
+  **Since 2026-10-03 the blueprint pins `passport-ubcshib@0.1.7-rc.1`**, on
+  `@node-saml/passport-saml@5.1.1`: no `passport-saml` in an app's tree, and the override
+  is gone (node-saml resolves xmldom 0.8.15 itself). The faculty-ready plan's Task 17.
 - **Two libsodium seals of one value differ even when the data key is SHARED**, so
   "the ciphertext differs" proves nothing about per-secret keys. The nonce is random
   and `crypto_box_seal` draws an ephemeral keypair per call, so both `ciphertext` and
@@ -2565,3 +2568,18 @@ then the membership row; a removal that deletes the membership row and THEN reco
 racing a removal answered `500` — Postgres's log: `deadlock detected`, the membership `SELECT … FOR UPDATE` against the events `INSERT`.
 `removeMember` now takes the project row `FOR KEY SHARE` before anything else. **Any new transaction that holds a row and then records an
 event: lock the project first** — and read `docker logs manifest-postgres | grep -A4 deadlock` before believing a `500` from a race test.
+
+**ON `@node-saml/passport-saml`, AN APP CAN TELL THE IdP IT DID NOT SIGN SOMEBODY OUT, AFTER IT DID — AND EVERY CHECK STAYS GREEN** (2026-10-03,
+sitting 5b, Task 17, F2). Its strategy answers an IdP's `LogoutRequest` `Success` only when the logout verify's user deep-equals `req.user`
+(`strategy.js:44-60`); otherwise `Requester`/`UnknownPrincipal`, and it ends the session anyway. `passport-ubcshib@0.1.7-rc.1`'s default verify
+returns the logout profile, which never matches. The person lands back on the app, the app and the IdP both forget them, and the Manifest IdP
+answers `303` to `ReturnTo` either way — so `make demo-identity` and the Docker tier's SLO case were green through it. **Only decoding the app's
+`SAMLResponse` sees it**: `sso/testing.ts`'s probe now does (`SignOutResult.answer`), and so can the IdP's own access log —
+`docker logs manifest-idp | sed -n 's#.*singleLogout?SAMLResponse=\([^& ]*\).*#\1#p'`, then URL-decode, base64, raw-inflate. The blueprint's
+`logout()` ends the session first and its verify returns `null` (passport 0.7.0 leaves `req.user` null), which is 0.1.6's always-`Success`.
+
+**A BLUEPRINT'S `pinned_dependencies` REFUSED A PRERELEASE** (2026-10-03, sitting 5b, F3) — the descriptor's regex was `^\d+\.\d+\.\d+$`, so
+`0.1.7-rc.1` failed every load with `BLUEPRINT_DESCRIPTOR_INVALID` and 22 unit tests went red at once. It takes an exact prerelease now and still
+refuses every range. **A lockfile regenerated through Verdaccio writes `http://127.0.0.1:7108/` into `resolved`** for every package it newly
+fetches; the committed convention is `https://registry.npmjs.org/` (which npm's default `replace-registry-host` rewrites to the mirror), so
+rewrite the host before committing — Task 17's 33 and 35 entries were.
