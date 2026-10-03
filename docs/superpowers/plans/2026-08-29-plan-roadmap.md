@@ -58,7 +58,7 @@ which is superseded; the pointer moved on 2026-09-04.)
 | **S1** | ✅ **done** 2026-08-30 (~2 h of 3 days) | **Yes** — bare repo → routed healthy container with a bound database, and **§11's `Driver` interface needed no revision**. Rootless BuildKit works, but not via buildx's own driver. | **P3**; **P2 Tasks 9+** |
 | **S3** | ✅ **done** 2026-08-30 (~2 h of 2 days) | **Yes** — every mechanism §10 assumes works and `ubc-genai-toolkit` needs no change, but **three defaults are wrong**: keys need `allowed_routes` (one port serves admin *and* proxy, and an app key can mint a child that outlives it), `embed()` needs `encoding_format: 'float'` (192 zeros instead of 768 floats, silently), and the LiteLLM `user` must be namespaced per app (end-user budgets are global). | **P4 (1b)** |
 | **S6** | ✅ **done** 2026-09-07 (as P3 Task 18) | **Every probe denied, every denial paired with a positive control, and one result better than the spec.** §21's divergence 8 no longer holds as written: the developer's machine is not merely policed but **unroutable** from an app network, because P3 Task 4 makes those networks `--internal`. Isolation measured as `container`; **whether that suffices for SANDBOXES is left to S5**, since these probes ran against a staging app. The matrix is a permanent test tier (`s6.docker.test.ts`), not a report. | Phase 3 |
-| **S4** | ⬜ deferred — before Phase 4 | Wake-on-request. | Phase 4 |
+| **S4** | ⬜ deferred — **PLACED 2026-10-03 as A2's Task 1** ([`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md); Rich, *"Build hibernation in Plan A"*) | Wake-on-request. | A2 |
 | **S5** | ⬜ deferred — before Phase 3, after S6 | An agent inside a sandbox. | Phase 3 |
 
 **Every spike blocking Phase 1a is now done, and S6 has since run as P3's acceptance
@@ -1422,7 +1422,7 @@ need **Spec actions 5 and 6** (above); and the rest is placed here.
   a session it did not issue, and a credential an operation does not list) — which ORIENTATION §7e asks Rich to confirm for the
   current plan's Task 13. On FE-20, Rich's word relayed: a sign-in limited to a class is coming, through the Academic API or Canvas,
   both runnable locally as fakes.
-- **THE ORDER SINCE 2026-09-30 (Rich): THE LAUNCH PATH → *FACULTY-READY* → THE MANIFEST TEAM'S STEP (FE-46, FE-47, FE-5, FE-53; placed 2026-10-02, written and approved 2026-10-03, [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md)) → THE LOAD REHEARSAL (§24, FE-44; placed 2026-10-03, *"Build the load rehearsal first"*) → FE-32, WITH §12'S ALLOWLIST (written 2026-10-03, [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md); the allowlist *"Yes, in this plan"*) → THE VULNERABILITY DATABASE IN THE CONSOLE → FE-45 (an app that has been live, put away; placed 2026-10-03) → the FE-19…FE-3 plans below.** *As recorded before:* **AFTER THE FRONT-END ENABLEMENT PLAN, IN RICH'S ORDER: THE LAUNCH PATH FIRST — WRITTEN 2026-09-29 as [`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md) (its section above), carrying FE-33, FE-34 and FE-38 at Rich's word.** **FE-6** — the three clocks (the staging
+- **THE ORDER SINCE 2026-09-30 (Rich): THE LAUNCH PATH → *FACULTY-READY* → THE MANIFEST TEAM'S STEP (FE-46, FE-47, FE-5, FE-53; placed 2026-10-02, written and approved 2026-10-03, [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md)) → A1, PRODUCTION INSTANCES BY AUDIENCE (§24; *"Build §24's capacity first"*, then *"A1 → B → A2"*; [`2026-10-03-production-instances.md`](./2026-10-03-production-instances.md)) → B, THE LOAD REHEARSAL (§24, FE-44; *"Build the load rehearsal first"*; [`2026-10-03-load-rehearsal.md`](./2026-10-03-load-rehearsal.md)) → A2, HIBERNATION AND WAKE-ON-REQUEST (§11, §24; *"Build hibernation in Plan A"*; [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md)) → FE-32, WITH §12'S ALLOWLIST (written 2026-10-03, [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md); the allowlist *"Yes, in this plan"*) → THE VULNERABILITY DATABASE IN THE CONSOLE → FE-45 (an app that has been live, put away; placed 2026-10-03) → the FE-19…FE-3 plans below.** *As recorded before:* **AFTER THE FRONT-END ENABLEMENT PLAN, IN RICH'S ORDER: THE LAUNCH PATH FIRST — WRITTEN 2026-09-29 as [`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md) (its section above), carrying FE-33, FE-34 and FE-38 at Rich's word.** **FE-6** — the three clocks (the staging
   registration, the production registration, the privacy assessment): D19's generated drafts, an owner's *"I've sent it"*, a
   state that can say *waiting since*, and the staging registration as a tracked object like `IamRegistration`; **FE-25** — an
   owner's *"please sign this off"* for a release, feeding §26's queue (today no administrator is told and nothing records it).
@@ -1507,29 +1507,67 @@ pending action names what it would act on (a person as the request named them, b
 `pending_action.created` carries the question's and the token's `expiresAt`. Contract **`1.7.0`**, once, the breaks stated. Its acceptance
 is **`make demo-launch` and `make demo-token`, extended**, on either driver, and a clicked half.
 
-**Rich's four answers** (2026-10-03, ~13:40 PDT, through the question tool, relayed by `manifest-94`;
+**Rich's four answers** (2026-10-03, ~13:27 PDT, through the question tool, relayed by `manifest-94`;
 [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): **five sittings**, the alternative offered, over the six recommended — the
 clients folded into sittings 3 and 4 (Tasks 8a, 8b); **Decision 5 (a)** — an owner sends from `change_requested` only when UBC asked them
 (`change_requested_from = 'submitted'`); **Decision 4 (a)** — the administrator's direct `draft → submitted` record stays; **nodemailer**,
-over the hand-written SMTP client first proposed. **Then APPROVED AS REVISED, ~14:05 PDT**, with *"Yes, as described"* (the plan's one
+over the hand-written SMTP client first proposed. **Then APPROVED AS REVISED, ~13:37 PDT**, with *"Yes, as described"* (the plan's one
 networked command: `pnpm --filter @manifest/control-plane add --save-exact nodemailer`, tried `--offline` first, and `@types/nodemailer`
 only if the release ships no types) and *"Task 3, after the add"* (where nodemailer is first measured against Mailpit). **No spec action is
-owed.**
+owed.** **And FE-54** (the front-end's m104: a commit's sensitive change, read against the last approved release) — added by Rich as **Task 2b,
+in sitting 2, beside FE-53**; additive, no spec action (`15b0e77`).
 
-### FE-32 — an agent can add a dependency, with §12's allowlist — WRITTEN 2026-10-03: [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md), 6 tasks in 5 sittings, AFTER THE LOAD REHEARSAL — NOT YET APPROVED
+### A1 — production instances by audience (§24) — WRITTEN 2026-10-03: [`2026-10-03-production-instances.md`](./2026-10-03-production-instances.md), 8 tasks in 6 sittings, AFTER THE MANIFEST TEAM'S STEP — WRITTEN; A REVIEW'S FIXES PENDING ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
 
-*Which sitting is next: its sittings table, once it is approved and the load rehearsal has closed.* **Written 2026-10-03 by `manifest-c7`**
+*Which sitting is next: its sittings table, once its review's fixes are made, Rich approves it, and the Manifest team's step has closed.* **The review (`21dc368`): approve with fixes**; and a dead member of the set is replaced automatically (Rich). **Written 2026-10-03 by `manifest-c7`**
+from the code at `e969f9d`; nothing executed. **What it builds:** production runs **`solo` 1, `class` 2, `large_course` 3, `public` 3**
+instances behind ONE edge route — round robin, actively and passively health-checked, `X-Manifest-Instance` from the upstream that answered,
+still deferred; **§11's `Driver` handles a SET per hostname** (`ensureInstances` moves the route once; `servingInstances`; `restoreRoute(ids)`;
+`destroyInstance` removes only its own upstream); `routes` one row per (hostname, instance); deploy, retire and boot recovery across N, with an
+AI key per instance; D21's rehearsal stays one; the knowledge pack's *keep nothing in memory* rule. Contract **`1.8.0`**. Its acceptance is
+**`make demo-capacity`**, and every launch demo — all `class` apps — on two instances. **Two spec actions DRAFTED, none applied**: A (§11, the
+set), B (§24, the counts and *headroom*). **Rich's** (2026-10-03, through `manifest-94`): *"Build §24's capacity first"* (~13:52), *"Two plans:
+A then B"* (~13:56), *"A1 → B → A2"* (~13:58).
+
+### B — the load rehearsal (§24, FE-44) — WRITTEN 2026-10-03: [`2026-10-03-load-rehearsal.md`](./2026-10-03-load-rehearsal.md), 7 tasks in 5 sittings, AFTER A1 — WRITTEN; A REVIEW'S FIXES PENDING ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+
+*Which sitting is next: its sittings table, once its review's rework is done, Rich approves it, and A1 has closed.* **The review (`21dc368`): needs rework** (an asynchronous run; Driver verbs with spec actions); vegeta built locally from the official release binary (Rich). **Written 2026-10-03 by `manifest-c7`** from the code at
+`e969f9d`; nothing executed. **What it builds:** the owner's `runLoadRehearsal` (`launch:rehearse`, person-only, stepped up; one at a time
+platform-wide): staging granted **production's N-instance shape** for one run, **vegeta** (pinned by digest and mirrored — its pull a Rich-step at
+sitting 2) putting the audience's arrival on it through the edge — **500 people**: `synchronised` 75 a second for a minute then 50 a second for
+five, `steady` a five-minute ramp — with the generator's own address exempt from the per-IP limit for that run; judged (≥ 99% answered, p95
+under 2 s, every instance healthy; a generator-bound run a FAILURE), recorded, and staging given back its own shape in a `finally` and at boot.
+The `load-rehearsal` item is met by that measurement at the first launch, and again only when the audience is raised. Contract **`1.9.0`**.
+Its acceptance is **`make demo-load`**. **Two spec actions DRAFTED, none applied**: A (§24, what the rehearsal is, with Rich's numbers), B
+(D24's person-only list; §26's settings). **Rich's** (2026-10-03): FE-44 *"Build the load rehearsal first"* (~13:46); *"As proposed"* and
+*"First launch + audience raised"* (~13:52); *"vegeta"* and *"Exempt the generator's IP"* (~13:56).
+
+### A2 — hibernation and wake-on-request (§11, §24) — WRITTEN 2026-10-03: [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md), 7 tasks in 5 sittings, AFTER B — WRITTEN; A REVIEW'S FIXES PENDING ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+
+*Which sitting is next: its sittings table, once its review's rework is done, Rich approves it, and B has closed.* **The review (`21dc368`): needs rework** (Driver verbs with spec actions; the waker against A1's health checks; the held mode); class apps woken at term start (Rich). **Written 2026-10-03 by `manifest-c7`** from the code at
+`e969f9d`; nothing executed. **Its Task 1 is spike S4** (§11: *"the spike decides it"*), with a real cold wake measured. **What it builds:**
+`solo` production hibernates after a day idle, `class` only outside every term in **`MANIFEST_TERMS`** (none set: never), `large_course` and
+`public` never, staging after §11's seven days; idle measured at the edge; an environment's route to the waker FIRST, then its instances and its
+database stopped (D3); a request wakes it — joined per app, capped, queued (§20) — by S4's mechanism; a deploy wakes it, an archive does not,
+a boot keeps it asleep. Contract **`1.10.0`**. Its acceptance is **`make demo-hibernate`**. **Pre-warming is not built** (Rich, *"Record it as
+not built"*), and comes back to him if the cold wake is more than a few seconds. **Two spec actions DRAFTED, none applied**: A (§11, S4's answer
+and production's lifetime by audience — written from the spike), B (§24, §26, the term dates). **Rich's** (2026-10-03): *"Build hibernation in
+Plan A"* (~13:56); *"A1 → B → A2"*, *"An admin platform setting"*, *"Record it as not built"* (~13:58).
+
+### FE-32 — an agent can add a dependency, with §12's allowlist — WRITTEN 2026-10-03: [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md), 6 tasks in 5 sittings, AFTER A2 (HIBERNATION) — WRITTEN; A REVIEW'S FIXES PENDING ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+
+*Which sitting is next: its sittings table, once its review's fixes are made, Rich approves it, and A2 has closed.* **The review (`21dc368`): approve with fixes.** **Written 2026-10-03 by `manifest-c7`**
 from the code at `eee5648`; nothing executed. **What it builds:** `resolveDependencies` — an agent sends the `package.json` it wants and is
 answered the `package-lock.json`, resolved THROUGH THE MIRROR, inside the network-restricted builder, from a blueprint-declared recipe, with
 install scripts off and the committed lockfile's pins kept, as a full install that warms the mirror so the build after it works offline;
 three refusals that say which thing went wrong; and **§12's allowlist in its smallest faithful form** — the direct dependencies an app may
 name, a platform setting seeded from the listed blueprints' skeletons, refused `409 DEPENDENCY_NOT_ALLOWED` by the operation and by the
-build's lockfile gate alike. Contract **`1.8.0`**. Its acceptance is **`make demo-authoring`, extended** (`marked`, warmed by `make seed`
+build's lockfile gate alike. Contract **`1.11.0`** (A1 `1.8.0`, B `1.9.0`, A2 `1.10.0`). Its acceptance is **`make demo-authoring`, extended** (`marked`, warmed by `make seed`
 through a fixture whose lockfile the operation itself produced). **Three spec actions DRAFTED, none applied**: A (§11's `Driver` gains
 `resolveDependencies`; §12's lockfile bullet), B (§25's descriptor gains `dependencies`), C (§12's allowlist made concrete; §26's settings).
-**Rich's answers so far** (2026-10-03, ~14:25 PDT, relayed by `manifest-94`): the allowlist *"Yes, in this plan (Recommended)"*; resolution
-in the builder and a full install through the mirror stand as written, their spec-action words his at review. **Placed** after the load
-rehearsal (*"Build the load rehearsal first"*), before the vulnerability database.
+**Rich's answers so far** (2026-10-03, ~13:43 PDT, relayed by `manifest-94`): the allowlist *"Yes, in this plan (Recommended)"*; resolution
+in the builder and a full install through the mirror stand as written, their spec-action words his at review. **Placed** after §24's
+three plans (*"A1 → B → A2"*), before the vulnerability database.
 
 ### The vulnerability database in the console — AFTER *FACULTY-READY* AND FE-32 (Rich, 2026-09-30) — REQUESTED AND PLACED 2026-09-24: after the authoring API — and, since 2026-09-26, after Spec action 1's plan, which the front-end enablement plan replaced on 2026-09-27 in the same position — and, since 2026-09-27 (Rich), AFTER THE FRONT-END'S LAUNCH PATH (FE-6, FE-25)
 
@@ -1637,8 +1675,8 @@ execution layer.** Each is written when its predecessor lands.
    (finding 181), and every redeploy's leaked container stays attached (189).
 8. **Since the front-end enablement plan, Rich's order is stated ONCE**, as *THE ORDER SINCE 2026-09-30* in *The faculty front-end's
    message* (above), and each plan's section says where it stands. **Added 2026-10-03: the Manifest team's step (FE-46, FE-47, FE-5,
-   FE-53) — WRITTEN AND APPROVED — between *faculty-ready* and FE-32; then, the same day, the load rehearsal before FE-32, and FE-45 after
-   the vulnerability database.**
+   FE-53) — WRITTEN AND APPROVED — between *faculty-ready* and FE-32; then, the same day, §24 as three plans before FE-32 — A1 the
+   production instances, B the load rehearsal, A2 hibernation (*"A1 → B → A2"*) — and FE-45 after the vulnerability database.**
 
 ### Decided 2026-09-04: execute before writing P4
 
