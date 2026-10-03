@@ -105,6 +105,9 @@ const SESSION_ONLY = { status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' } as const
  */
 const STEP_UP = { status: 403, code: 'STEP_UP_REQUIRED' } as const
 
+/** What the table's administrator says on every request it makes (Task 15; see the case runner). */
+const ADMIN_REASON = 'the authorization contract asks'
+
 /**
  * §14: a production instance's output is never readable (the front-end enablement plan's
  * Task 3, Decision 6) — the SIXTH `403` in this file, answered to everyone who HOLDS
@@ -275,9 +278,10 @@ interface Fixture {
   throwaway: () => Promise<string>
   /**
    * WHETHER `platform_admin` IS A MEMBER — of the fixture, and of every throwaway (the faculty-ready
-   * plan's Task 10). True for every row: the table's `admin` is an administrator who is a member, and
-   * §26 asks such a person no reason. The reason measurement at the end takes them off the fixture and
-   * sets this false, so the throwaways it asks for are somebody else's too.
+   * plan's Task 10). True for every row: the table's `admin` is an administrator who is a COLLABORATOR,
+   * whom §26 asks for a reason only beyond that role (Task 15) — and who sends one on every row. The
+   * reason measurement at the end takes them off the fixture and sets this false, so the throwaways it
+   * asks for are somebody else's too.
    */
   adminIsMember: boolean
   /**
@@ -2789,6 +2793,12 @@ export function describeAuthorizationContract(
             headers: {
               ...mutationHeaders(deps),
               ...(bearer === undefined ? {} : { authorization: `Bearer ${bearer}` }),
+              // THE TABLE'S ADMINISTRATOR GIVES A REASON (the faculty-ready plan's Task 15): they are a
+              // COLLABORATOR here, and §26 asks one for what a collaborator may not do — so without it
+              // this column would read `ADMIN_REASON_REQUIRED` where it measures an administrator's
+              // authority. Nothing is recorded from it where none is asked. The two measurements at the
+              // end ask WITHOUT it, as a collaborator and as a stranger.
+              ...(actor === 'admin' ? { 'manifest-admin-reason': ADMIN_REASON } : {}),
             },
             ...(payload === undefined ? {} : { payload }),
             ...(bearer !== undefined || actorCookies === undefined
@@ -2929,6 +2939,57 @@ export function describeAuthorizationContract(
     }, 60_000)
 
     /**
+     * §26'S REASON FOR AN ADMINISTRATOR WHO IS A COLLABORATOR (Spec action 5; the faculty-ready plan's
+     * Task 15): asked for EXACTLY what a collaborator may not do — people, archiving, restoring or
+     * deleting, a production deploy (promotion), and answering an agent's question about one of those —
+     * and for nothing their role allows. Every row asked as the table's administrator WITHOUT the header
+     * (`platform_admin` is a collaborator of the fixture and of every throwaway). After the archive,
+     * like the measurement below: the refusal comes before the archived state. Each answered operation
+     * is also one the document declares — a subset of the 24 below.
+     */
+    it('asks an administrator who is a COLLABORATOR for a reason on exactly what a collaborator may not do', async () => {
+      expect(fixture.adminIsMember).toBe(true)
+      const document = openApiDocument(ROUTE_DEFINITIONS) as {
+        paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
+      }
+      const declared = new Set(
+        ROUTE_DEFINITIONS.filter((route) =>
+          document.paths[route.path]![route.method.toLowerCase()]![
+            'x-manifest-error-codes'
+          ].includes('ADMIN_REASON_REQUIRED'),
+        ).map((route) => route.operationId),
+      )
+      const answered = new Set<string>()
+      // `/auth/` addresses no project, and asking it would sign the administrator out.
+      for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
+        const { url, payload } = await route.request(fixture, 'admin')
+        const response = await app.inject({
+          method: route.method as 'GET',
+          url,
+          headers: mutationHeaders(deps),
+          ...(payload === undefined ? {} : { payload }),
+          cookies: cookies.admin!,
+        })
+        if (codeOf(response.body) !== 'ADMIN_REASON_REQUIRED') continue
+        const definition = ROUTE_DEFINITIONS.find(
+          (r) => `${r.method} ${fastifyPath(r.path)}` === `${route.method} ${route.url}`,
+        )
+        answered.add(definition?.operationId ?? `${route.method} ${route.url}`)
+      }
+      expect([...answered].filter((operation) => !declared.has(operation))).toEqual([])
+      expect([...answered].sort()).toEqual([
+        'addMember',
+        'archiveProject',
+        'confirmPendingAction',
+        'deleteProject',
+        'deploy',
+        'rejectPendingAction',
+        'removeMember',
+        'restoreProject',
+      ])
+    }, 60_000)
+
+    /**
      * §26'S REASON, DECLARED EXACTLY WHERE IT IS ANSWERED (the faculty-ready plan's Task 10, Decision
      * 15) — `PROJECT_ARCHIVED`'s measurement above, for `400 ADMIN_REASON_REQUIRED`. `document.ts`
      * derives the code and the `Manifest-Admin-Reason` header from each route's `capability` through
@@ -2939,8 +3000,8 @@ export function describeAuthorizationContract(
      * reason, which none may answer.
      *
      * **`platform_admin` IS A MEMBER EVERYWHERE ABOVE** (the removal row's target, never removed: the
-     * step-up refuses it), so the table's `admin` column is an administrator who is a member, asked no
-     * reason — the matrix's "member administrator without it" column, on every row. Taken off the
+     * step-up refuses it) — a COLLABORATOR, who gives a reason on every row since Task 15, and is asked
+     * without one only for what a collaborator may not do (the measurement above). Taken off the
      * fixture HERE. **AFTER THE ARCHIVE, AND THE ORDER IS LOAD-BEARING**: the refusal comes before the
      * archived state, so without a reason every row still answers it, and with one an archived project
      * refuses every change — so nothing this measurement asks can move anything the rows above read.

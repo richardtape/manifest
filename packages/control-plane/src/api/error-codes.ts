@@ -355,8 +355,8 @@ export const ERROR_CODES = {
    */
   ADMIN_REASON_REQUIRED: api(
     400,
-    'A platform administrator who is not a member of this project acted on it with an owner’s capability and gave no reason, or one longer than 500 characters.',
-    'Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none.',
+    'A platform administrator acted on this project beyond their own role on it — not a member, using an owner’s capability; or a collaborator adding or removing a person, archiving, restoring or deleting it, or promoting a release — and gave no reason, or one longer than 500 characters.',
+    'Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member acting within their role need none.',
   ),
   BLUEPRINT_NOT_FOUND: bad(
     'No blueprint with this reference is in the registry.',

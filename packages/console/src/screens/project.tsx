@@ -121,6 +121,11 @@ export function Project({
  * their name on the stream. Shown only to an administrator who is not a member — for affordance; the
  * platform decides, and refuses `400 ADMIN_REASON_REQUIRED` without one. What is typed here is sent
  * on every change made from this screen (`api.ts`), and forgotten when the screen closes.
+ *
+ * AND TO ONE WHO IS A COLLABORATOR (Task 15, §26 as Spec action 5 amended it): beyond a collaborator's
+ * role — people, archiving, restoring or deleting, promoting — they act as an administrator and are
+ * asked too. Within it the platform records nothing from the header, so sending it there is harmless.
+ * An administrator who is the OWNER is never asked, and sees nothing.
  */
 function AdminReason({
   api,
@@ -138,15 +143,29 @@ function AdminReason({
     setReason('')
     return () => setAdminReason(null)
   }, [projectId])
-  if (members.value === undefined || members.value.some((m) => m.userId === meId))
-    return null
+  const mine = members.value?.find((m) => m.userId === meId)
+  if (members.value === undefined || mine?.role === 'owner') return null
   return (
-    <Panel title="You are not a member of this project">
-      <p>
-        As a platform administrator you can change it. Say why first: your reason is sent
-        with every change you make here, and the project’s people read it beside your
-        name.
-      </p>
+    <Panel
+      title={
+        mine === undefined
+          ? 'You are not a member of this project'
+          : 'You are a collaborator on this project'
+      }
+    >
+      {mine === undefined ? (
+        <p>
+          As a platform administrator you can change it. Say why first: your reason is
+          sent with every change you make here, and the project’s people read it beside
+          your name.
+        </p>
+      ) : (
+        <p>
+          As a platform administrator you can also add or remove its people, archive,
+          restore or delete it, and promote its releases — which a collaborator cannot.
+          Say why before you do: the project’s people read it beside your name.
+        </p>
+      )}
       <label>
         Reason{' '}
         <input

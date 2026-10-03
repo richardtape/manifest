@@ -770,8 +770,13 @@ export function refusedWithoutAdminReason(capability: Capability): boolean {
  * before anybody is asked why; BEFORE the archived state, so an administrator who gave no reason is
  * told that first, whatever the project's state — the reason is part of the request, as its
  * Idempotency-Key is. Only inside a mutating `/v1` request (`actingContext`, which `registerRoutes`
- * enters for nothing else): a read is not an action. A member — an administrator who is one included —
- * acts as a member, and is recorded as one.
+ * enters for nothing else): a read is not an action.
+ *
+ * A MEMBER IS ASKED NO REASON ONLY FOR WHAT THEIR OWN ROLE ALLOWS (§26 as Spec action 5 amended it; the
+ * faculty-ready plan's Task 15). An administrator who is the owner, or a collaborator renaming or
+ * deploying, acts as a member and is recorded as one. Beyond the role — a collaborator managing people,
+ * archiving, restoring or deleting, or promoting, which `COLLABORATOR` lacks and only `PLATFORM_ADMIN`
+ * grants them — they act as an administrator, and give a reason like one who is not a member.
  */
 function requireAdminReason(
   actor: SessionActor,
@@ -783,14 +788,17 @@ function requireAdminReason(
     acting === undefined ||
     acting.userId !== actor.userId ||
     actor.platformRole !== 'admin' ||
-    projectRole !== null ||
     !refusedWithoutAdminReason(capability)
   )
+    return
+  if (projectRole !== null && capabilitiesFor(projectRole, 'member').has(capability))
     return
   const hint = `Send why in the Manifest-Admin-Reason header — 1 to ${ADMIN_REASON_MAX} characters, percent-encoded as UTF-8 when it is not plain ASCII. The project's people read it beside your name.`
   if (acting.offeredReason === null) {
     throw new AdminReasonRequiredError(
-      `you are a platform administrator and not a member of this project, so '${capability}' on it needs a reason`,
+      projectRole === null
+        ? `you are a platform administrator and not a member of this project, so '${capability}' on it needs a reason`
+        : `you are a platform administrator and a ${projectRole} of this project, and '${capability}' is beyond your role on it, so it needs a reason`,
       hint,
     )
   }

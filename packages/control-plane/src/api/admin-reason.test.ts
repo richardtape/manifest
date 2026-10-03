@@ -468,6 +468,109 @@ describe('an administrator acting on a project they are not a member of gives a 
   })
 })
 
+describe('an administrator who is a collaborator gives a reason for what their role does not allow', () => {
+  /**
+   * §26 as Spec action 5 amended it (the faculty-ready plan's Task 15): a member is asked no reason only
+   * for what their own project role allows. A collaborator may not manage people, archive, restore or
+   * delete, or promote — so an administrator who is one acts there AS AN ADMINISTRATOR, gives a reason,
+   * and is recorded as one. Within the role they act as a member, recorded as one.
+   */
+  it('refuses a collaborator-administrator’s member removal and archive without a reason, and records the reason with one', async () => {
+    await withProjectServer(async (ctx) => {
+      const admin = await loginAs(ctx.deps, 'platform_admin', { steppedUp: true })
+      const adminUser = await ensureTestUser(ctx.db, 'platform_admin')
+      const colleague = await ensureTestUser(ctx.db, 'bio_colleague')
+      await addMember(ctx.db, ctx.projectId, adminUser.id, 'collaborator')
+      await addMember(ctx.db, ctx.projectId, colleague.id, 'collaborator')
+      const frames = watch(ctx)
+
+      // POSITIVE CONTROL, in the same test: a collaborator's own power asks nothing, and is recorded as
+      // the member's act.
+      const renamed = await send(ctx, admin, {
+        method: 'PATCH',
+        url: `/v1/projects/${ctx.projectId}`,
+        payload: { name: 'Renamed by a collaborator' },
+      })
+      expect(renamed.statusCode, renamed.body).toBe(200)
+      expect(eventOf(frames, 'project.renamed').actor).toEqual({
+        name: 'Platform Admin',
+        asAdministrator: false,
+        reason: null,
+        token: null,
+      })
+
+      const rows: { name: string; call: Call; event: string }[] = [
+        {
+          name: 'remove a member',
+          call: {
+            method: 'DELETE',
+            url: `/v1/projects/${ctx.projectId}/members/${colleague.id}`,
+          },
+          event: 'member.removed',
+        },
+        {
+          name: 'archive',
+          call: {
+            method: 'POST',
+            url: `/v1/projects/${ctx.projectId}/archive`,
+            payload: {},
+          },
+          event: 'project.archived',
+        },
+      ]
+      // Every row's answer is collected and compared once, so a red names each row that is wrong.
+      const seen = []
+      for (const row of rows) {
+        const without = await send(ctx, admin, row.call)
+        const withIt = await send(ctx, admin, row.call, REASON)
+        const published = frames.find((f) => f.kind === 'event' && f.type === row.event)
+        seen.push({
+          row: row.name,
+          without: refusal(without),
+          says: /beyond your role on it/.test(without.body),
+          withIt: withIt.statusCode,
+          actor: published?.kind === 'event' ? published.actor : undefined,
+        })
+      }
+      expect(seen).toEqual(
+        rows.map((row) => ({
+          row: row.name,
+          without: { status: 400, code: 'ADMIN_REASON_REQUIRED' },
+          says: true,
+          withIt: 200,
+          actor: {
+            name: 'Platform Admin',
+            asAdministrator: true,
+            reason: REASON,
+            token: null,
+          },
+        })),
+      )
+    })
+  })
+
+  it('POSITIVE CONTROL: an administrator who is the OWNER archives with no reason, recorded as the owner’s act', async () => {
+    await withProjectServer(async (ctx) => {
+      const admin = await loginAs(ctx.deps, 'platform_admin', { steppedUp: true })
+      const adminUser = await ensureTestUser(ctx.db, 'platform_admin')
+      await addMember(ctx.db, ctx.projectId, adminUser.id, 'owner')
+      const frames = watch(ctx)
+      const archived = await send(ctx, admin, {
+        method: 'POST',
+        url: `/v1/projects/${ctx.projectId}/archive`,
+        payload: {},
+      })
+      expect(archived.statusCode, archived.body).toBe(200)
+      expect(eventOf(frames, 'project.archived').actor).toEqual({
+        name: 'Platform Admin',
+        asAdministrator: false,
+        reason: null,
+        token: null,
+      })
+    })
+  })
+})
+
 describe('the project’s people see who acted, and why', () => {
   it('the owner’s stream shows who acted, as an administrator, and why — on the row too, and on what the deploy publishes later', async () => {
     await withProjectServer(async (ctx) => {
