@@ -7,11 +7,13 @@
 > while `manifest-9d` held the faculty-ready plan's sitting 5b (`ORIENTATION.md`, `TRAPS.md`, `external-track.md` and that plan
 > uncommitted). Line numbers WILL have moved by the time this runs, and Task 1 re-reads each one marked *(T1: M<n>)*.
 > **Two spec actions are drafted below, and neither is applied.** No task that a spec action changes runs before Rich has read and
-> decided its words. **NOT YET APPROVED AS A WHOLE.**
+> decided its words. **NOT YET APPROVED AS A WHOLE**: at 15:57 PDT Rich sent it to a quick fresh review first (a read-only agent of
+> `manifest-94`), and chose **INLINE execution, a fresh session per sitting** (`superpowers:executing-plans`).
+> Fixes from that review go to a fresh session.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (native) or superpowers:subagent-driven-development,
-> **whichever Rich chooses at sitting 1's open**. Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-> **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
+> **For agentic workers:** REQUIRED SUB-SKILL: **superpowers:executing-plans (inline)** — Rich, 2026-10-03, 15:57: inline, **a fresh
+> session per sitting**. Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which that skill will push you against.
 
 **Goal:** With `UBC_AI_GATEWAY_API_KEY` in `.env` and the network on, **`default-chat-large` is answered by UBC's AI Gateway**
 (`https://ai-gateway.apps.ltic.ubc.ca`, a LiteLLM proxy LTIC runs), not by OpenAI directly. That holds for chat, streamed or not,
@@ -143,7 +145,7 @@ before sitting 2.** Three rules survive any re-cut:
 
 ## What Rich does, and when
 
-1. **Review this plan**, approve or re-cut its three sittings, and choose the execution method at sitting 1's open.
+1. **Review this plan**, approve or re-cut its three sittings. **The execution method is chosen: inline, a fresh session per sitting** (15:57).
 2. **The key. DONE 2026-10-03, ~15:40 PDT**: Rich generated a VIRTUAL key on the gateway and added `UBC_AI_GATEWAY_API_KEY` to `.env`
    (`manifest-94`'s message, 15:42). `.env.example` already carries its commented line (`20c65ca`, by `manifest-94` at his request), so
    **no task adds it again**.
