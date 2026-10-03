@@ -1,14 +1,14 @@
 # An Agent Can Add a Dependency — FE-32 — Implementation Plan
 
-> **WRITTEN 2026-10-03, LATE AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after the Manifest
+> **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after the Manifest
 > team's step ([`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md), approved the same afternoon). **Every fact in *Read this
 > first* was read from the code at `eee5648`**, while the faculty-ready plan's sitting 5 had uncommitted edits in `infra/`, `secrets/`,
 > `ai/` and `scripts/verify.sh`. Three plans run before this one, so **Task 1 re-reads every fact** into `spikes/fe32-baseline/`.
 >
 > **Rich confirmed FE-32 on 2026-09-30, option (a)** (*"Confirm all three (Recommended)"*): an operation that resolves a `package-lock.json`
 > through the platform's mirror. **And placed it** (*"(a) Faculty-ready → FE-32 → vuln DB"*); since then the Manifest team's step
-> (2026-10-02) and **the load rehearsal** (2026-10-03, *"Build the load rehearsal first"*) go before it. **§12's package allowlist, which does
-> not exist today, is IN this plan** — Rich, 2026-10-03, ~14:25 PDT: *"Yes, in this plan (Recommended)"* (Task 4, Spec action C). **NOT
+> (2026-10-02), and §24's production instances, the load rehearsal and hibernation (2026-10-03: *"Build the load rehearsal first"*, then *"A1 → B → A2"*) go before it. **§12's package allowlist, which does
+> not exist today, is IN this plan** — Rich, 2026-10-03, ~13:43 PDT: *"Yes, in this plan (Recommended)"* (Task 4, Spec action C). **NOT
 > YET APPROVED.** Three spec actions are DRAFTED at the end, none applied; their words are Rich's at review.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
@@ -34,7 +34,7 @@ not exist — on either driver. A person clicks it too.
   existing pin stays.
 - **A FULL install, never `--package-lock-only`**, so every tarball is downloaded through Verdaccio and cached (`infra/seed/seed.sh:48-52`):
   the build that follows works with the network off.
-- **The contract goes to `1.8.0` ONCE, at Task 3** (the plan before this one leaves it `1.7.0`).
+- **The contract goes to `1.11.0` ONCE, at Task 3** (A2, before this one, leaves it `1.10.0`).
 
 **Tech Stack:** TypeScript 5.9.3 on Node 24.12.0 (host), Fastify 5.12.3, `zod/v4`, Vitest 2.1; Docker Desktop 29.7.2, BuildKit rootless
 via buildx's `remote` driver (`runtime/docker/builder.ts`); Verdaccio (`infra/verdaccio/config.yaml`); the blueprint's base image
@@ -50,9 +50,9 @@ via buildx's `remote` driver (`runtime/docker/builder.ts`); Verdaccio (`infra/ve
 
 **Roadmap:** *The faculty front-end's message* (FE-32 there, as *"before a change after launch meets it"*).
 
-**Predecessor:** [`2026-10-03-load-rehearsal.md`](./2026-10-03-load-rehearsal.md) — §24's load rehearsal (FE-44), placed BEFORE this plan by
-Rich on 2026-10-03 (*"Build the load rehearsal first"*). **This plan starts only after that plan's acceptance closes.** Before it, in
-order: *faculty-ready*, then the Manifest team's step.
+**Predecessor:** [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md) — A2, hibernation and wake-on-request. **This plan starts only
+after its acceptance closes.** Before it, in Rich's order of 2026-10-03: *faculty-ready*, the Manifest team's step, A1 (production instances
+by audience), B (the load rehearsal, FE-44: *"Build the load rehearsal first"*), A2.
 
 **Successor:** the vulnerability database in the console (Rich, 2026-09-30); then FE-45 (Rich, 2026-10-03).
 
@@ -70,7 +70,7 @@ order: *faculty-ready*, then the Manifest team's step.
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: every fact re-read; `--output type=local` from the rootless remote builder; a full install against the mirror, with the committed lock kept; what npm says when the mirror cannot fetch (a THROWAWAY Verdaccio whose uplink is unreachable); install scripts proved off; Verdaccio's unpublish for a test package; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M2]` finds the builder cannot export a file, or `[M3]` finds the mirror's two failures indistinguishable | ← **next**, once this plan is approved and the plan before it has closed |
 | 2 | 2 | **The driver resolves**: `Driver.resolveDependencies` on both drivers and in the driver contract; the descriptor's `dependencies` block; `Resolve.tmpl` in both blueprints; the driver's hard-coded `'package-lock.json'` read from the descriptor | Yes — `runtime/`, `blueprints/`, `build/` | After the commit, with the Docker case green and one resolution through the real builder quoted | |
-| 3 | 3, 4 | **The operation**: `resolveDependencies`, its refusals, contract `1.8.0`. **The allowlist** — a platform setting; the operation and the build's gate both refuse an unlisted direct dependency | Yes — `source/`, `build/`, `blueprints/` | After both commits, with a resolution and an allowlist refusal through the edge on driver 1 | |
+| 3 | 3, 4 | **The operation**: `resolveDependencies`, its refusals, contract `1.11.0`. **The allowlist** — a platform setting; the operation and the build's gate both refuse an unlisted direct dependency | Yes — `source/`, `build/`, `blueprints/` | After both commits, with a resolution and an allowlist refusal through the edge on driver 1 | |
 | 4 | 5 | **The clients**: the mock, the knowledge pack's rule, the guide *Authoring*'s *Adding a dependency*, an example run against the mock | No, unless a fix touches the owed list | After the commit, with `pnpm docs:write` clean and the front-end told | |
 | 5 | 6 | **The acceptance**: `make demo-authoring`, extended, three times on each driver; the fixture that warms `marked`; every other demo; a clicked half; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | After the clicked half and the review's one fix wave | |
 
@@ -87,15 +87,16 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 - **FE-32 (a)** — *"Confirm all three (Recommended)"* (2026-09-30, the planning session `manifest-00`; [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md),
   its item 5): **an operation that resolves a `package-lock.json` through the platform's mirror.** *Rejected by that choice:* (b) the build
   regenerating the lockfile itself; (c) waiting for Phase 3's `exec`.
-- **§12'S ALLOWLIST, IN THIS PLAN** — *"Yes, in this plan (Recommended)"* (2026-10-03, ~14:25 PDT, through the question tool, relayed by
+- **§12'S ALLOWLIST, IN THIS PLAN** — *"Yes, in this plan (Recommended)"* (2026-10-03, ~13:43 PDT, through the question tool, relayed by
   `manifest-94`, who records it in [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): its smallest faithful form — administrator-
   managed direct dependencies, seeded from the listed blueprints' skeletons; the resolve operation and the build's lockfile gate both refuse
   an unlisted one with `409 DEPENDENCY_NOT_ALLOWED`; its spec action (C) drafted, not applied. **Resolution inside the builder (Spec actions A
   and B) and a full install through the mirror stand as written**; their spec-action words are his at review.
 - **THE ORDER** — *"(a) Faculty-ready → FE-32 → vuln DB"* (2026-09-30); the Manifest team's step placed between faculty-ready and FE-32 on
-  2026-10-02 (*"After faculty-ready"*); **the load rehearsal placed before FE-32** on 2026-10-03 (*"Build the load rehearsal first"*); FE-45
-  after the vulnerability database the same day. So: *faculty-ready* → the Manifest team's step → the load rehearsal → **FE-32** → the
-  vulnerability database → FE-45.
+  2026-10-02 (*"After faculty-ready"*); **the load rehearsal placed before FE-32** on 2026-10-03 (*"Build the load rehearsal first"*), and
+  §24's capacity built before the rehearsal, as two plans and then three (*"Build §24's capacity first"*, *"A1 → B → A2"*); FE-45 after the
+  vulnerability database the same day. So: *faculty-ready* → the Manifest team's step → A1 (production instances) → B (the load rehearsal)
+  → A2 (hibernation) → **FE-32** → the vulnerability database → FE-45.
 - **Carried, still binding:** D24 (a delegated token may do this — it decides nothing and writes nothing to the project); every refusal
   asserts its code; published text cites no section, decision or plan; **the front-end is told before any commit to `packages/contract`
   or `packages/mock`.**
@@ -156,7 +157,7 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 
 ## Decisions this plan makes, and why
 
-1. **ONE CONTRACT BUMP, `1.8.0`, AT TASK 3.** Additive: one operation, its request and answer, its codes. *Cost to change course:* the
+1. **ONE CONTRACT BUMP, `1.11.0`, AT TASK 3.** Additive: one operation, its request and answer, its codes. *Cost to change course:* the
    version string.
 2. **THE OPERATION TAKES THE NEW MANIFEST AND A `baseCommit`, AND ANSWERS THE LOCKFILE — IT NEVER COMMITS.**
    - Request: `{ manifest: string, baseCommit?: string }` — the manifest file's whole new text (the descriptor names the file); `baseCommit`
@@ -285,7 +286,7 @@ packages/control-plane/src/api/
   representations/source.ts   MOD (T3) ResolveDependenciesRequest, ResolvedDependencies
   error-codes.ts, errors.ts   MOD (T3) the three codes; (T4) DEPENDENCY_NOT_ALLOWED
   authz-contract.ts           MOD (T3) the operation's rows
-  contract/document.ts        MOD (T3) 1.8.0
+  contract/document.ts        MOD (T3) 1.11.0
 packages/control-plane/src/build/gates.ts                                        MOD (T4, (a)) the dependency gate
 packages/control-plane/src/config.ts, infra/dependencies/allowed.txt             MOD/NEW (T4, (a))
 packages/mock/src/, packages/journey/src/example-dependency.ts, docs/api/authoring.md, blueprints/node-ts-mongo/agents/AGENTS.md   MOD/NEW (T5)
@@ -453,13 +454,13 @@ docs/superpowers/spikes/fe32-baseline/                                          
 
 ## Task 3: The operation — `resolveDependencies`
 
-**Sitting 3.** Decisions 1, 2, 5–8. **The contract goes to `1.8.0` here.**
+**Sitting 3.** Decisions 1, 2, 5–8. **The contract goes to `1.11.0` here.**
 
 **Files:**
 - Modify: `api/routes/source.ts` (the route, beside `createCommit`); `api/representations/source.ts` (`ResolveDependenciesRequest
   { manifest: string ≤ 65,536 chars, baseCommit?: Sha }`, `ResolvedDependencies { lockfile: { path, content, sha256 }, baseCommit, log }`);
   `api/error-codes.ts` and `api/errors.ts` (the three codes, `DependencyError` mapped by `instanceof`, its `names` and `log` as error
-  facts); `api/authz-contract.ts` (the rows); `api/contract/document.ts` (`1.8.0`); the four contract commands; the mock's operation (a
+  facts); `api/authz-contract.ts` (the rows); `api/contract/document.ts` (`1.11.0`); the four contract commands; the mock's operation (a
   fixture answer, and `DEPENDENCY_NOT_FOUND` for a `manifest-no-such-` name) in the same step, so contract and mock typecheck together
 - Test: `api/source.test.ts` (or the routes' file `[M1]` names), the authorization matrix
 
@@ -473,13 +474,13 @@ docs/superpowers/spikes/fe32-baseline/                                          
     PROJECT_ARCHIVED` (derived, as for every route with a capability).
   - **The base lockfile is read**: the fake driver received the lockfile committed at `baseCommit`, and `null` for a project with none.
 - [ ] **Step 2: Run, and predict.**
-- [ ] **Step 3: Implement**, then the four contract commands. **Tell the front-end before the commit**: `1.8.0`; the operation; its codes.
+- [ ] **Step 3: Implement**, then the four contract commands. **Tell the front-end before the commit**: `1.11.0`; the operation; its codes.
 - [ ] **Step 4: Through the edge, on driver 1**: with a running control plane, resolve the skeleton's manifest plus `[M2]`'s package for a
   demo project over `https://console.manifest.internal`; commit both; build; quote the build's `npm ci` line.
 - [ ] **Step 5: Commit**, then the **negative control**: start the resolution before the `baseCommit` check. Predict red: Review Focus 5's
   *"no resolution recorded"* row only.
   ```bash
-  git commit -m "feat(api): resolveDependencies — an agent sends its package.json and is answered the lockfile, resolved through the mirror (FE-32; contract 1.8.0)"
+  git commit -m "feat(api): resolveDependencies — an agent sends its package.json and is answered the lockfile, resolved through the mirror (FE-32; contract 1.11.0)"
   ```
 
 ---
@@ -581,7 +582,7 @@ docs/superpowers/spikes/fe32-baseline/                                          
 
 ## Asked of Rich
 
-1. **THE ALLOWLIST — ANSWERED 2026-10-03, ~14:25 PDT: *"Yes, in this plan (Recommended)"*.** The question as put: §12 (spec l.1533-1535)
+1. **THE ALLOWLIST — ANSWERED 2026-10-03, ~13:43 PDT: *"Yes, in this plan (Recommended)"*.** The question as put: §12 (spec l.1533-1535)
    says dependencies resolve *"through a private registry mirror with an allowlist … v1 picks the allowlist"*; there is none
    (`infra/verdaccio/config.yaml`: `'**': { proxy: npmjs }`), and this plan turns *"add any package"* into an agent's API call. Options were
    (a) build its smallest faithful form here, (b) FE-32 without it, (c) its own plan after. → Task 4 and Spec action C, unconditional.
