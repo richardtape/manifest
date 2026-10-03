@@ -627,7 +627,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     the FE-46/47/5 plan's new Task 2b, in its sitting 2, beside FE-53. m104 stays open, over-saying, until it lands. Over: the
     front-end's own copy of the rule (it can under-say); leaving m104 as it is.
 
-    And at ~14:55 PDT, the front-end's m69/m76 words (manifest-app-f6's draft), through the question tool:
+    And at ~14:51 PDT, the front-end's m69/m76 words (manifest-app-f6's draft), through the question tool:
       - THE THREE EMAILS — "Approve as drafted (Recommended)": subject "<App>: your change stopped"; "Your change to <App>
         stopped because the app was switched off. You can read where we got to in the conversation:" + its link; "…because
         the app was deleted." (no link); "…because you were taken off the app. Its owners can add you again." (no link); the
