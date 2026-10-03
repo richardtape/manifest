@@ -1976,6 +1976,13 @@ remediation hint alongside the human-readable message — the same discipline th
 makes §14's faculty-legible events work, extended to clients that are programs. This
 improves the console too; it is not extra work done only for third parties.
 
+**Every answer carries a request id** (`x-request-id`), and every refusal carries it in its
+body too, so a person's support report meets the platform's own line for that request:
+every refusal is logged with its id, its time, the operation and its code — never its
+message. **A refusal about a limit carries the limit as fields** — whose it is, over what
+period, how much, and when it lifts — and a refusal that names something already started
+carries its id, so a client acts on fields rather than parsing a sentence.
+
 ### Authorization
 
 Every route carries an explicit ownership check against `ProjectMember`. Because
@@ -2774,6 +2781,7 @@ Each blueprint ships a `blueprint.yaml` at its root, parsed into `Blueprint.desc
 ```yaml
 blueprint: node-ts-mongo
 major_version: 2
+listed: true                      # false: the platform's own test fixture; listBlueprints omits it, and it still resolves
 schema_versions: [1]              # manifest: versions this blueprint understands
 
 runtime:
@@ -2802,6 +2810,10 @@ starters:                         # complete apps a project can start from
     path: ./starters/proof-app/   # laid over the skeleton at project creation
     summary: CWL sign-in, a private note, and a question answered from your notes
 ```
+
+**A blueprint the platform keeps for its own tests declares `listed: false`**: it is never
+offered to a person or an agent choosing where to start, and a project already made from
+it keeps building.
 
 ### Starters
 

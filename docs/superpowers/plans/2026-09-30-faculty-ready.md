@@ -1158,7 +1158,7 @@ now also covers `source/`. Decision 18.
 
 ## Spec actions
 
-**FOUR, DRAFTED 2026-09-30 WITH THIS PLAN. None is applied.** Each is decided by Rich before the sitting that builds it, and applied only after he has read the words.
+**FOUR, DRAFTED 2026-09-30 WITH THIS PLAN. 2 and 3 are APPLIED (Rich, 2026-10-03, sitting 2's open: (a) for both); 1 and 4 are not.** Each is decided by Rich before the sitting that builds it, and applied only after he has read the words.
 
 ### 1. §26 and §6 — the administrator's reason: who, how it is carried, where it is kept (before sitting 6)
 
@@ -1187,6 +1187,8 @@ now also covers `source/`. Decision 18.
 
 ### 2. §25 — a blueprint for the platform's own tests is not listed (before sitting 2)
 
+**APPLIED 2026-10-03** (Rich: *"(a) Apply as worded"*; `../2026-09-30-decisions.md`), the words unchanged.
+
 **Proposed:** in §25's descriptor example, after `major_version`, add:
 
 ```yaml
@@ -1202,6 +1204,8 @@ After the example, add: *"**A blueprint the platform keeps for its own tests dec
 **Shared pages:** none name the fixture. **Check.**
 
 ### 3. §20 — every answer carries a request id; a limit's refusal carries its facts (before sitting 2)
+
+**APPLIED 2026-10-03** (Rich: *"(a) Apply as worded"*; `../2026-09-30-decisions.md`), the words unchanged, as their own paragraph straight after the one they follow, so that paragraph's *"This improves the console too"* keeps its subject.
 
 **Proposed:** §20, *Machine-actionable errors*, after *"…extended to clients that are programs."*, add:
 

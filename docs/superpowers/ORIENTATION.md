@@ -146,7 +146,8 @@ keeps the number as that sitting left it, dated.
   keeps the items; item 5 (UBC's staging IdP) is still the one part of a real first launch the platform cannot do for itself.
 - **§8's open questions.**
 
-**The spec is current, and the code has caught up with every spec action applied so far** — the last two, **Spec action 5** (§6, §13,
+**The spec is current. The faculty-ready plan's Spec actions 2 (§25, `listed`) and 3 (§20, the request id and a limit's facts) were
+APPLIED 2026-10-03 at its sitting 2's open, and that sitting builds them; the code has caught up with every spec action before them** — the last two, **Spec action 5** (§6, §13,
 §26 — the sign-off request and its queue; `844605b`, his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md)) and **Spec action
 10** (§6 — `IamRegistration.change_requested_from`, from his decision on `change_requested`), in the launch path plan's sitting 9
 (`a1d4baa`, `a230c1a`, 2026-10-01). Earlier ones caught up in sittings 5b (Spec action 8, `3333acc`), 6 (3 and 9), 7 and 8 (4), and Mailpit

@@ -1456,7 +1456,7 @@ token's questions expire when it ends (revoked by its minter, its minter removed
 `pending_action.expired` event when a person ended it (Task 13, sitting 4); both measured on 7100 by the front-end's F6b sitting 1, no spec action. **And at its sitting 1's open** (Rich, *"All into faculty-ready"*):
 FE-50 with Task 12 (who answers), FE-49 with Task 13 (`Token.mintedBy`), and F7 as Task 14 (driver 1 refuses a create over an existing
 repository). **FE-46, FE-47 and FE-5 go AFTER it** (*"After faculty-ready"*), before FE-32. **Execution: inline.** **Four spec actions drafted** (§26/§6, §25, §20,
-§12), none applied. **Then FE-32** — an agent can add a dependency (an operation that resolves a `package-lock.json` through the mirror).
+§12); **2 (§25) and 3 (§20) APPLIED 2026-10-03** at sitting 2's open (Rich: (a) for both), 1 and 4 not yet. **Then FE-32** — an agent can add a dependency (an operation that resolves a `package-lock.json` through the mirror).
 
 ### The vulnerability database in the console — AFTER *FACULTY-READY* AND FE-32 (Rich, 2026-09-30) — REQUESTED AND PLACED 2026-09-24: after the authoring API — and, since 2026-09-26, after Spec action 1's plan, which the front-end enablement plan replaced on 2026-09-27 in the same position — and, since 2026-09-27 (Rich), AFTER THE FRONT-END'S LAUNCH PATH (FE-6, FE-25)
 

@@ -319,3 +319,19 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         confirms; the confirm route asks anyone holding the capability — the words follow the code) joins Task 12, the
         same remedy text FE-51 rewrites; FE-49 (`Token` gains `mintedBy`) joins Task 13; F7 (driver 1 answers
         SOURCE_REPOSITORY_EXISTS, as driver 2 does, rather than a false SOURCE_CONFLICT) becomes Task 14, in sitting 2.
+
+# Rich's decisions — 2026-10-03, just after midnight (session manifest-71, opening the faculty-ready plan's sitting 2)
+
+    Asked at the sitting's open, as ORIENTATION §7e says, through the question tool, each with the proposed words shown
+    as the option's preview; his two answers:
+      - SPEC ACTION 2 (§25, `listed`) — "(a) Apply as worded (Recommended)". The fixture blueprint declares
+        `listed: false`; listBlueprints omits it and it still resolves. Option (b), a setting that stops the fixture
+        loading, was already rejected on 2026-09-30. => APPLIED the same hour: §25's descriptor example gains the
+        `listed: true` line after `major_version`, and the sentence follows the example. Task 2 builds it.
+      - SPEC ACTION 3 (§20, the request id and a limit's facts) — "(a) Apply as worded (Recommended)", over (b) the id
+        only on 5xx. => APPLIED the same hour, the words unchanged, as their OWN paragraph straight after the one
+        ending "…extended to clients that are programs. This improves the console too; …": placed inside that
+        paragraph, its "This improves the console too" would have referred to the new words rather than to the code and
+        hint. Tasks 3 and 4 build it; the contract goes to 1.6.0 at Task 3.
+    Shared pages checked for both: manifest-decisions.html's D23 says nothing of what an error carries, and no page names
+    the fixture blueprint — none changes.
