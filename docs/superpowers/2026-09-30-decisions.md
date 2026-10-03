@@ -531,3 +531,19 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         redirect. A spec action carries the numbers.
       - WHEN IT RE-RUNS — "First launch + audience raised (Recommended)": at the first launch, and again when the audience
         is raised to large_course or public after launch; not on every release.
+
+    And at ~15:10 PDT, four more on §24's capacity and the load rehearsal (manifest-c7's proposals; premises checked by
+    manifest-94: IDLE_POLICY in runtime/state-machine.ts is applied by nothing, so nothing hibernates and production's
+    policy is none; Driver.servingInstance answers one instance; the blueprint's sessions live in Mongo, connect-mongo
+    6.0.0), through the question tool:
+      - THE SPLIT — "Two plans: A then B (Recommended)": Plan A, production capacity by audience (§24: solo 1, class 2,
+        large_course 3, public 3 instances behind one load-balanced edge route; redeploys across N; a dead instance routed
+        around; its own acceptance); Plan B, the load rehearsal, granting staging that shape. Order: FE-46/47/5 → A → B →
+        FE-32 → the vulnerability database → FE-45. Over: one plan.
+      - HIBERNATION — "Build hibernation in Plan A" (over the recommended "instances only"): §11's wake-on-request at the
+        edge and §24's rows (solo hibernates; class not during term; large_course and public never), with a source of term
+        dates the platform does not yet have.
+      - THE LOAD GENERATOR — "vegeta" (over the recommended platform-owned Node script): pinned by digest and mirrored by
+        make seed; its network pull is his yes at that sitting. A run the generator could not drive fails, never passes.
+      - THE EDGE'S RATE LIMIT DURING A REHEARSAL — "Exempt the generator's IP (Recommended)": for one run, the staging route
+        skips its per-IP limit for the generator's own address alone; every other client keeps 600/min.
