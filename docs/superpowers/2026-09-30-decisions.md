@@ -626,3 +626,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     sensitive change against the last approved release, by the gate's own sensitiveFieldsBetween; additive, no spec action;
     the FE-46/47/5 plan's new Task 2b, in its sitting 2, beside FE-53. m104 stays open, over-saying, until it lands. Over: the
     front-end's own copy of the rule (it can under-say); leaving m104 as it is.
+
+    And at ~14:55 PDT, the front-end's m69/m76 words (manifest-app-f6's draft), through the question tool:
+      - THE THREE EMAILS — "Approve as drafted (Recommended)": subject "<App>: your change stopped"; "Your change to <App>
+        stopped because the app was switched off. You can read where we got to in the conversation:" + its link; "…because
+        the app was deleted." (no link); "…because you were taken off the app. Its owners can add you again." (no link); the
+        usual last line; a "we need you" held about a minute and sent as one of these when the cause is seen; nothing to
+        someone who left by their own word, nor when the watch's stop cannot be told apart.
+      - A FIRST BUILD — "A separate first-build wording" (over the recommended one sentence for both), e.g. "Building <App>
+        stopped because…"; its exact words come back to him.
