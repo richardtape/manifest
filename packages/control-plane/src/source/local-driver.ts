@@ -224,6 +224,15 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       // Before ANYTHING is written (Task 11): a refused seed leaves no repository behind.
       assertWritablePaths(Object.keys(seed))
       assertNoSecrets(Object.entries(seed).map(([p, content]) => ({ path: p, content })))
+      // F7 (Decision 18): a bare repository already here — one a truncated database forgot,
+      // or another project's — is refused, never re-initialised and pushed over. `git init`
+      // over it would succeed and the seed's push would then answer a false SOURCE_CONFLICT.
+      if (existsSync(path)) {
+        throw new SourceError(
+          'SOURCE_REPOSITORY_EXISTS',
+          `${projectSlug} already has a repository on this machine; it is never reused or removed by a create`,
+        )
+      }
       await mkdir(repoRoot, { recursive: true })
       await git(repoRoot, ['init', '--bare', '--initial-branch=main', path])
       // The hook and git's protection BEFORE the first push, so every commit this repository

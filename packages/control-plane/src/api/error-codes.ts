@@ -687,7 +687,7 @@ export const ERROR_CODES = {
     'Name `main`, another branch the repository has, or a full 40-character commit id.',
   ),
   SOURCE_REPOSITORY_EXISTS: source(
-    'A repository of that name already exists — on GitHub, or as a mirror on this machine — and Manifest never adopts one it did not create.',
+    'A repository of that name already exists — on GitHub, or on this machine — and Manifest never reuses or adopts one.',
     'Choose another slug. A leftover repository of that name is removed by whoever owns it; Manifest will not take it over.',
   ),
   SOURCE_REPOSITORY_NOT_PRIVATE: source(

@@ -99,6 +99,32 @@ export function describeSourceDriver(
     })
 
     /**
+     * F7 (the faculty-ready plan's Task 14, Decision 18): a create over a repository that is
+     * already there is refused with the code that says so, and the repository is untouched.
+     * Driver 2 always refused (its mirror already on this machine, or GitHub's `422 name already
+     * exists` — its Decision 16); driver 1 answered a false `SOURCE_CONFLICT` from the seed's push. The second slug is the positive
+     * control: a refusal of EVERY create would keep the first half green.
+     */
+    it('refuses a create over a repository already there, and leaves it untouched (F7)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      expect(
+        await code(
+          h.driver.createRepository('chem-labs', {
+            ...SEED,
+            'src/index.js': "console.log('a second create')\n",
+          }),
+        ),
+      ).toBe('SOURCE_REPOSITORY_EXISTS')
+      expect(await h.driver.headCommit(repo)).toBe(head)
+      expect(await h.driver.readFile(repo, head, 'src/index.js')).toBe(
+        "console.log('hello')\n",
+      )
+      const { ref: beside } = await h.driver.createRepository('chem-labs-two', SEED)
+      expect(await h.driver.headCommit(beside)).toMatch(/^[0-9a-f]{40}$/)
+    })
+
+    /**
      * THE REPOSITORY LINK (Task 12, Decision 15): where the code lives, for a client — and
      * whether `main` is protected there, which on this suite's hosts it is: git's own
      * configuration on driver 1, a team-plan organisation on driver 2.
