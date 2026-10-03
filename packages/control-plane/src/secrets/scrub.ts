@@ -17,6 +17,8 @@ export const SECRET_ENV_NAMES = [
   'MANIFEST_LITELLM_MASTER_KEY',
   'LITELLM_SALT_KEY',
   'SSP_RO_PASSWORD',
+  // The IdP session store's role (the faculty-ready plan's Task 9): in .env, so `set -a` exports it.
+  'SSP_STORE_PASSWORD',
   'SSP_ADMIN_PASSWORD',
   'SSP_SECRET_SALT',
   // RUNBOOK's `set -a; . ./.env` exports these too (the front-end enablement plan's sitting 9a): the

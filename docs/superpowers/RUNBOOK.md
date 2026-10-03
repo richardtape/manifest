@@ -68,7 +68,9 @@ export MANIFEST_DATABASE_URL="postgres://manifest_app:${MANIFEST_APP_PASSWORD}@1
 export MANIFEST_ADMIN_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
 # The IdP metadata database is a THIRD, required setting — never derived from
 # either line above by swapping the name (P4a Decision 13). It has its own roles:
-# `ssp_ro` reads, `manifest` writes, and there is no `manifest_app` in it.
+# `ssp_ro` reads the SP metadata, `manifest` writes it, `ssp_store` owns the IdP's
+# session store (its own schema, since 2026-10-03 — SSP_STORE_PASSWORD in .env), and
+# there is no `manifest_app` in it.
 export MANIFEST_IDP_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_idp"
 export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
 export MANIFEST_BLUEPRINTS_ROOT="$PWD/blueprints"

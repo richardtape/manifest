@@ -283,12 +283,16 @@ services:
       # on 7122). An SP that pins idp.entityID survives a port move.
       MANIFEST_IDP_ENTITY_ID: ${MANIFEST_IDP_ENTITY_ID:-https://idp.manifest.internal/idp/shibboleth}
       # The METADATA SOURCE's credential, and only that (§9). The entrypoint
-      # still initialises the tables as `manifest`, and store.sql.* below is a
-      # different subsystem that genuinely writes. If this value ever disagrees
+      # still initialises the tables as `manifest`, and store.sql.* is a
+      # different subsystem that genuinely writes — as SSP_STORE_PASSWORD's role. If this value ever disagrees
       # with the one ensure-idp-sql.sh sets, every metadata read fails and
       # verify's "one INSERT registers an SP" check goes red — which is the
       # control that keeps the two literals honest.
       SSP_RO_PASSWORD: ${SSP_RO_PASSWORD:-change-me-locally}
+      # The SESSION STORE's credential (store.sql.*; the faculty-ready plan's Task 9):
+      # `ssp_store`, an ordinary role that owns the `ssp_store` schema, created by
+      # ensure-idp-sql.sh with this same value — never the superuser.
+      SSP_STORE_PASSWORD: ${SSP_STORE_PASSWORD:-change-me-locally}
     volumes:
       - ./idp/config/config.php:/var/simplesamlphp/config/config.php:ro
       - ./idp/config/authsources.php:/var/simplesamlphp/config/authsources.php:ro

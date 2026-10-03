@@ -8,7 +8,9 @@
 # existed, the "SQL metadata table exists" check passed, and every metadata read
 # threw. Measured 2026-09-05. bin/initMDSPdo.php is authoritative and moves with
 # the SimpleSAMLphp version, so the schema cannot drift away from the code again.
-# It is idempotent, and creates the kvstore the SQL session store needs too.
+# It is idempotent. It does NOT create the session store's tables: SimpleSAMLphp's
+# SQL store creates its own on first use, as `ssp_store`, in that role's schema
+# (the faculty-ready plan's Task 9 — this line said otherwise until then).
 set -euo pipefail
 
 for i in $(seq 1 60); do

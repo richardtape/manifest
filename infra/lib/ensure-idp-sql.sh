@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ssp_ro, its grants, and the constraint that makes §9's fail-open row
-# unrepresentable. Idempotent, runs on every `make up`.
+# unrepresentable — and ssp_store, the session store's own role (the faculty-ready
+# plan's Task 9). Idempotent, runs on every `make up`.
 #
 # NOT an initdb script: those run once on an empty data directory, so an
 # existing developer's volume would never see this. NOT the IdP's entrypoint
@@ -12,9 +13,13 @@ cd "$ROOT"
 . infra/lib/common.sh
 [ -f .env ] && { set -a; . ./.env; set +a; }
 SSP_RO_PASSWORD="${SSP_RO_PASSWORD:-change-me-locally}"
+SSP_STORE_PASSWORD="${SSP_STORE_PASSWORD:-change-me-locally}"
 
+# The passwords travel as session settings, never on psql's command line or in its
+# input — the same precedent for both roles.
 psql_idp() {
-  docker exec -i -e PGOPTIONS="-c manifest.ssp_ro_password=${SSP_RO_PASSWORD}" \
+  docker exec -i \
+    -e PGOPTIONS="-c manifest.ssp_ro_password=${SSP_RO_PASSWORD} -c manifest.ssp_store_password=${SSP_STORE_PASSWORD}" \
     manifest-postgres psql -v ON_ERROR_STOP=1 -U manifest -d manifest_idp "$@"
 }
 
@@ -84,3 +89,42 @@ BEGIN
 END
 $$;
 SQL
+
+# THE SESSION STORE'S OWN ROLE (the faculty-ready plan's Task 9). `store.sql.*` in
+# config.php connected as `manifest` — POSTGRES_USER, so a SUPERUSER — and SimpleSAMLphp's
+# SQL store created its two tables in `public`, where ssp_ro's blanket SELECT (above) read
+# every live IdP session. Now `ssp_store` is an ordinary role that OWNS a schema of its
+# own, and its search_path puts SimpleSAMLphp's own unqualified CREATE TABLE there on the
+# store's first use; after that it needs only SELECT, INSERT, UPDATE and DELETE, which an
+# owner has. ssp_ro holds no USAGE on that schema, and ssp_store no SELECT on public's
+# tables — `make verify` asserts both directions.
+psql_idp <<'SQL'
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ssp_store') THEN
+    EXECUTE format('CREATE ROLE ssp_store LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD %L',
+                   current_setting('manifest.ssp_store_password', true));
+  ELSE
+    EXECUTE format('ALTER ROLE ssp_store LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD %L',
+                   current_setting('manifest.ssp_store_password', true));
+  END IF;
+END
+$$;
+
+GRANT CONNECT ON DATABASE manifest_idp TO ssp_store;
+CREATE SCHEMA IF NOT EXISTS ssp_store AUTHORIZATION ssp_store;
+ALTER ROLE ssp_store SET search_path = ssp_store;
+REVOKE ALL ON SCHEMA public FROM ssp_store;
+SQL
+
+# THE OLD COPIES IN `public`, dropped — and said, because dropping them ends every IdP
+# session: everyone signs in to the IdP again. Present once, on the first `make up` after
+# the move; again only if something wrote them back (a store.sql.username of `manifest`,
+# which is the plan's negative control).
+old=$(psql_idp -tAc "SELECT string_agg(tablename, ', ' ORDER BY tablename) FROM pg_tables
+  WHERE schemaname = 'public' AND tablename IN ('simplesamlphp_kvstore', 'simplesamlphp_tableversion')")
+if [ -n "$old" ]; then
+  echo "ensure-idp-sql: dropping the IdP's old session tables in public ($old) — the store is"
+  echo "  ssp_store's now (schema ssp_store), so every IdP session ends: sign in again."
+  psql_idp -qc "DROP TABLE IF EXISTS public.simplesamlphp_kvstore, public.simplesamlphp_tableversion"
+fi

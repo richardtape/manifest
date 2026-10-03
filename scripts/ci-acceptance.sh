@@ -204,7 +204,9 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 EXPECT_TESTS=3277
 EXPECT_FILES=200
 EXPECT_DOCTOR=21
-EXPECT_VERIFY=64
+# EXPECT_VERIFY 64 -> 66 (2026-10-03, the faculty-ready plan's sitting 5, Task 9): the IdP's session store is
+# ssp_store's own and cannot read the SP metadata; ssp_ro cannot read the session store.
+EXPECT_VERIFY=66
 
 STEPS=""
 FAILED=0

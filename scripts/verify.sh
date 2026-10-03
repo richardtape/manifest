@@ -596,7 +596,7 @@ idp_sql_session_store_works() {
     echo get_class($s), " ", var_export($s->get("test","manifest-verify-probe"), true);
   ' 2>&1)
   docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
-    "DELETE FROM simplesamlphp_kvstore WHERE _key='manifest-verify-probe'" >/dev/null 2>&1
+    "DELETE FROM ssp_store.simplesamlphp_kvstore WHERE _key='manifest-verify-probe'" >/dev/null 2>&1
   echo "${out##*$'\n'}"
   echo "$out" | grep -q "SQLStore 'ok'"
 }
@@ -800,6 +800,43 @@ idp_metadata_user_is_read_only() {
     -tAc "SELECT 1 FROM saml20_sp_remote LIMIT 1" >/dev/null 2>&1
 }
 check "the SimpleSAMLphp metadata user can read and cannot write (§9)"  idp_metadata_user_is_read_only
+
+# THE IdP'S SESSION STORE IS ITS OWN ROLE'S (the faculty-ready plan's Task 9). Until 2026-10-03
+# `store.sql.*` connected as `manifest`, the Postgres SUPERUSER, and SimpleSAMLphp created its
+# kvstore in `public` — where `ssp_ro`'s blanket SELECT read every live IdP session. Now `ssp_store`
+# owns a schema of its own, and its search_path puts SimpleSAMLphp's own CREATE TABLE there.
+# POSITIVE HALVES, so a role or schema that does not exist cannot pass: the table is there, owned by
+# `ssp_store`, and `ssp_store` reads it — and it cannot read the SP metadata, and no session table is
+# left in `public`.
+idp_session_store_is_its_own_roles() {
+  local owner left own=yes rc=0
+  owner=$(docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "SELECT tableowner FROM pg_tables WHERE schemaname='ssp_store' AND tablename='simplesamlphp_kvstore'" 2>/dev/null)
+  left=$(docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'simplesamlphp%'" 2>/dev/null)
+  docker exec manifest-postgres psql -U ssp_store -d manifest_idp -tAc \
+    "SELECT count(*) FROM ssp_store.simplesamlphp_kvstore" >/dev/null 2>&1 || own=no
+  docker exec manifest-postgres psql -U ssp_store -d manifest_idp -tAc \
+    "SELECT 1 FROM public.saml20_sp_remote LIMIT 1" >/dev/null 2>&1 || rc=$?
+  echo "kvstore owner '${owner:-none}'; session tables left in public: ${left:-?}; ssp_store reads its own: $own; its SELECT on the SP metadata exited $rc (want non-zero)"
+  [ "$owner" = "ssp_store" ] && [ "$left" = "0" ] && [ "$own" = "yes" ] && [ "$rc" -ne 0 ]
+}
+check "the IdP's session store is ssp_store's own, and ssp_store cannot read the SP metadata"  idp_session_store_is_its_own_roles
+
+# The other direction: the metadata reader cannot read a session — wherever the store is. With the
+# positive half that it still reads the metadata, so a role refused everything cannot pass.
+idp_metadata_reader_cannot_read_sessions() {
+  local rc_own=0 rc_public=0 meta=no
+  docker exec manifest-postgres psql -U ssp_ro -d manifest_idp -tAc \
+    "SELECT 1 FROM ssp_store.simplesamlphp_kvstore LIMIT 1" >/dev/null 2>&1 || rc_own=$?
+  docker exec manifest-postgres psql -U ssp_ro -d manifest_idp -tAc \
+    "SELECT 1 FROM public.simplesamlphp_kvstore LIMIT 1" >/dev/null 2>&1 || rc_public=$?
+  docker exec manifest-postgres psql -U ssp_ro -d manifest_idp -tAc \
+    "SELECT 1 FROM public.saml20_sp_remote LIMIT 1" >/dev/null 2>&1 && meta=yes
+  echo "ssp_ro SELECT on the session store exited $rc_own (ssp_store) and $rc_public (public), want both non-zero; it reads the SP metadata: $meta"
+  [ "$rc_own" -ne 0 ] && [ "$rc_public" -ne 0 ] && [ "$meta" = "yes" ]
+}
+check "the SimpleSAMLphp metadata user cannot read the session store"  idp_metadata_reader_cannot_read_sessions
 
 # §20: "The events table is append-only BY GRANT, not by convention: the
 # application role holds no UPDATE or DELETE privilege on it."

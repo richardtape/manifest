@@ -46,6 +46,8 @@ describe('the process.env scrub (§12)', () => {
       // for one secret is a second thing to scrub.
       'MANIFEST_LITELLM_MASTER_KEY',
       'SSP_RO_PASSWORD',
+      // The IdP session store's role (the faculty-ready plan's Task 9), in .env beside SSP_RO_PASSWORD.
+      'SSP_STORE_PASSWORD',
       // The `manifest_app` role's password, which RUNBOOK's `set -a; . ./.env` exports beside the URL
       // built from it — unscrubbed until the front-end enablement plan's sitting 9a found it.
       'MANIFEST_APP_PASSWORD',

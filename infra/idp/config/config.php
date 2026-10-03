@@ -83,8 +83,12 @@ $config = array_merge($config, [
     // Proving one works proves nothing about the other (S2).
     'store.type'    => 'sql',
     'store.sql.dsn' => 'pgsql:host=postgres;port=5432;dbname=manifest_idp',
-    'store.sql.username' => 'manifest',
-    'store.sql.password' => getenv('POSTGRES_PASSWORD'),
+    // ITS OWN ROLE (the faculty-ready plan's Task 9): `ssp_store` owns the `ssp_store`
+    // schema, and its search_path puts this store's own CREATE TABLE there on first use.
+    // Until 2026-10-03 this was `manifest` — the Postgres SUPERUSER — and the kvstore sat
+    // in `public`, where the metadata reader `ssp_ro` could read every session.
+    'store.sql.username' => 'ssp_store',
+    'store.sql.password' => getenv('SSP_STORE_PASSWORD'),
 
     // ORDER MATTERS. The FIRST matching entry wins, so a stale flatfile would
     // silently shadow a SQL row for the same entityID (S2). SQL goes first.
