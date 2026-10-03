@@ -174,7 +174,8 @@ export const MANIFEST_IDP_PATHS = {
 
 /**
  * Real UBC Shibboleth, copied from `passport-ubcshib@0.1.6`'s own
- * `UBC_CONFIG.PRODUCTION` (index.js:23–27, read 2026-09-09).
+ * `UBC_CONFIG.PRODUCTION` (index.js:23–27, read 2026-09-09) — unchanged in
+ * 0.1.7-rc.1, which the blueprint pins since 2026-10-03 (index.js:30–34).
  *
  * Injected explicitly even though they equal the library's defaults for
  * `SAML_ENVIRONMENT=PRODUCTION`, because the defaulting is exactly what §8

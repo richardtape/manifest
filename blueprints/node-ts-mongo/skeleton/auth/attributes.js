@@ -1,5 +1,5 @@
 // THE ATTRIBUTE BRIDGE. §9: tlef-starter carries one "precisely to bridge that,
-// because passport-ubcshib's own mapping has gaps", and S2 measured the gaps:
+// because passport-ubcshib's own mapping has gaps", and S2 measured 0.1.6's gaps:
 //
 //  * the library's map covers SIX friendly names: displayName,
 //    eduPersonAffiliation, givenName, mail, sn, ubcEduCwlPuid
@@ -7,6 +7,11 @@
 //    app that requests either gets a raw urn:oid: key it cannot read
 //  * its MACE entry for ubcEduCwlPuid is UNREACHABLE — mapAttributes builds a
 //    reverse map friendly -> OID, so the OID entry overwrites the MACE one
+//
+// 0.1.7 fixes all three upstream (its lib/attributes.js walks every OID, MACE and
+// friendly source name; the blueprint pins 0.1.7-rc.1 since 2026-10-03). The bridge
+// stays: it reads the OID first, so it gives the same answer on either version, and
+// it is what an app's own code calls.
 //
 // We use OID everywhere (S2: real UBC Shibboleth sends OID, confirmed against
 // tlef-biocbot in production), which sidesteps the MACE bug without patching

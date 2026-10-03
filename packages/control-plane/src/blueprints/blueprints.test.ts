@@ -72,6 +72,30 @@ describe('blueprint descriptor (§25, D30)', () => {
     }
   })
 
+  it('accepts an exact PRERELEASE pin, and refuses every range that names one (Task 17)', () => {
+    // `passport-ubcshib@0.1.7-rc.1` is one exact version — §2's "Manifest pins an exact
+    // version" — published under the dist-tag `next`, which no `^0.1.x` range resolves.
+    const pin = (v: string) =>
+      descriptorSchema.safeParse({
+        ...descriptor,
+        pinned_dependencies: { 'passport-ubcshib': v },
+      }).success
+    for (const exact of ['0.1.7-rc.1', '1.0.0-alpha', '1.0.0-0.3.7', '1.0.0-x.7.z.92'])
+      expect(pin(exact), `${exact} is exact`).toBe(true)
+    for (const range of [
+      '^0.1.7-rc.1',
+      '~0.1.7-rc.1',
+      '>=0.1.7-rc.1',
+      '0.1.7-rc.1 || 0.1.6',
+      '0.1.7-rc.1 - 0.1.7',
+      '0.1.7-',
+      '0.1.7-rc..1',
+      '0.1.7-rc.1+build',
+      'next',
+    ])
+      expect(pin(range), `${range} must be refused`).toBe(false)
+  })
+
   it('refuses a default resource quantity the resolver cannot read', () => {
     const bad = (resources: Record<string, unknown>) =>
       descriptorSchema.safeParse({ ...descriptor, defaults: { resources } }).success
@@ -208,7 +232,7 @@ describe('node-ts-mongo@1 (P4a Task 12)', () => {
   it('pins every app-side library exactly (C6, D30)', async () => {
     const d = (await load()).resolve('node-ts-mongo@1')!
     expect(d.pinned_dependencies).toMatchObject({
-      'passport-ubcshib': '0.1.6',
+      'passport-ubcshib': '0.1.7-rc.1',
       passport: '0.7.0',
       express: expect.stringMatching(/^\d+\.\d+\.\d+$/) as unknown as string,
       mongodb: expect.stringMatching(/^\d+\.\d+\.\d+$/) as unknown as string,
@@ -226,6 +250,33 @@ describe('node-ts-mongo@1 (P4a Task 12)', () => {
       ),
     ) as { dependencies?: Record<string, string> }
     expect(pkg.dependencies).toEqual(d.pinned_dependencies)
+  })
+
+  it('holds fixtures/saml-sp to the versions it shares with it, overrides included', async () => {
+    // The identity tier's SP (sso/login.docker.test.ts) is built on the real
+    // passport-ubcshib because the mapping is what it tests — so a fixture left on
+    // another version tests a library no app runs. Until the faculty-ready plan's
+    // Task 17 (its F1) only blueprint.yaml's comment said the two were the same set.
+    const d = (await load()).resolve('node-ts-mongo@1')!
+    const read = async (path: string) =>
+      JSON.parse(await readFile(path, 'utf8')) as {
+        dependencies?: Record<string, string>
+        overrides?: Record<string, string>
+      }
+    const skeleton = await read(
+      join(await dirOf('node-ts-mongo@1')(), 'skeleton/package.json'),
+    )
+    const fixture = await read(
+      fileURLToPath(
+        new URL('../../../../fixtures/saml-sp/package.json', import.meta.url),
+      ),
+    )
+    const shared = Object.keys(fixture.dependencies ?? {})
+    expect(shared).toContain('passport-ubcshib')
+    expect(
+      Object.fromEntries(shared.map((name) => [name, d.pinned_dependencies?.[name]])),
+    ).toEqual(fixture.dependencies)
+    expect(fixture.overrides).toEqual(skeleton.overrides)
   })
 })
 

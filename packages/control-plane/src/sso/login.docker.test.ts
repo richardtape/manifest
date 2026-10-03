@@ -65,7 +65,8 @@ describeDocker('a real CWL login against the Manifest IdP', () => {
       // S3's six green checks included one returning 192 numbers where 768
       // belonged.
       //
-      // passport-saml collapses a single-valued attribute to a STRING, so this
+      // The SAML library collapses a single-valued attribute to a STRING (passport-saml
+      // 3.x did, and @node-saml does — measured 2026-10-03), so this
       // asserts the value rather than a container type it does not control.
       expect(result.attributes?.ubcEduCwlPuid).toBe('stu000001')
       expect(result.attributes?.mail).toBe('student@student.ubc.ca')

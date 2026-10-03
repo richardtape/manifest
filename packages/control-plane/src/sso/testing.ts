@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
+import { inflateRawSync } from 'node:zlib'
 import pg from 'pg'
 import type { Driver, ImageRef } from '../runtime/index.js'
 import { INJECTED_FILE_PATHS, renderInjection } from '../spec/index.js'
@@ -473,6 +474,12 @@ export interface SignOutResult {
   signed: boolean
   /** What the IdP answers the NEXT sign-in: `form` means it forgot the person too. */
   idp: 'form' | 'assertion'
+  /**
+   * The top-level `StatusCode` of the app's LogoutResponse — what the APP told the IdP,
+   * decoded from the redirect that carried it; `''` when no hop carried one. A sign-out
+   * can land, and both sessions end, while the app answers a failure: only this sees it.
+   */
+  answer: string
   /** Every hop, `status:url`, truncated — the only record when one strands. */
   hops: string
 }
@@ -483,7 +490,7 @@ export interface SignOutResult {
  * until 2026-09-24.
  *
  * Why it exists now: `renderSpMetadata` asks the IdP to SIGN its logout messages
- * (`sign.logout`), and the blueprint's passport-saml checks a signature only when one is
+ * (`sign.logout`), and the blueprint's SAML library checks a signature only when one is
  * present — so an app that had never been sent a signed LogoutRequest might refuse the
  * first one it got, and every app's *Sign out* would strand on the IdP's round trip. The
  * unit tier cannot see that; only the real IdP and the real skeleton can.
@@ -502,11 +509,29 @@ export async function idpSignInAndOut(
     },
   })
   const line = output.trim().split('\n').at(-1) ?? '{}'
+  let raw: Omit<SignOutResult, 'answer'> & { answered: string }
   try {
-    return JSON.parse(line) as SignOutResult
+    raw = JSON.parse(line) as typeof raw
   } catch {
     throw new Error(`the sign-out probe printed no JSON. Full output:\n${output}`)
   }
+  const { answered, ...rest } = raw
+  return { ...rest, answer: logoutResponseStatus(answered) }
+}
+
+/**
+ * A redirect binding's `SAMLResponse` (URL-encoded, base64, raw DEFLATE) → its top-level
+ * `StatusCode`. The first `StatusCode` in document order is the top-level one; a failure
+ * nests a second inside it (`Requester` → `UnknownPrincipal`).
+ */
+function logoutResponseStatus(param: string): string {
+  if (!param) return ''
+  const xml = inflateRawSync(Buffer.from(decodeURIComponent(param), 'base64')).toString(
+    'utf8',
+  )
+  return (
+    /StatusCode\s+Value="([^"]+)"/.exec(xml)?.[1] ?? `unreadable: ${xml.slice(0, 200)}`
+  )
 }
 
 const SIGN_OUT_SCRIPT =
@@ -518,7 +543,7 @@ before=$(curl -sS --cacert /ca.crt -b $J -o /dev/null -w '%{http_code}' "$APP/me
 # SIGN OUT, ONE HOP AT A TIME, so each hop is on the record: the app ends its session and
 # sends the browser to the IdP, the IdP sends the app its LogoutRequest, the app answers,
 # and the IdP returns the browser to the app.
-url="$APP/auth/logout"; hops=""; last=0; signed=false; i=0
+url="$APP/auth/logout"; hops=""; last=0; signed=false; answered=""; i=0
 while [ $i -lt 12 ]; do
   i=$((i + 1))
   out=$(curl -sS --cacert /ca.crt -c $J -b $J -o /dev/null -w '%{http_code} %{redirect_url}' "$url")
@@ -526,6 +551,8 @@ while [ $i -lt 12 ]; do
   last=$(printf '%s' "$out" | cut -d' ' -f1); next=$(printf '%s' "$out" | cut -s -d' ' -f2-)
   case "$url" in
     "$APP/auth/logout?SAMLRequest="*) case "$url" in *"&Signature="*) signed=true ;; esac ;;
+    # The app's ANSWER, on its way back to the IdP: kept whole, decoded by the caller.
+    "$IDP"*"SAMLResponse="*) answered=$(printf '%s' "$url" | sed -n 's/.*[?&]SAMLResponse=\([^&]*\).*/\1/p') ;;
   esac
   hops="$hops $last:$(printf '%s' "$url" | cut -c1-100)"
   [ -n "$next" ] || break
@@ -534,8 +561,8 @@ done
 after=$(curl -sS --cacert /ca.crt -b $J -o /dev/null -w '%{http_code}' "$APP/me")
 again=$(curl -sS --cacert /ca.crt -c $J -b $J -L "$APP/login")
 if echo "$again" | grep -q 'name="username"'; then idp=form; else idp=assertion; fi
-printf '{"before":%s,"after":%s,"last":%s,"landed":%s,"signed":%s,"idp":"%s","hops":%s}
-'   "$before" "$after" "$last" "$(json_escape "$url")" "$signed" "$idp" "$(json_escape "$hops")"
+printf '{"before":%s,"after":%s,"last":%s,"landed":%s,"signed":%s,"idp":"%s","answered":%s,"hops":%s}
+'   "$before" "$after" "$last" "$(json_escape "$url")" "$signed" "$idp" "$(json_escape "$answered")" "$(json_escape "$hops")"
 `
 
 /** The image the probe runs in. Mirrored locally by `make seed`, so this is offline. */

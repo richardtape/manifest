@@ -9,9 +9,6 @@
     "express": "4.22.2",
     "express-session": "1.19.0",
     "passport": "0.7.0",
-    "passport-ubcshib": "0.1.6"
-  },
-  "overrides": {
-    "@xmldom/xmldom": "0.8.15"
+    "passport-ubcshib": "0.1.7-rc.1"
   }
 }

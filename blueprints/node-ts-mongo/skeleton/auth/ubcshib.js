@@ -8,7 +8,7 @@
 //   module.exports = { Strategy: UBCStrategy, UBC_CONFIG, ensureAuthenticated, … }
 // so there is no `UBCStrategy` named export to import — that form yields
 // undefined and `new undefined(...)` throws at construction. Measured against
-// 0.1.6 on 2026-09-08.
+// 0.1.6 on 2026-09-08, and the same exports read in 0.1.7-rc.1 on 2026-10-03.
 import { readFileSync } from 'node:fs'
 import passport from 'passport'
 import ubcshib from 'passport-ubcshib'
@@ -42,9 +42,9 @@ const RAW = {
 
 /**
  * NONE of these has a fallback, and §8's `SAML_ENVIRONMENT` is the reason:
- * passport-ubcshib defaults it to 'STAGING' at index.js:120 AND index.js:307, so
- * an app deployed without it points at https://authentication.stg.id.ubc.ca —
- * real UBC infrastructure. A default here would reintroduce exactly that, one
+ * passport-ubcshib defaults it to 'STAGING' at index.js:155 AND index.js:409
+ * (0.1.7-rc.1; :120 and :307 in 0.1.6), so an app deployed without it points at
+ * https://authentication.stg.id.ubc.ca — real UBC infrastructure. A default here would reintroduce exactly that, one
  * level up, and it would do it silently.
  */
 function required(name) {
@@ -72,7 +72,7 @@ export function configureCwl() {
         entryPoint: required('SAML_ENTRY_POINT'),
         // PASSED, like the entry point, and for the same reason: left out, the library
         // takes UBC_CONFIG[env].logoutUrl — for LOCAL, a SimpleSAMLphp 1.x path on the
-        // CONTAINER'S OWN loopback — and passport-saml addresses its LogoutResponse to it,
+        // CONTAINER'S OWN loopback — and @node-saml addresses its LogoutResponse to it,
         // as the redirect target and as the message's Destination. Unused until the IdP's
         // single logout could reach an app at all (2026-09-16), which is why it hid.
         logoutUrl: required('SAML_LOGOUT_URL'),
@@ -95,7 +95,7 @@ export function configureCwl() {
         // app itself is the same class of thing as leaving SAML_ENVIRONMENT unset.
         metadataUrl: required('SAML_IDP_METADATA_URL'),
         // Set only where the platform placed a key. The library turns it into
-        // passport-saml's `privateKey`, which makes it SIGN the AuthnRequest —
+        // @node-saml's `privateKey`, which makes it SIGN the AuthnRequest —
         // and SimpleSAMLphp validates any signature that is PRESENT, whatever
         // the SP row says, so signing without a registered certificate is
         // refused with "Missing certificate in metadata". The platform writes
@@ -134,6 +134,16 @@ export function configureCwl() {
         ],
       },
       (profile, done) => done(null, { profile, user: bridge(profile) }),
+      // THE LOGOUT VERIFY, and `null` is load-bearing. @node-saml/passport-saml answers
+      // the IdP's LogoutRequest `Success` only when what this returns deep-equals
+      // `req.user` (its strategy.js:50); otherwise `Requester`/`UnknownPrincipal` —
+      // telling the IdP this app did NOT sign the person out, after it did. `logout()`
+      // below ends the session BEFORE handing the request over, and passport 0.7.0's
+      // `req.logout` leaves `req.user` null, so this always matches: 0.1.6's answer
+      // (passport-saml 3.x always said Success). Left out, passport-ubcshib 0.1.7's
+      // default returns the logout profile, which never matches. Measured 2026-10-03:
+      // node-ts-mongo.docker.test.ts read `Requester` without it.
+      (_profile, done) => done(null, null),
     ),
   )
 
@@ -158,15 +168,21 @@ export function configureCwl() {
      * IdP's request as a new "Sign out" bounced between the two forever, and before that
      * the IdP refused every app's ReturnTo — so no app had ever signed anybody out.
      *
-     * The strategy accepts an UNSIGNED LogoutRequest (passport-saml checks a signature
-     * only when one is present). Its worst case is signing somebody out, which the plain
-     * GET above already allows; named, not fixed.
+     * The IdP's request ENDS THE SESSION FIRST, then goes to the strategy — the order the
+     * logout verify above depends on. A request that fails validation has then still
+     * signed the browser out, which is the next paragraph's worst case anyway.
+     *
+     * The strategy accepts an UNSIGNED LogoutRequest (@node-saml/node-saml 5.1.0, like
+     * passport-saml 3.x before it, checks a redirect's signature only when one is
+     * present). Its worst case is signing somebody out, which the plain GET above
+     * already allows; named, not fixed.
      */
     logout: (returnTo) => {
       const answerTheIdp = passport.authenticate('ubcshib')
       const toIdp = `${logoutUrl()}?ReturnTo=${encodeURIComponent(returnTo)}`
       return (req, res, next) => {
-        if (req.query.SAMLRequest) return answerTheIdp(req, res, next)
+        if (req.query.SAMLRequest)
+          return req.logout((err) => (err ? next(err) : answerTheIdp(req, res, next)))
         req.logout(() => res.redirect(toIdp))
       }
     },

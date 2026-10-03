@@ -84,17 +84,26 @@ starters:
 # descriptorSchema: §16's drift test asserts against a stated version, and a
 # range would let §8's contract drift underneath the test built to catch drift.
 #
-# THESE FIVE ARE MEASURED, NOT CHOSEN. This exact set — with the @xmldom/xmldom
-# override below — is what fixtures/saml-sp installs, and that fixture completed
-# a real CWL login against the Manifest IdP on 2026-09-08 and passes §12's scan
-# gate. The plan's draft named express 4.21.2 and express-session 1.18.1; it was
+# THESE FIVE ARE MEASURED, NOT CHOSEN. This exact set is what fixtures/saml-sp
+# installs — a test holds the two equal since 2026-10-03 — and that fixture
+# completed a real CWL login against the Manifest IdP on 2026-09-08 and passes
+# §12's scan gate.
+#
+# passport-ubcshib 0.1.7-rc.1 since 2026-10-03 (the faculty-ready plan's Task 17;
+# Rich's library, published under the dist-tag `next`): @node-saml/passport-saml
+# 5.1.1 in place of the npm-deprecated passport-saml 3.2.4 and its critical
+# GHSA-4mxg-3p6v-xgq3. npm audit of the lockfile, 5 findings (2 critical) -> 2
+# moderate (qs, through express). The @xmldom/xmldom 0.8.15 override 0.1.6 needed
+# is GONE: @node-saml/node-saml asks ^0.8.10 and resolves 0.8.15 itself. WHEN 0.1.7
+# FINAL IS PUBLISHED the pin moves rc.1 -> 0.1.7: this line, both package.json files,
+# both lockfiles (regenerated through the mirror), and the mirror warmed. The plan's draft named express 4.21.2 and express-session 1.18.1; it was
 # written on 2026-09-07, before the fixture existed, and its own step-1 test
 # left express as a regex for this reason.
 pinned_dependencies:
   express: 4.22.2
   express-session: 1.19.0
   passport: 0.7.0
-  passport-ubcshib: 0.1.6
+  passport-ubcshib: 0.1.7-rc.1
   mongodb: 6.12.0
   # P4b Task 10. The SAME version the control plane's devDependency pins, which
   # §16's AI-path tier and ai-component.test.ts run — a test holds the two equal.

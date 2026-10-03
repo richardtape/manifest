@@ -28,9 +28,10 @@ import { CA_CERT, REPO_ROOT, dockerDriverForTests, fixtureBareRepo } from './tes
  * WHAT IT PROVES, and each half was a session's work somewhere in P3 or P4a:
  *
  *  * the blueprint's OWN SKELETON builds — its Dockerfile, its `.npmrc`, its
- *    lockfile through the platform mirror, and §12's scan gate against a
- *    dependency tree that contains `passport-ubcshib` and therefore a deprecated
- *    `passport-saml` with a critical advisory that has no fix;
+ *    lockfile through the platform mirror, and §12's scan gate against the
+ *    tree `passport-ubcshib` brings — until 2026-10-03 a deprecated `passport-saml`
+ *    with a critical advisory that has no fix, since 0.1.7-rc.1 `@node-saml` (the
+ *    faculty-ready plan's Task 17);
  *  * §8's variables reach it through `renderInjection` and it reads every one of
  *    them with no fallback — `/` reports the injected database name, so a build
  *    that silently fell back to `app` cannot pass;
@@ -352,7 +353,7 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
    * THE APP HALF OF SINGLE LOGOUT, against the real IdP and the real skeleton (2026-09-24).
    *
    * The row now asks the IdP to SIGN what it sends (`sign.logout`), and the skeleton's
-   * passport-saml checks a signature only when one is present — so the first signed
+   * SAML library checks a signature only when one is present — so the first signed
    * LogoutRequest this app ever received is here, and an app that refused it would strand
    * every *Sign out* half way through the IdP's round trip. Three people must forget the
    * student: the app, the IdP, and nobody else's session in between.
@@ -381,5 +382,11 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
     // The app forgot them, and so did the IdP.
     expect(out.after, trail).toBe(401)
     expect(out.idp, trail).toBe('form')
+    // AND THE APP TOLD THE IdP SO. Every line above stays green while the app answers
+    // `Requester`/`UnknownPrincipal` — the person lands and both sessions end — which is
+    // what @node-saml/passport-saml answers whenever its logout verify's user is not
+    // `req.user` (the faculty-ready plan's Task 17, F2): the IdP is told this app did NOT
+    // sign the person out, after it did.
+    expect(out.answer, trail).toBe('urn:oasis:names:tc:SAML:2.0:status:Success')
   }, 600_000)
 })

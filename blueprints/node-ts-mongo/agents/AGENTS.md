@@ -83,9 +83,8 @@ in all of them.
   it reads is required, and a missing one fails the container's first boot rather
   than the first login.
 - **`attributes.js`** is the bridge between what the IdP releases (OIDs) and the
-  names your code wants. The library's own map covers six friendly names, has no
-  entry at all for `uid` or `eduPersonPrincipalName`, and reaches its MACE entry
-  never. Use `bridge(profile)` and `puid(profile)`.
+  names your code wants. It reads the OID first, so it gives one answer whatever
+  shape the library hands it. Use `bridge(profile)` and `puid(profile)`.
 - **`session.js`** keeps sessions in your app's own Mongo, so a deploy signs nobody
   out. `app.use(sessionMiddleware(client))`, with the `MongoClient` you already hold.
 

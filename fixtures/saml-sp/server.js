@@ -4,8 +4,9 @@
 //
 // It is built on the real passport-ubcshib because the mapping between what the
 // IdP releases and what an app can read is precisely what is under test — S2
-// found the library's own map covers six names, has no OID entry for `uid` or
-// `eduPersonPrincipalName` at all, and reaches its MACE entry never.
+// found 0.1.6's own map covers six names, has no OID entry for `uid` or
+// `eduPersonPrincipalName` at all, and reaches its MACE entry never (0.1.7 fixes
+// all three). It installs the blueprint's own versions; a test holds them equal.
 import express from 'express'
 import session from 'express-session'
 import passport from 'passport'
@@ -16,7 +17,7 @@ import { readFileSync } from 'node:fs'
 //   module.exports = { Strategy: UBCStrategy, UBC_CONFIG, ensureAuthenticated, … }
 // so there is no `UBCStrategy` named export to import — that form yields
 // undefined and `new undefined(...)` throws at construction. Measured against
-// 0.1.6 on 2026-09-08.
+// 0.1.6 on 2026-09-08, and the same exports read in 0.1.7-rc.1 on 2026-10-03.
 import ubcshib from 'passport-ubcshib'
 const { Strategy: UBCStrategy } = ubcshib
 
@@ -43,7 +44,7 @@ passport.use(
       // supplied and the library's _fetchCertificate() fallback is unreachable.
       cert: readFileSync(process.env.SAML_IDP_CERT_PATH, 'utf8'),
       // §8's SAML_PRIVATE_KEY_PATH. Set only when the platform placed a key: the
-      // library turns it into passport-saml's `privateKey`, which makes it SIGN
+      // library turns it into @node-saml's `privateKey`, which makes it SIGN
       // the AuthnRequest, and an SP whose row says `validate.authnrequest: true`
       // and does not sign is refused with "no signature found on message"
       // (S2 Evidence 8). Conditional rather than always-on so the same fixture

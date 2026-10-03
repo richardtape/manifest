@@ -87,7 +87,9 @@ const isBaseOwned = (v: Vulnerability, baseLayerIds: ReadonlySet<string>): boole
  *    old rule the gate blocked EVERY CWL application — which is every application
  *    this platform exists to deploy. C6 forbids a library change being a
  *    prerequisite; §12 forbids an app waiving the gate; the two could not both hold.
- *    Rich's call, 2026-09-08: block on fixable, record the rest.
+ *    Rich's call, 2026-09-08: block on fixable, record the rest. (Since 2026-10-03 the
+ *    blueprint pins passport-ubcshib 0.1.7-rc.1, on `@node-saml/passport-saml`, and
+ *    none of those findings is in an app's tree; the rule stays, for the next one.)
  *
  *    The gate keeps its teeth for what §12 built it for — a hallucinated or
  *    malicious dependency — and for every finding somebody can actually act on.

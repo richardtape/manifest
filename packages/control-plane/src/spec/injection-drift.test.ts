@@ -329,7 +329,7 @@ describe('injection-contract drift (§16)', () => {
     const registry = await loadBlueprints(BLUEPRINTS_ROOT)
     const descriptor = registry.resolve('node-ts-mongo@1')!
     const version = descriptor.pinned_dependencies?.['passport-ubcshib']
-    expect(version).toBe('0.1.6')
+    expect(version).toBe('0.1.7-rc.1')
 
     const source = await pinnedLibrarySource(
       'passport-ubcshib',

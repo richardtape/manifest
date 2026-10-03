@@ -60,8 +60,12 @@ export const descriptorSchema = z
      * Exact versions of app-side libraries this blueprint installs (C6). Ranges are
      * refused: §16's injection-contract drift test asserts against a stated version,
      * and a range would let the contract drift underneath the test built to catch drift.
+     * An exact PRERELEASE is one version too (`passport-ubcshib@0.1.7-rc.1`, the
+     * faculty-ready plan's Task 17); build metadata is not, since npm ignores it.
      */
-    pinned_dependencies: z.record(z.string().regex(/^\d+\.\d+\.\d+$/)).optional(),
+    pinned_dependencies: z
+      .record(z.string().regex(/^\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/))
+      .optional(),
     /**
      * §25 *Starters* (P5a Task 10): complete apps laid over the skeleton at project
      * creation and copied once. `path` must be `./starters/<name>/` — the registry checks

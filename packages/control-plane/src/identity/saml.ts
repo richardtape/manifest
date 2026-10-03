@@ -41,8 +41,10 @@ import type { IdpSessionHandle } from './session.js'
  * validating against the same IdP is stronger evidence than one, with the app
  * side already covered by §16's identity-path tier (`sso/login.docker.test.ts`).
  *
- * The long-term fix for `passport-ubcshib` is still UBC's, and still not
- * blocking Manifest (ORIENTATION §8).
+ * `passport-ubcshib` itself is fixed upstream since: 0.1.7 moves it onto
+ * `@node-saml/passport-saml` 5.1.1 — the same `@node-saml/node-saml` 5.1.0 core as this
+ * module, installed separately in each app — and the blueprint pins 0.1.7-rc.1 since
+ * 2026-10-03 (the faculty-ready plan's Task 17).
  */
 
 /** §9's OID vocabulary, as the Manifest IdP releases it after `core:AttributeMap`

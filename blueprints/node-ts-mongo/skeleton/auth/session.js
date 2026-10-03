@@ -31,8 +31,9 @@ function required(name) {
 }
 
 /** Eight hours, refreshed at most every five minutes. Eight because that is
- *  passport-saml's own request-id expiry and a working day; the refresh window keeps a
- *  read-only request from writing to the database on every page. */
+ *  @node-saml's own request-id expiry (`requestIdExpirationPeriodMs`, as passport-saml's
+ *  was) and a working day; the refresh window keeps a read-only request from writing to
+ *  the database on every page. */
 const TTL_SECONDS = 8 * 60 * 60
 const TOUCH_AFTER_SECONDS = 5 * 60
 
