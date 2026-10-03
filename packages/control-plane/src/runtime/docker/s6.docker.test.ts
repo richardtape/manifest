@@ -450,12 +450,15 @@ describeDocker(
      * when none is — either way NOT the refusal, which is the claim.
      *
      * BEFORE PROBE 11, deliberately, and not after 14 where it was first written. Probe
-     * 11 forks `sleep 5 &` up to PidsLimit, and the app's PID 1 is `node`, which does
-     * not reap the orphans it adopts: they stay zombies for the container's life and
-     * hold every pid (measured 2026-09-16, P5a sitting 2 — `pids.current` 64 seventeen
-     * seconds on, 20 of 20 orphaned `sleep`s in state Z under ppid 1). So after probe
-     * 11 `docker exec … node` cannot start at all, `inApp` returns '', and this probe
-     * failed with `expected '' to be '403 …'` rather than on the hole it exists to see.
+     * 11 forks `sleep 5 &` up to PidsLimit, and until §12's init the app's PID 1 was
+     * `node`, which does not reap the orphans it adopts: they stayed zombies for the
+     * container's life and held every pid (measured 2026-09-16, P5a sitting 2 —
+     * `pids.current` 64 seventeen seconds on, 20 of 20 orphaned `sleep`s in state Z under
+     * ppid 1). So after probe 11 `docker exec … node` could not start at all, `inApp`
+     * returned '', and this probe failed with `expected '' to be '403 …'` rather than on
+     * the hole it exists to see. Since the init (the faculty-ready plan's Task 8) probe 11
+     * itself asserts the pids come back, so the order no longer matters; it is kept, so a
+     * lost init fails probe 11 on its own assertion and not this probe on an empty exec.
      */
     it('15. cannot reach the control plane through the edge, while the host can', async () => {
       const REFUSAL = 'manifest: the control plane is not reachable from this network'
@@ -550,6 +553,14 @@ describeDocker(
         '{{.HostConfig.PidsLimit}}',
       ])
       expect(Number(stdout.trim())).toBe(64)
+      const pidsNow = async (): Promise<number> => {
+        // Strict: an exec that cannot fork answers '' — which Number() reads as 0, a
+        // "recovered" count from a container with no pid left to read it with.
+        const raw = (await inApp('cat /sys/fs/cgroup/pids.current')).trim()
+        return /^\d+$/.test(raw) ? Number(raw) : Number.NaN
+      }
+      const baseline = await pidsNow()
+      expect(baseline, 'pids.current before the forks').toBeGreaterThan(0)
       // And it bites: asking for far more than the limit must fail rather than
       // succeed slowly. `sh` reports the fork failure on stderr and exits non-zero.
       const forked = await run('docker', [
@@ -563,10 +574,25 @@ describeDocker(
         () => 'FORK-REFUSED',
       )
       expect(forked).not.toBe('ALL-FORKED')
+      // §12's init (the faculty-ready plan's Task 8): the forked `sleep 5`s are orphans
+      // once the exec'd shell exits, and the init as PID 1 reaps each as it ends — so
+      // every pid comes back within 2 s of the last one ending. Without the init, `node`
+      // as PID 1 never reaps them: they stay zombies, holding all 64 for the container's
+      // life (`[M4]`: 20 orphans, 28 pids six seconds on).
+      const deadline = Date.now() + 5_000 + 2_000 + 1_000
+      let after = await pidsNow()
+      while (!(after <= baseline) && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 500))
+        after = await pidsNow()
+      }
+      expect(
+        after,
+        `pids.current ${after} after the orphans ended, baseline ${baseline}`,
+      ).toBeLessThanOrEqual(baseline)
       record(
         '11',
         `PidsLimit=${stdout.trim()} 300 forks -> ${forked}`,
-        'the limit is the assertion',
+        `the limit is the assertion; pids ${baseline} -> ${after} once the orphans ended (reaped)`,
       )
     }, 120_000)
 

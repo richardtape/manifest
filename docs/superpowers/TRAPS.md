@@ -668,7 +668,10 @@ it belongs among the traps the next sitting is most likely to hit.
   fork loop, `pids.current` was still 64 seventeen seconds on and `docker exec … node` could not start at
   all. So **any S6 probe that execs into the app must run BEFORE probe 11** (probe 15's placement says
   why), and an app whose children leave grandchildren behind slowly spends its `PidsLimit`. `Init: true`
-  on the container would reap them; it is not set — named, not fixed.
+  on the container would reap them; it is not set — named, not fixed. **FIXED 2026-10-03** (the faculty-ready
+  plan's sitting 4, Task 8; §12 as Spec action 4 amended it): `hardenedHostConfig` sets `Init: true`, so an
+  app container's PID 1 is `docker-init`; probe 11 now asserts the pids come back, and a stop ends on SIGTERM
+  (143, under a second) instead of waiting 10 s for SIGKILL (137). Services and the egress proxy are unchanged.
 - **`make demo-redeploy`'s *a question in flight when the route moved* can fail by chance.** Measured
   2026-09-16 (P5a sitting 2): the same-release move landed at +1367 ms, in the 47 ms between one
   question's answer (+1331) and the next one's start (+1378), so no question spanned it and the run was

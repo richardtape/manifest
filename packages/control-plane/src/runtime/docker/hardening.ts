@@ -28,6 +28,16 @@ export function hardenedHostConfig(input: HardeningInput): Record<string, unknow
     Memory: resources.memoryMi * 1024 * 1024,
     NanoCpus: Math.round(resources.cpu * 1_000_000_000),
     Privileged: false,
+    // §12: an init as PID 1 in every app container (Docker's own `docker-init`), so a
+    // process the app starts and abandons is reaped rather than left holding one of the
+    // container's `pids`. Measured (the faculty-ready plan's Task 1, [M4]): without it,
+    // twenty orphaned `sleep`s held twenty pids for the container's life, and `node` as
+    // PID 1 ignored SIGTERM, so every stop waited its full 10 s and ended in SIGKILL
+    // (137); with it, none were held and a stop took 0.15 s, exit 143 — which is never
+    // read as a crash (an exit code is quoted only in an Incident, captured when a
+    // release's instance fails its checks, never on a stop). Services and the egress
+    // proxy run no app code and keep their images' own PID 1.
+    Init: true,
     // §11 has no silent retry: a crash becomes `failed` and an Event, not a loop.
     RestartPolicy: { Name: 'no' },
     NetworkMode: input.networkName,

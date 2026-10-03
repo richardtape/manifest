@@ -25,6 +25,13 @@ describe('§12 container hardening baseline', () => {
     expect(hc.Dns).toEqual(['10.89.0.53'])
   })
 
+  // §12: "an init as PID 1 in every app container", so a process the app starts and
+  // abandons is reaped rather than left holding one of the container's `pids`
+  // (the faculty-ready plan's Task 1, [M4]: twenty orphaned `sleep`s held twenty).
+  it('runs an init as PID 1', () => {
+    expect(hardenedHostConfig(input).Init).toBe(true)
+  })
+
   // §12: "the default seccomp profile, never unconfined". Omitting the option IS
   // the default profile; naming `seccomp=unconfined` is the mistake, and it would
   // arrive as an extra SecurityOpt entry.

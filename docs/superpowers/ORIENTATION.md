@@ -2096,6 +2096,7 @@ reasoning is recorded.**
     (`Manifest-Admin-Reason`), stored with the actor and shown to the project's people — the *faculty-ready* plan's Task 10, its
     Spec action 1.
   - **`Init: true`**, **`node:24-alpine`** and **the IdP store's own credentials** — all three into the *faculty-ready* plan (Tasks 8, 7, 9).
+    **`Init: true` BUILT by its sitting 4 (2026-10-03)**: app containers only, as Spec action 4's §12 bullet says.
   - **The UBC external track** — DEFERRED: *"We can defer this. I have to get all of this working first locally. And then show
     demos."* (§2, *Outstanding*).
 - **FE-51 AND FE-52 INTO THE *FACULTY-READY* PLAN** (Rich, 2026-10-02: *"add them to the faculty-ready plan"*).

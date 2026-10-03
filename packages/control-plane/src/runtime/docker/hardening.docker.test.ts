@@ -91,6 +91,20 @@ describeDocker('§12 hardening, read back off a real container', () => {
     expect(inspect!.HostConfig.Privileged).toBe(false)
   })
 
+  // §12's init (the faculty-ready plan's Task 8): Docker's own `docker-init` is PID 1, and the
+  // command runs under it — so it reaps what the app abandons, and a stop's SIGTERM reaches the
+  // app (`[M4]`: without it `node` as PID 1 ignored SIGTERM and every stop ended in SIGKILL).
+  it('runs an init as PID 1, the command under it', async () => {
+    const inspect = await engine.get<{ HostConfig: { Init: boolean | null } }>(
+      `/containers/${NAME}/json`,
+    )
+    expect(inspect!.HostConfig.Init).toBe(true)
+    expect((await readFile('/proc/1/comm')).trim()).toBe('docker-init')
+    // The positive control in the same container: the command itself is still running, as
+    // PID 1's child, so the probe is not reading an init that started nothing.
+    expect((await readFile('/proc/1/task/1/children')).trim()).not.toBe('')
+  })
+
   it('reports the two baseline items this daemon cannot deliver', async () => {
     const caps = await detectHostCapabilities(engine)
     // Not asserted as `false`: this is a fact about the machine, and on a Linux

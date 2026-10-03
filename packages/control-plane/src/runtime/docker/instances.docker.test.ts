@@ -96,7 +96,17 @@ describeDocker('instance lifecycle (§11)', () => {
     // The container must actually be UP before it is stopped, or this test is
     // comparing two crashed containers and the marker proves nothing.
     expect((await instanceStatus(engine, handle.id)).state).toBe('starting')
+    const stopping = Date.now()
     await stopInstanceContainer(engine, handle.id)
+    // §12's init (the faculty-ready plan's Task 8): SIGTERM reaches the command under
+    // `docker-init`, so a stop ends on it — 143, in well under the 10 s grace. Without
+    // the init the command is PID 1, ignores SIGTERM, and every stop waited 10 s and
+    // ended in SIGKILL, 137 (`[M4]`).
+    expect(Date.now() - stopping, 'the stop waited for SIGKILL').toBeLessThan(5_000)
+    const stopped = await engine.get<{ State: { ExitCode: number } }>(
+      `/containers/${handle.id}/json`,
+    )
+    expect(stopped!.State.ExitCode).toBe(143)
     expect((await instanceStatus(engine, handle.id)).state).toBe('hibernated')
     const woken = await ensureInstanceContainer(engine, spec(), deps)
     expect(woken.id).toBe(handle.id)
