@@ -379,3 +379,6 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         A STANDING yes for the laptop IdP's test users, typed by an agent or a headless Chrome it drives (the front-end's
         scripts/walk/ already does this "only at Rich's yes"). It does not cover a real UBC credential, `sudo`, or a
         clicked half's purpose (a PERSON seeing it work), and a classifier refusal is still not worked around.
+      - MORE WORK IF THE QUEUE EMPTIES — his words, the same minute: "If you finish early, I also give you permission to spawn
+        more fresh agents in the platform or app to be able to get more work done. The latest you may START an agent with its
+        work is 8am Vancouver, BC time." No agent is started after 08:00 PDT, 2026-10-03.
