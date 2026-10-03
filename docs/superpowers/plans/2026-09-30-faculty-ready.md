@@ -71,8 +71,8 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: `__Host-` cookies over `http` and through curl; Fastify's ids on every refusal path; LiteLLM's post-call hooks against a `422`, **streamed and not**, in a THROWAWAY LiteLLM; `Init` beside `ReadonlyRootfs` and `CapDrop ALL`; §26's reachable mutations; the gate numbers | No | — | **DONE 2026-10-02** (`3c80587`; *Sitting 1* below) |
-| 2 ← **next** | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | |
-| 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | |
+| 2 | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | **DONE 2026-10-03** (`3d73adf`, `f1e7255`, `71df40d`, `95843e2`, `e355d10`; the review's fixes `70c3964`; *Sitting 2* below) |
+| 3 ← **next** | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | |
 | 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | |
 | 5 | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | |
 | 6 | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | |
@@ -1389,3 +1389,111 @@ keep or change**, and the sitting tells the front-end which at Task 1's close.
   before the commit.
 - `pnpm test` was not run (the ruling above), and no Docker tier was owed.
 - The numbers are unchanged: `EXPECT_` 3197 in 196, doctor 21, verify 64; the Docker tier 271 in 42.
+
+### Sitting 2 — 2026-10-03, night: Tasks 2, 3, 4, 12 and 14 — the envelope sitting, contract `1.6.0` (`manifest-71`)
+
+**What happened.**
+- **The opening, 2026-10-03 just after midnight.** Rich asked this session to co-ordinate with the faculty front-end's new session
+  (`manifest-app-a1`) and run the next sitting of each. Asked through the question tool, with the words shown:
+  - **all four spec actions, (a) each** — 2 and 3 at the open (`9914bab`), 4 and 1 during the hold (`3fc92a2`). Spec action 1 gained
+    *"and setting a project's quota"*, because the draft named two of the three duties his 2026-09-30 design exempts;
+  - **the order** — the front-end's F6b sitting 6 first on 7100, this sitting after its *"7100 released"*, then its 1.6.0 adoption, then
+    F5b sitting 1 on a fresh 7100;
+  - **`f6b-measure-1` simply truncated**; and during the hold, Spec actions 4 and 1 and Tasks 2 and 14's tests drafted, not run.
+- **The hold**, ~00:15–01:28 PDT: no Vitest, no Docker tier, no `make verify`, no control-plane restart, no edit to `packages/contract` or
+  `packages/mock`. Rich clicked the front-end's acceptance before bed; `manifest-app-a1` released 7100 after its own gates.
+- **The night shift**: from ~01:00 `manifest-3d` co-ordinated (Rich's decisions in `../2026-09-30-decisions.md`). Every hold and free went to
+  it, marked HOLD or FREE: a hold only around whole-suite runs, the Docker tier and a contract or mock edit until typecheck-clean.
+- **The commits**, in the order run (Task 14 moved ahead of Task 3 — a ruling: its drafted test sat uncommitted in `driver-contract.ts`):
+  - Task 2 `3d73adf` — FE-31: `Descriptor.listed`, the fixture `listed: false`, the examples on `node-ts-mongo@1`;
+  - Task 14 `f1e7255` — F7: driver 1 refuses a create over a bare repository already there, `SOURCE_REPOSITORY_EXISTS`;
+  - Task 3 `71df40d` — FE-30: a UUID per request on every answer, every refusal through `sendRefusal`, **contract `1.6.0`**;
+  - Task 4 `95843e2` — FE-29: `error.limit` and `error.session`;
+  - Task 12 `e355d10` — FE-51 and FE-50: the hint, the remedy and the guides follow the code;
+  - the review's fix pass `70c3964`.
+
+**Findings.**
+
+1. **F1 — Task 2's snippet did not match its file.** `api/blueprints.test.ts` signs in with `signedIn()` and cookies, and `listBlueprints`
+   answers a bare ARRAY — not `ctx`, `sessionFor` and `res.json().blueprints`. And `list()` returns descriptors, so the plan's
+   `b.descriptor.listed` was `d.listed`. The existing *"lists every blueprint"* test was the one that changed.
+2. **F2 — Task 3's table, corrected by Task 1's `[M2]`.** A malformed body is `setErrorHandler`'s (`createProject`), not `frameworkErrors`';
+   `frameworkErrors` is a path parameter over 100 characters and a malformed URL (two rows); driver 1's webhook refusal is
+   `WEBHOOKS_NOT_CONFIGURED`; the credential hook's row is `CREDENTIAL_AMBIGUOUS` (a refusal thrown inside it, no outage needed). A 500 row
+   was added. **The plan's no-credential regex said `mfst_`; the token prefix is `mft_`** — the test imports `TOKEN_PREFIX`.
+3. **F3 — a test whose premise the feature ends.** `error-codes.test.ts` asserted `console.error` is never called on a framework refusal; every
+   refusal now writes its line by design. It is restated as its intent: every line is a `warn refused` — no `unhandled error`, no 500 stack,
+   no unregistered code. A 500 still turns it red.
+4. **F4 — Task 4's control (a) went red wider than predicted.** Dropping `resetsAt` turned all FOUR limit tests red, not two: `Limit`
+   requires the field, so the fail-closed mapping drops the whole `limit` and says so on stderr. The two session tests stayed green.
+5. **F5 — the console has no component test harness.** The `packages` project collects only `*.test.ts`, so `Refusal`'s new reference line is
+   held by `pnpm typecheck` and by sitting 7's clicked half (*"he is shown a refusal's reference"*) — a ruling.
+6. **F6 — the review's R1, Important: F7's own cost.** A driver-1 create that failed after `git init` (the hook, the commit, the push, a crash)
+   left its bare repository, and since F7 every retry was `SOURCE_REPOSITORY_EXISTS` until an operator removed the directory. The route relies
+   on *"the driver undoes its own steps"*, which driver 2 always did. **Fixed**: the steps after `git init` remove what they made on failure.
+   Safe because the project row (unique by slug) precedes `createRepository`, and the path did not exist before the call. Its test forces the
+   failure with a git template whose `hooks/pre-receive` is a directory.
+7. **F7 — the review's R2, Important: the fixture was still offered** in `BLUEPRINT_NOT_FOUND`'s hint (`api/routes/projects.ts`) and
+   `RELEASE_BLUEPRINT_NOT_FOUND`'s message (`releases/release.ts`) — an agent corrects itself from a hint. **Fixed** with ONE statement of
+   the rule, `offered`/`offeredRefs` in `blueprints/registry.ts`, read by all three.
+8. **F8 — the review's R3, re-graded Important: one refusal bypassed `sendRefusal`.** The event stream's plain-GET `426` was hand-built, so its
+   envelope lacked the now-REQUIRED `requestId` (`openapi.json` declares it `ErrorEnvelope`) and wrote no line. **Fixed**, with its row.
+9. **F9 — the review's R4, re-graded Important: a served guide still said the minter confirms** (`docs/api/launching.md`) — FE-50's harm, a
+   collaborator's person sent to confirm and refused `403`. This sitting's own grep missed it (the sentence split differently). **Fixed**,
+   and a test now reads every guide for it.
+10. **F10 — the review's R8, re-graded Important: `conventions.md` overstated a success's id** — only refusals write a line. Corrected.
+11. **F11 — a deep import, found by the close's first whole-suite run**: `refusal.test.ts` imported `../tokens/token.js` (§5's module
+    boundaries). Now `../tokens/index.js`.
+12. **F12 — a TDD slip, caught and redone.** The contract client and the mock were edited before their tests; both were reverted, tested red
+    (the mock against the committed file, copied aside and restored), and re-applied.
+
+**Not findings, but recorded:**
+- **Load**: driver 2's *"never the mirror's frozen main"* test timed out at 5 s at load 14 (an unrelated session's Python at ~780% CPU); alone
+  with a 60 s timeout it passes in 6.2 s, and `local-driver.ts` is not on its path.
+- **Deferred minors** (the ledger has each): R5 `Limit.resetsAt` passes LiteLLM's string through (`…Z` against `getAgentBudget`'s `.000Z`; an
+  offset-less timestamp would drop the whole `limit`); R6 the dropped-fact line carries no `requestId`; R7 the mock's refused stream upgrade
+  carries no id.
+
+**Rulings** (the ledger has each with its cost): Task 14 before Task 3; Task 14's Step 4 and Task 12's `make demo-token` run at the close on a
+rebuilt control plane; `mapError` builds `UnsentRefusal` and `ErrorEnvelope` keeps meaning the wire shape; `ManifestApiError`'s header id is
+an OPTIONAL fourth argument (the front-end constructs it with three); the fake LiteLLM's `withoutReset`; the guides' examples return `until`;
+the mock's daily reset by Node's `Intl`; the words tests assert meaning, not a sentence; R2's release message held by the shared helper's
+test; R8 a prose correction with no red test of its own.
+
+**Negative controls**, each committed first and restored:
+- **Task 2**: `listBlueprints` filtering on `!listed` → red at the list test only (`['fixture-node@1']`).
+- **Task 14**: the `existsSync` check disabled → red at driver 1's case only (`SOURCE_CONFLICT`); driver 2 green.
+- **Task 3**: (a) `sendRefusal`'s header line removed → red at the two `frameworkErrors` rows only (12 green — the first `onRequest` hook
+  covers the rest, the credential hook's throw included); (b) the not-found handler bypassing `sendRefusal` → red at its row only, at the body.
+- **Task 4**: (a) `resetsAt` dropped → F4; (b) the daily reset in JavaScript → red at the database-clock equality only
+  (`09:05:59.349Z` against `07:00:00.000Z`).
+- **Task 12**: the old hint back → red at the words test only; both pins green.
+
+**Through the edge, at the close** (the control plane rebuilt from `70c3964` and started on driver 1 for these, then restored as found):
+- **Task 14's Step 4**: after the truncation, `POST /v1/projects {slug: board-local}` — its bare repository still on disk, `checkSlug` saying
+  `available` — answered **`409 SOURCE_REPOSITORY_EXISTS`**, *"board-local already has a repository on this machine; it is never reused or
+  removed by a create"*, its head `ab487e3` unchanged before and after. The same answer showed FE-30 live: `requestId`
+  `b5ae64cb-7088-4147-a845-77830b83cf3a` in the body and as `x-request-id`.
+- **Task 12's Step 3**: `make demo-token`, every check passed — step 8 now *"the retry — same token, same method, path and body, a NEW
+  Idempotency-Key — is 201"* (retry 1 `201`; the same key `201` replayed; a fresh key `403 TOKEN_ACTION_PENDING`, a new question).
+
+**The gates at the close.**
+- **`pnpm test` three times**: before the review's fixes, 3226 passed and 2 red (F6's test as written, and F11); then **twice on the final
+  tree, 3232 in 197, identical** (866.5 s and 883.6 s, load 2–4). `EXPECT_TESTS` 3197 → **3232**, `EXPECT_FILES` 196 → **197**
+  (`scripts/ci-acceptance.sh` says where the 35 came from).
+- **`pnpm test:docker`: 271 in 42, green, 1220 s** — unchanged, on `70c3964`, with 15 networks at its start.
+- `pnpm lint`, `pnpm typecheck` (every workspace) and `pnpm format:check` clean; **`make doctor` 21, 0 warnings**; **`make verify` 64, 0
+  warnings**, after the restart.
+- **The contract is `1.6.0`** (`71df40d`), additive since in `95843e2` and `e355d10`.
+
+**The machine at the close** (queried at 03:25 PDT, not remembered):
+- **The control plane: PID 53216 on 7100, REAL GitHub** (`api.github.com`, `Manifest-local-dev`), built from `70c3964` — as it was found,
+  on driver 2, by `.env`. The capable model registered, its fallback set.
+- **The control database:** 3 users, 1 project (`token-app`, `make demo-token`'s), 1 token, 3 pending actions. `f6b-measure-1` was
+  truncated (Rich's choice) and its nine containers removed (`docker rm -f`, allowed).
+- **Containers:** 10 `manifest-` and 3 `mf-token-app-staging-*`; **13 Docker networks**. The three cleanup scripts, bare then `--apply`
+  (none refused): 7 networks and 1 volume, 8 LiteLLM orphans (4 by the truncation) and 17 app images removed; re-run, all read 0.
+- **12 orphan driver-2 mirrors** in `.manifest/repos` (`f6b-measure-1.git` the twelfth); the script names them and never removes one.
+  **`f6b-measure-1`'s real repository is a THIRD that no project owns** in `Manifest-local-dev`, beside `f6-watch` and `keep-walk-1002`.
+- **The four protected containers are up**; `docker-simple-saml` is clean but for its long-standing untracked `cert.zip`.
+- **The shared HTML pages were checked** for all four spec actions (D23, D31, the schematic, the stories, the phases): none changes.

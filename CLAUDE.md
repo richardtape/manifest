@@ -42,8 +42,9 @@ vulnerability database in the console. Rich's decisions since 2026-09-30 are in 
 - **the second-machine clean clone**;
 - **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-06**; past seven days `make doctor` warns and
   §13's `scans` item refuses every production launch;
-- **any real repository in `Manifest-local-dev` that no project owns** — TWO on 2026-10-02, `f6-watch` and `keep-walk-1002` (the faculty
-  front-end's F6 sitting 1 and its F6 walk; their rows truncated by the launch path plan's sittings 8 and 12) (`bash scripts/github-real-repos.sh`);
+- **any real repository in `Manifest-local-dev` that no project owns** — THREE on 2026-10-03, `f6-watch`, `keep-walk-1002` and
+  `f6b-measure-1` (the faculty front-end's F6 sitting 1, its F6 walk and its F6b measurements; their rows truncated by the launch path
+  plan's sittings 8 and 12 and the faculty-ready plan's sitting 2, at Rich's word) (`bash scripts/github-real-repos.sh`);
   removing one is his;
 - **the UBC external track — DEFERRED by Rich, 2026-09-30** (*"I have to get all of this working first locally. And then show
   demos"*): not a blocker; do not raise it as urgent;

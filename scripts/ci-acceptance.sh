@@ -180,8 +180,14 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then its sitting 12 (2026-10-02, the acceptance, and its fix wave — the plan EXECUTED): +5, no new file — `db/locks.test.ts` (2:
 # more holders than the pool, F1; nested holders, the review's I2) and `launch/readiness.test.ts` (3: a lapsed registration sent
 # again, F3). Measured twice on the final tree, 3197 in 196, 0 `deadlock detected`.
-EXPECT_TESTS=3197
-EXPECT_FILES=196
+# The faculty-ready plan's sitting 2 (2026-10-03, the envelope sitting, contract 1.6.0): +35, one new file — `api/refusal.test.ts`
+# (15: every refusal path's id and line, the stream's 426 among them), `api/intake.test.ts` and `api/agents.test.ts` (6: a limit's and
+# a session's facts), `api/delegation.test.ts` (4: FE-51/FE-50's pins, the words, every guide), `blueprints/blueprints.test.ts` (3) and
+# `api/blueprints.test.ts` (1) — FE-31, the hint the review found — `source/driver-contract.ts` (2: F7 on both drivers),
+# `source/local-driver.test.ts` (1: a failed create undoes itself), and one each in `contract/src/client.test.ts`,
+# `mock/src/server.test.ts` and `mock/src/scripted.test.ts`. Measured on the final tree, 3232 in 197.
+EXPECT_TESTS=3232
+EXPECT_FILES=197
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 

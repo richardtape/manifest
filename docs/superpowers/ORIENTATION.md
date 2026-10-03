@@ -21,7 +21,7 @@ the vulnerability database in the console.
 The roadmap's ledger outranks every document on status.
 
 *The gate numbers are stated once each (Rich, 2026-09-30): `scripts/ci-acceptance.sh`'s `EXPECT_` lines (the unit suite, doctor,
-verify) and §2's `pnpm test:docker` row. The contract is **`1.5.0`**. Each sitting's own measurements are in its plan's *What
+verify) and §2's `pnpm test:docker` row. The contract is **`1.6.0`** (since the faculty-ready plan's sitting 2, 2026-10-03). Each sitting's own measurements are in its plan's *What
 executing this plan found*, dated, where they cannot drift.*
 
 **Short of context? Read §7e, §2's numbers box, §6 and §4's curated traps, in that order.** The full trap catalogue
@@ -211,7 +211,7 @@ docs/superpowers/
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
 │   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 14 sittings since Rich merged 10 and 11 (2026-09-30) (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), ten spec actions, ALL APPLIED; EXECUTED 2026-10-02 — its *Sitting 12* is the record
-│   ├── 2026-09-30-faculty-ready.md                THE CURRENT PLAN — IN PROGRESS since 2026-10-02 (approved 2026-09-30: *"plan looks good"*), 14 tasks in 7 sittings (12–14 added 2026-10-02 at Rich's word: FE-51 with FE-50, FE-52 with FE-49, and F7); 4 spec actions to decide; then FE-32's plan
+│   ├── 2026-09-30-faculty-ready.md                THE CURRENT PLAN — IN PROGRESS since 2026-10-02 (approved 2026-09-30: *"plan looks good"*), 14 tasks in 7 sittings (12–14 added 2026-10-02 at Rich's word: FE-51 with FE-50, FE-52 with FE-49, and F7); all 4 spec actions APPLIED 2026-10-03; sittings 1–2 done (contract `1.6.0`); then FE-32's plan
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1827,76 +1827,60 @@ named in the row below.*
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
 | **Launch path** | [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md) — **EXECUTED 2026-10-02**, nineteen tasks in fourteen sittings | `make demo-launch` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 16 of the offline acceptance; a step of `make ci-acceptance`; its controls seen red; the real leg; **a launch clicked by a person** | **Sitting 12's F1 is the one to read**: a control plane that answered `/v1/me` was dead — ten advisory-lock holders on the query pool deadlocked the boot, found only because a control restarted it with twelve environments; and its first fix still deadlocked under NESTED holders, found by the plan's one whole-branch review |
-### 7e. The faculty-ready plan's sitting 2 (Tasks 2, 3, 4, 12 and 14: the envelope sitting, contract `1.6.0`) ← **START HERE**
-
-> **SITTING 2 IS OPEN (2026-10-03, `manifest-71`) AND HOLDING.** Rich answered every question below at its open: **all four spec
-> actions APPLIED**; **`f6b-measure-1` is simply truncated**; F5b sitting 1 goes AFTER sitting 2. **The faculty front-end's F6b
-> sitting 6 (`manifest-app-a1`) holds 7100 first**, at Rich's word: **no unit or Docker Vitest, `contract:write`, `make verify`,
-> control-plane restart, or edit to `packages/contract` or `packages/mock` until it sends *"7100 released"*** (after its own
-> gates). His words: [`2026-09-30-decisions.md`](2026-09-30-decisions.md), 2026-10-03. If this session has ended, ask `manifest-app-*` whether 7100 is
-> released before any of those.
+### 7e. The faculty-ready plan's sitting 3 (Task 5: FE-28, `__Host-` cookies and the login door closed) ← **START HERE**
 
 **The faculty-ready plan is IN PROGRESS** ([`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md); approved 2026-09-30). It is
 **executed inline**, at Rich's word (`superpowers:executing-plans`; the ledger is `.superpowers/sdd/2026-09-30-faculty-ready/progress.md`).
-**Sitting 1 is DONE** (2026-10-02, `manifest-96`; its *Sitting 1* is the record):
-- Task 1's measurements are in [`spikes/faculty-ready-baseline/`](spikes/faculty-ready-baseline/README.md), `3c80587`.
-- **Five findings, each written into the head of the task it changes:**
-  - loopback `http` HOLDS a `__Host-` cookie (Read this first 4, corrected);
-  - Task 3: `sendRefusal` must set the header itself;
-  - Task 6: a streamed `422` is a `500` today, and guard (E) fixes both kinds of request;
-  - Task 8: today every app stop takes 10 s and ends in SIGKILL;
-  - Task 13: the console's queue must list `pending_action.expired`.
-- **No split moved.**
-- **At its open, Rich placed FE-46, FE-47 and FE-5 AFTER this plan, chose inline execution, and put F7, FE-49 and FE-50 IN it**: Task 14,
-  and Tasks 12 and 13 widened (§8 *Decided*).
+- **Sitting 1 is DONE** (2026-10-02, `manifest-96`): Task 1's measurements.
+- **Sitting 2 is DONE** (2026-10-03, `manifest-71`; its *Sitting 2* is the record): Tasks 2, 3, 4, 12 and 14 — FE-31's `listed`, F7, FE-30's
+  request id, FE-29's facts, FE-51/FE-50's words — and a fresh review's five fixes (`70c3964`). **The contract is `1.6.0`.** **All four spec
+  actions are APPLIED** (Rich, 2026-10-03: 2 and 3, then 4 and 1, the last with *"setting a project's quota"* added).
+  - Nothing is owed: Task 14's Step 4 and Task 12's `make demo-token` ran through the edge at its close, green.
+  - Three minors are deferred in its record (R5–R7); none is sitting 3's.
 
-**Sitting 2 is Tasks 2, 3, 4, 12 and 14**, in that order: FE-31's `listed`, FE-30's request id, FE-29's facts, FE-51 with FE-50's words, and
-F7's driver-1 refusal. **The contract goes to `1.6.0` ONCE, at Task 3.** The Docker tier is owed (`blueprints/`, `source/`).
+**Sitting 3 is Task 5 alone**: FE-28, widened — `__Host-` session, login and step-up cookies on https, the plain names on loopback http,
+every client and script, `sessionCookieFor` in `@manifest/contract`. **Still `1.6.0`**, with the break stated in `document.ts`'s version
+comment. **The Docker tier is owed** (`identity/`).
+- **Decision 7 stands**, as Rich approved it on 2026-09-30. Sitting 1's F1 asks whether to keep it now that loopback `http` holds a
+  `__Host-` cookie; the recommendation is **keep it**, it is Rich's to change, and nothing waits on his answer.
+- **Task 5's Step 1 tells the front-end FIRST**, before any code, and its Step 7 commits only after the front-end's reply.
+- **Its Step 6 signs in through the edge** (`make demo-journey`, `make demo-token`, `make demo-frontend`). Agents may type the laptop IdP's
+  test passwords: Rich's standing yes, 2026-10-03 (`2026-09-30-decisions.md`).
+- **Rich's night order** (2026-10-03, ~01:10): sittings 2 → 3 → 4, and sitting 6 pulled ahead of sitting 5 if time remains — a re-cut of the
+  order only. Sitting 5 is pre-authorised (`make seed` with the network on), once `SSP_STORE_PASSWORD` is in `.env`.
 
-**IN THE FIRST MESSAGE — Rich's, before anything runs:**
-1. **Spec actions 2 (§25, `listed`) and 3 (§20, the request id and a limit's facts)**, which are the plan's *Spec actions* 2 and 3. Both must
-   be decided before sitting 2 builds Tasks 2–4: (a) apply as worded, recommended, or the options each lists.
-   - **After his word, apply them to the spec, and check the four shared HTML pages** (`manifest-decisions.html` D23 for 3; none names the
-     fixture for 2).
-   - **The permission classifier has refused spec READS and edits before** (the memory *spec edits and the classifier*). Ask early, never
-     work around it, and record an approval only from Rich's own words.
-2. **`f6b-measure-1` is LIVE on 7100**, Rich's project and the front-end's F6b measurement app: production and staging, 6 `mf-`
-   containers, and a real private repository in `Manifest-local-dev`. **Sitting 2's first Vitest run TRUNCATES it.** Its rows go; its
-   containers, networks and volumes become dead app resources for the cleanup scripts; and its GitHub repository becomes a THIRD that no
-   project owns, beside `f6-watch` and `keep-walk-1002`. **Ask whether he wants it archived or deleted through the console first, or
-   simply truncated.** `psql` the counts before the first run either way.
-3. **`make refresh-vulndb` is due after 2026-10-06** (the network on, ~1–3 minutes). Sitting 2 does not launch; sitting 7's acceptance does.
-4. *Not needed before sitting 2, but his:* F1 asks whether Decision 7 (cookie names by scheme) stays, now that loopback holds `__Host-`.
-   The recommendation is **yes, keep it**, and it is Task 5's, in sitting 3.
+**IN THE FIRST MESSAGE — Rich's, if he is there** (none blocks sitting 3):
+1. **`make refresh-vulndb` is due after 2026-10-06** (the network on, ~1–3 minutes). Sitting 7's acceptance launches.
+2. **Three real repositories in `Manifest-local-dev` belong to no project** — `f6-watch`, `keep-walk-1002` and now `f6b-measure-1` — and 12
+   orphan driver-2 mirrors in `.manifest/repos`. Removing them is his (`bash scripts/github-real-repos.sh`).
+3. *Optional:* F1, above.
 
-**THE MACHINE, AS SITTING 1 LEFT IT.** Queried at 23:41 PDT on 2026-10-02, not remembered.
-- **The control plane:** PID 80267 on 7100, on `37b223d`, REAL GitHub; untouched by sitting 1. Its code equals HEAD's.
-- **The control database:** 4 users (`instructor`, `colleague`, `student`, and `operator`, an ADMINISTRATOR since 04:31:58Z by Rich's grant),
-  1 project (`f6b-measure-1`), 15 tokens and 8 pending actions, all the front-end's.
-- **Containers:** 10 `manifest-` and 6 `mf-f6b-measure-1-*`; **14 Docker networks**. Nothing is dead: the three cleanup scripts found 0
-  networks, 0 volumes, 0 LiteLLM orphans and 0 app images.
+**THE MACHINE, AS SITTING 2 LEFT IT.** Queried at 03:25 PDT on 2026-10-03, not remembered.
+- **The control plane:** PID 53216 on 7100, **REAL GitHub** (`Manifest-local-dev`), built from `70c3964` and started from `.env` (the
+  machine as found). Its boot line: the capable model registered, its fallback set.
+- **The control database:** 3 users, 1 project (`token-app`, `make demo-token`'s, on DRIVER 1 — so on this driver-2 control plane its
+  source operations answer `409 SOURCE_PROVIDER_MISMATCH`), 1 token, 3 pending actions.
+  - **Sitting 3's first Vitest run truncates them**, and `token-app`'s three containers become dead app resources for the cleanup scripts.
+- **Containers:** 10 `manifest-` and 3 `mf-token-app-staging-*`; **13 Docker networks**. The three cleanup scripts read 0 dead after
+  `--apply`.
   - **Count `docker network ls -q` before the Docker tier**: Docker Desktop's pools hold ~31, and the tier needs 7.
-  - **11 orphan driver-2 mirrors** are in `.manifest/repos`. The script names them and never removes them; removing one is Rich's.
-- **The four protected containers are up**, as are the `cwl-spike-*` four. `make doctor` 21 and `make verify` 64 were last run by the launch
-  path's sitting 12; sitting 1 changed nothing they check.
-- **7102 and 7105 are the faculty front-end's** (its mock and its server, mock mode). **Nothing listens on 7194–7199.**
+- **`make doctor` 21 and `make verify` 64**, both 0 warnings, at the close. **The four protected containers are up.**
+- **7102 and 7105 are the faculty front-end's** (mock mode). **Nothing listens on 7194–7199.**
 
-**THE PEER SESSIONS** (`ListAgents` immediately before every promised message; a name changes at every handover):
-- **The faculty front-end:** `manifest-app-ba` at sitting 1's close; its F6b sitting 5 (*Agents*, mock mode) was closing then. **For holds,
-  message whichever `manifest-app-*` session `ListAgents` shows; if none is live, ask Rich** (its own words). Its repository is
+**THE PEER SESSIONS** (`ListAgents` immediately before every promised message):
+- **The night shift (2026-10-03):** `manifest-3d` co-ordinates. The front-end's work is done by ITS background agents, which cannot receive
+  messages, so **every hold, free and notice for the front-end goes to `manifest-3d`, starting HOLD or FREE**. Hold only around whole-suite
+  runs, the Docker tier, and a `packages/contract` or `packages/mock` edit until typecheck-clean; single-file runs need no hold.
+- **Otherwise:** the front-end's live `manifest-app-*` session. It asks for a message BEFORE any Vitest run, Docker tier, `make verify`, or
+  edit or commit to `packages/contract` or `packages/mock`, and at the close; it holds its own Vitest when told. Its repository is
   `~/Developer/manifest-app`; never edit it.
-  - **It asks for a message BEFORE any Vitest run, Docker tier, `make verify`, or edit or commit to `packages/contract` or
-    `packages/mock`, and at the close.** It holds its own Vitest when told, and says when it has.
-  - **Sitting 2 changes both packages:** `1.6.0`, a required `requestId`, the `limit` and `session` facts, and the mock's id and header.
-  - The plan's *Asked by the faculty front-end* answers 2 and 5 are the recommendations it was given for this sitting.
-- **The planning session** (`manifest-00` or a new one): decisions and records. Rich's words go in
-  [`2026-09-30-decisions.md`](2026-09-30-decisions.md).
+- **The front-end is adopting contract `1.6.0`** (mock mode) — and Task 5 is the next change it must adopt.
 
-**WHERE SITTING 2 STOPS, AND HOW IT ENDS:** it stops after Tasks 2, 3, 4, 12 and 14, each committed with its negative control. Then the
-plan's own close:
-- the four gates (`pnpm test` twice, alone);
+**WHERE SITTING 3 STOPS, AND HOW IT ENDS:** it stops after Task 5, committed after the front-end's reply, with its negative controls (a)–(c)
+— and if (c) cannot fail in the unit tier, that is recorded, as Task 5 says. Then the plan's own close:
+- the four gates (`pnpm test` twice, alone, on the final tree);
 - the Docker tier, in the background, never beside a Vitest run;
-- *What executing this plan found*, *Sitting 2*;
+- *What executing this plan found*, *Sitting 3*;
 - the sittings table;
 - this §7e, REPLACED;
 - the cleanup scripts, bare and then `--apply`;
@@ -1913,7 +1897,6 @@ Constraints*:
 - **Ask before `sudo`, and before touching anything outside the repository** — `~/Developer/manifest-app` and
   `~/Developer/saml-metadata-generator` included (the latter is read-only, and dirty with changes that are not ours).
   §6 rule 2, and CLAUDE.md's *Non-negotiables* has the rest.
-
 
 ## 8. Decisions waiting on Rich
 

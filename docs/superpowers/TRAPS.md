@@ -2482,8 +2482,10 @@ acceptance means every one.
 **THE DRIVER-2 DEMOS REFUSE THE FAKE WHILE `.env` CARRIES THE REAL APP** (sitting 12): `require_fake_github` reads `.env`, not the running
 process, so a control plane restarted onto the fake with the real-App settings unset in its own shell still fails the guard. Comment out `.env`'s
 real-App block for the fake's runs (back it up 0600 first), and restore it byte for byte — `cmp` against the backup — before the real leg or the
-close. **And an ORPHAN bare repository makes the console's create answer `409 SOURCE_CONFLICT`** *"main moved…"* on driver 1 (F7): `ls
-.manifest/repos/<slug>.git` when a create fails that way; the demos clear orphans with `clear_orphan_repository`, the console does not.
+close. **And an ORPHAN bare repository makes the console's create answer `409 SOURCE_REPOSITORY_EXISTS`** on driver 1 — since F7's fix
+(the faculty-ready plan's sitting 2, 2026-10-03; until then a wrong `SOURCE_CONFLICT` *"main moved…"*) — while `checkSlug` still says
+`available`: `ls .manifest/repos/<slug>.git` when a create fails that way; the demos clear orphans with `clear_orphan_repository`, the
+console does not. A create that fails part-way now removes what it made, so only a truncation or a reset leaves one.
 
 **LOADING THE CONTROL PLANE'S SOURCE OUTSIDE VITEST** (the faculty-ready plan's sitting 1, `[M2]`). There are three walls, in order.
 - **Node 24's own type stripping refuses it.** `node --import ./packages/github-fake/resolve-ts.mjs` dies on `config.ts`'s parameter

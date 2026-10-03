@@ -266,7 +266,7 @@ then sign in again (`MANIFEST_ADMIN_PUIDS` is not set in `.env`).
 
 ### A faculty member launches an app themselves, clicked — the launch path's acceptance
 
-*Added by the launch path plan's sitting 12, 2026-10-02 (Task 15's clicked half) — **clicked by Rich the same evening, every row as written** (~18:15–18:31 PDT, `click-launch-1002`, launched). `make demo-launch` is the headless half.* **Name the project something never used on this machine**: a name whose repository a reset or a truncation left behind is refused `409 SOURCE_CONFLICT` *"main moved…"* (F7 — the message is wrong; `ls .manifest/repos/<name>.git`). On
+*Added by the launch path plan's sitting 12, 2026-10-02 (Task 15's clicked half) — **clicked by Rich the same evening, every row as written** (~18:15–18:31 PDT, `click-launch-1002`, launched). `make demo-launch` is the headless half.* **Name the project something never used on this machine**: a name whose repository a reset or a truncation left behind is refused `409 SOURCE_REPOSITORY_EXISTS` *"… already has a repository on this machine"* (F7, fixed 2026-10-03; it was a wrong `SOURCE_CONFLICT` before; `ls .manifest/repos/<name>.git`). On
 **driver 1** — a launched project is never deleted, so it is not a real repository — with the console served by `vite preview` on
 7104 (RUNBOOK, *Running the reference console*). **Two people, and four passwords, all yours:** `instructor` is the owner in your
 ordinary window; `operator` is the administrator in a PRIVATE window (one origin, one cookie jar per window). `operator` is made an
