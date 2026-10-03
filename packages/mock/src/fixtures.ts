@@ -1588,6 +1588,9 @@ export const EMPTIED_MANIFEST: Schemas['ErrorEnvelope'] = {
         hint: 'Check the type and permitted values of this field in the ManifestYaml schema.',
       },
     ],
+    // Contract 1.6.0 (FE-30): required. When the mock PLAYS this refusal it sends the request's
+    // own id, as the platform does; this one is only the fixture's.
+    requestId: '0b7c1a52-3f0e-4d21-9a6e-2c3d4e5f6a7b',
   },
 }
 

@@ -82,7 +82,12 @@ export function unwrap<T>(
       typeof result.error === 'object' && result.error !== null && 'error' in result.error
         ? (result.error as ErrorEnvelope)
         : undefined
-    throw new ManifestApiError(result.response.status, envelope, operation)
+    throw new ManifestApiError(
+      result.response.status,
+      envelope,
+      operation,
+      result.response.headers.get('x-request-id'),
+    )
   }
   return result.data as T
 }

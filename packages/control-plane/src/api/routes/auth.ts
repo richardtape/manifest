@@ -20,7 +20,7 @@ import {
   verifySession,
 } from '../../identity/index.js'
 import { requireSession } from '../actor.js'
-import { sendRefusalPage, wantsRefusalPage } from '../auth-page.js'
+import { sendRefusal } from '../refusal.js'
 import { originOf } from '../origins.js'
 import type { ServerDeps } from '../server.js'
 
@@ -367,10 +367,9 @@ export async function registerAuthRoutes(
           message: 'the single-logout request could not be verified',
           hint,
         }
-        // FE-17: the IdP REDIRECTS a browser here, so a refusal is what the person sees.
-        return wantsRefusalPage(request)
-          ? sendRefusalPage(reply, 400, error)
-          : reply.status(400).send({ error })
+        // FE-17: the IdP REDIRECTS a browser here, so a refusal is what the person sees —
+        // `sendRefusal` answers it the page, with the request's id (FE-30).
+        return sendRefusal(request, reply, 400, error)
       }
 
       // ONE OPERATOR LINE PER SINGLE LOGOUT, arrival and outcome both. §4: a

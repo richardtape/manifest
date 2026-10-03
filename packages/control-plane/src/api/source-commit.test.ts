@@ -311,6 +311,8 @@ describe('createCommit — changes checked before anything is written (Task 6)',
                 hint: 'Check the type and permitted values of this field in the ManifestYaml schema.',
               },
             ],
+            // FE-30: every refusal's own id, the answer's header. The mock plays a fresh one.
+            requestId: res.headers['x-request-id'],
           },
         })
       }

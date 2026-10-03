@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Manifest",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "description": "Manifest's public API. Resource routes are under /v1, and a breaking change gets a new prefix beside it. Response objects may gain fields under /v1, so a client ignores fields it does not know. Every mutation carries an Idempotency-Key, and a mutation made with a session also carries Origin."
   },
   "servers": [
@@ -1741,7 +1741,7 @@
                   "openapi": "3.1.0",
                   "info": {
                     "title": "Manifest",
-                    "version": "1.5.0"
+                    "version": "1.6.0"
                   },
                   "paths": {}
                 }
@@ -10993,6 +10993,12 @@
                 "description": "What to do about it.",
                 "type": "string"
               },
+              "requestId": {
+                "description": "This request’s id — the same as the `x-request-id` header. Quote it when you report a problem: it finds the platform’s own record of the request.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
               "details": {
                 "description": "On SPEC_INVALID: each problem in manifest.yaml, with its path and code.",
                 "type": "array",
@@ -11011,7 +11017,8 @@
             },
             "required": [
               "code",
-              "message"
+              "message",
+              "requestId"
             ],
             "additionalProperties": false
           }

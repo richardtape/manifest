@@ -315,8 +315,22 @@ describe('the framework’s own refusals answer with registered codes (§20, D23
         keyof typeof ERROR_CODES,
       ][])
         expect(ERROR_CODES[code].status).toBe(status)
-      // Nothing reported as the control plane's own failure, and no unregistered code.
-      expect(errors).not.toHaveBeenCalled()
+      // Nothing reported as the control plane's own failure, and no unregistered code: since
+      // FE-30 the ONLY lines are each refusal's own, at `warn` — never an `unhandled error`, never
+      // a 500's stack, never "not in api/error-codes.ts".
+      const lines = errors.mock.calls.map(([line]) => {
+        try {
+          const { msg, level } = JSON.parse(String(line)) as {
+            msg?: string
+            level?: string
+          }
+          return `${level} ${msg}`
+        } catch {
+          return String(line)
+        }
+      })
+      expect(lines.length).toBeGreaterThan(0)
+      expect(lines.filter((l) => l !== 'warn refused')).toEqual([])
     } finally {
       errors.mockRestore()
       await app.close()

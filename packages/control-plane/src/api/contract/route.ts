@@ -211,6 +211,9 @@ export function registerRoutes(
       method: route.method,
       url: fastifyPath(route.path),
       ...(route.bodyLimit === undefined ? {} : { bodyLimit: route.bodyLimit }),
+      // FE-30: the refusal's operator line names the operation (`sendRefusal`), and the error
+      // handler cannot see the closure that holds it.
+      config: { operationId: route.operationId },
       handler: async (request, reply) => {
         // Authentication first: nobody learns the shape of a request they may not make —
         // and for a session-only operation, nor does a token (F17).

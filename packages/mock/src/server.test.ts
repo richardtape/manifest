@@ -184,6 +184,20 @@ describe('manifest-mock refuses what the platform refuses', () => {
     expect(response.headers.get('set-cookie')).toContain('manifest_session=;')
   })
 
+  it('answers every request with an id, and a refusal with the same id in its body (FE-30, 1.6.0)', async () => {
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    const ok = await fetch(`${origin}/v1/me`, { headers: session })
+    expect(ok.status).toBe(200)
+    expect(ok.headers.get('x-request-id')).toMatch(UUID)
+    const refused = await fetch(`${origin}/v1/me`)
+    const id = refused.headers.get('x-request-id')
+    expect(id).toMatch(UUID)
+    expect(id).not.toBe(ok.headers.get('x-request-id'))
+    expect(
+      ((await refused.json()) as { error: { code: string; requestId?: string } }).error,
+    ).toMatchObject({ code: 'UNAUTHENTICATED', requestId: id })
+  })
+
   it('answers a request with no credential 401 UNAUTHENTICATED', async () => {
     const response = await fetch(`${origin}/v1/me`)
     expect(response.status).toBe(401)
@@ -395,7 +409,13 @@ describe('manifest-mock refuses what the platform refuses', () => {
       ]) {
         const refused = await commit([change])
         expect(refused.status, JSON.stringify(change)).toBe(422)
-        expect(await refused.json()).toEqual(fixtures.EMPTIED_MANIFEST)
+        // The platform's envelope word for word, with THIS answer's id (FE-30), as the platform's.
+        expect(await refused.json()).toEqual({
+          error: {
+            ...fixtures.EMPTIED_MANIFEST.error,
+            requestId: refused.headers.get('x-request-id'),
+          },
+        })
       }
       const written = await commit([
         { op: 'write', path: 'manifest.yaml', content: 'manifest: 1\n' },

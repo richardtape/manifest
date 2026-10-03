@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import {
   createServer,
@@ -990,7 +991,13 @@ export async function readDocument(): Promise<Document> {
 /** The operations the routing table above answers. `server.test.ts` compares the two. */
 export const ANSWERED = Object.keys(ANSWERS)
 
+/**
+ * The platform's envelope, `requestId` included (contract 1.6.0, FE-30): the SAME id as the
+ * answer's `x-request-id` header, which the request handler sets on every answer before anything
+ * is written.
+ */
 function envelope(
+  requestId: string,
   code: string,
   message: string,
   hint?: string,
@@ -1004,6 +1011,7 @@ function envelope(
       ...(hint === undefined ? {} : { hint }),
       ...(details === undefined ? {} : { details }),
       ...(launchReadiness === undefined ? {} : { launchReadiness }),
+      requestId,
     },
   })
 }
@@ -1129,14 +1137,23 @@ export function createMockServer(options: MockOptions = {}): Server {
   let buildSucceedsAt: number | undefined
 
   const server = createServer((request, response) => {
-    void handle(request, response).catch((error: unknown) => {
-      send(response, 500, envelope('INTERNAL', `manifest-mock failed: ${String(error)}`))
+    // FE-30 (contract 1.6.0): EVERY answer carries a request id, as the platform's does — set
+    // before anything is written, so `writeHead` merges it into a success, a redirect or a refusal.
+    const requestId = randomUUID()
+    response.setHeader('x-request-id', requestId)
+    void handle(request, response, requestId).catch((error: unknown) => {
+      send(
+        response,
+        500,
+        envelope(requestId, 'INTERNAL', `manifest-mock failed: ${String(error)}`),
+      )
     })
   })
 
   async function handle(
     request: IncomingMessage,
     response: ServerResponse,
+    requestId: string,
   ): Promise<void> {
     const url = new URL(request.url ?? '/', 'http://mock.invalid')
     const method = (request.method ?? 'GET').toUpperCase()
@@ -1315,6 +1332,7 @@ export function createMockServer(options: MockOptions = {}): Server {
             response,
             500,
             envelope(
+              requestId,
               'INTERNAL',
               `manifest-mock built a body that is not a ${schema}: ${errors}`,
             ),
@@ -1345,6 +1363,7 @@ export function createMockServer(options: MockOptions = {}): Server {
           response,
           error.status,
           envelope(
+            requestId,
             error.code,
             error.message,
             error.hint,

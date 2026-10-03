@@ -21,10 +21,11 @@ Every resource route is under `/v1`. Within `/v1` the API only grows: an answer 
 Every refusal is one shape:
 
 ```json
-{ "error": { "code": "SOURCE_CONFLICT", "message": "…", "hint": "…" } }
+{ "error": { "code": "SOURCE_CONFLICT", "message": "…", "hint": "…", "requestId": "0b7c1a52-3f0e-4d21-9a6e-2c3d4e5f6a7b" } }
 ```
 
 - **Switch on `code`**, which is stable; never parse `message`, which is for a person.
+- **`requestId`** is on every refusal, and the same id is the `x-request-id` header on every answer — a success too. **Show it to the person and keep it in your own log**: quoted in a report, it finds the platform’s own record of that request. An id you send in a request header is ignored. A generated-client call's `ManifestApiError` carries it as `requestId` — from the envelope, else the header, else `null` (an answer that never reached the platform has none).
 - **`hint`** says what to do, where there is something to say. *Error codes* gives every code’s meaning and remedy, and so does the OpenAPI document’s `x-manifest-errors`.
 - **`details`** comes with `422 SPEC_INVALID`: one entry per problem in manifest.yaml, each with its `path`, its own `code`, a `message` and a `hint`.
 - **`pendingAction`** comes with `403 TOKEN_ACTION_PENDING` and `TOKEN_ACTION_REJECTED`: the question a person answers.

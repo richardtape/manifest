@@ -27,6 +27,17 @@ export const ErrorEnvelope = representation(
           code: ErrorCodeSchema,
           message: z.string().describe('For a person. Never parse it; switch on `code`.'),
           hint: z.string().optional().describe('What to do about it.'),
+          /**
+           * FE-30 (the faculty-ready plan's Task 3; §20): REQUIRED, so a client can rely on it — a
+           * support report must never lack it. The same id is the answer's `x-request-id` header
+           * and the platform's own log line for the request. Merged by `sendRefusal` as it sends.
+           */
+          requestId: z
+            .string()
+            .uuid()
+            .describe(
+              'This request’s id — the same as the `x-request-id` header. Quote it when you report a problem: it finds the platform’s own record of the request.',
+            ),
           details: z
             .array(ManifestErrorSchema)
             .optional()

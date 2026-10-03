@@ -1,5 +1,6 @@
 import { and, count, eq } from 'drizzle-orm'
 import type { FastifyPluginAsync } from 'fastify'
+import { sendRefusal } from '../refusal.js'
 import { appSpecs, webhookDeliveries } from '../../db/index.js'
 import { projectForRepository, repositoryOf } from '../../projects/index.js'
 import type { ServerDeps } from '../server.js'
@@ -88,10 +89,11 @@ export const webhookRoutes =
         config: { csrf: 'exempt', idempotency: 'exempt' },
       },
       async (request, reply) => {
+        // FE-30: through `sendRefusal`, so a refused delivery carries its id and leaves a line.
         const refuse = (
           status: number,
           error: { code: string; message: string; hint?: string },
-        ) => reply.status(status).send({ error })
+        ) => sendRefusal(request, reply, status, error)
         if (secret === undefined) {
           return refuse(404, {
             code: 'WEBHOOKS_NOT_CONFIGURED',

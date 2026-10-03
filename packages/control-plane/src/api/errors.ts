@@ -59,6 +59,18 @@ import {
  */
 export type ErrorEnvelope = ErrorEnvelopeShape
 
+/**
+ * FE-30 (the faculty-ready plan's Task 3): what `mapError` builds — the envelope's `error` BEFORE
+ * the request's id is in it. `toErrorResponse` has no request; `sendRefusal` merges `requestId` as
+ * it sends, so an envelope on the wire always carries one and nothing here can forget it.
+ */
+export type ErrorBody = Omit<ErrorEnvelope['error'], 'requestId'>
+
+/** An envelope not yet sent: `{ error }` without its `requestId`. */
+export interface UnsentRefusal {
+  error: ErrorBody
+}
+
 export class SpecInvalidError extends Error {
   readonly code = 'SPEC_INVALID'
   constructor(readonly details: ManifestError[]) {
@@ -146,7 +158,7 @@ export class DocNotFoundError extends Error {
  * Every code it answers with is in `error-codes.ts` (P5a Task 5). The test is the gate;
  * the line below is the operator's copy for a code that reached the wire anyway.
  */
-export function toErrorResponse(error: unknown): { status: number; body: ErrorEnvelope } {
+export function toErrorResponse(error: unknown): { status: number; body: UnsentRefusal } {
   const response = mapError(error)
   if (!(response.body.error.code in ERROR_CODES)) {
     // The code only — never the message, which can quote the caller's input.
@@ -172,7 +184,7 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
  */
 function frameworkRefusal(
   error: unknown,
-): { status: number; body: ErrorEnvelope } | undefined {
+): { status: number; body: UnsentRefusal } | undefined {
   const { code, statusCode } = (error ?? {}) as { code?: unknown; statusCode?: unknown }
   if (typeof code !== 'string' || !code.startsWith('FST_')) return undefined
   if (typeof statusCode !== 'number' || statusCode < 400 || statusCode >= 500)
@@ -292,7 +304,7 @@ function question(row: PendingAction): Pick<ErrorEnvelope['error'], 'pendingActi
   return {}
 }
 
-function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
+function mapError(error: unknown): { status: number; body: UnsentRefusal } {
   const refusal = frameworkRefusal(error)
   if (refusal !== undefined) return refusal
 

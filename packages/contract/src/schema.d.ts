@@ -2084,6 +2084,11 @@ export interface components {
                 message: string;
                 /** @description What to do about it. */
                 hint?: string;
+                /**
+                 * Format: uuid
+                 * @description This request’s id — the same as the `x-request-id` header. Quote it when you report a problem: it finds the platform’s own record of the request.
+                 */
+                requestId: string;
                 /** @description On SPEC_INVALID: each problem in manifest.yaml, with its path and code. */
                 details?: components["schemas"]["ManifestError"][];
                 /** @description On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs. */
@@ -7330,7 +7335,7 @@ export interface operations {
                      *       "openapi": "3.1.0",
                      *       "info": {
                      *         "title": "Manifest",
-                     *         "version": "1.5.0"
+                     *         "version": "1.6.0"
                      *       },
                      *       "paths": {}
                      *     }

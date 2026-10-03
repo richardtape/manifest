@@ -53,7 +53,8 @@ describe('a browser refused at /auth/* is shown a page (FE-17)', () => {
   it('shows a browser an unbound sign-in as a page; a non-browser caller keeps the envelope', async () => {
     const body = 'SAMLResponse=not-an-assertion&RelayState=abc'
     expectPage(await callback(BROWSER, body), 401, 'SAML_LOGIN_NOT_BOUND')
-    // The positive control, same request, no browser: the envelope, byte-for-byte as before.
+    // The positive control, same request, no browser: the envelope, as before — with the request's
+    // id (FE-30), the same as its header.
     const json = await callback('application/json', body)
     expect(json.statusCode).toBe(401)
     expect(json.headers['content-type']).toMatch(/^application\/json/)
@@ -62,6 +63,7 @@ describe('a browser refused at /auth/* is shown a page (FE-17)', () => {
         code: 'SAML_LOGIN_NOT_BOUND',
         message: 'sign-in could not be completed',
         hint: 'Start again at /auth/login. If it keeps failing, the control plane’s log has the reason.',
+        requestId: json.headers['x-request-id'],
       },
     })
     // And with no Accept at all (curl's default is */*): the envelope.

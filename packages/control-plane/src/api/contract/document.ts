@@ -54,11 +54,18 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * (FE-38) is first, and Task 5's close code `4401` and every later additive change that plan makes ride
  * on this one bump, once, because nothing is published between its tasks.
  *
+ * **`1.6.0` SINCE THE FACULTY-READY PLAN'S TASK 3 (2026-10-03)**, as that plan's Decision 1 has it:
+ * `ErrorEnvelope.error.requestId`, **REQUIRED** (FE-30, §20), and `x-request-id` on every answer.
+ * **The break, stated:** a client READING an envelope gains a field; a client or a fixture that
+ * BUILDS one against these types must now supply an id (the mock's fixtures did). Tasks 4, 5, 10, 12
+ * and 13 ride on this one bump — a limit's facts, the `__Host-` cookie names, the administrator's
+ * reason, the hint's words, `Token.mintedBy` — because nothing is published between its tasks.
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.5.0'
+export const CONTRACT_VERSION = '1.6.0'
 
 type JsonSchema = Record<string, unknown>
 

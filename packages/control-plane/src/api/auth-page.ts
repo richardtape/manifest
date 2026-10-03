@@ -27,6 +27,8 @@ interface Refusal {
   code: string
   message: string
   hint?: string | undefined
+  /** FE-30: the request's id, which `sendRefusal` always gives — the reference a person quotes. */
+  requestId?: string | undefined
 }
 
 const escape = (text: string): string =>
@@ -52,7 +54,9 @@ export function refusalPage(error: Refusal): string {
     `<h1>${escape(sentence)}</h1>`,
     ...(error.hint === undefined ? [] : [`<p>${escape(error.hint)}</p>`]),
     '<p><a href="/auth/login">Sign in again</a> · <a href="/">Go to the start</a></p>',
-    `<p><small>If you ask someone for help, tell them this code: <code>${escape(error.code)}</code></small></p>`,
+    error.requestId === undefined
+      ? `<p><small>If you ask someone for help, tell them this code: <code>${escape(error.code)}</code></small></p>`
+      : `<p><small>If you ask someone for help, tell them this code: <code>${escape(error.code)}</code>, and this reference: <code>${escape(error.requestId)}</code></small></p>`,
     '</main>',
     '</body>',
     '</html>',

@@ -116,6 +116,18 @@ export function Refusal({ error }: { error: unknown }) {
         </ul>
       )}
       {readiness !== undefined && <ReadinessItems items={readiness.items} />}
+      {/*
+        FE-30 (contract 1.6.0): THE REFERENCE A PERSON QUOTES — the request's id, which finds the
+        platform's own line for it. The envelope's, else the answer's header; nothing when the
+        answer carried neither (an edge's own 502).
+      */}
+      {error.requestId !== null && (
+        <p className="reference">
+          <small>
+            If you ask for help, quote this reference: <code>{error.requestId}</code>
+          </small>
+        </p>
+      )}
     </div>
   )
 }

@@ -283,6 +283,7 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
           code: 'TOKEN_ACTION_PENDING',
           message: 'a person must confirm this',
           pendingAction: fixtures.PENDING_ACTION,
+          requestId: '7e2d9c41-5b6a-4f3e-8d2c-1b0a9f8e7d6c',
         },
       },
       'deploy',

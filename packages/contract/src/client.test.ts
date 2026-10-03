@@ -80,6 +80,56 @@ describe('@manifest/contract', () => {
     server.close()
   })
 
+  it('carries the request id a person quotes: the envelope’s, else the header’s, else null (FE-30, 1.6.0)', async () => {
+    const fromBody = '0b7c1a52-3f0e-4d21-9a6e-2c3d4e5f6a7b'
+    const fromHeader = '7e2d9c41-5b6a-4f3e-8d2c-1b0a9f8e7d6c'
+    const server = http.createServer((req, res) => {
+      if (req.url === '/v1/me') {
+        res.writeHead(401, {
+          'content-type': 'application/json',
+          'x-request-id': fromBody,
+        })
+        res.end(
+          JSON.stringify({
+            error: { code: 'UNAUTHENTICATED', message: 'no', requestId: fromBody },
+          }),
+        )
+      } else if (req.url === '/v1/projects') {
+        // Not an envelope at all — an edge's own answer: the header is the only id there is.
+        res.writeHead(502, { 'x-request-id': fromHeader })
+        res.end()
+      } else {
+        res.writeHead(502)
+        res.end()
+      }
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`
+    const client = createManifestClient({ origin, session: 'x' })
+    const refusalOf = (result: Parameters<typeof unwrap>[0], operation: string) => {
+      try {
+        unwrap(result, operation)
+      } catch (error) {
+        const e = error as ManifestApiError
+        return { code: e.code, requestId: e.requestId }
+      }
+      throw new Error(`${operation} was not refused`)
+    }
+    expect(refusalOf(await client.GET('/v1/me'), 'getMe')).toEqual({
+      code: 'UNAUTHENTICATED',
+      requestId: fromBody,
+    })
+    expect(refusalOf(await client.GET('/v1/projects'), 'listProjects')).toEqual({
+      code: 'UNPARSEABLE',
+      requestId: fromHeader,
+    })
+    expect(refusalOf(await client.GET('/v1/blueprints'), 'listBlueprints')).toEqual({
+      code: 'UNPARSEABLE',
+      requestId: null,
+    })
+    server.close()
+  })
+
   it('sends a delegated token as a bearer, and NO Origin with it (D24, P5b Task 5)', async () => {
     const seen: Record<string, string | undefined>[] = []
     const server = http.createServer((req, res) => {

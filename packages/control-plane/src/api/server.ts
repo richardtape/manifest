@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import cookie from '@fastify/cookie'
 import websocket from '@fastify/websocket'
@@ -28,9 +29,9 @@ import {
 } from './rate-limit.js'
 import { assertSameOrigin } from './csrf.js'
 import { originOf } from './origins.js'
-import { sendRefusalPage, wantsRefusalPage } from './auth-page.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore, type WithholdOnReplay } from './idempotency.js'
+import { sendRefusal } from './refusal.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import type {
   CwlSignInProbe,
@@ -188,6 +189,8 @@ declare module 'fastify' {
      * `/auth/logout` is deliberately NOT exempt.
      */
     csrf?: 'exempt'
+    /** FE-30: set by `registerRoutes` for every contract route; `sendRefusal`'s line names it. */
+    operationId?: string
   }
   interface FastifyInstance {
     /**
@@ -214,16 +217,34 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: false,
     /**
+     * FE-30 (the faculty-ready plan's Task 3, Decision 2): a UUID per request — the reference a
+     * person quotes and the key to the platform's own line for it. Fastify's default is a
+     * per-process counter (`req-1`), useless as a reference. `requestIdHeader` stays OFF, so no
+     * client can put an id of its own into the platform's log.
+     */
+    genReqId: () => randomUUID(),
+    requestIdHeader: false,
+    /**
      * The two refusals Fastify's ROUTER sends itself — a malformed URL and a path parameter
      * over its 100-character limit — never reach `setErrorHandler` unless they are handed
      * over here. Without this both answered Fastify's own body, not the D23.7 envelope,
      * quoting the caller's path back (P5a sitting 6, measured on GET /v1/slugs/{slug}).
      */
-    frameworkErrors: (error, _request, reply) => {
+    frameworkErrors: (error, request, reply) => {
       const { status, body } = toErrorResponse(error)
-      // Typed loosely by Fastify here (no route, so no reply schema to resolve against).
-      void (reply as FastifyReply).status(status).send(body)
+      // Typed loosely by Fastify here (no route, so no reply schema to resolve against). No hook
+      // runs on this path, so `sendRefusal` setting `x-request-id` itself is what carries it.
+      void sendRefusal(request, reply as FastifyReply, status, body.error)
     },
+  })
+  /**
+   * FE-30: EVERY answer carries its request id, a success too. The FIRST `onRequest` hook, so a
+   * refusal thrown by any later one still has it — and `sendRefusal` sets it again for the two
+   * paths no hook reaches (Task 1's `[M2]`). Fastify's error path removes only `content-type` and
+   * `content-length`, so a header set here survives a refusal.
+   */
+  app.addHook('onRequest', async (request, reply) => {
+    void reply.header('x-request-id', request.id)
   })
   await app.register(cookie)
   // Before any route: its `onRoute` hook is what turns a route with a `wsHandler` into
@@ -360,13 +381,15 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
         message: 'a valid credential is required',
         hint: 'Sign in at /auth/login for a session, or send Authorization: Bearer <token> for an agent. A token that is unknown, revoked or expired is refused the same way.',
       }
-      // FE-17: a browser NAVIGATING to /auth/* is shown a page, never raw JSON.
-      if (wantsRefusalPage(request)) return sendRefusalPage(reply, 401, unauthenticated)
-      return reply.status(401).send({ error: unauthenticated })
+      // FE-17: a browser NAVIGATING to /auth/* is shown a page, never raw JSON — `sendRefusal`
+      // decides which.
+      return sendRefusal(request, reply, 401, unauthenticated)
     }
     const { status, body } = toErrorResponse(error)
     if (error instanceof RateLimitedError)
       reply.header('retry-after', String(error.retryAfterSeconds))
+    // FE-30: the refusal's own line FIRST, so the 500's lines below follow it with the same id.
+    const sent = sendRefusal(request, reply, status, body.error)
     if (status === 500) {
       // `console.error`, NOT `request.log.error`. This server is built with
       // `logger: false`, under which `request.log.error` EXISTS, accepts the call
@@ -383,6 +406,7 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
         JSON.stringify({
           level: 'error',
           msg: 'unhandled error',
+          requestId: request.id,
           method: request.method,
           url: request.url,
           error: (error as Error).message,
@@ -390,9 +414,7 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
       )
       console.error((error as Error).stack ?? error)
     }
-    // FE-17: a browser NAVIGATING to /auth/* is shown the refusal as a page, never raw JSON.
-    if (wantsRefusalPage(request)) return sendRefusalPage(reply, status, body.error)
-    return reply.status(status).send(body)
+    return sent
   })
 
   /**
@@ -403,14 +425,12 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
    * echoed without its query string and capped: it is the caller's own input.
    */
   app.setNotFoundHandler((request, reply) =>
-    reply.status(404).send({
-      error: {
-        code: 'ROUTE_NOT_FOUND',
-        message: `no route ${request.method} ${request.url.split('?')[0]!.slice(0, 200)}`,
-        hint:
-          'Every resource route is under /v1/ (D23.8). Signing in is /auth/login; ' +
-          '`GET /v1/openapi.json` lists every route.',
-      },
+    sendRefusal(request, reply, 404, {
+      code: 'ROUTE_NOT_FOUND',
+      message: `no route ${request.method} ${request.url.split('?')[0]!.slice(0, 200)}`,
+      hint:
+        'Every resource route is under /v1/ (D23.8). Signing in is /auth/login; ' +
+        '`GET /v1/openapi.json` lists every route.',
     }),
   )
 
