@@ -48,6 +48,11 @@ const ATTRIBUTES = ['ubcEduCwlPuid', 'mail', 'eduPersonAffiliation', 'givenName'
 /** §9's SP naming, `{platform-domain}/sp/{slug}/{env}` — `MANIFEST_SP_ENTITY_BASE` on a laptop. */
 const ENTITY_ID = `https://manifest.internal/sp/${SLUG}/production`
 const PRODUCTION_HOST = `${SLUG}.manifest.internal`
+/**
+ * Why the operator acts on the instructor's app, which they are not a member of (§26; the faculty-ready
+ * plan's Task 10) — asked of the rehearsal; approving and recording are an administrator's own duties.
+ */
+const ADMIN_REASON = 'Rehearsing the launch the instructor asked for'
 /** Past the builder's own 900 s timeout, as the journey's bound is. */
 const BUILD_ENDS_WITHIN_MS = 960_000
 
@@ -540,10 +545,16 @@ async function step5Rehearsal(): Promise<void> {
   )
   const plain = clientFor('MANIFEST_ADMIN_SESSION')
   const before = await productionInstanceIds(plain)
+  // THE OPERATOR IS NOT A MEMBER OF launch-app, so they say why (§26; the faculty-ready plan's Task
+  // 10) — the reason comes before the step-up, and without it this would be `400
+  // ADMIN_REASON_REQUIRED`.
   const refusedAttempt = await plain.POST('/v1/projects/{projectId}/rehearsal', {
     params: {
       path: { projectId: state.projectId! },
-      header: { 'Idempotency-Key': idempotencyKey() },
+      header: {
+        'Idempotency-Key': idempotencyKey(),
+        'Manifest-Admin-Reason': ADMIN_REASON,
+      },
     },
   })
   checks.ok(
@@ -564,7 +575,10 @@ async function step5Rehearsal(): Promise<void> {
     await admin.POST('/v1/projects/{projectId}/rehearsal', {
       params: {
         path: { projectId: state.projectId! },
-        header: { 'Idempotency-Key': idempotencyKey() },
+        header: {
+          'Idempotency-Key': idempotencyKey(),
+          'Manifest-Admin-Reason': ADMIN_REASON,
+        },
       },
     }),
     'runRehearsal',

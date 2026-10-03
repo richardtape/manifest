@@ -2074,7 +2074,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_NOT_NEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_DRAFT_CHANGED" | "LAUNCH_DRAFT_REQUIRED" | "LAUNCH_DRAFT_STALE" | "LAUNCH_NOT_CWL" | "LAUNCH_PIA_NOT_APPROVED" | "LAUNCH_RECORD_INVALID" | "LAUNCH_RECORD_SUBMITTED" | "LAUNCH_SENT_AT_INVALID" | "LAUNCH_STAGING_NOT_REGISTERED" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_REJECTED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "ADMIN_REASON_REQUIRED" | "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_NOT_NEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_DRAFT_CHANGED" | "LAUNCH_DRAFT_REQUIRED" | "LAUNCH_DRAFT_STALE" | "LAUNCH_NOT_CWL" | "LAUNCH_PIA_NOT_APPROVED" | "LAUNCH_RECORD_INVALID" | "LAUNCH_RECORD_SUBMITTED" | "LAUNCH_SENT_AT_INVALID" | "LAUNCH_STAGING_NOT_REGISTERED" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_REJECTED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape: a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -2100,6 +2100,15 @@ export interface components {
                 /** @description On AGENT_SESSION_ALREADY_STARTED and INTAKE_SESSION_ALREADY_STARTED: the session this request already started. */
                 session?: components["schemas"]["StartedSession"];
             };
+        };
+        /** @description Who acted on a project: the person, and — when a platform administrator who is not a member used an owner’s capability — that they did, and why. */
+        EventActor: {
+            /** @description The person whose request caused this — for a delegated token, the person who minted it. Never a PUID. */
+            name: string;
+            /** @description True when a platform administrator who is not a member of the project acted with an owner’s capability, and so gave `reason`. False for everyone else — an administrator approving a release, recording UBC’s answers or acting as a member of the project included. */
+            asAdministrator: boolean;
+            /** @description Why the administrator acted, in their own words, redacted like every event: present exactly when `asAdministrator` is true, otherwise null. */
+            reason: string | null;
         };
         /** @description An audit Event, as recorded and redacted at capture. Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect. */
         EventFrame: {
@@ -2145,6 +2154,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2182,6 +2193,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2224,6 +2237,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2266,6 +2281,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2308,6 +2325,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2366,6 +2385,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2424,6 +2445,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2482,6 +2505,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2542,6 +2567,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2595,6 +2622,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2640,6 +2669,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2684,6 +2715,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2728,6 +2761,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2774,6 +2809,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2826,6 +2863,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2865,6 +2904,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2909,6 +2950,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2954,6 +2997,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -2999,6 +3044,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3049,6 +3096,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3101,6 +3150,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3156,6 +3207,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3205,6 +3258,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3245,6 +3300,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3287,6 +3344,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3324,6 +3383,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3370,6 +3431,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3407,6 +3470,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3454,6 +3519,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3499,6 +3566,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3544,6 +3613,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3589,6 +3660,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3634,6 +3707,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3673,6 +3748,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3712,6 +3789,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3757,6 +3836,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3803,6 +3884,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3838,6 +3921,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3875,6 +3960,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3930,6 +4017,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -3972,6 +4061,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4024,6 +4115,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4076,6 +4169,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4125,6 +4220,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4182,6 +4279,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4236,6 +4335,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4295,6 +4396,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4349,6 +4452,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4404,6 +4509,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4439,6 +4546,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4484,6 +4593,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4529,6 +4640,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
              * @description An audit event.
@@ -4574,6 +4687,8 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
         };
         /** @description The fleet — every project, active or archived, but none deleted — for administrators only. It does not carry a project’s department, custom domains or AI spend this month. */
         Fleet: {
@@ -6325,6 +6440,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The agent session’s id, from `startAgentSession` or `listAgentSessions`. */
@@ -6370,7 +6487,7 @@ export interface operations {
                     "application/json": components["schemas"]["AgentSession"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6779,6 +6896,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The environment’s id, from `listEnvironments` — one each for sandbox, staging and production. */
@@ -6817,7 +6936,7 @@ export interface operations {
                     "application/json": components["schemas"]["Instance"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -6996,6 +7115,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The environment whose secrets these are. */
@@ -7033,7 +7154,7 @@ export interface operations {
                     "application/json": components["schemas"]["AppSecretStatus"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7050,6 +7171,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The environment whose secrets these are. */
@@ -7078,7 +7201,7 @@ export interface operations {
                     "application/json": components["schemas"]["AppSecretStatus"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SECRET_NAME_RESERVED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7504,6 +7627,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`. */
@@ -7546,7 +7671,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7563,6 +7688,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The pending action’s id, from `listPendingActions` or a `TOKEN_ACTION_PENDING` refusal’s `pendingAction`. */
@@ -7609,7 +7736,7 @@ export interface operations {
                     "application/json": components["schemas"]["PendingAction"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7911,6 +8038,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -7937,7 +8066,7 @@ export interface operations {
                     "application/json": components["schemas"]["DeletedProject"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAUNCHED_NOT_DELETABLE, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_PROVIDER_MISMATCH, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAUNCHED_NOT_DELETABLE, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_PROVIDER_MISMATCH, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -7954,6 +8083,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -8013,7 +8144,7 @@ export interface operations {
                     "application/json": components["schemas"]["Project"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8122,6 +8253,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -8185,7 +8318,7 @@ export interface operations {
                     "application/json": components["schemas"]["AgentSessionStarted"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AGENT_BUDGET_EXHAUSTED, AGENT_NO_MODEL_FOR_CLASSIFICATION, AGENT_SESSION_ALREADY_STARTED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AGENT_BUDGET_EXHAUSTED, AGENT_NO_MODEL_FOR_CLASSIFICATION, AGENT_SESSION_ALREADY_STARTED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8202,6 +8335,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -8257,7 +8392,7 @@ export interface operations {
                     "application/json": components["schemas"]["Project"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_TEARDOWN_INCOMPLETE, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8368,6 +8503,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -8407,7 +8544,7 @@ export interface operations {
                     "application/json": components["schemas"]["Build"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, SOURCE_UNREACHABLE, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REPOSITORY_PUBLIC, SOURCE_UNREACHABLE, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -8503,6 +8640,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project whose repository is read. */
@@ -8566,7 +8705,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommitOutcome"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_CONFLICT, SOURCE_GIT_FAILED, SOURCE_NOTHING_TO_COMMIT, SOURCE_PATH_CONFLICT, SOURCE_PATH_ESCAPE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, SPEC_INVALID, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_CONFLICT, SOURCE_GIT_FAILED, SOURCE_NOTHING_TO_COMMIT, SOURCE_PATH_CONFLICT, SOURCE_PATH_ESCAPE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_SECRET_DETECTED, SOURCE_UNREACHABLE, SPEC_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9069,6 +9208,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description Which registration to draft: `staging` or `production`. */
@@ -9170,7 +9311,7 @@ export interface operations {
                     "application/json": components["schemas"]["IamRegistration"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_NOT_CWL, LAUNCH_RECORD_SUBMITTED, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_NOT_CWL, LAUNCH_RECORD_SUBMITTED, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9187,6 +9328,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description Which registration was sent: `staging` or `production`. */
@@ -9301,7 +9444,7 @@ export interface operations {
                     "application/json": components["schemas"]["IamRegistration"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_DRAFT_STALE, LAUNCH_PIA_NOT_APPROVED, LAUNCH_SENT_AT_INVALID, LAUNCH_STAGING_NOT_REGISTERED, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_DRAFT_STALE, LAUNCH_PIA_NOT_APPROVED, LAUNCH_SENT_AT_INVALID, LAUNCH_STAGING_NOT_REGISTERED, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9533,6 +9676,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -9718,7 +9863,7 @@ export interface operations {
                     "application/json": components["schemas"]["PrivacyAssessment"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_SUBMITTED, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_SUBMITTED, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9735,6 +9880,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -9933,7 +10080,7 @@ export interface operations {
                     "application/json": components["schemas"]["PrivacyAssessment"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_SENT_AT_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_SENT_AT_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10002,6 +10149,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -10040,7 +10189,7 @@ export interface operations {
                     "application/json": components["schemas"]["Member"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_MAY_NOT_BUILD, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_MAY_NOT_BUILD, MEMBER_USER_AMBIGUOUS, MEMBER_USER_NOT_FOUND, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10057,6 +10206,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -10089,7 +10240,7 @@ export interface operations {
                     "application/json": components["schemas"]["MemberList"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_CATALOGUE_DISABLED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10176,6 +10327,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -10220,7 +10373,7 @@ export interface operations {
                     "application/json": components["schemas"]["Rehearsal"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, REHEARSAL_RUNNING, REHEARSAL_TEARDOWN_FAILED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, REHEARSAL_RUNNING, REHEARSAL_TEARDOWN_FAILED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10463,6 +10616,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -10593,7 +10748,7 @@ export interface operations {
                     "application/json": components["schemas"]["Release"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10610,6 +10765,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -10665,7 +10822,7 @@ export interface operations {
                     "application/json": components["schemas"]["Project"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10762,6 +10919,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -10809,7 +10968,7 @@ export interface operations {
                     "application/json": components["schemas"]["SpecValidation"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -10892,6 +11051,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The project’s id, from `listProjects` or `createProject`. */
@@ -10945,7 +11106,7 @@ export interface operations {
                     "application/json": components["schemas"]["MintedToken"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ALREADY_MINTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ALREADY_MINTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -11470,6 +11631,8 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                "Manifest-Admin-Reason"?: string;
             };
             path: {
                 /** @description The release’s id, from `createRelease` or `listReleases`. */
@@ -11511,7 +11674,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalRequest"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: APPROVAL_NOT_NEEDED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_NOT_STAGED, RELEASE_REJECTED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, APPROVAL_NOT_NEEDED, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_NOT_STAGED, RELEASE_REJECTED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

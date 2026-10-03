@@ -939,7 +939,8 @@ describe('POST /v1/projects/:id/spec', () => {
           valid: true,
           errorCount: 0,
         },
-        humanMessage: "chem-labs's manifest.yaml is valid.",
+        // Who checked it (the faculty-ready plan's Task 10): the owner's request.
+        humanMessage: "chem-labs's manifest.yaml is valid, checked by Bio Prof.",
       },
     ])
     await app.close()
@@ -993,7 +994,7 @@ describe('POST /v1/projects/:id/spec', () => {
           valid: false,
           errorCount: body.errors.length,
         },
-        humanMessage: `chem-labs's manifest.yaml has ${body.errors.length} problem(s) to fix.`,
+        humanMessage: `chem-labs's manifest.yaml has ${body.errors.length} problem(s) to fix, checked by Bio Prof.`,
       },
     ])
     expect(body.errors.length).toBeGreaterThan(0)

@@ -10,6 +10,7 @@ import {
   RELEASE_ID,
   STAGING_ID,
   STAGING_REGISTRATION,
+  ME,
 } from './fixtures.js'
 
 /**
@@ -52,6 +53,14 @@ export const SCAN_SILENCE_MS = 10_000
 const ISO = '2026-09-18T09:00:00.000Z'
 const COMMIT = '5f3c1b8e2a4d6f7c9b0e1a2d3c4b5a6978e9f0a1'
 
+/**
+ * WHO ACTED, on every event (`EventFrame.actor`; the faculty-ready plan's Task 10): the signed-in
+ * instructor, who owns the mock's one project — so never as an administrator, and with no reason.
+ * Events the platform publishes for work a request started (a build's end, a deploy's health) name
+ * the person who started it too.
+ */
+const BY_ME = { name: ME.displayName, asAdministrator: false, reason: null } as const
+
 /** Event ids are uuids like everything else; the stream's own `id` is what de-duplicates. */
 const eventId = (n: number): string =>
   `cccccccc-cccc-4ccc-8ccc-${String(n).padStart(12, '0')}`
@@ -82,6 +91,7 @@ export const REPLAY: StreamFrame[] = [
       audience: { scale: 'class', burst: 'synchronised' },
     },
     createdAt: ISO,
+    actor: BY_ME,
   },
   {
     kind: 'event',
@@ -92,6 +102,7 @@ export const REPLAY: StreamFrame[] = [
     humanMessage: 'The repository was seeded with the proof-app starter.',
     machineDetail: { commitSha: COMMIT, files: 24, starter: 'proof-app' },
     createdAt: ISO,
+    actor: BY_ME,
   },
   {
     kind: 'event',
@@ -99,7 +110,7 @@ export const REPLAY: StreamFrame[] = [
     projectId: PROJECT_ID,
     subject: `project:${PROJECT_ID}`,
     type: 'spec.validated',
-    humanMessage: 'manifest.yaml is valid.',
+    humanMessage: "mock-app's manifest.yaml is valid, checked by Instructor One.",
     machineDetail: {
       appSpecId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       commitSha: COMMIT,
@@ -107,6 +118,7 @@ export const REPLAY: StreamFrame[] = [
       errorCount: 0,
     },
     createdAt: ISO,
+    actor: BY_ME,
   },
 ]
 
@@ -149,6 +161,7 @@ const instanceFrame = (
     state,
   },
   createdAt: ISO,
+  actor: BY_ME,
 })
 
 /**
@@ -170,13 +183,14 @@ export function scripted(
         projectId: PROJECT_ID,
         subject: `build:${BUILD_ID}`,
         type: 'build.started',
-        humanMessage: 'Building mock-app.',
+        humanMessage: 'Building mock-app at commit 5f3c1b8, started by Instructor One.',
         machineDetail: {
           buildId: BUILD_ID,
           commitSha: COMMIT,
           blueprintRef: 'node-ts-mongo@1',
         },
         createdAt: ISO,
+        actor: BY_ME,
       },
     },
   ]
@@ -202,6 +216,7 @@ export function scripted(
         imageRepository: '127.0.0.1:7107/local/mock-app',
       },
       createdAt: ISO,
+      actor: BY_ME,
     },
   })
 
@@ -211,7 +226,7 @@ export function scripted(
       12,
       'instance.provisioning',
       'provisioning',
-      'Provisioning mock-app in staging.',
+      'Preparing mock-app in staging, deployed by Instructor One.',
     ),
   })
   frames.push({
@@ -235,6 +250,7 @@ export function scripted(
         changed: true,
       },
       createdAt: ISO,
+      actor: BY_ME,
     },
   })
   frames.push({
@@ -262,6 +278,7 @@ export function scripted(
           failedCheck: 'GET /healthz from inside the edge',
         },
         createdAt: ISO,
+        actor: BY_ME,
       },
     })
     frames.push({
@@ -280,6 +297,7 @@ export function scripted(
           environment: 'staging',
         },
         createdAt: ISO,
+        actor: BY_ME,
       },
     })
   } else {

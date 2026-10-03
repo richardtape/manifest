@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm'
-import { events, type Db } from '../db/index.js'
+import { events, users, type Db } from '../db/index.js'
 import type { StoredBuildLogLine } from './build-logs.js'
 import { EventError, recordEvent, type Event, type EventInput } from './events.js'
 import type { Redactor } from './redact.js'
@@ -27,6 +27,8 @@ export type StreamFrame =
       humanMessage: string
       machineDetail: unknown
       createdAt: string
+      /** Who acted, and — for an administrator on somebody else's project — why (§26). */
+      actor: EventActor | null
     }
   | {
       kind: 'log'
@@ -52,6 +54,21 @@ export const MAX_BUFFERED_BYTES = 1_048_576
 /** How many recorded events a new connection is replayed. */
 export const REPLAY_LIMIT = 50
 
+/**
+ * WHO ACTED, as the project's people read it (§26 and §6's Event as Spec action 1 amended them; the
+ * faculty-ready plan's Task 10): the person — for a delegated token, the person who minted it — and,
+ * when a platform administrator who is not a member acted with an owner's capability, that they did
+ * and why.
+ */
+export interface EventActor {
+  name: string
+  asAdministrator: boolean
+  reason: string | null
+}
+
+/** What a sentence says for a person whose name is blank — the rule `projects/` names people by. */
+const NOBODY_NAMED = 'A Manifest user'
+
 /** An `events` row as a frame. The one producer of that shape. */
 export function eventFrame(event: Event): StreamFrame {
   return {
@@ -63,6 +80,17 @@ export function eventFrame(event: Event): StreamFrame {
     humanMessage: event.humanMessage,
     machineDetail: event.machineDetail,
     createdAt: event.createdAt.toISOString(),
+    actor:
+      event.actorUserId === null
+        ? null
+        : {
+            name:
+              event.actorName === null || event.actorName.trim() === ''
+                ? NOBODY_NAMED
+                : event.actorName,
+            asAdministrator: event.actedAsAdmin,
+            reason: event.reason,
+          },
   }
 }
 
@@ -206,11 +234,16 @@ export async function recentFramesFor(
       `a replay is a whole number of events of at least 1, not ${limit}`,
     )
   }
+  // The actor's name is read where it is kept (§26; the faculty-ready plan's Task 10), so the replay a
+  // reconnecting client reads names who acted exactly as the live frame did.
   const newestFirst = await db
-    .select()
+    .select({ event: events, actorName: users.displayName })
     .from(events)
+    .leftJoin(users, eq(users.id, events.actorUserId))
     .where(eq(events.projectId, projectId))
     .orderBy(desc(events.createdAt), desc(events.id))
     .limit(limit)
-  return newestFirst.reverse().map(eventFrame)
+  return newestFirst
+    .reverse()
+    .map(({ event, actorName }) => eventFrame({ ...event, actorName }))
 }

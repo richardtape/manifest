@@ -2,7 +2,8 @@ import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { projectMembers, projects } from '../db/index.js'
 import { isSteppedUp } from '../identity/index.js'
-import { AuthorizationError } from './errors.js'
+import { actingContext, ADMIN_REASON_MAX } from '../observability/acting.js'
+import { AdminReasonRequiredError, AuthorizationError } from './errors.js'
 import { projectStateRefusal } from './state.js'
 
 export type ProjectRole = 'owner' | 'collaborator'
@@ -484,14 +485,22 @@ const COLLABORATOR: readonly Capability[] = OWNER.filter(
     cap !== 'members:manage' && cap !== 'project:delete' && cap !== 'release:promote',
 )
 
-// §13: the platform admin approves releases, sets quotas, and sees the whole fleet — and
-// since P6a Task 6 records what UBC IAM and the Privacy Office said (§9, R1).
-const PLATFORM_ADMIN: readonly Capability[] = [
-  ...OWNER,
+/**
+ * §13: the platform admin approves releases, sets quotas, and sees the whole fleet — and since P6a
+ * Task 6 records what UBC IAM and the Privacy Office said (§9, R1). THE ADMINISTRATOR'S OWN DUTIES:
+ * theirs by definition, so §26 asks no reason for them (Spec action 1; the faculty-ready plan's Task
+ * 10) — and a question an agent asked about one of them (`quota:set`) is answered on that duty too.
+ */
+export const ADMIN_DUTIES: readonly Capability[] = [
   'release:approve',
   'launch:record',
   'quota:set',
 ]
+
+const PLATFORM_ADMIN: readonly Capability[] = [...OWNER, ...ADMIN_DUTIES]
+
+/** A read is not an action (§26 as Spec action 1 worded it): reading asks nobody for a reason. */
+const READS: readonly Capability[] = ['project:read', 'output:read']
 
 export function capabilitiesFor(
   projectRole: ProjectRole | null,
@@ -504,7 +513,7 @@ export function capabilitiesFor(
 }
 
 // Its own file, so `state.ts` can answer a deleted project's `NOT_FOUND` without importing this one.
-export { AuthorizationError }
+export { AdminReasonRequiredError, AuthorizationError }
 
 /**
  * D24's central refusal: a delegated token asked for one of `PRIVILEGED`.
@@ -688,10 +697,10 @@ export async function assertCapability(
     throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
   }
 
-  const projectRole =
-    actor.platformRole === 'admin'
-      ? null
-      : await membershipOf(db, actor.userId, projectId)
+  // FOR AN ADMINISTRATOR TOO (the faculty-ready plan's Task 10): their authority is their platform
+  // role whatever this says, but §26 asks whether the project is somebody else's — and only this
+  // read can answer it.
+  const projectRole = await membershipOf(db, actor.userId, projectId)
   if (actor.platformRole !== 'admin' && projectRole === null) {
     throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
   }
@@ -708,6 +717,8 @@ export async function assertCapability(
         : 'Only a platform administrator may do this. Ask one to do it, or to tell you who can.',
     )
   }
+
+  requireAdminReason(actor, projectRole, capability)
 
   /**
    * §11's *Ending an app* (Decision 27): an archived project can be READ, and archived again —
@@ -735,4 +746,60 @@ export async function assertCapability(
  */
 export function refusedWhenArchived(capability: Capability): boolean {
   return capability !== 'project:read' && capability !== 'project:delete'
+}
+
+/**
+ * §26's NON-REPUDIATION (Spec action 1; the faculty-ready plan's Task 10): whether a platform
+ * administrator who is NOT a member of the project, using this capability on it in a mutating request,
+ * must say why — an owner's capability that is not a read. An administrator's own duties
+ * (`ADMIN_DUTIES`) are not an owner's, so never. ONE PREDICATE, READ TWICE, like `refusedWhenArchived`:
+ * `assertCapability` refuses by it, and `api/contract/document.ts` declares `400
+ * ADMIN_REASON_REQUIRED` and the header on every mutating operation whose `capability` it holds for —
+ * and `authz-contract.ts` holds what is declared to what is answered.
+ */
+export function refusedWithoutAdminReason(capability: Capability): boolean {
+  return (
+    OWNER.includes(capability) &&
+    !READS.includes(capability) &&
+    !ADMIN_DUTIES.includes(capability)
+  )
+}
+
+/**
+ * AFTER the capability check, so a stranger is still a stranger and a collaborator still `FORBIDDEN`
+ * before anybody is asked why; BEFORE the archived state, so an administrator who gave no reason is
+ * told that first, whatever the project's state — the reason is part of the request, as its
+ * Idempotency-Key is. Only inside a mutating `/v1` request (`actingContext`, which `registerRoutes`
+ * enters for nothing else): a read is not an action. A member — an administrator who is one included —
+ * acts as a member, and is recorded as one.
+ */
+function requireAdminReason(
+  actor: SessionActor,
+  projectRole: ProjectRole | null,
+  capability: Capability,
+): void {
+  const acting = actingContext.getStore()
+  if (
+    acting === undefined ||
+    acting.userId !== actor.userId ||
+    actor.platformRole !== 'admin' ||
+    projectRole !== null ||
+    !refusedWithoutAdminReason(capability)
+  )
+    return
+  const hint = `Send why in the Manifest-Admin-Reason header — 1 to ${ADMIN_REASON_MAX} characters, percent-encoded as UTF-8 when it is not plain ASCII. The project's people read it beside your name.`
+  if (acting.offeredReason === null) {
+    throw new AdminReasonRequiredError(
+      `you are a platform administrator and not a member of this project, so '${capability}' on it needs a reason`,
+      hint,
+    )
+  }
+  if (acting.offeredReason.length > ADMIN_REASON_MAX) {
+    throw new AdminReasonRequiredError(
+      `the reason is ${acting.offeredReason.length} characters; at most ${ADMIN_REASON_MAX} are kept`,
+      hint,
+    )
+  }
+  acting.asAdmin = true
+  acting.reason = acting.offeredReason
 }

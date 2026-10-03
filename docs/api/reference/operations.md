@@ -246,6 +246,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
@@ -485,6 +486,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `AGENT_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset — `limit.resetsAt` says when, `null` if the AI gateway does not say — or ask a platform administrator to raise this person’s agent budget. |
 | `AGENT_NO_MODEL_FOR_CLASSIFICATION` | 409 | Ask a platform administrator to approve a model for this classification in the catalogue. The classification is the newest valid manifest’s, and never less restrictive than production’s release. |
 | `AGENT_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names in `session` (`endAgentSession` with its `id`) and start another with a new Idempotency-Key. |
@@ -744,6 +746,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
@@ -1040,6 +1043,7 @@ Answer, `202`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
 | `BLUEPRINT_NOT_FOUND` | 400 | Choose one from `listBlueprints` and name it `name@major`. |
@@ -1403,6 +1407,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `BLUEPRINT_NOT_FOUND` | 400 | Choose one from `listBlueprints` and name it `name@major`. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
@@ -2441,6 +2446,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -2569,6 +2575,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -2980,6 +2987,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
@@ -3194,6 +3202,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3252,6 +3261,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
@@ -3310,6 +3320,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `APPROVAL_NOT_NEEDED` | 409 | Nothing to ask for: read the launch checklist (`getLaunchReadiness`) for what is still unmet, and deploy to production once it is ready. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
@@ -3410,6 +3421,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -3468,6 +3480,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -3902,6 +3915,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -3938,6 +3952,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -4008,6 +4023,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -4139,6 +4155,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -4187,6 +4204,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `AI_CATALOGUE_DISABLED` | 503 | Ask an administrator to switch AI on. A build or release can go on without AI: remove `ai.models` from manifest.yaml. A member removal or a token revocation answered this has already happened: repeat it once AI is back on, to end the agent sessions it left. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
@@ -4258,6 +4276,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -4385,6 +4404,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
@@ -4515,6 +4535,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -4555,6 +4576,7 @@ Answer, `200`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |
@@ -4704,6 +4726,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `AI_BACKEND_UNAVAILABLE` | 503 | Retry later: the AI gateway did not answer. |
 | `AI_CATALOGUE_EMPTY` | 503 | Retry later, or ask an administrator: the AI gateway lists no models, so none can be declared or checked. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
@@ -5006,6 +5029,7 @@ Answer, `201`:
 
 | Error | Status | What to do |
 |---|---|---|
+| `ADMIN_REASON_REQUIRED` | 400 | Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none. |
 | `CSRF_ORIGIN_REFUSED` | 403 | Send `Origin` naming the origin the request is sent to — a browser does this itself, and `hint` names it. A session is its own origin’s: one set on the other origin is not a session here. A program that is not a browser sends a delegated token rather than a session cookie; a token needs no Origin. |
 | `FORBIDDEN` | 403 | Ask one of the project’s owners (`listMembers` names them) for a role that holds this capability — or, for a token, mint one that holds it (`mintToken`). |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action. |

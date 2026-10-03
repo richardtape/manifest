@@ -1,4 +1,5 @@
 import {
+  AdminReasonRequiredError,
   AuthorizationError,
   ProjectStateError,
   SlugRefusedError,
@@ -351,6 +352,24 @@ function mapError(error: unknown): { status: number; body: UnsentRefusal } {
                   'Ask a project owner to grant you the role this action needs.',
               }
             : {}),
+        },
+      },
+    }
+  }
+
+  /**
+   * §26's REASON (Spec action 1; the faculty-ready plan's Task 10): an administrator who is not a
+   * member of the project used an owner's capability on it without saying why. 400: the request is
+   * missing a part this person's request needs, as a mutation without its Idempotency-Key is.
+   */
+  if (error instanceof AdminReasonRequiredError) {
+    return {
+      status: 400,
+      body: {
+        error: {
+          code: 'ADMIN_REASON_REQUIRED',
+          message: error.message,
+          hint: error.hint,
         },
       },
     }

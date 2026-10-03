@@ -23,6 +23,7 @@ import {
   makeRedactor,
   publishEvent,
   type EventBus,
+  withActor,
 } from '../observability/index.js'
 import { nextState } from '../runtime/index.js'
 import type { InjectedService, InjectionContext, ResolvedConfig } from '../spec/index.js'
@@ -447,7 +448,11 @@ export async function deployRelease(
         subject: `instance:${instanceId}`,
         type: 'instance.provisioning',
         machineDetail: instanceDetail0,
-        humanMessage: `Preparing ${projectSlug} in ${environment.kind}.`,
+        // Who deployed (§26; the faculty-ready plan's Task 10): the acting context names them.
+        humanMessage: withActor(
+          `Preparing ${projectSlug} in ${environment.kind}`,
+          'deployed by',
+        ),
       },
       makeRedactor([]),
     )

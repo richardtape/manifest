@@ -726,7 +726,11 @@ describe('the delivery routes', () => {
       // Stepped up since the launch path plan's Task 6c (§20): an ordinary session is refused
       // `STEP_UP_REQUIRED` before the candidate is looked for.
       cookies: await loginAs(deps, 'platform_admin', { steppedUp: true }),
-      headers: mutationHeaders(deps),
+      // An administrator who is not a member says why (§26; the faculty-ready plan's Task 10).
+      headers: {
+        ...mutationHeaders(deps),
+        'manifest-admin-reason': 'checking the rehearsal',
+      },
     })
     expect(refused.statusCode, refused.body).toBe(409)
     expect(refused.json().error.code).toBe('REHEARSAL_NO_CANDIDATE')
@@ -1437,7 +1441,16 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
       method: 'POST',
       url: `/v1/projects/${ctx.project.id}/rehearsal`,
       ...('cookies' in credential
-        ? { cookies: credential.cookies, headers: mutationHeaders(ctx.deps) }
+        ? {
+            cookies: credential.cookies,
+            // An administrator who is not a member says why (§26; the faculty-ready plan's Task 10);
+            // anyone else's reason is ignored, so every session sends one and each case still
+            // answers what it always did.
+            headers: {
+              ...mutationHeaders(ctx.deps),
+              'manifest-admin-reason': 'the rehearsal tests',
+            },
+          }
         : {
             headers: {
               authorization: `Bearer ${credential.bearer}`,

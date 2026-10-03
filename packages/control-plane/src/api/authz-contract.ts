@@ -7,6 +7,7 @@ import { ensureTestUser } from '../identity/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
 import {
   addMember,
+  removeMember,
   TokenCapabilityRefusedError,
   type Capability,
 } from '../projects/index.js'
@@ -272,6 +273,13 @@ interface Fixture {
    * another's archive.
    */
   throwaway: () => Promise<string>
+  /**
+   * WHETHER `platform_admin` IS A MEMBER — of the fixture, and of every throwaway (the faculty-ready
+   * plan's Task 10). True for every row: the table's `admin` is an administrator who is a member, and
+   * §26 asks such a person no reason. The reason measurement at the end takes them off the fixture and
+   * sets this false, so the throwaways it asks for are somebody else's too.
+   */
+  adminIsMember: boolean
   /**
    * Makes the fixture project `confidential` — a newer VALID manifest saying so, written once, which is
    * what `classificationFloor` reads (the front-end enablement plan's Task 14a). ONLY the last row calls
@@ -2585,8 +2593,17 @@ export function describeAuthorizationContract(
             (await ensureTestUser(deps.db, 'bio_student')).id,
             'collaborator',
           )
+          // The table's administrator is a member wherever it acts (`adminIsMember`).
+          if (fixture.adminIsMember)
+            await addMember(
+              deps.db,
+              id,
+              (await ensureTestUser(deps.db, 'platform_admin')).id,
+              'collaborator',
+            )
           return id
         },
+        adminIsMember: true,
         buildId: build.json().id,
         releaseId: release.json().id,
         // Set below, once the preview is taken — after the collaborator is made a member.
@@ -2909,6 +2926,106 @@ export function describeAuthorizationContract(
       })
       expect(read.statusCode, read.body).toBe(200)
       expect(declared).toEqual([...answered].sort())
+    }, 60_000)
+
+    /**
+     * §26'S REASON, DECLARED EXACTLY WHERE IT IS ANSWERED (the faculty-ready plan's Task 10, Decision
+     * 15) — `PROJECT_ARCHIVED`'s measurement above, for `400 ADMIN_REASON_REQUIRED`. `document.ts`
+     * derives the code and the `Manifest-Admin-Reason` header from each route's `capability` through
+     * `refusedWithoutAdminReason`, the predicate `assertCapability` refuses by; THIS asks every row as
+     * an administrator who is NOT a member, without the header, and holds the operations that answered
+     * the refusal to the ones the published document says can — and to sitting 1's `[M5]`, the 24
+     * mutations measured from the code before any of this was built. Then each of them again WITH a
+     * reason, which none may answer.
+     *
+     * **`platform_admin` IS A MEMBER EVERYWHERE ABOVE** (the removal row's target, never removed: the
+     * step-up refuses it), so the table's `admin` column is an administrator who is a member, asked no
+     * reason — the matrix's "member administrator without it" column, on every row. Taken off the
+     * fixture HERE. **AFTER THE ARCHIVE, AND THE ORDER IS LOAD-BEARING**: the refusal comes before the
+     * archived state, so without a reason every row still answers it, and with one an archived project
+     * refuses every change — so nothing this measurement asks can move anything the rows above read.
+     */
+    it('declares ADMIN_REASON_REQUIRED on exactly the operations that ask an administrator who is not a member for a reason — the 24 [M5] measured', async () => {
+      const admin = await ensureTestUser(deps.db, 'platform_admin')
+      expect(await removeMember(deps.db, fixture.projectId, admin.id)).toBe('removed')
+      fixture.adminIsMember = false
+      const document = openApiDocument(ROUTE_DEFINITIONS) as {
+        paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
+      }
+      const operationOf = new Map(
+        ROUTE_DEFINITIONS.map((route) => [
+          `${route.method} ${fastifyPath(route.path)}`,
+          route.operationId,
+        ]),
+      )
+      const ask = async (route: RouteCase, reason?: string) => {
+        const { url, payload } = await route.request(fixture, 'admin')
+        const response = await app.inject({
+          method: route.method as 'GET',
+          url,
+          headers: {
+            ...mutationHeaders(deps),
+            ...(reason === undefined ? {} : { 'manifest-admin-reason': reason }),
+          },
+          ...(payload === undefined ? {} : { payload }),
+          cookies: cookies.admin!,
+        })
+        return codeOf(response.body)
+      }
+      const answered = new Set<string>()
+      const asking: RouteCase[] = []
+      // `/auth/` addresses no project, and asking it would sign the administrator out.
+      for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
+        if ((await ask(route)) !== 'ADMIN_REASON_REQUIRED') continue
+        answered.add(
+          operationOf.get(`${route.method} ${route.url}`) ??
+            `${route.method} ${route.url}`,
+        )
+        asking.push(route)
+      }
+      const declared = ROUTE_DEFINITIONS.filter((route) =>
+        document.paths[route.path]![route.method.toLowerCase()]![
+          'x-manifest-error-codes'
+        ].includes('ADMIN_REASON_REQUIRED'),
+      )
+        .map((route) => route.operationId)
+        .sort()
+      expect([...answered].sort()).toEqual(declared)
+      expect(declared).toEqual([
+        'addMember',
+        'archiveProject',
+        'clearAppSecret',
+        'confirmPendingAction',
+        'createCommit',
+        'createRelease',
+        'deleteProject',
+        'deploy',
+        'draftIamRegistration',
+        'draftPrivacyAssessment',
+        'endAgentSession',
+        'mintToken',
+        'rejectPendingAction',
+        'removeMember',
+        'requestApproval',
+        'restoreProject',
+        'runRehearsal',
+        'setAppSecret',
+        'startAgentSession',
+        'startBuild',
+        'submitIamRegistration',
+        'submitPrivacyAssessment',
+        'updateProject',
+        'validateSpec',
+      ])
+      // WITH a reason, none of them asks again.
+      const stillAsking: string[] = []
+      for (const route of asking)
+        if (
+          (await ask(route, 'the authorization contract asks')) ===
+          'ADMIN_REASON_REQUIRED'
+        )
+          stillAsking.push(`${route.method} ${route.url}`)
+      expect(stillAsking).toEqual([])
     }, 60_000)
   })
 }

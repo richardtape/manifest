@@ -30,6 +30,7 @@ import {
 import { assertSameOrigin } from './csrf.js'
 import { originOf } from './origins.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
+import { offeredReasonOf } from '../observability/acting.js'
 import { replayOrStore, type WithholdOnReplay } from './idempotency.js'
 import { sendRefusal } from './refusal.js'
 import { registerAuthRoutes } from './routes/auth.js'
@@ -460,6 +461,8 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
           // Task 8 — `setAppSecret`'s is the value).
           hashKey: deps.config.sessionSecret,
           body: request.body,
+          // §26's reason is part of what was asked (the faculty-ready plan's Task 10).
+          adminReason: offeredReasonOf(request.headers['manifest-admin-reason']),
         },
         handler,
         withhold,

@@ -1177,10 +1177,16 @@ async function step7Approve(): Promise<void> {
   const slug = checks.must('the slug', state.slug)
   const releaseId = checks.must('the candidate', state.releaseId)
   const rehearsal = unwrap(
+    // The operator is not a member of the instructor's app, so they say why (§26; the faculty-ready
+    // plan's Task 10). Approving and recording are their own duties, and ask nothing.
     await admin.POST('/v1/projects/{projectId}/rehearsal', {
       params: {
         path: { projectId: projectId() },
-        header: { 'Idempotency-Key': idempotencyKey() },
+        header: {
+          'Idempotency-Key': idempotencyKey(),
+          'Manifest-Admin-Reason':
+            'Rehearsing the launch the instructor asked to sign off',
+        },
       },
     }),
     'runRehearsal',

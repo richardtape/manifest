@@ -18,3 +18,21 @@ export class AuthorizationError extends Error {
     this.name = 'AuthorizationError'
   }
 }
+
+/**
+ * AN ADMINISTRATOR ACTING ON ANOTHER PERSON'S PROJECT GAVE NO REASON (§26's non-repudiation, as Spec
+ * action 1 worded it; the faculty-ready plan's Task 10) — or one longer than `ADMIN_REASON_MAX`.
+ * Thrown by `assertCapability`, the one place that knows both the project and whether the person is
+ * a member of it; answered `400 ADMIN_REASON_REQUIRED` by `api/errors.ts`. Not an
+ * `AuthorizationError`: the person MAY do this, and the request is missing what doing it needs.
+ */
+export class AdminReasonRequiredError extends Error {
+  constructor(
+    message: string,
+    /** The remedy — which header, and its limit. */
+    readonly hint: string,
+  ) {
+    super(message)
+    this.name = 'AdminReasonRequiredError'
+  }
+}

@@ -1,6 +1,10 @@
 import { z } from 'zod/v4'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { refusedWhenArchived, type Capability } from '../../projects/index.js'
+import {
+  refusedWhenArchived,
+  refusedWithoutAdminReason,
+  type Capability,
+} from '../../projects/index.js'
 import { manifestSchema } from '../../spec/index.js'
 import {
   ERROR_CODE_LIST,
@@ -139,13 +143,27 @@ const EVERY_MUTATION: readonly ErrorCode[] = [
  * time under the project row, `holdActiveProject`; each asserts a capability that is refused anyway.)
  */
 function refusedArchived(route: AnyRoute): readonly ErrorCode[] {
-  const asserted: readonly Capability[] =
-    route.capability === undefined
-      ? []
-      : typeof route.capability === 'string'
-        ? [route.capability]
-        : route.capability
-  return asserted.some(refusedWhenArchived) ? ['PROJECT_ARCHIVED'] : []
+  return asserted(route).some(refusedWhenArchived) ? ['PROJECT_ARCHIVED'] : []
+}
+
+/** The capabilities an operation states it asserts (`RouteDefinition.capability`). */
+function asserted(route: AnyRoute): readonly Capability[] {
+  return route.capability === undefined
+    ? []
+    : typeof route.capability === 'string'
+      ? [route.capability]
+      : route.capability
+}
+
+/**
+ * §26'S REASON, DERIVED (the faculty-ready plan's Task 10, Decision 15), as `PROJECT_ARCHIVED` is
+ * above: a MUTATING operation asserting a capability `refusedWithoutAdminReason` holds for declares
+ * `400 ADMIN_REASON_REQUIRED` and the `Manifest-Admin-Reason` header — by the predicate
+ * `assertCapability` refuses by, so no route lists either by hand. `authz-contract.ts` asks every
+ * operation as an administrator who is not a member and holds what answers it to exactly these.
+ */
+function asksAdminReason(route: AnyRoute): boolean {
+  return route.method !== 'GET' && asserted(route).some(refusedWithoutAdminReason)
 }
 
 /** zod stamps each emitted schema with its own `$schema` and `$id`; a component carries neither. */
@@ -314,6 +332,16 @@ function parameters(route: AnyRoute): JsonSchema[] {
       schema: { type: 'string', minLength: 8 },
     })
   }
+  if (asksAdminReason(route)) {
+    list.push({
+      name: 'Manifest-Admin-Reason',
+      in: 'header',
+      required: false,
+      description:
+        'Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored.',
+      schema: { type: 'string', minLength: 1 },
+    })
+  }
   return list
 }
 
@@ -333,6 +361,7 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
         ...EVERY_ROUTE,
         ...(route.method === 'GET' ? [] : EVERY_MUTATION),
         ...refusedArchived(route),
+        ...(asksAdminReason(route) ? (['ADMIN_REASON_REQUIRED'] as const) : []),
         ...route.errors,
       ]),
     ].sort()

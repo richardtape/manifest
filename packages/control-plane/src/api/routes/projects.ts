@@ -4,7 +4,7 @@ import { z } from 'zod/v4'
 import { appSpecs } from '../../db/index.js'
 import type { ModelCatalogue } from '../../ai/index.js'
 import { offeredRefs, renderProjectSeed } from '../../blueprints/index.js'
-import { makeRedactor, publishEvent } from '../../observability/index.js'
+import { makeRedactor, publishEvent, withActor } from '../../observability/index.js'
 import {
   actorPhrase,
   assertCapability,
@@ -418,8 +418,11 @@ export const projectWriteRoutes = [
             errorCount,
           },
           humanMessage: result.valid
-            ? `${project.slug}'s manifest.yaml is valid.`
-            : `${project.slug}'s manifest.yaml has ${errorCount} problem(s) to fix.`,
+            ? withActor(`${project.slug}'s manifest.yaml is valid`, 'checked by')
+            : withActor(
+                `${project.slug}'s manifest.yaml has ${errorCount} problem(s) to fix`,
+                'checked by',
+              ),
         },
         redact,
       )

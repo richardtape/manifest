@@ -1147,6 +1147,25 @@ export const events = audit.table(
     machineDetail: jsonb('machine_detail').notNull(),
     humanMessage: text('human_message').notNull(),
     /**
+     * WHO ACTED (§6's Event as Spec action 1 amended it; the faculty-ready plan's Task 10): the person
+     * whose request caused this event — for a delegated token, the person who minted it — or `null`
+     * when nobody's request did (a boot finishing work, a push to GitHub). Written by `recordEvent`
+     * from the request's acting context, never by a caller. RESTRICT, for `project_id`'s reason: a
+     * referential action runs with the referenced table's privileges, and a person's going must not
+     * take the trail of what they did with it.
+     */
+    actorUserId: uuid('actor_user_id').references(() => users.id, {
+      onDelete: 'restrict',
+    }),
+    /**
+     * §26: a platform administrator who is NOT a member of the project acted with an owner's
+     * capability — and so gave `reason`. False for everyone else, an administrator doing their own
+     * duty or acting as a member included.
+     */
+    actedAsAdmin: boolean('acted_as_admin').notNull().default(false),
+    /** Why, in the administrator's words — redacted at capture, at most 500 characters as sent. */
+    reason: text('reason'),
+    /**
      * `clock_timestamp()`, NOT `now()` (P4b Task 14, migration 0007). `now()` is the
      * TRANSACTION's start time, so every event one transaction writes carried the same
      * instant — and the stream's replay, ordered by this column, returned them in
@@ -1166,6 +1185,15 @@ export const events = audit.table(
     check(
       'events_type_known',
       sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'pending_action.expired', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'iam_registration.drafted', 'privacy_assessment.drafted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'approval.requested', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
+    ),
+    /**
+     * §26, held by the database as well as by `assertCapability` (the faculty-ready plan's Task 10):
+     * an event recorded as an administrator's act on somebody else's project carries who and why, and
+     * a reason is never recorded on anybody else's.
+     */
+    check(
+      'events_admin_reason',
+      sql`(NOT ${t.actedAsAdmin} OR (${t.actorUserId} IS NOT NULL AND length(trim(${t.reason})) > 0)) AND (${t.actedAsAdmin} OR ${t.reason} IS NULL)`,
     ),
   ],
 )

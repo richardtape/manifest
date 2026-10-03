@@ -9,6 +9,7 @@ import {
   type BuildLogWriter,
   type EventBus,
   type Redactor,
+  withActor,
 } from '../observability/index.js'
 import type { Driver } from '../runtime/index.js'
 import { assertRegisteredAttributes, type ManifestSpec } from '../spec/index.js'
@@ -140,7 +141,11 @@ async function recordBuildStart(
           commitSha: input.commitSha,
           blueprintRef: input.blueprintRef,
         },
-        humanMessage: `Building ${input.projectSlug} at commit ${input.commitSha.slice(0, 7)}.`,
+        // Who started it (§26; the faculty-ready plan's Task 10): the acting context names them.
+        humanMessage: withActor(
+          `Building ${input.projectSlug} at commit ${input.commitSha.slice(0, 7)}`,
+          'started by',
+        ),
       },
       redact,
     )

@@ -30,6 +30,14 @@ export interface IdempotencyParams {
    */
   hashKey: string
   body: unknown
+  /**
+   * The request's `Manifest-Admin-Reason`, decoded and trimmed, or `null` (§26's reason; the
+   * faculty-ready plan's Task 10). PART OF THE FINGERPRINT: the same change made for another reason
+   * is another request, so a replay of the key with a different reason is `IDEMPOTENCY_KEY_REUSED`
+   * rather than the first answer under a reason nobody gave for it. REQUIRED, so `tsc` names every
+   * caller.
+   */
+  adminReason: string | null
 }
 
 /**
@@ -62,11 +70,27 @@ export class IdempotencyConflictError extends Error {
  * IDEMPOTENCY_KEY_REUSED`, which a client resolves with a new key — the cost of the record saying
  * nothing on its own.
  */
-function hashOf(hashKey: string, params: unknown, body: unknown): string {
-  return createHmac('sha256', hashKey)
-    .update('manifest idempotency request v2\0')
-    .update(JSON.stringify({ params: params ?? null, body: body ?? null }))
-    .digest('hex')
+function hashOf(
+  hashKey: string,
+  params: unknown,
+  body: unknown,
+  adminReason: string | null,
+): string {
+  return (
+    createHmac('sha256', hashKey)
+      .update('manifest idempotency request v2\0')
+      // The reason ONLY when there is one, so every request without it — all but an
+      // administrator's — fingerprints exactly as it did before the reason existed, and a retry
+      // that spans the change is still a replay.
+      .update(
+        JSON.stringify({
+          params: params ?? null,
+          body: body ?? null,
+          ...(adminReason === null ? {} : { adminReason }),
+        }),
+      )
+      .digest('hex')
+  )
 }
 
 /**
@@ -80,7 +104,12 @@ export async function replayOrStore(
   handler: () => Promise<StoredResponse>,
   withhold?: WithholdOnReplay,
 ): Promise<StoredResponse> {
-  const requestHash = hashOf(params.hashKey, params.params, params.body)
+  const requestHash = hashOf(
+    params.hashKey,
+    params.params,
+    params.body,
+    params.adminReason,
+  )
 
   const [existing] = await db
     .select()

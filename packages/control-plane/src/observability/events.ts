@@ -1,4 +1,5 @@
 import { events, type Db } from '../db/index.js'
+import { actingContext } from './acting.js'
 import { EVENT_DETAIL_SCHEMAS } from './event-schemas.js'
 import type { Redactor } from './redact.js'
 
@@ -243,6 +244,17 @@ export interface Event {
   machineDetail: unknown
   humanMessage: string
   createdAt: Date
+  /** Whose request caused it (§26; the faculty-ready plan's Task 10) — `null` when nobody's did. */
+  actorUserId: string | null
+  /** An administrator, not a member, acting with an owner's capability. */
+  actedAsAdmin: boolean
+  /** Why, redacted — only when `actedAsAdmin`. */
+  reason: string | null
+  /**
+   * The actor's name, as `EventFrame.actor` carries it: from the acting context when recorded, from
+   * `users` on a replay. Not a column — a person's name is read where it is kept.
+   */
+  actorName: string | null
 }
 
 /**
@@ -306,6 +318,22 @@ export async function recordEvent(
     )
   }
 
+  /**
+   * WHO ACTED, AND WHY (§26 and §6's Event as Spec action 1 amended them; the faculty-ready plan's
+   * Task 10, Decision 13): read from the request's acting context HERE, the one place every event is
+   * written, so no caller can forget it and none can claim it. An administrator acting on somebody
+   * else's project has the sentence say so, with the reason — both redacted below, with everything
+   * else, before anything is stored.
+   */
+  const acting = actingContext.getStore()
+  const admin =
+    acting?.asAdmin === true && acting.reason !== null
+      ? { name: acting.name, reason: acting.reason }
+      : null
+  const humanMessage =
+    admin === null
+      ? input.humanMessage
+      : `${input.humanMessage} ${admin.name} acted as a platform administrator — reason: '${admin.reason}'.`
   const [row] = await db
     .insert(events)
     .values({
@@ -313,7 +341,10 @@ export async function recordEvent(
       subject: input.subject,
       type: input.type,
       machineDetail: redact(input.machineDetail),
-      humanMessage: String(redact(input.humanMessage)),
+      humanMessage: String(redact(humanMessage)),
+      actorUserId: acting?.userId ?? null,
+      actedAsAdmin: admin !== null,
+      reason: admin === null ? null : String(redact(admin.reason)),
     })
     .returning()
 
@@ -326,5 +357,5 @@ export async function recordEvent(
       `the insert of event '${input.type}' on '${input.subject}' returned no row`,
     )
   }
-  return row
+  return { ...row, actorName: acting?.name ?? null }
 }

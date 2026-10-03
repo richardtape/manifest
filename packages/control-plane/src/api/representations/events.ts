@@ -8,6 +8,36 @@ import {
 import { representation, Timestamp, Uuid } from '../contract/schemas.js'
 
 /**
+ * WHO ACTED (§26 and §6's Event as Spec action 1 amended them; the faculty-ready plan's Task 10): on
+ * every event, `null` when nobody's request caused it. Public text, so it says what is true now.
+ */
+export const EventActor = representation(
+  'EventActor',
+  z
+    .object({
+      name: z
+        .string()
+        .describe(
+          'The person whose request caused this — for a delegated token, the person who minted it. Never a PUID.',
+        ),
+      asAdministrator: z
+        .boolean()
+        .describe(
+          'True when a platform administrator who is not a member of the project acted with an owner’s capability, and so gave `reason`. False for everyone else — an administrator approving a release, recording UBC’s answers or acting as a member of the project included.',
+        ),
+      reason: z
+        .string()
+        .nullable()
+        .describe(
+          'Why the administrator acted, in their own words, redacted like every event: present exactly when `asAdministrator` is true, otherwise null.',
+        ),
+    })
+    .describe(
+      'Who acted on a project: the person, and — when a platform administrator who is not a member used an owner’s capability — that they did, and why.',
+    ),
+)
+
+/**
  * WS /v1/projects/{projectId}/events's messages (D23.2, P5a Task 12). Not parsed on the
  * way out — the stream sends what `observability/bus.ts` produces — so
  * `api/stream-contract.test.ts` parses every frame a whole delivery lifecycle publishes and
@@ -31,6 +61,9 @@ const eventFrameOf = <T extends EventType>(type: T) =>
       .describe('What happened, in words for a person. Never parse it.'),
     machineDetail: EVENT_DETAIL_SCHEMAS[type],
     createdAt: Timestamp.describe('When it was recorded.'),
+    actor: EventActor.nullable().describe(
+      'Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it.',
+    ),
   })
 
 type EventFrameSchema = ReturnType<typeof eventFrameOf<EventType>>

@@ -189,6 +189,7 @@ const liveFrame = (
   humanMessage: 'Live.',
   machineDetail: {},
   createdAt: new Date().toISOString(),
+  actor: null,
 })
 
 const isReady = (f: StreamFrame) =>
@@ -360,6 +361,10 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
           machineDetail: {},
           humanMessage: 'Recorded during the replay.',
           createdAt: during.created_at,
+          actorUserId: null,
+          actedAsAdmin: false,
+          reason: null,
+          actorName: null,
         }),
       )
       deps.bus.publish(liveFrame(projectId, 'live-during'))

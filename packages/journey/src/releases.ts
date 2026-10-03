@@ -684,10 +684,15 @@ async function step1Setup(): Promise<void> {
   // THE PERSON-ONLY CLASS (Task 2), headless: an administrator HOLDS release:approve, so the
   // minter's own "no more than you hold" rule would let it through — this refusal is the one
   // thing between an administrator and a token that approves.
+  // The operator is not a member of launch-app, so a mint says why (§26; the faculty-ready plan's
+  // Task 10) — or this would be `400 ADMIN_REASON_REQUIRED` before the capability was read.
   const mint = await admin.POST('/v1/projects/{projectId}/tokens', {
     params: {
       path: { projectId: project.id },
-      header: { 'Idempotency-Key': idempotencyKey() },
+      header: {
+        'Idempotency-Key': idempotencyKey(),
+        'Manifest-Admin-Reason': 'Checking that no token can approve',
+      },
     },
     body: {
       name: 'make demo-releases — must be refused',

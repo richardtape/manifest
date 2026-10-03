@@ -1,7 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm'
 import { narrowSessionsHoldingMore } from '../ai/index.js'
 import { appSpecs, projects, type Db } from '../db/index.js'
-import { makeRedactor, publishEvent } from '../observability/index.js'
+import { makeRedactor, publishEvent, withActor } from '../observability/index.js'
 import { repositoryOf } from '../projects/index.js'
 import {
   isSensitiveDiff,
@@ -139,8 +139,11 @@ export async function validateAndRecord(
         errorCount,
       },
       humanMessage: result.valid
-        ? `${project.slug}'s manifest.yaml is valid.`
-        : `${project.slug}'s manifest.yaml has ${errorCount} problem(s) to fix.`,
+        ? withActor(`${project.slug}'s manifest.yaml is valid`, 'checked by')
+        : withActor(
+            `${project.slug}'s manifest.yaml has ${errorCount} problem(s) to fix`,
+            'checked by',
+          ),
     },
     makeRedactor([]),
   )

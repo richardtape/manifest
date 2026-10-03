@@ -25,9 +25,17 @@ export {
   publishEvent,
   readyFrame,
   recentFramesFor,
+  type EventActor,
   type EventBus,
   type StreamFrame,
 } from './bus.js'
+export {
+  ADMIN_REASON_MAX,
+  actingContext,
+  offeredReasonOf,
+  withActor,
+  type Acting,
+} from './acting.js'
 export {
   appendBuildLog,
   createBuildLogWriter,

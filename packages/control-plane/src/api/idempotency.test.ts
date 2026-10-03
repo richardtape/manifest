@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it, vi } from 'vitest'
 import { withRollback } from '../db/testing.js'
@@ -29,6 +29,7 @@ describe('idempotency (D23.6)', () => {
         route: 'POST /projects',
         params: {},
         hashKey: HASH_KEY,
+        adminReason: null,
         body: { slug: 'x' },
       }
 
@@ -55,6 +56,7 @@ describe('idempotency (D23.6)', () => {
           route: 'POST /projects',
           params: {},
           hashKey: HASH_KEY,
+          adminReason: null,
           body: { slug: 'x' },
         },
         handler,
@@ -68,6 +70,7 @@ describe('idempotency (D23.6)', () => {
             route: 'POST /projects',
             params: {},
             hashKey: HASH_KEY,
+            adminReason: null,
             body: { slug: 'DIFFERENT' },
           },
           handler,
@@ -102,6 +105,7 @@ describe('idempotency (D23.6)', () => {
           route: 'POST /projects',
           params: {},
           hashKey: HASH_KEY,
+          adminReason: null,
           body: {},
         },
         handler,
@@ -114,6 +118,7 @@ describe('idempotency (D23.6)', () => {
           route: 'POST /projects',
           params: {},
           hashKey: HASH_KEY,
+          adminReason: null,
           body: {},
         },
         handler,
@@ -140,6 +145,7 @@ describe('idempotency (D23.6)', () => {
         route: 'PUT /v1/environments/:environmentId/secrets/:name',
         params: { environmentId: 'staging-env', name: 'BOARD_ADMIN_CODE' },
         hashKey: HASH_KEY,
+        adminReason: null,
         body,
       }
       const handler = vi.fn().mockResolvedValue({ status: 200, body: { set: true } })
@@ -174,6 +180,48 @@ describe('idempotency (D23.6)', () => {
     })
   })
 
+  it('fingerprints an administrator’s reason: another reason is another request, and a request with none hashes as it always did (§26; the faculty-ready plan’s Task 10)', async () => {
+    await withRollback(async (db) => {
+      const user = await aUser(db)
+      const handler = vi.fn().mockResolvedValue({ status: 200, body: { renamed: true } })
+      const params = {
+        key: 'admin-rename',
+        userId: user.id,
+        route: 'PATCH /v1/projects/:projectId',
+        params: { projectId: 'p-1' },
+        hashKey: HASH_KEY,
+        adminReason: 'Student reported a broken page',
+        body: { name: 'Renamed' },
+      }
+      await replayOrStore(db, params, handler)
+      // The same reason replays (the positive control)…
+      expect(await replayOrStore(db, params, handler)).toEqual({
+        status: 200,
+        body: { renamed: true },
+      })
+      // …another reason, or none, is a different request.
+      await expect(
+        replayOrStore(db, { ...params, adminReason: 'Another reason' }, handler),
+      ).rejects.toThrow(IdempotencyConflictError)
+      await expect(
+        replayOrStore(db, { ...params, adminReason: null }, handler),
+      ).rejects.toThrow(IdempotencyConflictError)
+      expect(handler).toHaveBeenCalledTimes(1)
+      // A request with no reason is fingerprinted EXACTLY as before the reason existed, so no retry
+      // spanning the change becomes a 409.
+      await replayOrStore(db, { ...params, key: 'no-reason', adminReason: null }, handler)
+      const [row] = await db
+        .select()
+        .from(idempotencyKeys)
+        .where(eq(idempotencyKeys.key, 'no-reason'))
+      const before = createHmac('sha256', HASH_KEY)
+        .update('manifest idempotency request v2\0')
+        .update(JSON.stringify({ params: params.params, body: params.body }))
+        .digest('hex')
+      expect(row!.requestHash).toBe(before)
+    })
+  })
+
   it('WITHHOLDS on replay: stores stored(answer), refuses a repeat with refuse(stored), and checks the fingerprint FIRST (the authoring API plan’s Task 12)', async () => {
     await withRollback(async (db) => {
       const user = await aUser(db)
@@ -192,6 +240,7 @@ describe('idempotency (D23.6)', () => {
         route: 'POST /mint',
         params: {},
         hashKey: HASH_KEY,
+        adminReason: null,
         body: { name: 'x' },
       }
       // The caller that made it gets the whole answer, once.
@@ -224,6 +273,7 @@ describe('idempotency (D23.6)', () => {
         route: 'POST /projects',
         params: {},
         hashKey: HASH_KEY,
+        adminReason: null,
         body: {},
       }
       await expect(replayOrStore(db, params, failing)).rejects.toThrow('boom')

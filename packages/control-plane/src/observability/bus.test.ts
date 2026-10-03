@@ -23,6 +23,7 @@ const frame = (projectId: string, id: string, type = 'build.started'): StreamFra
   humanMessage: 'Building.',
   machineDetail: {},
   createdAt: new Date().toISOString(),
+  actor: null,
 })
 
 afterEach(() => {
@@ -138,6 +139,8 @@ describe('recentFramesFor — the replay a new connection starts with', () => {
         humanMessage: 'Something happened.',
         machineDetail: EXAMPLE_DETAILS['sso.acs_changed'],
         createdAt: written[1]!.createdAt.toISOString(),
+        // Recorded outside any request: nobody acted.
+        actor: null,
       })
     })
   })

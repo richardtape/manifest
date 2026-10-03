@@ -1823,7 +1823,11 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
         method: 'POST',
         url: `/v1/projects/${project.id}/rehearsal`,
         cookies: await loginAs(deps, 'platform_admin', { steppedUp: true }),
-        headers: mutationHeaders(deps),
+        // An administrator who is not a member says why (§26; the faculty-ready plan's Task 10).
+        headers: {
+          ...mutationHeaders(deps),
+          'manifest-admin-reason': 'rehearsing the launch',
+        },
       })
       expect(rehearsed.statusCode, rehearsed.body).toBe(200)
       // It really deployed into production and passed — the precondition, not the subject.

@@ -348,6 +348,16 @@ export const ERROR_CODES = {
     'A mutation arrived without an Idempotency-Key of at least 8 characters.',
     'Send `Idempotency-Key` with every mutation: a new random value of 8 characters or more — a UUID — for each user action, reused unchanged when retrying that same action.',
   ),
+  /**
+   * §26's reason (Spec action 1; the faculty-ready plan's Task 10): a platform administrator who is not
+   * a member of the project, using an owner's capability on it, sends why. 400, as a missing
+   * Idempotency-Key is: the request lacks a part this person's request needs.
+   */
+  ADMIN_REASON_REQUIRED: api(
+    400,
+    'A platform administrator who is not a member of this project acted on it with an owner’s capability and gave no reason, or one longer than 500 characters.',
+    'Send why in the `Manifest-Admin-Reason` header, 1 to 500 characters — percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII — and repeat the request. The project’s people read it beside your name. A read, an administrator’s own duty (approving or rejecting a release, recording UBC’s answers, setting a quota) and a member need none.',
+  ),
   BLUEPRINT_NOT_FOUND: bad(
     'No blueprint with this reference is in the registry.',
     'Choose one from `listBlueprints` and name it `name@major`.',
