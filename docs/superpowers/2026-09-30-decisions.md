@@ -382,3 +382,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - MORE WORK IF THE QUEUE EMPTIES — his words, the same minute: "If you finish early, I also give you permission to spawn
         more fresh agents in the platform or app to be able to get more work done. The latest you may START an agent with its
         work is 8am Vancouver, BC time." No agent is started after 08:00 PDT, 2026-10-03.
+      - MINOR SPEC EDITS OVERNIGHT — his words, ~01:40 PDT: "if you determine the spec edits are minor, and you are confident
+        they will improve the app or platform (or if they're just the right thing to do) then I also give you permission to
+        make those spec edits, too whilst I am asleep." HOW manifest-3d applies it: a sitting that needs a spec edit drafts
+        it as a Spec action (exact words, the section, why) and sends it to manifest-3d; manifest-3d judges it minor and
+        confidently right, or holds it for Rich. An applied one is recorded in the roadmap's *Spec actions raised by…* as
+        "APPLIED under Rich's night-shift permission (2026-10-03), judged minor by manifest-3d — for his review", its shared
+        HTML pages swept, its commit alone; the morning report lists every one, so each is easy to revert. Anything that
+        changes a decision of his, a security property, or a section's meaning is NOT minor and waits for him. A classifier
+        refusal of a spec read or edit is still never worked around.
