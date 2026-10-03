@@ -458,3 +458,18 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         them"): where an email says "Someone" for an administrator's act, it names them and carries the reason.
       - THE REST — "Approve as drafted (Recommended)": one line per act (the same administrator and reason within an hour
         fold into one), the reason as typed, in ‘ ’.
+
+    And at ~13:40 PDT, the four questions of the FE-46/47/5 plan (docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md,
+    863ad0e, written by manifest-c7; put to him by manifest-94 through the question tool, each premise checked against
+    the code first):
+      - SITTINGS — "Five" (the plan's offered alternative, over the recommended six): Task 8, the clients, folded into
+        sittings 3 and 4.
+      - DECISION 5, an owner's send over a change request an administrator FILED with UBC — "Only if UBC asked
+        (Recommended)": from change_requested only when change_requested_from = 'submitted'; a filed one is UBC's to
+        answer (409 LAUNCH_TRANSITION_INVALID). Over: allow it, as SUBMIT_ARROWS does today.
+      - DECISION 4, the administrator's direct draft → submitted record — "Keep it (Recommended)": how a submission made
+        outside Manifest is recorded, and what demo-production and demo-releases use. Over: remove it.
+      - DECISION 10, the mailer — "nodemailer" (over the recommended hand-written plain-SMTP client on node:net): his yes
+        to ONE networked pnpm add of nodemailer, pinned exactly, at the sitting that builds the mailer (with
+        @types/nodemailer as a devDependency if the plan needs it). STARTTLS and AUTH for UBC's relay come with it.
+    The plan is being revised to these; Rich has not yet approved it as a whole.
