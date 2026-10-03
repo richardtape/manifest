@@ -515,3 +515,19 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - A RE-SUBMISSION AND UBC'S ORDER — "Keep it uniform (Recommended)": a registration sent again (after a lapse or a
         change request) waits for the assessment approved and staging active, as a first one does, until UBC says
         otherwise.
+
+    And at ~14:55 PDT, three shape questions of the load-rehearsal plan (manifest-c7, writing it; premises checked by
+    manifest-94: none of §24's production table is built, nothing outside launch/readiness.ts reads the audience, so
+    production runs one instance; the item sits in both readiness clauses), through the question tool:
+      - WHAT THE REHEARSAL TESTS — "Build §24's capacity first" (over the recommended "rehearse what production actually
+        runs" and "rehearse 3 instances anyway"): production capacity by audience is BUILT before the rehearsal measures it
+        — instances per §24's table (class ≥2, large_course ≥3 with headroom, public ≥3), the edge balancing across them,
+        hibernation per the table — and the rehearsal grants staging that shape. The rest of §24's table (backups,
+        saturation alerting, tuned rate limits, public's security review) was not asked for. One plan or a split is
+        manifest-c7's to propose and his to place.
+      - THE LOAD PROFILE AND PASS MARK — "As proposed (Recommended)": 500 virtual users for large_course (public the same on
+        a laptop, capped); synchronised = all within 60 s then 5 min sustained; steady = a 5-min ramp; passes at ≥99%
+        answered (non-5xx, no timeout), p95 under 2 s, instances healthy; the health path, the root and the sign-in
+        redirect. A spec action carries the numbers.
+      - WHEN IT RE-RUNS — "First launch + audience raised (Recommended)": at the first launch, and again when the audience
+        is raised to large_course or public after launch; not on every release.
