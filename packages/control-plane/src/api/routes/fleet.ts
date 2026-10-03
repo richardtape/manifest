@@ -31,7 +31,7 @@ export const fleetRoutes = [
           name: 'p-7e7d49b6',
           state: 'active',
           archivedAt: null,
-          blueprint: 'fixture-node@1',
+          blueprint: 'node-ts-mongo@1',
           starter: null,
           owner: {
             id: '0a418b8c-6d32-4e9f-bc77-24765feebf3b',
@@ -74,7 +74,7 @@ export const fleetRoutes = [
           name: 'p-15e91afe',
           state: 'active',
           archivedAt: null,
-          blueprint: 'fixture-node@1',
+          blueprint: 'node-ts-mongo@1',
           starter: null,
           owner: {
             id: '30d15229-d64b-4740-8d3e-9ef1f21650ab',

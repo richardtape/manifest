@@ -31,23 +31,13 @@ export const blueprintRoutes = [
     body: NO_BODY,
     success: {
       status: 200,
-      description: 'Every published blueprint.',
+      description:
+        'Every blueprint offered to people. One the platform keeps for its own tests is not listed, and `getBlueprint` still answers it.',
       schema: BlueprintList,
     },
     errors: [],
     examples: {
       response: [
-        {
-          ref: 'fixture-node@1',
-          name: 'fixture-node',
-          majorVersion: 1,
-          language: 'typescript',
-          defaultPort: 3000,
-          healthPath: '/healthz',
-          schemaVersions: [1],
-          provides: { services: ['mongo'], authProviders: ['none'], ai: false },
-          starters: [],
-        },
         {
           ref: 'node-ts-mongo@1',
           name: 'node-ts-mongo',
@@ -67,7 +57,13 @@ export const blueprintRoutes = [
         },
       ],
     },
-    handler: async ({ deps }) => deps.blueprints.list().map(toBlueprint),
+    // FE-31 (§25): only the blueprints meant for people. `resolve` is untouched, so an unlisted
+    // one is still answered by `getBlueprint` and still builds.
+    handler: async ({ deps }) =>
+      deps.blueprints
+        .list()
+        .filter((d) => d.listed)
+        .map(toBlueprint),
   }),
   defineRoute({
     operationId: 'getBlueprint',

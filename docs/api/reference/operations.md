@@ -23,7 +23,7 @@ Answer, `200`:
     "name": "p-7e7d49b6",
     "state": "active",
     "archivedAt": null,
-    "blueprint": "fixture-node@1",
+    "blueprint": "node-ts-mongo@1",
     "starter": null,
     "owner": {
       "id": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
@@ -66,7 +66,7 @@ Answer, `200`:
     "name": "p-15e91afe",
     "state": "active",
     "archivedAt": null,
-    "blueprint": "fixture-node@1",
+    "blueprint": "node-ts-mongo@1",
     "starter": null,
     "owner": {
       "id": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
@@ -518,27 +518,6 @@ Answer, `200`:
 ```json
 [
   {
-    "ref": "fixture-node@1",
-    "name": "fixture-node",
-    "majorVersion": 1,
-    "language": "typescript",
-    "defaultPort": 3000,
-    "healthPath": "/healthz",
-    "schemaVersions": [
-      1
-    ],
-    "provides": {
-      "services": [
-        "mongo"
-      ],
-      "authProviders": [
-        "none"
-      ],
-      "ai": false
-    },
-    "starters": []
-  },
-  {
     "ref": "node-ts-mongo@1",
     "name": "node-ts-mongo",
     "majorVersion": 1,
@@ -716,7 +695,7 @@ Answer, `200`:
     {
       "seq": 0,
       "stream": "stdout",
-      "text": "fake build of authz-fixture at 26f71b49f02162fc3614864c3f520faea87c10a2 from fixture-node@1",
+      "text": "fake build of authz-fixture at 26f71b49f02162fc3614864c3f520faea87c10a2 from node-ts-mongo@1",
       "at": "2026-09-26T21:51:47.637Z"
     }
   ]
@@ -3620,7 +3599,7 @@ Answer, `200`:
     "id": "71a3eefa-e530-44c1-b7f5-3dde5e38eef8",
     "slug": "p-6e200d3a",
     "name": "p-6e200d3a",
-    "blueprint": "fixture-node@1",
+    "blueprint": "node-ts-mongo@1",
     "starter": null,
     "owner": {
       "id": "39414511-6e5d-46e9-a47a-090166426ed3",
@@ -3650,7 +3629,7 @@ Answer, `200`:
     "id": "f8920a3c-e857-4580-8f04-c72b008ae71f",
     "slug": "authz-other-f891223a",
     "name": "authz-other-f891223a",
-    "blueprint": "fixture-node@1",
+    "blueprint": "node-ts-mongo@1",
     "starter": null,
     "owner": {
       "id": "39414511-6e5d-46e9-a47a-090166426ed3",
@@ -3697,7 +3676,7 @@ Request:
 ```json
 {
   "slug": "fixture-40adbffa",
-  "blueprint": "fixture-node@1",
+  "blueprint": "node-ts-mongo@1",
   "audience": {
     "scale": "solo",
     "burst": "steady"
@@ -3712,7 +3691,7 @@ Answer, `201`:
   "id": "2851c199-1ddd-4635-aca4-d5f173a904eb",
   "slug": "fixture-40adbffa",
   "name": "fixture-40adbffa",
-  "blueprint": "fixture-node@1",
+  "blueprint": "node-ts-mongo@1",
   "starter": null,
   "owner": {
     "id": "25ecede0-2db6-462f-a5f5-e56a27a8b401",
@@ -3814,7 +3793,7 @@ Answer, `200`:
   "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
   "slug": "chem-labs",
   "name": "chem-labs",
-  "blueprint": "fixture-node@1",
+  "blueprint": "node-ts-mongo@1",
   "starter": null,
   "owner": {
     "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
@@ -3893,7 +3872,7 @@ Answer, `200`:
   "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
   "slug": "chem-labs",
   "name": "CHEM 121 — Lab notebook",
-  "blueprint": "fixture-node@1",
+  "blueprint": "node-ts-mongo@1",
   "starter": null,
   "owner": {
     "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
@@ -3999,7 +3978,7 @@ Answer, `200`:
   "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
   "slug": "chem-labs",
   "name": "CHEM 121 — Lab notebook",
-  "blueprint": "fixture-node@1",
+  "blueprint": "node-ts-mongo@1",
   "starter": null,
   "owner": {
     "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
@@ -4249,7 +4228,7 @@ Answer, `200`:
   "id": "77811340-0c79-4c30-a00f-b87e8460b6cf",
   "slug": "chem-labs",
   "name": "CHEM 121 — Lab notebook",
-  "blueprint": "fixture-node@1",
+  "blueprint": "node-ts-mongo@1",
   "starter": null,
   "owner": {
     "id": "40baf394-7897-4cbb-89d6-7df27e51626d",
@@ -4345,7 +4324,7 @@ Answer, `200`:
         "version": "7"
       }
     ],
-    "blueprint": "fixture-node@1",
+    "blueprint": "node-ts-mongo@1",
     "resources": {},
     "environments": {},
     "integrations": []

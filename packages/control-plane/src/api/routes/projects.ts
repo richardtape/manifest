@@ -168,14 +168,14 @@ export const projectWriteRoutes = [
     examples: {
       request: {
         slug: 'fixture-40adbffa',
-        blueprint: 'fixture-node@1',
+        blueprint: 'node-ts-mongo@1',
         audience: { scale: 'solo', burst: 'steady' },
       },
       response: {
         id: '2851c199-1ddd-4635-aca4-d5f173a904eb',
         slug: 'fixture-40adbffa',
         name: 'fixture-40adbffa',
-        blueprint: 'fixture-node@1',
+        blueprint: 'node-ts-mongo@1',
         starter: null,
         owner: { id: '25ecede0-2db6-462f-a5f5-e56a27a8b401', displayName: 'Bio Prof' },
         audience: {
@@ -492,7 +492,7 @@ export const projectWriteRoutes = [
         id: '77811340-0c79-4c30-a00f-b87e8460b6cf',
         slug: 'chem-labs',
         name: 'CHEM 121 — Lab notebook',
-        blueprint: 'fixture-node@1',
+        blueprint: 'node-ts-mongo@1',
         starter: null,
         owner: { id: '40baf394-7897-4cbb-89d6-7df27e51626d', displayName: 'Bio Prof' },
         audience: {

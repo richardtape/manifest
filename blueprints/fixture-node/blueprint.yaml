@@ -1,5 +1,8 @@
 blueprint: fixture-node
 major_version: 1
+# FE-31 (§25): the platform's own test fixture — never offered to a person or an agent choosing
+# where to start; it still resolves, so the demos and every project made from it keep building.
+listed: false
 schema_versions: [1]
 
 runtime:

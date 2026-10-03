@@ -35,7 +35,7 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     from: 'http://127.0.0.1:7188/auth/saml/callback',
     to: 'https://chem-labs.staging.manifest.internal/auth/saml/callback',
   },
-  'build.started': { buildId: UUID, commitSha: SHA, blueprintRef: 'fixture-node@1' },
+  'build.started': { buildId: UUID, commitSha: SHA, blueprintRef: 'node-ts-mongo@1' },
   'build.succeeded': {
     buildId: UUID,
     imageDigest: DIGEST,
@@ -103,7 +103,7 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
   },
   'project.created': {
     slug: 'chem-labs',
-    blueprint: 'fixture-node@1',
+    blueprint: 'node-ts-mongo@1',
     starter: null,
     audience: { scale: 'solo', burst: 'steady' },
   },

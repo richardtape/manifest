@@ -53,7 +53,7 @@ const ARCHIVED_EXAMPLE = {
   id: '77811340-0c79-4c30-a00f-b87e8460b6cf',
   slug: 'chem-labs',
   name: 'CHEM 121 — Lab notebook',
-  blueprint: 'fixture-node@1',
+  blueprint: 'node-ts-mongo@1',
   starter: null,
   owner: { id: '40baf394-7897-4cbb-89d6-7df27e51626d', displayName: 'Bio Prof' },
   audience: {

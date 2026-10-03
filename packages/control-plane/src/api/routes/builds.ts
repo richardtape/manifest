@@ -243,7 +243,7 @@ export const buildRoutes = [
           {
             seq: 0,
             stream: 'stdout',
-            text: 'fake build of authz-fixture at 26f71b49f02162fc3614864c3f520faea87c10a2 from fixture-node@1',
+            text: 'fake build of authz-fixture at 26f71b49f02162fc3614864c3f520faea87c10a2 from node-ts-mongo@1',
             at: '2026-09-26T21:51:47.637Z',
           },
         ],

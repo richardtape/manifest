@@ -16,6 +16,12 @@ export const descriptorSchema = z
   .object({
     blueprint: z.string().regex(/^[a-z][a-z0-9-]{2,38}$/),
     major_version: z.number().int().positive(),
+    /**
+     * §25 (FE-31): `false` for a blueprint the platform keeps for its own tests. `listBlueprints`
+     * never offers it to a person or an agent choosing where to start; it still RESOLVES, so the
+     * demos and every project already made from it keep building.
+     */
+    listed: z.boolean().default(true),
     schema_versions: z.array(z.number().int().positive()).min(1),
     runtime: z
       .object({

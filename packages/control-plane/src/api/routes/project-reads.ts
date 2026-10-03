@@ -118,7 +118,7 @@ export const projectReadRoutes = [
           id: '71a3eefa-e530-44c1-b7f5-3dde5e38eef8',
           slug: 'p-6e200d3a',
           name: 'p-6e200d3a',
-          blueprint: 'fixture-node@1',
+          blueprint: 'node-ts-mongo@1',
           starter: null,
           owner: { id: '39414511-6e5d-46e9-a47a-090166426ed3', displayName: 'Bio Prof' },
           audience: {
@@ -145,7 +145,7 @@ export const projectReadRoutes = [
           id: 'f8920a3c-e857-4580-8f04-c72b008ae71f',
           slug: 'authz-other-f891223a',
           name: 'authz-other-f891223a',
-          blueprint: 'fixture-node@1',
+          blueprint: 'node-ts-mongo@1',
           starter: null,
           owner: { id: '39414511-6e5d-46e9-a47a-090166426ed3', displayName: 'Bio Prof' },
           audience: {
@@ -219,7 +219,7 @@ export const projectReadRoutes = [
         id: '77811340-0c79-4c30-a00f-b87e8460b6cf',
         slug: 'chem-labs',
         name: 'chem-labs',
-        blueprint: 'fixture-node@1',
+        blueprint: 'node-ts-mongo@1',
         starter: null,
         owner: { id: '40baf394-7897-4cbb-89d6-7df27e51626d', displayName: 'Bio Prof' },
         audience: {
@@ -698,7 +698,7 @@ export const projectReadRoutes = [
           runtime: { port: 3000, health: '/healthz', command: null },
           manifest: 1,
           services: [{ name: 'db', type: 'mongo', version: '7' }],
-          blueprint: 'fixture-node@1',
+          blueprint: 'node-ts-mongo@1',
           resources: {},
           environments: {},
           integrations: [],

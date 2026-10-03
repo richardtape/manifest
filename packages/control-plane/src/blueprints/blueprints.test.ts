@@ -74,6 +74,15 @@ describe('blueprint descriptor (§25, D30)', () => {
     expect(bad({ cpu: 0.5, memory: 'lots', pids: 256, disk: '2Gi' })).toBe(false)
     expect(bad({ cpu: 0.5, memory: '512Mi', pids: 256, disk: 'plenty' })).toBe(false)
   })
+
+  it('is listed unless it says otherwise, and `listed` is a boolean (§25, FE-31)', () => {
+    const { listed: _, ...unsaid } = descriptor
+    expect(descriptorSchema.parse(unsaid).listed).toBe(true)
+    expect(descriptorSchema.parse({ ...descriptor, listed: false }).listed).toBe(false)
+    expect(descriptorSchema.safeParse({ ...descriptor, listed: 'no' }).success).toBe(
+      false,
+    )
+  })
 })
 
 describe('checkBlueprintCompatibility (§25)', () => {
@@ -123,6 +132,18 @@ describe('blueprint registry', () => {
     expect(registry.resolve('fixture-node@1')?.blueprint).toBe('fixture-node')
     expect(registry.resolve('fixture-node@9')).toBeUndefined()
     expect(registry.resolve('does-not-exist@1')).toBeUndefined()
+  })
+
+  it('marks the platform’s own test fixture unlisted, and every blueprint for people listed (FE-31)', async () => {
+    const registry = await loadBlueprints(
+      new URL('../../../../blueprints/', import.meta.url).pathname,
+    )
+    expect(
+      Object.fromEntries(registry.list().map((d) => [d.blueprint, d.listed])),
+    ).toEqual({
+      'fixture-node': false,
+      'node-ts-mongo': true,
+    })
   })
 
   it('pins its base image by digest at the LOCAL registry, so an offline build resolves', async () => {

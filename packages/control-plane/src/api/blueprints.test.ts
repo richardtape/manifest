@@ -16,12 +16,13 @@ async function signedIn() {
 }
 
 describe('blueprints over the API (§25, D25 — P5a Task 10)', () => {
-  it('lists every blueprint with its starters, and nothing registry-internal', async () => {
+  it('lists every blueprint meant for people with its starters, and nothing registry-internal (FE-31)', async () => {
     const { app, cookies } = await signedIn()
     const res = await app.inject({ method: 'GET', url: '/v1/blueprints', cookies })
     expect(res.statusCode).toBe(200)
     const list = res.json() as { ref: string; starters: unknown }[]
-    expect(list.map((b) => b.ref).sort()).toEqual(['fixture-node@1', 'node-ts-mongo@1'])
+    // The platform's own test fixture is `listed: false` (§25): never offered.
+    expect(list.map((b) => b.ref)).toEqual(['node-ts-mongo@1'])
     const ntm = list.find((b) => b.ref === 'node-ts-mongo@1')!
     expect(ntm).toEqual({
       ref: 'node-ts-mongo@1',
@@ -34,7 +35,6 @@ describe('blueprints over the API (§25, D25 — P5a Task 10)', () => {
       provides: { services: ['mongo'], authProviders: ['cwl', 'none'], ai: true },
       starters: [{ name: 'proof-app', summary: expect.stringContaining('CWL sign-in') }],
     })
-    expect(list.find((b) => b.ref === 'fixture-node@1')!.starters).toEqual([])
     const text = res.body
     expect(text).not.toContain('sha256:') // no base-image digest
     expect(text).not.toContain('run_as_uid')
@@ -54,6 +54,19 @@ describe('blueprints over the API (§25, D25 — P5a Task 10)', () => {
       ref: 'node-ts-mongo@1',
       starters: [{ name: 'proof-app' }],
     })
+    // The positive control for FE-31's filter: an unlisted blueprint still RESOLVES, so
+    // the demos and every project already made from it keep building. A filter in
+    // `resolve` rather than in the list turns this red.
+    const unlisted = await app.inject({
+      method: 'GET',
+      url: '/v1/blueprints/fixture-node@1',
+      cookies,
+    })
+    expect({ status: unlisted.statusCode, ref: unlisted.json().ref }).toEqual({
+      status: 200,
+      ref: 'fixture-node@1',
+    })
+    expect(unlisted.json().starters).toEqual([])
     for (const url of ['/v1/blueprints/nope@1', '/v1/blueprints/node-ts-mongo@9']) {
       const res = await app.inject({ method: 'GET', url, cookies })
       expect({ status: res.statusCode, code: res.json().error.code }).toEqual({

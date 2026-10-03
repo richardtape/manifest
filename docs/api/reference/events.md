@@ -39,7 +39,7 @@ A build began. Its log lines follow on the stream as LogFrames, and `build.succe
 {
   "buildId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "commitSha": "0123456789abcdef0123456789abcdef01234567",
-  "blueprintRef": "fixture-node@1"
+  "blueprintRef": "node-ts-mongo@1"
 }
 ```
 
@@ -198,7 +198,7 @@ A project and its three environments were created. `repository.seeded` and `spec
 ```json
 {
   "slug": "chem-labs",
-  "blueprint": "fixture-node@1",
+  "blueprint": "node-ts-mongo@1",
   "starter": null,
   "audience": {
     "scale": "solo",
