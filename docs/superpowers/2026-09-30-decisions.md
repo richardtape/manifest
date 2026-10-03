@@ -572,3 +572,17 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - FACULTY-READY SITTING 7 (the acceptance) — "A fresh session you spawn (Recommended)": Rich spawns a fresh session
         once manifest-b9 closes sitting 5; it starts from ORIENTATION §7e. Over: manifest-c7; manifest-b9 carrying on.
       - MANIFEST-C7 — "Stop there (Recommended)": after its roadmap update, no further plans for now (five are queued).
+
+    And passport-ubcshib (Rich's library: npm maintainer `richtape`, github.com/ubc/passport-ubcshib). At ~13:5x he asked
+    for a real fix rather than an advisory to the six UBC apps' owners; a background agent of manifest-94's built it on
+    a local branch (fix/node-saml-5: @node-saml/passport-saml 5.1.1 replacing the deprecated passport-saml 3.2.4 and
+    GHSA-4mxg-3p6v-xgq3, the public API kept, the MACE PUID and uid/eduPersonPrincipalName OID bugs fixed; 34 tests,
+    npm audit 6 → 0; a real login against the local docker-simple-saml identical on 0.1.6 and the branch). At his word
+    ("can you get this to github somewhere? And then I can ask our devs to test this"), manifest-94 pushed the branch
+    and opened DRAFT PR https://github.com/ubc/passport-ubcshib/pull/1 at 14:20 PDT. Then, at ~14:24, asked to put it
+    in Manifest's blueprint ("We can then test it locally at least"), through the question tool:
+      - THE SOURCE — "npm prerelease 0.1.7-rc.1 (Recommended)": the branch bumped to 0.1.7-rc.1 (5f90fd6, 14:26) and
+        published by Rich under the dist-tag `next` (latest stays 0.1.6; no ^0.1.x range resolves a prerelease); Manifest
+        pins it and make seed mirrors it (his yes to that pull). Over: Verdaccio-only; a vendored tarball.
+      - WHO — "b9, as sitting 5b (Recommended)": the faculty-ready plan's new Task 17, after sitting 5's close and before
+        sitting 7, with the Docker tier and a real CWL sign-in through a Manifest-built app.
