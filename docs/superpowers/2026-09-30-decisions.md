@@ -647,3 +647,18 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
 
     And at 15:16 PDT, through the question tool — "Yes, its call (Recommended)": the front-end decides and words its minors
     m107, m112, m114 and m117 itself, any new words under his standing "approve, change on sight"; m111 waits for 7100.
+
+    And at 15:20 PDT, through the question tool:
+      - PASSPORT-UBCSHIB rc.2 — "Fix now as rc.2 (Recommended)": manifest-9d (sitting 5b) found that on 0.1.7-rc.1 every
+        app answers an IdP-started single logout `Requester`/`UnknownPrincipal` (node-saml 5.1.1's strategy.js answers
+        Success only when the logout verify's user deep-equals req.user; rc.1's default verify returns the logout profile —
+        checked by manifest-94), and that `passReqToCallback: true` hands `req` in as the profile. A background agent of
+        manifest-94's fixes both in the wrapper (the session ended before node-saml sees a SAMLRequest, a default logout
+        verify returning null; the verify branching on passReqToCallback), tests them, pushes 0.1.7-rc.2 to PR #1; Rich
+        publishes it. Manifest's blueprint carries its own workaround meanwhile (1dcb905). Over: documenting it.
+      - A1's AUTOMATIC REPLACEMENT (manifest-27's questions) — "Skip the checklist (Recommended)": a replacement redeploys
+        production's exact digest without §13's checklist, the approval-digest check kept; and "Yes, after ~1 minute
+        (Recommended)": a member running but unhealthy for four watcher passes counts as an exit.
+      - THE REVISED PLANS (2d74a5d) — "A1 and FE-32 now; B and A2 later (Recommended)": A1 (production instances) and
+        FE-32 (dependencies, with the allowlist) APPROVED as revised; B (the load rehearsal) and A2 (hibernation) get a
+        second fresh review when they are next in line.
