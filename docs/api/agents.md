@@ -53,10 +53,10 @@ If you need a model, ask for a key with `startAgentSession` — your token must 
 
 ## What waits for a person
 
-**A privileged action waits for a person, and you must never try to get around it.** Deploying to production, reading a secret, changing a quota and managing members are never done by a token alone. Ask, and you are answered `403 TOKEN_ACTION_PENDING` with a `pendingAction` in the envelope: the question the person who minted your token answers in their own session.
+**A privileged action waits for a person, and you must never try to get around it.** Deploying to production, reading a secret, changing a quota and managing members are never done by a token alone. Ask, and you are answered `403 TOKEN_ACTION_PENDING` with a `pendingAction` in the envelope: the question a person who could do it themselves — an owner of the project, or for a quota a platform administrator — answers in their own session.
 
 - Tell the person what you asked for and why, and wait: `getPendingAction` says when they have answered.
-- `confirmed` grants **one** retry of the identical request — the same body and the same `Idempotency-Key`.
+- `confirmed` lets the identical request through **once** — the same method, path and body, from your token, whatever its `Idempotency-Key`.
 - `rejected` is final; `pendingAction.reason` is their reason. Do not ask again for the same thing.
 - `expired` means nobody answered in time.
 
@@ -84,8 +84,8 @@ export function pendingActionOf(error: unknown): Schemas['PendingAction'] | unde
 }
 
 /**
- * Wait for the person, then say what to do. `confirmed` grants ONE retry of the identical
- * request — the same body and the same Idempotency-Key; `rejected` is final and
+ * Wait for the person, then say what to do. `confirmed` lets the identical request — the same
+ * method, path and body, from this token — through ONCE, whatever its Idempotency-Key; `rejected` is final and
  * `pendingAction.reason` says why; `expired` means nobody answered in time. Never retry a
  * pending request on a loop: it asks the person again.
  */

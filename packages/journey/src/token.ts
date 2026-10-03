@@ -640,9 +640,13 @@ async function step8RetriedOnce(): Promise<void> {
   checks.step('8. The agent retries — it succeeds, once, and only once')
   const agent = checks.must('a token to act with', state.agent)
   const projectId = checks.must('a project', state.projectId)
-  const key = checks.must('the key step 6 asked with', state.memberKey)
+  const asked = checks.must('the key step 6 asked with', state.memberKey)
   const body = checks.must('the body step 6 asked with', state.memberBody)
   const pendingActionId = checks.must('the question', state.pendingActionId)
+  // FE-51: the confirmation matches the REQUEST — token, method, path and body — not its key, so
+  // the retry carries a NEW one, as the guides now say a client may.
+  const key = idempotencyKey()
+  if (key === asked) throw new Error('two fresh Idempotency-Keys were equal')
 
   const first = await agent.client.POST('/v1/projects/{projectId}/members', {
     params: { path: { projectId }, header: { 'Idempotency-Key': key } },
@@ -650,7 +654,7 @@ async function step8RetriedOnce(): Promise<void> {
   })
   const member = unwrap(first, 'addMember')
   checks.ok(
-    'the retry — same token, same body, same Idempotency-Key — is 201',
+    'the retry — same token, same method, path and body, a NEW Idempotency-Key — is 201',
     first.response.status === 201 &&
       member.puid === 'col000001' &&
       member.role === 'collaborator',

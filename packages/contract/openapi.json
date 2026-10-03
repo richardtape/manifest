@@ -21189,7 +21189,7 @@
     "TOKEN_ACTION_PENDING": {
       "status": 403,
       "summary": "A delegated token asked for one of the four privileged actions (`release:promote`, `secret:read`, `quota:set`, `members:manage`); `pendingAction` is the question a person must answer.",
-      "remedy": "Ask the person who minted the token to confirm `pendingAction` in the console, then retry the identical request — same body, same Idempotency-Key — once. The confirmation grants exactly one retry."
+      "remedy": "Ask a person who could do it themselves — an owner of the project, or for `quota:set` a platform administrator — to confirm `pendingAction` in the console. Once they have, send the identical request again from this token — the same method, path and body; the confirmation lets it through exactly once, whatever its Idempotency-Key."
     },
     "TOKEN_ACTION_REJECTED": {
       "status": 403,

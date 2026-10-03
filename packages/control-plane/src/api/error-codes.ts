@@ -265,7 +265,7 @@ export const ERROR_CODES = {
   TOKEN_ACTION_PENDING: api(
     403,
     'A delegated token asked for one of the four privileged actions (`release:promote`, `secret:read`, `quota:set`, `members:manage`); `pendingAction` is the question a person must answer.',
-    'Ask the person who minted the token to confirm `pendingAction` in the console, then retry the identical request — same body, same Idempotency-Key — once. The confirmation grants exactly one retry.',
+    'Ask a person who could do it themselves — an owner of the project, or for `quota:set` a platform administrator — to confirm `pendingAction` in the console. Once they have, send the identical request again from this token — the same method, path and body; the confirmation lets it through exactly once, whatever its Idempotency-Key.',
   ),
   /**
    * The third answer, and DISTINCT from both above (P5b Task 7). `TOKEN_ACTION_PENDING`

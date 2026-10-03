@@ -429,7 +429,10 @@ function mapError(error: unknown): { status: number; body: UnsentRefusal } {
         error: {
           code: 'TOKEN_ACTION_PENDING',
           message: error.message,
-          hint: 'A person must confirm this in the console. Retry the identical request — same body, same Idempotency-Key — once they have; the confirmation grants it exactly one retry.',
+          // FE-51 and FE-50 (Decision 16): the words follow the code — a confirmation matches the
+          // token, method, path and body, never the key; and the person who answers is one who
+          // could do it, never "the person who minted it".
+          hint: 'A person who could do this themselves — an owner of the project, or for a quota a platform administrator — must confirm it in the console. Once they have, send the identical request again from this token — the same method, path and body; the confirmation lets it through exactly once, whatever its Idempotency-Key.',
           ...question(error.pendingAction),
         },
       },

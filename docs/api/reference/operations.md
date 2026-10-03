@@ -769,7 +769,7 @@ Answer, `200`:
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
 | `STEP_UP_REQUIRED` | 403 | Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up. |
-| `TOKEN_ACTION_PENDING` | 403 | Ask the person who minted the token to confirm `pendingAction` in the console, then retry the identical request — same body, same Idempotency-Key — once. The confirmation grants exactly one retry. |
+| `TOKEN_ACTION_PENDING` | 403 | Ask a person who could do it themselves — an owner of the project, or for `quota:set` a platform administrator — to confirm `pendingAction` in the console. Once they have, send the identical request again from this token — the same method, path and body; the confirmation lets it through exactly once, whatever its Idempotency-Key. |
 | `TOKEN_ACTION_REJECTED` | 403 | Do not retry it. Read `pendingAction.reason`, then ask the person, or ask for something different. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
@@ -4155,7 +4155,7 @@ Answer, `201`:
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
 | `STEP_UP_REQUIRED` | 403 | Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up. |
-| `TOKEN_ACTION_PENDING` | 403 | Ask the person who minted the token to confirm `pendingAction` in the console, then retry the identical request — same body, same Idempotency-Key — once. The confirmation grants exactly one retry. |
+| `TOKEN_ACTION_PENDING` | 403 | Ask a person who could do it themselves — an owner of the project, or for `quota:set` a platform administrator — to confirm `pendingAction` in the console. Once they have, send the identical request again from this token — the same method, path and body; the confirmation lets it through exactly once, whatever its Idempotency-Key. |
 | `TOKEN_ACTION_REJECTED` | 403 | Do not retry it. Read `pendingAction.reason`, then ask the person, or ask for something different. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 
@@ -4201,7 +4201,7 @@ Answer, `200`:
 | `REQUEST_INVALID` | 400 | Read `message`: it names each part and field that failed (`body.changes.0.path: …`). Correct them against this operation’s schema and send it again. A request with no body — a GET, or a DELETE that takes none — carries no `Content-Type`. |
 | `REQUEST_MEDIA_TYPE_UNSUPPORTED` | 415 | Send the body as JSON, with `Content-Type: application/json`. |
 | `STEP_UP_REQUIRED` | 403 | Send the person’s browser to `/auth/step-up?returnTo=<the page they are on>`, let them complete the CWL prompt, and repeat the request within ten minutes. A token cannot step up. |
-| `TOKEN_ACTION_PENDING` | 403 | Ask the person who minted the token to confirm `pendingAction` in the console, then retry the identical request — same body, same Idempotency-Key — once. The confirmation grants exactly one retry. |
+| `TOKEN_ACTION_PENDING` | 403 | Ask a person who could do it themselves — an owner of the project, or for `quota:set` a platform administrator — to confirm `pendingAction` in the console. Once they have, send the identical request again from this token — the same method, path and body; the confirmation lets it through exactly once, whatever its Idempotency-Key. |
 | `TOKEN_ACTION_REJECTED` | 403 | Do not retry it. Read `pendingAction.reason`, then ask the person, or ask for something different. |
 | `UNAUTHENTICATED` | 401 | Sign in at /auth/login for a session, or send a delegated token as `Authorization: Bearer mft_…`. A token that expired or was revoked is refused the same way: mint a new one (`mintToken`). |
 

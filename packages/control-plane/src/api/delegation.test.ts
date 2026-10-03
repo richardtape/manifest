@@ -9,6 +9,8 @@ import { addMember, assertCapability, CAPABILITIES } from '../projects/index.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
 import { pendingById } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
+import { ensureTestUser } from '../identity/testing.js'
+import { ERROR_CODES } from './error-codes.js'
 import {
   mutationHeaders,
   refusal,
@@ -1024,6 +1026,78 @@ describe('a confirmed retry still adds only a person who may build (FE-39)', () 
       await confirmed(ctx, pendingId)
       expect(refusal(await ask())).toEqual({ status: 201, code: undefined })
       expect(await memberPuids(ctx)).toContain('bio_colleague')
+    })
+  })
+})
+
+/**
+ * FE-51 and FE-50 (the faculty-ready plan's Task 12, Decision 16): THE WORDS FOLLOW THE CODE. A
+ * confirmation matches the token, the method, the path and the body — never the Idempotency-Key —
+ * and the question is answered by a person who could do the thing themselves (an owner; for
+ * `quota:set`, an administrator), never "the person who minted it": a collaborator's agent asks
+ * too, and its minter cannot answer.
+ */
+describe('the pending-action hint says what is matched, and who answers (FE-51, FE-50)', () => {
+  it('lets a confirmed request through under a DIFFERENT Idempotency-Key — it matches the request (a pin, green before the words moved)', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_colleague')
+      const { plaintext, pendingId } = await refusedOnce(ctx, 'bio_colleague')
+      await confirmed(ctx, pendingId)
+      const retry = await ctx.app.inject({
+        ...addMemberRequest(ctx.projectId, plaintext, randomUUID()),
+        payload: { puid: 'bio_colleague', role: 'collaborator' },
+      })
+      expect(refusal(retry)).toEqual({ status: 201, code: undefined })
+      expect((await pendingById(ctx.db, pendingId))?.consumedAt).not.toBeNull()
+    })
+  })
+
+  it('a confirmation is answered by a person who could do it: the owner who did not mint the token, never its collaborator minter (a pin)', async () => {
+    await withProjectServer(async (ctx) => {
+      const collaborator = await sessionFor(ctx, 'bio_colleague', 'collaborator', {
+        steppedUp: true,
+      })
+      const { id: colleagueId } = await ensureTestUser(ctx.db, 'bio_colleague')
+      const { plaintext } = await mintTestToken(ctx.db, {
+        userId: colleagueId,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      const asked = await ctx.app.inject(addMemberRequest(ctx.projectId, plaintext))
+      expect(refusal(asked)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      const pendingId = asked.json().error.pendingAction.id as string
+      expect(refusal(await resolve(ctx, pendingId, 'confirm', collaborator))).toEqual({
+        status: 403,
+        code: 'FORBIDDEN',
+      })
+      expect(
+        refusal(await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)),
+      ).toEqual({ status: 200, code: undefined })
+    })
+  })
+
+  it('TOKEN_ACTION_PENDING’s hint and remedy describe the retry by the request — never by its key — and name who answers by what they could do', async () => {
+    await withProjectServer(async (ctx) => {
+      const plaintext = await tokenHolding(ctx, ['project:read'])
+      const refused = await ctx.app.inject(addMemberRequest(ctx.projectId, plaintext))
+      expect(refusal(refused)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      const hint = refused.json().error.hint as string
+      const remedy = ERROR_CODES.TOKEN_ACTION_PENDING.remedy
+      for (const [where, words] of [
+        ['the hint', hint],
+        ['the remedy', remedy],
+      ] as const) {
+        // FE-51: what the platform matches is the request — its method, path and body.
+        expect(words, where).toMatch(/method/)
+        expect(words, where).toMatch(/path/)
+        expect(words, where).toMatch(/body/)
+        // …and never tells a client to keep the key: any Idempotency-Key will do.
+        expect(words, where).not.toMatch(/same Idempotency-Key/i)
+        expect(words, where).toMatch(/whatever its Idempotency-Key|any Idempotency-Key/i)
+        // FE-50: who answers is a person who could do it — never "the person who minted it".
+        expect(words, where).not.toMatch(/minted/)
+        expect(words, where).toMatch(/owner/)
+      }
     })
   })
 })

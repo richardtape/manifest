@@ -17,8 +17,8 @@ export function pendingActionOf(error: unknown): Schemas['PendingAction'] | unde
 }
 
 /**
- * Wait for the person, then say what to do. `confirmed` grants ONE retry of the identical
- * request — the same body and the same Idempotency-Key; `rejected` is final and
+ * Wait for the person, then say what to do. `confirmed` lets the identical request — the same
+ * method, path and body, from this token — through ONCE, whatever its Idempotency-Key; `rejected` is final and
  * `pendingAction.reason` says why; `expired` means nobody answered in time. Never retry a
  * pending request on a loop: it asks the person again.
  */
