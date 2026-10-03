@@ -1422,7 +1422,7 @@ need **Spec actions 5 and 6** (above); and the rest is placed here.
   a session it did not issue, and a credential an operation does not list) — which ORIENTATION §7e asks Rich to confirm for the
   current plan's Task 13. On FE-20, Rich's word relayed: a sign-in limited to a class is coming, through the Academic API or Canvas,
   both runnable locally as fakes.
-- **THE ORDER SINCE 2026-09-30 (Rich): THE LAUNCH PATH → *FACULTY-READY* → THE MANIFEST TEAM'S STEP (FE-46, FE-47, FE-5, FE-53; placed 2026-10-02, written and approved 2026-10-03, [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md)) → FE-32 → THE VULNERABILITY DATABASE IN THE CONSOLE → the FE-19…FE-3 plans below.** *As recorded before:* **AFTER THE FRONT-END ENABLEMENT PLAN, IN RICH'S ORDER: THE LAUNCH PATH FIRST — WRITTEN 2026-09-29 as [`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md) (its section above), carrying FE-33, FE-34 and FE-38 at Rich's word.** **FE-6** — the three clocks (the staging
+- **THE ORDER SINCE 2026-09-30 (Rich): THE LAUNCH PATH → *FACULTY-READY* → THE MANIFEST TEAM'S STEP (FE-46, FE-47, FE-5, FE-53; placed 2026-10-02, written and approved 2026-10-03, [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md)) → THE LOAD REHEARSAL (§24, FE-44; placed 2026-10-03, *"Build the load rehearsal first"*) → FE-32, WITH §12'S ALLOWLIST (written 2026-10-03, [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md); the allowlist *"Yes, in this plan"*) → THE VULNERABILITY DATABASE IN THE CONSOLE → FE-45 (an app that has been live, put away; placed 2026-10-03) → the FE-19…FE-3 plans below.** *As recorded before:* **AFTER THE FRONT-END ENABLEMENT PLAN, IN RICH'S ORDER: THE LAUNCH PATH FIRST — WRITTEN 2026-09-29 as [`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md) (its section above), carrying FE-33, FE-34 and FE-38 at Rich's word.** **FE-6** — the three clocks (the staging
   registration, the production registration, the privacy assessment): D19's generated drafts, an owner's *"I've sent it"*, a
   state that can say *waiting since*, and the staging registration as a tracked object like `IamRegistration`; **FE-25** — an
   owner's *"please sign this off"* for a release, feeding §26's queue (today no administrator is told and nothing records it).
@@ -1508,6 +1508,21 @@ over the hand-written SMTP client first proposed. **Then APPROVED AS REVISED, ~1
 networked command: `pnpm --filter @manifest/control-plane add --save-exact nodemailer`, tried `--offline` first, and `@types/nodemailer`
 only if the release ships no types) and *"Task 3, after the add"* (where nodemailer is first measured against Mailpit). **No spec action is
 owed.**
+
+### FE-32 — an agent can add a dependency, with §12's allowlist — WRITTEN 2026-10-03: [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md), 6 tasks in 5 sittings, AFTER THE LOAD REHEARSAL — NOT YET APPROVED
+
+*Which sitting is next: its sittings table, once it is approved and the load rehearsal has closed.* **Written 2026-10-03 by `manifest-c7`**
+from the code at `eee5648`; nothing executed. **What it builds:** `resolveDependencies` — an agent sends the `package.json` it wants and is
+answered the `package-lock.json`, resolved THROUGH THE MIRROR, inside the network-restricted builder, from a blueprint-declared recipe, with
+install scripts off and the committed lockfile's pins kept, as a full install that warms the mirror so the build after it works offline;
+three refusals that say which thing went wrong; and **§12's allowlist in its smallest faithful form** — the direct dependencies an app may
+name, a platform setting seeded from the listed blueprints' skeletons, refused `409 DEPENDENCY_NOT_ALLOWED` by the operation and by the
+build's lockfile gate alike. Contract **`1.8.0`**. Its acceptance is **`make demo-authoring`, extended** (`marked`, warmed by `make seed`
+through a fixture whose lockfile the operation itself produced). **Three spec actions DRAFTED, none applied**: A (§11's `Driver` gains
+`resolveDependencies`; §12's lockfile bullet), B (§25's descriptor gains `dependencies`), C (§12's allowlist made concrete; §26's settings).
+**Rich's answers so far** (2026-10-03, ~14:25 PDT, relayed by `manifest-94`): the allowlist *"Yes, in this plan (Recommended)"*; resolution
+in the builder and a full install through the mirror stand as written, their spec-action words his at review. **Placed** after the load
+rehearsal (*"Build the load rehearsal first"*), before the vulnerability database.
 
 ### The vulnerability database in the console — AFTER *FACULTY-READY* AND FE-32 (Rich, 2026-09-30) — REQUESTED AND PLACED 2026-09-24: after the authoring API — and, since 2026-09-26, after Spec action 1's plan, which the front-end enablement plan replaced on 2026-09-27 in the same position — and, since 2026-09-27 (Rich), AFTER THE FRONT-END'S LAUNCH PATH (FE-6, FE-25)
 
@@ -1615,7 +1630,8 @@ execution layer.** Each is written when its predecessor lands.
    (finding 181), and every redeploy's leaked container stays attached (189).
 8. **Since the front-end enablement plan, Rich's order is stated ONCE**, as *THE ORDER SINCE 2026-09-30* in *The faculty front-end's
    message* (above), and each plan's section says where it stands. **Added 2026-10-03: the Manifest team's step (FE-46, FE-47, FE-5,
-   FE-53) — WRITTEN AND APPROVED — between *faculty-ready* and FE-32.**
+   FE-53) — WRITTEN AND APPROVED — between *faculty-ready* and FE-32; then, the same day, the load rehearsal before FE-32, and FE-45 after
+   the vulnerability database.**
 
 ### Decided 2026-09-04: execute before writing P4
 
