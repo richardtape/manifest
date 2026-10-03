@@ -7,9 +7,19 @@
 > while `manifest-9d` held the faculty-ready plan's sitting 5b (`ORIENTATION.md`, `TRAPS.md`, `external-track.md` and that plan
 > uncommitted). Line numbers WILL have moved by the time this runs, and Task 1 re-reads each one marked *(T1: M<n>)*.
 > **Two spec actions are drafted below, and neither is applied.** No task that a spec action changes runs before Rich has read and
-> decided its words. **NOT YET APPROVED AS A WHOLE**: at 15:57 PDT Rich sent it to a quick fresh review first (a read-only agent of
-> `manifest-94`), and chose **INLINE execution, a fresh session per sitting** (`superpowers:executing-plans`).
-> Fixes from that review go to a fresh session.
+> decided its words. At 15:57 PDT Rich sent the plan to a quick fresh review first (a read-only agent of `manifest-94`), and chose
+> **INLINE execution, a fresh session per sitting** (`superpowers:executing-plans`).
+
+> **APPROVED — Rich, 2026-10-03, 16:13 PDT**, through the question tool, on the fresh review
+> ([`2026-10-03-review-of-ubc-ai-gateway-plan.md`](./2026-10-03-review-of-ubc-ai-gateway-plan.md)): ***"Approve with the fixes
+> (Recommended)"*** — approved once a fresh session applied the review's fixes, before sitting 1. **Applied 2026-10-03, 16:22–16:40
+> PDT (from the clock), by `manifest-cd`**, every fix the review lists, built into the tasks below and each marked with the review's id (*C1*, *I1*–*I10*,
+> *M1*–*M11*), **except the one Rich declined: *"Keep it as a backup"*** (over the review's *"required removal at sitting 2's
+> close"*) — **`OPENAI_API_KEY` stays in `.env` and in LiteLLM's environment**, and removing it is no step of this plan. His other
+> answers of 16:13 are built in: the `.env` line commented now and uncommented only after sitting 1 scrubs it (Task 0); the virtual
+> key's ceiling set before sitting 2 — **set by Rich at 16:23 PDT: a 20 USD budget that resets monthly, and a 90-day expiry, about
+> 2027-01-01** (`../2026-09-30-decisions.md`, its 16:23 entry). Read *Decisions* 4, 11 and 12 first: they are where the fixes
+> changed the plan's shape.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: **superpowers:executing-plans (inline)** — Rich, 2026-10-03, 15:57: inline, **a fresh
 > session per sitting**. Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -32,16 +42,24 @@ its *provider*.
   - `model: 'openai/<name>'`;
   - `api_base` from `MANIFEST_UBC_AI_GATEWAY_URL`;
   - **`api_key: 'os.environ/UBC_AI_GATEWAY_API_KEY'` — a REFERENCE** that LiteLLM resolves from its own environment, so neither the
-    control plane nor LiteLLM's database ever holds the key.
+    control plane nor LiteLLM's database ever holds the key;
+  - **a `timeout`** from `[M2]`'s measured latencies, so a black-holed gateway falls back in seconds, not LiteLLM's 600 (*M10*).
 
-  Every other setting passes through unchanged, so `openai/gpt-6-luna` still reaches OpenAI directly.
+  Every other setting passes through unchanged, so `openai/gpt-6-luna` still reaches OpenAI directly with `OPENAI_API_KEY`, which
+  stays as a backup (Rich, 16:13).
+- **The boot FAILS CLOSED** (*C1*): when `.env` carried no gateway key it REMOVES every gateway registration rather than keeping it,
+  because a keyless gateway registration can only fail silently or send another provider's key to UBC (Decision 4). `make verify`
+  compares a FINGERPRINT of the key in LiteLLM's environment with `.env`'s, and `make doctor` warns ahead of the key's expiry
+  (Decisions 4 and 11).
 - **`ai/capable.ts`'s registration machinery moves into `ai/registration.ts`**, parameterised by name and classification. The capable
   model and the new **`MANIFEST_GATEWAY_MODELS`** (`<name>=ubc-ai-gateway/<model>@<classification>,…`) both go through it, at every
   boot, through `/model/new`. Its price rule is unchanged, with one addition: a `confidential` gateway model LiteLLM cannot price is
   pinned at the on-premise stand-in's synthetic price.
 - **The fallback guard learns the gateway's own failures**, but only if Task 1 measures that they arrive as `400` (Task 4's branch).
 - **Agent keys gain `/v1/responses`**, but only if Task 1 measures that the gateway's capable model refuses tools on chat completions
-  (Task 5, Spec action 2).
+  through both hops (Task 5, Spec action 2).
+- **The gateway's key is scrubbed from the control plane's environment FIRST** (Task 0, sitting 1, *I1*), before its `.env` line —
+  commented by `manifest-94` at 16:14 — is uncommented.
 
 **Tech Stack:** TypeScript 5.9.3 on Node 24.12.0 (host), Fastify 5.12.3, Vitest 2.1. LiteLLM **1.98.0**, pinned by digest (the
 `ghcr.io/berriai/litellm` line of `infra/images.lock`). The gateway's own LiteLLM version is measured by Task 1 (`[M1]`). Docker Desktop
@@ -73,16 +91,19 @@ acceptance) closes.**
 
 **One sitting per session, with a check-in at each boundary.** This plan commits after every task.
 
-> **THREE SITTINGS, PROPOSED.** Task 1 is first and alone, because it needs the network and Rich's key, and its answers pick the branches
-> of Tasks 4 and 5. Tasks 2–5 share sitting 2, so the Docker tier runs once. The acceptance is alone and last.
-> *Offered, and not recommended:* **four**, with Task 5 in a sitting of its own. That only makes sense if Task 1 lands Task 4 on Branch B
-> and both are large.
+> **THREE SITTINGS, FOUR IF SITTING 2 SPLITS.** Sitting 1 is Task 0 (the key scrubbed, then its `.env` line uncommented, *I1*) and
+> then Task 1, because Task 1 needs the network and Rich's key, and its answers pick the branches of Tasks 4 and 5. Tasks 2–5 share
+> sitting 2, so the Docker tier runs once — **with a declared STOP POINT after Task 3** (*M11*): if Task 1 lands Task 4 on Branch B
+> AND Task 5 runs, sitting 2 ends after Task 3 and **sitting 2b** takes Tasks 4 and 5, each sitting running the Docker tier once at
+> its close (one more ~20–23 min run is the price of fitting in a session); otherwise sitting 2 continues past the stop point if the
+> session has room, and splits there if it does not. The acceptance is alone and last.
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements** (the network on, Rich's key): the gateway's models; chat, streamed and not, through both hops; `/v1/responses` through both hops, with a tool; the error shapes the guard meets; the price Manifest's LiteLLM records; where the key goes; each model's classification, in Rich's words | No | — | ← **next** (after faculty-ready's sitting 7) |
-| 2 | 2, 3, 4, 5 | **The capable model through the gateway**, the key by reference only. **The gateway's own models**, from one setting. **The guard**, if `[M5]` needs it. **Agent keys reach `/v1/responses`**, if `[M4]` needs it — contract `1.6.1` | Yes — `ai/`, `infra/`, `secrets/` | **1** (§7, §21, §26) before Tasks 2–3; **2** (§10) before Task 5 | |
-| 3 | 6 | **The acceptance**: `make demo-gateway` three times, its controls seen red, every other demo still green, the plan's one whole-branch review, and Rich watching the gateway's spend move. **Alone, and last** | Yes, if any code changes | — | |
+| 1 | 0, 1 | **The key scrubbed, then uncommented** (Task 0: one name in `secrets/scrub.ts` and its test, the four gates, a commit, THEN the `.env` line). **The measurements** (the network on, Rich's key and his tiny-budget probe key): the gateway's models, the key's ceiling and expiry; chat, streamed and not, through both hops; `/v1/responses` through both hops, with a tool, its spend and its stored responses; the error shapes the guard meets, streamed too; the price Manifest's LiteLLM records against the gateway's own charge; where the key goes in four cases on both providers; each model's classification, in Rich's words | **Not the tier — ONE file**: Task 0's scrub name is executed by one Docker case only, `boot.docker.test.ts` (its `:135` asserts `secretsScrubbed >= 3`; grepped 2026-10-03), so that file runs alone, as the lean budget rules for a change one Docker file executes. The four gates, `pnpm test` twice, are owed by Task 0 | — | ← **next** (after faculty-ready's sitting 7) |
+| 2 | 2, 3 — **stop point** — 4, 5 | **The capable model through the gateway**, the key by reference only, failing closed. **The gateway's own models**, from one setting. **The guard**, if `[M5]` needs it. **Agent keys reach `/v1/responses`**, if `[M4]` needs it — contract `1.6.1` | Yes — `ai/`, `infra/` | **1** (§7, §21, §26) before Tasks 2–3; **2** (§10) before Task 5 | |
+| 2b | 4, 5 — **only if sitting 2 split at its stop point** | As sitting 2's second half | Yes — `infra/` (Branch B), `ai/` | **2** (§10) before Task 5 | |
+| 3 | 6 | **The acceptance**: `make demo-gateway` three times, its controls seen red, every other demo still green, the plan's one whole-branch review, and Rich watching the gateway's spend move — compared by `/key/info`, not by eye | Yes, if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -95,8 +116,9 @@ acceptance) closes.**
 4. **The close-out sweep in ORIENTATION §6.** The gate numbers live in `scripts/ci-acceptance.sh`'s `EXPECT_` lines (their one statement).
 
 **THIS TABLE IS A SCHEDULE, NOT A CONTRACT.** Moving task boundaries is Task 1's job. **If a measurement breaks the split, say so to Rich
-before sitting 2.** Three rules survive any re-cut:
-- Task 1 stays first and alone.
+before sitting 2.** Four rules survive any re-cut:
+- Task 0 is first, and its commit lands before the `.env` line is uncommented.
+- Task 1 follows it, alone: no other task's code is written in sitting 1.
 - Task 6 stays alone and last.
 - No task that a spec action changes runs before Rich has decided that spec action.
 
@@ -131,6 +153,26 @@ before sitting 2.** Three rules survive any re-cut:
   - *Rejected:* (b) leaving it to Phase 3.
 - **THE ROUTINE CALLS** this plan put beside the questions *"stand as described"*: Decisions 1–8 below.
 
+**At 15:57 PDT** (its 15:57 entry): *"Quick review first (Recommended)"* and *"Inline, a fresh session per sitting (Recommended)"*.
+
+**At 16:13 PDT**, on the fresh review (its 16:13 entry), through the question tool:
+- **THE PLAN — *"Approve with the fixes (Recommended)"***: approved once a fresh session applied the review's fixes (done; the header).
+- **`OPENAI_API_KEY` — *"Keep it as a backup"*** (over the recommended *"required removal at sitting 2's close"*). It stays in `.env`
+  and in LiteLLM's environment. **No step of this plan removes it or asks Rich to.** The review's other *C1* fixes — fail closed,
+  `[M7]`'s four cases, the fingerprint — still apply, and matter MORE because the key stays (Decision 4).
+- **THE KEY IN `.env` NOW — *"Comment out the .env line (Recommended)"***: `manifest-94` prefixed `UBC_AI_GATEWAY_API_KEY=` with `# `
+  at 16:14 without reading its value. **Task 0 adds the scrub entry and its test, commits, and THEN uncomments the line** — a Rich-step,
+  or an agent's `sed` that reads no value. *Over:* a scrub-list change at once (it would have voided faculty-ready sitting 5b's final
+  gates).
+- **THE VIRTUAL KEY'S CEILING — *"Yes, before sitting 2 (Recommended)"***: Rich sets a max budget and a budget duration on the key in
+  the gateway's admin UI, and the figure is recorded.
+
+**At 16:23 PDT** (its 16:23 entry; relayed by `manifest-94`): **the ceiling is SET — a 20 USD budget that resets monthly, and a
+90-day EXPIRY, about 2027-01-01.** The Rich-step before sitting 2 is done; `[M1]`.3 reads both back. Two consequences, both built
+below: a $20 monthly cap makes the gateway's own budget-exhausted answer (`[M5]`(e)) a REAL case on this laptop, so measuring it is
+REQUIRED, on a separate tiny-budget key; and an expired key answers `401`, which the guard falls back from silently — the same shape
+as *C1* — so `make doctor` warns ahead of the expiry (Decision 11).
+
 **Carried from earlier plans, still binding:**
 - **The capable model is registered through the admin API, never a `config.yaml` line.** It is pinned at the price LiteLLM itself reports,
   and **a model LiteLLM cannot price is refused, never offered at `$0`** (the front-end enablement plan's Task 12a, its review's I1).
@@ -145,20 +187,28 @@ before sitting 2.** Three rules survive any re-cut:
 
 ## What Rich does, and when
 
-1. **Review this plan**, approve or re-cut its three sittings. **The execution method is chosen: inline, a fresh session per sitting** (15:57).
+1. **Review this plan — DONE: APPROVED at 16:13 with the fixes** (the header), which `manifest-cd` applied. **The execution method is
+   chosen: inline, a fresh session per sitting** (15:57). Re-cutting the sittings remains his at any boundary.
 2. **The key. DONE 2026-10-03, ~15:40 PDT**: Rich generated a VIRTUAL key on the gateway and added `UBC_AI_GATEWAY_API_KEY` to `.env`
    (`manifest-94`'s message, 15:42). `.env.example` already carries its commented line (`20c65ca`, by `manifest-94` at his request), so
-   **no task adds it again**.
+   **no task adds that line again** (Tasks 2 and 3 add the OTHER settings' lines, *M6*). **Its `.env` line is COMMENTED since 16:14**
+   (*I1*); Task 0 uncomments it. **Its ceiling: DONE 16:23** — 20 USD a month, expiring about 2027-01-01 (*Decided by Rich*).
 3. **At sitting 1**:
    - **The network on.**
+   - **After Task 0's commit, the `.env` line uncommented** — by him, or by the agent's `sed` that reads no value, at his word.
    - **For each model `[M1]` lists, where it runs** (a commercial provider, or UBC's own hardware such as Pickerel) **and the
      classification he gives it.** Only a model on UBC's hardware may be `confidential` (Decision 7).
    - **As the gateway's administrator, three facts the platform cannot see** (`[M9]`):
      - whether the gateway retains prompts (its `store_prompts_in_spend_logs`);
      - whether any model there has a gateway-side fallback, and to what;
-     - the virtual key's own budget, rate limits and model list.
-   - **Optional: a second virtual key with a tiny budget** (e.g. `$0.0001`), named for the measurement and deleted after it, so `[M5]`
-     can measure what the gateway answers when ITS budget for Manifest is spent. Without it, `[M5]` records that case as unmeasured.
+     - the virtual key's own rate limits and model list (its budget and expiry are set — `[M1]`.3 reads them back).
+   - **REQUIRED (*I9*; `manifest-94`, 16:23): a second virtual key, the PROBE key** — a tiny budget (e.g. `$0.0001`) and a model list of
+     exactly ONE model the gateway serves, named for the measurement (e.g. `manifest-gw-probe-<date>`). **He writes it to a file OUTSIDE
+     the repository and outside `.env`** — the path the sitting names, one line `GW_PROBE_KEY=<value>`, `chmod 600` — so no scrub entry is
+     needed and no control-plane start can export it. `[M5]` measures (c)'s second form on it, then spends its budget to measure (e).
+     **The file is removed at Task 1's Step 10, and he deletes the key at the gateway** after it. The real key's $20 is never spent to measure.
+   - **`UBC_AI_GATEWAY_KEY_EXPIRES=<YYYY-MM-DD>` in `.env`** (Decision 11), from `[M1]`.3's reading — not a secret, so the agent may
+     append it at his word.
 4. **Read and decide Spec action 1 before sitting 2.** Read and decide **Spec action 2** before sitting 2, too, **if** `[M4]` says Task 5
    runs.
 5. **At sitting 2's close**:
@@ -166,11 +216,12 @@ before sitting 2.** Three rules survive any re-cut:
      `MANIFEST_GATEWAY_MODELS=<names he chooses>`;
    - `make up`, so LiteLLM is created with the key;
    - a control plane restart (a restore-safe script if the classifier refuses the agent).
-   - **Recommended, his call:** remove `OPENAI_API_KEY` from `.env` once the gateway serves, so no direct OpenAI key exists on the
-     laptop. It also closes `[M7]`'s cross-provider case, whatever that measures.
+   - **`OPENAI_API_KEY` STAYS** (Rich, 16:13: *"Keep it as a backup"*). A direct `openai/…` setting still uses it; the fail-closed boot
+     (Decision 4) and `[M7]`'s measurement are what keep it from the gateway.
 6. **Sitting 3**:
    - he runs `make demo-gateway` (or lets the session run it) with the network on;
-   - he watches his key's spend move in the gateway's own admin UI;
+   - he watches his key's spend move in the gateway's own admin UI — while phase 2 compares the same move by `/key/info`, not by eye
+     (*I8*);
    - if the faculty front-end runs against 7100 by then, he builds an app on `app.manifest.internal` and sees it answered.
 
 ---
@@ -199,7 +250,10 @@ before sitting 2.** Three rules survive any re-cut:
    `index.ts:477-484`, straight after `listen`. The boot line carries `capableModel` and `capableFallback` (`index.ts:546-549`).
 5. **The scrub runs after `loadConfig`** (`index.ts:63`): `scrubSecretEnv()` removes `secrets/scrub.ts:6-32`'s names and returns them.
    `scrub.test.ts:33-61` holds the list. **A new secret in `.env` is a new line in both** (TRAPS: *RUNBOOK'S `set -a; . ./.env` EXPORTS
-   ALL OF `.env`*).
+   ALL OF `.env`*). **`UBC_AI_GATEWAY_API_KEY` IS NOT IN THE LIST TODAY** (the review's *I1*, checked at `e8a2266`): a restart from
+   `.env` would export it into `runtime/docker/builder.ts:441` and `source/scan-commits.ts:145`, which both spawn with
+   `{...process.env}`. **That is why `.env`'s line is commented since 16:14, and why Task 0 comes first.** The Docker tier's only scrub
+   assertion is `boot.docker.test.ts:135`, `expect(boot.secretsScrubbed).toBeGreaterThanOrEqual(3)`, which a new name cannot move.
 6. **The provider key's one route into LiteLLM** is `infra/compose.yaml:229-235`: `OPENAI_API_KEY: ${OPENAI_API_KEY:-}`.
    - LiteLLM reads its environment only when the container is CREATED: `make up`, not `docker restart` (TRAPS).
    - **With no key, LiteLLM refuses a chat `500`, not `401`** (TRAPS).
@@ -225,9 +279,14 @@ before sitting 2.** Three rules survive any re-cut:
     *"(`/chat/completions`, `/embeddings`, `/models`)"*. `:270` is the intake session's and stays.
 13. **The fake LiteLLM keeps no address or key** (`ai/testing.ts:180-201`, `:410-436`): `/model/info` answers `litellm_params.model` and
     a pinned price only (`:519-535`). `FAKE_PROVIDERS` (`:271`) holds `openai`.
-14. **The stub provider** (`ai/testing.ts:654-720`) counts hits by path and logs nothing. **A probe deployment there names no `api_key`**
-    (`fallback-guard.docker.test.ts:67-120`), so LiteLLM's OpenAI provider likely sends LiteLLM's own `OPENAI_API_KEY` to the stub.
-    *(T1: M7 — inferred, not measured. It is the same mechanism that could send that key to the gateway.)*
+14. **The stub provider** (`ai/testing.ts:654-720`) counts hits by path and logs nothing. **Every probe deployment that reaches it today
+    NAMES a key that is not a key** — *corrected by the review's M1; the first draft said they named none*:
+    `fallback-guard.docker.test.ts:179` sends `api_key: 'probe-not-a-key'`, and `capable.docker.test.ts:118` (`unreachableCapable`)
+    `'sk-probe-not-a-key'`. The one keyless deployment, `capable.docker.test.ts:309`, is `ollama_chat` at `127.0.0.1:9`, where nothing
+    listens. **So no current probe sends `OPENAI_API_KEY` to the stub — but the mechanism is live**: LiteLLM's `openai/` provider very
+    likely reads `api_key or … get_secret("OPENAI_API_KEY")`, so any future `openai/` deployment with no key, an EMPTY one, or a
+    reference that resolves to nothing would send it. *(T1: M7 — four cases, measured.)* **Rule for this plan: every deployment aimed
+    at a stub names a literal canary `api_key`, or `os.environ/MANIFEST_STUB_BEARER`** (*I3*; Task 2).
 15. **The Docker tier's control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model** (TRAPS). They will remove
     every gateway model too, by the same design. Restart the control plane with `.env` afterwards.
 16. **The gateway, measured by `manifest-94` at ~15:2x**: `/health/liveliness` answers `200 "I'm alive!"`, `/v1/models` answers `401`
@@ -240,6 +299,29 @@ before sitting 2.** Three rules survive any re-cut:
     - **Shared pages:** `manifest-schematic.html:1072` (*"a commercial provider's for now"*) and `manifest-decisions.html:137` (D17's why).
       `manifest-phases.html` and `manifest-stories.html` mention none of it (checked with `grep`).
 
+*Added 2026-10-03 by `manifest-cd`, applying the review — each read at `e8a2266`:*
+
+18. **The capable model's fallback is set INSIDE `capableModelAtBoot`** (`capable.ts:454-458`, after `ensureCapableModel`), and
+    `unfit` (`:302-312`) refuses a fallback name *"not in the model catalogue"*. A gateway model registered AFTER it could never be the
+    fallback on a fresh registration (*I5*). **So `gatewayModelsAtBoot` runs BEFORE `capableModelAtBoot`** (Task 3).
+19. **The fake LiteLLM seeds a config entry's INPUT price only** (`ai/testing.ts:282-292`), and `outputCostOf` (`:329-331`) reads `0`
+    for an `ollama_chat/` model with none (*M2*). Task 3's stand-in price reads both, so Task 3 changes the seeding.
+20. **`capable.docker.test.ts`'s own helpers** (`:84-150`): `leaveNone`, `startingClear` (asserted clear of the REAL capable model before
+    a case registers its own — the file's rule), `unreachableCapable`, `chat(key)`, `spendOf(client, key)`; keys are minted inline with
+    `client.post('/key/generate', …)` (`:254`). **There is no `keyFor`, `STUB_HOST` or `GW_STUB_PORT`** (*M3*). **Port 7199 is
+    `fallback-guard.docker.test.ts:48`'s stub**; no code uses **7193** (`grep` of `packages/*/src`, `scripts`, `infra`, `Makefile`).
+21. **`config.ts:688-706` refuses a plain-`http` GitHub URL off loopback** (`CONFIG_GITHUB_INSECURE_URL`: *"a GitHub installation token
+    may cross only loopback in plaintext"*), and `:304-307` is the *empty is unset* pattern (`z.preprocess((value) => (value === '' ?
+    undefined : value), …)`). The gateway's URL takes both (*I10*).
+22. **The capable model's pinned price omits cache reads** (`capable.ts:228-234`: input and output only), while S5 found 97% of the
+    capable model's tokens were cache reads at about a tenth of the input price (`spikes/S5-findings.md:354-355`) (*I8*).
+23. **`make doctor` counts a warning check** (`scripts/lib/check.sh:27-38`: `check_warn` adds to `CHECKS_RUN` and never fails the run),
+    sources `.env` inside a check (`scripts/doctor.sh:335-336`), and warns on the vulnerability database's age (`:480-505`) — the
+    pattern Decision 11 copies. Its `.env` check (`:507-519`) compares `.env` with `.env.example`'s UNCOMMENTED keys, so a new
+    `.env.example` line stays commented.
+24. **`default-chat` is priced synthetically** (`infra/litellm/config.yaml:26-27`, $1 / $3 a million), so a Docker case on it can
+    assert spend exactly — Task 5's does (*I7*).
+
 ---
 
 ## Decisions this plan makes, and why
@@ -251,17 +333,39 @@ before sitting 2.** Three rules survive any re-cut:
    - *To change course:* `resolveSetting` is the one place.
 2. **LiteLLM'S `openai/` PROVIDER, NOT `litellm_proxy/`.** The guard's statuses (`manifest_guard.py:15-18`) and F8's `422` (`:58-66`, the
    OpenAI provider's retry loop) were measured on LiteLLM's OpenAI provider, and S5 measured `openai/` answering `/v1/responses` natively.
-   **Task 1 tries `litellm_proxy/` only if `openai/` fails a check**, and then this decision is re-made in its record.
+   **Task 1 tries `litellm_proxy/` only if `openai/` fails a check**, and then this decision is re-made in its record — **with one
+   exception (*C1*): `[M7]` measures BOTH providers.** `litellm_proxy/` falls back to `LITELLM_PROXY_API_KEY`, which LiteLLM's
+   environment does not hold, so an unresolved reference there may send NO key where `openai/` sends `OPENAI_API_KEY`. **If `[M7]`
+   reads `canary` on `openai/` and not on `litellm_proxy/`, that weighs for `litellm_proxy/`**, against the guard's and F8's
+   measurements having been made on `openai/`; Task 1's record re-makes this decision with both in view, and says what moving would
+   cost (`[M5]` re-measured on `litellm_proxy/`).
 3. **THE KEY TRAVELS AS `os.environ/UBC_AI_GATEWAY_API_KEY`.**
    - `infra/compose.yaml` hands the value to LiteLLM alone.
    - The control plane scrubs it at boot, and reads it ONCE, in `loadConfig`, only to know whether it is set (`keyInEnv`).
    - *Rejected:* sending the key in `/model/new`. LiteLLM would store it, salted, in its database, and the control plane would hold it.
-4. **THE BOOT REFUSES A GATEWAY REGISTRATION WHEN `.env` CARRIED NO KEY.** It writes one operator line naming the setting, and keeps the
-   working model (`capable.ts`'s `refuse`). It cannot see LiteLLM's environment, so *"in `.env` but LiteLLM not re-created"* is
-   `make up`'s job and RUNBOOK's check. **If `[M7]` measures that an unresolved reference makes LiteLLM send another key, Task 2 adds a
-   counted `make verify` check** that LiteLLM's environment carries the key whenever `.env` does (`EXPECT_VERIFY` +1).
+4. **THE BOOT FAILS CLOSED WHEN `.env` CARRIED NO KEY** (*C1*; rewritten 2026-10-03 from *"refuses, and keeps the working model"*).
+   - **It REMOVES every gateway registration** — every capable-model deployment that names an `api_base` (a direct one never does), and
+     every `manifest-gateway-` entry — with one operator line per setting naming it and the missing key. **A DIRECT registration (`openai/…` with no `api_base`)
+     is kept**: that is OpenAI's key going to OpenAI, which Rich keeps as a backup.
+   - **Why not keep it, as the first draft did:** a gateway registration with no key can only (i) answer `401`, which the guard falls
+     back from SILENTLY (`manifest_guard.py:11-13`), or (ii) if `[M7]` reads `canary`, send `OPENAI_API_KEY` to UBC's gateway. The
+     first draft kept it because `capable.ts:211-216`'s `refuse` keeps every priced deployment. Rich kept `OPENAI_API_KEY` (16:13), so
+     (ii) stays live for as long as this code runs.
+   - **Unconditional, whatever `[M7]` reads.** *The review put it "on `canary`"; this plan makes it unconditional* (a routine call,
+     `manifest-cd`): case (i) alone is reason enough, and an unconditional rule cannot be disarmed by a measurement on one LiteLLM
+     version. *Cost of the other way:* one `if` in Task 2's `ensureCapableModel` and Task 3's `ensureGatewayModels`.
+   - **The control plane cannot see LiteLLM's environment**, so *"in `.env` but LiteLLM not re-created"* and *"rotated in `.env`,
+     stale in LiteLLM"* are **`make verify`'s: a counted check, built UNCONDITIONALLY in Task 2** (`EXPECT_VERIFY` +1), that compares a
+     FINGERPRINT of `UBC_AI_GATEWAY_API_KEY` inside `manifest-litellm` with `.env`'s — never presence alone (*C1*). It prints only a
+     verdict — `not configured` or `matches` (PASS); `absent from LiteLLM`, `differs` or `LiteLLM holds a key .env does not` (FAIL,
+     each naming `make up`) — never a value or a hash. *The first draft built it only if `[M7]` read `canary`; a stale key is a silent fallback either way.*
+   - **What it cannot do, recorded:** the window between `.env` gaining the key and `make up` — the boot registers, LiteLLM has no such
+     variable. RUNBOOK's order (`make up`, THEN restart) closes it, and `make verify` reads red throughout it; `[M7]`'s case 1 says what
+     a call in that window sends (if `canary`, `OPENAI_API_KEY` reaches UBC's gateway — RUNBOOK says so beside the order).
 5. **THE GATEWAY'S ADDRESS IS `MANIFEST_UBC_AI_GATEWAY_URL`**, defaulting to `https://ai-gateway.apps.ltic.ubc.ca/v1` (`[M2]` confirms the
-   `/v1`). It is not a secret; the control plane sends it in each registration.
+   `/v1`). It is not a secret; the control plane sends it in each registration. **Empty is unset** (the default), and **plain `http`
+   is refused off loopback** with `ConfigError('CONFIG_UBC_AI_GATEWAY_INSECURE_URL')`, in `config.ts:688-706`'s pattern for the GitHub
+   URLs — the bearer key would otherwise cross the network in clear (*I10*). Loopback `http` stays allowed, for Task 6's control (a).
 6. **PRICES.**
    - A gateway model is priced by LiteLLM's own map **for the gateway's model name**, then pinned, as the capable model is today.
    - **An alias LiteLLM cannot price is REFUSED**, and the fix is at the gateway: Rich, its administrator, exposes the model under its
@@ -269,6 +373,10 @@ before sitting 2.** Three rules survive any re-cut:
    - **A `confidential` gateway model LiteLLM cannot price is pinned at the on-premise stand-in's synthetic price**, read at boot from
      `default-chat-onprem`'s config entry, so no second constant exists. Its rationale is `config.yaml:23-27`'s: an on-premise model has
      no per-token price, and `$0` binds no budget.
+   - **Cache reads (*I8*).** The pin today carries input and output prices only (Read this first 22). **If `[M3]`.6 measures the
+     gateway's model reporting `cached_tokens` and LiteLLM's map giving it a `cache_read_input_token_cost`, the pin carries that too**
+     (Task 2), so a cache-heavy agent session is charged what the gateway charges and not several times it. If LiteLLM's map has no
+     such price, the pin stays at two, and the record says how far Manifest's charge sat above the gateway's (`[M3]`.6).
    - *To change course:* `ai/registration.ts`'s `unpriced` field.
 7. **A GATEWAY MODEL'S CLASSIFICATION IS THE SETTING'S, NEVER DEFAULTED** (§7: an unclassified entry is never resolvable).
    - Rich gives each one at sitting 1 (`[M1]`).
@@ -286,6 +394,25 @@ before sitting 2.** Three rules survive any re-cut:
 10. **THE ACCEPTANCE NEEDS THE NETWORK AND THE KEY, SO IT IS IN NO OFFLINE OR CI STEP.** `make demo-gateway` prints `NOT RUN` and exits
     `2` when the gateway is not configured, because a skipped acceptance is not a passed one. Every Docker case in this plan uses the stub,
     never the gateway.
+11. **THE KEY'S EXPIRY IS WARNED, NOT DISCOVERED** (added 2026-10-03 by `manifest-cd`, at `manifest-94`'s suggestion; a routine call).
+    Rich's key expires about 2027-01-01 (16:23), and an expired key answers `401`, which the guard falls back from silently — every
+    capable call moving to the on-prem model with no operator line, *C1*'s shape.
+    - **The date lives in `.env` as `UBC_AI_GATEWAY_KEY_EXPIRES=<YYYY-MM-DD>`** — not a secret — written at sitting 1 from `[M1]`.3's
+      reading of `/key/info`'s `expires`.
+    - **`make doctor` gains one `check_warn`** (Task 2; `EXPECT_DOCTOR` +1, because a warning check is still counted), in the
+      vulnerability database's pattern (Read this first 23): no gateway key in `.env` → PASS, *"no UBC AI Gateway key"*; a key and no
+      expiry line → WARN, *"its expiry is unknown"*; **within 14 days of the date, or past it → WARN** naming the date and the fix (rotate
+      it in the gateway's admin UI, `.env`, `make up`, restart); otherwise PASS naming the date. Offline it works unchanged.
+    - **`make demo-gateway`'s phase 0 compares the line with `/key/info`'s `expires`** (the network is on there) and fails on a mismatch,
+      so a rotation that forgot the line is caught where it can be.
+    - **Why 14 days:** a rotation is Rich's, in another system, and needs `make up` and a restart after it; the vulnerability database's
+      seven days is a refresh an agent can run. *Rejected:* `make doctor` reading `/key/info` itself — it would handle the key and need
+      the network, and offline it could not fail. *To change course:* the one check in `scripts/doctor.sh`.
+12. **A GATEWAY DEPLOYMENT CARRIES A `timeout`** (*M10*), `GATEWAY_TIMEOUT_S` in `ai/providers.ts`, set by Task 2 from `[M2]`'s measured
+    latencies with headroom, the figure and its source written beside the constant. LiteLLM's default would let a black-holed route
+    hold a caller up to 600 s before the fallback answers. **Too short cuts off a long legitimate answer** — so `[M2]` times the capable
+    candidate's longest plausible non-streamed answer, and a streamed call is bounded by `stream_timeout` only if `[M3]` measures
+    LiteLLM 1.98.0 honouring it. *To change course:* the one constant.
 
 ---
 
@@ -298,16 +425,23 @@ Every task's requirements implicitly include this section. Values are copied ver
   - **`curl`** reads it from a config on stdin: `printf 'header = "Authorization: Bearer %s"\n' "$UBC_AI_GATEWAY_API_KEY" | curl -K - …`.
     `printf` is a builtin, so the key never reaches `ps`.
   - **`docker run`** takes `-e UBC_AI_GATEWAY_API_KEY` with no value.
+  - **A FINGERPRINT is compared, never printed** (`make verify`'s check, Decision 4): each side hashed inside its own process, and only
+    a verdict (`matches`, `differs`, …) written out.
+  - **A ROW is checked DECRYPTED, by verdict** (*I4*): LiteLLM encrypts every `litellm_params` value with its salt key, so a clear-text
+    count of a database dump reads `0` whether or not the key is there. Decrypt inside the LiteLLM container, with LiteLLM's own
+    helper and its own salt key, and print only `equals the reference` or `other`.
   - **NEVER** `docker inspect` LiteLLM, `env` or `printenv` in it, `echo` the variable, or `set -x` a script that has loaded `.env`.
   - **Check that it is present** with `docker exec manifest-litellm sh -c '[ -n "$UBC_AI_GATEWAY_API_KEY" ] && echo set'`.
   - **Check that it is absent from a file or a log** with a COUNT, the value read from the environment:
     `perl -ne '$n++ if index($_, $ENV{UBC_AI_GATEWAY_API_KEY}) >= 0; END { print $n+0, "\n" }'`.
-  - **Every captured body is redacted before it is written**, by `probes/redact.pl`: the key's value, then any
-    `sk-[A-Za-z0-9._-]{4,}`, replaced. A LiteLLM's `401` echoes the start and end of the key it was sent.
+  - **Every captured body is redacted before it is written**, by `probes/redact.pl`: the key's value and the probe key's, then any
+    `sk-[A-Za-z0-9._-]{4,}`, replaced. A LiteLLM's `401` echoes the start and end of the key it was sent — `[M5]`(d) records the exact
+    fragment form and where it lands (*M4*).
 - **Four gates, all clean before every commit**, from the **repository root**: `pnpm test`, `pnpm lint`, `pnpm typecheck` and
   `pnpm format:check`. Run **`pnpm test` twice** on a sitting's final tree. Never with `--filter`.
 - **`pnpm test:docker`** (~20–23 min; needs `make up` and the chat model warm; **fails rather than skips**):
-  - **Owed by this plan's `ai/`, `infra/` and `secrets/` changes.**
+  - **Owed by this plan's `ai/` and `infra/` changes** (sittings 2, 2b and, if code changes, 3). Task 0's one `secrets/` name owes ONE
+    file, `boot.docker.test.ts`, run alone — not the tier (the sittings table, by grep, as the lean budget asks).
   - **Run it in the background, never beside a Vitest run.** Count `docker network ls -q | wc -l` before it.
   - **Run it from a shell where `MANIFEST_SOURCE_DRIVER`, every `MANIFEST_GITHUB_*`, `MANIFEST_CAPABLE_MODEL` and
     `MANIFEST_GATEWAY_MODELS` are unset.**
@@ -324,7 +458,15 @@ Every task's requirements implicitly include this section. Values are copied ver
   breaking what it built after committing, **predicting** what goes red, then restoring.
 - **Every task names its CALLER.** A module with no caller is not built.
 - **An operator line never carries a key, a reference's resolved value, a request body or a provider's message.** A `[boot]` line names
-  the setting and its words; a test greps the captured stderr for the stub's key (`True`) and finds none.
+  the setting and its words; a test greps the captured stderr for the stub's bearer (`probe-not-a-key`) and finds none.
+- **EVERY DEPLOYMENT AIMED AT A STUB NAMES ITS KEY** (*I3*): a literal canary (`sk-canary-<run>`, or `probe-not-a-key`) or
+  `os.environ/MANIFEST_STUB_BEARER` (Task 2's harmless variable) — **never** no `api_key`, an empty one, `gatewayKeyRef()`, or a reference
+  to a variable that is unset or boolean-looking (`"True"`). In `gw-probe`, which holds the REAL gateway key, a stub-bound deployment
+  that named `gatewayKeyRef()` would hand it to the stub; in `manifest-litellm`, a keyless `openai/` one would hand over Rich's
+  `OPENAI_API_KEY`. `[M7]` is the one place that names unresolved references on purpose, and only in `gw-probe`, whose `OPENAI_API_KEY`
+  is a canary.
+- **The probe key's file** (*What Rich does* 3) is read only by `set -a; . <file>` inside a probe script, never `cat`, and removed at
+  Task 1's Step 10.
 - **Never touch the running `manifest-litellm` to MEASURE.** Use a throwaway from the pinned digest, on its own network and ports, with
   its own Postgres, removed afterwards (the faculty-ready plan's `f8-probe` pattern). **The Docker tier drives the running one**, as
   `fallback-guard.docker.test.ts` does, against the stub, and cleans up what it registers.
@@ -345,16 +487,22 @@ Every task's requirements implicitly include this section. Values are copied ver
 
 ## Review Focus
 
-**The five failure modes most likely to bite a person, that no task's happy path exercises.** Each has its test in the owning task.
+**The six failure modes most likely to bite a person, that no task's happy path exercises** (the sixth added with the review's fixes).
+Each has its test or check in the owning task.
 
 1. **The gateway's key sent to the wrong party, or written down.**
    - A reference that resolves to nothing could make LiteLLM fall back to its `OPENAI_API_KEY` and send OpenAI's key to the gateway.
    - A row, a log, a boot line or a test's failure message could hold the value.
 
-   Expected: **the key reaches the gateway and nothing else, and no file or line holds it.** Owned by Task 2:
-   - *refuses a gateway setting when `.env` carried no key*;
-   - the Docker case *the reference resolves per call, and the stub never sees LiteLLM's `OPENAI_API_KEY`*;
-   - `[M7]`'s counts, kept as Task 6's phase 5.
+   - And the reverse (*C1*): **`OPENAI_API_KEY`, which Rich keeps as a backup, sent to UBC's gateway** by a gateway registration whose
+     reference resolved to nothing — and the gateway's `401` then hidden by the fallback.
+
+   Expected: **the key reaches the gateway and nothing else, no other key reaches the gateway, and no file or line holds either.**
+   Owned by Task 0 (the scrub) and Task 2:
+   - *refuses a gateway setting when `.env` carried no key, and REMOVES the gateway registration — fails closed*;
+   - the Docker case *the reference resolves per call* (the stub sees `MANIFEST_STUB_BEARER`'s value, and that alone);
+   - `make verify`'s fingerprint check;
+   - `[M7]`'s four cases on both providers, and its counts, kept as Task 6's phase 5 (decrypted rows, *I4*).
 2. **A gateway failure of its own answered to the caller as THEIR malformed request.** Two cases: a model the gateway's administrator
    removed, and the gateway's budget for Manifest spent. Either may be a `400`, so the guard refuses the fallback, and the agent is told
    *"Budget has been exceeded"* about a budget that is not theirs.
@@ -371,6 +519,12 @@ Every task's requirements implicitly include this section. Values are copied ver
    the same model string.
    Expected: **the address decides `unchanged` too, so the repoint registers the gateway's deployment before the direct one goes.** Owned
    by Task 2's *repoints from direct to the gateway's same model*.
+6. **A gateway key that stops working, unnoticed** (added with the review's fixes): expired (Rich's expires about 2027-01-01), rotated
+   at the gateway but stale in LiteLLM, or its $20 a month spent. Each is a `401` or a `400` the caller never sees as such: the first two
+   fall back silently to the on-prem model, and the third is `[M5]`(e).
+   Expected: **an operator is told before or as it happens.** Owned by Decision 11's `make doctor` warning (expiry), Decision 4's
+   fingerprint in `make verify` (rotation), Task 4's branch (budget), and Task 6's phase 2, which fails when a reply came from the
+   fallback.
 
 ---
 
@@ -378,43 +532,89 @@ Every task's requirements implicitly include this section. Values are copied ver
 
 ```
 packages/control-plane/src/ai/
-  providers.ts            NEW (T2) GATEWAY_PREFIX, GATEWAY_KEY_ENV, gatewayKeyRef, Gateway, ProviderParams, resolveSetting
+  providers.ts            NEW (T2) GATEWAY_PREFIX, GATEWAY_KEY_ENV, GATEWAY_TIMEOUT_S, gatewayKeyRef, Gateway, ProviderParams, resolveSetting
   providers.test.ts       NEW (T2)
   registration.ts         NEW (T3) ensureRegistered + the helpers moved from capable.ts (create, priced, pinned, removeIfSaved, …)
-  capable.ts              MOD (T2) resolveSetting; the address in `unchanged`; the Gateway param. (T3) its body on ensureRegistered
+  capable.ts              MOD (T2) resolveSetting; the address in `unchanged`; the Gateway param; FAIL CLOSED. (T3) its body on ensureRegistered
   capable.test.ts         MOD (T2) the gateway cases; the direct "names no key" case kept
   gateway-models.ts       NEW (T3) ensureGatewayModels, gatewayModelsAtBoot, standInPrice
   gateway-models.test.ts  NEW (T3)
   agent-keys.ts           MOD (T5) AGENT_ALLOWED_ROUTES; CappedKeyInput.routes
   agent-keys.test.ts      MOD (T5)
-  testing.ts              MOD (T2) the fake keeps api_base/api_key; the stub's `authorized(path)`. (T4) the stub's gateway-failure paths
-  capable.docker.test.ts  MOD (T2) the gateway registration against the stub. (T3) a confidential gateway model at the stand-in's price
+  testing.ts              MOD (T2) the fake keeps api_base/api_key; the stub's `authorized(path)`. (T3) config entries' OUTPUT price (M2).
+                          (T4) the stub's gateway-failure paths
+  capable.docker.test.ts  MOD (T2) the gateway registration against the stub, on 7193. (T3) a confidential gateway model at the stand-in's price
   fallback-guard.docker.test.ts  MOD (T4, Branch B only) the gateway's own 400s fall back; a malformed 400 still does not
-  agent-keys.docker.test.ts      MOD (T5) an agent key reaches /v1/responses; an intake key is refused it
-  index.ts                MOD (T2, T3) the Gateway built from config; gatewayModelsAtBoot after capableModelAtBoot; the boot line
-packages/control-plane/src/config.ts, config.test.ts   MOD (T2) MANIFEST_UBC_AI_GATEWAY_URL, keyInEnv. (T3) MANIFEST_GATEWAY_MODELS
-packages/control-plane/src/secrets/scrub.ts, scrub.test.ts   MOD (T2) UBC_AI_GATEWAY_API_KEY
+  agent-keys.docker.test.ts      MOD (T5) an agent key reaches /v1/responses, charged; an intake key is refused it
+  index.ts                MOD (T2, T3) the Gateway built from config; gatewayModelsAtBoot BEFORE capableModelAtBoot (I5); the boot line
+packages/control-plane/src/config.ts, config.test.ts   MOD (T2) MANIFEST_UBC_AI_GATEWAY_URL (https off loopback), keyInEnv. (T3) MANIFEST_GATEWAY_MODELS
+packages/control-plane/src/secrets/scrub.ts, scrub.test.ts   MOD (T0, sitting 1 — I1) UBC_AI_GATEWAY_API_KEY
 packages/control-plane/src/api/representations/agents.ts     MOD (T5) baseUrl names /responses
 packages/control-plane/src/api/contract/document.ts          MOD (T5) 1.6.1
 packages/contract/ (generated), packages/contract/package.json   MOD (T5)
-infra/compose.yaml                     MOD (T2) UBC_AI_GATEWAY_API_KEY to LiteLLM alone
+infra/compose.yaml                     MOD (T2) UBC_AI_GATEWAY_API_KEY to LiteLLM alone; MANIFEST_STUB_BEARER (I2)
 infra/litellm/manifest_guard.py        MOD (T4, Branch B only)
-scripts/verify.sh, scripts/ci-acceptance.sh   MOD (T2, only if [M7] says so) LiteLLM holds the key when .env does; EXPECT_VERIFY
+scripts/verify.sh, scripts/ci-acceptance.sh   MOD (T2, unconditionally — C1) LiteLLM's key's fingerprint equals .env's; EXPECT_VERIFY +1
+scripts/doctor.sh, scripts/ci-acceptance.sh   MOD (T2) the key's expiry, warned 14 days ahead (Decision 11); EXPECT_DOCTOR +1
+.env.example                           MOD (T2) MANIFEST_UBC_AI_GATEWAY_URL, UBC_AI_GATEWAY_KEY_EXPIRES, :172's example. (T3) MANIFEST_GATEWAY_MODELS (M6)
 packages/journey/src/gateway.ts        NEW (T6) make demo-gateway's phases
 scripts/demo-gateway.sh, scripts/gateway-controls.sh   NEW (T6); Makefile MOD (T6)
 docs/api/agents.md                     MOD (T5) a tool-calling agent uses /responses
 docs/superpowers/RUNBOOK.md            MOD (T2, T3, T6) *The capable model* through the gateway; the gateway's models; make demo-gateway
 docs/superpowers/TRAPS.md, ORIENTATION.md   MOD (each sitting's close) what was measured; §3's capable-model paragraph; §8
 docs/superpowers/spikes/gateway-baseline/   NEW (T1) README.md, results-task1-<date>.txt, probes/
+docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md   MOD (T5's close, only if T5 runs) it starts from 1.6.1 (M7)
 ```
-**Not touched:** `.env.example` (`20c65ca` has the line), `infra/litellm/config.yaml` (Q1 (a) keeps every config entry), and the faculty
-front-end's repository.
+**Not touched:** `.env.example`'s `UBC_AI_GATEWAY_API_KEY` line (`20c65ca` has it — its OTHER lines are *M6*'s), `infra/litellm/config.yaml`
+(Q1 (a) keeps every config entry), and the faculty front-end's repository.
+
+---
+
+## Task 0: The gateway's key scrubbed, THEN its `.env` line uncommented (sitting 1, first — the review's *I1*)
+
+**Rich's 16:13 answer, built** (*Decided by Rich*). Today the key is in no scrub list (Read this first 5), so a control plane started
+from `.env` with the line live would hand it to every `docker build` and every secret scan it spawns. Its caller is `index.ts:63`'s
+`scrubSecretEnv()`, at every boot — the call exists; this task adds a name to what it removes. *Moved here from Task 2, where the first
+draft had it.*
+
+**Files:**
+- Modify: `packages/control-plane/src/secrets/scrub.ts`, `packages/control-plane/src/secrets/scrub.test.ts`
+
+- [ ] **Step 1: The failing test.** `scrub.test.ts`'s *covers every secret-bearing variable this repo's .env actually sets* list
+  (`:33-61`) gains `'UBC_AI_GATEWAY_API_KEY'`.
+- [ ] **Step 2: Run — predict red** at that case only: `pnpm exec vitest run --project unit src/secrets/scrub.test.ts` (from the
+  repository root, so `--project` resolves).
+- [ ] **Step 3: Implement.** `secrets/scrub.ts`, after `'OPENAI_API_KEY'`: `'UBC_AI_GATEWAY_API_KEY'`, with the comment *"UBC's AI
+  Gateway's key (the UBC AI Gateway plan's Task 0): LiteLLM's alone, by infra/compose.yaml; `set -a` exports it here, where only
+  loadConfig reads whether it is set"*. Run the file — green.
+- [ ] **Step 4: The four gates, then commit by name.** `pnpm test` (TWICE, alone; read `uptime` before believing a timeout), `pnpm
+  lint`, `pnpm typecheck`, `pnpm format:check`. **These two runs ARE the sitting's close runs**: Task 1 changes nothing under
+  `packages/`, so the tree they ran on is the final tree (the lean budget: no open run on an unchanged tree). **Then the ONE Docker file
+  that executes the scrub list**, alone, after `make up`, never beside Vitest: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project
+  docker src/boot.docker.test.ts` (from the repository root) — not the tier (the sittings table says why). Step 6 restarts the control
+  plane after it anyway.
+  ```bash
+  git add packages/control-plane/src/secrets/scrub.ts packages/control-plane/src/secrets/scrub.test.ts
+  git commit -m "fix(secrets): scrub UBC_AI_GATEWAY_API_KEY at boot, before its .env line is live (gateway plan Task 0; the review's I1)"
+  ```
+- [ ] **Step 5: The negative control**: the name removed from `scrub.ts` → predict red at the one case; restore with `git checkout
+  packages/control-plane/src/secrets/scrub.ts`, green again.
+- [ ] **Step 6: The real boot, then the line.** In order:
+  1. Restart the control plane from `.env` (RUNBOOK's *Running the control plane*; `dev` is `tsc` then `node dist/index.js`, so it
+     runs the commit) and record the boot line's `secretsScrubbed` — **N**.
+  2. **Uncomment the line**: Rich, or the agent at his word with a `sed` that reads no value —
+     `sed -i '' 's/^# UBC_AI_GATEWAY_API_KEY=/UBC_AI_GATEWAY_API_KEY=/' .env` — then `grep -c '^UBC_AI_GATEWAY_API_KEY=' .env` reads `1`.
+     Never `cat`, `grep` without `-c`, or open `.env` in a tool that prints it.
+  3. Restart again: **`secretsScrubbed` reads N + 1** — the real process removed the key, which no test tier can show
+     (`boot.docker.test.ts:135` asserts only `>= 3`). Record both numbers in the sitting's entry.
+  4. `make doctor` still reads 0 failed: `.env` gaining a key `.env.example` holds commented is no failure (Read this first 23).
 
 ---
 
 ## Task 1: Measure what this plan rests on
 
-**ALONE, AND FIRST. The network on, and Rich's key in `.env`.** Nothing under `packages/` changes.
+**ALONE, AFTER TASK 0. The network on, Rich's key in `.env` (uncommented by Task 0), and his probe key in its own file.** Nothing under
+`packages/` changes.
 - **The record:** `docs/superpowers/spikes/gateway-baseline/README.md` (one section per measurement, its raw answer redacted), plus
   `results-task1-<date>.txt`.
 - **The throwaway:**
@@ -424,7 +624,11 @@ front-end's repository.
   - `infra/litellm/manifest_guard.py` mounted read-only, with a probe config naming it in `callbacks`;
   - `-e UBC_AI_GATEWAY_API_KEY` and **`OPENAI_API_KEY=sk-canary-<random>`**, so a key sent to the wrong party is recognisable and is not
     Rich's;
+  - **`-e GW_PROBE_KEY`** (Rich's probe key, loaded from its own file by the up script, never `.env`), **`PROBE_EMPTY=`** (set but empty,
+    as Task 2's compose line `${…:-}` leaves an absent key) and **`MANIFEST_STUB_BEARER=probe-not-a-key`** (Task 2's harmless variable),
+    for `[M5]` and `[M7]`;
   - `extra_hosts: host.docker.internal:host-gateway`.
+  - **Every deployment it registers that is aimed at the stub names a literal canary key** (Global Constraints, *I3*), save `[M7]`'s.
   - **Removed at the end with its network and volume.**
 
 **Files:**
@@ -433,9 +637,14 @@ front-end's repository.
 
 - [ ] **Step 1: `[M1]` The gateway's models, and the key's own limits.** Direct to the gateway, with the key by `curl -K -`:
   1. `GET /v1/models`: every id.
-  2. `GET /model/info` (and `/v1/model/info`): whatever this key may read — `mode`, prices, whether `litellm_params` or `api_base` show.
-  3. `GET /key/info`: ONLY `max_budget`, `spend`, `budget_duration`, `rpm_limit`, `tpm_limit` and `models`, cut out with `jq`. Its other
-     fields name the key.
+  2. `GET /model/info` (and `/v1/model/info`): whatever this key may read — `mode`, prices, and **whether** `litellm_params` or
+     `api_base` show. **The record and the commit hold only PRESENT or ABSENT for those two, never their values** (*M9*): they are
+     LTIC's upstream addresses, UBC's infrastructure, not this repository's to publish. Raw answers stay in `$SCRATCH`, deleted at Step 10.
+  3. `GET /key/info`: ONLY `max_budget`, `spend`, `budget_duration`, `budget_reset_at`, **`expires`**, `rpm_limit`, `tpm_limit` and
+     `models`, cut out with `jq`. Its other fields name the key. **Compare with Rich's 16:23 ceiling** (20 USD, monthly; expiring about
+     2027-01-01) and record any difference. **`expires` becomes `.env`'s `UBC_AI_GATEWAY_KEY_EXPIRES`** (Decision 11; *What Rich does* 3).
+     If this key cannot read its own `/key/info`, say so: Decision 11's line is then Rich's reading of his admin UI, and Task 6's
+     `/key/info` comparisons become his, by eye, recorded as such.
   4. The gateway's LiteLLM version: the `x-litellm-version` header, if it sends one.
 
   **Then Rich, for each model** (*What Rich does* 3): where it runs, and its classification.
@@ -444,7 +653,10 @@ front-end's repository.
   2. `x-litellm-response-cost` if sent;
   3. `/chat/completions` against `/v1/chat/completions`, which settles Decision 5's `/v1`;
   4. **the capable candidate with a function tool on chat completions**, with `reasoning_effort` unset and then `"none"` (S5's case):
-     is it refused?
+     is it refused? *(Hop 2 alone. `[M4]`.8 repeats it through both hops, which is what decides Task 5 — M9.)*
+  5. **Latency, for Decision 12's `timeout`** (*M10*): the wall time of the capable candidate's non-streamed answer to a prompt asking
+     for ~1,500 words, three times, and the time to a streamed answer's first frame. Record the longest; Task 2 sets
+     `GATEWAY_TIMEOUT_S` above it with the headroom it names.
 - [ ] **Step 3: `[M3]` Both hops, through `gw-probe`.** `POST /model/new` with
   `{ model_name: 'probe-capable', litellm_params: { model: 'openai/<capable>', api_base: <gateway>, api_key: 'os.environ/UBC_AI_GATEWAY_API_KEY' }, model_info: { id: 'probe-gw-1', max_classification: 'internal' } }`.
   Record:
@@ -452,62 +664,107 @@ front-end's repository.
   2. `/model/info`'s `litellm_params` for it — **is `api_key` shown, hidden, or shown as the reference? Is `api_base` shown?**;
   3. `input_cost_per_token` and `output_cost_per_token` — **LiteLLM's price for the gateway's model name**;
   4. the same for each on-premise candidate (`0` is expected);
-  5. **the `LiteLLM_ProxyModelTable` row**, by COUNT only: occurrences of the key's value in `pg_dump --data-only -t
-     '"LiteLLM_ProxyModelTable"'` (expected `0`), and whether the reference string appears in clear or salted;
+  5. **the `LiteLLM_ProxyModelTable` row, DECRYPTED, by verdict** (*I4* — a clear-text count of `pg_dump` reads `0` either way, because
+     LiteLLM encrypts every `litellm_params` value with the salt key). Inside `gw-probe`, a short Python run with LiteLLM's own decrypt
+     helper (name it in the record, from the pinned image's source) and the scratch salt key reads the row's `api_key` and prints ONLY
+     `equals the reference` (the string `os.environ/UBC_AI_GATEWAY_API_KEY`) or `other`. Expected: `equals the reference` — the value
+     never stored. **Keep the snippet in `probes/`: Task 6's phase 5 runs it against `manifest-litellm`.** Also record whether the
+     clear-text dump holds the reference string (it should not, if every value is encrypted);
   6. a chat and a streamed chat on a scratch key (models `[probe-capable]`, the agent key's routes): status, frames, and the spend on
-     the key against `usage × the price` (`[M3]`'s rows are what Tasks 2 and 3 pin);
-  7. **then the same registration as `litellm_proxy/<capable>`**, priced and called, recorded beside `openai/`'s, for Decision 2.
+     the key against `usage × the price` (`[M3]`'s rows are what Tasks 2 and 3 pin). **Then the cache (*I8*): one prompt over the
+     provider's caching threshold (e.g. ~2,000 tokens of fixed preamble), sent twice.** For each call record `usage`'s
+     `prompt_tokens_details.cached_tokens`, Manifest's spend change on the scratch key, the gateway's `x-litellm-response-cost` header
+     if hop 1 passes it (or `[M2]`'s, direct), and the gateway key's `/key/info` `spend` change; and whether LiteLLM's map gives the
+     model a `cache_read_input_token_cost` (Decision 6). **The ratio of Manifest's charge to the gateway's, for the second call, is the
+     number Decision 6 rests on**;
+  7. **then the same registration as `litellm_proxy/<capable>`**, priced and called, recorded beside `openai/`'s, for Decision 2;
+  8. **TLS** (*M10*): that `gw-probe` reached `https://ai-gateway.apps.ltic.ubc.ca` with certificate verification ON — no `ssl_verify`
+     in any `litellm_params`, no environment override. If it fails, STOP and tell `manifest-94`: never turn verification off to pass;
+  9. **`stream_timeout`** (Decision 12): register a deployment at the stub's `/slow/` path (frames after a delay) with `stream_timeout:
+     2` and a literal canary key; record whether LiteLLM 1.98.0 gives up at ~2 s.
 - [ ] **Step 4: `[M4]` `/v1/responses` through both hops.** Use a scratch key whose `allowed_routes` is the agent key's three routes plus
   `/v1/responses`.
   1. `POST /v1/responses` on `probe-capable`, with one function tool and a prompt that requires it: status, output item types (a
-     `function_call` expected), streamed and not.
+     `function_call` expected), streamed and not. **And what it is charged** (*I7*): the scratch key's spend change against `usage`'s
+     `input_tokens` / `output_tokens` × the pinned price, streamed and not. If LiteLLM 1.98.0 charges `aresponses` at `$0`, or ignores
+     the pinned price, opening the route would let agents spend past their budgets: **STOP and tell `manifest-94` before sitting 2.**
   2. **Does hop 1 call the gateway's `/v1/responses` natively, or bridge to chat completions?** Register a second deployment whose
-     `api_base` is the host stub, and record the PATH the stub was called on.
+     `api_base` is the host stub and whose `api_key` is a literal canary (*I3*), and record the PATH the stub was called on.
   3. **The stored-response routes:** a follow-up with `previous_response_id`, and `GET /v1/responses/{id}`. Does each answer through
-     hop 1 with that key? Which routes must `allowed_routes` list for each?
+     hop 1 with that key? Which routes must `allowed_routes` list for each? **Is a response STORED by default** (*I7*): the response's
+     own `store` field when the request sends none, and whether `GET /v1/responses/{id}` then finds it — at hop 1, and at the gateway.
+     **And from ANOTHER key** (*I7*): a second scratch key, same routes, asks `GET /v1/responses/{id}` for the first key's id. Record
+     the status; **anything but a refusal is one agent reading another's conversation — STOP and tell `manifest-94`.**
   4. **How `allowed_routes` matches:** with only `/v1/responses` listed, are `/responses` (no `v1`), `/v1/responses/{id}` and
      `/v1/responses/{id}/input_items` refused or admitted?
   5. **An intake-shaped key** (the three routes only) on `/v1/responses`: the status, `type` and `code` of the refusal.
   6. **`/v1/responses` on `default-chat`** (Ollama, through `host.docker.internal`): does LiteLLM bridge it offline? Task 5's Docker case
      rests on this answer.
   7. **Does `narrowAgentKey`'s `/key/update { models }` keep a key's `allowed_routes`?** Narrow the scratch key and re-read `/key/info`.
+  8. **`[M2]`.4 through both hops** (*M9*): `probe-capable` with a function tool on `/v1/chat/completions`, `reasoning_effort` unset and
+     then `"none"`, on the scratch key — what an agent on a Manifest key would see.
 
-  **THIS DECIDES TASK 5.** Task 5 runs only if Step 2.4 measured the capable candidate refusing tools on chat completions (Rich, Q2).
-  If it accepts them there, record that and drop Task 5, with Spec action 2 marked *not needed*.
+  **THIS DECIDES TASK 5.** Task 5 runs only if **Step 4.8** measured the capable candidate refusing tools on chat completions through
+  both hops (Rich, Q2); `[M2]`.4, hop 2 alone, is recorded beside it to say which hop refuses. If it accepts them, record that and drop
+  Task 5, with Spec action 2 marked *not needed*.
 - [ ] **Step 5: `[M5]` The error shapes, through both hops, as the client sees each AND as the guard reads it.** Give `gw-probe` a
   `general` fallback, `probe-capable → probe-ok` (a stub deployment answering `ok`), so the real guard decides. Add a copy of the guard,
   `probes/guard-inspect.py`, that prints only the exception's class, `status_code`, `type`, `code` and `param` attributes (never its
   message). The cases:
   - **(a)** a malformed request (`max_tokens: -1`, or a message with an invalid role) → the gateway's `400`;
   - **(b)** a `422` from the gateway — find what, if anything, makes the gateway answer `422`, and record it if nothing does;
-  - **(c)** a model the gateway does not serve (`openai/no-such-model-<run>`);
-  - **(d)** a wrong key (`os.environ/PROBE_WRONG_KEY` set to `sk-canary-wrong`) → `401` expected;
-  - **(e)** the gateway's budget for the key spent — on Rich's tiny-budget key (*What Rich does* 3), or `unmeasured`;
+  - **(c) BOTH WAYS** (*I9* — a refused model may answer `401`, a removed one `400` *"Invalid model name"*):
+    - **(c-i)** a model the gateway does not serve (`openai/no-such-model-<run>`), on the real key;
+    - **(c-ii)** a model the gateway SERVES that the key may not use: on Rich's probe key (`os.environ/GW_PROBE_KEY`), a model outside its
+      one-model list — **measured FIRST, before (e) spends that key's budget**, so the two answers cannot mix;
+  - **(d)** a wrong key (`os.environ/PROBE_WRONG_KEY` set to `sk-canary-wrong`) → `401` expected. **Record the fragment of the canary
+    the `401` echoes, and every place it lands** (*M4*): `docker logs gw-probe`, the probe's own files, and LiteLLM's error and spend
+    tables (each by COUNT of the fragment, after decrypting where Step 3.5 found encryption). Task 6's phase 5 counts the real key's
+    fragment in the same places;
+  - **(e) REQUIRED** (*I9*; `manifest-94`, 16:23 — Rich's $20 a month makes it a real case): the gateway's budget for a key spent, on
+    Rich's PROBE key after (c-ii) — calls on its one model until the gateway refuses, then the case. **Never on the real key**;
   - **(f)** the key's rate limit at the gateway, ONLY if `[M1]`'s `rpm_limit` is small enough to reach in a few calls. Otherwise
     `unmeasured`; never hammer UBC's gateway;
   - **(g)** the gateway unreachable (`api_base: http://127.0.0.1:9/v1`).
 
+  **(a), (c-i), (c-ii), (e) and (g) are each measured STREAMED as well** (*I9*): `stream: true`, recording the status (or the first
+  frame's error), whether a fallback answered, and whether the failure arrives before or after the first frame — a stream that has
+  started cannot fall back.
+
   For each, record: the status, `type` and `code` the client sees; whether `x-litellm-attempted-fallbacks` is set; and the guard's
-  printed attributes. **THIS DECIDES TASK 4's BRANCH:**
+  printed attributes. **THIS DECIDES TASK 4's BRANCH** — (c) meaning BOTH (c-i) and (c-ii), and (e) is measured, never assumed:
   - **A:** (c) and (e) arrive as non-malformed statuses;
   - **B:** they arrive as `400` with an attribute that tells them apart from (a);
-  - **C:** they cannot be told apart from (a). **STOP and put it to Rich before sitting 2.**
-- [ ] **Step 6: `[M6]` The gateway's view of a call.** With `api_base` at the host stub, record which top-level body FIELDS and header
-  NAMES hop 1 forwards (never values). Above all, whether an app's end-user `user` (§10's namespaced hash) and LiteLLM's
+  - **C:** they cannot be told apart from (a). **STOP and put it to Rich before sitting 2.** *(The first draft let (e) be `unmeasured`,
+    which left Branch A–C no answer for it; it is now required.)*
+- [ ] **Step 6: `[M6]` The gateway's view of a call.** With `api_base` at the host stub and a literal canary `api_key` (*I3*), record
+  which top-level body FIELDS and header NAMES hop 1 forwards (never values). Above all, whether an app's end-user `user` (§10's namespaced hash) and LiteLLM's
   `metadata` / trace headers reach the provider. This is what UBC's gateway would see of Manifest's callers. **For the privacy record,
   beside ORIENTATION §8 *Open*'s *"MAY `internal` DATA REACH A MODEL PROVIDER OUTSIDE CANADA?"*.**
-- [ ] **Step 7: `[M7]` Where the key goes.** On `gw-probe`, with `OPENAI_API_KEY=sk-canary-…` in its environment:
-  1. a deployment whose `api_key` is `os.environ/PROBE_UNSET`, an `api_base` at the stub, and a call. **Which bearer reaches the stub?**
-     The stub records only one of `canary` / `literal-reference` / `empty` / `other`, never the value. **`canary` means an unresolved
-     reference sends another provider's key: Decision 4's `make verify` check is then built in Task 2.**
-  2. the same with no `api_key` at all (Read this first 14's inference): `canary` expected;
-  3. `docker logs gw-probe` and the probe's own files: the COUNT of the key's value (expected `0` everywhere).
+- [ ] **Step 7: `[M7]` Where the key goes — FOUR CASES ON BOTH PROVIDERS** (*C1*, *I2*). On `gw-probe`, with
+  `OPENAI_API_KEY=sk-canary-…` in its environment, each a deployment with its `api_base` at the stub and one call. **Which bearer
+  reaches the stub?** The stub records only one of `canary` / `literal-reference` / `empty` / `none` / `True` / `other`, never the value.
+  1. `api_key: 'os.environ/PROBE_UNSET'` — a variable that does not exist;
+  2. `api_key: 'os.environ/PROBE_EMPTY'` — set but EMPTY, which is what Task 2's compose line `${UBC_AI_GATEWAY_API_KEY:-}` gives
+     LiteLLM when `.env` has no key, and falsy in LiteLLM's `api_key or … get_secret("OPENAI_API_KEY")` chain;
+  3. `api_key: 'os.environ/STORE_MODEL_IN_DB'` — the string `"True"`, which `get_secret` very likely turns into a boolean (the first
+     draft's Docker case used it as a stand-in bearer, *I2*);
+  4. no `api_key` at all;
+
+  **each on `openai/` AND on `litellm_proxy/`** — eight calls. `litellm_proxy/` falls back to `LITELLM_PROXY_API_KEY`, which
+  `gw-probe` does not hold, so its answers may differ; Decision 2 weighs them. **Then `os.environ/MANIFEST_STUB_BEARER` on `openai/`**:
+  `other`, and the stub's `authorized` count for `probe-not-a-key` is `1` — the stand-in Task 2's Docker case rests on, shown to resolve
+  as a plain string. **A `canary` in any case is recorded as the mechanism Decision 4's fail-closed boot guards against**; it changes
+  no task, because the boot fails closed and `make verify` compares fingerprints whatever this reads.
+  5. `docker logs gw-probe` and the probe's own files: the COUNT of the key's value (expected `0` everywhere).
 - [ ] **Step 8: `[M8]` What the platform's gates read today**: the `EXPECT_` lines, and `make doctor` / `make verify` once. **No
   `pnpm test` on an unchanged tree** (the lean budget).
 - [ ] **Step 9: `[M9]` Rich's statements, in his words**: each model's location and classification (Step 1); the gateway's prompt
-  retention; any gateway-side fallback; the key's limits as he set them.
-- [ ] **Step 10: Tear down** `gw-probe`, `gw-probe-pg`, `gw-probe-net`, the probe volume and the stub. Then count again: no `gw-probe*`
-  container, network or volume is left.
+  retention; any gateway-side fallback; the key's limits as he set them (16:23: 20 USD a month, a 90-day expiry), beside `[M1]`.3's
+  reading. **Then `.env`'s `UBC_AI_GATEWAY_KEY_EXPIRES`** (Decision 11), from `[M1]`.3's `expires`, at his word.
+- [ ] **Step 10: Tear down** `gw-probe`, `gw-probe-pg`, `gw-probe-net`, the probe volume and the stub, **the probe key's file**
+  (`rm`, then `test ! -e`), and the raw answers in `$SCRATCH`. Then count again: no `gw-probe*` container, network or volume is left.
+  **Tell Rich the probe key can be deleted at the gateway**, and record when he has.
 - [ ] **Step 11: Commit** the spike directory by name. If a measurement breaks the split or a premise, tell `manifest-94` before
   sitting 2.
   ```bash
@@ -517,29 +774,31 @@ front-end's repository.
 
 ---
 
-## Task 2: The capable model through the gateway — the key by reference only
+## Task 2: The capable model through the gateway — the key by reference only, failing closed
 
-**Spec action 1 decided first.** This task's caller is `index.ts`'s boot (`capableModelAtBoot`).
+**Spec action 1 decided first.** This task's callers are `index.ts`'s boot (`capableModelAtBoot`), `make verify` and `make doctor`.
+*The scrub entry the first draft had here is Task 0's (*I1*).*
 
 **Files:**
 - Create: `packages/control-plane/src/ai/providers.ts`, `providers.test.ts`
-- Modify: `ai/capable.ts` (`create`, the `unchanged` test, `ensureCapableModel`'s and `capableModelAtBoot`'s signatures, `unservedReason`'s
-  wording), `ai/capable.test.ts`, `ai/testing.ts` (the fake keeps `api_base` / `api_key`; the stub's `authorized`),
-  `ai/capable.docker.test.ts`, `config.ts`, `config.test.ts`, `secrets/scrub.ts`, `secrets/scrub.test.ts`, `index.ts`,
-  `infra/compose.yaml:229-235`, `docs/superpowers/RUNBOOK.md` (*The capable model*). Also `scripts/verify.sh` and
-  `scripts/ci-acceptance.sh`, ONLY if `[M7]` read `canary`.
+- Modify: `ai/capable.ts` (`create`, the `unchanged` test, the fail-closed removal, `ensureCapableModel`'s and `capableModelAtBoot`'s
+  signatures, `unservedReason`'s wording), `ai/capable.test.ts`, `ai/testing.ts` (the fake keeps `api_base` / `api_key`; the stub's
+  `bearer` and `authorized`), `ai/capable.docker.test.ts`, `config.ts`, `config.test.ts`, `index.ts`, `infra/compose.yaml:229-235`,
+  **`scripts/verify.sh` and `scripts/doctor.sh` and `scripts/ci-acceptance.sh` — UNCONDITIONALLY** (Decisions 4 and 11), **`.env.example`**
+  (*M6*), `docs/superpowers/RUNBOOK.md` (*The capable model*).
 
 **Interfaces:**
-- Produces: `GATEWAY_PREFIX = 'ubc-ai-gateway/'`, `GATEWAY_KEY_ENV = 'UBC_AI_GATEWAY_API_KEY'`, `gatewayKeyRef(envName?) → string`,
-  `interface Gateway { url: string; keyRef: string; keyInEnv: boolean }`, `interface ProviderParams { model: string; api_base?: string;
-  api_key?: string }`, `resolveSetting(settingName, setting, gateway?) → { params } | { refused: string }`.
+- Produces: `GATEWAY_PREFIX = 'ubc-ai-gateway/'`, `GATEWAY_KEY_ENV = 'UBC_AI_GATEWAY_API_KEY'`, `GATEWAY_TIMEOUT_S` (`[M2]`.5's figure),
+  `gatewayKeyRef(envName?) → string`, `interface Gateway { url: string; keyRef: string; keyInEnv: boolean }`,
+  `interface ProviderParams { model: string; api_base?: string; api_key?: string; timeout?: number }`,
+  `resolveSetting(settingName, setting, gateway?) → { params } | { refused: string; failClosed?: true }`.
 - Produces: `ensureCapableModel(client, setting, gateway?)` and `capableModelAtBoot(client, setting, fallbackSetting, gateway)`.
 - Produces: `config.ubcAiGateway: { url: string; keyInEnv: boolean }`.
 
 - [ ] **Step 1: The failing unit tests.** `providers.test.ts`:
   ```ts
   import { describe, expect, it } from 'vitest'
-  import { gatewayKeyRef, resolveSetting, type Gateway } from './providers.js'
+  import { GATEWAY_TIMEOUT_S, gatewayKeyRef, resolveSetting, type Gateway } from './providers.js'
 
   const GW: Gateway = { url: 'https://gw.example/v1', keyRef: gatewayKeyRef(), keyInEnv: true }
 
@@ -549,20 +808,22 @@ front-end's repository.
         params: { model: 'openai/gpt-6-luna' },
       })
     })
-    it('sends a ubc-ai-gateway setting to the gateway, naming its key by REFERENCE only', () => {
+    it('sends a ubc-ai-gateway setting to the gateway, naming its key by REFERENCE only, with a timeout', () => {
       expect(resolveSetting('MANIFEST_CAPABLE_MODEL', 'ubc-ai-gateway/gpt-6-luna', GW)).toEqual({
         params: {
           model: 'openai/gpt-6-luna',
           api_base: 'https://gw.example/v1',
           api_key: 'os.environ/UBC_AI_GATEWAY_API_KEY',
+          timeout: GATEWAY_TIMEOUT_S,
         },
       })
     })
-    it('refuses a gateway setting when .env carried no key — and names the setting, never a value', () => {
+    it('refuses a gateway setting when .env carried no key — FAILING CLOSED — and names the setting, never a value', () => {
       const r = resolveSetting('MANIFEST_CAPABLE_MODEL', 'ubc-ai-gateway/gpt-6-luna', { ...GW, keyInEnv: false })
-      expect(r).toEqual({ refused: expect.stringContaining('UBC_AI_GATEWAY_API_KEY is not in .env') })
+      expect(r).toEqual({ refused: expect.stringContaining('UBC_AI_GATEWAY_API_KEY is not in .env'), failClosed: true })
     })
-    it('refuses the prefix with no model after it, and a gateway setting with no gateway configured', () => {
+    it('refuses the prefix with no model after it, and a gateway setting with no gateway configured — neither fails closed', () => {
+      expect(resolveSetting('MANIFEST_CAPABLE_MODEL', 'ubc-ai-gateway/', GW)).not.toHaveProperty('failClosed')
       expect(resolveSetting('MANIFEST_CAPABLE_MODEL', 'ubc-ai-gateway/', GW)).toHaveProperty('refused')
       expect(resolveSetting('MANIFEST_CAPABLE_MODEL', 'ubc-ai-gateway/x', undefined)).toHaveProperty('refused')
     })
@@ -582,6 +843,7 @@ front-end's repository.
           model: 'openai/gpt-6-luna',
           api_base: GW.url,
           api_key: 'os.environ/UBC_AI_GATEWAY_API_KEY',
+          timeout: GATEWAY_TIMEOUT_S,
         },
       })
     }
@@ -597,13 +859,22 @@ front-end's repository.
     expect(rest).toHaveLength(0)
     expect(only!.apiBase).toBe(GW.url)
   })
-  it('refuses a gateway setting when .env carried no key, and KEEPS the working model (Review Focus 1)', async () => {
+  it('POSITIVE CONTROL: a gateway setting with no key in .env still KEEPS a DIRECT working model — OpenAI’s key to OpenAI', async () => {
     const lite = fakeLiteLlm()
     await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)
     const r = await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', { ...GW, keyInEnv: false })
     expect(r.state).toBe('refused')
     expect(r.reason).toContain('UBC_AI_GATEWAY_API_KEY is not in .env')
     expect(capable(lite).map((d) => d.model)).toEqual(['openai/gpt-6-luna'])
+  })
+  it('FAILS CLOSED: a gateway registration is REMOVED, never kept, when .env no longer carries the key (Review Focus 1, C1)', async () => {
+    const lite = fakeLiteLlm()
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
+    expect(capable(lite)).toHaveLength(1)
+    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', { ...GW, keyInEnv: false })
+    expect(r.state).toBe('refused')
+    expect(r.reason).toContain('UBC_AI_GATEWAY_API_KEY is not in .env')
+    expect(capable(lite)).toHaveLength(0)
   })
   it('refuses a gateway model LiteLLM cannot price — an alias — and never registers it at $0 (Review Focus 4)', async () => {
     const lite = fakeLiteLlm()
@@ -614,14 +885,16 @@ front-end's repository.
   })
   ```
   The existing *"registers default-chat-large at internal from the setting, naming no key"* case **stays** for a direct setting. It still
-  asserts no `api_key` at all. `config.test.ts`:
-  - `MANIFEST_UBC_AI_GATEWAY_URL` defaults to `https://ai-gateway.apps.ltic.ubc.ca/v1` (or `[M2]`'s form);
+  asserts no `api_key` at all. **If `[M3]`.6 found a `cache_read_input_token_cost` in LiteLLM's map for the chosen model** (Decision 6,
+  *I8*): one more case — *the pin carries the cache-read price LiteLLM gives* — and the fake answers that field. `config.test.ts`:
+  - `MANIFEST_UBC_AI_GATEWAY_URL` defaults to `https://ai-gateway.apps.ltic.ubc.ca/v1` (or `[M2]`'s form), **and so does `''`** (*I10*);
+  - **`http://gw.example/v1` is a `ConfigError` `CONFIG_UBC_AI_GATEWAY_INSECURE_URL`**; `http://127.0.0.1:9/v1` and
+    `http://localhost:9/v1` are accepted (a POSITIVE CONTROL in the same file);
   - `keyInEnv` is `true` for a set key and `false` for an absent or empty one;
   - **`JSON.stringify(loadConfig(env))` does not contain the key's value.**
-
-  `scrub.test.ts`: `'UBC_AI_GATEWAY_API_KEY'` joins the list, with its comment.
-- [ ] **Step 2: Run — predict red.** `providers.test.ts` fails to import. The new `capable.test.ts` cases fail at the `api_base` match
-  and at `apiBase` (the fake has none). `scrub.test.ts` fails at `toContain`.
+- [ ] **Step 2: Run — predict red.** `providers.test.ts` fails to import. The new `capable.test.ts` cases fail at the `api_base` match,
+  at `apiBase` (the fake has none) and at *FAILS CLOSED*'s `toHaveLength(0)` (today's `refuse` keeps a priced deployment). The URL cases
+  fail at the missing `ConfigError`.
 - [ ] **Step 3: Implement.**
   - **`ai/providers.ts`**:
     ```ts
@@ -635,6 +908,11 @@ front-end's repository.
     export const GATEWAY_PREFIX = 'ubc-ai-gateway/'
     /** The key's NAME in LiteLLM's environment — `infra/compose.yaml` hands it to LiteLLM alone. Never its value. */
     export const GATEWAY_KEY_ENV = 'UBC_AI_GATEWAY_API_KEY'
+    /**
+     * How long LiteLLM waits for the gateway before the fallback answers (Decision 12): without it a black-holed route holds a
+     * caller up to LiteLLM's 600 s. <[M2].5's longest measured answer, the headroom, and the date — written here by Task 2.>
+     */
+    export const GATEWAY_TIMEOUT_S = /* [M2].5 */ 0
     export const gatewayKeyRef = (envName: string = GATEWAY_KEY_ENV): string => `os.environ/${envName}`
 
     export interface Gateway {
@@ -649,8 +927,13 @@ front-end's repository.
       model: string
       api_base?: string
       api_key?: string
+      timeout?: number
     }
-    export type Resolved = { params: ProviderParams } | { refused: string }
+    /**
+     * `failClosed`: the caller REMOVES every gateway registration it owns rather than keeping it (Decision 4) — a gateway
+     * registration with no key can only fail silently, or send LiteLLM's other provider key to UBC.
+     */
+    export type Resolved = { params: ProviderParams } | { refused: string; failClosed?: true }
 
     export const viaGateway = (setting: string): boolean => setting.startsWith(GATEWAY_PREFIX)
 
@@ -664,50 +947,98 @@ front-end's repository.
       if (!gateway.keyInEnv) {
         return {
           refused:
-            `${settingName} names '${setting}', but ${GATEWAY_KEY_ENV} is not in .env, so LiteLLM would reach the ` +
-            'gateway with no key of its own — add it to .env, run `make up` so LiteLLM is created with it, then ' +
-            'restart this control plane',
+            `${settingName} names '${setting}', but ${GATEWAY_KEY_ENV} is not in .env, so every gateway registration is ` +
+            'removed rather than kept — LiteLLM would reach the gateway with no key of its own — add it to .env, run ' +
+            '`make up` so LiteLLM is created with it, then restart this control plane',
+          failClosed: true,
         }
       }
-      return { params: { model: `openai/${name}`, api_base: gateway.url, api_key: gateway.keyRef } }
+      return {
+        params: { model: `openai/${name}`, api_base: gateway.url, api_key: gateway.keyRef, timeout: GATEWAY_TIMEOUT_S },
+      }
     }
     ```
+    **`GATEWAY_TIMEOUT_S` is never committed as `0`**: Step 3 writes `[M2]`.5's figure and its comment before Step 4 runs.
   - **`ai/capable.ts`**:
     - `Deployment.litellm_params` gains `api_base?: unknown`, and `apiBaseOf(d)` mirrors `modelOf`.
     - `create(client, params: ProviderParams, price?)` sends `litellm_params: { ...params, ...price }`.
-    - `ensureCapableModel(client, setting, gateway?)` resolves first. A `refused` goes through the existing `refuse(() => reason +
-      unavailable(kept))`, so the working model is kept.
+    - `ensureCapableModel(client, setting, gateway?)` resolves first. **A `refused` with `failClosed`** first removes every capable
+      deployment that names an `api_base` — a gateway registration; a direct one (`resolveSetting`'s pass-through) never names one —
+      and then goes through the existing `refuse(() => reason + unavailable(kept))`, so a DIRECT working model is kept. Any other
+      `refused` goes through `refuse` unchanged.
     - The `unchanged` test becomes `modelOf(only) === params.model && apiBaseOf(only) === params.api_base && …` (the rest unchanged).
     - `unservedReason` says *"`openai/<model>` direct, or `ubc-ai-gateway/<model>`"*.
     - `capableModelAtBoot` takes and passes `gateway`.
     - **The fallback half is untouched**: it names catalogue entries, never providers.
+    - **If `[M3]`.6 found a cache-read price** (Decision 6): the pinned re-registration carries `cache_read_input_token_cost` as LiteLLM
+      gave it, beside the two it pins today.
   - **`config.ts`**:
-    - `MANIFEST_UBC_AI_GATEWAY_URL: z.string().url().default('https://ai-gateway.apps.ltic.ubc.ca/v1')`.
+    - `MANIFEST_UBC_AI_GATEWAY_URL: z.preprocess((value) => (value === '' ? undefined : value), z.string().url().default('https://ai-gateway.apps.ltic.ubc.ca/v1'))`
+      — `:304-307`'s *empty is unset* pattern (*I10*).
+    - **Plain `http` off loopback refused** (*I10*), beside `:688-706`'s GitHub loop and in its words: `throw new
+      ConfigError('CONFIG_UBC_AI_GATEWAY_INSECURE_URL', \`MANIFEST_UBC_AI_GATEWAY_URL is '${value}': the gateway's key may cross only
+      loopback in plaintext; use https\`)` unless the host is `127.0.0.1`, `localhost` or `[::1]`.
     - `UBC_AI_GATEWAY_API_KEY: z.string().optional()`, with the comment *"read ONLY to know whether it is set — never kept; the scrub
-      removes it next"*.
+      removes it next (Task 0)"*.
     - The config gains `ubcAiGateway: { url, keyInEnv: (raw.UBC_AI_GATEWAY_API_KEY ?? '') !== '' }`.
   - **`index.ts`**: `const gateway: Gateway = { ...config.ubcAiGateway, keyRef: gatewayKeyRef() }`, passed to `capableModelAtBoot`.
-  - **`secrets/scrub.ts`**: `'UBC_AI_GATEWAY_API_KEY'`, with the comment *"UBC's AI Gateway's key (the UBC AI Gateway plan's Task 2):
-    LiteLLM's alone, by infra/compose.yaml; `set -a` exports it here, where only loadConfig reads whether it is set"*.
-  - **`infra/compose.yaml`**: under `OPENAI_API_KEY`, `UBC_AI_GATEWAY_API_KEY: ${UBC_AI_GATEWAY_API_KEY:-}`, with the comment *"UBC's
-    AI Gateway's key: HERE AND NOWHERE ELSE. A registration names it as `os.environ/UBC_AI_GATEWAY_API_KEY`; LiteLLM resolves it per
-    call. Changing it needs `make up`."*
+  - **`infra/compose.yaml`**, under `OPENAI_API_KEY`:
+    - `UBC_AI_GATEWAY_API_KEY: ${UBC_AI_GATEWAY_API_KEY:-}`, with the comment *"UBC's AI Gateway's key: HERE AND NOWHERE ELSE. A
+      registration names it as `os.environ/UBC_AI_GATEWAY_API_KEY`; LiteLLM resolves it per call. Changing it needs `make up`."*
+    - **`MANIFEST_STUB_BEARER: probe-not-a-key`** (*I2*), with the comment *"NOT A SECRET: the bearer the Docker tier's stub cases
+      reference as `os.environ/MANIFEST_STUB_BEARER`, so a case shows a reference resolving per call with no key reaching a test or a
+      stub."*
+    - **Correct the `OPENAI_API_KEY` comment**, which says the control plane registers `default-chat-large` *"naming no api_key"*: true
+      now of a direct setting only.
   - **`ai/testing.ts`**: the fake's `FakeDeployment` gains `apiBase?` and `apiKey?`, kept from `/model/new` and listed by `/model/info`
     the way `[M3]` measured LiteLLM to list them. `startStubProvider(port, { bearer? })` gains `authorized(path)`: a count of hits whose
     `Authorization` equals `Bearer <bearer>`. **The stub never stores a header's value.**
-- [ ] **Step 4: Run the unit files — green.** `providers.test.ts`, `capable.test.ts`, `config.test.ts`, `scrub.test.ts`, one at a time.
+  - **`scripts/verify.sh`** — Decision 4's check, counted, UNCONDITIONAL: `check "LiteLLM holds the UBC AI Gateway key .env holds"`. In
+    a function, in a subshell that sources `${MANIFEST_ENV_FILE:-.env}` (as `doctor.sh:335-336` sources `.env`; the override is for
+    control (e)): hash `.env`'s value with `printf %s "$…" | shasum -a
+    256` (`printf` is a builtin), and LiteLLM's inside the container with Python's `hashlib` over `os.environ.get(…, '')`; compare
+    the two in shell variables and echo ONLY `not configured` (both empty — PASS), `matches` (PASS), `absent from LiteLLM — run make
+    up` or `differs — run make up` or `LiteLLM holds a key .env does not — run make up` (FAIL). **Never echo either hash.** First
+    check the image runs `python3` (`docker exec manifest-litellm python3 -c 'print(1)'`).
+  - **`scripts/doctor.sh`** — Decision 11's `check_warn "the UBC AI Gateway key is not near its expiry"`, in `scanner_db_age`'s pattern
+    (BSD `date -j -f '%Y-%m-%d'`), sourcing `${MANIFEST_ENV_FILE:-.env}` in its own subshell, reading `UBC_AI_GATEWAY_API_KEY` only
+    as `[ -n … ]`.
+  - **`scripts/ci-acceptance.sh`**: `EXPECT_VERIFY` +1 and `EXPECT_DOCTOR` +1, each with its dated comment in the file's pattern
+    (`:211-216`), **after** measuring both counts with the checks in.
+  - **`.env.example`** (*M6*), commented like `:174-175` (doctor compares UNCOMMENTED keys, Read this first 23):
+    `# MANIFEST_UBC_AI_GATEWAY_URL=https://ai-gateway.apps.ltic.ubc.ca/v1` and `# UBC_AI_GATEWAY_KEY_EXPIRES=<YYYY-MM-DD>`, each with
+    its one-line comment; and `:172`'s `MANIFEST_CAPABLE_MODEL` comment names the second form, *"or `ubc-ai-gateway/<model>` through
+    UBC's AI Gateway"*.
+- [ ] **Step 4: Run the unit files — green.** `providers.test.ts`, `capable.test.ts`, `config.test.ts`, one at a time.
   **Every existing `capable.test.ts` case is green unchanged**: that is the proof `openai/…` direct still works.
-- [ ] **Step 5: The Docker case** (`capable.docker.test.ts`). It runs against the stub and never the gateway:
+- [ ] **Step 5: `make up`, then the Docker case** (`capable.docker.test.ts`). `make up` first, so LiteLLM is re-created with
+  `MANIFEST_STUB_BEARER` (`docker exec manifest-litellm sh -c '[ "$MANIFEST_STUB_BEARER" = probe-not-a-key ] && echo set'`). It runs
+  against the stub and never the gateway, with the file's own helpers (Read this first 20; *M3*):
   ```ts
+  /** Task 2's stub: inside the 7100–7199 block and used by no code (7199 is fallback-guard.docker.test.ts's) — check it is free. */
+  const GW_STUB_PORT = 7193
+  const GW_STUB = `http://host.docker.internal:${GW_STUB_PORT}`
+
   it('a ubc-ai-gateway model is reached at the gateway’s address with the key LiteLLM resolves from its OWN environment, per call (Task 2)', async () => {
-    // The reference names a variable LiteLLM's container already holds and that is no secret — `STORE_MODEL_IN_DB`, "True" —
-    // so the stub can be shown the resolved bearer without any key reaching this test. Production names UBC_AI_GATEWAY_API_KEY.
-    const stub = await startStubProvider(GW_STUB_PORT, { bearer: 'True' })
+    // The reference names MANIFEST_STUB_BEARER — infra/compose.yaml gives LiteLLM the plain string `probe-not-a-key`, no secret and
+    // nothing `get_secret` reads as a boolean ([M7]) — so the stub is shown the resolved bearer and no key reaches this test or the
+    // stub. Production names UBC_AI_GATEWAY_API_KEY.
+    await startingClear(client)
+    const stub = await startStubProvider(GW_STUB_PORT, { bearer: 'probe-not-a-key' })
     try {
-      const gateway = { url: `${STUB_HOST}:${GW_STUB_PORT}/gw/ok/v1`, keyRef: gatewayKeyRef('STORE_MODEL_IN_DB'), keyInEnv: true }
-      expect(await ensureCapableModel(client, `ubc-ai-gateway/${PRICED_NAME}`, gateway)).toMatchObject({ state: 'registered' })
-      const res = await chat(await keyFor(CAPABLE_MODEL_NAME))
+      const gateway = { url: `${GW_STUB}/gw/ok/v1`, keyRef: gatewayKeyRef('MANIFEST_STUB_BEARER'), keyInEnv: true }
+      const setting = `ubc-ai-gateway/${PRICED.slice('openai/'.length)}`
+      expect(await ensureCapableModel(client, setting, gateway)).toMatchObject({ state: 'registered' })
+      const user = `gw-task2-${randomUUID()}`
+      const { key } = await client.post<{ key: string }>('/key/generate', {
+        user_id: user,
+        key_alias: `${user}-key`,
+        models: [CAPABLE_MODEL_NAME],
+        allowed_routes: ['/v1/chat/completions'],
+      })
+      const res = await chat(key)
       expect(res.status).toBe(200)
+      expect(res.headers.get('x-litellm-attempted-fallbacks')).toBeNull()
       expect(stub.hits('/gw/ok/v1/chat/completions')).toBe(1)
       expect(stub.authorized('/gw/ok/v1/chat/completions')).toBe(1)
     } finally {
@@ -716,31 +1047,45 @@ front-end's repository.
     }
   })
   ```
-  `PRICED_NAME` is `gpt-5.6-luna`, the bundled-priced model `PRICED` already uses, so the tier passes offline. **If `[M7]` read
-  `canary`**, add a second case: a reference to an UNSET variable, and the stub's `authorized` for LiteLLM's `OPENAI_API_KEY` must be
-  `0`. That case is red until `make verify`'s check exists, and stays as the witness.
-- [ ] **Step 6: RUNBOOK's *The capable model***: the gateway form, the `make up`, the `[ -n ]` check, and *"remove `OPENAI_API_KEY`
-  once the gateway serves"* (Rich's call).
+  `PRICED` is `openai/gpt-5.6-luna` (`:31`), the bundled-priced model, so the tier passes offline. Mint the key as the Task 12b case
+  does (`:254-262`), with whatever that case also sends (`max_budget`, its cleanup). **No second, "unset reference" case** (*I2*): a
+  reference to an unset variable would make LiteLLM send Rich's real `OPENAI_API_KEY` to the host stub on every Docker-tier run.
+  `[M7]` measured that in `gw-probe`, whose `OPENAI_API_KEY` was a canary; the tier never repeats it.
+- [ ] **Step 6: RUNBOOK's *The capable model***: the gateway form; the order — the key in `.env`, `make up`, THEN restart; the `[ -n ]`
+  check; **the fail-closed boot** and its one line; `make verify`'s fingerprint line and what each verdict means; `make doctor`'s expiry
+  warning and the rotation (the gateway's admin UI, `.env`'s two lines, `make up`, restart); and **`OPENAI_API_KEY` stays, as a backup**
+  (Rich, 16:13) — what a direct `openai/…` setting uses.
 - [ ] **Step 7: Commit by name**, then **the negative controls**, each predicted, seen red, and restored:
   - **(a)** `unchanged` back to comparing the model string alone: predict red at *repoints from OpenAI direct*;
-  - **(b)** `keyInEnv` forced `true`: predict red at *refuses … when .env carried no key*;
-  - **(c)** `api_key: gateway.keyRef` dropped from `resolveSetting`: predict red at the provider and capable unit cases, and the Docker
-    case's `authorized`.
+  - **(b)** `keyInEnv` forced `true`: predict red at *refuses … when .env carried no key* in `providers.test.ts`, and at both
+    `capable.test.ts` keyless cases;
+  - **(b2)** the fail-closed removal skipped (`failClosed` ignored): predict red at *FAILS CLOSED* only, the POSITIVE CONTROL green;
+  - **(c)** `api_key: gateway.keyRef` dropped from `resolveSetting`: predict red at the provider and capable unit cases. **AT THE UNIT
+    TIER ONLY** (*I2*): with it dropped, the Docker case's deployment would carry no key, and LiteLLM would send Rich's real
+    `OPENAI_API_KEY` to the host stub. Never run the Docker case under this control;
+  - **(d)** the insecure-URL refusal removed: predict red at `http://gw.example/v1`'s `ConfigError`, the loopback cases green;
+  - **(e)** `make verify`'s check, by a restore-safe script (Rich's to run if the classifier refuses it): `docker exec` cannot change a
+    running container's environment, so the control runs the check's function against a SCRATCH `.env` copy whose key is a different
+    canary — `differs` (FAIL) — then against one with no key while LiteLLM has none — `not configured` (PASS);
+  - **(f)** `make doctor`'s expiry check against a scratch `.env` copy with `UBC_AI_GATEWAY_KEY_EXPIRES` set to tomorrow: WARN; a year
+    out: PASS; absent with a key present: WARN *"unknown"*.
   ```bash
-  git commit -m "feat(ai): the capable model through UBC's AI Gateway — ubc-ai-gateway/<model>, the key by reference only (gateway plan Task 2)"
+  git commit -m "feat(ai): the capable model through UBC's AI Gateway — ubc-ai-gateway/<model>, the key by reference only, failing closed (gateway plan Task 2)"
   ```
 
 ---
 
 ## Task 3: The gateway's own models, from one setting (Rich's Q1)
 
-**Spec action 1 decided first.** This task's caller is `index.ts`'s boot, straight after `capableModelAtBoot`, because the capable
-model's fallback may name one of them.
+**Spec action 1 decided first.** This task's caller is `index.ts`'s boot, **straight BEFORE `capableModelAtBoot`** (*I5*), because the
+capable model's fallback may name one of them, and `capableModelAtBoot` sets that fallback (`capable.ts:454-458`), refusing a name not
+yet in the catalogue (Read this first 18). *The first draft ran it after, so a fresh registration could never be the fallback.*
 
 **Files:**
 - Create: `ai/registration.ts`, `ai/gateway-models.ts`, `ai/gateway-models.test.ts`
 - Modify: `ai/capable.ts` (its registration body moves to `registration.ts`), `config.ts`, `config.test.ts`, `index.ts` (the boot call
-  and the boot line's `gatewayModels`), `ai/capable.docker.test.ts` (one case), `docs/superpowers/RUNBOOK.md`
+  and the boot line's `gatewayModels`), **`ai/testing.ts`** (the fake seeds a config entry's OUTPUT price too, *M2*),
+  `ai/capable.docker.test.ts` (one case), **`.env.example`** (*M6*), `docs/superpowers/RUNBOOK.md`
 
 **Interfaces:**
 - Consumes: Task 2's `resolveSetting`, `Gateway`, `ProviderParams`.
@@ -758,7 +1103,8 @@ model's fallback may name one of them.
   `ensureCapableModel` after its `setting === undefined` branch into `registration.ts`'s `ensureRegistered`. Substitute
   `r.name` for `CAPABLE_MODEL_NAME`, `r.settingName` for `CAPABLE_MODEL_SETTING`, `r.owns` for the name filter, and
   `${r.idPrefix}${randomUUID()}` for the id. `ensureCapableModel` keeps its removal branch and calls `ensureRegistered` with
-  `{ name: CAPABLE_MODEL_NAME, owns: (d) => d.model_name === CAPABLE_MODEL_NAME, idPrefix: 'manifest-capable-', … }`.
+  `{ name: CAPABLE_MODEL_NAME, owns: (d) => d.model_name === CAPABLE_MODEL_NAME, idPrefix: 'manifest-capable-', … }`. **Task 2's
+  resolve and fail-closed branch stay in `ensureCapableModel`, before `ensureRegistered`**, which takes resolved `params`.
   **Run `capable.test.ts`: every case green, none edited.** That is the refactor's only test, so commit it alone.
   ```bash
   git commit -m "refactor(ai): the capable model's registration as ensureRegistered, by name and classification (gateway plan Task 3)"
@@ -767,8 +1113,11 @@ model's fallback may name one of them.
   - `MANIFEST_GATEWAY_MODELS='ubc-onprem=ubc-ai-gateway/qwen-x@confidential, ubc-mini=ubc-ai-gateway/gpt-6-mini@internal'` parses to two
     entries;
   - `''` parses to `[]`;
+  - **a model id holding `@` splits on the LAST `@`** (*M5* — Vertex-style ids carry one):
+    `'ubc-vertex=ubc-ai-gateway/claude-x@20250101@internal'` parses to the setting `ubc-ai-gateway/claude-x@20250101` at `internal`;
   - **each of these is a `ConfigError` `CONFIG_GATEWAY_MODELS_INVALID` naming the entry**, never defaulted: no `@`; `@restricted`;
-    `openai/x` (not a gateway setting); the name `default-chat-large`; a name twice; `Bad_Name`.
+    `openai/x` (not a gateway setting); the name `default-chat-large`; a name twice; `Bad_Name`; `x=ubc-ai-gateway/m@` (nothing
+    after the last `@`).
 
   `gateway-models.test.ts` (with Task 2's `GW`):
   ```ts
@@ -789,6 +1138,12 @@ model's fallback may name one of them.
     const onprem = [...lite.deployments.values()].find((d) => d.modelName === 'ubc-onprem')!
     expect([onprem.inputCostPerToken, onprem.outputCostPerToken]).toEqual([1e-6, 3e-6])   // config.yaml:42-43
   })
+  // M2: green only once the fake seeds a config entry's output price (testing.ts:282-292 seeds the input alone, and outputCostOf,
+  // :329-331, reads 0 for an ollama_chat/ model) — Step 4 changes the seeding; no other case's expectation moves (check it).
+  it('FAILS CLOSED: every manifest-gateway- deployment is REMOVED when .env no longer carries the key (Decision 4, C1)', async () => {
+    /* registered with GW; then ensureGatewayModels(lite, sameEntries, { ...GW, keyInEnv: false }) → each entry 'refused' naming
+       UBC_AI_GATEWAY_API_KEY, and no manifest-gateway- deployment left; the capable model and every config entry untouched */
+  })
   it('refuses a name the catalogue already holds — default-chat-onprem stays Ollama — and registers nothing for it', async () => {})
   it('removes an entry the setting no longer lists, and never touches the capable model or a config entry', async () => {})
   it('removes every manifest-gateway- deployment when the setting is empty', async () => {})
@@ -796,11 +1151,16 @@ model's fallback may name one of them.
     /* agentModelsFor(await loadModelCatalogue(lite), 'confidential', 'on-premise') contains 'ubc-onprem', not 'ubc-mini' */
   })
   it('at boot: one operator line per refused entry naming MANIFEST_GATEWAY_MODELS and the entry, never fatal; a gateway that does not answer is one line', async () => {})
+  it('at boot, gateway models are registered BEFORE the capable model’s fallback is set — so the fallback may name one (I5)', async () => {
+    /* a fresh fake; boot with MANIFEST_GATEWAY_MODELS 'ubc-onprem=…@confidential' and the fallback 'ubc-onprem' → capableFallback
+       'registered', not refused as "not in the model catalogue" */
+  })
   ```
 - [ ] **Step 3: Run — predict red** at the import of `gateway-models.js`, and at `config.test.ts`'s parse.
 - [ ] **Step 4: Implement.**
   - **`config.ts`**: `MANIFEST_GATEWAY_MODELS: z.string().default('')`, then `parseGatewayModels(raw)`. It splits on `,`, trims, and
-    skips empties. Each entry must match `^([a-z0-9][a-z0-9-]{0,62})=(ubc-ai-gateway\/[^@\s,]+)@(public|internal|confidential)$`. It
+    skips empties. Each entry must match `^([a-z0-9][a-z0-9-]{0,62})=(ubc-ai-gateway\/[^\s,]+)@(public|internal|confidential)$` — the
+    greedy setting group backtracks to the LAST `@`, so a model id may hold one (*M5*). It
     refuses duplicates and `default-chat-large` with `throw new ConfigError('CONFIG_GATEWAY_MODELS_INVALID', …)`, in
     `config.ts:681`'s pattern, naming the entry and the expected form.
   - **`registration.ts`** gains `unpriced?: Price`. When LiteLLM prices the first registration at `0` and `r.unpriced` is set, the
@@ -812,24 +1172,36 @@ model's fallback may name one of them.
     - `ensureGatewayModels` first removes every `manifest-gateway-` deployment whose name the setting no longer lists. For each entry
       it then:
       1. refuses a name a deployment it does not own already holds;
-      2. resolves the setting (Task 2), refusing as `resolveSetting` says;
+      2. resolves the setting (Task 2), refusing as `resolveSetting` says — **and on `failClosed`, removes that entry's
+         `manifest-gateway-` deployments** rather than keeping them (Decision 4);
       3. calls `ensureRegistered` with `owns: (d) => d.model_name === e.name && idOf(d).startsWith(ID_PREFIX)` and, for a
          `confidential` entry, `unpriced: await standInPrice(client)`.
     - `gatewayModelsAtBoot` is `capableModelAtBoot`'s shape: one `[boot] a gateway model (MANIFEST_GATEWAY_MODELS) '<name>' …` line
       per refusal, a thrown outage as one line, never fatal. It answers `{ name, state }[]` or `'failed'`.
-  - **`index.ts`**: after `capableModelAtBoot`, `gatewayModelsAtBoot(litellm, config.litellm.gatewayModels, gateway)`. With AI off,
-    `'disabled'`. The boot line gains `gatewayModels`.
-- [ ] **Step 5: Run the unit files — green.** Then the **Docker case** (`capable.docker.test.ts`): a `confidential` entry at the stub's
-  `/gw/ok/v1`, model `openai/probe-onprem-<run>` (unpriced), is registered at `1e-6` / `3e-6`. A key holding only it is charged
+  - **`index.ts`**: **BEFORE `capableModelAtBoot`** (*I5*), `gatewayModelsAtBoot(litellm, config.litellm.gatewayModels, gateway)`. Its
+    failure is one line and never stops the capable model's boot. With AI off, `'disabled'`. The boot line gains `gatewayModels`.
+  - **`ai/testing.ts`** (*M2*): the config seeding (`:282-292`) reads `output_cost_per_token` beside `input_cost_per_token`, so
+    `/model/info` answers a config entry's output price as LiteLLM does. Run every `ai/*.test.ts` that reads a config entry's price
+    afterwards, one at a time; a case whose expectation moves is named in the record.
+  - **`.env.example`** (*M6*): `# MANIFEST_GATEWAY_MODELS=<name>=ubc-ai-gateway/<model>@<classification>,…`, commented, after the capable
+    model's lines, with its one-line comment (registered at boot, removed when unset; needs the network; no fallback).
+- [ ] **Step 5: Run the unit files — green.** Then the **Docker case** (`capable.docker.test.ts`, after `startingClear`): a `confidential`
+  entry at the stub's `/gw/ok/v1` on Task 2's `GW_STUB_PORT`, **its gateway's `keyRef` `gatewayKeyRef('MANIFEST_STUB_BEARER')`, never
+  the default** (*I3*), model `openai/probe-onprem-<run>` (unpriced), is registered at `1e-6` / `3e-6`; the stub's `authorized` count is
+  the call's. A key holding only it is charged
   `usage × those` (`spendOf`, as the Task 12b case does). Then the entry is removed with the setting empty, and `LiteLLM_ProxyModelTable`
   holds no `manifest-gateway-` row.
 - [ ] **Step 6: RUNBOOK**: a *UBC's AI Gateway's models* subsection covering the setting's form, the names Rich chose, the price rule, the
-  `confidential` rule (Decision 7), and **"naming one as `MANIFEST_CAPABLE_MODEL_FALLBACK` loses the offline fallback"**.
+  `confidential` rule (Decision 7), **"naming one as `MANIFEST_CAPABLE_MODEL_FALLBACK` loses the offline fallback"**, and (*M10*)
+  **"a `MANIFEST_GATEWAY_MODELS` entry has NO fallback: with the network off, a call to it fails — an app or agent that needs to work
+  offline names `default-chat` or `default-chat-onprem`"**.
 - [ ] **Step 7: Commit by name**, then **the negative controls**:
   - **(a)** `unpriced` ignored: predict red at *pins an unpriced CONFIDENTIAL entry*;
   - **(b)** the foreign-name check removed: predict red at *refuses a name the catalogue already holds* (a second `default-chat-onprem`
     deployment appears);
-  - **(c)** the `ID_PREFIX` filter removed from the cleanup: predict red at *never touches the capable model*.
+  - **(c)** the `ID_PREFIX` filter removed from the cleanup: predict red at *never touches the capable model*;
+  - **(d)** `gatewayModelsAtBoot` moved back after `capableModelAtBoot`: predict red at *registered BEFORE the capable model's fallback*;
+  - **(e)** the `failClosed` removal skipped: predict red at *FAILS CLOSED* only.
   ```bash
   git commit -m "feat(ai): UBC's AI Gateway's models in the catalogue — MANIFEST_GATEWAY_MODELS, each at its own classification (gateway plan Task 3)"
   ```
@@ -850,13 +1222,14 @@ model's fallback may name one of them.
 **Files:**
 - Modify (Branch B): `infra/litellm/manifest_guard.py` (one set and one test beside `MALFORMED_STATUSES`; its header's *known limits*
   paragraph)
-- Modify: `ai/testing.ts` (the stub answers a `/gwfail/<kind>/v1` path in the shape `[M5]` recorded for (c) and (e)),
-  `ai/fallback-guard.docker.test.ts` (two cases)
+- Modify: `ai/testing.ts` (the stub answers a `/gwfail/<kind>/v1` path in the shape `[M5]` recorded for (c-i), (c-ii) and (e) —
+  **each MEASURED, never invented**; the first draft's `budget` shape would have been, because (e) was optional, *I9*),
+  `ai/fallback-guard.docker.test.ts` (two cases, and a streamed one if `[M5]`'s streamed answers differ)
 
 - [ ] **Step 1: The failing Docker cases** (on Branch A they are green at once, which IS the witness; say so in the record):
   ```ts
   it('the GATEWAY’s own failure — a model it no longer serves, its budget for the platform spent — is answered by the fallback (Review Focus 2)', async () => {
-    for (const kind of ['model', 'budget'] as const) {
+    for (const kind of ['model-unserved', 'model-not-on-key', 'budget'] as const) {   // [M5] (c-i), (c-ii), (e)
       const res = await chat({ primary: probe(`gwfail-${kind}`) })
       expect(res.status, kind).toBe(200)
       expect(res.headers.get('x-litellm-attempted-fallbacks'), kind).toBe('1')
@@ -894,7 +1267,8 @@ model's fallback may name one of them.
 
 ## Task 5: An agent key reaches the Responses API (Rich's Q2) — only if `[M4]` measured it needed
 
-**It runs only if Task 1 Step 2.4 measured the capable candidate refusing tools on chat completions. Spec action 2 is decided first.**
+**It runs only if Task 1 Step 4.8 measured the capable candidate refusing tools on chat completions THROUGH BOTH HOPS** (*M9*; Step 2.4
+is hop 2 alone), **and Step 4.1 measured `/v1/responses` charged at the pinned price** (*I7*). **Spec action 2 is decided first.**
 Its callers are `startAgentSession` (`ai/sessions.ts`, through `mintAgentKey`) and `startIntakeSession` (through `mintIntakeKey`), which
 must NOT gain the route.
 
@@ -924,9 +1298,13 @@ must NOT gain the route.
   ```
   `agent-keys.docker.test.ts`, on `default-chat`, offline, as `[M4]` Step 6 measured LiteLLM to bridge it:
   ```ts
-  it('an agent key is answered on /v1/responses; an intake key is refused it with LiteLLM’s route refusal', async () => {
+  it('an agent key is answered on /v1/responses, and CHARGED for it; an intake key is refused it with LiteLLM’s route refusal', async () => {
     const agent = await respond(agentKey, 'default-chat')
     expect(agent.status).toBe(200)
+    // I7: the route is opened only if it binds budgets. default-chat's synthetic $1 / $3 a million (config.yaml:26-27) makes the
+    // charge exact; spendOf polls as capable.docker.test.ts's does (the spend lands ~10 s later).
+    const { input_tokens, output_tokens } = agent.body.usage
+    expect(await spendOf(client, agentKey)).toBeCloseTo(input_tokens * 1e-6 + output_tokens * 3e-6, 12)
     const intake = await respond(intakeKey, 'default-chat')
     expect([intake.status, intake.type]).toEqual([/* [M4] Step 5's status and type */])
   })
@@ -952,6 +1330,9 @@ must NOT gain the route.
 - [ ] **Step 4: Run** the unit file, `api/contract/docs.test.ts`, and the contract's version tests: green.
 - [ ] **Step 5: Tell the front-end** (`ListAgents`; its live `manifest-app-…`): `1.6.1`, a description only, nothing to adopt. **Then
   commit by name**, and run **the negative control**: `mintAgentKey` passes `AI_ALLOWED_ROUTES`. Predict red at both new cases.
+- [ ] **Step 6: The successor starts from `1.6.1`** (*M7*). `2026-10-03-fe46-fe47-fe5.md` names only `1.7.0` (at `e8a2266`: l.50,
+  l.300 and l.641 — re-read them, they will have moved). Add, at each, that it starts from `1.6.1` (this plan's Task 5), its `1.7.0`
+  bump unchanged; commit that file by name, alone. If Task 5 does not run, the file is untouched and still right.
   ```bash
   git commit -m "feat(ai): agent keys reach /v1/responses — the capable model calls tools only there; contract 1.6.1 (gateway plan Task 5)"
   ```
@@ -972,35 +1353,60 @@ must NOT gain the route.
 - [ ] **Step 1: The phases**, each ending `every check passed`, on whichever driver the control plane runs (it touches no source):
   0. **Configured?** LiteLLM's `/model/info` (master key) shows `default-chat-large`'s `api_base` equal to the gateway's address and at
      least one `manifest-gateway-` entry. Otherwise it prints `NOT RUN — the gateway is not configured (RUNBOOK, UBC's AI Gateway)` and
-     exits `2`.
+     exits `2`. **Then, configured:** `make verify`'s fingerprint check passes (`matches`), and **`.env`'s `UBC_AI_GATEWAY_KEY_EXPIRES`
+     equals the date of the gateway's `/key/info` `expires`** (Decision 11) — a mismatch FAILS, naming both dates, never the key.
+     `demo-gateway.sh` also reads the key's gateway-side `spend` here (`curl -K -`, `jq` to that one field) for phase 2's comparison.
   1. **The catalogue:** `default-chat-large` and each gateway name at the gateway's address and its classification. `default-chat` and
      `default-chat-onprem` still at `http://host.docker.internal:11434`.
   2. **An `internal` project's agent session** (`startAgentSession`, as `launch.ts:1662`):
      - its models hold `default-chat-large` and the `internal`-or-above gateway names;
-     - a chat on `default-chat-large` answers `200` with content;
-     - a STREAMED one ends `[DONE]` with content frames;
-     - `getAgentBudget`'s spent rose by `usage × the pinned price`, within a cent.
+     - a chat on `default-chat-large` answers `200` with content, **ANSWERED BY THE GATEWAY** (*I6*): no
+       `x-litellm-attempted-fallbacks` header, and the body's `model` is not `qwen3.8:27b` (nor any `default-chat-onprem` model) — a
+       fallback's reply is also a `200`, and spend rises for it too;
+     - a STREAMED one ends `[DONE]` with content frames, with the same two checks on its response and frames;
+     - **`getAgentBudget`'s spent rose by EXACTLY `usage × the pinned price`** (*I6*): greater than `0`, and equal at 12 decimal places,
+       as `capable.docker.test.ts:280`'s `toBeCloseTo(…, 12)` — polled as `spendOf` polls, since the write lands ~10 s later. *The first
+       draft's "within a cent" passed at spend `0`: one call costs ~$0.0001.* If Decision 6 pinned a cache-read price, `usage`'s
+       `cached_tokens` are charged at it;
+     - **the gateway's own charge, compared, not by eye** (*I8*): after phases 2–4, `demo-gateway.sh` reads the key's gateway-side
+       `spend` again (polled up to 60 s; nothing else may use the key during the run) — it ROSE, and the ratio of Manifest's charges
+       for the run's gateway calls to that rise lies in the band `[M3]`.6 measured and recorded. **Manifest charging LESS than the
+       gateway FAILS**, unless `[M3]`.6 recorded why: a budget that binds late. If `[M1]`.3 found the key cannot read its own
+       `/key/info`, this check is Rich's at Step 4, by his admin UI, recorded as such.
   3. **The Responses API with a tool** (only if Task 5 ran): `POST {baseUrl}/responses` with one function tool and a prompt that
-     requires it answers `200` with a `function_call` output item, streamed and not.
+     requires it answers `200` with a `function_call` output item, streamed and not — **and the agent's spent rose by exactly its
+     `usage` × the pinned price, as phase 2's** (*I7*).
   4. **A `confidential` project's session** (the builder setting `capable`): its models hold the `confidential` gateway names and
      `default-chat-large`, and NOT `default-chat`. A call to a `confidential` gateway name answers `200`, charged at the stand-in's price.
-  5. **The key, by COUNT** (Global Constraints): `0` occurrences in `docker logs manifest-litellm`, in the control plane's log, and in
-     the journey's own output.
+  5. **The key, by COUNT and by DECRYPTED ROW** (Global Constraints):
+     - `0` occurrences of its value in `docker logs manifest-litellm`, in the control plane's log, and in the journey's own output;
+     - **`0` occurrences of the FRAGMENT a `401` echoes** (*M4*), in the form `[M5]`(d) measured, in the same three and in every table
+       `[M5]`(d) found the canary's fragment landing in — counted, never printed;
+     - **every gateway deployment's stored `api_key` DECRYPTS to the reference** (*I4*): Task 1's `[M3]`.5 snippet, run inside
+       `manifest-litellm` with its own salt key, prints `equals the reference` for each `manifest-gateway-` row and the capable model's,
+       and never `other`. *The first draft counted the clear-text key in a dump of an encrypted column: `0` whatever was stored.*
   6. Both sessions ended.
 - [ ] **Step 2: Green three times** (a fresh project each run, then re-use). **Every other demo stays green** where it was last green,
   above all `make demo-frontend` and `make demo-launch`, which read `default-chat-onprem`. Then `make ci-acceptance`, whose steps never
   touch the gateway.
 - [ ] **Step 3: The negative controls**, in `scripts/gateway-controls.sh` for Rich if the classifier refuses the restarts. Each is seen
   red where predicted and restored:
-  - **(a)** `MANIFEST_UBC_AI_GATEWAY_URL=http://127.0.0.1:9/v1`: phase 2's chat is answered by `default-chat-onprem`
-    (`x-litellm-attempted-fallbacks: 1`, the model `ollama_chat/qwen3.8:27b`). The check *"answered by the gateway"* goes red, which
-    stands in for the network being off.
-  - **(b)** the control plane started with `UBC_AI_GATEWAY_API_KEY=` empty: the boot line's `capableModel` reads `refused`, with the
-    one line, and phase 0 reads `NOT RUN`.
+  - **(a)** `MANIFEST_UBC_AI_GATEWAY_URL=http://127.0.0.1:9/v1` (loopback `http`, which Decision 5 allows): phase 2's chat is answered
+    by `default-chat-onprem` (`x-litellm-attempted-fallbacks: 1`, the model `ollama_chat/qwen3.8:27b`). **Phase 2's *answered by the
+    gateway* check goes red there** — it now exists (*I6*) — which stands in for the network being off.
+  - **(b)** the control plane started with `UBC_AI_GATEWAY_API_KEY=` empty — **re-predicted under the fail-closed boot** (*I6*, *C1*;
+    the first draft predicted `NOT RUN` while its own Decision 4 kept the registration): the boot line's `capableModel` reads
+    `refused` and each `gatewayModels` entry `refused`, one line each naming the missing key; **`/model/info` holds NO deployment at
+    the gateway's address**; and phase 0 reads `NOT RUN` and exits `2`. Restored, the next boot registers them again and phase 0 passes.
+  - **(b2)** a fail-closed boot with a DIRECT working model in place (`MANIFEST_CAPABLE_MODEL=openai/<model>` registered first, then
+    the gateway setting with the key empty): `default-chat-large` stays, direct — the POSITIVE CONTROL for (b).
   - **(c)** a malformed request on `default-chat-large` (`max_tokens: -1`): the gateway's `400` reaches the caller, with no
     `x-litellm-attempted-fallbacks`.
   - **(d)** `MANIFEST_GATEWAY_MODELS` emptied: the entries are gone from `/model/info`, and phase 4 goes red.
-- [ ] **Step 4: The person.** Rich runs phase 2 while his gateway admin UI is open, and **his key's spend moves by the same call**. If
+  - **(e)** `UBC_AI_GATEWAY_KEY_EXPIRES` one day off, in a scratch `.env` copy (`MANIFEST_ENV_FILE`): phase 0 FAILS naming both dates,
+    and `make doctor` against the same copy reads as Decision 11 says for that date.
+- [ ] **Step 4: The person.** Rich runs phase 2 while his gateway admin UI is open, and **his key's spend moves by the same call** —
+  the person's half of what phase 2 compares by `/key/info` (*I8*). If
   the faculty front-end runs against 7100 by then, he builds a small app on `app.manifest.internal`, and its agent session's capable
   calls are the gateway's. **He types every password** (or a staged headless sign-in, as his standing yes allows on `manifest.internal`).
 - [ ] **Step 5: The plan's one whole-branch review**, beside the Docker tier, then one fix wave.
@@ -1009,6 +1415,9 @@ must NOT gain the route.
   - ORIENTATION §7e (next: FE-46/47/5's plan) and §8 (the gateway as provider, *Decided*, built; *Open*'s Canada question gains `[M6]`
     and `[M9]`);
   - TRAPS (what `[M3]`–`[M7]` measured);
+  - ORIENTATION §2's *Outstanding*: **the next offline acceptance runs WITH the gateway lines in `.env`** (*M10*) — each gateway entry
+    fails offline by design, and `default-chat` and `default-chat-onprem` must still answer; and the key's rotation (about
+    2027-01-01) now named by `make doctor`'s warning;
   - the front-end told;
   - `manifest-94` told.
 
@@ -1017,6 +1426,9 @@ must NOT gain the route.
 ## What this plan does not build
 
 - **Replacing Manifest's LiteLLM with UBC's** (rejected by Rich, 15:28). Manifest never holds the gateway's master key.
+- **Removing `OPENAI_API_KEY`** (Rich, 16:13: *"Keep it as a backup"*). It stays in `.env` and LiteLLM's environment, and a direct
+  `openai/…` setting still uses it. What keeps it from UBC's gateway is Decision 4's fail-closed boot and `[M7]`'s measurement, not
+  its absence.
 - **A gateway-side fallback check.** The platform cannot see the gateway's router. Whether a gateway model falls back off UBC's hardware
   is Rich's statement (`[M9]`), and a `confidential` entry rests on it (Decision 7).
 - **Repointing `default-chat-onprem` or `default-chat` at the gateway** (Rich's Q1). The stand-ins stay the offline floor. At UBC,
@@ -1046,23 +1458,31 @@ says the capable model is *"a commercial provider's"*, reached *"through the sam
 
 **Proposed**, five edits:
 - **§7, the catalogue block** — `default-chat-large`'s comment: *"# the capable model — a commercial provider, off-prem"* becomes
-  *"# the capable model — a commercial provider through UBC's AI Gateway, off-prem"*.
+  *"# the capable model — a commercial provider, through UBC's AI Gateway or directly, off-prem"*.
 - **§7, the capable model's paragraph**, its second sentence: *"Which model answers it is a platform setting (§26) — a commercial
   provider's today — so repointing it changes no app, key or manifest."* becomes:
   > *"Which model answers it is a platform setting (§26) — a commercial provider's, reached through **UBC's AI Gateway**, a LiteLLM proxy
-  > LTIC runs on UBC infrastructure — so repointing it changes no app, key or manifest."*
+  > LTIC runs on UBC infrastructure, or directly where an administrator sets it so — so repointing it changes no app, key or
+  > manifest."*
+
+  *(Reworded with the review's M8: the first draft read as if the gateway were the only route, while a direct `openai/…` setting stays
+  supported and Rich keeps `OPENAI_API_KEY` as its backup.)*
 - **§7, a new paragraph after *"Its fallback is the on-premise model."*'s**:
   > *"**UBC's AI Gateway is the platform's upstream provider, not its gateway.** Manifest's own LiteLLM keeps every key it mints, every
   > budget and every guard (§10, D7), and reaches the AI Gateway with ONE platform credential that only it holds — referenced from its own
-  > environment, never stored with a model, and never seen by the control plane. Besides the capable model, an administrator may add
-  > models the AI Gateway serves to the catalogue under logical names of their own (§26), each at the `max_classification` the
+  > environment, never stored with a model, and never kept by the control plane, which removes the AI Gateway's models rather than
+  > leave them without it. Besides the capable model, an administrator may add models the AI Gateway serves to the catalogue under
+  > logical names of their own (§26), each at the `max_classification` the
   > administrator gives it — `confidential` only for a model that runs on UBC's hardware with no fallback off it, which the platform
   > cannot see and the administrator attests. A model the platform cannot price is refused, except an on-premise one, which is charged
   > the on-premise model's synthetic price so budgets bind. Every such entry needs the network; `default-chat` and the on-premise model
   > a laptop runs stay local, so nothing offline depends on the AI Gateway (C1)."*
+
+  *(M8: "never kept", not "never seen" — `loadConfig` reads whether the credential is set, and the scrub removes it at once; the first
+  draft's "never seen" was false of the code Task 2 builds. The clause after it is Decision 4's fail-closed boot.)*
 - **§21, the LiteLLM row**: *"The capable model, when configured, is a commercial provider reached through the same LiteLLM with the
-  network on"* becomes *"The capable model, when configured, is a commercial provider reached through UBC's AI Gateway — this LiteLLM's
-  upstream provider, with one credential only it holds — with the network on"*.
+  network on"* becomes *"The capable model, when configured, is a commercial provider reached through the same LiteLLM — by way of
+  UBC's AI Gateway, this LiteLLM's upstream provider, with one credential only it holds, or directly — with the network on"*.
 - **§26, *Platform settings***: *"and the capable model's provider and model, and its fallback,"* becomes *"and the capable model's
   provider and model, and its fallback, the AI Gateway's address and the catalogue entries it answers (§7),"*.
 
@@ -1076,7 +1496,7 @@ says the capable model is *"a commercial provider's"*, reached *"through the sam
 own AI Gateway, for now"*. `manifest-decisions.html:137` (D17's why) speaks of a model in the United States, so check it; it is
 unchanged unless (c). `manifest-phases.html` and `manifest-stories.html`: no mention (checked).
 
-### 2. §10 — an agent key also reaches the Responses API (before sitting 2; ONLY IF `[M4]` MEASURES IT NEEDED)
+### 2. §10 — an agent key also reaches the Responses API (before sitting 2; ONLY IF `[M4]`.8 MEASURES IT NEEDED, THROUGH BOTH HOPS)
 
 **Why.** Rich's Q2 (*"Yes, in this plan, if measured"*). S5 measured that the capable model answers a tool-calling agent only on
 `/v1/responses` (`spikes/S5-findings.md:89-93`), and §10 confines every key to three routes. S5's own spec row (its *Spec actions*,
@@ -1101,9 +1521,12 @@ last row) proposed naming the Responses API, and this is that row, made exact.
 
 ## What the self-review caught
 
-- **The key's mechanics.** The first draft had the Docker case's stub record the `Authorization` header. A probe deployment that names no
-  key may carry LiteLLM's real `OPENAI_API_KEY` there (Read this first 14). So the stub now records only whether the header matched a
-  harmless expected value, and the case resolves a non-secret variable already in LiteLLM's container (`STORE_MODEL_IN_DB`).
+- **The key's mechanics.** The first draft had the Docker case's stub record the `Authorization` header. A deployment aimed at the stub
+  that named no key, or an unresolved one, could carry LiteLLM's real `OPENAI_API_KEY` there (Read this first 14). So the stub records
+  only whether the header matched a harmless expected value. *Corrected by the fresh review (M1, I2):* this bullet first said the
+  existing probes name no key — they name `probe-not-a-key` and `sk-probe-not-a-key` — and the case first resolved `STORE_MODEL_IN_DB`,
+  whose `"True"` LiteLLM very likely reads as a boolean, which would have sent the real key after all. It now resolves
+  `MANIFEST_STUB_BEARER`, a plain non-secret string `infra/compose.yaml` gives LiteLLM (Task 2).
 - **A `401` from a LiteLLM echoes part of the key it was sent**, so every captured body goes through `redact.pl`. `[M5]`'s wrong-key case
   uses a canary, never Rich's key.
 - **The repoint direct → gateway** expands to the same model string. It became *Review Focus* 5 and Task 2's first capable case.
@@ -1111,6 +1534,40 @@ last row) proposed naming the Responses API, and this is that row, made exact.
   `loadConfig` therefore reads the variable once and keeps only `!== ''`.
 - **Task 5's Docker case cannot use the gateway** (the tier is offline). It rests on `[M4]` Step 6, LiteLLM bridging `/v1/responses` for
   `default-chat`. If that measures *no*, the case moves to `make demo-gateway`'s phase 3 alone, and the record says so.
+
+---
+
+## The fresh review's fixes, and where each landed
+
+*Applied 2026-10-03 by `manifest-cd`, from [`2026-10-03-review-of-ubc-ai-gateway-plan.md`](./2026-10-03-review-of-ubc-ai-gateway-plan.md),
+whose `file:line` premises were spot-checked against the code at `e8a2266` before building them in (every one opened held). Each is
+marked in place with its id.*
+
+| Id | The fix | Where |
+|---|---|---|
+| **C1** | Fail closed; `[M7]`'s four cases on both providers; a fingerprint, not presence. ~~Removing `OPENAI_API_KEY`~~ — **declined by Rich, 16:13** | Decisions 2 and 4 (unconditional — a routine call, recorded there); Architecture; Task 1 Step 7; Task 2; Task 3 Step 4; Review Focus 1 |
+| **I1** | The scrub entry and its test move to sitting 1, before the line is uncommented | **Task 0** (new); sittings table; Read this first 5 |
+| **I2** | A non-boolean, non-secret stand-in bearer; `"True"` into `[M7]`; control (c) at the unit tier; no "unset reference" Docker case | Task 2 (compose's `MANIFEST_STUB_BEARER`, Step 5, Step 7 (c)); Task 1 Step 7 |
+| **I3** | Every stub-bound deployment names a canary or the harmless reference | Global Constraints; Task 1 (throwaway, Steps 4.2, 6); Task 3 Step 5 |
+| **I4** | Rows checked DECRYPTED, by verdict | Global Constraints; Task 1 Step 3.5; Task 6 phase 5 |
+| **I5** | `gatewayModelsAtBoot` BEFORE `capableModelAtBoot` | Task 3 (caller, a test, Step 4, control (d)); Read this first 18 |
+| **I6** | "Answered by the gateway" asserted; spend exact, never "within a cent"; control (b) re-predicted | Task 6 phase 2, Step 3 (a), (b), (b2) |
+| **I7** | `/v1/responses`' spend, `store`, and another key's read measured; Task 5 and phase 3 assert spend | Task 1 Step 4.1, 4.3; Task 5; Task 6 phase 3 |
+| **I8** | The cache measured against the gateway's own charge; a cache-read pin if LiteLLM has one; the ceiling (DONE, 16:23); `/key/info` compared | Decision 6; Task 1 Steps 1.3, 3.6; Task 2; Task 6 phases 0 and 2 |
+| **I9** | Streamed error shapes; (e) REQUIRED on a probe key; (c) both ways | *What Rich does* 3; Task 1 Step 5; Task 4 |
+| **I10** | `http` refused off loopback; empty is unset | Decision 5; Task 2 (config, tests, control (d)) |
+| **M1** | Read this first 14 and the self-review corrected | Read this first 14; *What the self-review caught* |
+| **M2** | The fake seeds a config entry's output price | Task 3 (Files, Step 2, Step 4); Read this first 19 |
+| **M3** | The Docker case on the file's real helpers, `startingClear`, port 7193 | Task 2 Step 5; Read this first 20 |
+| **M4** | The `401`'s echoed fragment: where it lands, and counted | Global Constraints; Task 1 Step 5 (d); Task 6 phase 5 |
+| **M5** | Split a gateway model entry on its LAST `@` | Task 3 (Step 2, Step 4) |
+| **M6** | `.env.example`'s new lines and `:172`'s example | Task 2 Step 3; Task 3 Step 4; File Structure |
+| **M7** | FE-46/47/5's plan starts from `1.6.1` | Task 5 Step 6 |
+| **M8** | Spec action 1: "never kept"; the direct route still named | Spec action 1 |
+| **M9** | LTIC's addresses committed as present/absent only; Task 5's trigger through both hops | Task 1 Steps 1.2, 2.4, 4.8; Task 5 |
+| **M10** | A `timeout`; TLS verified; gateway entries fail offline (RUNBOOK); the next offline acceptance with the gateway lines | Decision 12; Task 1 Steps 2.5, 3.8, 3.9; Task 3 Step 6; Task 6 Step 6 |
+| **M11** | A stop point after Task 3; sitting 2b if Branch B and Task 5 both run | The sittings section |
+| *(16:23)* | The key's 90-day expiry warned ahead (`manifest-94`'s suggestion; decided here) | **Decision 11**; Task 1 Steps 1.3, 9; Task 2; Task 6 phase 0, control (e); Review Focus 6 |
 
 ---
 
