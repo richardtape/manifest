@@ -644,3 +644,6 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     FE-53 (Recommended)": pending_action.created also carries the asking token's minter (tokenMintedBy, Token.mintedBy's
     value), so the front-end names an agent made outside its page to its own maker as "Your agent", consistently. Additive,
     in the FE-46/47/5 plan's FE-53 (Task 2, sitting 2). Over: leaving the band generic.
+
+    And at 15:16 PDT, through the question tool — "Yes, its call (Recommended)": the front-end decides and words its minors
+    m107, m112, m114 and m117 itself, any new words under his standing "approve, change on sight"; m111 waits for 7100.
