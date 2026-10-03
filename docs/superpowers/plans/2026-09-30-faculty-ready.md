@@ -1055,6 +1055,13 @@ Decision 16. **FE-50 joined at sitting 1's open**: the same remedy also says who
 > (`packages/console/src/screens/queue.tsx:81-86`, deliberately not a `startsWith`). **Add `pending_action.expired` there**, or the
 > console's queue does not refresh when a question expires. The new type also needs the `audit.events` CHECK migration
 > (`db/schema.ts:1166-1169`, `events_type_known`).
+>
+> **THE FRONT-END'S REVOKE, AS OF ITS F6b SITTING 5** (`manifest-app-ba`, 2026-10-02, mock mode). Its *[Revoke]* revokes the token FIRST,
+> and then REJECTS that token's waiting questions (*"This agent was revoked."*).
+> - **After this task, the revoke itself expires those questions**, so each of its rejects is answered `409 PENDING_ACTION_RESOLVED`
+>   (`expired`). The task's message to the front-end must say so, so that its reject step can go, as it already plans.
+> - **`mintedBy` lets its *Agents* screen name each agent's maker** and drop the token ids its server keeps. The shape it reads today is
+>   unchanged.
 
 **Files:**
 - Modify: `packages/control-plane/src/tokens/expiry.ts`: `expirePendingActions` answers the rows it expired (id, token, action, summary

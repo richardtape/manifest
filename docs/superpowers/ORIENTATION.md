@@ -1873,7 +1873,8 @@ F7's driver-1 refusal. **The contract goes to `1.6.0` ONCE, at Task 3.** The Doc
 - **7102 and 7105 are the faculty front-end's** (its mock and its server, mock mode). **Nothing listens on 7194–7199.**
 
 **THE PEER SESSIONS** (`ListAgents` immediately before every promised message; a name changes at every handover):
-- **The faculty front-end:** `manifest-app-ba` at sitting 1's close, in its F6b sitting 5 (*Agents*), mock mode. Its repository is
+- **The faculty front-end:** `manifest-app-ba` at sitting 1's close; its F6b sitting 5 (*Agents*, mock mode) was closing then. **For holds,
+  message whichever `manifest-app-*` session `ListAgents` shows; if none is live, ask Rich** (its own words). Its repository is
   `~/Developer/manifest-app`; never edit it.
   - **It asks for a message BEFORE any Vitest run, Docker tier, `make verify`, or edit or commit to `packages/contract` or
     `packages/mock`, and at the close.** It holds its own Vitest when told, and says when it has.
