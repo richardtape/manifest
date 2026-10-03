@@ -15,6 +15,13 @@ export const SESSION_COOKIE = 'manifest_session'
  * a name a browser accepts only Secure, `Path=/` and host-only, so no sibling app on the same
  * domain can set one — and `manifest_session` on http (loopback: the mock, and the platform's own
  * test servers). An https origin does not read the plain name at all.
+ *
+ * **`baseUrl` IS AN ORIGIN MANIFEST SERVES** — the console's or the front-end's, through the edge
+ * (`https://console.manifest.internal`, `https://app.manifest.internal`), or the mock. NOT the
+ * control plane's own port: a request straight to `http://127.0.0.1:7100` names no origin Manifest
+ * serves, so it is judged as the console's https origin and reads `__Host-manifest_session` — while
+ * this, reading that URL's scheme, answers the plain name. A server that replays a person's session
+ * calls Manifest at its own https origin, where the two agree.
  */
 export function sessionCookieFor(baseUrl: string): string {
   return new URL(baseUrl).protocol === 'https:'

@@ -1515,6 +1515,33 @@ describe('Manifest is its own SP (§9)', () => {
       await app.close()
     })
 
+    it('a request straight to the control plane’s port is judged as the console’s https origin: __Host- only', async () => {
+      // THE FALLBACK'S NAME, PINNED (the plan's answer to the front-end's open question 1). A `Host` that
+      // names no configured origin — `127.0.0.1:7100`, the control plane's own port — is judged as the
+      // FIRST origin, the console's https one, so the cookie read there is `__Host-manifest_session`. A
+      // client naming the cookie by THAT URL's scheme (http) sends the plain name and is signed out — which
+      // is why a client reaches Manifest through the edge, at an origin it serves.
+      const deps = await testDeps()
+      const app = await buildServer(deps)
+      const { [HOST_SESSION_COOKIE]: valid } = await loginAs(deps, 'bio_prof')
+      const direct = { host: '127.0.0.1:7100' }
+      const hostNamed = await app.inject({
+        method: 'GET',
+        url: '/v1/me',
+        cookies: { [HOST_SESSION_COOKIE]: valid },
+        headers: direct,
+      })
+      expect(hostNamed.statusCode, hostNamed.body).toBe(200)
+      const plain = await app.inject({
+        method: 'GET',
+        url: '/v1/me',
+        cookies: { [SESSION_COOKIE]: valid },
+        headers: direct,
+      })
+      expect(refusal(plain)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
+      await app.close()
+    })
+
     it('the ACS reads only the __Host- login cookie: a tossed plain one with the attacker’s nonce is refused', async () => {
       // LOGIN CSRF BY COOKIE TOSSING. The attacker starts their OWN sign-in, finishes it at the
       // IdP as themselves, tosses `manifest_login=<their nonce>` onto the victim's browser from a
