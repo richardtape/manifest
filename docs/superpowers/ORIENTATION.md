@@ -146,8 +146,9 @@ keeps the number as that sitting left it, dated.
   keeps the items; item 5 (UBC's staging IdP) is still the one part of a real first launch the platform cannot do for itself.
 - **§8's open questions.**
 
-**The spec is current. The faculty-ready plan's Spec actions 2 (§25, `listed`) and 3 (§20, the request id and a limit's facts) were
-APPLIED 2026-10-03 at its sitting 2's open, and that sitting builds them; the code has caught up with every spec action before them** — the last two, **Spec action 5** (§6, §13,
+**The spec is current. ALL FOUR of the faculty-ready plan's spec actions were APPLIED 2026-10-03 at its sitting 2's open** — 2 (§25,
+`listed`) and 3 (§20, the request id and a limit's facts), built by sitting 2; 4 (§12, an init), by sitting 4; 1 (§26 and §6, the
+administrator's reason), by sitting 6 — **and the code has caught up with every spec action before them** — the last two, **Spec action 5** (§6, §13,
 §26 — the sign-off request and its queue; `844605b`, his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md)) and **Spec action
 10** (§6 — `IamRegistration.change_requested_from`, from his decision on `change_requested`), in the launch path plan's sitting 9
 (`a1d4baa`, `a230c1a`, 2026-10-01). Earlier ones caught up in sittings 5b (Spec action 8, `3333acc`), 6 (3 and 9), 7 and 8 (4), and Mailpit
@@ -1827,6 +1828,13 @@ named in the row below.*
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
 | **Launch path** | [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md) — **EXECUTED 2026-10-02**, nineteen tasks in fourteen sittings | `make demo-launch` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 16 of the offline acceptance; a step of `make ci-acceptance`; its controls seen red; the real leg; **a launch clicked by a person** | **Sitting 12's F1 is the one to read**: a control plane that answered `/v1/me` was dead — ten advisory-lock holders on the query pool deadlocked the boot, found only because a control restarted it with twelve environments; and its first fix still deadlocked under NESTED holders, found by the plan's one whole-branch review |
 ### 7e. The faculty-ready plan's sitting 2 (Tasks 2, 3, 4, 12 and 14: the envelope sitting, contract `1.6.0`) ← **START HERE**
+
+> **SITTING 2 IS OPEN (2026-10-03, `manifest-71`) AND HOLDING.** Rich answered every question below at its open: **all four spec
+> actions APPLIED**; **`f6b-measure-1` is simply truncated**; F5b sitting 1 goes AFTER sitting 2. **The faculty front-end's F6b
+> sitting 6 (`manifest-app-a1`) holds 7100 first**, at Rich's word: **no unit or Docker Vitest, `contract:write`, `make verify`,
+> control-plane restart, or edit to `packages/contract` or `packages/mock` until it sends *"7100 released"*** (after its own
+> gates). His words: [`2026-09-30-decisions.md`](2026-09-30-decisions.md), 2026-10-03. If this session has ended, ask `manifest-app-*` whether 7100 is
+> released before any of those.
 
 **The faculty-ready plan is IN PROGRESS** ([`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md); approved 2026-09-30). It is
 **executed inline**, at Rich's word (`superpowers:executing-plans`; the ledger is `.superpowers/sdd/2026-09-30-faculty-ready/progress.md`).

@@ -1158,9 +1158,11 @@ now also covers `source/`. Decision 18.
 
 ## Spec actions
 
-**FOUR, DRAFTED 2026-09-30 WITH THIS PLAN. 2 and 3 are APPLIED (Rich, 2026-10-03, sitting 2's open: (a) for both); 1 and 4 are not.** Each is decided by Rich before the sitting that builds it, and applied only after he has read the words.
+**FOUR, DRAFTED 2026-09-30 WITH THIS PLAN. ALL FOUR APPLIED 2026-10-03 at sitting 2's open** (Rich: (a) for each; 1 with the quota duty added — below). Each is decided by Rich before the sitting that builds it, and applied only after he has read the words.
 
 ### 1. §26 and §6 — the administrator's reason: who, how it is carried, where it is kept (before sitting 6)
+
+**APPLIED 2026-10-03** (Rich: *"(a) As drafted + quota"*; `../2026-09-30-decisions.md`). **One change to the words below:** the exempt duties read *"approving or rejecting a release, recording UBC's answers (§9), and setting a project's quota"* — the draft named two of the three duties his 2026-09-30 design exempts (`quota:set` is Task 10's third `ADMIN_DUTIES` entry). §6's `Event` row as proposed.
 
 **Why.** Rich decided the design on 2026-09-30 (*"The design (Recommended)"*). §26's paragraph says a reason is required for *"an admin action taken on another person's project"*, but not how it travels, what counts, or where it is kept, and §6's `Event` row has no actor.
 
@@ -1222,6 +1224,8 @@ After the example, add: *"**A blueprint the platform keeps for its own tests dec
 **Shared pages:** `manifest-decisions.html` D23, if it lists what an error carries. **Check.**
 
 ### 4. §12 — an app's container runs an init (before sitting 4)
+
+**APPLIED 2026-10-03** (Rich: *"(a) App containers"*; `../2026-09-30-decisions.md`), the words unchanged.
 
 **Proposed:** §12's hardening list, after *"resource ceilings including `pids`…"*, add:
 

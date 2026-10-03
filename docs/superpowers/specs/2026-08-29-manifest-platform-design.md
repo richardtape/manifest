@@ -342,7 +342,7 @@ admin-ui/       React admin front-end
 | **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `expires_at`, `resolved_by`, `resolved_at`, `consumed_at` — `expires_at` is what makes the `expired` state reachable rather than decorative, and `consumed_at` records that a confirmation has been **spent**, so confirming grants exactly one retry rather than a standing permission. `consumed_at` is a column and not a fifth state: "confirmed but not yet retried" and "confirmed and used" are one decision at two moments |
 | **AgentSession** | `id`, `project_id`, `user_id` (the person it works for, and is charged to), `instance_id` (the sandbox it runs in — null for an agent outside Manifest), `requested_by_token` (null when a person started it in a session), `litellm_key_id`, `cap_usd`, `expires_at`, `ended_at` — a session outlives neither its `expires_at` nor the credential that started it, and its key is answered once, when it starts, and never stored |
 | **IntakeSession** | `id`, `user_id` (the person who started it, who is never charged), `model`, `cap_usd`, `expires_at`, `created_at`, `ended_at`. It has no project and no token: only an interactive session starts one, before a project exists, and it is paid from the platform's intake budget (§10). Its key is answered once and never stored. The row is the record that the key was issued, because there is no project stream to publish on |
-| **Event** | `id`, `project_id`, `subject`, `type`, `machine_detail`, `human_message`, `created_at` |
+| **Event** | `id`, `project_id`, `subject`, `type`, `machine_detail`, `human_message`, `actor_user_id`, `acted_as_admin`, `reason`, `created_at` |
 | **RoleChange** | `id`, `user_id`, `from_role`, `to_role`, `actor`, `reason`, `created_at` — append-only by grant, like `Event`; `actor` is text, because the first administrator's grant has no administrator to attribute it to (§20) |
 | **Incident** | `id`, `instance_id`, `exit_reason`, `log_tail`, `failed_check`, `diff_since_healthy` |
 
@@ -1442,6 +1442,9 @@ Applies to every app, service and sandbox container, on every driver:
   Disk is therefore reported through `capabilities().enforcesDiskQuota` rather than
   assumed, exactly as user-namespace remapping is above; without that,
   `InstanceSpec.resources.diskMi` reads as a ceiling and is not one.
+- **an init as PID 1 in every app container**, so a process the app starts and abandons
+  is reaped rather than left holding one of the container's `pids` (measured: twenty
+  orphaned `sleep`s held twenty, P5a sitting 2)
 
 `DriverCapabilities.isolationLevel` (`container` | `gvisor` | `vm`) records the
 strength of the boundary a driver actually provides. A plain container is a weak
@@ -2944,11 +2947,20 @@ working and a queue that is stale is not.
 
 ### Non-repudiation
 
-Every administrative action is audited with its actor. An admin action taken **on
-another person's project** additionally requires a reason string, which is stored
-with the audit entry and shown to the project owner in their event stream. §3.5
-lists insider risk as a real threat with a stated need for non-repudiation; this is
-where that is discharged.
+Every administrative action is audited with its actor. **An administrator who is not a
+member of a project and uses an owner's capability on it** — deploying, committing,
+setting a secret, adding or removing a person, renaming, archiving, restoring or
+deleting, running the rehearsal, starting an agent session, answering someone's agent,
+minting a token — **additionally gives a reason, sent with the request** (the
+`Manifest-Admin-Reason` header), and is refused without one. The reason is stored with
+the audit entry beside the actor, and shown to the project's people in their event
+stream. An administrator's own duties — approving or rejecting a release, recording
+UBC's answers (§9), and setting a project's quota — are theirs by definition, already
+name them, and need no reason beyond what their own records ask; an administrator who
+is a member of the project acts as a member; a read is not an action. A token an
+administrator mints on another person's project is minted with a reason, and its later
+actions name the token. §3.5 lists insider risk as a real threat with a stated need
+for non-repudiation; this is where that is discharged.
 
 ### Scope
 

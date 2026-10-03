@@ -335,3 +335,23 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         hint. Tasks 3 and 4 build it; the contract goes to 1.6.0 at Task 3.
     Shared pages checked for both: manifest-decisions.html's D23 says nothing of what an error carries, and no page names
     the fixture blueprint — none changes.
+
+    And, asked in the same sitting while the faculty front-end holds 7100 for its F6b sitting 6 (manifest-app-a1, ~6–8 h, at
+    Rich's "co-ordinate and start when possible"), through the question tool:
+      - THE ORDER — front-end F6b sitting 6 first; platform sitting 2 waits for its "7100 released" (sent after its gates);
+        then the front-end adopts 1.6.0; then F5b SITTING 1 — "After platform sitting 2 (Recommended)", on a fresh 7100
+        and contract 1.6.0, over running it in the same pre-truncation window (+3–5 h to the hold, on 1.5.0).
+      - f6b-measure-1 — "Simply truncate (Recommended)": sitting 2's first Vitest run takes its rows; the cleanup scripts take
+        its containers, networks and volumes at the close; its real repository becomes a third that no project owns, beside
+        f6-watch and keep-walk-1002 (removing them is Rich's). Not archived first; deleting it is refused anyway (launched).
+      - WHAT THE PLATFORM DOES DURING THE HOLD — "Decide Spec action 4 now", "Decide Spec action 1 now", "Draft Tasks 2 & 14's
+        tests" (control-plane src/ only, not run until the release; nothing in packages/contract or packages/mock).
+      - SPEC ACTION 4 (§12, an init) — "(a) App containers (Recommended)", over (b) every container. => APPLIED: a bullet after
+        the resource-ceilings item. Task 8 builds it.
+      - SPEC ACTION 1 (§26 and §6, the administrator's reason) — "(a) As drafted + quota (Recommended)". The premise check found
+        the drafted words named only two of the three exempt duties his 2026-09-30 design lists (release:approve,
+        launch:record, quota:set — Task 10's ADMIN_DUTIES); "and setting a project's quota" is added to the duties, every
+        other word as drafted. Over (a′) verbatim, (b) no exemptions, (c) a body field. => APPLIED: §26's Non-repudiation
+        paragraph replaced; §6's Event row gains actor_user_id, acted_as_admin and reason. Task 10 builds it.
+    Shared pages checked for 1 and 4: D31 is about the admin dashboard's interface, not audit; no page mentions audit, a
+    reason or an init — none changes. Every spec action of the faculty-ready plan is now applied.
