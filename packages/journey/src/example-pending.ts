@@ -19,9 +19,10 @@ export function pendingActionOf(error: unknown): Schemas['PendingAction'] | unde
 /**
  * Wait for the person, then say what to do. `confirmed` lets the identical request — the same
  * method, path and body, from this token — through ONCE, whatever its Idempotency-Key; `rejected` is final and
- * `pendingAction.reason` says why; `expired` means it ended unanswered — nobody answered in time,
- * or this token was revoked first. Never retry a pending request on a loop: it asks the person
- * again.
+ * `pendingAction.reason` says why; `expired` means nobody answered in time. If a person ends this
+ * token first — revokes it, removes its minter, switches the project off — every call it makes,
+ * this read included, is `401 UNAUTHENTICATED` from then on, and the person sees the question
+ * `expired`. Never retry a pending request on a loop: it asks the person again.
  */
 export async function waitForAPerson(
   origin: string,

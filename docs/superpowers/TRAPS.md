@@ -662,7 +662,7 @@ it belongs among the traps the next sitting is most likely to hit.
   The console site now sets `stream_close_delay 1h`, and with it the same stream survived a PUT and a
   DELETE and `make demo-ai` was green. **An app's own WebSockets are NOT covered**: `routing/`'s runtime
   routes carry no delay, so any deploy anywhere closes every app's proxied WebSockets — named, not fixed.
-- **An app container's PID 1 is `node`, which never reaps the orphans it adopts — and no init is set.**
+- **Until 2026-10-03 an app container's PID 1 was `node`, which never reaps the orphans it adopts — no init was set (FIXED: below).**
   Measured 2026-09-16 on `node:22-alpine` with `--pids-limit 64`: twenty backgrounded `sleep 2`s from an
   exited `sh` stayed in state `Z` under ppid 1, holding their pids; after `s6.docker.test.ts` probe 11's
   fork loop, `pids.current` was still 64 seventeen seconds on and `docker exec … node` could not start at
@@ -2315,7 +2315,7 @@ TypeScript client does), until Task 2 makes `api` send the header only with a bo
 (current when `src/` has not changed since the control plane last started — `git log -1 -- packages/control-plane/src`), and give the
 process `MANIFEST_DATABASE_URL`: `dist/db/client.js` throws at import without it, although nothing connects.
 
-**LITELLM 1.98.0 ANSWERS A PROVIDER'S `422` WITH HTTP `200` AND A BODY OF LITERAL `null`** (sitting 1, F8). A stub provider
+**LITELLM 1.98.0 ANSWERS A PROVIDER'S `422` WITH HTTP `200` AND A BODY OF LITERAL `null` — UNLESS MANIFEST'S GUARD IS LOADED** (sitting 1, F8). A stub provider
 answering `422` was called twice, and the client got `200`, `null`, no `x-litellm-attempted-fallbacks` header, in 19 ms. Every
 other error status fell back (F7). **A `200` is not an answer until its body is**: read `choices`, never the status alone.
 **FIXED IN MANIFEST 2026-10-03** (the faculty-ready plan's sitting 4, Task 6): `infra/litellm/manifest_guard.py`'s post-call and
@@ -2409,7 +2409,7 @@ the manifest guard reads it from the request's own `litellm_logging_obj` (`model
 per-request state on either** — two requests of one agent session share it. The request's own `litellm_logging_obj` is fresh per
 request and passed by reference through every fallback attempt.
 
-**A PROVIDER'S `422` REACHES THE CLIENT AS `200` WITH A BODY OF `null`** (sitting 1's F8, still true under the guard — sitting 4's F16):
+**A PROVIDER'S `422` REACHED THE CLIENT AS `200` WITH A BODY OF `null` — FIXED 2026-10-03** (sitting 1's F8, still true under the guard at sitting 4's F16):
 LiteLLM 1.98.0's `drop_params` retry loop returns `None` before any fallback. **FIXED 2026-10-03 by the faculty-ready plan's sitting 4**: the
 guard's two post-call hooks answer `422` (a streamed one was a `500` with LiteLLM's Python error, Task 1's `[M3]`), and
 `ai/fallback-guard.docker.test.ts`'s `KNOWN (F8)` case is now the fixed case and a streamed one. **The streaming-iterator hook is defined

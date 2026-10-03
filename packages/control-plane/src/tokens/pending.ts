@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
-import { pendingActions, type Db } from '../db/index.js'
+import { delegatedTokens, pendingActions, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { expirePendingActions } from './expiry.js'
 import { personName, type TokenCapabilityRefusedError } from '../projects/index.js'
@@ -21,6 +21,20 @@ export type ActionFingerprint = PendingAction['payload']
  * first, and §26's queue is a screen somebody opens daily rather than hourly.
  */
 export const PENDING_ACTION_TTL_MS = 86_400_000
+
+/**
+ * The asking token ended — revoked, its minter removed, its project switched off, or run out — between
+ * the request's authentication and its question's insert (FE-52; the sitting's review, I1). Answered
+ * exactly as any ended token is, `401 UNAUTHENTICATED`, by the error handler's `statusCode` branch: an
+ * agent learns nothing it could not learn from a revoked token, and no question is recorded.
+ */
+export class TokenEndedError extends Error {
+  readonly statusCode = 401
+  constructor(readonly tokenId: string) {
+    super(`token ${tokenId} ended before its question could be recorded`)
+    this.name = 'TokenEndedError'
+  }
+}
 
 /**
  * A stable SHA-256 of a request body, with object keys SORTED at every depth.
@@ -119,83 +133,111 @@ export async function recordPendingAction(
   const { error, fingerprint } = input
 
   /**
-   * THE OPEN ASK, IF THERE IS ONE — stated once, because it is read twice: before the
-   * insert, and again by whoever loses the race to it. Two copies of this predicate is
-   * the shape ORIENTATION §9 names (*a guard whose enabling condition is written twice*),
-   * and here the two copies would have to agree about expiry as well as identity.
+   * THE ASKING TOKEN, HELD — AND ASKED AGAIN WHETHER IT IS STILL A CREDENTIAL (FE-52; the sitting's
+   * review, I1). The token actor was read when the request authenticated, and several round trips
+   * have passed since. A revoke, a member's removal or an archive that committed in between has
+   * already ended this token's questions, and cannot see one inserted after it — which would then
+   * wait, confirmable and spendable by nothing. `FOR SHARE` conflicts with each of their `UPDATE`s of
+   * the token's row, so either the end waits for this insert's commit (and its expiry then ends the
+   * new question too), or it committed first and is seen here: refused as any ended token is, and
+   * nothing inserted. The mint holds the project and the membership the same way, for the same race.
    */
-  const openAsk = async (): Promise<PendingAction | undefined> => {
-    const [row] = await db
-      .select()
-      .from(pendingActions)
-      .where(
-        and(
-          eq(pendingActions.requestedByToken, error.tokenId),
-          eq(pendingActions.state, 'pending'),
-          gt(pendingActions.expiresAt, now),
-          // The three fields of the fingerprint, as jsonb text. Compared in SQL rather
-          // than in JavaScript so that a token with many open questions does not read
-          // them all back to find one.
-          sql`${pendingActions.payload}->>'method' = ${fingerprint.method}`,
-          sql`${pendingActions.payload}->>'path' = ${fingerprint.path}`,
-          sql`${pendingActions.payload}->>'bodySha256' = ${fingerprint.bodySha256}`,
-        ),
-      )
-    return row
-  }
-
-  const existing = await openAsk()
-  if (existing !== undefined) return existing
-
-  // Before the insert, never after: see the note above. Scoped to this token.
-  await expirePendingActions(db, now, { tokenId: error.tokenId })
-
-  const [row] = await db
-    .insert(pendingActions)
-    .values({
-      projectId: error.projectId,
-      requestedByToken: error.tokenId,
-      action: error.capability,
-      payload: fingerprint,
-      // The question's life, CAPPED AT ITS TOKEN'S (FE-52): the sweep and the confirm route's own
-      // expiry check then cover a token that runs out, with no check of their own.
-      expiresAt: new Date(
-        Math.min(now.getTime() + PENDING_ACTION_TTL_MS, input.tokenExpiresAt.getTime()),
-      ),
-    })
-    /**
-     * No `target`: drizzle's `onConflictDoNothing` takes columns, and this index is over
-     * jsonb EXPRESSIONS, which it cannot express. The only other unique constraint on
-     * this table is the primary key over a `randomUUID()` default, so a conflict here is
-     * the open-ask index or nothing.
-     */
-    .onConflictDoNothing()
-    .returning()
-
-  /**
-   * THE LOSER OF THE RACE IS HANDED THE WINNER'S ROW. `onConflictDoNothing` returns no
-   * row when another caller inserted between this one's sweep and its insert, and every
-   * caller must come away with the question to wait on — four of five callers being told
-   * "no row" would be the same defect as five rows, from the other direction.
-   *
-   * **It comes away empty in exactly one case, and that case is a defect above this
-   * line**: the conflict was against a row the sweep should have expired and did not.
-   * Otherwise it cannot — under READ COMMITTED the conflicting insert is committed by the
-   * time the conflict is reported, and nothing inserts an already-stale row. So the throw
-   * is not dead code, it is the diagnostic for the sweep going missing: P5b sitting 7's
-   * control (d) removed the `expirePendingActions` call above and reached this line, which
-   * named the credential and the request instead of answering a `403` that pointed at a
-   * pending action nobody could find.
-   */
-  if (row === undefined) {
-    const winner = await openAsk()
-    if (winner === undefined) {
-      throw new Error(
-        `pending action for token ${error.tokenId} conflicted on ${fingerprint.method} ${fingerprint.path} and no open ask could be read back`,
-      )
+  const recorded = await db.transaction(async (tx) => {
+    const [token] = await tx
+      .select({
+        revokedAt: delegatedTokens.revokedAt,
+        expiresAt: delegatedTokens.expiresAt,
+      })
+      .from(delegatedTokens)
+      .where(eq(delegatedTokens.id, error.tokenId))
+      .for('share')
+    if (token === undefined || token.revokedAt !== null || token.expiresAt <= now) {
+      throw new TokenEndedError(error.tokenId)
     }
-    return winner
-  }
+
+    /**
+     * THE OPEN ASK, IF THERE IS ONE — stated once, because it is read twice: before the
+     * insert, and again by whoever loses the race to it. Two copies of this predicate is
+     * the shape ORIENTATION §9 names (*a guard whose enabling condition is written twice*),
+     * and here the two copies would have to agree about expiry as well as identity.
+     */
+    const openAsk = async (): Promise<PendingAction | undefined> => {
+      const [row] = await tx
+        .select()
+        .from(pendingActions)
+        .where(
+          and(
+            eq(pendingActions.requestedByToken, error.tokenId),
+            eq(pendingActions.state, 'pending'),
+            gt(pendingActions.expiresAt, now),
+            // The three fields of the fingerprint, as jsonb text. Compared in SQL rather
+            // than in JavaScript so that a token with many open questions does not read
+            // them all back to find one.
+            sql`${pendingActions.payload}->>'method' = ${fingerprint.method}`,
+            sql`${pendingActions.payload}->>'path' = ${fingerprint.path}`,
+            sql`${pendingActions.payload}->>'bodySha256' = ${fingerprint.bodySha256}`,
+          ),
+        )
+      return row
+    }
+
+    const existing = await openAsk()
+    if (existing !== undefined) return { row: existing, wrote: false }
+
+    // Before the insert, never after: see the note above. Scoped to this token.
+    await expirePendingActions(tx, now, { tokenId: error.tokenId })
+
+    const [row] = await tx
+      .insert(pendingActions)
+      .values({
+        projectId: error.projectId,
+        requestedByToken: error.tokenId,
+        action: error.capability,
+        payload: fingerprint,
+        // The question's life, CAPPED AT ITS TOKEN'S (FE-52): the sweep and the confirm route's own
+        // expiry check then cover a token that runs out, with no check of their own.
+        expiresAt: new Date(
+          Math.min(now.getTime() + PENDING_ACTION_TTL_MS, input.tokenExpiresAt.getTime()),
+        ),
+      })
+      /**
+       * No `target`: drizzle's `onConflictDoNothing` takes columns, and this index is over
+       * jsonb EXPRESSIONS, which it cannot express. The only other unique constraint on
+       * this table is the primary key over a `randomUUID()` default, so a conflict here is
+       * the open-ask index or nothing.
+       */
+      .onConflictDoNothing()
+      .returning()
+
+    /**
+     * THE LOSER OF THE RACE IS HANDED THE WINNER'S ROW. `onConflictDoNothing` returns no
+     * row when another caller inserted between this one's sweep and its insert, and every
+     * caller must come away with the question to wait on — four of five callers being told
+     * "no row" would be the same defect as five rows, from the other direction.
+     *
+     * **It comes away empty in exactly one case, and that case is a defect above this
+     * line**: the conflict was against a row the sweep should have expired and did not.
+     * Otherwise it cannot — under READ COMMITTED the conflicting insert is committed by the
+     * time the conflict is reported, and nothing inserts an already-stale row (the asking token's
+     * own end is checked above, under the hold, and caps the row's expiry). So the throw
+     * is not dead code, it is the diagnostic for the sweep going missing: P5b sitting 7's
+     * control (d) removed the `expirePendingActions` call above and reached this line, which
+     * named the credential and the request instead of answering a `403` that pointed at a
+     * pending action nobody could find.
+     */
+    if (row === undefined) {
+      const winner = await openAsk()
+      if (winner === undefined) {
+        throw new Error(
+          `pending action for token ${error.tokenId} conflicted on ${fingerprint.method} ${fingerprint.path} and no open ask could be read back`,
+        )
+      }
+      return { row: winner, wrote: false }
+    }
+    return { row, wrote: true }
+  })
+  const { row, wrote } = recorded
+  if (!wrote) return row
 
   /**
    * §14: the event names the action and who asked, and carries NEITHER the body nor its

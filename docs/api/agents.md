@@ -58,7 +58,8 @@ If you need a model, ask for a key with `startAgentSession` — your token must 
 - Tell the person what you asked for and why, and wait: `getPendingAction` says when they have answered.
 - `confirmed` lets the identical request through **once** — the same method, path and body, from your token, whatever its `Idempotency-Key`.
 - `rejected` is final; `pendingAction.reason` is their reason. Do not ask again for the same thing.
-- `expired` means the question ended unanswered: nobody answered in time, or the token you asked with ended first — revoked, its minter taken off the project, or the project switched off. A question never lives longer than the token that asked it. The project’s stream says when a person’s act ended it (`pending_action.expired`); a question that ran out of time ends silently, at its own `expiresAt`.
+- `expired` means nobody answered in time. A question never lives longer than the token that asked it, so its `expiresAt` is never later than your token’s.
+- If a person ends your token while its question waits — revokes it, takes its minter off the project, or switches the project off — your next call, `getPendingAction` included, is `401 UNAUTHENTICATED`: stop, and tell the person. They see the question `expired`, and the project’s stream says so (`pending_action.expired`).
 
 Some things are a person’s alone, and a token that asks is refused outright with `403 TOKEN_CREDENTIAL_REFUSED` — no question is created, and none would change the answer: approving a release for production, recording UBC’s IAM registration or privacy assessment, saying a request to UBC IAM or the Privacy Office was sent, running the pre-production rehearsal, minting a token, creating a project, switching an app off, bringing it back or deleting it, and setting a production secret’s value, which also asks the person to sign in again first (`STEP_UP_REQUIRED`). Reading who is signed in (`getMe`) and a project’s tokens (`listTokens`) are a session’s too. An operation’s description says when a token is refused.
 
@@ -86,9 +87,10 @@ export function pendingActionOf(error: unknown): Schemas['PendingAction'] | unde
 /**
  * Wait for the person, then say what to do. `confirmed` lets the identical request — the same
  * method, path and body, from this token — through ONCE, whatever its Idempotency-Key; `rejected` is final and
- * `pendingAction.reason` says why; `expired` means it ended unanswered — nobody answered in time,
- * or this token was revoked first. Never retry a pending request on a loop: it asks the person
- * again.
+ * `pendingAction.reason` says why; `expired` means nobody answered in time. If a person ends this
+ * token first — revokes it, removes its minter, switches the project off — every call it makes,
+ * this read included, is `401 UNAUTHENTICATED` from then on, and the person sees the question
+ * `expired`. Never retry a pending request on a loop: it asks the person again.
  */
 export async function waitForAPerson(
   origin: string,

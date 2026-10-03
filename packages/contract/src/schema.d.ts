@@ -5404,7 +5404,7 @@ export interface components {
             /** @description The privileged capability that was refused: `release:promote`, `secret:read`, `quota:set` or `members:manage`. */
             action: string;
             /**
-             * @description `pending` until a person answers; `confirmed` grants the identical request one retry; `rejected` is final; `expired` when nobody answered in time.
+             * @description `pending` until a person answers; `confirmed` grants the identical request one retry; `rejected` is final; `expired` when it ended unanswered — nobody answered in time, or a person ended the token that asked (revoked it, took its minter off the project, or switched the project off).
              * @enum {string}
              */
             state: "pending" | "confirmed" | "rejected" | "expired";
@@ -5418,7 +5418,7 @@ export interface components {
             summary: string;
             /**
              * Format: date-time
-             * @description When the question lapses unanswered.
+             * @description When the question lapses unanswered — never later than the asking token’s own expiresAt.
              */
             expiresAt: string;
             /**

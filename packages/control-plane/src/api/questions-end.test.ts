@@ -6,7 +6,14 @@ import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { fakeLiteLlm } from '../ai/testing.js'
 import type { SsoCertificates, SsoDeregistrar, SsoRegistrar } from '../sso/index.js'
-import { expirePendingActions, pendingById } from '../tokens/index.js'
+import { TokenCapabilityRefusedError } from '../projects/index.js'
+import {
+  expirePendingActions,
+  fingerprintOf,
+  pendingById,
+  recordPendingAction,
+  revokeToken,
+} from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import {
   mutationHeaders,
@@ -246,6 +253,67 @@ describe('a question never outlives its token (FE-52)', () => {
       expect((await pendingById(ctx.db, pendingId))?.state).toBe('expired')
       // The clock ended it, so nobody did: no event.
       expect(await ended(ctx)).toEqual([])
+    })
+  })
+})
+
+/**
+ * AN ASK THAT RACES THE TOKEN'S END (the sitting's review, I1). The token actor is read when the request
+ * authenticates, and several round trips pass before the question is inserted; a revoke, a removal or an
+ * archive that commits in between has already expired the token's questions and cannot see the new one,
+ * which would then wait — confirmable, and spendable by nothing. So the insert holds the token's row
+ * `FOR SHARE` and asks again whether it is still a credential: the end either waits for the insert (and
+ * then expires it) or committed first (and nothing is inserted). Here the end has committed first: the ask
+ * is made with the stale actor's refusal, as the route would make it.
+ */
+describe('an ask that races its token’s end (FE-52)', () => {
+  const askAs = (ctx: TestProject, tokenId: string, tokenExpiresAt: Date) =>
+    recordPendingAction(ctx.db, ctx.deps.bus, {
+      error: new TokenCapabilityRefusedError('members:manage', ctx.projectId, tokenId),
+      fingerprint: fingerprintOf({
+        method: 'POST',
+        url: `/v1/projects/${ctx.projectId}/members`,
+        body: { puid: 'bio_student', role: 'collaborator' },
+        summary: 'Add or change a member',
+      }),
+      tokenExpiresAt,
+    })
+  const questionsOf = (ctx: TestProject, tokenId: string) =>
+    ctx.db
+      .select()
+      .from(pendingActions)
+      .where(eq(pendingActions.requestedByToken, tokenId))
+
+  it('a token revoked after it authenticated asks nothing: no question is recorded', async () => {
+    await withServer(async (ctx) => {
+      const agent = await agentOf(ctx, ctx.userId)
+      expect(await revokeToken(ctx.db, agent.tokenId, ctx.userId)).toBe(true)
+      // Refused as any ended token is: the error handler answers its `statusCode`, 401 UNAUTHENTICATED.
+      await expect(
+        askAs(ctx, agent.tokenId, new Date(Date.now() + 86_400_000)),
+      ).rejects.toMatchObject({ name: 'TokenEndedError', statusCode: 401 })
+      expect(await questionsOf(ctx, agent.tokenId)).toEqual([])
+    })
+  })
+
+  it('a token that ran out after it authenticated asks nothing either', async () => {
+    await withServer(async (ctx) => {
+      const ranOut = new Date(Date.now() - 1000)
+      const agent = await agentOf(ctx, ctx.userId, ranOut)
+      await expect(askAs(ctx, agent.tokenId, ranOut)).rejects.toMatchObject({
+        name: 'TokenEndedError',
+        statusCode: 401,
+      })
+      expect(await questionsOf(ctx, agent.tokenId)).toEqual([])
+    })
+  })
+
+  it('POSITIVE CONTROL: a live token’s ask is recorded, pending', async () => {
+    await withServer(async (ctx) => {
+      const agent = await agentOf(ctx, ctx.userId)
+      const asked = await askAs(ctx, agent.tokenId, new Date(Date.now() + 86_400_000))
+      expect(asked.state).toBe('pending')
+      expect((await questionsOf(ctx, agent.tokenId)).map((q) => q.id)).toEqual([asked.id])
     })
   })
 })

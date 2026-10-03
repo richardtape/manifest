@@ -35,7 +35,7 @@ export const PendingAction = representation(
       state: z
         .enum(['pending', 'confirmed', 'rejected', 'expired'])
         .describe(
-          '`pending` until a person answers; `confirmed` grants the identical request one retry; `rejected` is final; `expired` when nobody answered in time.',
+          '`pending` until a person answers; `confirmed` grants the identical request one retry; `rejected` is final; `expired` when it ended unanswered — nobody answered in time, or a person ended the token that asked (revoked it, took its minter off the project, or switched the project off).',
         ),
       method: z.string().describe('The HTTP method the token used.'),
       path: z.string().describe('The path it asked for.'),
@@ -45,7 +45,9 @@ export const PendingAction = representation(
           'SHA-256 of the canonical request body, so a client can match its own.',
         ),
       summary: z.string().describe('What was asked for, for the person who answers.'),
-      expiresAt: Timestamp.describe('When the question lapses unanswered.'),
+      expiresAt: Timestamp.describe(
+        'When the question lapses unanswered — never later than the asking token’s own expiresAt.',
+      ),
       createdAt: Timestamp.describe('When the token asked.'),
       resolvedAt: Timestamp.nullable().describe(
         'When a person answered; null while it is pending.',
