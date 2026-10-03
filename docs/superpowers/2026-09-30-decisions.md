@@ -709,3 +709,17 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         he approves it. Over: approving now.
       - "Inline, a fresh session per sitting (Recommended)": executed inline, each sitting a fresh platform session from
         ORIENTATION §7e, manifest-94 coordinating. Over: subagent-driven.
+
+    And at 16:13 PDT, on the gateway plan's fresh review (docs/superpowers/plans/2026-10-03-review-of-ubc-ai-gateway-plan.md;
+    verdict: approve with fixes; one Critical — a gateway-key reference that resolves to nothing would very likely send the
+    real OPENAI_API_KEY to UBC's gateway, and the 401 falls back silently), through the question tool:
+      - THE KEY IN .env NOW — "Comment out the .env line (Recommended)": the boot's scrub list (secrets/scrub.ts) lacks
+        UBC_AI_GATEWAY_API_KEY, and faculty-ready sitting 5b's close was about to restart 7100 from .env. manifest-94
+        prefixed the line with "# " at 16:14 without reading its value; the gateway plan's sitting 1 adds the scrub entry and
+        its test, then uncomments it. Over: a scrub-list code change now (it would void 5b's final gates); leaving it.
+      - THE PLAN — "Approve with the fixes (Recommended)": APPROVED once a fresh session applies the review's fixes, before
+        its sitting 1.
+      - OPENAI_API_KEY — "Keep it as a backup" (over the recommended "required removal at sitting 2's close"): it stays in
+        LiteLLM's environment; the review's other C1 fixes (fail closed, the four cases measured, a fingerprint) still apply.
+      - THE VIRTUAL KEY'S CEILING — "Yes, before sitting 2 (Recommended)": Rich sets a max budget and budget duration on it in
+        the gateway's admin UI; the figure is recorded when he gives it.
