@@ -487,3 +487,31 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         settled if pnpm ignores a build script; the version, the day and the reason recorded. Sitting 2 need not ask again.
       - THE MEASUREMENT — "Task 3, after the add (Recommended)": nodemailer against Mailpit is Task 3's [M3b], straight after
         the add; no second networked command. Over: a scratch install in sitting 1.
+
+    And at ~14:25–14:30 PDT, asked "Any decisions I can help with?", eight more, through the question tool, each premise
+    checked against the code or the record first:
+      - FE-32'S ALLOWLIST — "Yes, in this plan (Recommended)": FE-32's plan builds §12's package allowlist in its smallest
+        faithful form (administrator-managed direct dependencies, seeded from the listed blueprints' skeletons; the resolve
+        operation AND the build's lockfile gate refuse an unlisted one, 409 DEPENDENCY_NOT_ALLOWED); its spec action
+        drafted in the plan, not applied. Over: its own plan straight after; no allowlist for now. (Premise: §12 promises
+        it for v1; infra/verdaccio/config.yaml proxies every package; build/gates.ts checks only a lockfile and secrets.)
+      - F5b SITTING 1 (the front-end, on 7100) — "After sitting 7, pre-authorised (Recommended)": once faculty-ready's
+        sitting 7 closes; his yes covers a new private repository in Manifest-local-dev for the walk (his to delete after),
+        a platform session re-granting operator's admin, and the test sign-ins. His click on app. still comes at its end.
+      - §8's APK MIRROR — "Close it: no mirror (Recommended)": its premise is false since sitting 5 measured node:24-alpine
+        at 0 Critical / 9 High (it clears the libcrypto3/libssl3 set). Revisit if a Critical lands that no newer base clears.
+      - FE-44, a large course or public app can never launch (its load rehearsal blocks and is not built) — "Build the
+        load rehearsal first" (over the recommended "keep it blocking, say so early", and "don't block until it's built"):
+        §24's load rehearsal, BEFORE faculty use it for real, as a plan of its own PLACED BEFORE FE-32. The order is now:
+        faculty-ready → FE-46/47/5 → the load rehearsal → FE-32 (with the allowlist) → the vulnerability database.
+      - FE-45, an app that has been live put away — "A 'removed' state, after vuln DB (Recommended)": archived → removed
+        (the owner's, person-only), only an administrator lists, restores or deletes it for good once retention allows;
+        placed after the vulnerability database. Over: a removedAt filter; the same shape sooner.
+      - m120 (the front-end's) — "Yes, any member (Recommended)": the sign-off ask shown to any member after launch, as the
+        platform allows (COLLABORATOR holds approval:request).
+      - THE FRONT-END'S WORDS BACKLOG — "Approve, change on sight (Recommended)": every word its sittings marked ours and
+        listed for his review to date is approved; he changes any when he clicks through. Not covered: the minors needing
+        his words or choice (m104, m107–m119, m123, m69/m76), which come back batched with recommendations.
+      - A RE-SUBMISSION AND UBC'S ORDER — "Keep it uniform (Recommended)": a registration sent again (after a lapse or a
+        change request) waits for the assessment approved and staging active, as a first one does, until UBC says
+        otherwise.

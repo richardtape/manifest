@@ -1951,25 +1951,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **FE-45 — AN APP THAT HAS BEEN LIVE IS NEVER DELETED; IT IS MARKED REMOVED, AND ONLY AN ADMINISTRATOR DELETES ITS DATA. RELAYED
-  2026-10-01** by the faculty front-end's session `manifest-app-34`, from Rich's words in its F6 design, **and CONFIRMED by Rich to the
-  platform's sitting 7 the same morning** (*"Yes, confirmed."*): *"We can't allow folks to delete apps that have been actively used. i.e. production
-  databases can't be deleted. We'll need some way to 'mark as deleted' which removes it from all paths, but we can't delete the data. That
-  can only be an admin decision (due to data retention)"* — to be recorded *"so it gets built in the future"*; **not urgent, and no current
-  plan's**. *Today*: an owner deletes an app that never launched (`deleteProject`); a launched one is `409
-  PROJECT_LAUNCHED_NOT_DELETABLE`, and archiving leaves it in `listProjects` and every route for its members for ever; nothing lets an
-  administrator delete its data once retention allows. *The front-end's options*: **(a)** a project state `removed` after `archived` — the
-  owner's `removeProject` (person-only, step-up, an archived project only) drops it from `listProjects` and answers its members `404`, the
-  name stays taken, code, data, secrets and records kept; an ADMINISTRATOR alone lists removed projects, restores one to archived, or deletes
-  it for good when retention allows (`data.retention_days`, if declared); `project.removed` and the administrator's events. **(b)** the same
-  with a `removedAt` the listings filter on, no new state. Full text: `~/Developer/manifest-app/docs/api-findings.md`, FE-45. *Needs*: a spec action
-  (§6's project states, §11's *Ending an app*, §26's queue) with (a) or (b) chosen, and a place in the plan order — both Rich's.
-
-- **DOES A RE-SUBMISSION WAIT FOR UBC'S ORDER TOO? RAISED 2026-10-01 by the launch path plan's sitting 6** (its review's *declined to
-  judge*). As built, every *"I've sent it"* is gated the same way — a production registration sent again after it lapsed (`expired`) or
-  after a change request waits for the assessment approved and staging `active`, as a first one does. Rich's *"Gate each step"* was
-  asked of a first launch. *Recommended:* keep it uniform until UBC says a renewal goes to production alone; one condition changes.
-
 - **SHOULD MANIFEST AT UBC USE UBC'S EXISTING LITELLM, RATHER THAN RUN ITS OWN? — RAISED 2026-09-28 by Rich at sitting 9a.** UBC
   already runs its own LiteLLM in AWS, routing to several providers — Pickerel, UBC's on-premise inference (reachable only from UBC's
   network, or from that LiteLLM, whose address is allowed) among them; **Manifest's LiteLLM on the laptop is a stand-in for it.**
@@ -2023,11 +2004,6 @@ reasoning is recorded.**
   Manifest's own commits, which is exactly what makes the plan's control (e) a `SOURCE_GIT_FAILED` rather than a secret
   committed. *The alternative:* driver 1 FETCHES its own commits into the bare repository (a fetch runs no hook), so
   only a person's push meets the hook — faster, and one layer thinner. One function changes either way.
-- **Should Phase 1 ship an apk mirror alongside Verdaccio? — RAISED 2026-09-06.** The 4 Critical and 14 High apk
-  findings are `libcrypto3`/`libssl3` at `3.5.7-r0`, fixed in `3.5.8-r0`; no newer base image clears them, and `RUN
-  apk upgrade` cannot work from a builder with no route off its `--internal` network. An apk mirror is the only
-  mechanism that would let a build clear them offline. The scan gate does not block on base-image findings, but
-  "ship on day one with four Criticals in the base image" is a decision rather than an accident.
 - **The long-term fix for `passport-ubcshib` is UBC's.** `@node-saml/passport-saml@5.1.0` audits clean, and moving
   to it is the "strictly safer for every consumer" change C6 permits. It does not block Manifest — but somebody
   should tell the owners of the six UBC applications that depend on a library with a critical
@@ -2038,6 +2014,20 @@ reasoning is recorded.**
   Unmeasured — only Ollama was reachable offline. Cheap to settle the first time anyone has a provider key.
 
 ### Decided
+
+- **THE ORDER AFTER *FACULTY-READY*, SINCE 2026-10-03 ~14:25 (Rich): FE-46/47/5 → THE LOAD REHEARSAL (§24; FE-44, *"Build the load rehearsal
+  first"*) → FE-32, WITH §12'S PACKAGE ALLOWLIST (*"Yes, in this plan"*) → THE VULNERABILITY DATABASE → FE-45.** The load rehearsal's and
+  FE-32's plans are being written by `manifest-c7`. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~14:25 entry.
+- **FE-45 — DECIDED BY RICH 2026-10-03: a `removed` state, placed after the vulnerability database** (*"A 'removed' state, after vuln DB"*):
+  archived → removed, the owner's (person-only), off every list and `404` to its members, code, data, secrets and records kept; only an
+  administrator lists, restores or deletes it for good once retention allows. Rejected: a `removedAt` filter. Needs a spec action (§6, §11,
+  §26) when its plan is written. Full text: `~/Developer/manifest-app/docs/api-findings.md`, FE-45. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~14:25 entry.
+- **A RE-SUBMISSION AND UBC'S ORDER — DECIDED BY RICH 2026-10-03: KEPT UNIFORM** (*"Keep it uniform"*): a registration sent again, after a
+  lapse or a change request, waits for the assessment approved and staging `active`, as a first one does, until UBC says a renewal goes
+  to production alone (one condition changes). [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~14:25 entry.
+- **THE APK MIRROR — CLOSED BY RICH 2026-10-03: none** (*"Close it: no mirror"*): its premise, that no newer base clears the
+  `libcrypto3`/`libssl3` Criticals, is false since faculty-ready sitting 5 measured `node:24-alpine` at 0 Critical / 9 High. Revisit if a
+  Critical lands that no newer base image clears. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~14:25 entry.
 
 - **§26'S REASON FOR AN ADMINISTRATOR WHO IS A COLLABORATOR (sitting 6's review, I2) — DECIDED BY RICH 2026-10-03: (a)**, a member is asked
   no reason only for what their own role allows; beyond it they act as an administrator and give one. **Spec action 5 APPLIED** (§26,
