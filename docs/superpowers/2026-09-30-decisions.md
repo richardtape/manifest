@@ -686,3 +686,19 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - WHEN — "Right after faculty-ready (Recommended)": a small plan of its own, before FE-46/47/5.
       - WHO WRITES IT — "A fresh platform session now (Recommended)", documents only; Rich creates the key and adds it to
         .env before its sitting 1.
+
+    And at 15:38 PDT Rich published passport-ubcshib 0.1.7-rc.2 under `next` (gitHead 4b200ff, 7 files; checked by
+    manifest-94): single logout answers Success again and passReqToCallback is honoured. Asked whether honouring it
+    breaks compatibility, he was told: no — 0.1.6 ignored the option, and none of the seven consumers nor Manifest's
+    blueprint sets it on this library (tlef-biocbot's one use is `false`, on its passport-local strategy); kept as built.
+    And he added UBC_AI_GATEWAY_API_KEY (a virtual key he generated on the gateway) to .env; at his word manifest-94
+    recorded it, commented, in .env.example (20c65ca).
+
+    And at 15:42 PDT, the gateway plan's two questions (manifest-b7; premises checked by manifest-94), through the question
+    tool, each as recommended:
+      - ON-PREM MODELS — "New names from one setting": MANIFEST_GATEWAY_MODELS=<name>=<gateway model>@<classification>,…
+        registered at boot and removed when unset; default-chat-onprem stays the laptop's Ollama (C1, Spec action 8 as they
+        are). Over: repointing default-chat-onprem; the capable model only.
+      - /v1/responses ON AGENT KEYS — "Yes, in this plan, if measured": agent keys gain it, conditional on Task 1 measuring
+        that the gateway's capable model refuses tools on chat completions (S5 found gpt-6-luna does); a §10 spec action
+        drafted; app and intake keys keep three routes. Over: leaving it to Phase 3.
