@@ -13,10 +13,10 @@ names the next job** and the current plan's sittings table says how far it has g
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every document on status (Rich, 2026-09-24 and 2026-09-30).*
 
 **The design is approved and complete, five spikes are done, and fifteen plans are executed** — each with an acceptance that
-passes; the newest is **the launch path plan** (`docs/superpowers/plans/2026-09-29-launch-path.md`), EXECUTED 2026-10-02. **The next
-plan, *faculty-ready*** (`docs/superpowers/plans/2026-09-30-faculty-ready.md`), is written and approved; then FE-32's plan; then the
-vulnerability database in the console. FE-46, FE-47 and FE-5's spec actions are drafted, not applied, and Rich places them. Rich's decisions of 2026-09-30 are in
-`docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
+passes; the newest is **the launch path plan** (`docs/superpowers/plans/2026-09-29-launch-path.md`), EXECUTED 2026-10-02. **The current
+plan, *faculty-ready*** (`docs/superpowers/plans/2026-09-30-faculty-ready.md`), is IN PROGRESS, executed inline at Rich's word; then FE-46,
+FE-47 and FE-5 (placed after it by Rich on 2026-10-02; their spec actions drafted, not applied); then FE-32's plan; then the
+vulnerability database in the console. Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|

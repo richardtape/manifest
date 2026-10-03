@@ -2484,3 +2484,13 @@ process, so a control plane restarted onto the fake with the real-App settings u
 real-App block for the fake's runs (back it up 0600 first), and restore it byte for byte — `cmp` against the backup — before the real leg or the
 close. **And an ORPHAN bare repository makes the console's create answer `409 SOURCE_CONFLICT`** *"main moved…"* on driver 1 (F7): `ls
 .manifest/repos/<slug>.git` when a create fails that way; the demos clear orphans with `clear_orphan_repository`, the console does not.
+
+**LOADING THE CONTROL PLANE'S SOURCE OUTSIDE VITEST** (the faculty-ready plan's sitting 1, `[M2]`). There are three walls, in order.
+- **Node 24's own type stripping refuses it.** `node --import ./packages/github-fake/resolve-ts.mjs` dies on `config.ts`'s parameter
+  properties (`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`). Use tsx from the pnpm store, `node_modules/.pnpm/node_modules/.bin/tsx`. There is no
+  root `.bin/tsx`.
+- **The harness imports `vitest`** (through `observability/testing.ts`), and `vitest` throws *"failed to access its internal state"* outside
+  a run. A resolve hook mapping it to an inert stub loads it
+  (`spikes/faculty-ready-baseline/probes/m2-no-vitest.mjs`). With no global setup nothing is truncated, and with every database URL
+  pointed at a dead port nothing is read either.
+- **`pnpm lint` covers `docs/**/*.ts`**, so a probe committed under `docs/` must pass `no-explicit-any`.

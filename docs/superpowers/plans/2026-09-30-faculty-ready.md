@@ -70,8 +70,8 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements**: `__Host-` cookies over `http` and through curl; Fastify's ids on every refusal path; LiteLLM's post-call hooks against a `422`, **streamed and not**, in a THROWAWAY LiteLLM; `Init` beside `ReadonlyRootfs` and `CapDrop ALL`; §26's reachable mutations; the gate numbers | No | — | |
-| 2 | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | |
+| 1 | 1 | **The measurements**: `__Host-` cookies over `http` and through curl; Fastify's ids on every refusal path; LiteLLM's post-call hooks against a `422`, **streamed and not**, in a THROWAWAY LiteLLM; `Init` beside `ReadonlyRootfs` and `CapDrop ALL`; §26's reachable mutations; the gate numbers | No | — | **DONE 2026-10-02** (`3c80587`; *Sitting 1* below) |
+| 2 ← **next** | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | |
 | 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | |
 | 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | |
 | 5 | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | |
@@ -163,7 +163,9 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
    - **The demo scripts** (`scripts/demo-{journey,token,production,releases,github,authoring,frontend}.sh`) read `$6=="manifest_session"` from curl jars, and so does `scripts/lib/event-stream.mjs:19`.
    - **The tests:** `api/projects.test.ts` (38 lines), `api/auth.test.ts` (16), `api/logout.test.ts` (9), `api/csrf.test.ts`, `identity/saml.docker.test.ts:352-525`, and `api/testing.ts:148-153`, which types a jar as `Record<typeof SESSION_COOKIE, string>`.
    - **The sibling repository `~/Developer/manifest-app`:** its server's `whoIs` (`packages/server/src/identity.ts`, which refuses two `manifest_session` cookies), its tests, and its five `check-*.sh` scripts.
-4. **`http` origins cannot hold a `__Host-` cookie.**
+4. **`http` origins cannot hold a `__Host-` cookie.** **CORRECTED BY `[M1]` (2026-10-02): FALSE FOR LOOPBACK.** Chrome 154 and curl 8.7.1
+   both keep AND send `__Host-x=1; Secure; Path=/` on `http://127.0.0.1` and `http://localhost`, because they treat loopback as a secure
+   context. Decision 7 still works unchanged; it is just no longer forced on loopback. Task 5's tests must not claim the opposite.
    - The Docker tier boots control planes at `http://127.0.0.1:7189` and `http://localhost:7189` (`identity/saml.docker.test.ts:193-198`).
    - `auth.test.ts:363-378` pins *"a loopback http origin sets no Secure"*.
    - The mock serves `http://127.0.0.1:7102`, and the front-end's mock mode is `http://127.0.0.1:7105` (T1: M1).
@@ -478,7 +480,7 @@ Every task's requirements implicitly include this section. Values are copied ver
    - An idempotent replay with a different reason.
 
    Expected: the first set succeeds without the header; the second is `400 ADMIN_REASON_REQUIRED` without it and succeeds with it; **a replay with a different reason is `409 IDEMPOTENCY_KEY_REUSED`**. Owned by Task 10's matrix.
-5. **A streamed `422` that looks like success.** The front-end streams every call. Expected: **a streamed request the provider refuses `422` ends with an error the client sees**, never an empty stream that closes cleanly. Owned by Task 6's *a streamed 422 is a refusal*, or its stop to Rich.
+5. **A streamed `422` that looks like success.** The front-end streams every call. *(`[M3]`: today it answers `500` with LiteLLM's internal error, before any stream begins. It is the wrong failure rather than a false success, and the expectation below is unchanged.)* Expected: **a streamed request the provider refuses `422` ends with an error the client sees**, never an empty stream that closes cleanly. Owned by Task 6's *a streamed 422 is a refusal*, or its stop to Rich.
 6. **A confirmation nobody can spend** (added 2026-10-02). An agent's token is revoked by its minter, by the minter's removal, or by an
    archive, or it simply runs out, while its question waits. Expected: **the question reads `expired` at once, a person's confirm is
    `409 PENDING_ACTION_RESOLVED`, and the project's stream carries one `pending_action.expired` naming who acted.** No event is
@@ -630,6 +632,11 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 ---
 
 ## Task 3: FE-30 — a request id on every answer, and every refusal logged
+
+> **FROM `[M2]` (sitting 1): `sendRefusal` SETS THE HEADER ITSELF.** An error thrown inside an EARLIER `onRequest` hook skips a header
+> hook registered after it. The credential hook's `500` on a database failure was measured without the id. So setting it in `sendRefusal`
+> (Decision 3) covers that path whatever the hook order. **Add the row** *"a refusal raised by the credential hook carries the id"* to
+> the table-driven test. As Read this first 7 predicted, `frameworkErrors` sets it too.
 
 **Spec action 3 first.** **This task makes the contract `1.6.0`.**
 
@@ -809,7 +816,15 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 
 ## Task 6: F8 — a provider's `422` reaches the client as a `422`
 
-**Its branch is `[M3]`'s.**
+**Its branch is `[M3]`'s.** **`[M3]` (sitting 1) settled it: Branch B, extended.**
+- **Today a STREAMED `422` answers `500`**, with LiteLLM's internal *"'async for' requires an object with __aiter__ method, got NoneType"*,
+  not an empty stream. A non-streamed one answers `200 null`.
+- **The guard that fixes both** is `spikes/faculty-ready-baseline/probes/m3/guard-E.py`: `async_post_call_success_hook` raising on `None`,
+  plus `async_post_call_streaming_iterator_hook` raising BEFORE it iterates when `response is None`. Each raises
+  `ProxyException(type='invalid_request_error', code=422)` **with `status_code = 422` set on it**, because the streaming path reads
+  `status_code`.
+- Both kinds of request then answer `422`, with a JSON body before any stream; the provider is hit twice.
+- **Not yet measured with the capable model's FALLBACK configured.** This task's Docker case is that witness.
 
 **Files:**
 - Modify: `infra/litellm/manifest_guard.py` (a second hook, per `[M3]`; it may be a second class registered beside the first)
@@ -861,7 +876,12 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 
 ## Task 8: `Init: true` — an init reaps an app's orphans
 
-**Spec action 4 first.**
+**Spec action 4 first.** **`[M4]` (sitting 1):**
+- with the init, 20 orphans are reaped (`pids.current` 29 → 9), and a stop takes 0.15 s, exit `143`;
+- without it, there are 20 zombies, and **every stop waits the full 10 s and ends in SIGKILL (`137`)**, because `node` as PID 1 ignores
+  `SIGTERM`;
+- **`143` is never read as a crash**: an exit code is only quoted in an Incident, which is captured on a failed release check, never on a
+  stop. **So `instances.ts:~378` needs no change.**
 
 **Files:**
 - Modify: `packages/control-plane/src/runtime/docker/hardening.ts:17-40` (`Init: true`, with a comment citing §12 and `[M4]`)
@@ -902,6 +922,11 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 ---
 
 ## Task 10: §26 — an administrator acting on another person's project gives a reason
+
+> **`[M5]` (sitting 1): the matrix is 24.** It is 22 mutations with an OWNER capability, plus `confirmPendingAction` and
+> `rejectPendingAction`, whose capability is the question's own. Five are an administrator's own (`recordIamRegistration`,
+> `recordPrivacyAssessment`, `approveRelease`, `rejectRelease`, `createApprovalPreview`). **Decide one case and write it down:** an
+> administrator confirming a `quota:set` question is acting on their own duty, so it is exempt by Decision 14's reading.
 
 **Spec action 1 first.** **Alone, sitting 6.** If it runs long, stop after Step 6 and finish in a sitting 6a. The steps commit separately.
 
@@ -1025,6 +1050,11 @@ Decision 16. **FE-50 joined at sitting 1's open**: the same remedy also says who
 
 **Added 2026-10-02 at Rich's word. It runs in sitting 4, after Task 8.** The Docker tier is owed there already, and this task adds
 `observability/` and `releases/` to it. Decision 17. **FE-49 joined at sitting 1's open**: `Token.mintedBy`, in the same contract change.
+
+> **`[M7]` (sitting 1): the console's queue lists the `pending_action.*` types it re-reads on, one by one**
+> (`packages/console/src/screens/queue.tsx:81-86`, deliberately not a `startsWith`). **Add `pending_action.expired` there**, or the
+> console's queue does not refresh when a question expires. The new type also needs the `audit.events` CHECK migration
+> (`db/schema.ts:1166-1169`, `events_type_known`).
 
 **Files:**
 - Modify: `packages/control-plane/src/tokens/expiry.ts`: `expirePendingActions` answers the rows it expired (id, token, action, summary
@@ -1273,4 +1303,74 @@ keep or change**, and the sitting tells the front-end which at Task 1's close.
 
 ## What executing this plan found
 
-*Empty until sitting 1.*
+### Sitting 1 — 2026-10-02, late evening: Task 1, the measurements (`manifest-96`)
+
+**What happened.**
+- **The opening.** The sitting opened at Rich's *"proceed with the next sitting when you can"*. Before anything ran, his §7e questions were
+  asked through the question tool:
+  - FE-46, FE-47 and FE-5 go **after** this plan;
+  - execution is **inline**;
+  - F7, FE-49 and FE-50 come **into** it.
+
+  Those answers became `b32ce14`: Task 14, Tasks 12 and 13 widened, and Decisions 16–18. FE-51 and FE-52 had joined earlier the same
+  evening (`71ce7f0`).
+- **Task 1** is `3c80587`. Its record is [`spikes/faculty-ready-baseline/README.md`](../spikes/faculty-ready-baseline/README.md), with the raw
+  results beside it.
+- **Every probe was a throwaway, and each was removed:** a cookie server on 7195/7196, headless Chrome on 7194 with its own profile,
+  `f8-probe` on 7197 with its own network, a stub on 7198, and `node:22-alpine` containers.
+- **Nothing touched 7100, `manifest-litellm` or the control database.** The faculty front-end (`manifest-app-ba`, in its F6b sitting 5, mock
+  mode) was told the scope at the open, and kept its own Vitest running.
+
+**Findings.**
+
+1. **F1 — `[M1]`: loopback `http` HOLDS a `__Host-` cookie**, in Chrome 154.0.8037.93 and curl 8.7.1. Both keep it, and curl sends it
+   back, on `127.0.0.1` and on `localhost`. Read this first 4 said the opposite, and is corrected in place.
+   - **What still holds:** Decision 7 works unchanged; the measurement removes its necessity on loopback only.
+   - **Recommended: keep it.** The mock and the sibling's mock mode stay untouched, and Firefox and Safari were not measured. One name
+     everywhere would reverse a decision Rich approved, so it is his word, at Task 5, if anyone proposes it.
+   - **Measured the same way, and as the plan expected:**
+     - a clear without `Secure` silently leaves a `__Host-` cookie, in both clients and on every origin (Review Focus 1);
+     - a sibling's plain `manifest_session` with `Domain=manifest.internal` reaches `console.` (FE-28's harm);
+     - a plain `manifest_login` at `Path=/auth` reaches `/auth/acs` (the login-CSRF door);
+     - a `__Host-` cookie at `Path=/auth`, or with `Domain=`, is refused.
+2. **F2 — `[M2]`: an error thrown inside an EARLIER `onRequest` hook skips a header hook registered after it.** The credential hook's `500` on a
+   database failure was measured WITHOUT the id. Every other refusal path carried it, except `frameworkErrors` (predicted). **Task 3:
+   `sendRefusal` sets the header itself, and the table-driven test gains that row** (the note at Task 3's head).
+3. **F3 — `[M3]`: today a STREAMED `422` answers `500`, with LiteLLM's internal Python error as its message.** It is not *"an empty stream that
+   closes cleanly"*. A non-streamed one is F8's `200 null`. Neither plan branch alone fixes the stream:
+   - (A) and (B) are not called on it;
+   - the streaming iterator hook meets a `None` stream before any check;
+   - a `ProxyException` raised there answers `500`, because the streaming path reads `status_code`, not `code`.
+
+   **Guard (E) fixes both** (`probes/m3/guard-E.py`): `422` and a JSON body, streamed and not, with the provider hit exactly twice. **The
+   plan's stop condition does not fire.** Task 6's head says so.
+4. **F4 — `[M4]`: today every app stop waits the full 10 s and ends in SIGKILL (`137`)**, because `node` as PID 1 ignores `SIGTERM`. With
+   `--init` it takes 0.15 s and ends `143`, and an app's `SIGTERM` handler runs at all. **`143` is never read as a crash** (an Incident is
+   captured only on a failed release check), so `instances.ts` needs no change. Task 8's head says so.
+5. **F5 — `[M7]`: the console's queue lists the `pending_action.*` types one by one** (`console/src/screens/queue.tsx:81-86`). Task 13 must add
+   `pending_action.expired` there, as well as to `audit.events`' CHECK. Task 13's head says so.
+
+**Not findings, but recorded:**
+- **`[M5]`:** the matrix is 24, and the survey said about 25. A `quota:set` question confirmed by an administrator is a case for Task 10 to
+  write down.
+- **`[M7]`:** every premise of Read this first 18–21 holds at HEAD.
+
+**Rulings** (the ledger has each with its cost):
+- **`[M2]` ran in-process** (`testDeps` and `buildServer`, every database URL dead, `vitest` stubbed) rather than as a scratch copy of the
+  build. That is equivalent for a header's presence.
+- **`[M1]`'s https origin was a throwaway with a self-signed certificate**, plus `document.cookie` on the REAL edge for the browser rows.
+- **`[M3]` ran two guards beyond the plan's three**, (D) and (E), because none of the three fixed the stream.
+- **NO `pnpm test` this sitting**, which `[M6]` had asked for. The code is byte-identical to `d5c76d5`, whose close ran it twice, at 3197
+  in 196. The lean budget forbids an open run on an unchanged tree, and a run would have truncated Rich's live `f6b-measure-1`.
+
+**Negative controls.** Every claim in this sitting's table has its control in the same probe:
+- `[M1]`: a plain-named cookie is kept on every origin, and a clear WITH `Secure` removes the cookie.
+- `[M2]`: a non-refusal (`302`) carries the header.
+- `[M3]`: today's guard shows the defect each variant is measured against.
+- `[M4]`: the same container without `--init`.
+
+**The gates at the close.**
+- `pnpm lint`, `pnpm typecheck` and `pnpm format:check` are clean. Lint covers `docs/**/*.ts`: the `[M2]` probe's three `any`s were typed
+  before the commit.
+- `pnpm test` was not run (the ruling above), and no Docker tier was owed.
+- The numbers are unchanged: `EXPECT_` 3197 in 196, doctor 21, verify 64; the Docker tier 271 in 42.
