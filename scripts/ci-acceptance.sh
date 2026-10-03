@@ -186,8 +186,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `api/blueprints.test.ts` (1) — FE-31, the hint the review found — `source/driver-contract.ts` (2: F7 on both drivers),
 # `source/local-driver.test.ts` (1: a failed create undoes itself), and one each in `contract/src/client.test.ts`,
 # `mock/src/server.test.ts` and `mock/src/scripted.test.ts`. Measured on the final tree, 3232 in 197.
-EXPECT_TESTS=3232
-EXPECT_FILES=197
+# Then its sitting 3 (2026-10-03, FE-28, `__Host-` cookies): +15, one new file — `identity/cookie-names.test.ts` (2, new),
+# `api/auth.test.ts` (7: the browser model, the `__Host-` session, login and step-up cookies and their clears, the positive control,
+# a plain session on https, the direct port's name, the tossed login cookie), `api/logout.test.ts` (2: a clear on https carries
+# Secure), `contract/src/client.test.ts` (2), `contract/src/stream.test.ts` (1) and `mock/src/server.test.ts` (1). Measured twice on
+# the final tree, 3247 in 198.
+EXPECT_TESTS=3247
+EXPECT_FILES=198
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 

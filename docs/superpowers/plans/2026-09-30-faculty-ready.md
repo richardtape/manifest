@@ -72,8 +72,8 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: `__Host-` cookies over `http` and through curl; Fastify's ids on every refusal path; LiteLLM's post-call hooks against a `422`, **streamed and not**, in a THROWAWAY LiteLLM; `Init` beside `ReadonlyRootfs` and `CapDrop ALL`; §26's reachable mutations; the gate numbers | No | — | **DONE 2026-10-02** (`3c80587`; *Sitting 1* below) |
 | 2 | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | **DONE 2026-10-03** (`3d73adf`, `f1e7255`, `71df40d`, `95843e2`, `e355d10`; the review's fixes `70c3964`; *Sitting 2* below) |
-| 3 ← **next** | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | |
-| 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | |
+| 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | **DONE 2026-10-03** (`7b85326`; the review's fix `d4291dd`; **Step 6, through the edge, is Rich's script** — the classifier refused its restart; *Sitting 3* below) |
+| 4 ← **next** | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | |
 | 5 | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | |
 | 6 | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | |
 | 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
@@ -749,6 +749,12 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 ## Task 5: FE-28 — `__Host-` cookies, and the login door closed
 
 **No spec action**: the spec names no cookie (§20), and D23.8 puts the sign-in endpoints outside the versioned contract.
+
+> **BUILT BY SITTING 3 (2026-10-03, `7b85326`, `d4291dd`)**, with three corrections to the text below (its *Sitting 3* has each):
+> - **There was no browser model in `api/testing.ts`**; sitting 3 built `browserKeeps`, so control (c) CAN fail in the unit tier (F1).
+> - **`identity/saml.docker.test.ts` has no https leg**: both of its origins are loopback http (F2).
+> - **Step 6 was REFUSED by the classifier** (a restart of 7100), and is `.superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh`
+>   for Rich (F3).
 
 **Files:**
 - Create: `packages/control-plane/src/identity/cookie-names.ts`
@@ -1497,3 +1503,139 @@ test; R8 a prose correction with no red test of its own.
   **`f6b-measure-1`'s real repository is a THIRD that no project owns** in `Manifest-local-dev`, beside `f6-watch` and `keep-walk-1002`.
 - **The four protected containers are up**; `docker-simple-saml` is clean but for its long-standing untracked `cert.zip`.
 - **The shared HTML pages were checked** for all four spec actions (D23, D31, the schematic, the stories, the phases): none changes.
+
+### Sitting 3 — 2026-10-03, night: Task 5, FE-28 — `__Host-` cookies and the login door closed (a background agent of `manifest-3d`)
+
+**What happened.**
+- **Unattended**, at Rich's night order (`../2026-09-30-decisions.md`, *2026-10-03, ~01:10*): `manifest-3d` co-ordinated, and every hold, free
+  and notice for the faculty front-end went to it. **Step 1's notice went FIRST, at 03:30, before any code**: the three names, `Path=/`,
+  `sessionCookieFor`, mock mode unchanged, and what the front-end's `whoIs`, test jars, `check-*.sh` and Node sign-in must read. Per the
+  night order the sitting did not wait for a reply: the front-end's background agents adopt after this close (a ruling).
+- **Decision 7 was KEPT, on sitting 1's F1 recommendation.** F1 asks whether one name everywhere is better, now that loopback holds a
+  `__Host-` cookie. That is still Rich's question; nothing here waits on it.
+- **The commits:**
+  - Task 5 is `7b85326`. `identity/cookie-names.ts`'s `cookieNames(origin)` is the one rule. Every setter, reader and clearer asks it, by
+    the origin the request arrived on: the credential hook, CSRF's `carriesSession`, and `/auth`'s sign-in, step-up, callback and both
+    sign-outs. The login and step-up cookies move to `Path=/`, and every clear goes through one `clear()` that is Secure on https.
+    `@manifest/contract` gains `sessionCookieFor`; `SESSION_COOKIE` is kept, deprecated. The demos and `event-stream.mjs` read the new
+    name. The guides, RUNBOOK and WALKTHROUGH say it.
+  - The review's fix is `d4291dd`.
+- **Still `1.6.0`**, with the break stated in `document.ts`'s version comment. `securitySchemes.session.name` is now
+  `__Host-manifest_session`, and its description names both.
+- **`.env` already carries `SSP_STORE_PASSWORD`**: Rich added it before bed, so sitting 5's Task 9 Step 2 is done on his side. It was read
+  as a key name only, never its value.
+
+**Findings.**
+
+1. **F1 — the plan's control (c) rested on a browser model that did not exist.** Step 7 says *"the browser model in `api/testing.ts`
+   refuses a `__Host-` cookie that is not `Path=/`"*. There was none: `app.inject` applies no cookie-prefix rule.
+   - **Built:** `browserKeeps` encodes RFC 6265bis's `__Host-` and `__Secure-` rules. `auth.test.ts`'s sign-in helpers read every cookie
+     through it, and so does `logout.test.ts`'s `sessionSet`.
+   - **So control (c) CAN fail in the unit tier**, and went red at 42.
+   - Whether curl agrees with the model at the edge is control (c) in the morning script (F3).
+2. **F2 — Step 5's *"its https leg (`app.`)"* does not exist.** `identity/saml.docker.test.ts`'s two origins are both loopback http
+   (`127.0.0.1:7189` and `localhost:7189`), so the file proves the plain names and nothing about `__Host-`. Run alone it was 4/4 green.
+   The https legs are Step 6's, through the edge.
+3. **F3 — THE CLASSIFIER REFUSED STEP 6** (~03:47, *"Modify Shared Resources"*). It refused the restart of 7100 onto driver 1 for
+   `make demo-journey`, `demo-token` and `demo-frontend`, and with it the HOLD message announcing the restart.
+   - **Not retried.** It is now ONE restore-safe script for Rich: `! bash .superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh`
+     (~10–12 min).
+   - **What the script does:**
+     - restarts 7100 on driver 1 from HEAD, so no real GitHub repository is created;
+     - runs headless curl checks of both Review Focuses at the edge: the `__Host-` login cookie at `Path=/` on console and app; a CWL
+       sign-in's jar; `/v1/me` answering 200 with the `__Host-` name and `401 UNAUTHENTICATED` with the same value under the plain name;
+       the sign-out's clear, Secure at `Path=/`;
+     - runs the three demos, printing each one's verdict line;
+     - runs control (c) at the edge;
+     - restores as found (real GitHub, from `.env`) and runs `make verify`.
+   - **A trap restores** the source file and the as-found control plane on any exit. The browser-side proof, a person seeing the cookie,
+     is still sitting 7's clicked half.
+   - **What could be run without the refused restart, was:** the curl checks ran through the edge on the restored control plane, 14 of
+     14 (*The gates at the close*).
+4. **F4 — the review's R1, Important: a client that calls 7100 directly is signed out.**
+   - **The mechanism:** a `Host` of `127.0.0.1:7100` names no configured origin, so `originOf` judges it as the console's HTTPS origin,
+     and only `__Host-manifest_session` is read. But `sessionCookieFor('http://127.0.0.1:7100')` names the cookie by that URL's scheme
+     and answers the plain name.
+   - **Who it hits:** the faculty front-end's edge-mode `whoIs` replays sessions to exactly that URL (`manifest-app`'s
+     `packages/server/src/config.ts`, `PLATFORM.edge`). After adopting, it would sign every person out.
+   - **This sitting should not have missed it.** The plan's own answer to the front-end's question 1 (*Asked by the faculty front-end…*,
+     item 1) asked Task 5 for exactly this: a pin and a doc line. This sitting did not read that section before building.
+   - **The code stands:** clients reach Manifest through the edge, at an origin it serves. **Fixed in `d4291dd`** with words and a pin:
+     - `sessionCookieFor`'s JSDoc, `docs/api/authentication.md`, TRAPS and ORIENTATION §3 say it;
+     - `auth.test.ts`'s *"a request straight to the control plane's port … `__Host-` only"* pins it, green on arrival and watched red
+       under control (b).
+   - **The front-end was told** by NOTICE: call `https://app.manifest.internal`.
+5. **F5 — Decision 8 reached the credential-ambiguity check too.** Before, a tossed plain `manifest_session` beside a Bearer was
+   `400 CREDENTIAL_AMBIGUOUS`. Now the plain name is no credential on https, so such a request is judged by its token alone. This is
+   asserted: a bad Bearer plus a plain cookie answers `401 UNAUTHENTICATED`, and the old code answered 400.
+6. **F6 — control (a) went red wider than predicted.** Predicted: Review Focus 1's test. Measured: red at 9:
+   - both Review Focus 1 tests;
+   - the login and step-up clears test;
+   - every positive sign-out, because `sessionSet` now reads through the browser model.
+
+   That is the model doing its job: a clear the browser drops is a sign-out that did not happen.
+7. **F7 — `@manifest/contract` resolves to `dist/` outside its own source.** Its `exports.default` is `./dist/index.js`. The mock's new
+   test therefore saw `sessionCookieFor is not a function` until `pnpm --filter @manifest/contract build` ran, and so does every non-Vitest
+   consumer, the faculty front-end among them. The dist was rebuilt (03:42, and again after `d4291dd`); every demo rebuilds it too.
+
+**Not findings, but recorded:**
+- **The test jars are typed exactly.** `loginAs` and `testSessionCookies` return `Record<'__Host-manifest_session', string>`, so `tsc`
+  found every stale `manifest_session` read. `loginAs` throws for a server whose first origin is http, rather than hand it a cookie that
+  server ignores. No such unit test exists.
+- **The demos read exactly `__Host-manifest_session`**: each signs in through the edge on https, and 7100's SP row has only https ACS
+  URLs. `event-stream.mjs` names the cookie by the api's scheme.
+- **Deferred minors** (the ledger has each):
+  - R2: Decision 8's both-cookies case has no test asserting the `__Host-` person is served;
+  - R3: `logout.test.ts`'s sign-in helpers read the login cookie without `browserKeeps`;
+  - R4: there is no test for a tossed plain `manifest_stepup` on https.
+
+**Rulings** (the ledger has each with its cost):
+- the front-end's reply is not waited for, per the night order;
+- Decision 7 is kept;
+- `browserKeeps` was built (F1);
+- the test jars are exactly typed, and `loginAs` throws on http;
+- `securitySchemes.session.name` is `__Host-`;
+- a tossed plain cookie beside a Bearer is no longer ambiguous (F5);
+- the demos use the exact name;
+- Step 5's https leg is Step 6's (F2);
+- Step 6 is a script (F3);
+- R1's code stands, and the fix is words and a pin (F4).
+
+**Negative controls**, each committed first, its break asserted to match once, and restored by `git checkout`:
+- **(a)** the https clear without `Secure`: red at 9 (F6).
+- **(b)** the plain session read on https as well: red at exactly 1, Review Focus 2's test. Later also the direct-port pin (F4).
+- **(c)** the `__Host-` login cookie left at `Path=/auth`: red at 42, every https sign-in through the browser model and the ACS test. It
+  CAN fail in the unit tier (F1). Its edge half is the morning script's.
+
+**The gates at the close.**
+- **`pnpm test` three times.**
+  - The first was on `7b85326`, before the review's fix: 3246 in 198, 871 s. It does not count, because the tree changed after it.
+  - Then **twice on the final tree (`d4291dd`): 3247 in 198, identical** — 865.7 s and 864.7 s, at load 3–4. `EXPECT_TESTS` moves
+    3232 → **3247** and `EXPECT_FILES` 197 → **198** (`scripts/ci-acceptance.sh` says where the 15 came from).
+- **`pnpm test:docker`: 271 in 42, green, 1245 s** — unchanged, on `d4291dd`. It started with 13 networks and ended with 20.
+- `pnpm lint`, `pnpm typecheck` (every workspace) and `pnpm format:check` are clean.
+- **`make doctor` 21, 0 warnings; `make verify` 64, 0 warnings**, after the restart.
+- **The contract is still `1.6.0`.**
+- **THROUGH THE EDGE, HEADLESS, on the restored control plane** (as found, real GitHub, built from `d4291dd`; no restart of its own, no
+  project, no repository): curl and a test user's sign-in, **14 of 14 PASS**.
+  - `/auth/login` on console AND app sets `__Host-manifest_login=…; Max-Age=600; Path=/; HttpOnly; Secure; SameSite=None`, with no Domain.
+  - A CWL sign-in leaves only `__Host-manifest_session` in curl's jar: no plain name, and the spent login cookie is cleared.
+  - `/v1/me` answers `200` with it, and **`401 UNAUTHENTICATED` with the same value under the plain name** (Review Focus 2).
+  - A leftover plain cookie beside it answers `200`, ignored (Decision 8; at the edge, this covers R2's case).
+  - The sign-out's clear is `__Host-manifest_session=; Max-Age=0; Path=/; Expires=…1970…; Secure` (Review Focus 1).
+  - **So Step 6's checks of the cookie itself are done.** Its three demos and control (c) at the edge remain the morning script's (F3).
+
+**The machine at the close** (queried at ~05:00 PDT, not remembered):
+- **The control plane: PID 99751 on 7100, REAL GitHub** (`api.github.com`, `Manifest-local-dev`), built from `d4291dd` and started from
+  `.env`, as it was found.
+  - That restore restart was ALLOWED (~04:59), unlike F3's. Its boot line says the capable model is registered and its fallback set.
+- **The control database:** 1 user (`instructor`, from the edge check), 0 projects, 0 tokens, 0 pending actions. The first Vitest run
+  truncated `token-app`.
+- **REFUSED AT CLEANUP:** `docker rm -f -v` of `token-app`'s three rowless containers (`mf-token-app-staging-814bed02-044397bd-app`,
+  `-egress`, `-db`), as *"Interfere With Workloads"* (~05:00). Not retried; they are Rich's (§7e).
+  - They hold one network, two volumes and one LiteLLM user, which the scripts keep as *held*.
+- **Otherwise the three cleanup scripts ran bare, then with `--apply`, and none was refused:** 7 networks and 1 volume, 2 LiteLLM orphans
+  (`p4b-probe-user` and `mf-platform-intake`) and 14 app images removed. Re-run, each reads 0 dead.
+- **Containers:** 10 `manifest-` and 3 `mf-token-app-*`; **13 Docker networks**, as found.
+- **The four protected containers are up.** `docker-simple-saml` is clean but for its long-standing untracked `cert.zip`.
+- **The shared HTML pages and the spec were checked:** neither names a cookie, and no spec action was raised. Nothing changes there.

@@ -2496,3 +2496,21 @@ console does not. A create that fails part-way now removes what it made, so only
   (`spikes/faculty-ready-baseline/probes/m2-no-vitest.mjs`). With no global setup nothing is truncated, and with every database URL
   pointed at a dead port nothing is read either.
 - **`pnpm lint` covers `docs/**/*.ts`**, so a probe committed under `docs/` must pass `no-explicit-any`.
+
+**THE SIGN-IN COOKIES ARE `__Host-` ON HTTPS SINCE 2026-10-03** (the faculty-ready plan's sitting 3, FE-28, `7b85326`). Everything that
+reached the console or `app` with `manifest_session`, `manifest_login` or `manifest_stepup` now reads `__Host-manifest_session`,
+`__Host-manifest_login` and `__Host-manifest_stepup` — and a plain-named cookie on https is SILENTLY ignored: the request is anonymous
+(`401 UNAUTHENTICATED`), never `CREDENTIAL_AMBIGUOUS`. So:
+- **a curl jar's session is `$6=="__Host-manifest_session"`** (every `scripts/demo-*.sh`); a hand-rolled `-H 'cookie: manifest_session=…'`
+  against `https://console.…` reads as signed out;
+- **the login and step-up cookies are `Path=/` now** (were `/auth`); entry 690's `Path=/auth` above is the old shape;
+- **loopback http keeps the plain names** — the Docker tier's control planes on 7188/7189 and the mock on 7102 — so a test or script on
+  one of those is unchanged, and `@manifest/contract`'s `sessionCookieFor(origin)` names the right one for either;
+- **BUT NOT FOR 7100 ITSELF**: a request straight to `http://127.0.0.1:7100` names no configured origin, so it is judged as the
+  console's HTTPS origin and reads only `__Host-manifest_session` — while `sessionCookieFor('http://127.0.0.1:7100')` answers the plain
+  name. A client (the faculty front-end's `whoIs` was one) that replays a session to 7100 is signed out: call
+  `https://app.manifest.internal` or `https://console.manifest.internal` through the edge (pinned by `auth.test.ts`'s *"straight to the
+  control plane's port"*);
+- **`app.inject` applies no cookie-prefix rule**; a unit test that wants to know what a browser KEEPS reads `res.cookies` through
+  `api/testing.ts`'s `browserKeeps` (a `__Host-` cookie that is not Secure, `Path=/` and host-only is dropped — and so is its CLEAR).
+- **`loginAs` hands back the HTTPS jar** (`{ '__Host-manifest_session': … }`) and throws for a server whose first origin is http.

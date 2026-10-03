@@ -1442,13 +1442,17 @@ need **Spec actions 5 and 6** (above); and the rest is placed here.
 - **Keeping in step**: every sitting's close-out lists what it changed in the contract, which Rich relays; `packages/contract`
   stays buildable at every commit, because the front-end links this working tree.
 
-### *Faculty-ready* — "before faculty use it for real" — IN PROGRESS (approved 2026-09-30; SITTINGS 1 AND 2 DONE, 2026-10-02 and 2026-10-03): [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), 14 tasks in 7 sittings, after the launch path
+### *Faculty-ready* — "before faculty use it for real" — IN PROGRESS (approved 2026-09-30; SITTINGS 1, 2 AND 3 DONE, 2026-10-02 and 2026-10-03): [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), 14 tasks in 7 sittings, after the launch path
 
 *Which sitting is next: its sittings table, and ORIENTATION §7e.* **Sitting 1 (Task 1, the measurements) is DONE, 2026-10-02** (`3c80587`, inline
 at Rich's word; five findings, each written into the head of the task it changes; no split moved). Its *Sitting 1* is the record. **Sitting 2
 (Tasks 2, 3, 4, 12 and 14 — FE-31, FE-30, FE-29, FE-51/FE-50, F7) is DONE, 2026-10-03** (`manifest-71`, after the front-end's F6b sitting 6 held
 7100; `3d73adf`…`e355d10`, the review's fixes `70c3964`): **contract `1.6.0`**, a required `requestId`, a limit's facts as fields; all four spec
-actions APPLIED at its open. Its *Sitting 2* is the record. **Written by the planning session `manifest-00` in parallel
+actions APPLIED at its open. Its *Sitting 2* is the record. **Sitting 3 (Task 5 — FE-28) is DONE, 2026-10-03** (unattended, a background
+agent of the night-shift coordinator `manifest-3d`; `7b85326`, the review's fix `d4291dd`): **`__Host-` session, login and step-up cookies on
+https** (`Path=/`, every clear Secure), the plain names on loopback http, `sessionCookieFor` in `@manifest/contract`, still `1.6.0`. **Its
+Step 6 (the demos through the edge) was REFUSED by the classifier** — a restart of 7100 — and is a script for Rich
+(`.superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh`). Its *Sitting 3* is the record. **Written by the planning session `manifest-00` in parallel
 with the launch path's sitting 5, at Rich's word** (*"Now, in parallel"*), from two read-only code surveys; **approved** (*"plan looks good"*);
 **the execution method is his, at its sitting 1's open** (*"Probably not subagent driven though"*). Its scope, each his decision of 2026-09-30
 ([`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): FE-28 widened (`__Host-` session, login and step-up cookies by origin scheme),
@@ -1780,6 +1784,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | **Launch path, EXECUTED** | **19 of 19** | **266** | **14.0** |
 | Faculty-ready Task 1 (sitting 1, the measurements — loopback `http` holds a `__Host-` cookie; a header hook skipped by an earlier hook's throw; a streamed `422` answered `500`, and the guard that answers `422` both ways; every app stop a 10 s SIGKILL without an init; the console's queue lists `pending_action.*` by name) | 1 | 5 | 5.0 |
 | Faculty-ready Tasks 2, 3, 4, 12, 14 (sitting 2, the envelope sitting, contract `1.6.0` — two task snippets that did not match their files; Task 3's table corrected by `[M2]` and a wrong token prefix; a test whose premise the feature ended; a control that went red wider than predicted (a fail-closed parse); no console component harness; and the fresh review's five, re-graded: F7's own cost (a failed driver-1 create blocked its slug for ever), the fixture still offered in two hints, the stream's 426 bypassing `sendRefusal`, a served guide naming the minter, an overstated guide sentence; a deep import the suite found; a TDD slip redone) | 5 | 12 | 2.4 |
+| Faculty-ready Task 5 (sitting 3, FE-28's `__Host-` cookies, unattended — the plan's control (c) resting on a browser model that did not exist (built: `browserKeeps`); a Docker file's https leg that does not exist; Step 6's restart of 7100 REFUSED by the classifier (a script for Rich); the fresh review's R1 — a client calling 7100 directly signed out, which the plan's own answer to the front-end had asked for; Decision 8 reaching the ambiguity check; a control red wider than predicted; the contract's dist stale to every non-Vitest consumer) | 1 | 7 | 7.0 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each

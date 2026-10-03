@@ -299,7 +299,17 @@ defect even when every test is green.**
 
 **Identity**
 
-- **Manifest is its own SP (§9), and there is no login shim.** `GET /auth/login` sets `manifest_login` and sends
+- **THE SIGN-IN COOKIES ARE NAMED BY THE SCHEME OF THE ORIGIN A REQUEST ARRIVED ON** (FE-28, the faculty-ready plan's Task 5,
+  `7b85326`): on https `__Host-manifest_session`, `__Host-manifest_login` and `__Host-manifest_stepup`, each Secure, `Path=/`
+  and host-only; on loopback http the plain names (the Docker tier, the mock). **An https origin reads ONLY the `__Host-`
+  names**, so a plain cookie a sibling `<slug>.manifest.internal` tosses with `Domain=manifest.internal` is no credential —
+  not a session, not half of a `CREDENTIAL_AMBIGUOUS`, and no login binding. **Every clear carries `Secure` on https**, or a
+  browser drops it and the person stays signed in. One function, `identity/cookie-names.ts`'s `cookieNames(origin)`;
+  `@manifest/contract`'s `sessionCookieFor(baseUrl)` is the client's half, for an origin Manifest SERVES — a request straight to
+  `127.0.0.1:7100` is judged as the console's https origin and reads only `__Host-`, while the client names it by the URL's http
+  scheme, so a client replays a session through the edge, never to the port; a curl jar holds `$6=="__Host-manifest_session"`.
+  `api/testing.ts`'s `browserKeeps` models the prefix rules a browser applies and `app.inject` does not.
+- **Manifest is its own SP (§9), and there is no login shim.** `GET /auth/login` sets the login cookie and sends
   its nonce as `RelayState`; `POST /auth/saml/callback` refuses an assertion not bound to the browser that started
   the sign-in (`401 SAML_LOGIN_NOT_BOUND`) before node-saml validates it, then lands on `/` or a same-origin
   `?returnTo=`. Sessions are stateless signed cookies that carry the role they were issued with. Tests sign their
@@ -335,7 +345,7 @@ defect even when every test is green.**
 - **§20's STEP-UP IS A SECOND SAML ROUND TRIP, AND IT GUARDS FIVE CAPABILITIES** (P6a Task 8/9). `GET
   /auth/step-up` sends the same signed AuthnRequest with `ForceAuthn="true"` — a SECOND `SAML` instance inside the
   one `SamlSp`, because `forceAuthn` is a constructor option in node-saml 5.1.0 — bound to its browser by a
-  `manifest_stepup` cookie, told apart from a sign-in at the SHARED ACS by whose nonce matches `RelayState`, and
+  step-up cookie, told apart from a sign-in at the SHARED ACS by whose nonce matches `RelayState`, and
   validated by the instance that issued the request because `validateInResponseTo` caches per instance. **One
   entityID and one ACS, so the IdP's registration does not change.** The callback refuses an assertion for anybody
   but the person already in hand, and stamps `steppedUpAt` onto the existing session cookie **without extending its
@@ -899,7 +909,7 @@ defect even when every test is green.**
   leaves the trail: `provisioning` alone if it never bound its services, `starting` if it did — both states
   `recoverAtBoot` can end.
 - **There are TWO CREDENTIAL CLASSES and ONE place that reads either** (D23.4, P5b Task 5). `api/server.ts`'s
-  single `onRequest` hook turns a `manifest_session` cookie into a `SessionActor` and an `Authorization: Bearer`
+  single `onRequest` hook turns the arrival origin's session cookie into a `SessionActor` and an `Authorization: Bearer`
   into a `TokenActor`; **no route reads a cookie or a header**, which is what makes D24's central refusal possible
   at all. A request carrying BOTH is `400 CREDENTIAL_AMBIGUOUS`, refused before either is read. `Actor` is a
   **discriminated union on `credential`**, so a route D24 reserves to a person calls `requireSession(request)` and
@@ -1532,8 +1542,10 @@ and is not repeated here.*
     https://console.manifest.internal`; and a sign-in completes only in the cookie jar that started it.** **Since the
     front-end enablement plan's sitting 6, `app.manifest.internal` is the same, with `Origin: https://app.manifest.internal`
     — each origin is judged by the `Host` it arrived on, and a session on one is not a session on the other.**
-    `scripts/lib/api.sh` and `infra/lib/idp-login.sh` do all three. *(TRAPS: `refuses every source`, `Origin:`,
-    `cookie jar`)*
+    `scripts/lib/api.sh` and `infra/lib/idp-login.sh` do all three. **Since 2026-10-03 the session on https is
+    `__Host-manifest_session`** (and the login and step-up cookies `__Host-`, at `Path=/`); a plain `manifest_session` there is
+    silently NOT a session — read a curl jar's `$6=="__Host-manifest_session"`. *(TRAPS: `refuses every source`, `Origin:`,
+    `cookie jar`, `__Host-`)*
 18. **Config files are SINGLE-FILE bind mounts: edit them IN PLACE, then restart the container.** The Caddyfile,
     the IdP's `config.php` and `authsources.php`, `infra/litellm/config.yaml` and (since the launch path plan's sitting 4)
     `infra/litellm/manifest_guard.py` are bound to an inode. A save that writes a new file — the agent's edit tool,
@@ -1827,60 +1839,77 @@ named in the row below.*
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
 | **Launch path** | [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md) — **EXECUTED 2026-10-02**, nineteen tasks in fourteen sittings | `make demo-launch` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 16 of the offline acceptance; a step of `make ci-acceptance`; its controls seen red; the real leg; **a launch clicked by a person** | **Sitting 12's F1 is the one to read**: a control plane that answered `/v1/me` was dead — ten advisory-lock holders on the query pool deadlocked the boot, found only because a control restarted it with twelve environments; and its first fix still deadlocked under NESTED holders, found by the plan's one whole-branch review |
-### 7e. The faculty-ready plan's sitting 3 (Task 5: FE-28, `__Host-` cookies and the login door closed) ← **START HERE**
+### 7e. The faculty-ready plan's sitting 4 (Tasks 6, 8, 13: F8's `422`, `Init: true`, FE-52 and FE-49) ← **START HERE**
 
 **The faculty-ready plan is IN PROGRESS** ([`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md); approved 2026-09-30). It is
 **executed inline**, at Rich's word (`superpowers:executing-plans`; the ledger is `.superpowers/sdd/2026-09-30-faculty-ready/progress.md`).
 - **Sitting 1 is DONE** (2026-10-02, `manifest-96`): Task 1's measurements.
-- **Sitting 2 is DONE** (2026-10-03, `manifest-71`; its *Sitting 2* is the record): Tasks 2, 3, 4, 12 and 14 — FE-31's `listed`, F7, FE-30's
-  request id, FE-29's facts, FE-51/FE-50's words — and a fresh review's five fixes (`70c3964`). **The contract is `1.6.0`.** **All four spec
-  actions are APPLIED** (Rich, 2026-10-03: 2 and 3, then 4 and 1, the last with *"setting a project's quota"* added).
-  - Nothing is owed: Task 14's Step 4 and Task 12's `make demo-token` ran through the edge at its close, green.
-  - Three minors are deferred in its record (R5–R7); none is sitting 3's.
+- **Sitting 2 is DONE** (2026-10-03, `manifest-71`): Tasks 2, 3, 4, 12 and 14. **The contract is `1.6.0`.** **All four spec actions are APPLIED.**
+- **Sitting 3 is DONE** (2026-10-03, a background agent of `manifest-3d`; its *Sitting 3* is the record): Task 5, FE-28. It is `7b85326`, with
+  the review's fix `d4291dd`.
+  - **On https the sign-in cookies are `__Host-manifest_session`, `__Host-manifest_login` and `__Host-manifest_stepup`**, at `Path=/`, and a
+    plain-named one there is ignored. The plain names are loopback http's alone.
+  - **`@manifest/contract` has `sessionCookieFor`**: for an origin Manifest serves, never 7100's own port.
+  - **Still `1.6.0`.**
+  - **Its Step 6 is NOT RUN, and it is Rich's**: the classifier refused the 7100 restart it needs (F3). See item 1 below.
 
-**Sitting 3 is Task 5 alone**: FE-28, widened — `__Host-` session, login and step-up cookies on https, the plain names on loopback http,
-every client and script, `sessionCookieFor` in `@manifest/contract`. **Still `1.6.0`**, with the break stated in `document.ts`'s version
-comment. **The Docker tier is owed** (`identity/`).
-- **Decision 7 stands**, as Rich approved it on 2026-09-30. Sitting 1's F1 asks whether to keep it now that loopback `http` holds a
-  `__Host-` cookie; the recommendation is **keep it**, it is Rich's to change, and nothing waits on his answer.
-- **Task 5's Step 1 tells the front-end FIRST**, before any code, and its Step 7 commits only after the front-end's reply.
-- **Its Step 6 signs in through the edge** (`make demo-journey`, `make demo-token`, `make demo-frontend`). Agents may type the laptop IdP's
-  test passwords: Rich's standing yes, 2026-10-03 (`2026-09-30-decisions.md`).
-- **Rich's night order** (2026-10-03, ~01:10): sittings 2 → 3 → 4, and sitting 6 pulled ahead of sitting 5 if time remains — a re-cut of the
-  order only. Sitting 5 is pre-authorised (`make seed` with the network on), once `SSP_STORE_PASSWORD` is in `.env`.
+**Sitting 4 is Tasks 6, 8 and 13** (the sittings table):
+- **Task 6, F8**: a `422` answers `422`, streamed too, by `[M3]`'s guard (E). It is `infra/litellm/manifest_guard.py`, a SINGLE-FILE BIND
+  MOUNT: write through it, then restart `manifest-litellm` (§4 trap 18).
+- **Task 8**: `Init: true`. Spec action 4 is applied.
+- **Task 13**: FE-52 and FE-49. It adds `pending_action.expired` (the console's `queue.tsx` list and the `audit.events` CHECK, per `[M7]`) and
+  `Token.mintedBy`, additive under `1.6.0`. **The front-end is told before that commit** (its revoke's reject step can go).
+- **The Docker tier is owed** (`ai/`, `infra/`, `runtime/`, `observability/`, `releases/`).
+- **Tonight's classifier refused a restart of the shared control plane as "Modify Shared Resources"** (sitting 3's F3). A
+  `manifest-litellm` restart for Task 6 may meet the same. If it does, do not work around it: make it a restore-safe script for Rich, as
+  sitting 3 did.
+- **Rich's night order** (2026-10-03, ~01:10) was sittings 2 → 3 → 4, then sitting 6 pulled ahead of sitting 5 if time remains. **No agent
+  starts after 08:00 PDT, 2026-10-03.** Sitting 5 is pre-authorised (`make seed` with the network on), and `SSP_STORE_PASSWORD` is already
+  in `.env`.
 
-**IN THE FIRST MESSAGE — Rich's, if he is there** (none blocks sitting 3):
-1. **`make refresh-vulndb` is due after 2026-10-06** (the network on, ~1–3 minutes). Sitting 7's acceptance launches.
-2. **Three real repositories in `Manifest-local-dev` belong to no project** — `f6-watch`, `keep-walk-1002` and now `f6b-measure-1` — and 12
-   orphan driver-2 mirrors in `.manifest/repos`. Removing them is his (`bash scripts/github-real-repos.sh`).
-3. *Optional:* F1, above.
+**IN THE FIRST MESSAGE — Rich's, if he is there** (none blocks sitting 4):
+1. **Sitting 3's through-the-edge proof**, if it has not been run yet: `! bash .superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh`
+   (~10–12 min; signs in as the test user `instructor`). Ask Rich whether he has; the script prints where its summary is.
+   - It restarts 7100 on driver 1, runs the curl checks, `make demo-journey`, `demo-token` and `demo-frontend`, and control (c) at the
+     edge, then restores 7100 as found.
+   - Then run the three cleanup scripts.
+2. **`token-app`'s three rowless containers**, left by `make demo-token` and truncated by sitting 3's first Vitest run. Their
+   `docker rm` was REFUSED to the agent (*"Interfere With Workloads"*), so they are Rich's:
+   `docker rm -f -v mf-token-app-staging-814bed02-044397bd-app mf-token-app-staging-egress mf-token-app-staging-db`. Then run
+   `bash scripts/dead-app-resources.sh --apply` and `bash scripts/litellm-orphans.sh --apply`, which take one network, two volumes and
+   one LiteLLM user.
+3. **`make refresh-vulndb` is due after 2026-10-06** (the network on, ~1–3 minutes). Sitting 7's acceptance launches.
+4. **Three real repositories in `Manifest-local-dev` belong to no project**: `f6-watch`, `keep-walk-1002` and `f6b-measure-1`. That is
+   sitting 2's count, not re-measured, because listing them reads GitHub. There are also 12 orphan driver-2 mirrors in `.manifest/repos`
+   (`dead-app-resources.sh`, measured at sitting 3's close). Removing them is his (`bash scripts/github-real-repos.sh`).
+5. *Optional:* sitting 1's F1 — whether to keep Decision 7 (cookie names by scheme). Sitting 3 kept it on the recommendation.
 
-**THE MACHINE, AS SITTING 2 LEFT IT.** Queried at 03:25 PDT on 2026-10-03, not remembered.
-- **The control plane:** PID 53216 on 7100, **REAL GitHub** (`Manifest-local-dev`), built from `70c3964` and started from `.env` (the
+**THE MACHINE, AS SITTING 3 LEFT IT.** Queried at ~05:00 PDT on 2026-10-03, not remembered.
+- **The control plane:** PID 99751 on 7100, **REAL GitHub** (`Manifest-local-dev`), built from `d4291dd` and started from `.env` (the
   machine as found). Its boot line: the capable model registered, its fallback set.
-- **The control database:** 3 users, 1 project (`token-app`, `make demo-token`'s, on DRIVER 1 — so on this driver-2 control plane its
-  source operations answer `409 SOURCE_PROVIDER_MISMATCH`), 1 token, 3 pending actions.
-  - **Sitting 3's first Vitest run truncates them**, and `token-app`'s three containers become dead app resources for the cleanup scripts.
-- **Containers:** 10 `manifest-` and 3 `mf-token-app-staging-*`; **13 Docker networks**. The three cleanup scripts read 0 dead after
-  `--apply`.
+  - **Sitting 3's restore restart was ALLOWED; only its restart onto driver 1 was refused.**
+- **The control database:** 1 user (`instructor`, from sitting 3's edge check), 0 projects. Sitting 4's first Vitest run truncates it.
+- **Containers:** 10 `manifest-` and 3 rowless `mf-token-app-*` (item 2 above); **13 Docker networks**. Otherwise the three cleanup
+  scripts read 0 dead.
   - **Count `docker network ls -q` before the Docker tier**: Docker Desktop's pools hold ~31, and the tier needs 7.
 - **`make doctor` 21 and `make verify` 64**, both 0 warnings, at the close. **The four protected containers are up.**
+- **The contract's `dist/` is built from `d4291dd`** (`exports.default` is `dist/`, so a non-Vitest consumer reads it; sitting 3's F7).
 - **7102 and 7105 are the faculty front-end's** (mock mode). **Nothing listens on 7194–7199.**
 
 **THE PEER SESSIONS** (`ListAgents` immediately before every promised message):
-- **The night shift (2026-10-03):** `manifest-3d` co-ordinates. The front-end's work is done by ITS background agents, which cannot receive
-  messages, so **every hold, free and notice for the front-end goes to `manifest-3d`, starting HOLD or FREE**. Hold only around whole-suite
-  runs, the Docker tier, and a `packages/contract` or `packages/mock` edit until typecheck-clean; single-file runs need no hold.
+- **The night shift (2026-10-03):** `manifest-3d` co-ordinates. **Every hold, free and notice for the front-end goes to it, starting HOLD
+  or FREE**, and the same word goes into the scratchpad flag file it names (`platform-window`).
 - **Otherwise:** the front-end's live `manifest-app-*` session. It asks for a message BEFORE any Vitest run, Docker tier, `make verify`, or
-  edit or commit to `packages/contract` or `packages/mock`, and at the close; it holds its own Vitest when told. Its repository is
-  `~/Developer/manifest-app`; never edit it.
-- **The front-end is adopting contract `1.6.0`** (mock mode) — and Task 5 is the next change it must adopt.
+  edit or commit to `packages/contract` or `packages/mock`, and at the close.
+  - Its repository is `~/Developer/manifest-app`; never edit it.
+- **The front-end is adopting `1.6.0` and the `__Host-` names** (mock mode). Its edge mode must call `https://app.manifest.internal`, not
+  `http://127.0.0.1:7100` (sitting 3's F4; told by NOTICE).
 
-**WHERE SITTING 3 STOPS, AND HOW IT ENDS:** it stops after Task 5, committed after the front-end's reply, with its negative controls (a)–(c)
-— and if (c) cannot fail in the unit tier, that is recorded, as Task 5 says. Then the plan's own close:
+**WHERE SITTING 4 STOPS, AND HOW IT ENDS:** it stops after Tasks 6, 8 and 13, each committed with its negative controls. Then the plan's
+own close:
 - the four gates (`pnpm test` twice, alone, on the final tree);
 - the Docker tier, in the background, never beside a Vitest run;
-- *What executing this plan found*, *Sitting 3*;
+- *What executing this plan found*, *Sitting 4*;
 - the sittings table;
 - this §7e, REPLACED;
 - the cleanup scripts, bare and then `--apply`;
@@ -2036,6 +2065,12 @@ reasoning is recorded.**
   `eduPersonPrincipalName`.
 - **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or only the Ollama path?**
   Unmeasured — only Ollama was reachable offline. Cheap to settle the first time anyone has a provider key.
+- **ONE COOKIE NAME EVERYWHERE, OR NAMES BY SCHEME? — RAISED 2026-10-02 by the faculty-ready plan's sitting 1 (`[M1]`, F1); BUILT AS
+  APPROVED by its sitting 3.** Decision 7 (Rich, 2026-09-30) names the sign-in cookies `__Host-` on https and plain on loopback http,
+  because the plan believed http could not hold a `__Host-` cookie. `[M1]` measured that Chrome 154 and curl 8.7.1 DO keep one on
+  `http://127.0.0.1` and `http://localhost`. **Recommended: keep Decision 7** — the mock and the front-end's mock mode stay untouched,
+  and Firefox and Safari were not measured. Changing it is one function's http branch (`identity/cookie-names.ts`) and
+  `sessionCookieFor`'s. Nothing waits on the answer.
 ### Decided
 
 - **`change_requested`'s two meanings — DECIDED BY RICH 2026-10-01: (a), record the origin** (*"(a) Record the origin
