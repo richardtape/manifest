@@ -639,3 +639,8 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         "Building <App> stopped because the app was switched off. You can read where we got to in the conversation:" + its
         link; "…because the app was deleted."; "…because you were taken off the app. Its owners can add you again."; the
         same last line; only the app's first build (the front-end's piece of kind 'first') uses them.
+
+    And at 15:09 PDT, from manifest-app-5a's close (its minors round: 15 fixed), through the question tool — "Yes, alongside
+    FE-53 (Recommended)": pending_action.created also carries the asking token's minter (tokenMintedBy, Token.mintedBy's
+    value), so the front-end names an agent made outside its page to its own maker as "Your agent", consistently. Additive,
+    in the FE-46/47/5 plan's FE-53 (Task 2, sitting 2). Over: leaving the band generic.
