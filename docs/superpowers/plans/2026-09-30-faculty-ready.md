@@ -12,20 +12,25 @@
 > sittings 2 and 4. The faculty front-end's F6b sitting 1 measured both on 7100, and the platform session `manifest-96` checked them in
 > the code (*Read this first* 18–19). **They are numbered in the order they were added, not the order they run.** Task 11 is still the
 > acceptance, alone and last, and the plan still has seven sittings. Neither needs a spec action.
+>
+> **AMENDED AGAIN THE SAME NIGHT, AT SITTING 1'S OPEN** (Rich, through the question tool: F7, FE-49 and FE-50, *"All into
+> faculty-ready"*). **FE-50 joins Task 12**, because it rewrites the same remedy text as FE-51. **FE-49 joins Task 13.** **F7 is Task 14,
+> in sitting 2.** The plan now has 14 tasks in seven sittings. None of the three needs a spec action. The same message placed FE-46,
+> FE-47 and FE-5 AFTER this plan, and chose inline execution (*Decided by Rich*).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (native) or superpowers:subagent-driven-development, **whichever Rich chooses at sitting 1's open** (2026-09-30: *"Probably not subagent driven though"*). Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
-**Goal:** Close what stands between the platform and a real faculty member's first day. **A faculty app on a sibling host cannot plant a session** in a colleague's browser (FE-28, widened to the login and step-up cookies). **Every answer carries a request id, and every refusal leaves an operator line** a support report can be matched to (FE-30). **A refusal about a limit says whose, how much and when it lifts, as fields** (FE-29). **The platform's test blueprint is not offered to people** (FE-31). **A provider's `422` reaches the client as a `422`, never `200 null`** (F8). **Faculty apps run on `node:24-alpine`**, **with an init that reaps orphans**, and **the IdP's session store stops using the Postgres superuser**. And **an administrator acting on another person's project gives a reason, which the project's people see** (§26's non-repudiation, which nothing enforces today). **An agent's question ends when its token does**, so nobody is told *confirmed* for a request that nothing can retry (FE-52). **The refusal that asks the question names what the platform matches**: the request, not its key (FE-51).
+**Goal:** Close what stands between the platform and a real faculty member's first day. **A faculty app on a sibling host cannot plant a session** in a colleague's browser (FE-28, widened to the login and step-up cookies). **Every answer carries a request id, and every refusal leaves an operator line** a support report can be matched to (FE-30). **A refusal about a limit says whose, how much and when it lifts, as fields** (FE-29). **The platform's test blueprint is not offered to people** (FE-31). **A provider's `422` reaches the client as a `422`, never `200 null`** (F8). **Faculty apps run on `node:24-alpine`**, **with an init that reaps orphans**, and **the IdP's session store stops using the Postgres superuser**. And **an administrator acting on another person's project gives a reason, which the project's people see** (§26's non-repudiation, which nothing enforces today). **A name reused on a reset machine is refused for what it is**, never answered with a race that did not happen (F7). **An agent's question ends when its token does**, so nobody is told *confirmed* for a request that nothing can retry (FE-52). **The refusal that asks the question names what the platform matches**, the request and not its key (FE-51), and **who may answer it** (FE-50). **A token says who minted it** (FE-49).
 
 It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/contract`. A person clicks it too.
 
-**Architecture:** Eleven small, independent changes, and one medium one. They are grouped so that each contract-touching sitting bumps nothing twice.
+**Architecture:** Twelve small, independent changes, and one medium one. They are grouped so that each contract-touching sitting bumps nothing twice.
 - **The contract goes to `1.6.0` ONCE**, at Task 3, the first schema change. Everything after it stays `1.6.0`.
 - **The request id is Fastify's own `request.id`**, generated as a UUID. It is set as a header in `onRequest`, carried into every refusal body by ONE `sendRefusal` helper, and logged by the same helper.
 - **The cookie names are chosen per origin scheme**: `__Host-` on `https`, the plain name on loopback `http` (the Docker tier and the mock), so no `http` test origin loses its session.
 - **The administrator's reason is one request header**, enforced in `registerRoutes`. It is carried into every event the request publishes by an `AsyncLocalStorage` context, and stored on `audit.events` in three new columns.
 - **The `422` fix is a second hook in the same LiteLLM guard.** The `node:24` move is `images.txt`, `make seed` and a digest in two blueprint descriptors. `Init` is one line in `hardenedHostConfig`. The IdP store's role follows `ssp_ro`'s precedent in `ensure-idp-sql.sh`.
-- **FE-51 is text.** **FE-52 reuses what the archive already does**: `expirePendingActions(tx, EVERY_QUESTION, { tokenId })`, run on the two other paths that revoke a token. A question's life is also capped at its token's expiry. One event, `pending_action.expired`, is published only when a person's act ended the question, never when the clock did.
+- **FE-51 and FE-50 are text.** **F7 is driver 2's existing refusal, moved into driver 1.** **FE-49 is one field.** **FE-52 reuses what the archive already does**: `expirePendingActions(tx, EVERY_QUESTION, { tokenId })`, run on the two other paths that revoke a token. A question's life is also capped at its token's expiry. One event, `pending_action.expired`, is published only when a person's act ended the question, never when the clock did.
 
 **Tech Stack:** TypeScript 5.9.3 on Node 24.12.0 (host), Fastify 5.12.3, Drizzle over Postgres 16, `zod/v4` for the API, Vitest 2.1. LiteLLM **1.98.0** (`infra/images.lock:9`, pinned by digest). SimpleSAMLphp **v2.5.3.1** (`manifest-idp`). Docker Desktop **29.7.2** (`docker info`: `InitBinary=docker-init`). **No new external package.**
 
@@ -66,9 +71,9 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: `__Host-` cookies over `http` and through curl; Fastify's ids on every refusal path; LiteLLM's post-call hooks against a `422`, **streamed and not**, in a THROWAWAY LiteLLM; `Init` beside `ReadonlyRootfs` and `CapDrop ALL`; §26's reachable mutations; the gate numbers | No | — | |
-| 2 | 2, 3, 4, 12 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51** (Task 12, after Task 4): the pending-action hint names what is matched | Yes — `blueprints/` | **2** (§25), **3** (§20) | |
+| 2 | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | |
 | 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | |
-| 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | |
+| 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | |
 | 5 | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | |
 | 6 | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | |
 | 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
@@ -113,6 +118,10 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 - **`node:24-alpine`, `Init: true`, THE IdP STORE'S OWN CREDENTIALS** — Rich chose all three for this plan (*"Which older §8 items join the next plan?"*: all four offered).
 - **THE EXTERNAL TRACK IS DEFERRED** — *"We can defer this. I have to get all of this working first locally. And then show demos."* Nothing in this plan raises it.
 - **FE-51 AND FE-52 JOIN THIS PLAN** — Rich, 2026-10-02: *"add them to the faculty-ready plan"*. This answered `manifest-96`'s report of the faculty front-end's F6b sitting 1 measurements, which the code had confirmed. **Their designs are this plan's Decisions 16 and 17, not his**: re-open either only if Task 1's `[M7]` breaks a premise. The front-end's write-ups are in `~/Developer/manifest-app/docs/api-findings.md`, under *FE-51* and *FE-52*.
+- **AT SITTING 1'S OPEN, 2026-10-02** (through the question tool; recorded in `../2026-09-30-decisions.md`):
+  - **FE-46, FE-47 AND FE-5:** *"After faculty-ready"*, the draft's option (b). His 2026-09-30 order stands: this plan, then those three, then FE-32. Their spec actions stay drafted (`2026-10-01-fe46-fe47-fe5-spec-actions.md`). **Nothing of them is built here.**
+  - **THE EXECUTION METHOD:** *"Inline (Recommended)"*, `superpowers:executing-plans`.
+  - **F7, FE-49 AND FE-50:** *"All into faculty-ready"*. FE-50 joins Task 12, FE-49 joins Task 13, and F7 is Task 14. Their designs are Decisions 16–18.
 - **Carried from earlier plans, still binding:**
   - D24's privileged four, and the person-only class;
   - step-up for production deploys, approvals, member management and production secrets;
@@ -257,7 +266,7 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
   and rehearsal locks, which hold an environment lock inside). Before them, ten or more environments deadlocked a restarted control plane at
   boot. Anything new that holds a lock or a connection while it waits for another must not share a pool with what it waits for.
 - **A lapse ends a registration** (its F3): entering `expired` clears `registered_at`; a change request filed from `active` keeps it.
-- **F7 — NOT IN ANY TASK, A CANDIDATE FOR THIS PLAN** (Rich, 2026-10-02: *"record that as a better error message needed"*): a person creating a
+- **F7 — TASK 14 SINCE 2026-10-02's SITTING 1 OPEN** (Rich: *"All into faculty-ready"*; first recorded at his *"record that as a better error message needed"*): a person creating a
   project whose slug an ORPHAN bare repository still holds (left by a truncation or `make reset`) is answered `409 SOURCE_CONFLICT` *"main
   moved while this commit was being made"* on driver 1 — a race that did not happen, and nothing they can act on. Driver 2 answers
   `SOURCE_REPOSITORY_EXISTS`. A real faculty member meets it on the first day a name is reused on a reset machine. Rich places it.
@@ -302,6 +311,22 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
     - **What the front-end does meanwhile** (its F6b Decision 16): its *Agents* card asks only about a question whose token is active, and
       its own *[Revoke]* rejects that token's waiting questions first. **What is left:** a token revoked anywhere else keeps its question
       in the front-end's band for up to 24 hours.
+20. **FE-50 and FE-49 — who answers, and whose token.** Placed at sitting 1's open.
+    - **FE-50:** the remedy (`api/error-codes.ts:268`) and `docs/api/authentication.md:50` say *"the person who minted it confirms"*. The
+      confirm route asks `assertCapability(deps.db, actor, row.projectId, action)` (`api/routes/pending-actions.ts:90`): anyone who holds
+      that capability on the project, which is an owner or an administrator, and never a collaborator. The front-end measured it in F6b
+      sitting 1: a collaborator cannot answer even their own agent's question.
+    - **FE-49:** `Token` (`api/representations/tokens.ts`) has no field naming its minter, yet only the minter may revoke it
+      (`api/routes/tokens.ts:345`, `row.userId !== actor.userId`, answered `404`). So a client cannot tell which tokens a person may revoke. The
+      contract names a person in two shapes: `createdBy: Uuid` (`representations/releases.ts:75`) and `requestedBy: { id, displayName }`
+      (`:402`).
+21. **F7 — a create over a repository already on the machine.** Placed at sitting 1's open.
+    - **Driver 1** (`source/local-driver.ts:219-265`) runs `git init --bare` on the slug's path whether or not it exists. git re-initialises
+      an existing repository silently. The seed is then pushed with `base: null` onto a `main` that already has history, and the create
+      is answered `409 SOURCE_CONFLICT`, *"main moved while this commit was being made"*.
+    - **Driver 2** (`source/github/driver.ts:838-843`) refuses first: `existsSync(mirror)` answers `SOURCE_REPOSITORY_EXISTS`, *"never reused or
+      removed by a create"*. That code's remedy (`api/error-codes.ts:689-692`) names GitHub and a mirror, not driver 1's repository.
+    - **The driver contract** (`source/driver-contract.ts`) is the suite both drivers run.
 
 **The contract.** It is **`1.5.0`** in three places, held equal by `api/contract/document.test.ts:56-63`. Additive changes bump the minor (`document.ts:20-61`). The launch path plan takes no bump, so **this plan's Task 3 makes it `1.6.0`**, once.
 
@@ -354,6 +379,11 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 16. **FE-51: THE CODE IS RIGHT, AND THE WORDS MOVE TO MATCH IT** (added 2026-10-02). The hint, the remedy and the guides say: *"once they
     have, send the identical request again from this token — the same method, path and body; the confirmation lets it through exactly
     once, whatever its Idempotency-Key"*. The final wording is the task's, within that meaning.
+    - **FE-50 rides with it** (sitting 1's open). The same words say who answers: *"a person who could do it themselves (an owner, or
+      for `quota:set` an administrator) confirms or rejects it in the console"*, never *"the person who minted it"*. **The words follow
+      the code**, because a collaborator who minted the token does not hold the four capabilities, and D24's point is that a person who
+      COULD do the thing decides. *Rejected:* changing the code to the minter only. That would make a collaborator's agent's question
+      unanswerable.
     - *Why:* a person confirms what they were shown, which is the request. The body's hash is what binds the confirmation to it.
     - *Rejected:* (b), binding the confirmation to the original key too. That needs the key stored on the row (a migration), adds no
       protection, since only the same token can spend the confirmation, and turns a lost key into a question asked twice.
@@ -380,6 +410,15 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
     - *Rejected:* (c) leaving it.
     - *Cost:* a new event type is one contract addition under `1.6.0`, one `audit.events` CHECK migration, and the front-end told
       before the commit.
+    - **FE-49 rides with it** (sitting 1's open): `Token` gains **`mintedBy: Uuid`**, *"who minted it; only they may revoke it"*. It is
+      the shape `createdBy` already uses, and what a client compares with `getMe`'s `id`. *Rejected:* `{ id, displayName }`, which costs
+      a join on every list for a name the client already has for its own person.
+18. **F7: DRIVER 1 REFUSES AS DRIVER 2 DOES** (added at sitting 1's open). `createRepository` checks `existsSync(path)` BEFORE `git
+    init`, and throws `SOURCE_REPOSITORY_EXISTS` with a message naming the slug and *"on this machine"*. The remedy's meaning widens to
+    *"a repository of that name already exists, on GitHub or on this machine"*. **The repository is never re-initialised, reused or
+    removed**, which is driver 2's Decision 16 carried across. The case goes in the driver contract, so both drivers are held to it.
+    - *Rejected:* removing a leftover repository on create. Its history may be the only copy of somebody's work after a truncation.
+    - *Cost to change course:* one check, and one case in the driver contract.
 
 ---
 
@@ -463,6 +502,7 @@ packages/control-plane/src/api/
   csrf.ts                     MOD (T5) carriesSession by the origin's name
   idempotency.ts              MOD (T10) the admin reason in the fingerprint
   routes/tokens.ts            MOD (T13) revoke and expire in one transaction; the event after the commit
+  representations/tokens.ts   MOD (T13) Token.mintedBy (FE-49)
   routes/project-reads.ts     MOD (T13) a removal expires its revoked tokens' questions; the event after the commit
 packages/control-plane/src/identity/
   cookie-names.ts             NEW (T5) cookieNames(origin)
@@ -479,6 +519,9 @@ packages/control-plane/src/observability/
 packages/control-plane/src/tokens/
   expiry.ts                   MOD (T13) expirePendingActions answers its rows; publishQuestionsEnded
   pending.ts                  MOD (T13) a question's expiresAt capped at its token's
+packages/control-plane/src/source/
+  local-driver.ts             MOD (T14) a create over an existing repository is SOURCE_REPOSITORY_EXISTS
+  driver-contract.ts          MOD (T14) the case both drivers run
 packages/control-plane/src/releases/
   lifecycle.ts                MOD (T13) the archive publishes pending_action.expired after its commit
 packages/control-plane/src/projects/
@@ -497,7 +540,7 @@ packages/console/src/                                MOD (T3 the reference shown
 packages/journey/src/faculty-ready.ts                NEW (T11) make demo-faculty-ready's phases
 packages/journey/src/token.ts, example-pending.ts    MOD (T12 the retry under a new key; the words. T13 a revoked token's question)
 scripts/demo-faculty-ready.sh                        NEW (T11); ci-acceptance.sh, offline-acceptance.sh, Makefile MOD (T11)
-docs/api/conventions.md, authentication.md, frontend.md, agents.md, events.md   MOD (T3, T4, T5, T10, T12, T13)
+docs/api/conventions.md, authentication.md, frontend.md, agents.md, events.md   MOD (T3, T4, T5, T10, T12, T13; T12: FE-50's sentence)
 docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 ```
 
@@ -533,14 +576,16 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
   3. Read `instances.ts:~378`'s mapping of an exit code to §14's reason, and say what `143` becomes.
 - [ ] **Step 5: `[M5]` §26's surface.** From `api/contract/`'s route definitions, list every MUTATING operation whose capability is in `OWNER`, and every one whose capability is an administrator's own. Count them: the survey says about 25. Record which publish no event and which name nobody. **This is Task 10's matrix.**
 - [ ] **Step 6: `[M6]` The gate numbers** from `scripts/ci-acceptance.sh`'s `EXPECT_` lines, and `pnpm test` once on the unchanged tree.
-- [ ] **Step 7: `[M7]` FE-51 and FE-52's premises, from the code at HEAD** (added 2026-10-02). Re-read *Read this first* 18–19 and record
-  each line as it now stands:
+- [ ] **Step 7: `[M7]` FE-51, FE-52, FE-50, FE-49 and F7's premises, from the code at HEAD** (added 2026-10-02). Re-read *Read this first*
+  18–21 and record each line as it now stands:
   - the hint's and the remedy's lines;
   - **every path that revokes a token** (grep `revokedAt: new Date()` and `revokeToken`), and whether each one expires its questions;
   - where `recordPendingAction`'s caller can read the token's `expiresAt` (`tokens/actor.ts`'s actor carries it);
   - whether a new event type needs an `audit.events` CHECK migration;
   - whether anything in `packages/mock` or `packages/console` switches exhaustively over the event types;
-  - which unit test file holds the pending flow.
+  - which unit test file holds the pending flow;
+  - FE-50's two sentences and the confirm's `assertCapability`; FE-49's `Token` fields and the revoke's minter check;
+  - F7: driver 1's create over an existing path, and whether the driver contract already has a case for it.
 
   **No new measurement on 7100**: the front-end's of 2026-10-02 stands unless the code under it has moved. If a premise is broken, say
   so to Rich before sitting 2.
@@ -945,15 +990,16 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 
 ---
 
-## Task 12: FE-51 — the pending-action hint names what the platform matches
+## Task 12: FE-51 and FE-50 — the pending-action hint names what the platform matches, and who answers
 
 **Added 2026-10-02 at Rich's word. It runs in sitting 2, after Task 4**: Task 3 has by then moved `errors.ts` through `sendRefusal`,
 and Task 4 has rewritten `error-codes.ts`'s remedies, so this is one more text change to files that sitting already has open.
-Decision 16.
+Decision 16. **FE-50 joined at sitting 1's open**: the same remedy also says who answers.
 
 **Files:**
 - Modify: `packages/control-plane/src/api/errors.ts:391` (the hint) and `api/error-codes.ts:268` (the remedy); then `pnpm contract:write`, `contract:generate` and `docs:write`
 - Modify: `packages/journey/src/example-pending.ts:21` (generated into `docs/api/agents.md`) and `docs/api/agents.md:59` (hand-written)
+- Modify (FE-50): `docs/api/authentication.md:50` (*"a question the person who minted it confirms"*), and every other sentence `[M7]` finds that names the minter as the one who answers
 - Modify: `packages/journey/src/token.ts:653`: the step's label, and the step itself, which now retries under a NEW key
 - Test: the pending flow's unit file, named by `[M7]`
 
@@ -962,21 +1008,23 @@ Decision 16.
     sets `consumedAt`.
   - **The red one:** the refusal's `hint`, and the remedy in `error-codes.ts`, describe the retry by method, path and body, and do not
     tell the agent to reuse a key. Assert the meaning against the words in Decision 16, not an exact sentence.
+  - **FE-50, a pin and a red:** the pin is that a collaborator who minted the token is refused the confirm (`403 FORBIDDEN`), and an
+    owner who did not mint it confirms it (`200`). The red is that the remedy does not say *"minted"* about who answers.
 - [ ] **Step 2: Run, and predict red** at the hint assertion only.
 - [ ] **Step 3: Implement the words**, then run the four contract commands. **Through the edge:** `make demo-token`, whose step now
   retries under a new key; that proves the guide's claim on the real entry point.
 - [ ] **Step 4: Tell the front-end before the commit.** `openapi.json`'s remedy text changes; `packages/mock` does not.
 - [ ] **Step 5: Commit**, then run the **negative control**: put the old hint back, and predict red at the hint assertion. Restore.
   ```bash
-  git commit -m "fix(tokens): the pending-action hint names what is matched — the request, not its Idempotency-Key (FE-51)"
+  git commit -m "fix(tokens): the pending-action hint names what is matched and who answers — the request, not its key (FE-51); a person who could do it (FE-50)"
   ```
 
 ---
 
-## Task 13: FE-52 — an agent's question ends when its token does
+## Task 13: FE-52 and FE-49 — an agent's question ends when its token does, and a token names its minter
 
 **Added 2026-10-02 at Rich's word. It runs in sitting 4, after Task 8.** The Docker tier is owed there already, and this task adds
-`observability/` and `releases/` to it. Decision 17.
+`observability/` and `releases/` to it. Decision 17. **FE-49 joined at sitting 1's open**: `Token.mintedBy`, in the same contract change.
 
 **Files:**
 - Modify: `packages/control-plane/src/tokens/expiry.ts`: `expirePendingActions` answers the rows it expired (id, token, action, summary
@@ -992,7 +1040,9 @@ Decision 16.
   `audit.events`' CHECK; then the four contract commands
 - Modify: `docs/api/agents.md` and `docs/api/events.md` (a question can end without an answer, and how a client learns it);
   `packages/mock` and `packages/console` only if `[M7]` finds an exhaustive switch
-- Test: the pending flow's unit file, `tokens/expiry.test.ts`, and the removal's and the archive's tests
+- Modify (FE-49): `api/representations/tokens.ts` (`mintedBy: Uuid`, *"who minted it; only they may revoke it"*, in `Token` and so in
+  the mint's answer) and `toToken`; `packages/mock/src` (its token fixtures carry it); `docs/api/authentication.md` (who may revoke)
+- Test: the pending flow's unit file, `tokens/expiry.test.ts`, and the removal's and the archive's tests; `api/tokens.test.ts` for `mintedBy`
 
 - [ ] **Step 1: The failing tests, as one matrix.** For each of **revoke**, **removal** and **archive**, from a token with one question
   `pending`:
@@ -1002,6 +1052,9 @@ Decision 16.
 
   **Expiry:** a token minted to expire in an hour asks; its question's `expiresAt` equals the token's. After that moment, the sweep
   moves the question to `expired` and publishes nothing.
+
+  **FE-49:** `listTokens` and `mintToken` answer `mintedBy` equal to the minter's `getMe().id`; a token minted by somebody else names
+  them.
 
   **Positive controls, in the same file:**
   - a live token's question still confirms (`200`), and its retry is `201`;
@@ -1022,7 +1075,35 @@ Decision 16.
   - **(b)** remove the cap. Predict red: the expiry case.
   - **(c)** skip `publishQuestionsEnded`. Predict red: the three event assertions, and nothing else.
   ```bash
-  git commit -m "fix(tokens): a token's questions end when it does — revoked, removed or archived, with an event; a question never outlives its token (FE-52)"
+  git commit -m "fix(tokens): a token's questions end when it does — revoked, removed or archived, with an event; a question never outlives its token (FE-52); a token names its minter (FE-49)"
+  ```
+
+---
+
+## Task 14: F7 — driver 1 refuses a create over a repository already on the machine
+
+**Added at sitting 1's open (2026-10-02, Rich: *"All into faculty-ready"*). It runs in sitting 2**, whose Docker tier is owed already and
+now also covers `source/`. Decision 18.
+
+**Files:**
+- Modify: `packages/control-plane/src/source/local-driver.ts:219-229` (`existsSync(path)` before `git init`; the `SourceError`)
+- Modify: `api/error-codes.ts:689-692` (`SOURCE_REPOSITORY_EXISTS`'s meaning: on GitHub, or on this machine; the remedy unchanged in intent); the four contract commands
+- Test: `source/driver-contract.ts` (one case, run by both drivers)
+
+- [ ] **Step 1: The failing case, in the driver contract.** Create `chem-labs`, then create `chem-labs` again:
+  - **Expected:** `SOURCE_REPOSITORY_EXISTS`;
+  - the first repository's `headCommit` is unchanged;
+  - nothing was pushed to it.
+
+  Also a positive control: a create of a NEW slug beside it still succeeds.
+- [ ] **Step 2: Run, and predict.** Red on driver 1, at the code (`SOURCE_CONFLICT`). **Green on driver 2**, which already refuses, and
+  say why: its Decision 16.
+- [ ] **Step 3: Implement**, then the four contract commands, since the remedy text is published.
+- [ ] **Step 4: Through the edge, on driver 1.** After a truncation (sitting 2's own Vitest leaves one), create a project over a slug whose
+  bare repository is still on disk, and quote the answer: `409 SOURCE_REPOSITORY_EXISTS`, naming the slug.
+- [ ] **Step 5: Commit**, then run the **negative control**: remove the check, and predict red at the driver-1 case only. Restore.
+  ```bash
+  git commit -m "fix(source): driver 1 refuses a create over a repository already on this machine — SOURCE_REPOSITORY_EXISTS, never a false SOURCE_CONFLICT (F7)"
   ```
 
 ---

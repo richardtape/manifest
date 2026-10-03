@@ -300,3 +300,22 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     after the launch path and before faculty-ready). The choices the draft puts to him:
       - FE-46: may the Manifest team hand a send back, and must every gap be answered (both recommended yes);
       - FE-47: (a) `sent` with `sent_from: active` (recommended), or (a′) a `change_sent` state.
+
+# Rich's decisions — 2026-10-02, late evening (session manifest-96, opening the faculty-ready plan's sitting 1)
+
+    FE-51 AND FE-52 INTO FACULTY-READY — "add them to the faculty-ready plan" (Rich, to manifest-96, after it relayed the
+    faculty front-end's F6b sitting 1 measurements on 7100 and confirmed both in the code). FE-51: TOKEN_ACTION_PENDING's
+    hint says "same Idempotency-Key", but a confirmation matches the token, method, path and body. FE-52: a revoked
+    token's questions stay pending, and a confirm of one is 200 and can never be spent. => Tasks 12 and 13 (sittings 2
+    and 4); their designs are the plan's Decisions 16 and 17 (71ce7f0).
+
+    Asked at the sitting's open, as ORIENTATION §7e says, through the question tool; his three answers:
+      - WHERE FE-46, FE-47 AND FE-5 GO — "After faculty-ready" (option (b) of the draft's Placement; the draft
+        recommended (a), a small plan of their own before it). His 2026-09-30 order stands: faculty-ready, then these,
+        then FE-32. Their spec actions stay DRAFTED, not applied (plans/2026-10-01-fe46-fe47-fe5-spec-actions.md); the
+        front-end's F5b sends and F6b moment 17 build against the mock meanwhile.
+      - THE EXECUTION METHOD — "Inline (Recommended)": superpowers:executing-plans, commit per task on main.
+      - F7, FE-49 AND FE-50 — "All into faculty-ready": FE-50 (the remedy and authentication.md:50 say the minter
+        confirms; the confirm route asks anyone holding the capability — the words follow the code) joins Task 12, the
+        same remedy text FE-51 rewrites; FE-49 (`Token` gains `mintedBy`) joins Task 13; F7 (driver 1 answers
+        SOURCE_REPOSITORY_EXISTS, as driver 2 does, rather than a false SOURCE_CONFLICT) becomes Task 14, in sitting 2.

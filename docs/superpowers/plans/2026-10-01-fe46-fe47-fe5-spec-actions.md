@@ -447,3 +447,6 @@ FE-46, FE-47 and FE-5 are in no plan.
   the contract once. FE-5 is additive, small, and independent of the other two.
 
 **Not the launch path's sitting 12, in any case.** Its Task 15 is the acceptance, alone and last.
+
+**RICH'S ANSWER, 2026-10-02** (at *faculty-ready*'s sitting 1 open, through the question tool): **(b), *"After faculty-ready"*.** The order is
+*faculty-ready*, then these three, then FE-32. The three spec actions' words and their two inside choices are still his, and none is applied.

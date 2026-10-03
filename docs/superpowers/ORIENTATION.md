@@ -208,7 +208,7 @@ docs/superpowers/
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
 │   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 14 sittings since Rich merged 10 and 11 (2026-09-30) (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), ten spec actions, ALL APPLIED; EXECUTED 2026-10-02 — its *Sitting 12* is the record
-│   ├── 2026-09-30-faculty-ready.md                THE NEXT PLAN — WRITTEN and APPROVED 2026-09-30 (Rich: *"plan looks good"*), 13 tasks in 7 sittings (12 and 13, FE-51 and FE-52, added 2026-10-02 at Rich's word); 4 spec actions to decide; then FE-32's plan
+│   ├── 2026-09-30-faculty-ready.md                THE NEXT PLAN — WRITTEN and APPROVED 2026-09-30 (Rich: *"plan looks good"*), 14 tasks in 7 sittings (12–14 added 2026-10-02 at Rich's word: FE-51 with FE-50, FE-52 with FE-49, and F7); 4 spec actions to decide; then FE-32's plan
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1893,17 +1893,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **F7 — WHERE A BETTER MESSAGE GOES. RECORDED 2026-10-02 AT RICH'S WORD** (the launch path plan's sitting 12, his clicked half:
-  *"record that as a better error message needed"*). A person creating a project whose slug an ORPHAN bare repository still holds (left by a
-  truncation or `make reset`) is answered `409 SOURCE_CONFLICT` *"main moved while this commit was being made"* on driver 1 — a race that did
-  not happen; driver 2 answers `SOURCE_REPOSITORY_EXISTS`. *Needs*: a place in the plan order — named as a candidate in *faculty-ready*'s
-  *Read this first* (it is a real faculty member's first day on a reused name), and in no task yet.
-- **FE-49 AND FE-50 — RELAYED 2026-10-02 BY THE FACULTY FRONT-END (`manifest-app-c0`), WRITTEN ON ITS SIDE, NOT CARRIED.** **FE-49**: a
-  `Token` has no `mintedBy`, yet only its minter may revoke it (`revokeToken`), so a client cannot tell which tokens a person may revoke.
-  **FE-50**: `docs/api/authentication.md:50` and `TOKEN_ACTION_PENDING`'s remedy say *the person who minted it confirms*, while
-  `pending-actions.ts:90` lets anyone holding the capability confirm. Full text: `~/Developer/manifest-app/docs/api-findings.md`. *Needs*:
-  Rich's word whether either is carried, and where.
-
 - **FE-46 — THE OWNER SENDS TO LTIC, NOT TO UBC: A STEP BETWEEN *DRAFT* AND *SUBMITTED*, LTIC TOLD, AND THE ASSESSMENT'S GAPS ANSWERED.
   RELAYED 2026-10-01, CONFIRMED THE SAME EVENING** — by the faculty front-end's F5b design session `manifest-app-d9`, at the launch path's sitting 9's close,
   *"carried at Rich's word"*. **CONFIRMED BY RICH in the platform's sitting 9, 2026-10-01 19:56 PDT** (*"i approved"*, answering the question put to him there — his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-01 evening section). Rich's words as relayed: *"Sent to LTIC. And then submitted to PRISM by LTIC."* — all three records go VIA LTIC
@@ -1925,7 +1914,9 @@ reasoning is recorded.**
   - **The design:** a state `sent`, while `submitted` keeps its meaning, *with UBC*; a column `sent_from`; and the platform's first
     email, to one configured address, carrying nothing a person wrote.
   - **Two choices inside it, each recommended yes:** may the team hand a send back; and must every gap be answered.
-  - **Where it goes in the plan order:** the draft recommends a small plan of its own, before *faculty-ready*.
+  - **Where it goes in the plan order: PLACED 2026-10-02, AFTER *faculty-ready*** (Rich, at its sitting 1's open: *"After faculty-ready"*,
+    the draft's (b)). The order is *faculty-ready*, then FE-46, FE-47 and FE-5, then FE-32. **Still open:** the words of all three spec
+    actions, and the two choices above.
 
 - **FE-47 — AFTER LAUNCH, AN OWNER ASKS FOR A NEW SIGN-IN DETAIL (A CHANGE TO THE LIVE REGISTRATION), THROUGH LTIC. RELAYED 2026-10-01,
   CONFIRMED THE SAME EVENING** — by `manifest-app-d9` (F6b's design), at sitting 9's close, *"File FE-47, as FE-46"*. **CONFIRMED BY RICH in the platform's sitting 9, 2026-10-01 19:56 PDT** (*"i approved"*, answering the question put to him there — his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-01 evening section). *Today*: no owner write on an `active` registration — `draftIamRegistration` refuses it (`409 LAUNCH_RECORD_SUBMITTED`) and
@@ -2066,6 +2057,16 @@ reasoning is recorded.**
     sitting 4: revoking or removing a person expires the questions as the archive already does, a question's life is capped at its token's,
     and a person's act publishes `pending_action.expired`.
   - **The designs** are that plan's Decisions 16 and 17. The front-end's write-ups are in `~/Developer/manifest-app/docs/api-findings.md`.
+- **AT *FACULTY-READY*'S SITTING 1 OPEN, 2026-10-02** (Rich, through the question tool; [`2026-09-30-decisions.md`](2026-09-30-decisions.md),
+  its 2026-10-02 late-evening section). Moved here from *Open*.
+  - **FE-46, FE-47 and FE-5 go AFTER *faculty-ready*** (*"After faculty-ready"*). Their entries in *Open* keep the spec actions' words,
+    which are still his.
+  - **Execution is inline** (*"Inline (Recommended)"*).
+  - **F7, FE-49 and FE-50 all go into *faculty-ready*** (*"All into faculty-ready"*):
+    - FE-50 (the words follow the code: a person who could do it confirms) joins Task 12;
+    - FE-49 (`Token.mintedBy`) joins Task 13;
+    - F7 (driver 1 answers `SOURCE_REPOSITORY_EXISTS`) is Task 14, in sitting 2.
+    - The designs are that plan's Decisions 16–18.
 
 - **THE LAUNCH PATH PLAN'S SPEC ACTION 8 — (b) AND (c) TOGETHER** (Rich, 2026-09-30, after sitting 4a's close, the premise re-asked at
   developer level from the code: *"b and c together, in its own small sitting after 5"*): running D21's rehearsal needs a step-up, and
