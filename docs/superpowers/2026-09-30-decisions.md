@@ -547,3 +547,13 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         make seed; its network pull is his yes at that sitting. A run the generator could not drive fails, never passes.
       - THE EDGE'S RATE LIMIT DURING A REHEARSAL — "Exempt the generator's IP (Recommended)": for one run, the staging route
         skips its per-IP limit for the generator's own address alone; every other client keeps 600/min.
+
+    And at ~15:25 PDT, three on Plan A (manifest-c7's proposals), through the question tool, each as recommended:
+      - "A1 → B → A2": Plan A splits into A1 (production instances by audience, `make demo-capacity`) and A2 (hibernation
+        and wake-on-request, `make demo-hibernate`); the order is FE-46/47/5 → A1 → B (the load rehearsal) → A2 → FE-32 →
+        the vulnerability database → FE-45. Over: A1 → A2 → B; one Plan A.
+      - TERM DATES — "An admin platform setting": administrator-managed, set as deployment configuration (e.g.
+        MANIFEST_TERMS), kept current yearly from UBC's published calendar; none set means a class app never hibernates.
+        A spec action (§24, §26). Over: each project declaring its dates; UBC's Academic API (a later source).
+      - PRE-WARM — "Record it as not built": named not built with its reason (only solo apps and class apps between terms
+        can be cold at a burst); re-asked with the number if A2's measured cold wake is more than a few seconds.
