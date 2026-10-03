@@ -355,3 +355,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         paragraph replaced; §6's Event row gains actor_user_id, acted_as_admin and reason. Task 10 builds it.
     Shared pages checked for 1 and 4: D31 is about the admin dashboard's interface, not audit; no page mentions audit, a
     reason or an init — none changes. Every spec action of the faculty-ready plan is now applied.
+
+# Rich's decisions — 2026-10-03, ~01:10 PDT (session manifest-3d, the night-shift coordinator)
+
+    Rich, going to bed, asked manifest-3d to organise overnight work on the platform and the faculty front-end ("at least 3
+    sittings of each"), spawning and co-ordinating agents, and to write a report for the morning. Asked through the
+    question tool, each with its options and a recommendation:
+      - THE NIGHT PLAN — "Approve as written (Recommended)": platform faculty-ready sittings 2 → 3 → 4, one at a time; if time
+        remains, sitting 6 (Task 10, §26's reason) is pulled AHEAD of sitting 5 — a re-cut of the sittings table's order only,
+        no task moves between sittings. The front-end, in mock mode beside them: F6b sitting 6 finished, a minors sitting, the
+        contract 1.6.0 adoption once sitting 2 lands, and the __Host- cookie adoption once sitting 3 lands. F5b sitting 1
+        (7100, passwords, an admin grant, a real repository) is NOT overnight.
+      - THE MINORS — "Its pick, no decisions (Recommended)": any open minor in manifest-app's docs/minors.md that needs no
+        decision of Rich's and no 7100; the sitting lists what it skipped and why.
+      - PLATFORM SITTING 5 — "Yes, pre-authorise": his yes to Task 7's `make seed` with the network on (node:24-alpine pulled
+        and mirrored), and he adds SSP_STORE_PASSWORD to .env himself before bed (Task 9's Step 2, printed, never written by
+        an agent). Sitting 5 runs overnight only if sittings 2–4 close first.
+      - F6b SITTING 6's CLICK — "Tonight if ready, else morning (Recommended)": manifest-app-a1 staged it within minutes, so
+        he clicks before bed; 7100 is released to platform sitting 2 after it.
