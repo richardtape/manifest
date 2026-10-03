@@ -586,3 +586,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         pins it and make seed mirrors it (his yes to that pull). Over: Verdaccio-only; a vendored tarball.
       - WHO — "b9, as sitting 5b (Recommended)": the faculty-ready plan's new Task 17, after sitting 5's close and before
         sitting 7, with the Docker tier and a real CWL sign-in through a Manifest-built app.
+
+    And at 14:30 PDT Rich PUBLISHED passport-ubcshib 0.1.7-rc.1 to npm under the dist-tag `next` (latest stays 0.1.6);
+    manifest-94 checked it: gitHead 5f90fd6, 7 files, its index.js and lib/attributes.js identical to the branch tested.
+
+    And at ~14:33 PDT, on the fresh review of the four plans (docs/superpowers/plans/2026-10-03-review-of-four-plans.md;
+    verdicts: FE-32 and A1 approve with fixes, B and A2 need rework), through the question tool:
+      - WHO REVISES — in his words: "I think all of our agents are running long on their conversation length (context
+        lengths). So I think we're best off starting fresh ones once each has finished their current task. Let me know when
+        you want me to start a fresh session and in which part (platform or app) and I will do that." So a FRESH platform
+        session revises the four plans to the review; and from now on each finishing agent hands over to a fresh session
+        Rich starts at manifest-94's ask.
+      - A1, A DEAD MEMBER OF A PRODUCTION SET — "Replace it automatically" (over the recommended "Report it", and "record
+        as not built"): the platform starts a replacement; the plan designs who notices, a backoff and a cap for a
+        crash-looping app, and the event.
+      - A2, CLASS APPS AT TERM START — "Wake them at term start (Recommended)": asleep class production apps are woken when
+        MANIFEST_TERMS says a term begins.
+      - B, VEGETA — "Build it locally (Recommended)": an image built from the mirrored alpine plus vegeta's official
+        release binary, checksum-verified; its download a Rich-step at that sitting.
