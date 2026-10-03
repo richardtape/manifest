@@ -14,15 +14,18 @@ runtime:
   #   * The host is `manifest-registry:5000`, which is how the builder reaches the
   #     registry from inside the build network — P3 uses that exact name.
   #   * The digest is NOT the one in infra/images.lock. That file records what
-  #     Docker Hub returned (sha256:c610fcd…, a multi-arch index); `docker pull` on
-  #     arm64 takes a single-arch manifest out of it and `docker push` republishes
-  #     that, so the local registry answers sha256:1ef15d3… for the same tag.
-  #     Pinning the images.lock digest here would fail to resolve offline.
+  #     Docker Hub returned (a multi-arch index); `docker pull` on arm64 takes a
+  #     single-arch manifest out of it and `docker push` republishes that, so the
+  #     local registry answers another digest for the same tag. Pinning the
+  #     images.lock digest here would fail to resolve offline. Measured again for
+  #     `node:24-alpine` on 2026-10-03 (the faculty-ready plan's Task 7): the lock's
+  #     sha256:ebfe2f90…, the registry's sha256:38a36422….
   #
-  # Re-measure after any `make seed` with:
-  #   curl -sI -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
-  #     http://127.0.0.1:7107/v2/base/node/manifests/22-alpine | grep -i digest
-  base_image: manifest-registry:5000/base/node@sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a
+  # Re-measure after any `make seed` with (a token, since §13):
+  #   curl -sI -H "Authorization: Bearer $(node infra/seed/mint-token.mjs base/node)" \
+  #     -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+  #     http://127.0.0.1:7107/v2/base/node/manifests/24-alpine | grep -i digest
+  base_image: manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f
   default_port: 3000
   health_path: /healthz
   run_as_uid: 10001

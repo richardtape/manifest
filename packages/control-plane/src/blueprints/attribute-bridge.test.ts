@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
  * `bridge()` in this directory would test the copy.
  *
  * Loaded through a computed specifier, which is not a trick to dodge a check: the
- * skeleton is app-side JavaScript that runs on Node 22 inside a container, and it
+ * skeleton is app-side JavaScript that runs on Node 24 inside a container, and it
  * is deliberately outside this package's `rootDir`, so `tsc` neither can nor
  * should typecheck it. The cast below is the one place its shape is asserted, and
  * every test in this file would fail if the real module did not match it.

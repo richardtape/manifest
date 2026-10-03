@@ -122,9 +122,9 @@ export const blueprintRoutes = [
           {
             path: 'AGENTS.md',
             mediaType: 'text/markdown',
-            sha256: 'a0fe0e12674fbb6b8862ec2b7338cbd12b2e83b37608f94c42479933a567a136',
+            sha256: '7272edce03ed0952665d5a53147822f6aadbd2b7d22a351777c3de24115bbfd4',
             content:
-              '# node-ts-mongo@1 — knowledge pack\n\nYou are generating an application from this blueprint. This file is the whole of\nwhat you need to know about the platform; it is served over the Manifest API\nalongside the blueprint itself.\n\n**The stack is fixed.** Node 22 on Alpine, Expr …',
+              '# node-ts-mongo@1 — knowledge pack\n\nYou are generating an application from this blueprint. This file is the whole of\nwhat you need to know about the platform; it is served over the Manifest API\nalongside the blueprint itself.\n\n**The stack is fixed.** Node 24 on Alpine, Expr …',
           },
         ],
       },

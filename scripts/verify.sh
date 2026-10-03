@@ -1150,11 +1150,18 @@ if [ "${MANIFEST_VERIFY_OFFLINE:-0}" = "1" ]; then
     # A token is required from P3 Task 9 onwards; without one this answers 401 and
     # `-sf` reports the base image as absent, which would read as a mirroring
     # failure and is not one.
-    local token; token=$(node infra/seed/mint-token.mjs base/node)
-    docker run --rm --network "$NET_BUILD" curlimages/curl:8.11.1 \
+    #
+    # BY TAG (the faculty-ready plan's Task 7): both node tags live in `base/node`, so a list
+    # that answered at all passed with `24-alpine` — what faculty apps build FROM since then —
+    # never mirrored. `22-alpine` stays: a rollback's image and the fixtures name it.
+    local token tags v; token=$(node infra/seed/mint-token.mjs base/node)
+    tags=$(docker run --rm --network "$NET_BUILD" curlimages/curl:8.11.1 \
       -sf -H "Authorization: Bearer $token" \
-      "http://manifest-registry:5000/v2/base/node/tags/list" >/dev/null &&
-    echo "node:22-alpine resolvable from the local registry with no network"
+      "http://manifest-registry:5000/v2/base/node/tags/list") || { echo "base/node unreachable from $NET_BUILD"; return 1; }
+    for v in 22-alpine 24-alpine; do
+      echo "$tags" | grep -qF "\"$v\"" || { echo "node:$v NOT in the local registry: $tags"; return 1; }
+    done
+    echo "node:22-alpine and node:24-alpine resolvable from the local registry with no network"
   }
   check "base images resolve from the local registry offline"  offline_build_resolves_base_image
 

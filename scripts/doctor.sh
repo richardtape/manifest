@@ -364,9 +364,15 @@ echo "Seed state"
 
 check_lockfile() {
   [ -f infra/images.lock ] || { echo "infra/images.lock missing — run: make seed"; return 1; }
-  local n; n=$(grep -vc '^#\|^$' infra/images.lock)
-  echo "$n images pinned by digest"
-  [ "$n" -ge 1 ]
+  # EVERY line of images.txt, by its exact tag (the faculty-ready plan's Task 7). This read
+  # `n >= 1` until then, so a tag added to images.txt and never seeded passed it.
+  local n unpinned="" line
+  n=$(grep -vc '^#\|^$' infra/images.lock)
+  for line in $(grep -v '^#\|^$' infra/images.txt); do
+    grep -q "^$line	sha256:" infra/images.lock || unpinned="$unpinned $line"
+  done
+  [ -z "$unpinned" ] && { echo "$n images pinned by digest"; return 0; }
+  echo "not pinned:$unpinned — run: make seed"; return 1
 }
 check "infra/images.lock exists and pins every base image"  check_lockfile
 
@@ -412,11 +418,18 @@ check_registry_has_bases() {
   # (mirror-images.sh skips it), because nothing does `FROM` a running service.
   # Without this exclusion the pin makes THIS check fail — which is exactly what
   # it did, once.
-  for repo in $(grep -v '^#\|^$\|berriai/litellm' infra/images.txt | cut -d: -f1 | sed 's#.*/##'); do
+  #
+  # BY TAG, not by repository (the faculty-ready plan's Task 7). `node:22-alpine` and
+  # `node:24-alpine` are both `base/node`, so a repository-level check passed with 24 never
+  # mirrored. Each line's own tag must be in its repository's tag list.
+  local line ver tags
+  for line in $(grep -v '^#\|^$\|berriai/litellm' infra/images.txt); do
+    repo=$(echo "$line" | cut -d: -f1 | sed 's#.*/##')
+    ver=$(echo "$line" | sed 's#.*:##')
     token=$(node infra/seed/mint-token.mjs "base/$repo" 2>/dev/null)
-    curl -sf -H "Authorization: Bearer $token" \
-      "http://127.0.0.1:$PORT_REGISTRY/v2/base/$repo/tags/list" >/dev/null 2>&1 \
-      || missing="$missing $repo"
+    tags=$(curl -sf -H "Authorization: Bearer $token" \
+      "http://127.0.0.1:$PORT_REGISTRY/v2/base/$repo/tags/list" 2>/dev/null) || tags=""
+    echo "$tags" | grep -qF "\"$ver\"" || missing="$missing $repo:$ver"
   done
   [ -z "$missing" ] && { echo "every base image is in the local registry"; return 0; }
   # This is the difference between a build that works and one that fails the

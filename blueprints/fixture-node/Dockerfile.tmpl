@@ -35,7 +35,7 @@ COPY package.json package-lock.json .npmrc ./
 #
 #   /tmp/node-compile-cache/v22.23.2-arm64-.../76a6db1e   3612 vs 3604 bytes
 #
-# — Node 22's own V8 CODE CACHE, which npm writes while it runs and whose bytes are
+# — Node's own V8 CODE CACHE (measured on 22), which npm writes while it runs and whose bytes are
 # not byte-stable between runs. npm's `_cacache` under /root/.npm is the same class.
 # Neither belongs in a shipped image either.
 RUN npm ci --omit=dev --ignore-scripts \

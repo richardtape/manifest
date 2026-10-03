@@ -4,7 +4,7 @@ You are generating an application from this blueprint. This file is the whole of
 what you need to know about the platform; it is served over the Manifest API
 alongside the blueprint itself.
 
-**The stack is fixed.** Node 22 on Alpine, Express 4, `express-session`,
+**The stack is fixed.** Node 24 on Alpine, Express 4, `express-session`,
 Passport with `passport-ubcshib`, MongoDB, and `ubc-genai-toolkit-llm` for model
 access. Every version is pinned exactly in
 `blueprint.yaml`'s `pinned_dependencies` and in `skeleton/package.json`, and the

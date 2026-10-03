@@ -17,14 +17,19 @@ runtime:
   # multi-arch index); `docker pull` on arm64 takes a single-arch manifest out
   # of it and `docker push` republishes that.
   #
-  # Measured 2026-09-09 off the registry's own storage rather than copied:
-  #   docker exec manifest-registry cat \
-  #     /var/lib/registry/docker/registry/v2/repositories/base/node/_manifests/tags/22-alpine/current/link
-  #   -> sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a
+  # NODE 24 (`node:24-alpine`) since 2026-10-03 — Rich's call, the faculty-ready
+  # plan's Task 7. `node:22-alpine` stays mirrored beside it (images.txt), so an
+  # app's rollback to a release built on 22 still finds its image's base.
   #
-  # Re-measure after any `make seed`. Moving the app-side base image to Node 24
-  # is open and is Rich's call (ORIENTATION §8); this blueprint does not decide it.
-  base_image: manifest-registry:5000/base/node@sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a
+  # Measured 2026-10-03 off the registry's own storage rather than copied:
+  #   docker exec manifest-registry cat \
+  #     /var/lib/registry/docker/registry/v2/repositories/base/node/_manifests/tags/24-alpine/current/link
+  #   -> sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f
+  # (Docker Hub's index, which images.lock records, is sha256:ebfe2f90… — absent from
+  # the registry.) Node v24.21.0, npm 11.19.0, Alpine 3.24.2.
+  #
+  # Re-measure after any `make seed`.
+  base_image: manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f
   default_port: 3000
   health_path: /healthz
   # The Dockerfile creates a user AND a group with this number, and it is

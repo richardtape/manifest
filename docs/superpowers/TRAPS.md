@@ -1533,7 +1533,8 @@ it belongs among the traps the next sitting is most likely to hit.
 - **`node:22-alpine` IS NOT `alpine:3.22`** (2026-09-24, the D5 plan's Task 5). `node:22-alpine` is **Alpine
   3.24.1**, so `apk add git` in it installs **git 2.54.0** — the plan had measured `apk add git` in `alpine:3.22`
   (3.22.5, git 2.49.1) and predicted that. Measure a package's version IN THE IMAGE THAT WILL RUN IT: `docker exec
-  <c> cat /etc/alpine-release`.
+  <c> cat /etc/alpine-release`. **`node:24-alpine`**, what faculty apps build FROM since 2026-10-03 (the faculty-ready
+  plan's Task 7), is **Alpine 3.24.2**, Node v24.21.0 and npm 11.19.0; 22 stays mirrored beside it.
 - **GITHUB'S `full-repository` SCHEMA DOES NOT REQUIRE `visibility`** (2026-09-24, the D5 plan's Task 4). Its 75
   required keys include `private` and not `visibility`, so a fake that drops `visibility` is caught by a VALUE
   assertion, never by `expectGitHubShape`. A negative control meant to prove the schema check is live must remove

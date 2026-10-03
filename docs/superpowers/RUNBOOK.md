@@ -820,7 +820,9 @@ the daemon had the image cached is indistinguishable from one that succeeded bec
 the mirroring worked — which is the mistake S1 made once, in the other direction,
 with the npm registry.*
 
-Removing the mirrored base image must make the build **fail**:
+Removing the mirrored base image must make the build **fail**. *The digest below is the one the blueprints pinned
+then, `node:22-alpine`'s; since 2026-10-03 they pin `node:24-alpine`'s registry digest, `sha256:38a36422…` — read it from
+either `blueprint.yaml`'s `base_image` before you delete anything.*
 
 ```bash
 # `delete` is a SEPARATE registry action. The default token has pull and push only,

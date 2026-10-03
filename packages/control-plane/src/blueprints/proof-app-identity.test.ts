@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
  * control plane never sees a request-time PUID — so this is the only place the
  * platform can hold that string to a shape. It is loaded through a computed
  * specifier for the reason `attribute-bridge.test.ts` gives: it is app-side
- * JavaScript that runs on Node 22 inside a container, deliberately outside this
+ * JavaScript that runs on Node 24 inside a container, deliberately outside this
  * package's `rootDir`.
  *
  * WHY IT MATTERS TWICE. The blueprint passes this string to LiteLLM as the `user`,
