@@ -74,8 +74,8 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 | 2 | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | **DONE 2026-10-03** (`3d73adf`, `f1e7255`, `71df40d`, `95843e2`, `e355d10`; the review's fixes `70c3964`; *Sitting 2* below) |
 | 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | **DONE 2026-10-03** (`7b85326`; the review's fix `d4291dd`; **Step 6, through the edge, is Rich's script** — the classifier refused its restart; *Sitting 3* below) |
 | 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | **DONE 2026-10-03** (`5effd5e`, `2dd6fdd`, `0d5a743`; the review's fix `d8ce094`; **the driver-1 demos are Rich's script** `s4-edge-proof.sh`; *Sitting 4* below) |
-| 5 — **after 6** | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | **Follows sitting 6** (Rich's night order, 2026-10-03). Both Rich-steps are his already: `make seed` with the network on is PRE-AUTHORISED, and `SSP_STORE_PASSWORD` is in `.env` |
-| 6 ← **next** (pulled ahead of 5 by Rich, 2026-10-03) | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | |
+| 5 — **after 6** ← **next** | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | **Follows sitting 6** (Rich's night order, 2026-10-03). Both Rich-steps are his already: `make seed` with the network on is PRE-AUTHORISED, and `SSP_STORE_PASSWORD` is in `.env` |
+| 6 (pulled ahead of 5 by Rich, 2026-10-03) | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | **DONE 2026-10-03** (`beb4827`, `1312504`; the review's fixes `8481440`; the whole suite's `efcaaeb`; **its through-the-edge half is Rich's script** `s6-edge-proof.sh`; **I2, an administrator who is a collaborator, is his question** — ORIENTATION §8; *Sitting 6* below) |
 | 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -1246,6 +1246,25 @@ After the example, add: *"**A blueprint the platform keeps for its own tests dec
 
 ---
 
+### 5. §26 — an administrator who is a collaborator (PROPOSED by sitting 6, 2026-10-03; HELD FOR RICH)
+
+**NOT APPLIED. `manifest-3d` judged it NOT minor** (it changes §26's WHO and a security property) **and holds it for Rich** — ORIENTATION §8
+*Open* has it at code level. Raised by sitting 6's fresh review (its I2; *Sitting 6*, F9).
+
+**Why.** Today any member is exempt, as Spec action 1 worded §26, and `capabilitiesFor` gives an administrator `PLATFORM_ADMIN` whatever their
+project role — so an administrator who is a COLLABORATOR can delete, archive or restore the project, add or remove people (the owner included)
+and promote a release, none of which a collaborator can, with no reason and `asAdministrator: false`.
+
+**Proposed** — §26, *Non-repudiation*, in the paragraph Spec action 1 applied:
+- **Old:** *"an administrator who is a member of the project acts as a member"*
+- **New:** *"an administrator who is a member of the project is asked no reason for what their own role on it allows — beyond it (deleting,
+  archiving or restoring, managing people, promoting, as a collaborator), they act as an administrator and give one"*
+
+**The code it would take:** one condition in `projects/authz.ts`'s `requireAdminReason` — refuse also when
+`!capabilitiesFor(projectRole, 'member').has(capability)` — and a test row each way; the declared 24 are unchanged.
+
+*Options:* **(a) as proposed** (recommended); **(b) keep §26 as worded.** **Shared pages:** none mentions audit or a reason (checked by sitting 6).
+
 ## What the self-review caught
 
 1. **The mock is http only.** A rename by fiat would have broken the front-end's mock mode, which is why the names are chosen by scheme (Decision 7) and the mock's are asserted unchanged.
@@ -1750,3 +1769,121 @@ the archive row's `PROJECT_ARCHIVED` (F3); `tokenExpiresAt` required, from `acto
 - **The four protected containers are up.** `docker-simple-saml` is clean but for its long-standing untracked `cert.zip`.
 - **7102 and 7105 are the faculty front-end's** (mock mode). Nothing listens on 7194–7199.
 - **The shared HTML pages and the spec were checked:** none names the gateway's `422`, an init or a pending action; no spec action was raised.
+
+### Sitting 6 — 2026-10-03, morning: Task 10 — §26's administrator reason (a background agent of `manifest-3d`, pulled ahead of sitting 5)
+
+**What happened.**
+- **Unattended**, at Rich's night order (`../2026-09-30-decisions.md`, *2026-10-03, ~01:10*): `manifest-3d` co-ordinated, and every hold, free and
+  notice for the faculty front-end went to it. Opened ~06:40 PDT on `3d7d38c`, 7100 as sitting 4 left it (real GitHub, PID 46140).
+- **The commits:**
+  - `beb4827` — Steps 1–6. A platform administrator who is not a member of a project, using an owner's capability on it in a mutating request,
+    sends `Manifest-Admin-Reason` (1–500 characters trimmed; percent-encoded UTF-8 decoded) or is refused `400 ADMIN_REASON_REQUIRED`.
+    **Enforced in `assertCapability`** (F1), after the capability check and before the archived state; membership is now read for
+    administrators too. Exempt: reads, the administrator's own duties (`ADMIN_DUTIES`: `release:approve`, `launch:record`, `quota:set` — a
+    `quota:set` question's confirm included, a ruling), an administrator who is a member. `registerRoutes` enters an `AsyncLocalStorage`
+    acting context (`observability/acting.ts`) for every mutating request; `recordEvent` writes `audit.events.actor_user_id`,
+    `acted_as_admin` and `reason` (migration `0050`, with `events_admin_reason`: a reason only on an administrator's act), redacted, and appends
+    *" <Name> acted as a platform administrator — reason: '…'."*; `EventFrame.actor` is on every frame, live and on the replay. Deploy, build
+    and validate name who acted. The reason is in the idempotency fingerprint (only when sent). `document.ts` declares the code and the header
+    from `refusedWithoutAdminReason` on exactly `[M5]`'s 24 operations, measured by the authz harness's new last `it`.
+  - `1312504` — Step 7: the console's reason field (an administrator who is not a member; sent percent-encoded on every mutation), the mock's
+    `MANIFEST_MOCK_ADMIN_REASON=1`, and the guides (`conventions.md`, `events.md`).
+  - `8481440` — the fresh review's fix pass (F7, F8, F10–F12); `efcaaeb` — what the first whole-suite run found (F13).
+  - **Still `1.6.0`**, additive: `EventFrame.actor` (`EventActor`: `name`, `asAdministrator`, `reason`, `token`), the header, the code.
+- **The front-end was told by NOTICE BEFORE each contract commit** (`beb4827`'s at 06:55, `8481440`'s at ~07:40); HOLD around the contract and
+  mock edits (FREE at 06:57 once `pnpm typecheck` was clean in every workspace and the contract's `dist/` rebuilt), and one HOLD for the close.
+- **The fresh review** (opus, read-only, over `3d7d38c..1312504`, with Review Focus 4 and `manifest-3d`'s three questions): no Critical. **No
+  route reaches an owner's capability without the reason** (all 24 measured); a replay runs no handler, and another reason or none is
+  `409 IDEMPOTENCY_KEY_REUSED`; **nothing leaks unredacted** (the row, the sentence and the frame are redacted once in `recordEvent`; the
+  idempotency record keeps an HMAC; a refusal echoes only the length; the operator line carries codes).
+
+**Findings.**
+
+1. **F1 — the plan's preHandler cannot decide it.** Task 10 put the check in a `route.ts` preHandler, which knows neither the project (12 of
+   the 24 address it through an environment, release, pending action or session id) nor the membership. **It is in `assertCapability`**, which
+   has both and is where every project-scoped route already goes; the wrapper only enters the context the check reads. *(A ruling; the
+   ledger has its cost.)*
+2. **F2 — a header carries only Latin-1.** A browser's `fetch` and Node's (undici) THROW on `—` or `é` in a header, so a person's reason in
+   their own words could not be sent at all. The platform decodes a percent-encoded reason (`encodeURIComponent`), taking an invalid encoding as
+   sent; the hint, the header's description and `conventions.md` say so. Cost: a literal `%XX` in a reason is decoded.
+3. **F3 — three demos act as a non-member administrator**, and each would now answer `400`: `make demo-production`'s step 5 (its *"ordinary
+   session is refused 403 STEP_UP_REQUIRED"* check first — the reason precedes the step-up), `make demo-launch`'s step 7 (the rehearsal) and
+   `make demo-releases`' step 1 (its refused mint — `assertCapability` precedes `TOKEN_CAPABILITY_FORBIDDEN`). Each sends a reason now. **NOT RUN**:
+   driver 1, or real repositories — `s6-edge-proof.sh`, Rich's.
+4. **F4 — the authz table's `admin` is a MEMBER administrator** (the removal row's target, never removed: the step-up refuses it) — but not of
+   the throwaway projects the archive, restore and delete rows use, which went red `400` at first. `adminIsMember` makes the throwaways add
+   `platform_admin` too; the reason's measurement (after the archive) takes the administrator off and flips it.
+5. **F5 — four rehearsal tests acted as a non-member administrator** (`delivery.test.ts` ×3, `agents.test.ts` ×1) and answered `400`; each sends
+   a reason, as a real administrator must.
+6. **F6 — a slip: a control restored with `git checkout --` on an UNCOMMITTED file** reverted every edit in it (the mock's scenario); re-applied
+   from the same script and re-verified. Controls run after the commit, as the plan says, for exactly this. TRAPS says so.
+7. **F7 — the review's I1, Important: shared work took the triggering request's actor.** The driver-2 mirror's observer reports every push a
+   commit's or build's sync finds — someone else's included — and the retirer's coalesced pass (`while (state.again)`) runs in whichever
+   request scheduled it first; both stamped that person (an administrator's reason included) on events nobody's request caused, against the
+   published *"null for a push to GitHub"*. **Fixed**: both run under `actingContext.exit`; tests red (actor and reason recorded) → green, each
+   with a positive control in the same test.
+8. **F8 — the review's I3, Important: `actor` could not tell an agent from its person**, while the guide said *"read `actor`, never the
+   sentence"* and §26 says a token's later actions name the token. **Fixed**: `EventActor.token` (`{ id, name } | null`), migration `0051`
+   (`actor_token_id` REFERENCES `delegated_tokens`, a CHECK that it names a person too); the replay equals the live frame.
+9. **F9 — the review's I2, Important — NOT FIXED, RICH'S (ORIENTATION §8 *Open*): an administrator who is a COLLABORATOR** deletes, archives,
+   restores, adds or removes people and promotes — none of which a collaborator can — with no reason and `asAdministrator: false`, because §26's
+   words exempt *"an administrator who is a member"*. Changing it changes §26's WHO, so it is his.
+10. **F10 — the review's minor, re-graded Important: a served sentence that was false** — *"a header sent when none is asked is ignored"*; it is in
+    every sender's fingerprint. Corrected.
+11. **F11 — the review's minor, re-graded Important: the mock's scenario signed in a MEMBER** (`getMe` `member`, `ME` in `listMembers`), so a
+    front-end offering the field to a non-member administrator would never show it. It signs in `Operator One` now.
+12. **F12 — the plan's operator-line test was not written** (Global Constraints: a reason never on stderr). Written; green on arrival, and red
+    with the header put on `sendRefusal`'s line.
+13. **F13 — the first whole-suite run found 15 reds the targeted runs had not reached** (the lean budget's cost, named): `module-boundaries`
+    (`route.ts`, `server.ts` and `authz.ts` imported `observability/acting.js` by a deep path — now the module's index, the same binding),
+    and 14 cases where `platform_admin` acts on a project they are not a member of — `lifecycle.test.ts` ×2, `person-only.test.ts` ×3, and
+    `launchedCwlProject`'s rehearsal (`api/testing.ts`) under nine `subsequent-releases.test.ts` cases — each now correctly `400
+    ADMIN_REASON_REQUIRED`. Each sends a reason (`efcaaeb`). *Before trusting a targeted set for a change like this, grep the tests that
+    sign in the administrator.*
+
+**Not findings, but recorded:**
+- **`[M5]` held exactly**: the declared set is the 24, and `authz-contract.ts` pins the list.
+- **Rulings** (the ledger has each with its cost): the check in `assertCapability` (F1) and its order; `Acting` carries the names (read once,
+  before any transaction) and the offered reason; `refusedWithoutAdminReason(capability)`, reads exempt; the percent-decoding (F2); `actor.name`
+  the PERSON, the token on `actor.token`; the admin sentence appended in `recordEvent`; a second CHECK; the reason in the fingerprint only when
+  sent; a `quota:set` question is the administrator's own duty; no red test for prose.
+- **Deferred minors** (the ledger has each): the check fails OPEN with no acting context (no such mutating route today); the mock refuses a
+  `quota:set` confirm the platform exempts; the console's panel hides when `listMembers` fails; stale comments that `audit.events` has no actor
+  column; `actorPhrase` rebuilt in `route.ts` and `NOBODY_NAMED` restated in `bus.ts`; tokens minted by non-member administrators BEFORE this
+  change act unasked until they expire.
+
+**Negative controls**, each committed first, its break asserted to match once, and restored:
+- **(a)** membership `null` for administrators → RED at 28: the member-administrator case and 27 `authz-contract` `admin` rows (every
+  owner-capability mutation — the table's member-administrator column); the measurement stayed green (its administrator is a non-member either
+  way). Predicted.
+- **(b)** the reason dropped from `hashOf` → RED at exactly 2: the replay case and the idempotency unit case. Predicted.
+- **(c)** `recordEvent` reads no context → RED at exactly 5, every case asserting `actor`; the three sentence cases stay green (`withActor` reads
+  the context itself). Predicted.
+- **The fix pass**: I1's two cases and I3's four were RED before their fixes; the operator-line test RED with the header on the line; the mock
+  scenario RED with its check disabled; the console's case RED before its middleware.
+
+**The gates at the close.**
+- **`pnpm test` twice on the final tree (`efcaaeb`): 3277 in 200, identical** — 903.7 s and 902.3 s, at load 2–4. The run before them, on
+  `8481440`, was 15 red in 3277 (F13). `EXPECT_TESTS` moves 3258 → **3277** and `EXPECT_FILES` 199 → **200** (`scripts/ci-acceptance.sh` says
+  where the 19 came from).
+- **`pnpm test:docker`: 273 in 42, green, TWICE** — on `1312504` (1202 s, beside the reviewer) and on the fix pass `8481440` (1201 s; it touched
+  `releases/`, `projects/` and `observability/`). Unchanged since sitting 4: no `*.docker.test.ts` changed. Each started with 13 networks and
+  ended with 20. **No third tier for `efcaaeb`** (a ruling): its only change in a Docker-owed directory is `projects/authz.ts`'s import path,
+  the same binding.
+- `pnpm lint`, `pnpm typecheck` (every workspace) and `pnpm format:check` are clean.
+- **`make doctor` 21, 0 warnings; `make verify` 64, 0 warnings**, after the restart.
+- **The contract is still `1.6.0`**, its `dist/` rebuilt (`EventFrame.actor` with `token`).
+- **NOT RUN, and Rich's:** `s6-edge-proof.sh` — Task 10 through the edge, and the three demos whose operator now sends a reason (F3).
+
+**The machine at the close** (queried at ~08:55 PDT, not remembered):
+- **The control plane: PID 80905 on 7100, REAL GitHub** (`api.github.com`, `Manifest-local-dev`), built from `efcaaeb` and started from `.env`,
+  as it was found. That restart was ALLOWED. Its boot line: the capable model registered, its fallback set. Migrations `0050` and `0051` applied.
+- **The control database:** 0 users, 0 projects, 0 tokens (`psql`), after the tiers and the runs.
+- **Containers:** 10 `manifest-` and 3 rowless `mf-token-app-*` (sitting 3's, still Rich's; not retried). **13 Docker networks**, as found.
+- **The three cleanup scripts ran bare, then with `--apply`, twice (between the tiers and at the close), and none was refused:** each time 7
+  networks and 1 volume (the tier's), 2 LiteLLM orphans (`mf-platform-intake`, `p4b-probe-user`) and 14 app images. Re-run, each reads 0
+  dead. 12 orphan driver-2 mirrors, named, never removed.
+- **The four protected containers are up.** `docker-simple-saml` is clean but for its long-standing untracked `cert.zip`.
+- **7102 and 7105 are the faculty front-end's** (mock mode). Nothing listens on 7194–7199. Free disk 59 → 55 GiB (`snapshot-machine.sh`).
+- **The shared HTML pages and the spec were checked:** none mentions audit, a reason or an actor; the spec is unchanged; **a fifth spec action
+  is PROPOSED and HELD FOR RICH** (Spec action 5, above).

@@ -195,8 +195,14 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # a removal and an archive each ending a waiting question with one event, two positive controls, the cap at the token's expiry, and
 # the review's I1 — an ask racing its token's end records nothing, twice, with a positive control), `api/tokens.test.ts` (1: mintedBy)
 # and `runtime/docker/hardening.test.ts` (1: Init). Measured twice on the final tree, 3258 in 199.
-EXPECT_TESTS=3258
-EXPECT_FILES=199
+# Then its sitting 6 (2026-10-03, §26's administrator reason): +19, one new file — `api/admin-reason.test.ts` (13, new: who is asked and
+# who is not, the fingerprint, the mint, the limit, the percent-decoding, a quota question, the operator line, the stream's actor, the
+# redaction, the owner's positive control and its replay, the three sentences, a token's act), `api/authz-contract.ts` (1: the reason
+# declared exactly where a non-member administrator is answered it — `[M5]`'s 24), `api/idempotency.test.ts` (1),
+# `releases/retire.test.ts` (1) and `projects/source-events.test.ts` (1: shared work names nobody), `mock/src/scripted.test.ts` (1) and
+# `console/src/api.test.ts` (1). Measured twice on the final tree, 3277 in 200.
+EXPECT_TESTS=3277
+EXPECT_FILES=200
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 

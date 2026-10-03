@@ -437,6 +437,7 @@ an instance (and keeps an earlier failed one), staging runs one, production none
 | `MANIFEST_MOCK_REHEARSAL` | `passed` | FE-40 (4): `failed` — `runRehearsal` answers `200` with `passed: false` and its evidence, and the checklist's item is unmet |
 | `MANIFEST_MOCK_STEP_UP` | unset | FE-40 (2): `1` — a production deploy and a production secret are `403 STEP_UP_REQUIRED` until the browser visits `/auth/step-up?returnTo=…`, which sets a ten-minute cookie and redirects back |
 | `MANIFEST_MOCK_QUEUE` | `default` | `full` (with `MANIFEST_MOCK_ROLE=admin`): `listQueue` holds one item of each kind, the three beyond `mock-app`'s on projects the mock does not hold (their links answer its `404`) |
+| `MANIFEST_MOCK_ADMIN_REASON` | unset | the faculty-ready plan's Task 10: `1` — `getMe` is *Operator One*, an administrator who is NOT a member of `mock-app`, so every operation the document declares `Manifest-Admin-Reason` on is `400 ADMIN_REASON_REQUIRED` without it (or past 500 characters); the reason is part of the mock's idempotency hash |
 | `MANIFEST_MOCK_SCAN_MS` | `10000` | §12's silent scan window (below). Shorten it in a test |
 
 **What the scripted stream does, and why each part is there.** On subscribe it replays the

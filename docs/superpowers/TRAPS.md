@@ -2522,3 +2522,23 @@ reached the console or `app` with `manifest_session`, `manifest_login` or `manif
 - **`app.inject` applies no cookie-prefix rule**; a unit test that wants to know what a browser KEEPS reads `res.cookies` through
   `api/testing.ts`'s `browserKeeps` (a `__Host-` cookie that is not Secure, `Path=/` and host-only is dropped — and so is its CLEAR).
 - **`loginAs` hands back the HTTPS jar** (`{ '__Host-manifest_session': … }`) and throws for a server whose first origin is http.
+
+**A PLATFORM ADMINISTRATOR WHO IS NOT A MEMBER IS ASKED WHY, SINCE 2026-10-03** (the faculty-ready plan's sitting 6, §26, `beb4827`). Any
+mutating `/v1` request where `platform_admin` (or `operator` on the laptop) uses an OWNER's capability on a project they are not a member of
+is `400 ADMIN_REASON_REQUIRED` unless it carries `Manifest-Admin-Reason`. So:
+- **a test or demo acting as the administrator on somebody else's project sends `'manifest-admin-reason': '…'`** — the rehearsal tests in
+  `delivery.test.ts` and `agents.test.ts`, `lifecycle.test.ts`'s archive and delete, `person-only.test.ts`'s probes and mint,
+  `api/testing.ts`'s `launchedCwlProject` (its rehearsal), and `make demo-production`/`demo-launch`/`demo-releases`
+  (`packages/journey/src/`) had to — the first five found only by the WHOLE suite, so grep the tests that sign in `platform_admin` before
+  trusting a targeted set; a
+  test that sees a new `400` where it expected `STEP_UP_REQUIRED` or `TOKEN_CAPABILITY_FORBIDDEN` met this, because the reason is asked in
+  `assertCapability`, after the capability and BEFORE the archived state, the step-up and any handler check;
+- **the authz table's `admin` is a MEMBER administrator** (a collaborator of the fixture and, through `adminIsMember`, of every throwaway),
+  so its column needs no reason; the reason's own measurement is the table's last `it`, after the archive;
+- **a header carries only Latin-1**: a browser's `fetch` and Node's (undici) THROW on `—` or `é` in one. Send the reason
+  `encodeURIComponent`-ed; the platform decodes it (and takes an invalid encoding as sent). Keep a TEST's reason ASCII anyway: `app.inject`
+  sends what a real client could not;
+- **an administrator's own duties are not asked**: approving or rejecting a release, recording UBC's answers, a `quota:set` question —
+  and nobody is asked on a GET.
+- **`git checkout -- <file>` to undo a control on an UNCOMMITTED file reverts every edit in it**, not just the break (sitting 6 lost its mock
+  edits that way, and re-applied them). Run a control after the commit, as the plans say.

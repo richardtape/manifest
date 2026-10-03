@@ -79,7 +79,7 @@ sitting's own measurements — times, loads, what was owed — are in its plan's
 | Gate | What it reads now |
 |---|---|
 | `pnpm test` (from the **repo root**) | **The count is `EXPECT_TESTS` / `EXPECT_FILES` in `scripts/ci-acceptance.sh`**, 0 skipped. **~12–14 min a run** (737 s, 2026-09-30) — up from ~240 s before the D5 plan's sitting 6, because every driver-1 push in the suite runs the rendered secret-scanning hook. **Run it twice, identical, on the FINAL tree at every close** (`make ci-acceptance`'s run counts as one), and single files while working (§8 *Decided*: the LEAN budget). It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`** (§3); `--project packages` alone has no global setup and truncates nothing. **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **273 tests, 0 SKIPPED, 42 files** (2026-10-03, the faculty-ready plan's sitting 4 — THE ONE STATEMENT OF THIS NUMBER: the whole tier on `0d5a743`, 1207 s, 273 green — +2 on 271: `ai/fallback-guard.docker.test.ts`'s `KNOWN (F8)` case became the fixed `422` case plus a STREAMED one, and `runtime/docker/hardening.docker.test.ts` gained the init's readback. Started with 15 networks, ended with 20. The review's fix `d8ce094` touched `tokens/` and `api/` only, which the tier does not own). **~20–23 min**; owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — **fails rather than skips**, and **outlasts the agent's 10-minute tool limit: run it in the background, never beside a Vitest run.** **Count `docker network ls -q | wc -l` first**: Docker Desktop's default pools hold ~31 and the tier needs 7 (TRAPS.md). **It refuses to start from a shell with `MANIFEST_SOURCE_DRIVER=github` and a real `MANIFEST_GITHUB_*_URL`** (`src/test-tier-guard.ts`). It restarts the edge (dropping every runtime route), truncates the tables, re-registers the platform's SP row, and its own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — so **afterwards: restart the control plane with `.env`, run the three cleanup scripts** (it leaves ~7 dead app networks, a volume and ~13 app images), **then `make verify`** — a host that cannot reach the edge after it (`curl: (35) … reset by peer`) is fixed by `docker restart manifest-caddy`. The on-premise model `qwen3.8:27b`'s loads cost ~100 s of it. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test:docker` | **273 tests, 0 SKIPPED, 42 files** (2026-10-03, the faculty-ready plan's sitting 6 — THE ONE STATEMENT OF THIS NUMBER: the whole tier twice, on `1312504` (1202 s) and on the review's fix `8481440` (1201 s, which touched `releases/`, `projects/` and `observability/`), 273 green each time — unchanged since sitting 4, because no `*.docker.test.ts` changed. Each run started with 13 networks and ended with 20). **~20–23 min**; owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — **fails rather than skips**, and **outlasts the agent's 10-minute tool limit: run it in the background, never beside a Vitest run.** **Count `docker network ls -q | wc -l` first**: Docker Desktop's default pools hold ~31 and the tier needs 7 (TRAPS.md). **It refuses to start from a shell with `MANIFEST_SOURCE_DRIVER=github` and a real `MANIFEST_GITHUB_*_URL`** (`src/test-tier-guard.ts`). It restarts the edge (dropping every runtime route), truncates the tables, re-registers the platform's SP row, and its own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — so **afterwards: restart the control plane with `.env`, run the three cleanup scripts** (it leaves ~7 dead app networks, a volume and ~13 app images), **then `make verify`** — a host that cannot reach the edge after it (`curl: (35) … reset by peer`) is fixed by `docker restart manifest-caddy`. The on-premise model `qwen3.8:27b`'s loads cost ~100 s of it. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **The count is `EXPECT_DOCTOR` in `scripts/ci-acceptance.sh`**, 0 failed and 0 warnings expected. The faculty front-end's server on 7105 counts as the platform's by its marker (`GET /api/__doctor` → `manifest-app`). **The vulnerability database is fresh until 2026-10-06** (refreshed by Rich 2026-09-29, `make refresh-vulndb`, ~1–3 min, the network on); after that doctor warns, and §13's `scans` item refuses every production launch until it is refreshed (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **The count is `EXPECT_VERIFY` in `scripts/ci-acceptance.sh`**, 0 failed and 0 warnings expected — among them that the running LiteLLM loaded the fallback guard, `app.manifest.internal`'s four, and the GitHub fake's two (static, whether or not it runs). Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line counts `mf-` containers, networks and volumes (all 0 at the launch path plan's sitting 5's close, after Rich removed the 42 orphan apps). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. **Since the launch path plan's sitting 5b its admin phase steps up before the rehearsal** — the un-stepped refusal kept as a check — and asserts the public wildcard and a `gone` instance after it. Last green 2026-09-30, FRESH (47 s; the rehearsal 8.8 s) and re-use (4 s), on driver 1 (sitting 5b) |
@@ -148,7 +148,8 @@ keeps the number as that sitting left it, dated.
 
 **The spec is current. ALL FOUR of the faculty-ready plan's spec actions were APPLIED 2026-10-03 at its sitting 2's open** — 2 (§25,
 `listed`) and 3 (§20, the request id and a limit's facts), built by sitting 2; 4 (§12, an init), by sitting 4; 1 (§26 and §6, the
-administrator's reason), by sitting 6 — **and the code has caught up with every spec action before them** — the last two, **Spec action 5** (§6, §13,
+administrator's reason), by sitting 6 (2026-10-03) — **and a FIFTH, §26 for an administrator who is a collaborator, is PROPOSED by sitting 6
+and HELD FOR RICH** (the plan's Spec action 5; §8 *Open*) — **and the code has caught up with every spec action before them** — the last two, **Spec action 5** (§6, §13,
 §26 — the sign-off request and its queue; `844605b`, his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md)) and **Spec action
 10** (§6 — `IamRegistration.change_requested_from`, from his decision on `change_requested`), in the launch path plan's sitting 9
 (`a1d4baa`, `a230c1a`, 2026-10-01). Earlier ones caught up in sittings 5b (Spec action 8, `3333acc`), 6 (3 and 9), 7 and 8 (4), and Mailpit
@@ -412,6 +413,15 @@ defect even when every test is green.**
 
 **Data, secrets and audit**
 
+- **EVERY EVENT NAMES WHO ACTED, AND AN ADMINISTRATOR ON SOMEBODY ELSE'S PROJECT SAYS WHY** (§26, Spec action 1; the faculty-ready plan's
+  sitting 6, `beb4827`, `8481440`). A platform administrator who is not a member, using an owner's capability in a mutating request, sends
+  `Manifest-Admin-Reason` (1–500 characters; percent-encoded UTF-8 decoded) or is refused `400 ADMIN_REASON_REQUIRED` — in `assertCapability`,
+  after the capability and before the archived state; reads, `ADMIN_DUTIES` and a member are not asked. `registerRoutes` enters an
+  `AsyncLocalStorage` acting context (`observability/acting.ts`) for every MUTATING request, and `recordEvent` — the one writer — stores
+  `actor_user_id`, `actor_token_id`, `acted_as_admin` and the redacted `reason`; `EventFrame.actor` carries them, live and on the replay.
+  **Work no one request caused names nobody**: the mirror's observer and the retirer's coalesced pass run under `actingContext.exit`, so a
+  long-lived job started inside a request must too, or it stamps that request's person on other people's events. The reason is in the
+  idempotency fingerprint, and a token is asked it once, at its mint.
 - **A PROJECT'S `name` IS WHAT PEOPLE READ AND NOTHING ELSE** (the front-end enablement plan's sitting 5): the slug when
   none is given, one visible line of at most 80 characters with no control character, line separator or bidirectional
   mark, changed by `updateProject` — and it reaches no hostname, SP entity, Docker name or repository: every one of those
@@ -1847,78 +1857,73 @@ named in the row below.*
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
 | **Launch path** | [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md) — **EXECUTED 2026-10-02**, nineteen tasks in fourteen sittings | `make demo-launch` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 16 of the offline acceptance; a step of `make ci-acceptance`; its controls seen red; the real leg; **a launch clicked by a person** | **Sitting 12's F1 is the one to read**: a control plane that answered `/v1/me` was dead — ten advisory-lock holders on the query pool deadlocked the boot, found only because a control restarted it with twelve environments; and its first fix still deadlocked under NESTED holders, found by the plan's one whole-branch review |
-### 7e. The faculty-ready plan's sitting 6 (Task 10, §26's administrator reason) — PULLED AHEAD OF SITTING 5 BY RICH ← **START HERE**
+### 7e. The faculty-ready plan's sitting 5 (Tasks 7 and 9 — `node:24-alpine` and the IdP store's own role) ← **START HERE**
 
 **The faculty-ready plan is IN PROGRESS** ([`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md); approved 2026-09-30). It is
 **executed inline**, at Rich's word (`superpowers:executing-plans`; the ledger is `.superpowers/sdd/2026-09-30-faculty-ready/progress.md`).
-- **Sittings 1, 2 and 3 are DONE** (2026-10-02/03; each one's *Sitting N* is the record). **The contract is `1.6.0`. All four spec actions are APPLIED.**
-- **Sitting 4 is DONE** (2026-10-03, a background agent of `manifest-3d`; its *Sitting 4* is the record): Tasks 6, 8 and 13 — `5effd5e`, `2dd6fdd`,
-  `0d5a743`, with the review's fix `d8ce094` (an ask racing its token's end records nothing, `401`).
-  - **A provider's `422` answers `422`, streamed too** (`infra/litellm/manifest_guard.py`'s two new hooks; `manifest-litellm` restarted on them).
-  - **App containers run an init** (`Init: true`): orphans reaped, a stop ends on SIGTERM in under a second.
-  - **A token's questions end when it does** (revoke, removal, archive — one `pending_action.expired` each, naming the person; the clock is
-    silent; a question never outlives its token) and **`Token.mintedBy`**. Migration `0049`. **Still `1.6.0`**, additive.
-  - **Its demos through the edge are Rich's script** (item 1 below): they are driver 1's, and 7100 runs real GitHub.
+- **Sittings 1, 2, 3, 4 and 6 are DONE** (2026-10-02/03; each one's *Sitting N* is the record). **The contract is `1.6.0`. All four spec actions are APPLIED.**
+- **Sitting 6 is DONE** (2026-10-03, a background agent of `manifest-3d`, pulled ahead of 5 by Rich; its *Sitting 6* is the record): Task 10 —
+  `beb4827`, `1312504`, the review's fixes `8481440`, and `efcaaeb` (what the first whole-suite run found).
+  - **A platform administrator who is not a member, using an owner's capability, sends `Manifest-Admin-Reason`** or is refused
+    `400 ADMIN_REASON_REQUIRED` — checked in `assertCapability`, before the archived state and the step-up; the 24 operations declare it.
+    **A test or demo acting as `platform_admin`/`operator` on somebody else's project must send one** (TRAPS, the newest entry).
+  - **`audit.events` gains `actor_user_id`, `acted_as_admin`, `reason`, `actor_token_id`** (migrations `0050`, `0051`); **`EventFrame.actor`**
+    (`{ name, asAdministrator, reason, token } | null`) is on every frame; deploy, build and validate name who acted.
+  - **Its through-the-edge half is Rich's script** (item 1 below), and **I2 is his question** (item 2).
 
-**THE ORDER, BY RICH'S NIGHT DECISION (2026-10-03, ~01:10, `2026-09-30-decisions.md`): sitting 6 BEFORE sitting 5** — a re-cut of the order only;
-no task moved. **Sitting 5 (Tasks 7 and 9) follows sitting 6**, and both of its Rich-steps are already his: **`make seed` with the network on is
-PRE-AUTHORISED** (node:24-alpine pulled and mirrored), and **`SSP_STORE_PASSWORD` is already in `.env`** (Rich added it before bed; never print it).
-**No agent starts after 08:00 PDT, 2026-10-03** — a sitting not started by then waits for Rich.
+**SITTING 5 IS TASKS 7 AND 9** (the plan's `## Task 7` and `## Task 9`; no spec action). **Both of its Rich-steps are already his, by his night
+decision** (2026-10-03, ~01:10, `2026-09-30-decisions.md`):
+- **Task 7: `make seed` with the network ON is PRE-AUTHORISED** (it pulls `node:24-alpine` and mirrors it into the local registry). Step 1's
+  doctor check is red first; read the registry's single-arch digest for `24-alpine` after the seed; both descriptors move to it.
+- **Task 9: `SSP_STORE_PASSWORD` is ALREADY in `.env`** (Rich added it before bed; never print it). Step 2 is therefore done: after Step 1's red checks, go on to Step 3.
+  **Everyone signs in to the IdP again** after the `public` tables are dropped; say so in the record.
+- **The Docker tier is owed** (`build/`, `blueprints/`, `infra/`). Task 7's Step 4 asks for `make demo`, `make demo-identity` and `make demo-ai`
+  — **driver 1's demos, and 7100 runs real GitHub**: as sittings 3, 4 and 6 found, the restart onto driver 1 is refused to an agent
+  (*"Modify Shared Resources"*), so they go into a morning script for Rich in the shape of `s6-edge-proof.sh`.
+- **No agent starts after 08:00 PDT, 2026-10-03** (Rich), and sitting 6 closed after it — **so sitting 5 waits for Rich's word to start.**
 
-**Sitting 6 is Task 10 alone** (the plan's `## Task 10`; Spec action 1, §26 and §6, is APPLIED):
-- a non-member administrator using an owner's capability gives a reason (`Manifest-Admin-Reason`, refused `400 ADMIN_REASON_REQUIRED`), in the
-  idempotency fingerprint, asked once at a token's mint;
-- `audit.events` gains `actor_user_id`, `acted_as_admin` and `reason` (a migration — after sitting 4's `0049`);
-- the project's stream shows who acted and why (`EventFrame.actor`), and deploy, build and validate start naming who acted.
-- **`[M5]`'s matrix is 24**; decide and write down the `quota:set` confirm case (Task 10's head).
-- **If it runs long, stop after Step 6 and finish in a sitting 6a** (the plan says so).
-- **The Docker tier is owed** (`projects/`, `observability/`, `releases/`, `api/`). **The front-end is told** (`EventFrame.actor` grows 1.6.0)
-  BEFORE the commit that changes `packages/contract` or `packages/mock`.
-- **Sitting 4's event `pending_action.expired` names its actor as `by`** (Decision 17's design), not the `via`/`userId`/`tokenId` triple; Task 10's
-  `EventFrame.actor` applies to it like every other event.
+**IN THE FIRST MESSAGE — Rich's, if he is there** (none blocks sitting 5):
+1. **Three through-the-edge scripts, if not yet run** — each restarts 7100 on driver 1 and restores it as found (real GitHub) with `make verify`;
+   run them one after the other, then the three cleanup scripts bare and `--apply`:
+   - `! bash .superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh` (sitting 3's `__Host-` cookies at the edge; ~10–12 min);
+   - `! bash .superpowers/sdd/2026-09-30-faculty-ready/s4-edge-proof.sh` (sitting 4's demos and Task 13's control (a); ~12–15 min);
+   - `! bash .superpowers/sdd/2026-09-30-faculty-ready/s6-edge-proof.sh` (**sitting 6's**: the operator renames the instructor's project
+     without a reason — `400 ADMIN_REASON_REQUIRED` — and with a percent-encoded one; the instructor's stream and the audit row; then
+     `make demo-production`, `demo-releases` and `demo-launch`, whose operator now sends a reason; ~10–15 min).
+2. **§26's reason for an administrator who is a COLLABORATOR** (sitting 6's review, I2) — ORIENTATION §8 *Open*, at code level there. Today any
+   member is exempt (Spec action 1's words), so an administrator-collaborator deletes, archives, manages members and promotes with no reason
+   and no flag. Recommended: (a) exempt only what the member's own role grants — one condition in `requireAdminReason`, and a spec action
+   for §26's *"acts as a member"*.
+3. **`token-app`'s three rowless containers** (still): `docker rm -f -v mf-token-app-staging-814bed02-044397bd-app mf-token-app-staging-egress
+   mf-token-app-staging-db`, then `bash scripts/dead-app-resources.sh --apply` and `bash scripts/litellm-orphans.sh --apply`.
+4. **`make refresh-vulndb` is due after 2026-10-06** (the network on). Sitting 7's acceptance launches.
+5. **Three real repositories in `Manifest-local-dev` belong to no project** (`f6-watch`, `keep-walk-1002`, `f6b-measure-1`), and 12 orphan
+   driver-2 mirrors in `.manifest/repos` (`dead-app-resources.sh`). Removing them is his (`bash scripts/github-real-repos.sh`).
 
-**IN THE FIRST MESSAGE — Rich's, if he is there** (none blocks sitting 6):
-1. **Two through-the-edge scripts, if not yet run** — each restarts 7100 on driver 1 and restores it as found (real GitHub) with `make verify`:
-   - `! bash .superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh` (sitting 3's: the `__Host-` cookies at the edge, three demos,
-     control (c); ~10–12 min);
-   - then `! bash .superpowers/sdd/2026-09-30-faculty-ready/s4-edge-proof.sh` (sitting 4's: `make demo-redeploy`, `make demo-token` with its
-     new step 9, `make demo-frontend`, and Task 13's control (a) at the edge; ~12–15 min).
-   - Then the three cleanup scripts, bare and `--apply`.
-2. **`token-app`'s three rowless containers**, left by `make demo-token` before sitting 3 and refused to its agent (*"Interfere With
-   Workloads"*); sitting 4 did not retry. Still Rich's: `docker rm -f -v mf-token-app-staging-814bed02-044397bd-app mf-token-app-staging-egress
-   mf-token-app-staging-db`, then `bash scripts/dead-app-resources.sh --apply` and `bash scripts/litellm-orphans.sh --apply` (one network, two
-   volumes, one LiteLLM user).
-3. **`make refresh-vulndb` is due after 2026-10-06** (the network on, ~1–3 minutes). Sitting 7's acceptance launches.
-4. **Three real repositories in `Manifest-local-dev` belong to no project**: `f6-watch`, `keep-walk-1002` and `f6b-measure-1` (sitting 2's count;
-   listing them reads GitHub). There are also 12 orphan driver-2 mirrors in `.manifest/repos` (`dead-app-resources.sh`, measured at sitting 4's close). Removing them is his (`bash scripts/github-real-repos.sh`).
-5. *Optional:* sitting 1's F1 — whether to keep Decision 7 (cookie names by scheme). Sitting 3 kept it on the recommendation.
-
-**THE MACHINE, AS SITTING 4 LEFT IT.** Queried at ~06:40 PDT on 2026-10-03, not remembered.
-- **The control plane:** PID 46140 on 7100, **REAL GitHub** (`Manifest-local-dev`), built from `d8ce094` and started from `.env` (the machine
+**THE MACHINE, AS SITTING 6 LEFT IT.** Queried at ~08:55 PDT on 2026-10-03, not remembered.
+- **The control plane:** PID 80905 on 7100, **REAL GitHub** (`Manifest-local-dev`), built from `efcaaeb` and started from `.env` (the machine
   as found). Its boot line: the capable model registered, its fallback set.
-- **`manifest-litellm` runs the guard with F8's two hooks** (host and container sha256 equal); its restart was ALLOWED three times.
-- **The control database:** 0 users, 0 projects (`psql`). Migration `0049` is applied. Sitting 6's first Vitest run truncates it anyway.
-- **Containers:** 10 `manifest-` and 3 rowless `mf-token-app-*` (item 2); **13 Docker networks**. Otherwise the three cleanup scripts read 0 dead.
+- **`manifest-litellm` runs the guard with F8's two hooks** (sitting 4's), untouched by sitting 6.
+- **The control database:** 0 users, 0 projects (`psql`). Migrations `0050` and `0051` are applied. Sitting 5's first Vitest run truncates it anyway.
+- **Containers:** 10 `manifest-` and 3 rowless `mf-token-app-*` (item 3); **13 Docker networks**. Otherwise the three cleanup scripts read 0 dead.
   - **Count `docker network ls -q` before the Docker tier**: Docker Desktop's pools hold ~31, and the tier needs 7.
 - **`make doctor` 21 and `make verify` 64**, both 0 warnings, at the close. **The four protected containers are up.**
-- **The contract's `dist/` is built from `d8ce094`.**
+- **The contract's `dist/` is built from `8481440`** (nothing in `packages/contract` changed after it).
 - **7102 and 7105 are the faculty front-end's** (mock mode). **Nothing listens on 7194–7199.**
 
 **THE PEER SESSIONS** (`ListAgents` immediately before every promised message):
 - **The night shift (2026-10-03):** `manifest-3d` co-ordinates. **Every hold, free and notice for the front-end goes to it, starting HOLD
   or FREE**, and the same word goes into the scratchpad flag file it names (`platform-window`).
 - **Otherwise:** the front-end's live `manifest-app-*` session. It asks for a message BEFORE any Vitest run, Docker tier, `make verify`, or
-  edit or commit to `packages/contract` or `packages/mock`, and at the close.
-  - Its repository is `~/Developer/manifest-app`; never edit it.
-- **The front-end was told** sitting 4's NOTICEs: the gateway's streamed `422` (JSON before any stream), `Token.mintedBy`, `pending_action.expired`,
-  and that its *[Revoke]*-then-reject step can go (each reject now answers `409 PENDING_ACTION_RESOLVED`).
+  edit or commit to `packages/contract` or `packages/mock`, and at the close. Its repository is `~/Developer/manifest-app`; never edit it.
+- **The front-end was told** sitting 6's NOTICEs: `EventFrame.actor` (with `token`), `Manifest-Admin-Reason` and `400 ADMIN_REASON_REQUIRED`,
+  the three sentences, `actor: null` for sync-found pushes and the retirer, and the mock's `MANIFEST_MOCK_ADMIN_REASON=1` (Operator One).
 
-**WHERE SITTING 6 STOPS, AND HOW IT ENDS:** it stops after Task 10, committed with its three negative controls (or after Step 6, as a 6a).
-Then the plan's own close:
+**WHERE SITTING 5 STOPS, AND HOW IT ENDS:** it stops after Tasks 7 and 9, each committed with its negative control. Then the plan's own close:
 - the four gates (`pnpm test` twice, alone, on the final tree);
 - the Docker tier, in the background, never beside a Vitest run;
-- *What executing this plan found*, *Sitting 6*;
-- the sittings table (the `← next` marker to sitting 5);
+- *What executing this plan found*, *Sitting 5*;
+- the sittings table (the `← next` marker to sitting 7, the acceptance);
 - this §7e, REPLACED;
 - the cleanup scripts, bare and then `--apply`;
 - the front-end told.
@@ -1941,6 +1946,20 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 reasoning is recorded.**
 
 ### Open
+
+- **§26'S REASON FOR AN ADMINISTRATOR WHO IS A COLLABORATOR — RAISED 2026-10-03 by the faculty-ready plan's sitting 6's fresh review (its
+  I2; the plan's *Sitting 6*, F9).** *Today* (`beb4827`): `projects/authz.ts`'s `requireAdminReason` returns as soon as `projectRole !== null`
+  — any member is exempt, as Spec action 1 worded §26 (*"An administrator who is not a member of a project … additionally gives a reason"*;
+  *"an administrator who is a member of the project acts as a member"*). But `capabilitiesFor(projectRole, 'admin')` gives an administrator
+  `PLATFORM_ADMIN` WHATEVER their project role, so an administrator who is a COLLABORATOR can delete, archive or restore the project, add or
+  remove people (the owner included) and promote a release — none of which a collaborator can — with no reason, and the event reads
+  `asAdministrator: false`. *Options*:
+  - **(a) — recommended** — exempt a member only for what their own role grants: `requireAdminReason` refuses when
+    `!capabilitiesFor(projectRole, 'member').has(capability)` as well (one condition; the declared 24 are unchanged; such an act is then flagged
+    and carries its reason). Needs a spec action — **drafted as the plan's Spec action 5, PROPOSED and HELD FOR RICH** (`manifest-3d`: not
+    minor), with the exact old and new words.
+  - **(b)** — keep §26 as worded: any member, any capability, no reason.
+  *Cost to change course*: one condition and a test row each way.
 
 - **FE-46 — THE OWNER SENDS TO LTIC, NOT TO UBC: A STEP BETWEEN *DRAFT* AND *SUBMITTED*, LTIC TOLD, AND THE ASSESSMENT'S GAPS ANSWERED.
   RELAYED 2026-10-01, CONFIRMED THE SAME EVENING** — by the faculty front-end's F5b design session `manifest-app-d9`, at the launch path's sitting 9's close,

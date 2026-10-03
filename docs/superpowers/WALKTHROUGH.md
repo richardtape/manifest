@@ -285,7 +285,7 @@ again, and lasts ten minutes.
 | 8 | operator | **Queue**, then staging's **Record what UBC IAM said**: `active`, a ticket, **Registered attributes** exactly the package's list (the entity ID, ACS and SLO are filled from the draft) | `active`; it leaves the queue |
 | 9 | instructor | production: **Draft it**; **I've sent it** | recorded (before row 8 it is refused **`LAUNCH_STAGING_NOT_REGISTERED`**) |
 | 10 | operator | production's **Record what UBC IAM said**: `active`, the same attributes | `active`; **Request production** unmet only for the rehearsal and the sign-off |
-| 11 | operator | Overview → **Run the rehearsal** → *Confirm it is you* → the password → **Run the rehearsal** again | `passed` on the **public** listener, the attributes released against those registered, and taken down again |
+| 11 | operator | Overview → in *You are not a member of this project*, type why (*Rehearsing the launch the instructor asked for*) → **Run the rehearsal** → *Confirm it is you* → the password → **Run the rehearsal** again | without a reason, `400 ADMIN_REASON_REQUIRED` (an administrator who is not a member says why, since 2026-10-03); with one, `passed` on the **public** listener, the attributes released against those registered, and taken down again |
 | 12 | operator | **Queue** → the sign-off request → **Review this release** → **Approve for production** | `approved`, bound to the digest, exactly as previewed; the request leaves the queue |
 | 13 | instructor | Overview → **Deploy to production** → *Confirm it is you* → the password → again | `healthy`; `https://<name>.manifest.internal/` answers on the public listener; *Ready for production* reads launched |
 
