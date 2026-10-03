@@ -447,7 +447,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          The front-end's own documents (minors.md, its adoption note, api-findings.md) record them in its next session;
          this platform session does not edit ~/Developer/manifest-app.
 
-    And at ~13:15 PDT, the front-end's Q10 words (manifest-app-5a's draft, put to him by manifest-94 through the question
+    And at ~13:12 PDT, the front-end's Q10 words (manifest-app-5a's draft, put to him by manifest-94 through the question
     tool), for an act the platform marks EventFrame.actor.asAdministrator, in an app's history and "Since you were last
     here":
       - NAME THEM — "Name them (Recommended)": "Operator One, a Manifest administrator, switched it off, and said:
@@ -459,7 +459,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - THE REST — "Approve as drafted (Recommended)": one line per act (the same administrator and reason within an hour
         fold into one), the reason as typed, in ‘ ’.
 
-    And at ~13:40 PDT, the four questions of the FE-46/47/5 plan (docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md,
+    And at ~13:27 PDT, the four questions of the FE-46/47/5 plan (docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md,
     863ad0e, written by manifest-c7; put to him by manifest-94 through the question tool, each premise checked against
     the code first):
       - SITTINGS — "Five" (the plan's offered alternative, over the recommended six): Task 8, the clients, folded into
@@ -474,13 +474,13 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         @types/nodemailer as a devDependency if the plan needs it). STARTTLS and AUTH for UBC's relay come with it.
     The plan is being revised to these; Rich has not yet approved it as a whole.
 
-    And at ~13:55 PDT: manifest-b9 (sitting 5) found, after Task 16, that member.removed is published after the removal's
+    And at ~13:34 PDT: manifest-b9 (sitting 5) found, after Task 16, that member.removed is published after the removal's
     commit and is never recorded by the retry (api/routes/project-reads.ts:657); its claim that project.archived shares the
     defect was checked by manifest-94 and is wrong (publishArchivedOnce, releases/lifecycle.ts:338, publishes it from the
     retry or the boot). Put to Rich, with "track it for later" recommended — "Fix it in sitting 5 now": the faculty-ready
     plan's Task 16b, after Task 9, its design manifest-b9's (the sentence counts sessions ended after the commit).
 
-    And at ~14:05 PDT, on the revised FE-46/47/5 plan (2a72a13, five sittings, nodemailer), through the question tool:
+    And at ~13:37 PDT, on the revised FE-46/47/5 plan (2a72a13, five sittings, nodemailer), through the question tool:
       - THE PLAN — "Approve as revised (Recommended)". It runs after faculty-ready's sitting 7.
       - THE ADD — "Yes, as described (Recommended)": one networked `pnpm --filter @manifest/control-plane add --save-exact
         nodemailer`, tried --offline first; @types/nodemailer (-D, exact) only if nodemailer ships no .d.ts; allowBuilds
@@ -488,7 +488,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - THE MEASUREMENT — "Task 3, after the add (Recommended)": nodemailer against Mailpit is Task 3's [M3b], straight after
         the add; no second networked command. Over: a scratch install in sitting 1.
 
-    And at ~14:25–14:30 PDT, asked "Any decisions I can help with?", eight more, through the question tool, each premise
+    And at ~13:43–13:46 PDT, asked "Any decisions I can help with?", eight more, through the question tool, each premise
     checked against the code or the record first:
       - FE-32'S ALLOWLIST — "Yes, in this plan (Recommended)": FE-32's plan builds §12's package allowlist in its smallest
         faithful form (administrator-managed direct dependencies, seeded from the listed blueprints' skeletons; the resolve
@@ -516,7 +516,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         change request) waits for the assessment approved and staging active, as a first one does, until UBC says
         otherwise.
 
-    And at ~14:55 PDT, three shape questions of the load-rehearsal plan (manifest-c7, writing it; premises checked by
+    And at ~13:52 PDT, three shape questions of the load-rehearsal plan (manifest-c7, writing it; premises checked by
     manifest-94: none of §24's production table is built, nothing outside launch/readiness.ts reads the audience, so
     production runs one instance; the item sits in both readiness clauses), through the question tool:
       - WHAT THE REHEARSAL TESTS — "Build §24's capacity first" (over the recommended "rehearse what production actually
@@ -532,7 +532,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - WHEN IT RE-RUNS — "First launch + audience raised (Recommended)": at the first launch, and again when the audience
         is raised to large_course or public after launch; not on every release.
 
-    And at ~15:10 PDT, four more on §24's capacity and the load rehearsal (manifest-c7's proposals; premises checked by
+    And at ~13:56 PDT, four more on §24's capacity and the load rehearsal (manifest-c7's proposals; premises checked by
     manifest-94: IDLE_POLICY in runtime/state-machine.ts is applied by nothing, so nothing hibernates and production's
     policy is none; Driver.servingInstance answers one instance; the blueprint's sessions live in Mongo, connect-mongo
     6.0.0), through the question tool:
@@ -548,7 +548,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - THE EDGE'S RATE LIMIT DURING A REHEARSAL — "Exempt the generator's IP (Recommended)": for one run, the staging route
         skips its per-IP limit for the generator's own address alone; every other client keeps 600/min.
 
-    And at ~15:25 PDT, three on Plan A (manifest-c7's proposals), through the question tool, each as recommended:
+    And at ~13:58 PDT, three on Plan A (manifest-c7's proposals), through the question tool, each as recommended:
       - "A1 → B → A2": Plan A splits into A1 (production instances by audience, `make demo-capacity`) and A2 (hibernation
         and wake-on-request, `make demo-hibernate`); the order is FE-46/47/5 → A1 → B (the load rehearsal) → A2 → FE-32 →
         the vulnerability database → FE-45. Over: A1 → A2 → B; one Plan A.
@@ -557,3 +557,9 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         A spec action (§24, §26). Over: each project declaring its dates; UBC's Academic API (a later source).
       - PRE-WARM — "Record it as not built": named not built with its reason (only solo apps and class apps between terms
         can be cold at a burst); re-asked with the number if A2's measured cold wake is more than a few seconds.
+
+    A CORRECTION, at 14:03 PDT, by manifest-94: the times of this afternoon's entries above were first written as
+    manifest-94's estimates, which ran up to an hour and a half ahead of the clock (~13:40 to ~15:25 where the answers
+    came at ~13:27 to ~13:58). They are now corrected from the commits that recorded each answer (cb05240 13:28, 069cfb3
+    13:35, 7ac03f8 13:38, e93b814 13:47, 9bbd054 13:53, 5e62fe0 13:57, 1bc2568 13:59). Commit e93b814's subject still says
+    "~14:25"; the entry is right. The plans and the front-end that copied the estimates are told to correct theirs.

@@ -2015,19 +2015,19 @@ reasoning is recorded.**
 
 ### Decided
 
-- **THE ORDER AFTER *FACULTY-READY*, SINCE 2026-10-03 ~14:25 (Rich): FE-46/47/5 → THE LOAD REHEARSAL (§24; FE-44, *"Build the load rehearsal
+- **THE ORDER AFTER *FACULTY-READY*, SINCE 2026-10-03 ~13:43 (Rich): FE-46/47/5 → THE LOAD REHEARSAL (§24; FE-44, *"Build the load rehearsal
   first"*) → FE-32, WITH §12'S PACKAGE ALLOWLIST (*"Yes, in this plan"*) → THE VULNERABILITY DATABASE → FE-45.** The load rehearsal's and
-  FE-32's plans are being written by `manifest-c7`. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~14:25 entry.
+  FE-32's plans are being written by `manifest-c7`. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~13:43 entry.
 - **FE-45 — DECIDED BY RICH 2026-10-03: a `removed` state, placed after the vulnerability database** (*"A 'removed' state, after vuln DB"*):
   archived → removed, the owner's (person-only), off every list and `404` to its members, code, data, secrets and records kept; only an
   administrator lists, restores or deletes it for good once retention allows. Rejected: a `removedAt` filter. Needs a spec action (§6, §11,
-  §26) when its plan is written. Full text: `~/Developer/manifest-app/docs/api-findings.md`, FE-45. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~14:25 entry.
+  §26) when its plan is written. Full text: `~/Developer/manifest-app/docs/api-findings.md`, FE-45. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~13:43 entry.
 - **A RE-SUBMISSION AND UBC'S ORDER — DECIDED BY RICH 2026-10-03: KEPT UNIFORM** (*"Keep it uniform"*): a registration sent again, after a
   lapse or a change request, waits for the assessment approved and staging `active`, as a first one does, until UBC says a renewal goes
-  to production alone (one condition changes). [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~14:25 entry.
+  to production alone (one condition changes). [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~13:43 entry.
 - **THE APK MIRROR — CLOSED BY RICH 2026-10-03: none** (*"Close it: no mirror"*): its premise, that no newer base clears the
   `libcrypto3`/`libssl3` Criticals, is false since faculty-ready sitting 5 measured `node:24-alpine` at 0 Critical / 9 High. Revisit if a
-  Critical lands that no newer base image clears. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~14:25 entry.
+  Critical lands that no newer base image clears. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~13:43 entry.
 
 - **§26'S REASON FOR AN ADMINISTRATOR WHO IS A COLLABORATOR (sitting 6's review, I2) — DECIDED BY RICH 2026-10-03: (a)**, a member is asked
   no reason only for what their own role allows; beyond it they act as an administrator and give one. **Spec action 5 APPLIED** (§26,
