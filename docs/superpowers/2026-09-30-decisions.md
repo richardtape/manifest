@@ -391,3 +391,56 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         HTML pages swept, its commit alone; the morning report lists every one, so each is easy to revert. Anything that
         changes a decision of his, a security property, or a section's meaning is NOT minor and waits for him. A classifier
         refusal of a spec read or edit is still never worked around.
+
+# Rich's decisions — 2026-10-03, ~12:45 PDT (session manifest-94, the morning after the night shift)
+
+    Rich ran the night's three through-the-edge scripts (s3-, s4-, s6-edge-proof.sh) and the cleanup, and asked
+    manifest-94 to check them and to lay out the next steps. manifest-94 put four decisions to him, each with its
+    options and a recommendation, at code level. His words, answering all four: "I agree with all of your
+    recommendations for all of the above. Please proceed to document those." So, each as recommended:
+
+      1. §26'S REASON FOR AN ADMINISTRATOR WHO IS A COLLABORATOR (the faculty-ready plan's sitting 6's review, I2) —
+         (a): a member is asked no reason only for what their own project role allows. Beyond it (deleting, archiving or
+         restoring, managing people, promoting, as a collaborator) they act as an administrator and give one.
+         => The faculty-ready plan's Spec action 5 APPLIED as worded (§26, Non-repudiation). No shared page mentions audit
+         or a reason (checked by sitting 6), so none changes. The code is the plan's new Task 15, in sitting 5: one
+         condition in projects/authz.ts's requireAdminReason, refusing also when
+         !capabilitiesFor(projectRole, 'member').has(capability), and a test row each way. Rejected: (b) §26 as worded.
+
+      2. SITTING 4'S M1 — A REVOKE'S QUESTIONS-ENDED EVENTS CAN BE LOST AFTER ITS COMMIT — (a): fixed in sitting 5, as
+         the plan's new Task 16. publishQuestionsEnded runs after the transaction that revoked the token and expired its
+         questions; if it throws, the 500's retry finds nothing pending and the pending_action.expired rows are never
+         written. The fix: record the event rows inside the same transaction (recordEvent on the transaction) and push
+         them on the bus after the commit — at all three callers (api/routes/tokens.ts, project-reads.ts' member removal,
+         releases/lifecycle.ts' archive). Rejected: (b) sitting 7's fix wave (the acceptance should change no code);
+         (c) recorded and left.
+
+      3. FE-46, FE-47 AND FE-5'S SPEC ACTIONS (plans/2026-10-01-fe46-fe47-fe5-spec-actions.md) — their WORDS APPROVED as
+         drafted, with the recommended choices inside them:
+           - FE-46 (i): the Manifest team (LTIC) MAY hand a send back unsubmitted, to the state it was sent from
+             (sent_from);
+           - FE-46 (ii): EVERY gap in the assessment must be answered before it is sent; "does not apply" is an answer;
+           - FE-47: (a) active → sent, with sent_from: active (Spec action 10's pattern), over (a′) a change_sent state;
+           - FE-5: (a) as worded (§6's PendingAction.payload, D24).
+         Their placement stands (2026-10-02: after faculty-ready, before FE-32). APPROVED, NOT YET APPLIED at this entry:
+         applying them, with the four shared HTML pages swept, is the next step's.
+
+      4. THE SMALL ONES, each as recommended:
+           - Decision 7 (cookie names by scheme: __Host- on https, plain on loopback http) — KEPT, though [M1] measured
+             that Chrome and curl keep a __Host- cookie on loopback http. Firefox and Safari were not measured; the mock
+             stays untouched.
+           - The front-end's open question 9 — a plain manifest_session beside __Host-manifest_session is IGNORED, not
+             "two are none" (confirmed as the front-end decided it).
+           - The front-end's open question 10 — YES: the faculty front-end tells an owner, in what happened, that a
+             platform administrator acted on their app, and the reason they gave (EventFrame.actor). Faculty never see the
+             platform's raw stream, so this is how §26's "shown to the project's people" reaches them.
+           - The front-end's open question 11 — CONFIRMED: a faculty member is shown the front-end's own support
+             reference, never the platform's request id (which that reference's row records).
+           - m129 — the words: "<Name>'s agent '<name>'" where the agent is not the reader's own; "Your agent '<name>'"
+             stays for the reader's own.
+           - m130 — YES, ask the platform: the asking token's expiresAt on pending_action.created (to be filed by the
+             front-end as FE-53; additive, placed with FE-5, which changes the same file, tokens/pending.ts). It also
+             gives m131 its fix: the front-end reads the platform's expiry rather than a member's word.
+           - m17, m83, m110 and m66 — the night's routine calls ACCEPTED as made.
+         The front-end's own documents (minors.md, its adoption note, api-findings.md) record them in its next session;
+         this platform session does not edit ~/Developer/manifest-app.

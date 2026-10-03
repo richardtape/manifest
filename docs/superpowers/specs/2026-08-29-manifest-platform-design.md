@@ -2957,7 +2957,9 @@ the audit entry beside the actor, and shown to the project's people in their eve
 stream. An administrator's own duties — approving or rejecting a release, recording
 UBC's answers (§9), and setting a project's quota — are theirs by definition, already
 name them, and need no reason beyond what their own records ask; an administrator who
-is a member of the project acts as a member; a read is not an action. A token an
+is a member of the project is asked no reason for what their own role on it allows —
+beyond it (deleting, archiving or restoring, managing people, promoting, as a
+collaborator), they act as an administrator and give one; a read is not an action. A token an
 administrator mints on another person's project is minted with a reason, and its later
 actions name the token. §3.5 lists insider risk as a real threat with a stated need
 for non-repudiation; this is where that is discharged.
