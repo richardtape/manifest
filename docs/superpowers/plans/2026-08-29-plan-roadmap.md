@@ -1442,7 +1442,7 @@ need **Spec actions 5 and 6** (above); and the rest is placed here.
 - **Keeping in step**: every sitting's close-out lists what it changed in the contract, which Rich relays; `packages/contract`
   stays buildable at every commit, because the front-end links this working tree.
 
-### *Faculty-ready* — "before faculty use it for real" — IN PROGRESS (approved 2026-09-30; SITTINGS 1, 2 AND 3 DONE, 2026-10-02 and 2026-10-03): [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), 14 tasks in 7 sittings, after the launch path
+### *Faculty-ready* — "before faculty use it for real" — IN PROGRESS (approved 2026-09-30; SITTINGS 1, 2, 3 AND 4 DONE, 2026-10-02 and 2026-10-03; SITTING 6 NEXT, pulled ahead of 5 by Rich): [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), 14 tasks in 7 sittings, after the launch path
 
 *Which sitting is next: its sittings table, and ORIENTATION §7e.* **Sitting 1 (Task 1, the measurements) is DONE, 2026-10-02** (`3c80587`, inline
 at Rich's word; five findings, each written into the head of the task it changes; no split moved). Its *Sitting 1* is the record. **Sitting 2
@@ -1452,7 +1452,13 @@ actions APPLIED at its open. Its *Sitting 2* is the record. **Sitting 3 (Task 5 
 agent of the night-shift coordinator `manifest-3d`; `7b85326`, the review's fix `d4291dd`): **`__Host-` session, login and step-up cookies on
 https** (`Path=/`, every clear Secure), the plain names on loopback http, `sessionCookieFor` in `@manifest/contract`, still `1.6.0`. **Its
 Step 6 (the demos through the edge) was REFUSED by the classifier** — a restart of 7100 — and is a script for Rich
-(`.superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh`). Its *Sitting 3* is the record. **Written by the planning session `manifest-00` in parallel
+(`.superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh`). Its *Sitting 3* is the record. **Sitting 4 (Tasks 6, 8 and 13 — F8, `Init: true`,
+FE-52 and FE-49) is DONE, 2026-10-03** (unattended, a background agent of `manifest-3d`; `5effd5e`, `2dd6fdd`, `0d5a743`, the review's fix
+`d8ce094`): **a provider's `422` answers `422`, streamed too** (`manifest-litellm` restarted on the guard's two new hooks — allowed); **app
+containers run an init**; **a token's questions end when it does** — revoke, removal or archive, one `pending_action.expired` each, a question
+capped at its token's life, an ask racing the end refused `401` — and **`Token.mintedBy`**; migration `0049`; still `1.6.0`. **Its driver-1 demos
+(`demo-redeploy`, `demo-token`'s new step, `demo-frontend`) are a script for Rich** (`s4-edge-proof.sh`). Its *Sitting 4* is the record. **By
+Rich's night order, sitting 6 (Task 10) runs BEFORE sitting 5** — no task moves. **Written by the planning session `manifest-00` in parallel
 with the launch path's sitting 5, at Rich's word** (*"Now, in parallel"*), from two read-only code surveys; **approved** (*"plan looks good"*);
 **the execution method is his, at its sitting 1's open** (*"Probably not subagent driven though"*). Its scope, each his decision of 2026-09-30
 ([`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): FE-28 widened (`__Host-` session, login and step-up cookies by origin scheme),
@@ -1785,6 +1791,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | Faculty-ready Task 1 (sitting 1, the measurements — loopback `http` holds a `__Host-` cookie; a header hook skipped by an earlier hook's throw; a streamed `422` answered `500`, and the guard that answers `422` both ways; every app stop a 10 s SIGKILL without an init; the console's queue lists `pending_action.*` by name) | 1 | 5 | 5.0 |
 | Faculty-ready Tasks 2, 3, 4, 12, 14 (sitting 2, the envelope sitting, contract `1.6.0` — two task snippets that did not match their files; Task 3's table corrected by `[M2]` and a wrong token prefix; a test whose premise the feature ended; a control that went red wider than predicted (a fail-closed parse); no console component harness; and the fresh review's five, re-graded: F7's own cost (a failed driver-1 create blocked its slug for ever), the fixture still offered in two hints, the stream's 426 bypassing `sendRefusal`, a served guide naming the minter, an overstated guide sentence; a deep import the suite found; a TDD slip redone) | 5 | 12 | 2.4 |
 | Faculty-ready Task 5 (sitting 3, FE-28's `__Host-` cookies, unattended — the plan's control (c) resting on a browser model that did not exist (built: `browserKeeps`); a Docker file's https leg that does not exist; Step 6's restart of 7100 REFUSED by the classifier (a script for Rich); the fresh review's R1 — a client calling 7100 directly signed out, which the plan's own answer to the front-end had asked for; Decision 8 reaching the ambiguity check; a control red wider than predicted; the contract's dist stale to every non-Vitest consumer) | 1 | 7 | 7.0 |
+| Faculty-ready Tasks 6, 8, 13 (sitting 4, F8's `422`, `Init: true`, FE-52/FE-49, unattended — LiteLLM chaining an iterator hook only from a class's own `__dict__`; Task 6's control producing Review Focus 5's exact false success; the plan's archive row answering `PROJECT_ARCHIVED`; the authz contract's questions asked by the token its revoke row revokes; a positive control's student refused by *only faculty build*; the driver-1 demos a script for Rich; the stream contract's unreached-types list; the fresh review's I1 — an ask racing its token's end left a question nothing could spend (fixed with `FOR SHARE`) — and M3/M4, published words FE-52 made false; a NOTICE sent after its commit) | 3 | 10 | 3.3 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each

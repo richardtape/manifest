@@ -73,9 +73,9 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 | 1 | 1 | **The measurements**: `__Host-` cookies over `http` and through curl; Fastify's ids on every refusal path; LiteLLM's post-call hooks against a `422`, **streamed and not**, in a THROWAWAY LiteLLM; `Init` beside `ReadonlyRootfs` and `CapDrop ALL`; §26's reachable mutations; the gate numbers | No | — | **DONE 2026-10-02** (`3c80587`; *Sitting 1* below) |
 | 2 | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | **DONE 2026-10-03** (`3d73adf`, `f1e7255`, `71df40d`, `95843e2`, `e355d10`; the review's fixes `70c3964`; *Sitting 2* below) |
 | 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | **DONE 2026-10-03** (`7b85326`; the review's fix `d4291dd`; **Step 6, through the edge, is Rich's script** — the classifier refused its restart; *Sitting 3* below) |
-| 4 ← **next** | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | |
-| 5 | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | |
-| 6 | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | |
+| 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | **DONE 2026-10-03** (`5effd5e`, `2dd6fdd`, `0d5a743`; the review's fix `d8ce094`; **the driver-1 demos are Rich's script** `s4-edge-proof.sh`; *Sitting 4* below) |
+| 5 — **after 6** | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | **Follows sitting 6** (Rich's night order, 2026-10-03). Both Rich-steps are his already: `make seed` with the network on is PRE-AUTHORISED, and `SSP_STORE_PASSWORD` is in `.env` |
+| 6 ← **next** (pulled ahead of 5 by Rich, 2026-10-03) | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | |
 | 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -1639,3 +1639,114 @@ test; R8 a prose correction with no red test of its own.
 - **Containers:** 10 `manifest-` and 3 `mf-token-app-*`; **13 Docker networks**, as found.
 - **The four protected containers are up.** `docker-simple-saml` is clean but for its long-standing untracked `cert.zip`.
 - **The shared HTML pages and the spec were checked:** neither names a cookie, and no spec action was raised. Nothing changes there.
+
+### Sitting 4 — 2026-10-03, early morning: Tasks 6, 8 and 13 — F8's `422`, `Init: true`, FE-52 and FE-49 (a background agent of `manifest-3d`)
+
+**What happened.**
+- **Unattended**, at Rich's night order (`../2026-09-30-decisions.md`, *2026-10-03, ~01:10*): `manifest-3d` co-ordinated, and every hold, free
+  and notice for the faculty front-end went to it. Opened ~05:05 PDT on `f6b9ee8`, 7100 as sitting 3 left it (real GitHub, PID 99751).
+- **The commits:**
+  - Task 6 is `5effd5e` — F8: `infra/litellm/manifest_guard.py` gains Task 1's `[M3]` guard (E) on its own class, the post-call success
+    hook and the streaming-iterator hook, each refusing LiteLLM's `None` as `422` (`ProxyException`, `status_code` set). Written THROUGH the
+    bind-mounted file (inode kept; host and container sha256 equal), then `docker restart manifest-litellm` — **ALLOWED** (~12 s; the
+    capable model and its fallback survive it, read before and after).
+  - Task 8 is `2dd6fdd` — `Init: true` in `hardenedHostConfig` (§12, Spec action 4): app containers only.
+  - Task 13 is `0d5a743` — FE-52 and FE-49: a revoke and a removal end their tokens' questions in the revoking transaction (the archive
+    already did), each of the three acts publishes one `pending_action.expired` per question after its commit, a question's `expiresAt` is
+    capped at its token's, and `Token.mintedBy`. Migration `0049` widens `audit.events`' CHECK (generated, read, applied). **Still `1.6.0`**,
+    additive. The console's queue re-reads on the new type; the mock's `TOKEN` carries `mintedBy`.
+  - The review's fix pass is `d8ce094` (F8, F9 below): an ask racing its token's end records nothing, and the published words say who
+    reads `expired`.
+- **The front-end was told by NOTICE**: the streamed-`422` shape (Task 6 — sent just AFTER `5effd5e`, a slip: the night order says before);
+  `mintedBy`, `pending_action.expired`'s shape, *the revoke-then-reject step can go*, and the cap (Task 13 — BEFORE `0d5a743`). HOLD and FREE
+  around the LiteLLM restarts, the contract-and-mock edit (FREE once `pnpm typecheck` was clean in every workspace; the contract's `dist/`
+  rebuilt) and the close.
+
+**Findings.**
+
+1. **F1 — LiteLLM puts a callback in its streaming-iterator chain only if the hook is in the class's OWN `__dict__`** (`proxy/utils.py`,
+   `_callback_capabilities`, read in the container). An inherited hook is skipped silently. So the two hooks are on `ManifestFallbackGuard`
+   itself (one instance; `config.yaml` and `make verify`'s callback check unchanged). Defining the hook moves EVERY stream onto the
+   iterator-chain path; measured harmless: `ai-path.docker.test.ts`'s raw streams pass through it, and LiteLLM's spend logs still record
+   streamed calls (the chain path fires the deferred stream logging too). TRAPS says so.
+2. **F2 — Task 6's control showed Review Focus 5's feared failure, exactly.** With the hooks returning instead of raising, a streamed `422`
+   became `200` with an EMPTY stream that closes cleanly — the false success the plan feared, which no guard at all had produced (it was a
+   `500`). The fixed case asserts the status and that no `data:` frame was sent.
+3. **F3 — the plan's matrix was wrong for the archive row.** A confirm on an archived project's question is `409 PROJECT_ARCHIVED` (the
+   archive's refusal of every mutation on a switched-off project, earlier in the chain than the question's state), not
+   `PENDING_ACTION_RESOLVED`. Nobody is told *confirmed* either way; the row asserts the code it gets (a ruling).
+4. **F4 — the authz contract's questions were asked by the very token its revoke row revokes.** After FE-52 the revoke ended them, so its
+   confirm and reject rows read `409 PENDING_ACTION_RESOLVED` (red at *reject as owner* and *as admin*). The harness's questions now have a
+   token of their own (`authz-questions`).
+5. **F5 — a positive control's own fixture was stale**: the plan's *a live token's question still confirms, and its retry is 201* asked to add
+   `bio_student`, whom the launch path plan's *only faculty build* refuses (`409 MEMBER_MAY_NOT_BUILD`). It adds `bio_colleague`.
+6. **F6 — `make demo-redeploy`, `make demo-token`'s new step and `make demo-frontend` were NOT RUN**: all three are driver 1's, 7100 runs real
+   GitHub, and the restart onto driver 1 is the one the classifier refused sitting 3. They are one restore-safe script for Rich:
+   `! bash .superpowers/sdd/2026-09-30-faculty-ready/s4-edge-proof.sh` (~12–15 min; it also runs Task 13's control (a) at the edge).
+   **In their place, in the tiers:** the hibernation case asserts a stop under 5 s and exit `143` (red without the init: 10098 ms), and the
+   matrix drives all three acts through the routes.
+7. **F7 — the stream contract lists every event type no lifecycle publisher reaches** (`api/stream-contract.test.ts`); the new type is
+   added there, naming `questions-end.test.ts`.
+8. **F8 — the review's I1, Important: an ask that raced its token's end recorded a question nothing could spend.** The token actor is
+   read at authentication; a revoke, a removal or an archive committing before the insert had already ended the token's questions and
+   could not see the new one — Review Focus 6's failure, by a race (an agent polling by retrying is the most exposed). **Fixed** as the mint
+   closed the same shape: `recordPendingAction` inserts in a transaction holding the token's row `FOR SHARE` (it conflicts with each end's
+   `UPDATE`) and refuses an ended token, `TokenEndedError`, answered `401 UNAUTHENTICATED`; nothing is inserted, and the `created` event is
+   published after the commit. Its two cases (revoked, run out) went red with a row recorded, then green.
+9. **F9 — the review's M3 and M4, re-graded Important: published words that FE-52 made false.** `PendingAction.state`'s description said
+   `expired` meant *nobody answered in time*, and this sitting's own words in `agents.md` and `example-pending.ts` told an agent it would
+   read `expired` for a revoked token — it reads `401`; the person sees `expired`. Corrected (descriptions only, still `1.6.0`). Two TRAPS
+   bold headers still stating the old facts were corrected with them.
+10. **F10 — a slip: Task 6's NOTICE went to `manifest-3d` just AFTER its commit**, not before as the night order says. No contract change
+    rode on it (the gateway's answer is not `/v1`).
+
+**Not findings, but recorded:**
+- **Task 8, `[M4]` again, in the tier:** S6's probe 11 now reads `pids 13 -> 13 once the orphans ended (reaped)`; without the init `64` against
+  a baseline of `12`.
+- **Task 13's archive half was already built** (the front-end enablement plan's Decision 28): only its event is new.
+- **Deferred minors** (the ledger has each): M1 `publishQuestionsEnded` can throw after each commit, in front of steps documented to run
+  regardless (a retry recovers all but the events); M2 a confirm that loses to a revoke's expiry is told *"already confirmed"* (the `409` is
+  right, the sentence false, in a race); M5 `docs/api/frontend.md` does not mention FE-49/FE-52 (the front-end was told by NOTICE); M8
+  test gaps — a retried revoke's no-second-event, a healthy stream's clean close in `fallback-guard`'s own file, the cap through the
+  confirm route before any sweep.
+
+**Rulings** (the ledger has each with its cost): `REFUSED` stays `[400, 413]` (422's cases are its own: its provider is asked twice); the hooks
+on the guard's own class (F1); the plan's `frontend.ts` wording is `docs/api/frontend.md`; probe 11's reap check reuses its own fork loop with
+a strict reader; Task 8's `demo-redeploy` and Task 13's Step 5 are the morning script (F6), with the hibernation timing in the tier instead;
+the archive row's `PROJECT_ARCHIVED` (F3); `tokenExpiresAt` required, from `actor.expiresAt`, no cast; the event's actor field is the plan's
+`by`; the archive publishes only its own transaction's questions; the demo step in step 9 with the same token. The review's: I1 fixed with the mint's `FOR SHARE` pattern; M3 and M4 corrected as prose with no red test of their own (sitting 2's R8); the fix ran beside no Docker tier — `tokens/` and `api/` are not the tier's.
+
+**Negative controls**, each committed first, its break asserted to match once, and restored:
+- **Task 6:** both hooks `return` instead of raising (live in `manifest-litellm`, two restarts) → red at exactly the two `422` cases; the
+  streamed one `200` with an empty stream (F2).
+- **Task 8:** the `Init: true` line removed → red at exactly 4: the unit case, the readback (`undefined`), probe 11 (`64` against `12`) and the
+  hibernation's stop (10098 ms, SIGKILL).
+- **Task 13:** (a) the revoke's transaction expires nothing → red at exactly the matrix's revoke row (its demo half is the morning script);
+  (b) the cap removed → red at exactly the expiry case; (c) `publishQuestionsEnded` returns early → red at exactly the three event rows.
+- **The review's I1:** the `revokedAt` check dropped → red at exactly the revoked-token case (the run-out case keeps its own clause). **The
+  `FOR SHARE` itself CANNOT FAIL a sequential test**: it matters only in the window between the check and an end's `UPDATE`, which a unit
+  test cannot pause inside. It is the mint's proven pattern, stated rather than proven here.
+
+**The gates at the close.**
+- **`pnpm test` twice on the final tree (`d8ce094`): 3258 in 199, identical** — 879.5 s and 882.4 s, at load 2–5. `EXPECT_TESTS` moves 3247 →
+  **3258** and `EXPECT_FILES` 198 → **199** (`scripts/ci-acceptance.sh` says where the 11 came from).
+- **`pnpm test:docker`: 273 in 42, green, 1207 s** — on `0d5a743`, beside the reviewer; +2 (§2's row says which). It started with 15 networks and
+  ended with 20. The fix `d8ce094` touched `tokens/` and `api/` only, which the tier does not own.
+- `pnpm lint`, `pnpm typecheck` (every workspace) and `pnpm format:check` are clean.
+- **`make doctor` 21, 0 warnings; `make verify` 64, 0 warnings**, after the restart.
+- **The contract is still `1.6.0`**, its `dist/` rebuilt from `d8ce094`.
+- **NOT RUN, and Rich's:** the driver-1 demos and Task 13's control (a) at the edge — `s4-edge-proof.sh` (F6).
+
+**The machine at the close** (queried at ~06:40 PDT, not remembered):
+- **The control plane: PID 46140 on 7100, REAL GitHub** (`api.github.com`, `Manifest-local-dev`), built from `d8ce094` and started from `.env`,
+  as it was found. That restart was ALLOWED. Its boot line: the capable model registered, its fallback set, `pendingActionsExpired` 0.
+- **`manifest-litellm`** was restarted three times (Task 6 and its control), each allowed; it runs the committed guard (host and container
+  sha256 equal), with the capable model and its fallback intact.
+- **The control database:** 0 users, 0 projects, 0 tokens, 0 pending actions (`psql`), after the Docker tier and the two runs. Migration `0049` applied.
+- **Containers:** 10 `manifest-` and 3 rowless `mf-token-app-*` (sitting 3's, still Rich's: their `docker rm` was refused to sitting 3, and this
+  sitting did not retry it). **13 Docker networks**, as found.
+- **The three cleanup scripts ran bare, then with `--apply`, and none was refused:** 7 networks and 1 volume (the tier's), 2 LiteLLM orphans
+  (`mf-platform-intake`, `p4b-probe-user`) and 14 app images removed. Re-run, each reads 0 dead. 12 orphan driver-2 mirrors, named, never removed.
+- **The four protected containers are up.** `docker-simple-saml` is clean but for its long-standing untracked `cert.zip`.
+- **7102 and 7105 are the faculty front-end's** (mock mode). Nothing listens on 7194–7199.
+- **The shared HTML pages and the spec were checked:** none names the gateway's `422`, an init or a pending action; no spec action was raised.

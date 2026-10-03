@@ -1098,6 +1098,10 @@ not the step numbers it prints:
    a faculty member or an administrator is added).
 7. **The instructor revokes the token** and the agent's next call is `401 UNAUTHENTICATED` — while the token
    still reads `expired: false`, because a clock and a person are different answers to why a credential stopped.
+   **Since the faculty-ready plan's sitting 4 (FE-52, FE-49)** the agent first asks a NEW question (adding
+   `col000002`) that nobody answers; after the revoke it reads `expired`, a stepped-up confirm of it is `409
+   PENDING_ACTION_RESOLVED`, and the revoked token's `mintedBy` is the instructor's own `getMe` id. *That step was
+   first run by `.superpowers/sdd/2026-09-30-faculty-ready/s4-edge-proof.sh` (driver 1), not by the sitting.*
 
 **Every check prints `ok` or `FAIL` and the run exits 1 listing each failure**, so a red run is a measurement
 rather than the first thing that broke. It prints, on the green path, the token's capability count and expiry,

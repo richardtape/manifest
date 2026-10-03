@@ -191,8 +191,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # a plain session on https, the direct port's name, the tossed login cookie), `api/logout.test.ts` (2: a clear on https carries
 # Secure), `contract/src/client.test.ts` (2), `contract/src/stream.test.ts` (1) and `mock/src/server.test.ts` (1). Measured twice on
 # the final tree, 3247 in 198.
-EXPECT_TESTS=3247
-EXPECT_FILES=198
+# Then its sitting 4 (2026-10-03, F8, `Init: true`, FE-52 and FE-49): +11, one new file — `api/questions-end.test.ts` (9: a revoke,
+# a removal and an archive each ending a waiting question with one event, two positive controls, the cap at the token's expiry, and
+# the review's I1 — an ask racing its token's end records nothing, twice, with a positive control), `api/tokens.test.ts` (1: mintedBy)
+# and `runtime/docker/hardening.test.ts` (1: Init). Measured twice on the final tree, 3258 in 199.
+EXPECT_TESTS=3258
+EXPECT_FILES=199
 EXPECT_DOCTOR=21
 EXPECT_VERIFY=64
 
