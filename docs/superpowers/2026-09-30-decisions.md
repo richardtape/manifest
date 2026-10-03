@@ -479,3 +479,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     defect was checked by manifest-94 and is wrong (publishArchivedOnce, releases/lifecycle.ts:338, publishes it from the
     retry or the boot). Put to Rich, with "track it for later" recommended — "Fix it in sitting 5 now": the faculty-ready
     plan's Task 16b, after Task 9, its design manifest-b9's (the sentence counts sessions ended after the commit).
+
+    And at ~14:05 PDT, on the revised FE-46/47/5 plan (2a72a13, five sittings, nodemailer), through the question tool:
+      - THE PLAN — "Approve as revised (Recommended)". It runs after faculty-ready's sitting 7.
+      - THE ADD — "Yes, as described (Recommended)": one networked `pnpm --filter @manifest/control-plane add --save-exact
+        nodemailer`, tried --offline first; @types/nodemailer (-D, exact) only if nodemailer ships no .d.ts; allowBuilds
+        settled if pnpm ignores a build script; the version, the day and the reason recorded. Sitting 2 need not ask again.
+      - THE MEASUREMENT — "Task 3, after the add (Recommended)": nodemailer against Mailpit is Task 3's [M3b], straight after
+        the add; no second networked command. Over: a scratch install in sitting 1.
