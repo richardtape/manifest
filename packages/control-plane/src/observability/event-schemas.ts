@@ -793,7 +793,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         .int()
         .nonnegative()
         .describe(
-          'How many of their agent sessions on the project the removal ended — started by a token or in their own browser alike. When some could not be ended (the request was answered an error), repeating the removal ends them; each end is its own `agent_session.ended`.',
+          'How many of their agent sessions on the project the removal ends — every one live when they were taken off, started by a token or in their own browser alike. The removal is recorded before any is ended, because ending one needs the model gateway: when some could not be ended (the request was answered an error), repeating the removal ends them, and each end is its own `agent_session.ended`.',
         ),
       via: Via,
       userId: ActingUser,

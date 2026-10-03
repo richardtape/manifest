@@ -69,6 +69,7 @@ export {
   endAgentSession,
   endSessionsOf,
   gatewayOf,
+  liveSessionsCount,
   narrowSessionsHoldingMore,
   sessionState,
   startAgentSession,

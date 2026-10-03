@@ -514,8 +514,15 @@ describe('only a person who may build is added (FE-39)', () => {
             'the removal’s DELETE waiting on the held membership',
           )
           const promoting = add(ctx, { cwlLogin: 'colleague', role: 'owner' })
+          // Since Task 16b the removal holds the PROJECT row first (`FOR KEY SHARE`, `addMember`'s order),
+          // so the role change queues behind it there — at its project `FOR UPDATE`, before it reads the
+          // membership at all. Either place is accepted HERE, so that without that lock the role change
+          // queues at the membership as it once did, and the answer below shows what follows: the
+          // removal's event insert then waits on the project the role change holds — a deadlock, `500`.
           await until(
-            () => lock.waitedOnBehind('%project_members%'),
+            async () =>
+              (await lock.waitedOnBehind('%from "projects"%for update%')) ||
+              (await lock.waitedOnBehind('%from "project_members"%for update%')),
             'the role change queued behind the removal',
           )
           await lock.release()
@@ -913,14 +920,17 @@ describe('removing a member revokes their tokens on the project, ends their agen
         expect(await isMember(ctx, ta.id)).toBe(false)
         expect(await tokenState(ctx, token.row.id)).toBe('revoked')
         expect(lite.use(session.key, session.model)).toEqual({ status: 200 })
-        // The removal is recorded though its sessions are not ended — once, with what it did.
+        // The removal is recorded though its sessions are not ended yet — once, IN ITS TRANSACTION (the
+        // faculty-ready plan's Task 16b), before the gateway was asked: `sessionsEnded` is the one live
+        // session the removal ends. The 503 above says it could not, and no `agent_session.ended` exists.
         const first = await published(ctx, 'member.removed')
         expect(first.map((e) => e.machineDetail)).toEqual([
-          { memberId: ta.id, tokensRevoked: 1, sessionsEnded: 0, ...byOwner(ctx) },
+          { memberId: ta.id, tokensRevoked: 1, sessionsEnded: 1, ...byOwner(ctx) },
         ])
         expect(first[0]!.humanMessage).toBe(
-          'Bio Prof removed Bio Student from the project, revoking 1 delegated token they had minted on it. At least one of their agent sessions could not be ended; repeating the removal ends it.',
+          'Bio Prof removed Bio Student from the project, revoking 1 delegated token they had minted on it and ending 1 agent session of theirs there.',
         )
+        expect(await published(ctx, 'agent_session.ended')).toEqual([])
 
         // POSITIVE CONTROL: the SAME request — its Idempotency-Key too, since a failure stores nothing —
         // AI back on, ends the session, and records no second removal.
@@ -931,6 +941,7 @@ describe('removing a member revokes their tokens on the project, ends their agen
           endReason: 'member_removed',
         })
         expect(await published(ctx, 'member.removed')).toHaveLength(1)
+        expect(await published(ctx, 'agent_session.ended')).toHaveLength(1)
       },
       { llm: lite },
     )

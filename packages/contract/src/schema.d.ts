@@ -4325,7 +4325,7 @@ export interface components {
                 memberId: string;
                 /** @description How many delegated tokens they had minted on the project were revoked with the removal — every one not already revoked, an expired one included; a token of theirs on another project is not touched. */
                 tokensRevoked: number;
-                /** @description How many of their agent sessions on the project the removal ended — started by a token or in their own browser alike. When some could not be ended (the request was answered an error), repeating the removal ends them; each end is its own `agent_session.ended`. */
+                /** @description How many of their agent sessions on the project the removal ends — every one live when they were taken off, started by a token or in their own browser alike. The removal is recorded before any is ended, because ending one needs the model gateway: when some could not be ended (the request was answered an error), repeating the removal ends them, and each end is its own `agent_session.ended`. */
                 sessionsEnded: number;
                 /**
                  * @description How the person acted: `session` in their own interactive session, `token` through a delegated token they minted.

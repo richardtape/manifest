@@ -1,8 +1,13 @@
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
-import { endSessionsOf } from '../../ai/index.js'
+import { endSessionsOf, liveSessionsCount } from '../../ai/index.js'
 import { appSpecs, environments, type Db } from '../../db/index.js'
-import { makeRedactor, publishEvent } from '../../observability/index.js'
+import {
+  eventFrame,
+  makeRedactor,
+  publishEvent,
+  recordEvent,
+} from '../../observability/index.js'
 import {
   actorPhrase,
   addMember,
@@ -63,15 +68,16 @@ const counted = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`
 
 /**
  * `member.removed`'s sentence: who removed whom, and what that did to their agent — said only when it
- * did something, so a removal that revoked and ended nothing reads as it always did. `unfinished` when
- * ending a session failed: the removal is recorded all the same, and says what is left to do.
+ * did something, so a removal that revoked and ended nothing reads as it always did. Written inside the
+ * removal's transaction (Task 16b), before the gateway is asked to end a session — so it says nothing of
+ * a session that could not be ended: the request's own answer does, and each end is its own
+ * `agent_session.ended`.
  */
 function removedSentence(
   who: string,
   them: string,
   tokensRevoked: number,
   sessionsEnded: number,
-  unfinished: boolean,
 ): string {
   const did = [
     ...(tokensRevoked === 0
@@ -81,12 +87,7 @@ function removedSentence(
       ? []
       : [`ending ${counted(sessionsEnded, 'agent session')} of theirs there`]),
   ]
-  return (
-    `${who} removed ${them} from the project${did.length === 0 ? '' : `, ${did.join(' and ')}`}.` +
-    (unfinished
-      ? ' At least one of their agent sessions could not be ended; repeating the removal ends it.'
-      : '')
-  )
+  return `${who} removed ${them} from the project${did.length === 0 ? '' : `, ${did.join(' and ')}`}.`
 }
 
 /** The member routes that name a person: `userId` is the §6 `users.id`, not a PUID. */
@@ -600,20 +601,62 @@ export const projectReadRoutes = [
       // "confirmed" for its question. AND THE EVENTS SAYING SO, recorded in it too (Task 16): a write
       // that fails undoes the removal, so the retry says it. On the stream after the commit, below. The
       // person who acted: for a token, the person who minted it.
-      const { outcome, revoked, questions } = await deps.db.transaction(async (tx) => {
-        const removal = await removeMember(tx, projectId, userId)
-        const ids =
-          removal === 'removed' ? await revokeTokensOfMember(tx, projectId, userId) : []
-        const ended: ExpiredQuestion[] = []
-        for (const tokenId of ids) {
-          ended.push(...(await expirePendingActions(tx, EVERY_QUESTION, { tokenId })))
-        }
-        const recorded = await recordQuestionsEnded(tx, ended, {
-          cause: 'member_removed',
-          by: actor.userId,
-        })
-        return { outcome: removal, revoked: ids, questions: recorded }
-      })
+      //
+      // AND `member.removed` ITSELF (the faculty-ready plan's Task 16b; Rich, 2026-10-03): it was
+      // published after the commit and after the sessions, so a write that failed left the person off
+      // the project and unrecorded — and the retry, finding them no member, records nothing. Recorded
+      // here, it rolls back with the removal. `sessionsEnded` is what the removal ends: their sessions
+      // live now, counted by `endSessionsOf`'s own predicate — nothing can start another for them once
+      // this commits (they are no member, their tokens are revoked).
+      const { outcome, revoked, questions, removedEvent } = await deps.db.transaction(
+        async (tx) => {
+          const removal = await removeMember(tx, projectId, userId)
+          if (removal !== 'removed')
+            return {
+              outcome: removal,
+              revoked: [],
+              questions: [],
+              removedEvent: undefined,
+            }
+          const ids = await revokeTokensOfMember(tx, projectId, userId)
+          const ended: ExpiredQuestion[] = []
+          for (const tokenId of ids) {
+            ended.push(...(await expirePendingActions(tx, EVERY_QUESTION, { tokenId })))
+          }
+          const recorded = await recordQuestionsEnded(tx, ended, {
+            cause: 'member_removed',
+            by: actor.userId,
+          })
+          const sessions = await liveSessionsCount(tx, { projectId, userId })
+          const event = await recordEvent(
+            tx,
+            {
+              projectId,
+              subject: `member:${userId}`,
+              type: 'member.removed',
+              machineDetail: {
+                memberId: userId,
+                tokensRevoked: ids.length,
+                sessionsEnded: sessions,
+                ...actorDetail(actor),
+              },
+              humanMessage: removedSentence(
+                await actorPhrase(tx, actor),
+                await personName(tx, userId),
+                ids.length,
+                sessions,
+              ),
+            },
+            makeRedactor([]),
+          )
+          return {
+            outcome: removal,
+            revoked: ids,
+            questions: recorded,
+            removedEvent: event,
+          }
+        },
+      )
       if (outcome === 'last owner') throw new LastOwnerError()
       if (outcome === 'removed') {
         // THEIR STREAMS, ONCE THE TRANSACTION HAS COMMITTED — never inside it, where a close would
@@ -623,9 +666,10 @@ export const projectReadRoutes = [
         // token's `4401`, then the person's own session streams, `4404`: the project is not theirs now.
         deps.streams.closeTokens(revoked)
         deps.streams.closePerson(projectId, userId)
-        // What the removal ended, on the stream once it has committed — before the sessions, which
-        // need the model gateway and can fail.
+        // What the removal ended, and the removal itself, on the stream once it has committed — before
+        // the sessions, which need the model gateway and can fail.
         announceQuestionsEnded(deps.bus, questions)
+        if (removedEvent !== undefined) deps.bus.publish(eventFrame(removedEvent))
       }
       // THEN THEIR AGENT SESSIONS on the project — token-started and browser-started — `member_removed`.
       // REACHED FOR SOMEBODY WHO IS NOT A MEMBER TOO, as `revokeToken`'s end is reached for a token
@@ -633,53 +677,13 @@ export const projectReadRoutes = [
       // could not end get ended. (An administrator who is not a member and holds a session here loses
       // it the same way — which any member of the project could already do, one `endAgentSession` at a
       // time, so this grants nobody anything new.) `endSessionsOf` names each failure with its cause
-      // on the operator's stderr before it throws — never a swallowed catch — and the throw is
-      // answered below, after the event.
-      const ended: string[] = []
-      let failure: unknown
-      try {
-        await endSessionsOf(
-          deps,
-          { projectId, userId },
-          'member_removed',
-          {
-            userId: actor.userId,
-            tokenId: actor.credential === 'token' ? actor.tokenId : null,
-          },
-          ended,
-        )
-      } catch (error) {
-        failure = error
-      }
-      // Published only for a removal: taking off somebody who was not a member changed nothing. And
-      // published EVEN WHEN ending a session failed — the person is off the project and their tokens
-      // revoked, and the retry that ends the rest answers `'not a member'`, so it would never record it.
-      if (outcome === 'removed') {
-        await publishEvent(
-          deps.db,
-          deps.bus,
-          {
-            projectId,
-            subject: `member:${userId}`,
-            type: 'member.removed',
-            machineDetail: {
-              memberId: userId,
-              tokensRevoked: revoked.length,
-              sessionsEnded: ended.length,
-              ...actorDetail(actor),
-            },
-            humanMessage: removedSentence(
-              await actorPhrase(deps.db, actor),
-              await personName(deps.db, userId),
-              revoked.length,
-              ended.length,
-              failure !== undefined,
-            ),
-          },
-          makeRedactor([]),
-        )
-      }
-      if (failure !== undefined) throw failure
+      // on the operator's stderr before it throws — never a swallowed catch — and since Task 16b the
+      // throw is answered at once: `member.removed` is recorded already, the person is off the project
+      // and their tokens revoked, and the request repeated ends what is left.
+      await endSessionsOf(deps, { projectId, userId }, 'member_removed', {
+        userId: actor.userId,
+        tokenId: actor.credential === 'token' ? actor.tokenId : null,
+      })
       return (await listMembers(deps.db, projectId)).map(toMember)
     },
   }),

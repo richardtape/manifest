@@ -18,7 +18,7 @@ import {
 
 /**
  * A QUESTION'S END IS RECORDED IN THE TRANSACTION THAT ENDS IT (the faculty-ready plan's Task 16; sitting
- * 4's M1, Rich's (a)).
+ * 4's M1, Rich's (a)) — AND SO IS A REMOVAL (Task 16b, at the bottom).
  *
  * A revoke, a minter's removal and an archive each end a token's waiting questions in one transaction
  * (`questions-end.test.ts`). Until Task 16 the `pending_action.expired` rows were written AFTER that
@@ -28,15 +28,14 @@ import {
  * back, and the same request repeated does all of it, once.
  *
  * The failure is made by wrapping the event writers this file's module graph imports — delegating to the
- * real ones, and throwing only for a `pending_action.expired` while `failing.on` is set. Its own file, so
- * every other test meets the real module.
+ * real ones, and throwing only for an event of the type `failing.type` names while it is set. Its own
+ * file, so every other test meets the real module.
  */
-const failing = vi.hoisted(() => ({ on: false }))
+const failing = vi.hoisted(() => ({ type: null as string | null }))
 vi.mock('../observability/index.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../observability/index.js')>()
   const refuse = (type: string): void => {
-    if (failing.on && type === 'pending_action.expired')
-      throw new Error('the test refuses to write pending_action.expired')
+    if (type === failing.type) throw new Error(`the test refuses to write ${type}`)
   }
   return {
     ...real,
@@ -52,7 +51,7 @@ vi.mock('../observability/index.js', async (importOriginal) => {
 })
 
 afterEach(() => {
-  failing.on = false
+  failing.type = null
 })
 afterAll(resetDatabase)
 
@@ -170,13 +169,13 @@ describe('a question’s end is recorded in the transaction that ends it (Task 1
         })
 
         // The event write fails: the request fails, and NOTHING it did is kept.
-        failing.on = true
+        failing.type = 'pending_action.expired'
         const refused = await ACTS[cause](ctx, row.id, minter)
         expect(refusal(refused)).toEqual({ status: 500, code: 'INTERNAL' })
         expect(await stateOf(ctx, ids)).toEqual(before)
 
         // The same request, the write restored: all of it, and exactly one event for the question.
-        failing.on = false
+        failing.type = null
         const done = await ACTS[cause](ctx, row.id, minter)
         expect(done.statusCode, done.body).toBe(200)
         expect(await stateOf(ctx, ids)).toEqual({
@@ -219,6 +218,62 @@ describe('a question’s end is recorded in the transaction that ends it (Task 1
       expect(frames.filter((type) => type === 'pending_action.expired')).toEqual([
         'pending_action.expired',
       ])
+    })
+  })
+})
+
+/**
+ * `member.removed` IS RECORDED IN THE REMOVAL'S TRANSACTION (the faculty-ready plan's Task 16b; Rich,
+ * 2026-10-03). It was published after the commit — after the person's sessions were ended, too — so a
+ * write that failed left them removed and unrecorded, and the retry, finding them no member, records
+ * nothing: the project's people never read that they were taken off. `sessionsEnded` is the sessions
+ * live when they were taken off — every one the removal ends, before the gateway is asked.
+ */
+describe('a removal is recorded in the transaction that removes (Task 16b)', () => {
+  const removed = (ctx: TestProject) =>
+    ctx.db
+      .select()
+      .from(events)
+      .where(and(eq(events.projectId, ctx.projectId), eq(events.type, 'member.removed')))
+
+  it('an event write that fails keeps the person and their token, and the same request repeated removes them, recorded once', async () => {
+    await withServer(async (ctx) => {
+      const colleague = (await ensureTestUser(ctx.db, 'bio_colleague')).id
+      await sessionFor(ctx, 'bio_colleague', 'collaborator')
+      const { row } = await mintTestToken(ctx.db, {
+        userId: colleague,
+        projectId: ctx.projectId,
+        capabilities: ['project:read'],
+      })
+      const now = async () => ({
+        role: await membershipOf(ctx.db, colleague, ctx.projectId),
+        tokenRevoked: (await tokenById(ctx.db, row.id))?.revokedAt != null,
+        recorded: (await removed(ctx)).length,
+      })
+      expect(await now()).toEqual({
+        role: 'collaborator',
+        tokenRevoked: false,
+        recorded: 0,
+      })
+
+      failing.type = 'member.removed'
+      const refused = await ACTS.member_removed(ctx, row.id, colleague)
+      expect(refusal(refused)).toEqual({ status: 500, code: 'INTERNAL' })
+      expect(await now()).toEqual({
+        role: 'collaborator',
+        tokenRevoked: false,
+        recorded: 0,
+      })
+
+      failing.type = null
+      const done = await ACTS.member_removed(ctx, row.id, colleague)
+      expect(done.statusCode, done.body).toBe(200)
+      expect(await now()).toEqual({ role: null, tokenRevoked: true, recorded: 1 })
+      expect((await removed(ctx))[0]!.machineDetail).toMatchObject({
+        memberId: colleague,
+        tokensRevoked: 1,
+        sessionsEnded: 0,
+      })
     })
   })
 })

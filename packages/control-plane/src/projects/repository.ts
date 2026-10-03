@@ -458,6 +458,20 @@ export async function removeMember(
   projectId: string,
   userId: string,
 ): Promise<'removed' | 'not a member' | 'last owner'> {
+  /**
+   * THE PROJECT'S ROW FIRST, `FOR KEY SHARE` — `addMember`'s order, project then membership (the
+   * faculty-ready plan's Task 16b). The route's transaction records events after this DELETE, and an
+   * event's foreign key takes exactly this lock on the project row: taken THEN, it waited on an
+   * `addMember` that held the project `FOR UPDATE` while that waited on this DELETE's row — a deadlock,
+   * measured as the role change racing a removal answering `500`. Taken here, before the membership,
+   * the two queue in one order. `KEY SHARE` is the weakest lock that does: it waits only on a `FOR
+   * UPDATE` of the row, and holds back nothing that writes an event or reads the project.
+   */
+  await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .for('key share')
   const [target] = await db
     .select({ role: projectMembers.role })
     .from(projectMembers)

@@ -538,35 +538,53 @@ export async function endAgentSession(
  * `revokeToken` and `removeMember` answer the code they declare, and an archive's operator line names
  * it; anything else is a plain `Error`, a `500`.
  */
+type SessionsTarget =
+  { projectId: string; userId: string } | { projectId: string } | { tokenId: string }
+
+/** The live sessions of a target — ONE predicate, read by `endSessionsOf` and `liveSessionsCount`. */
+function liveSessionsOfTarget(target: SessionsTarget) {
+  return and(
+    'tokenId' in target
+      ? eq(agentSessions.requestedByToken, target.tokenId)
+      : 'userId' in target
+        ? and(
+            eq(agentSessions.projectId, target.projectId),
+            eq(agentSessions.userId, target.userId),
+          )
+        : eq(agentSessions.projectId, target.projectId),
+    isNull(agentSessions.endedAt),
+  )
+}
+
+/**
+ * How many sessions `endSessionsOf` would end for this target now — `select` alone, so an act can count
+ * them inside the transaction that records it, before the gateway is asked (the faculty-ready plan's
+ * Task 16b: `member.removed`'s `sessionsEnded`).
+ */
+export async function liveSessionsCount(
+  db: Pick<Db, 'select'>,
+  target: SessionsTarget,
+): Promise<number> {
+  return (
+    await db
+      .select({ id: agentSessions.id })
+      .from(agentSessions)
+      .where(liveSessionsOfTarget(target))
+  ).length
+}
+
 export async function endSessionsOf(
   deps: { db: Db; bus: EventBus; llm: LiteLlmClient | undefined },
-  target:
-    { projectId: string; userId: string } | { projectId: string } | { tokenId: string },
+  target: SessionsTarget,
   reason: EndReason,
   by: EndedBy,
-  /**
-   * Where each id is put AS its session ends — the answer is this array. For a caller that records
-   * what it did even when the call then fails: `removeMember`'s `member.removed` is published whether
-   * or not every session ended, and counts the ones that did.
-   */
+  /** Where each id is put AS its session ends — the answer is this array, kept even when the call fails. */
   ended: string[] = [],
 ): Promise<string[]> {
   const live = await deps.db
     .select()
     .from(agentSessions)
-    .where(
-      and(
-        'tokenId' in target
-          ? eq(agentSessions.requestedByToken, target.tokenId)
-          : 'userId' in target
-            ? and(
-                eq(agentSessions.projectId, target.projectId),
-                eq(agentSessions.userId, target.userId),
-              )
-            : eq(agentSessions.projectId, target.projectId),
-        isNull(agentSessions.endedAt),
-      ),
-    )
+    .where(liveSessionsOfTarget(target))
   const failed: string[] = []
   let catalogue: CatalogueError | undefined
   for (const row of live) {

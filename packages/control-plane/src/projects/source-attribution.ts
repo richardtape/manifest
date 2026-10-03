@@ -51,7 +51,7 @@ export async function personName(
 
 /** The person acting, by name, and — for a delegated token — the token's name. */
 export async function actorNames(
-  db: Db,
+  db: Pick<Db, 'select'>,
   actor: Actor,
 ): Promise<{ name: string; tokenName: string | null }> {
   const name = await personName(db, actor.userId)
@@ -68,7 +68,7 @@ export async function actorNames(
  * 'claude-code')"* — never a PUID. ONE phrasing for every sentence that names an actor: a commit
  * (Task 6) and an app secret set or cleared (the authoring API plan's Task 8).
  */
-export async function actorPhrase(db: Db, actor: Actor): Promise<string> {
+export async function actorPhrase(db: Pick<Db, 'select'>, actor: Actor): Promise<string> {
   const { name, tokenName } = await actorNames(db, actor)
   return tokenName === null ? name : `${name}'s agent (token '${tokenName}')`
 }
