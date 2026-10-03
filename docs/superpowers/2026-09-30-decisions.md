@@ -635,3 +635,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         someone who left by their own word, nor when the watch's stop cannot be told apart.
       - A FIRST BUILD — "A separate first-build wording" (over the recommended one sentence for both), e.g. "Building <App>
         stopped because…"; its exact words come back to him.
+      - THE FIRST-BUILD WORDS (14:52 PDT) — "Approve as drafted (Recommended)": subject "<App>: building it stopped";
+        "Building <App> stopped because the app was switched off. You can read where we got to in the conversation:" + its
+        link; "…because the app was deleted."; "…because you were taken off the app. Its owners can add you again."; the
+        same last line; only the app's first build (the front-end's piece of kind 'first') uses them.
