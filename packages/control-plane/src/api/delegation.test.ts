@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { readdir, readFile } from 'node:fs/promises'
 import { and, eq } from 'drizzle-orm'
 import type { LightMyRequestResponse } from 'fastify'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -1074,6 +1075,18 @@ describe('the pending-action hint says what is matched, and who answers (FE-51, 
         refusal(await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)),
       ).toEqual({ status: 200, code: undefined })
     })
+  })
+
+  it('no guide the API serves says the person who minted a token is the one who confirms (FE-50, sitting 2’s review)', async () => {
+    const dir = new URL('../../../../docs/api/', import.meta.url)
+    const said: string[] = []
+    for (const name of (await readdir(dir)).filter((f) => f.endsWith('.md'))) {
+      const text = await readFile(new URL(name, dir), 'utf8')
+      for (const sentence of text.split(/(?<=[.:;])\s+/))
+        if (/\bminted\b[^.]*\b(confirms?|answers?)\b/i.test(sentence))
+          said.push(`${name}: ${sentence.slice(0, 120)}`)
+    }
+    expect(said).toEqual([])
   })
 
   it('TOKEN_ACTION_PENDING’s hint and remedy describe the retry by the request — never by its key — and name who answers by what they could do', async () => {

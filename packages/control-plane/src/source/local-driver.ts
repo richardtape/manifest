@@ -234,28 +234,42 @@ export function createLocalSourceDriver(root: string): SourceDriver {
         )
       }
       await mkdir(repoRoot, { recursive: true })
-      await git(repoRoot, ['init', '--bare', '--initial-branch=main', path])
-      // The hook and git's protection BEFORE the first push, so every commit this repository
-      // ever takes — the seed's too — has been through both (§20; Task 12, Decision 13).
-      await installPreReceiveHook(path)
-      await protectHistory(path)
-      // The seed through THE write path (Task 3): no base, and pushed like any other commit, so
-      // the hook sees it too.
-      const built = await buildCommit({
-        objects: path,
-        base: null,
-        changes: Object.entries(seed).map(([p, content]) => ({
-          op: 'write' as const,
-          path: p,
-          content,
-        })),
-        message: 'chore: seed from blueprint skeleton',
-        author: MANIFEST_COMMITTER,
-      })
+      // F7's own cost (sitting 2's review): from `git init` on, the repository is THIS create's — the
+      // check above saw nothing there, and the project row (unique by slug) lets one create of a slug
+      // reach here at a time. A step that fails after it removes what it made, or the person's retry
+      // is SOURCE_REPOSITORY_EXISTS for ever: the route relies on "the driver undoes its own steps",
+      // as driver 2 always has.
       try {
-        await pushInto(path, built)
-      } finally {
-        await built.dispose()
+        await git(repoRoot, ['init', '--bare', '--initial-branch=main', path])
+        // The hook and git's protection BEFORE the first push, so every commit this repository
+        // ever takes — the seed's too — has been through both (§20; Task 12, Decision 13).
+        await installPreReceiveHook(path)
+        await protectHistory(path)
+        // The seed through THE write path (Task 3): no base, and pushed like any other commit, so
+        // the hook sees it too.
+        const built = await buildCommit({
+          objects: path,
+          base: null,
+          changes: Object.entries(seed).map(([p, content]) => ({
+            op: 'write' as const,
+            path: p,
+            content,
+          })),
+          message: 'chore: seed from blueprint skeleton',
+          author: MANIFEST_COMMITTER,
+        })
+        try {
+          await pushInto(path, built)
+        } finally {
+          await built.dispose()
+        }
+      } catch (error) {
+        await rm(path, { recursive: true, force: true }).catch((cleanup: unknown) => {
+          console.error(
+            `the local driver could not remove ${projectSlug}'s half-made repository after its create failed; remove it before that slug is created again (${cleanup instanceof Error ? cleanup.message : String(cleanup)})`,
+          )
+        })
+        throw error
       }
       return {
         ref: { projectSlug, provider: 'local' },

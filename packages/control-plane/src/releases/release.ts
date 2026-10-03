@@ -9,7 +9,7 @@ import {
   routes,
   withEnvironmentLock,
 } from '../db/index.js'
-import type { BlueprintRegistry } from '../blueprints/index.js'
+import { offeredRefs, type BlueprintRegistry } from '../blueprints/index.js'
 import type { Driver, InstanceFile, InstanceHandle } from '../runtime/index.js'
 import {
   InstanceNotReadyError,
@@ -1178,10 +1178,8 @@ function blueprintRunAsUid(blueprints: BlueprintRegistry, ref: string): number {
   if (!descriptor) {
     throw new ReleaseError(
       'RELEASE_BLUEPRINT_NOT_FOUND',
-      `no blueprint '${ref}'. Available: ${blueprints
-        .list()
-        .map((b) => `${b.blueprint}@${b.major_version}`)
-        .join(', ')}`,
+      // Only what is OFFERED (FE-31), as createProject's hint.
+      `no blueprint '${ref}'. Available: ${offeredRefs(blueprints).join(', ')}`,
     )
   }
   return descriptor.runtime.run_as_uid

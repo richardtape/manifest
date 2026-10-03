@@ -61,6 +61,33 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
     expect(await driver.readFile(repo, sha, 'src/index.js')).toContain('hello')
   })
 
+  /**
+   * F7's own cost, found by sitting 2's review: since a create refuses a repository already on this
+   * machine, a create that fails AFTER `git init` must remove what it made, or the person's retry is
+   * `SOURCE_REPOSITORY_EXISTS` for ever (`api/routes/projects.ts` relies on "the driver undoes its
+   * own steps"; driver 2 always did). The failure is forced after `git init` by a git template whose
+   * `hooks/pre-receive` is a DIRECTORY, so writing the hook fails.
+   */
+  it('a create that fails part-way leaves no repository behind, so the slug can be made again', async () => {
+    const driver = createLocalSourceDriver(root)
+    const template = await mkdtemp(join(tmpdir(), 'manifest-template-'))
+    await mkdir(join(template, 'hooks', 'pre-receive'), { recursive: true })
+    const before = process.env.GIT_TEMPLATE_DIR
+    process.env.GIT_TEMPLATE_DIR = template
+    try {
+      await expect(driver.createRepository('chem-labs', seed)).rejects.toThrow()
+    } finally {
+      if (before === undefined) delete process.env.GIT_TEMPLATE_DIR
+      else process.env.GIT_TEMPLATE_DIR = before
+      await rm(template, { recursive: true, force: true })
+    }
+    await expect(stat(join(root, 'chem-labs.git'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+    const { ref } = await driver.createRepository('chem-labs', seed)
+    expect(await driver.headCommit(ref)).toMatch(/^[0-9a-f]{40}$/)
+  })
+
   it('returns null for a path that is not in the tree', async () => {
     const driver = createLocalSourceDriver(root)
     const { ref: repo } = await driver.createRepository('chem-labs', seed)

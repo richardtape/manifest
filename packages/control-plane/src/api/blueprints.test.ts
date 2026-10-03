@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer } from './server.js'
-import { loginAs, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
 
 // A real server signs a real user in, and that row is committed.
 beforeEach(resetDatabase)
@@ -39,6 +39,25 @@ describe('blueprints over the API (§25, D25 — P5a Task 10)', () => {
     expect(text).not.toContain('sha256:') // no base-image digest
     expect(text).not.toContain('run_as_uid')
     expect(text).not.toContain('manifest-registry')
+    await app.close()
+  })
+
+  it('names only the blueprints meant for people when a create names one that does not exist (FE-31, sitting 2’s review)', async () => {
+    const { app, deps, cookies } = await signedIn()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: projectBody('chem-labs', { blueprint: 'node-ts-mongo@9' }),
+    })
+    expect({ status: res.statusCode, code: res.json().error.code }).toEqual({
+      status: 400,
+      code: 'BLUEPRINT_NOT_FOUND',
+    })
+    const hint = res.json().error.hint as string
+    expect(hint).toContain('node-ts-mongo@1')
+    expect(hint).not.toContain('fixture-node')
     await app.close()
   })
 

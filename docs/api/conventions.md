@@ -25,7 +25,7 @@ Every refusal is one shape:
 ```
 
 - **Switch on `code`**, which is stable; never parse `message`, which is for a person.
-- **`requestId`** is on every refusal, and the same id is the `x-request-id` header on every answer — a success too. **Show it to the person and keep it in your own log**: quoted in a report, it finds the platform’s own record of that request. An id you send in a request header is ignored. A generated-client call's `ManifestApiError` carries it as `requestId` — from the envelope, else the header, else `null` (an answer that never reached the platform has none).
+- **`requestId`** is on every refusal, and the same id is the `x-request-id` header on every answer — a success too. **Show a refusal’s id to the person and keep it in your own log**: quoted in a report, it finds the platform’s own record of that refusal. A success’s id is yours to log beside your own; the platform records refusals, not successes. An id you send in a request header is ignored. A generated-client call's `ManifestApiError` carries it as `requestId` — from the envelope, else the header, else `null` (an answer that never reached the platform has none).
 - **`hint`** says what to do, where there is something to say. *Error codes* gives every code’s meaning and remedy, and so does the OpenAPI document’s `x-manifest-errors`.
 - **`details`** comes with `422 SPEC_INVALID`: one entry per problem in manifest.yaml, each with its `path`, its own `code`, a `message` and a `hint`.
 - **`pendingAction`** comes with `403 TOKEN_ACTION_PENDING` and `TOKEN_ACTION_REJECTED`: the question a person answers.

@@ -1,4 +1,5 @@
 import { z } from 'zod/v4'
+import { offered } from '../../blueprints/index.js'
 import { AuthorizationError } from '../../projects/index.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import {
@@ -59,11 +60,7 @@ export const blueprintRoutes = [
     },
     // FE-31 (§25): only the blueprints meant for people. `resolve` is untouched, so an unlisted
     // one is still answered by `getBlueprint` and still builds.
-    handler: async ({ deps }) =>
-      deps.blueprints
-        .list()
-        .filter((d) => d.listed)
-        .map(toBlueprint),
+    handler: async ({ deps }) => offered(deps.blueprints).map(toBlueprint),
   }),
   defineRoute({
     operationId: 'getBlueprint',

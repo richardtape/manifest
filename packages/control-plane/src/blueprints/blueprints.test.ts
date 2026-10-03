@@ -10,7 +10,12 @@ import {
   manifestSchema,
   type ManifestSpec,
 } from '../spec/index.js'
-import { descriptorSchema, checkBlueprintCompatibility, loadBlueprints } from './index.js'
+import {
+  descriptorSchema,
+  checkBlueprintCompatibility,
+  loadBlueprints,
+  offeredRefs,
+} from './index.js'
 
 const descriptor = descriptorSchema.parse({
   blueprint: 'fixture-node',
@@ -132,6 +137,13 @@ describe('blueprint registry', () => {
     expect(registry.resolve('fixture-node@1')?.blueprint).toBe('fixture-node')
     expect(registry.resolve('fixture-node@9')).toBeUndefined()
     expect(registry.resolve('does-not-exist@1')).toBeUndefined()
+  })
+
+  it('offers only the listed blueprints wherever one is named to a person or an agent — a hint included (FE-31)', async () => {
+    const registry = await loadBlueprints(
+      new URL('../../../../blueprints/', import.meta.url).pathname,
+    )
+    expect(offeredRefs(registry)).toEqual(['node-ts-mongo@1'])
   })
 
   it('marks the platform’s own test fixture unlisted, and every blueprint for people listed (FE-31)', async () => {

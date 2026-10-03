@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { z } from 'zod/v4'
 import { appSpecs } from '../../db/index.js'
 import type { ModelCatalogue } from '../../ai/index.js'
-import { renderProjectSeed } from '../../blueprints/index.js'
+import { offeredRefs, renderProjectSeed } from '../../blueprints/index.js'
 import { makeRedactor, publishEvent } from '../../observability/index.js'
 import {
   actorPhrase,
@@ -252,10 +252,8 @@ export const projectWriteRoutes = [
         throw new BadRequestError(
           'BLUEPRINT_NOT_FOUND',
           `no blueprint '${body.blueprint}'`,
-          `Available: ${deps.blueprints
-            .list()
-            .map((b) => `${b.blueprint}@${b.major_version}`)
-            .join(', ')}`,
+          // Only what is OFFERED (FE-31): a hint an agent corrects itself from never names the fixture.
+          `Available: ${offeredRefs(deps.blueprints).join(', ')}`,
         )
       }
       if (

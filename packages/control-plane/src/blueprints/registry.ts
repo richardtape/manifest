@@ -21,6 +21,23 @@ export interface LoadedStarter {
   files: Readonly<Record<string, string>>
 }
 
+/**
+ * FE-31 (§25): THE BLUEPRINTS OFFERED to a person or an agent choosing where to start — every one but
+ * a `listed: false` fixture. ONE statement of the rule, read by `listBlueprints` and by every hint or
+ * message that names what is available (sitting 2's review found two that listed the fixture).
+ * `resolve` is deliberately NOT filtered: an unlisted blueprint still builds.
+ */
+export function offered(
+  registry: Pick<BlueprintRegistry, 'list'>,
+): BlueprintDescriptor[] {
+  return registry.list().filter((d) => d.listed)
+}
+
+/** The offered blueprints as `name@major`, as a manifest pins them. */
+export function offeredRefs(registry: Pick<BlueprintRegistry, 'list'>): string[] {
+  return offered(registry).map((d) => `${d.blueprint}@${d.major_version}`)
+}
+
 export interface BlueprintRegistry {
   list(): BlueprintDescriptor[]
   /** Resolves a "name@major" reference, exactly as manifest.yaml pins it. */

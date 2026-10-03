@@ -13,6 +13,7 @@ import {
 import { tokenStillACredential } from '../../tokens/index.js'
 import { assertSameOrigin } from '../csrf.js'
 import { originOf } from '../origins.js'
+import { sendRefusal } from '../refusal.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
 // A refusal AFTER the upgrade — "you may not", distinct from 1011's "I broke" — is `CLOSE_NOT_FOUND`
@@ -88,18 +89,20 @@ export async function registerEventRoutes(
       }
       await authorizeStream(deps, request)
     },
-    handler: async (_request, reply) =>
-      reply
-        .code(426)
+    // FE-30 (sitting 2's review): through `sendRefusal`, like every refusal — its id in the body and
+    // the header, and its operator line.
+    handler: async (request, reply) =>
+      sendRefusal(
+        request,
         // RFC 9110: a 426 names the protocol to switch to.
-        .header('upgrade', 'websocket')
-        .send({
-          error: {
-            code: 'EVENTS_UPGRADE_REQUIRED',
-            message: 'this endpoint is a WebSocket stream',
-            hint: 'Connect with a WebSocket client to wss://<host>/v1/projects/<projectId>/events. D23.2: one stream per project, never polling. The frames are StreamFrame in packages/contract/openapi.json.',
-          },
-        }),
+        reply.header('upgrade', 'websocket'),
+        426,
+        {
+          code: 'EVENTS_UPGRADE_REQUIRED',
+          message: 'this endpoint is a WebSocket stream',
+          hint: 'Connect with a WebSocket client to wss://<host>/v1/projects/<projectId>/events. D23.2: one stream per project, never polling. The frames are StreamFrame in packages/contract/openapi.json.',
+        },
+      ),
     wsHandler: async (socket, request) => {
       // The origin, read a second time for the same reason authorization is below.
       try {

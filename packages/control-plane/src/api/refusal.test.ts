@@ -1,9 +1,9 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InjectOptions } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
-import { TOKEN_PREFIX } from '../tokens/token.js'
+import { TOKEN_PREFIX } from '../tokens/index.js'
 import { buildServer, type ServerDeps } from './server.js'
-import { loginAs, mutationHeaders, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, testDeps, withProjectServer } from './testing.js'
 
 /**
  * FE-30 (the faculty-ready plan's Task 3; §20 as its Spec action 3 has it): EVERY ANSWER CARRIES A
@@ -205,6 +205,28 @@ describe('a request id on every answer, and every refusal logged (FE-30, §20)',
     expect(res.body).toContain(id)
     expect(linesFor(id)).toHaveLength(1)
     await app.close()
+  })
+
+  it('the event stream’s plain GET — a 426 its own route sends — carries the id and its line too (sitting 2’s review)', async () => {
+    await withProjectServer(async (ctx) => {
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/events`,
+        cookies: ctx.ownerCookies,
+      })
+      const id = res.headers['x-request-id'] as string
+      expect(id).toMatch(UUID)
+      expect(res.headers.upgrade).toBe('websocket')
+      const error = (res.json() as { error: { code: string; requestId?: string } }).error
+      expect({ status: res.statusCode, code: error.code, id: error.requestId }).toEqual({
+        status: 426,
+        code: 'EVENTS_UPGRADE_REQUIRED',
+        id,
+      })
+      expect(linesFor(id)).toEqual([
+        expect.objectContaining({ msg: 'refused', requestId: id, status: 426 }),
+      ])
+    })
   })
 
   it('a success carries the header too, and writes no line', async () => {
