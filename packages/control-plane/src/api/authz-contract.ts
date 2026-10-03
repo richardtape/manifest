@@ -2322,6 +2322,21 @@ export function describeAuthorizationContract(
         cookies: cookies.owner,
         headers: mutationHeaders(deps),
       })
+      // THE QUESTIONS' OWN TOKEN, never the revoke row's (the faculty-ready plan's Task 13, FE-52): a
+      // revoke now ends every question its token is waiting on, so questions asked by `token` above
+      // read `expired` once the revoke row has run, and the confirm and reject rows after it would
+      // be answered `409 PENDING_ACTION_RESOLVED` for a reason that has nothing to do with who asked.
+      const asker = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${body.id}/tokens`,
+        payload: {
+          name: 'authz-questions',
+          capabilities: ['project:read'],
+          expiresInDays: 30,
+        },
+        cookies: cookies.owner,
+        headers: mutationHeaders(deps),
+      })
       // Task 10: the session the end row is aimed at — started by the owner, on the fake gateway
       // this suite's factory supplies (`authz-contract.test.ts`), and ASSERTED, because a row
       // aimed at a session that was never started would read 404 for every actor.
@@ -2468,8 +2483,9 @@ export function describeAuthorizationContract(
           error: new TokenCapabilityRefusedError(
             'members:manage',
             body.id,
-            token.json().token.id,
+            asker.json().token.id,
           ),
+          tokenExpiresAt: new Date(asker.json().token.expiresAt as string),
           fingerprint: fingerprintOf({
             method: 'POST',
             url: `/v1/projects/${body.id}/members`,

@@ -17,7 +17,10 @@ import {
 } from '../../projects/index.js'
 import {
   createToken,
+  EVERY_QUESTION,
+  expirePendingActions,
   mintToken,
+  publishQuestionsEnded,
   revokeToken,
   tokenById,
   tokensForProject,
@@ -105,6 +108,7 @@ export const tokenRoutes = [
           id: '606cabe3-f4b5-4cd3-9202-a3a6df8f89a4',
           projectId: '483eefec-c89d-4ecb-aac1-997aadf0dc5d',
           name: 'claude-code',
+          mintedBy: '30d15229-d64b-4740-8d3e-9ef1f21650ab',
           capabilities: ['project:read', 'source:write'],
           rateLimit: 600,
           expiresAt: '2026-09-27T21:49:41.998Z',
@@ -267,6 +271,7 @@ export const tokenRoutes = [
           id: '09ca0c4f-541c-433c-90b1-8f921ba88ff1',
           projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
           name: 'authz',
+          mintedBy: '30d15229-d64b-4740-8d3e-9ef1f21650ab',
           capabilities: ['project:read'],
           rateLimit: 600,
           expiresAt: '2026-10-26T21:51:55.029Z',
@@ -279,6 +284,7 @@ export const tokenRoutes = [
           id: '91ffc307-1602-457a-9965-6581d2f365d5',
           projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
           name: 'authz',
+          mintedBy: '30d15229-d64b-4740-8d3e-9ef1f21650ab',
           capabilities: ['project:read'],
           rateLimit: 600,
           expiresAt: '2026-10-26T21:51:55.024Z',
@@ -321,6 +327,7 @@ export const tokenRoutes = [
         id: 'd526fd4f-2528-45d9-9e45-c374393d8cec',
         projectId: '29f9e50b-1ded-4f9e-ab2e-085a4f560188',
         name: 'authz-fixture',
+        mintedBy: '30d15229-d64b-4740-8d3e-9ef1f21650ab',
         capabilities: ['project:read'],
         rateLimit: 600,
         expiresAt: '2026-10-26T21:51:47.658Z',
@@ -345,12 +352,26 @@ export const tokenRoutes = [
       if (row === undefined || row.userId !== actor.userId) {
         throw new AuthorizationError('NOT_FOUND', `no token '${params.tokenId}'`)
       }
-      await revokeToken(deps.db, params.tokenId, actor.userId)
+      // THE REVOKE AND ITS QUESTIONS' END IN ONE TRANSACTION (FE-52; the faculty-ready plan's Task 13,
+      // Decision 17 — the archive's rule, applied here): a question a revoked token asked can never be
+      // retried, so it must not stay `pending` for a person to be told "confirmed". Both are the
+      // database's alone, so no failure can leave one without the other.
+      const ended = await deps.db.transaction(async (tx) => {
+        await revokeToken(tx, params.tokenId, actor.userId)
+        return expirePendingActions(tx, EVERY_QUESTION, { tokenId: params.tokenId })
+      })
       // EVERY EVENT STREAM IT HOLDS OPEN, `4401` (the launch path plan's Task 5, FE-33) — after the
       // revoke has committed, and BEFORE the sessions below: ending a session needs the model gateway
       // and can answer `503`, closing a stream needs nothing, and an outage must never leave a revoked
       // token listening. On a retry it finds nothing left to close.
       deps.streams.closeToken(params.tokenId)
+      // THEN WHAT THE REVOKE ENDED, SAID — after the commit, for the streams' reason: an event that
+      // announced a rollback would be false. Before the sessions, so a gateway outage never silences
+      // it. A retry ends nothing more, and so says nothing more.
+      await publishQuestionsEnded(deps, ended, {
+        cause: 'token_revoked',
+        by: actor.userId,
+      })
       // THEN EVERY AGENT SESSION IT STARTED (the front-end enablement plan's Task 10, Decision 25):
       // a model key never outlives the credential that asked for it. REACHED ON A RETRY TOO — the
       // token is already revoked then, and this is how the sessions a failed first attempt could

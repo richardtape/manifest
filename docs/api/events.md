@@ -101,6 +101,8 @@ The stream closes with a code that says what to do:
 
 **A token's stream learns an app was switched off or deleted from its close code, not from an event.** Switching an app off or deleting it revokes every token on it, so a token's stream closes `4401` before `project.archived` or `project.deleted` reaches it, and the token can read nothing more — the person it works for sees which in their own session. A deletion closes every stream still open on the app `4404`.
 
+**A question to a person can end without an answer.** When a person ends the token that asked — revoking it, taking its minter off the project, or switching the app off — each of its waiting questions reads `expired` at once, and the project's stream carries one `pending_action.expired` per question, naming who acted. Re-read a queue on it as on `pending_action.created`, `.confirmed` and `.rejected`. A question that simply ran out of time publishes nothing: read its `expiresAt`, which is never later than its token's.
+
 ## Every event type
 
 Each type, and the one sentence that says what it means; *Event types* has an example of each one’s `machineDetail`.
@@ -130,6 +132,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `pending_action.created` | A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console. |
 | `pending_action.confirmed` | A person confirmed a token’s pending action, which grants that one request exactly one retry. |
 | `pending_action.rejected` | A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED`. |
+| `pending_action.expired` | A token’s question ended unanswered because a person ended the token: it was revoked, its minter was taken off the project, or the project was switched off. Nothing can retry the request, so the question can no longer be confirmed or rejected. Not published when a question simply runs out of time. |
 | `iam_registration.recorded` | An administrator recorded what UBC IAM registered for the app’s staging or production sign-in. |
 | `privacy_assessment.recorded` | An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment. |
 | `iam_registration.submitted` | A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records. |

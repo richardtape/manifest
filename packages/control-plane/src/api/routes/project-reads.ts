@@ -20,7 +20,13 @@ import {
   removeMember,
   servingInstanceOf,
 } from '../../projects/index.js'
-import { revokeTokensOfMember } from '../../tokens/index.js'
+import {
+  EVERY_QUESTION,
+  expirePendingActions,
+  publishQuestionsEnded,
+  revokeTokensOfMember,
+  type ExpiredQuestion,
+} from '../../tokens/index.js'
 import { mayBuild, memberMayNotBuild } from '../../identity/index.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
@@ -587,15 +593,19 @@ export const projectReadRoutes = [
       // person off the project with a live token acting for them on it, and a revoke that fails leaves
       // them on it. Only for a REMOVAL (`removeMember` answers, it does not throw): the last owner
       // refused, or somebody who was not a member, revokes nothing.
-      const { outcome, revoked } = await deps.db.transaction(async (tx) => {
+      //
+      // AND EVERY QUESTION THOSE TOKENS ASKED, ENDED IN THE SAME TRANSACTION (FE-52; the faculty-ready
+      // plan's Task 13, Decision 17): a revoked token can retry nothing, so a person must never be told
+      // "confirmed" for its question. Said on the stream after the commit, below.
+      const { outcome, revoked, questions } = await deps.db.transaction(async (tx) => {
         const removal = await removeMember(tx, projectId, userId)
-        return {
-          outcome: removal,
-          revoked:
-            removal === 'removed'
-              ? await revokeTokensOfMember(tx, projectId, userId)
-              : [],
+        const ids =
+          removal === 'removed' ? await revokeTokensOfMember(tx, projectId, userId) : []
+        const ended: ExpiredQuestion[] = []
+        for (const tokenId of ids) {
+          ended.push(...(await expirePendingActions(tx, EVERY_QUESTION, { tokenId })))
         }
+        return { outcome: removal, revoked: ids, questions: ended }
       })
       if (outcome === 'last owner') throw new LastOwnerError()
       if (outcome === 'removed') {
@@ -606,6 +616,12 @@ export const projectReadRoutes = [
         // token's `4401`, then the person's own session streams, `4404`: the project is not theirs now.
         deps.streams.closeTokens(revoked)
         deps.streams.closePerson(projectId, userId)
+        // What the removal ended, said once it has committed — before the sessions, which need the
+        // model gateway and can fail. The person who acted: for a token, the person who minted it.
+        await publishQuestionsEnded(deps, questions, {
+          cause: 'member_removed',
+          by: actor.userId,
+        })
       }
       // THEN THEIR AGENT SESSIONS on the project — token-started and browser-started — `member_removed`.
       // REACHED FOR SOMEBODY WHO IS NOT A MEMBER TOO, as `revokeToken`'s end is reached for a token

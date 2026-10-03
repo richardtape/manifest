@@ -4919,6 +4919,7 @@ Answer, `200`:
     "id": "09ca0c4f-541c-433c-90b1-8f921ba88ff1",
     "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
     "name": "authz",
+    "mintedBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
     "capabilities": [
       "project:read"
     ],
@@ -4933,6 +4934,7 @@ Answer, `200`:
     "id": "91ffc307-1602-457a-9965-6581d2f365d5",
     "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
     "name": "authz",
+    "mintedBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
     "capabilities": [
       "project:read"
     ],
@@ -4986,6 +4988,7 @@ Answer, `201`:
     "id": "606cabe3-f4b5-4cd3-9202-a3a6df8f89a4",
     "projectId": "483eefec-c89d-4ecb-aac1-997aadf0dc5d",
     "name": "claude-code",
+    "mintedBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
     "capabilities": [
       "project:read",
       "source:write"
@@ -5036,6 +5039,7 @@ Answer, `200`:
   "id": "d526fd4f-2528-45d9-9e45-c374393d8cec",
   "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
   "name": "authz-fixture",
+  "mintedBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
   "capabilities": [
     "project:read"
   ],

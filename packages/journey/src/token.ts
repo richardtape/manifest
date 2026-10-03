@@ -113,6 +113,8 @@ const state: {
   memberBody?: { puid: string; role: 'collaborator' }
   pendingActionId?: string
   askedAt?: number
+  /** The instructor's own id (`getMe`) — what a token's `mintedBy` names (FE-49). */
+  meId?: string
 } = {}
 
 /**
@@ -129,6 +131,7 @@ async function step1SignedIn(): Promise<void> {
   checks.step('1. Signed in as the instructor, who owns the project (§20, D24)')
   const me = unwrap(await human.GET('/v1/me'), 'getMe')
   checks.ok('GET /v1/me is the instructor', me.puid === 'ins000001', JSON.stringify(me))
+  state.meId = me.id
 
   const mine = unwrap(await human.GET('/v1/projects'), 'listProjects')
   const existing = mine.find((p) => p.slug === SLUG)
@@ -769,6 +772,18 @@ async function step9Revoked(): Promise<void> {
   const agent = checks.must('a token to act with', state.agent)
   const projectId = checks.must('a project', state.projectId)
 
+  // A QUESTION STILL WAITING when the token is revoked (FE-52; the faculty-ready plan's Task 13): the
+  // agent asks for something new — another colleague — and nobody answers before the revoke.
+  const waiting = await agent.client.POST('/v1/projects/{projectId}/members', {
+    params: { path: { projectId }, header: { 'Idempotency-Key': idempotencyKey() } },
+    body: { puid: 'col000002', role: 'collaborator' },
+  })
+  const asked = checks.must(
+    'before the revoke, the agent asks something new — 403 TOKEN_ACTION_PENDING, a question waiting',
+    refusal(waiting, 403, 'TOKEN_ACTION_PENDING')?.pendingAction,
+    describe(waiting),
+  )
+
   const revoked = unwrap(
     await human.DELETE('/v1/tokens/{tokenId}', {
       params: {
@@ -782,6 +797,39 @@ async function step9Revoked(): Promise<void> {
     'revoked — and it is NOT expired: a clock and a person are different answers',
     revoked.revokedAt !== null && revoked.expired === false,
     JSON.stringify({ revokedAt: revoked.revokedAt, expired: revoked.expired }),
+  )
+  checks.ok(
+    'and it names its minter — the instructor, the only person who may revoke it',
+    revoked.mintedBy === state.meId,
+    JSON.stringify({ mintedBy: revoked.mintedBy, me: state.meId }),
+  )
+
+  // Its waiting question ended WITH it: nothing can retry it now, so nobody may be told "confirmed".
+  const ended = unwrap(
+    await human.GET('/v1/pending-actions/{pendingActionId}', {
+      params: { path: { pendingActionId: asked.id } },
+    }),
+    'getPendingAction',
+  )
+  checks.ok(
+    'its waiting question reads expired at once — the revoke ended it',
+    ended.state === 'expired',
+    ended.state,
+  )
+  const lateYes = await humanSteppedUp.POST(
+    '/v1/pending-actions/{pendingActionId}/confirm',
+    {
+      params: {
+        path: { pendingActionId: asked.id },
+        header: { 'Idempotency-Key': idempotencyKey() },
+      },
+      body: {},
+    },
+  )
+  checks.ok(
+    'and a person’s yes to it is 409 PENDING_ACTION_RESOLVED, never "confirmed"',
+    refusal(lateYes, 409, 'PENDING_ACTION_RESOLVED') !== undefined,
+    describe(lateYes),
   )
 
   const after = await agent.client.GET('/v1/projects/{projectId}', {

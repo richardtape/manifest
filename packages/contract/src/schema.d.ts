@@ -3123,6 +3123,61 @@ export interface components {
              * @description What happened. Switch on it: each type has one `machineDetail` shape.
              * @constant
              */
+            type: "pending_action.expired";
+            /** @description What happened, in words for a person. Never parse it. */
+            humanMessage: string;
+            /** @description A token’s question ended unanswered because a person ended the token: it was revoked, its minter was taken off the project, or the project was switched off. Nothing can retry the request, so the question can no longer be confirmed or rejected. Not published when a question simply runs out of time. */
+            machineDetail: {
+                /**
+                 * Format: uuid
+                 * @description The question (`getPendingAction`), now `expired`.
+                 */
+                pendingActionId: string;
+                /**
+                 * Format: uuid
+                 * @description The token that asked, which can no longer act.
+                 */
+                tokenId: string;
+                /** @description The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`. */
+                action: string;
+                /**
+                 * @description What ended the token: `token_revoked` — its minter revoked it; `member_removed` — its minter was taken off the project; `project_archived` — the project was switched off.
+                 * @enum {string}
+                 */
+                cause: "token_revoked" | "member_removed" | "project_archived";
+                /**
+                 * Format: uuid
+                 * @description The person who acted — who revoked the token, removed its minter, or switched the project off. `listMembers` names them.
+                 */
+                by: string;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "iam_registration.recorded";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
@@ -6169,6 +6224,11 @@ export interface components {
             projectId: string;
             /** @description The label its minter gave it. */
             name: string;
+            /**
+             * Format: uuid
+             * @description Who minted it — the person it acts for (`getMe`’s `id`, `listMembers`’s `userId`). Only they may revoke it.
+             */
+            mintedBy: string;
             /** @description What it may do on that project; nothing else. */
             capabilities: string[];
             /** @description Requests a minute this token may make, enforced in the control plane. Past it, every route answers 429 RATE_LIMITED with Retry-After. */
@@ -10784,6 +10844,7 @@ export interface operations {
                      *         "id": "09ca0c4f-541c-433c-90b1-8f921ba88ff1",
                      *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
                      *         "name": "authz",
+                     *         "mintedBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
                      *         "capabilities": [
                      *           "project:read"
                      *         ],
@@ -10798,6 +10859,7 @@ export interface operations {
                      *         "id": "91ffc307-1602-457a-9965-6581d2f365d5",
                      *         "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
                      *         "name": "authz",
+                     *         "mintedBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
                      *         "capabilities": [
                      *           "project:read"
                      *         ],
@@ -10865,6 +10927,7 @@ export interface operations {
                      *         "id": "606cabe3-f4b5-4cd3-9202-a3a6df8f89a4",
                      *         "projectId": "483eefec-c89d-4ecb-aac1-997aadf0dc5d",
                      *         "name": "claude-code",
+                     *         "mintedBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
                      *         "capabilities": [
                      *           "project:read",
                      *           "source:write"
@@ -11728,6 +11791,7 @@ export interface operations {
                      *       "id": "d526fd4f-2528-45d9-9e45-c374393d8cec",
                      *       "projectId": "29f9e50b-1ded-4f9e-ab2e-085a4f560188",
                      *       "name": "authz-fixture",
+                     *       "mintedBy": "30d15229-d64b-4740-8d3e-9ef1f21650ab",
                      *       "capabilities": [
                      *         "project:read"
                      *       ],

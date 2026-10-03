@@ -786,6 +786,9 @@ export const TOKEN: Schemas['Token'] = {
   id: TOKEN_ID,
   projectId: PROJECT_ID,
   name: 'the agent that builds this app',
+  // Minted by the mock's own person (`ME`), so a client comparing with `getMe`'s id finds it theirs
+  // to revoke — as `revokeToken` here assumes.
+  mintedBy: USER_ID,
   // THE READ SCHEMA CANNOT CHECK THESE AND THE MINT REQUEST'S CAN. `Token.capabilities` is
   // a bare `array<string>` in the document while `MintTokenRequest.capabilities` is a closed
   // enum of eleven — so `build:run`, which this fixture said until it was checked by hand,

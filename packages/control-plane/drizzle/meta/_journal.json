@@ -344,6 +344,13 @@
       "when": 1790903597040,
       "tag": "0048_fixed_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791030297679,
+      "tag": "0049_silent_kronos",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,7 @@
 import { and, eq, lte } from 'drizzle-orm'
 import { pendingActions, type Db } from '../db/index.js'
+import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import { personName } from '../projects/index.js'
 
 /**
  * §6's fourth `PendingAction` state, applied — the one state change with no actor behind
@@ -22,12 +24,18 @@ import { pendingActions, type Db } from '../db/index.js'
  *     inserts: the window between a row expiring and a sweep noticing is closed exactly
  *     where it would otherwise cause a refusal.
  *
- * **NO EVENT IS PUBLISHED, deliberately.** §14's events record what somebody did, and
+ * **NO EVENT IS PUBLISHED HERE, deliberately.** §14's events record what somebody did, and
  * every other `pending_action.*` event names the actor who caused it — the token that
  * asked, the person who answered. Expiry is a clock passing, with no actor, and a boot
  * sweep of a month's backlog would publish a burst of events nobody asked for. An agent
  * learns its question died the way D23.7 says it should: by asking again and being handed
  * a new one. The row's own `state` is the record.
+ *
+ * **A PERSON'S ACT THAT ENDS A TOKEN DOES PUBLISH** (FE-52; the faculty-ready plan's Task 13,
+ * Decision 17): a revoke, a minter's removal and an archive each pass `EVERY_QUESTION` here,
+ * inside the transaction that ends the token, and then — after it commits — hand the rows this
+ * answers to `publishQuestionsEnded`, which names the person. So this answers the rows it
+ * expired, not a count.
  *
  * `scope` narrows it to one token's rows, or one project's. The rule is stated once, as a
  * parameter — the same shape `pendingActionsFor`'s `tokenId` uses for the same reason (sitting
@@ -43,7 +51,7 @@ export async function expirePendingActions(
   db: Pick<Db, 'update'>,
   now: Date = new Date(),
   scope?: { tokenId: string } | { projectId: string },
-): Promise<number> {
+): Promise<ExpiredQuestion[]> {
   const expirable = and(
     eq(pendingActions.state, 'pending'),
     // `<=`, not `<`: `answerable` refuses a row at exactly `expiresAt`, so a sweep that
@@ -63,8 +71,81 @@ export async function expirePendingActions(
     // reaches it must not have their decision overwritten. The writer that matches no row
     // is the one that loses.
     .where(expirable)
-    .returning({ id: pendingActions.id })
-  return swept.length
+    .returning({
+      id: pendingActions.id,
+      projectId: pendingActions.projectId,
+      tokenId: pendingActions.requestedByToken,
+      action: pendingActions.action,
+      payload: pendingActions.payload,
+    })
+  return swept.map((row) => ({
+    id: row.id,
+    projectId: row.projectId,
+    tokenId: row.tokenId,
+    action: row.action,
+    summary: row.payload.summary,
+  }))
+}
+
+/** A question `expirePendingActions` ended — what its event names, and never the body or its hash. */
+export interface ExpiredQuestion {
+  id: string
+  projectId: string
+  /** The token that asked. */
+  tokenId: string
+  /** The privileged capability it asked to use. */
+  action: string
+  /** What it asked for, in the route definition's own words (`fingerprintOf`). */
+  summary: string
+}
+
+/** Which act of a person ended a token, and so its questions. */
+export type QuestionsEndedCause = 'token_revoked' | 'member_removed' | 'project_archived'
+
+/**
+ * ONE `pending_action.expired` PER QUESTION A PERSON'S ACT ENDED (FE-52; Decision 17), naming them.
+ *
+ * **CALLED AFTER THE COMMIT, NEVER INSIDE ONE** — for the reason the event streams close after it: an
+ * event that announced a rollback would be false. Its three callers are the act's own: `revokeToken`,
+ * a member's removal and the archive. The clock's sweep never calls it (above: expiry has no actor).
+ *
+ * `by` is the person whose act it was — for a removal by a delegated token, the person who minted
+ * it. The sentence names them, and the question by its summary; never the body.
+ */
+export async function publishQuestionsEnded(
+  deps: { db: Db; bus: EventBus },
+  rows: readonly ExpiredQuestion[],
+  input: { cause: QuestionsEndedCause; by: string },
+): Promise<void> {
+  if (rows.length === 0) return
+  const who = await personName(deps.db, input.by)
+  for (const row of rows) {
+    await publishEvent(
+      deps.db,
+      deps.bus,
+      {
+        projectId: row.projectId,
+        subject: `pending-action:${row.id}`,
+        type: 'pending_action.expired',
+        machineDetail: {
+          pendingActionId: row.id,
+          tokenId: row.tokenId,
+          action: row.action,
+          cause: input.cause,
+          by: input.by,
+        },
+        humanMessage: `${ENDED_BY[input.cause](who)}, so an agent's question — to ${row.summary.toLowerCase()} — expired unanswered: nothing can retry it now.`,
+      },
+      makeRedactor([]),
+    )
+  }
+}
+
+const ENDED_BY: Record<QuestionsEndedCause, (who: string) => string> = {
+  token_revoked: (who) => `${who} revoked the delegated token that asked`,
+  member_removed: (who) =>
+    `${who} took the person who minted the asking token off the project, which revoked it`,
+  project_archived: (who) => `${who} switched the project off, which revoked every token`,
 }
 
 /**

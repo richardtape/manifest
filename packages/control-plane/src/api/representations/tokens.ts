@@ -17,6 +17,14 @@ export const Token = representation(
       projectId: Uuid.describe('The one project it may act on.'),
       name: z.string().describe('The label its minter gave it.'),
       /**
+       * FE-49 (the faculty-ready plan's Task 13, Decision 17): only the minter may revoke a token, so a
+       * client must be able to tell a person's own from a colleague's. The id, as `createdBy` is
+       * elsewhere — what a client compares with `getMe`'s `id`, without a join for a name it has.
+       */
+      mintedBy: Uuid.describe(
+        'Who minted it — the person it acts for (`getMe`’s `id`, `listMembers`’s `userId`). Only they may revoke it.',
+      ),
+      /**
        * `string[]`, not the capability enum the REQUEST uses, and deliberately so. A row
        * is written once and read for as long as it lives, so a capability later renamed
        * or removed would turn every read of an old token into a 500 through the response
@@ -147,6 +155,7 @@ export function toToken(row: typeof delegatedTokens.$inferSelect): z.input<typeo
     id: row.id,
     projectId: row.projectId,
     name: row.name,
+    mintedBy: row.userId,
     capabilities: row.capabilities,
     rateLimit: row.rateLimit,
     expiresAt: row.expiresAt.toISOString(),

@@ -90,6 +90,13 @@ describe('the request fingerprint (P5b Task 6)', () => {
   })
 })
 
+/**
+ * The asking token's expiry, for the cases about something else: far enough away that the question's
+ * own life (`PENDING_ACTION_TTL_MS`) decides. A question is capped at its token's (FE-52) — that cap
+ * has its own case in `api/questions-end.test.ts`, through the route that passes the real one.
+ */
+const LIVE = new Date(Date.now() + 30 * 86_400_000)
+
 describe('recording a pending action (D24)', () => {
   it('writes the fingerprint, the action and an expiry, and no body', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
@@ -101,6 +108,7 @@ describe('recording a pending action (D24)', () => {
       const before = Date.now()
       const pending = await recordPendingAction(db, createEventBus(), {
         error: refusedFor(projectId, token.id),
+        tokenExpiresAt: LIVE,
         fingerprint: fingerprintOf(ASK),
       })
 
@@ -132,6 +140,7 @@ describe('recording a pending action (D24)', () => {
       const ask = (tokenId: string) =>
         recordPendingAction(db, bus, {
           error: refusedFor(projectId, tokenId),
+          tokenExpiresAt: LIVE,
           fingerprint: fingerprintOf(ASK),
         })
 
@@ -156,11 +165,13 @@ describe('recording a pending action (D24)', () => {
       })
       const stale = await recordPendingAction(db, bus, {
         error: refusedFor(projectId, token.id),
+        tokenExpiresAt: LIVE,
         fingerprint: fingerprintOf(ASK),
         now: new Date(Date.now() - PENDING_ACTION_TTL_MS - 1000),
       })
       const fresh = await recordPendingAction(db, bus, {
         error: refusedFor(projectId, token.id),
+        tokenExpiresAt: LIVE,
         fingerprint: fingerprintOf(ASK),
       })
       expect(fresh.id).not.toBe(stale.id)
@@ -183,6 +194,7 @@ describe('recording a pending action (D24)', () => {
       })
       const pending = await recordPendingAction(db, bus, {
         error: refusedFor(projectId, token.id),
+        tokenExpiresAt: LIVE,
         fingerprint: fingerprintOf(ASK),
       })
 
@@ -213,10 +225,12 @@ describe('recording a pending action (D24)', () => {
       })
       const first = await recordPendingAction(db, bus, {
         error: refusedFor(projectId, token.id),
+        tokenExpiresAt: LIVE,
         fingerprint: fingerprintOf(ASK),
       })
       const second = await recordPendingAction(db, bus, {
         error: refusedFor(projectId, token.id),
+        tokenExpiresAt: LIVE,
         fingerprint: fingerprintOf({
           ...ASK,
           body: { puid: 'someone-else', role: 'owner' },
@@ -248,6 +262,7 @@ describe('finding a person’s answer again (P5b Task 7)', () => {
     })
     const row = await recordPendingAction(db, bus, {
       error: refusedFor(projectId, token.id),
+      tokenExpiresAt: LIVE,
       fingerprint: fingerprintOf(ASK),
       ...(now === undefined ? {} : { now }),
     })
@@ -506,6 +521,7 @@ describe('one open ask per token and fingerprint, on the pool (F10)', () => {
       const ask = (fingerprint: ReturnType<typeof fingerprintOf>) =>
         recordPendingAction(pooled, bus, {
           error: refusedFor(projectId, token.id),
+          tokenExpiresAt: LIVE,
           fingerprint,
         })
 

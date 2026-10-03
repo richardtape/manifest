@@ -344,7 +344,13 @@ export function registerRoutes(
               throw new PendingActionRejectedError(resolution.row)
             }
             throw new PendingActionRequiredError(
-              await recordPendingAction(deps.db, deps.bus, { error, fingerprint }),
+              await recordPendingAction(deps.db, deps.bus, {
+                error,
+                fingerprint,
+                // A question never outlives its token (FE-52). Only a token is ever refused this way
+                // (`assertCapability`), and a token actor's `expiresAt` is its row's `expires_at`.
+                tokenExpiresAt: new Date(actor.expiresAt),
+              }),
             )
           }
           throw error

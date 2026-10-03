@@ -75,6 +75,57 @@ describe('minting a delegated token (D24, Task 4)', () => {
     })
   })
 
+  /**
+   * FE-49 (the faculty-ready plan's Task 13): only a token's minter may revoke it, so a client must be
+   * able to tell which tokens are a person's own — `mintedBy`, compared with `getMe`'s `id`.
+   */
+  it('says who minted it — mintedBy is the minter’s getMe id, on the mint and in the list, and names somebody else’s', async () => {
+    await withProjectServer(async (ctx) => {
+      const owner = await sessionFor(ctx, 'bio_prof', 'owner')
+      const me = await ctx.app.inject({ method: 'GET', url: '/v1/me', cookies: owner })
+      expect(me.statusCode, me.body).toBe(200)
+      const myId = me.json().id as string
+      const minted = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${ctx.projectId}/tokens`,
+        cookies: owner,
+        headers: mutationHeaders(ctx.deps),
+        payload: { name: 'ci', capabilities: ['project:read'], expiresInDays: 30 },
+      })
+      expect(minted.statusCode, minted.body).toBe(201)
+      expect(minted.json().token.mintedBy).toBe(myId)
+
+      // A colleague's token on the same project names the colleague, not the reader.
+      const colleague = await sessionFor(ctx, 'bio_colleague', 'collaborator')
+      const theirs = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${ctx.projectId}/tokens`,
+        cookies: colleague,
+        headers: mutationHeaders(ctx.deps),
+        payload: { name: 'theirs', capabilities: ['project:read'], expiresInDays: 30 },
+      })
+      expect(theirs.statusCode, theirs.body).toBe(201)
+      const theirId = (
+        await ctx.app.inject({ method: 'GET', url: '/v1/me', cookies: colleague })
+      ).json().id as string
+      expect(theirId).not.toBe(myId)
+
+      const listed = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/tokens`,
+        cookies: owner,
+      })
+      expect(listed.statusCode, listed.body).toBe(200)
+      const byName = Object.fromEntries(
+        (listed.json() as { name: string; mintedBy: string }[]).map((t) => [
+          t.name,
+          t.mintedBy,
+        ]),
+      )
+      expect(byName).toEqual({ ci: myId, theirs: theirId })
+    })
+  })
+
   it('says whether a token has EXPIRED, and a revocation is not an expiry', async () => {
     // Task 10's token half. §20 asks for a list a person can review, and one that showed
     // `expiresAt` alone would make every reviewer compare timestamps by hand — so the

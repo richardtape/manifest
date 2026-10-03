@@ -105,6 +105,13 @@ export async function recordPendingAction(
   input: {
     error: TokenCapabilityRefusedError
     fingerprint: ActionFingerprint
+    /**
+     * When the asking token stops being a credential — the token actor's own `expiresAt` (FE-52;
+     * the faculty-ready plan's Task 13). A question never outlives the token that asked it: past
+     * that instant nothing can retry the request, so a person's yes would be a "confirmed" that
+     * grants nothing. Required, so no caller can forget the cap.
+     */
+    tokenExpiresAt: Date
     now?: Date
   },
 ): Promise<PendingAction> {
@@ -150,7 +157,11 @@ export async function recordPendingAction(
       requestedByToken: error.tokenId,
       action: error.capability,
       payload: fingerprint,
-      expiresAt: new Date(now.getTime() + PENDING_ACTION_TTL_MS),
+      // The question's life, CAPPED AT ITS TOKEN'S (FE-52): the sweep and the confirm route's own
+      // expiry check then cover a token that runs out, with no check of their own.
+      expiresAt: new Date(
+        Math.min(now.getTime() + PENDING_ACTION_TTL_MS, input.tokenExpiresAt.getTime()),
+      ),
     })
     /**
      * No `target`: drizzle's `onConflictDoNothing` takes columns, and this index is over

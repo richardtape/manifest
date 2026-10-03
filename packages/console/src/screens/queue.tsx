@@ -77,13 +77,16 @@ export function displayState(row: Schemas['PendingAction'], now: number): string
   return row.state
 }
 
-/** The three event types that mean this queue changed. Named, never matched by prefix: a
- *  `startsWith('pending_action.')` would silently adopt a fourth type nobody had looked at,
- *  and this project has paid twice for a check that matches text rather than a value. */
+/** The four event types that mean this queue changed. Named, never matched by prefix: a
+ *  `startsWith('pending_action.')` would silently adopt a type nobody had looked at, and this
+ *  project has paid twice for a check that matches text rather than a value. The fourth,
+ *  `.expired`, is a question a person's act ended — its token revoked, its minter removed, or
+ *  the project switched off — so the row now reads `expired`. */
 const QUEUE_EVENTS: ReadonlySet<string> = new Set([
   'pending_action.created',
   'pending_action.confirmed',
   'pending_action.rejected',
+  'pending_action.expired',
 ])
 
 export function Queue({

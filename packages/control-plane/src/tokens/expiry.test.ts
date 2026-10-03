@@ -75,7 +75,7 @@ describe('expiry (§6, D24, P5b Task 10)', () => {
       const stale = await seedPending(db, ctx, { expiresAt: PAST() })
       const fresh = await seedPending(db, ctx, { expiresAt: FUTURE() })
 
-      expect(await expirePendingActions(db, new Date())).toBe(1)
+      expect((await expirePendingActions(db, new Date())).length).toBe(1)
 
       expect((await pendingById(db, stale.id))?.state).toBe('expired')
       expect((await pendingById(db, fresh.id))?.state).toBe('pending')
@@ -107,7 +107,7 @@ describe('expiry (§6, D24, P5b Task 10)', () => {
       })
       const stale = await seedPending(db, ctx, { expiresAt: PAST() })
 
-      expect(await expirePendingActions(db, new Date())).toBe(1)
+      expect((await expirePendingActions(db, new Date())).length).toBe(1)
 
       expect((await pendingById(db, confirmed.id))?.state).toBe('confirmed')
       expect((await pendingById(db, rejected.id))?.state).toBe('rejected')
@@ -124,8 +124,8 @@ describe('expiry (§6, D24, P5b Task 10)', () => {
       }
       await seedPending(db, ctx, { expiresAt: PAST() })
 
-      expect(await expirePendingActions(db, new Date())).toBe(1)
-      expect(await expirePendingActions(db, new Date())).toBe(0)
+      expect((await expirePendingActions(db, new Date())).length).toBe(1)
+      expect((await expirePendingActions(db, new Date())).length).toBe(0)
     })
   })
 
@@ -155,11 +155,13 @@ describe('expiry (§6, D24, P5b Task 10)', () => {
         },
       )
 
-      expect(await expirePendingActions(db, new Date(), { tokenId: mine })).toBe(1)
+      expect((await expirePendingActions(db, new Date(), { tokenId: mine })).length).toBe(
+        1,
+      )
       expect((await pendingById(db, ours.id))?.state).toBe('expired')
       expect((await pendingById(db, other.id))?.state).toBe('pending')
 
-      expect(await expirePendingActions(db, new Date())).toBe(1)
+      expect((await expirePendingActions(db, new Date())).length).toBe(1)
       expect((await pendingById(db, other.id))?.state).toBe('expired')
     })
   })
@@ -199,7 +201,9 @@ describe('expiry (§6, D24, P5b Task 10)', () => {
         },
         { expiresAt: FUTURE() },
       )
-      expect(await expirePendingActions(db, EVERY_QUESTION, { projectId })).toBe(1)
+      expect((await expirePendingActions(db, EVERY_QUESTION, { projectId })).length).toBe(
+        1,
+      )
       expect((await pendingById(db, here.id))?.state).toBe('expired')
       // A decision a person already made is never re-decided (the case above's rule).
       expect((await pendingById(db, confirmed.id))?.state).toBe('confirmed')

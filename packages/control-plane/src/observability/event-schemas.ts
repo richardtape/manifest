@@ -383,6 +383,32 @@ export const EVENT_DETAIL_SCHEMAS = {
     .describe(
       'A person rejected a token’s pending action; a retry of it is refused `TOKEN_ACTION_REJECTED`.',
     ),
+  /**
+   * FE-52 (the faculty-ready plan's Task 13, Decision 17): a person's act ended the token that asked,
+   * and with it the question, unanswered. Published only for an act with an actor — never when a
+   * question simply ran out of time, which a client reads from the question's own `expiresAt`.
+   */
+  'pending_action.expired': z
+    .strictObject({
+      pendingActionId: Uuid.describe('The question (`getPendingAction`), now `expired`.'),
+      tokenId: Uuid.describe('The token that asked, which can no longer act.'),
+      action: z
+        .string()
+        .describe(
+          'The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`.',
+        ),
+      cause: z
+        .enum(['token_revoked', 'member_removed', 'project_archived'])
+        .describe(
+          'What ended the token: `token_revoked` — its minter revoked it; `member_removed` — its minter was taken off the project; `project_archived` — the project was switched off.',
+        ),
+      by: Uuid.describe(
+        'The person who acted — who revoked the token, removed its minter, or switched the project off. `listMembers` names them.',
+      ),
+    })
+    .describe(
+      'A token’s question ended unanswered because a person ended the token: it was revoked, its minter was taken off the project, or the project was switched off. Nothing can retry the request, so the question can no longer be confirmed or rejected. Not published when a question simply runs out of time.',
+    ),
   'spec.validated': z
     .strictObject({
       appSpecId: Uuid.describe('The recorded validation (`getSpec` reads the newest).'),

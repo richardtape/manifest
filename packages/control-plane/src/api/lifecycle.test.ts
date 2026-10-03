@@ -241,6 +241,7 @@ describe('archive and restore (§11, Task 11)', () => {
       const { token, secret } = minted.json() as { token: { id: string }; secret: string }
       const question = await recordPendingAction(ctx.db, ctx.deps.bus, {
         error: new TokenCapabilityRefusedError('members:manage', ctx.projectId, token.id),
+        tokenExpiresAt: new Date(Date.now() + 86_400_000),
         fingerprint: fingerprintOf({
           method: 'POST',
           url: `/v1/projects/${ctx.projectId}/members`,

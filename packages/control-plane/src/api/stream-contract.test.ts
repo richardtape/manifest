@@ -89,6 +89,10 @@ const PUBLISHED_ELSEWHERE = {
   // withdraws a model from a live session, and this lifecycle's project is never raised.
   'agent_session.narrowed':
     'api/agents.test.ts — a commit raising the project to confidential (Task 7)',
+  // The faculty-ready plan's Task 13 (FE-52): a person's act ending a token that is waiting on a
+  // question — this lifecycle's token asks nothing it then revokes.
+  'pending_action.expired':
+    'api/questions-end.test.ts — a revoke, a removal and an archive, each ending a question',
 } as const
 
 /**

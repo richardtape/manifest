@@ -68,6 +68,8 @@ export const EVENT_TYPES = [
   'pending_action.confirmed',
   /** D24 (P5b Task 7): a person refused it, in their own words. The agent is told why. */
   'pending_action.rejected',
+  /** FE-52 (the faculty-ready plan's Task 13): a person ended the token that asked, so its question ended unanswered. */
+  'pending_action.expired',
   /**
    * §9 and R1 (P6a Task 6): an administrator recorded what UBC IAM actually registered.
    * NEVER the attribute list — a project's stream is read by its members and the list is

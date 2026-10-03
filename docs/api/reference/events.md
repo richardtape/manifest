@@ -286,6 +286,20 @@ A person rejected a token’s pending action; a retry of it is refused `TOKEN_AC
 }
 ```
 
+## `pending_action.expired`
+
+A token’s question ended unanswered because a person ended the token: it was revoked, its minter was taken off the project, or the project was switched off. Nothing can retry the request, so the question can no longer be confirmed or rejected. Not published when a question simply runs out of time.
+
+```json
+{
+  "pendingActionId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "tokenId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "action": "members:manage",
+  "cause": "token_revoked",
+  "by": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f"
+}
+```
+
 ## `iam_registration.recorded`
 
 An administrator recorded what UBC IAM registered for the app’s staging or production sign-in.

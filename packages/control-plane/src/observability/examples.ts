@@ -127,6 +127,13 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     resolvedBy: UUID,
     reason: 'not this term',
   },
+  'pending_action.expired': {
+    pendingActionId: UUID,
+    tokenId: UUID,
+    action: 'members:manage',
+    cause: 'token_revoked',
+    by: UUID,
+  },
   'token.minted': {
     tokenId: UUID,
     capabilities: ['project:read', 'build:create'],

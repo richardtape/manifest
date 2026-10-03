@@ -448,7 +448,7 @@ const recovery = await recoverAtBoot({
  * queue until its next restart; that is named in P5b's *What this plan does not build*
  * rather than fixed with a third piece of background work.
  */
-const pendingActionsExpired = await expirePendingActions(db)
+const pendingActionsExpired = (await expirePendingActions(db)).length
 
 /**
  * D5's repositories, made what they must be NOW (the D5 plan's Task 11) — BEFORE `listen`, so

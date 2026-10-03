@@ -146,7 +146,12 @@ export async function tokensForProject(
  * the row first when it needs to tell a 404 from an idempotent second revoke, and a
  * repository that distinguished them would tell a caller which token ids exist.
  */
-export async function revokeToken(db: Db, id: string, userId: string): Promise<boolean> {
+export async function revokeToken(
+  // `update` alone, so the route revokes inside the transaction that also ends the token's questions.
+  db: Pick<Db, 'update'>,
+  id: string,
+  userId: string,
+): Promise<boolean> {
   const updated = await db
     .update(delegatedTokens)
     .set({ revokedAt: new Date() })
