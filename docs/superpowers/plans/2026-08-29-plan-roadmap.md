@@ -1441,14 +1441,17 @@ need **Spec actions 5 and 6** (above); and the rest is placed here.
 - **Keeping in step**: every sitting's close-out lists what it changed in the contract, which Rich relays; `packages/contract`
   stays buildable at every commit, because the front-end links this working tree.
 
-### *Faculty-ready* — "before faculty use it for real" — WRITTEN AND APPROVED 2026-09-30: [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), 11 tasks in 7 sittings, after the launch path
+### *Faculty-ready* — "before faculty use it for real" — WRITTEN AND APPROVED 2026-09-30: [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md), 13 tasks in 7 sittings, after the launch path
 
 *Which sitting is next: its sittings table, once it starts — and ORIENTATION §7e.* **Written by the planning session `manifest-00` in parallel
 with the launch path's sitting 5, at Rich's word** (*"Now, in parallel"*), from two read-only code surveys; **approved** (*"plan looks good"*);
 **the execution method is his, at its sitting 1's open** (*"Probably not subagent driven though"*). Its scope, each his decision of 2026-09-30
 ([`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): FE-28 widened (`__Host-` session, login and step-up cookies by origin scheme),
 FE-30 with FE-29 (contract `1.6.0`, once), FE-31 (`listed: false`), F8's `422` hook (streamed too, or stop and ask), `node:24-alpine`,
-`Init: true`, the IdP store's own role, and §26's administrator reason (alone and last). **Four spec actions drafted** (§26/§6, §25, §20,
+`Init: true`, the IdP store's own role, and §26's administrator reason (alone and last). **Added 2026-10-02 at Rich's word** (*"add them
+to the faculty-ready plan"*): FE-51, the pending-action hint names the request rather than its key (Task 12, sitting 2), and FE-52, a
+token's questions expire when it ends (revoked by its minter, its minter removed, its project archived, or run out), with a
+`pending_action.expired` event when a person ended it (Task 13, sitting 4); both measured on 7100 by the front-end's F6b sitting 1, no spec action. **Four spec actions drafted** (§26/§6, §25, §20,
 §12), none applied. **Then FE-32** — an agent can add a dependency (an operation that resolves a `package-lock.json` through the mirror).
 
 ### The vulnerability database in the console — AFTER *FACULTY-READY* AND FE-32 (Rich, 2026-09-30) — REQUESTED AND PLACED 2026-09-24: after the authoring API — and, since 2026-09-26, after Spec action 1's plan, which the front-end enablement plan replaced on 2026-09-27 in the same position — and, since 2026-09-27 (Rich), AFTER THE FRONT-END'S LAUNCH PATH (FE-6, FE-25)

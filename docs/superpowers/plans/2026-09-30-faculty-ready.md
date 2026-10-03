@@ -7,19 +7,25 @@
 > `tokens/` and `api/`** — so line numbers there WILL have moved by the time this plan runs, and Task 1 re-measures each one
 > marked *(T1: M<n>)* into `spikes/faculty-ready-baseline/`. **Four spec actions are drafted below; none is applied; no task a
 > spec action changes runs before Rich has read and decided its words.** **APPROVED by Rich, 2026-09-30** (*"plan looks good"*), seven sittings as proposed. **The execution method is his, chosen when the plan starts** (*"I'll decide on implementation strategy at the time. Probably not subagent driven though."*): ask him at sitting 1's open. **Approving the plan approves no spec action**: each of the four is read and decided before the sitting that builds it.
+>
+> **AMENDED 2026-10-02, AT RICH'S WORD** (*"add them to the faculty-ready plan"*): **FE-51 and FE-52 join as Tasks 12 and 13**, in
+> sittings 2 and 4. The faculty front-end's F6b sitting 1 measured both on 7100, and the platform session `manifest-96` checked them in
+> the code (*Read this first* 18–19). **They are numbered in the order they were added, not the order they run.** Task 11 is still the
+> acceptance, alone and last, and the plan still has seven sittings. Neither needs a spec action.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (native) or superpowers:subagent-driven-development, **whichever Rich chooses at sitting 1's open** (2026-09-30: *"Probably not subagent driven though"*). Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
-**Goal:** Close what stands between the platform and a real faculty member's first day. **A faculty app on a sibling host cannot plant a session** in a colleague's browser (FE-28, widened to the login and step-up cookies). **Every answer carries a request id, and every refusal leaves an operator line** a support report can be matched to (FE-30). **A refusal about a limit says whose, how much and when it lifts, as fields** (FE-29). **The platform's test blueprint is not offered to people** (FE-31). **A provider's `422` reaches the client as a `422`, never `200 null`** (F8). **Faculty apps run on `node:24-alpine`**, **with an init that reaps orphans**, and **the IdP's session store stops using the Postgres superuser**. And **an administrator acting on another person's project gives a reason, which the project's people see** (§26's non-repudiation, which nothing enforces today).
+**Goal:** Close what stands between the platform and a real faculty member's first day. **A faculty app on a sibling host cannot plant a session** in a colleague's browser (FE-28, widened to the login and step-up cookies). **Every answer carries a request id, and every refusal leaves an operator line** a support report can be matched to (FE-30). **A refusal about a limit says whose, how much and when it lifts, as fields** (FE-29). **The platform's test blueprint is not offered to people** (FE-31). **A provider's `422` reaches the client as a `422`, never `200 null`** (F8). **Faculty apps run on `node:24-alpine`**, **with an init that reaps orphans**, and **the IdP's session store stops using the Postgres superuser**. And **an administrator acting on another person's project gives a reason, which the project's people see** (§26's non-repudiation, which nothing enforces today). **An agent's question ends when its token does**, so nobody is told *confirmed* for a request that nothing can retry (FE-52). **The refusal that asks the question names what the platform matches**: the request, not its key (FE-51).
 
 It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/contract`. A person clicks it too.
 
-**Architecture:** Nine small, independent changes, and one medium one. They are grouped so that each contract-touching sitting bumps nothing twice.
+**Architecture:** Eleven small, independent changes, and one medium one. They are grouped so that each contract-touching sitting bumps nothing twice.
 - **The contract goes to `1.6.0` ONCE**, at Task 3, the first schema change. Everything after it stays `1.6.0`.
 - **The request id is Fastify's own `request.id`**, generated as a UUID. It is set as a header in `onRequest`, carried into every refusal body by ONE `sendRefusal` helper, and logged by the same helper.
 - **The cookie names are chosen per origin scheme**: `__Host-` on `https`, the plain name on loopback `http` (the Docker tier and the mock), so no `http` test origin loses its session.
 - **The administrator's reason is one request header**, enforced in `registerRoutes`. It is carried into every event the request publishes by an `AsyncLocalStorage` context, and stored on `audit.events` in three new columns.
 - **The `422` fix is a second hook in the same LiteLLM guard.** The `node:24` move is `images.txt`, `make seed` and a digest in two blueprint descriptors. `Init` is one line in `hardenedHostConfig`. The IdP store's role follows `ssp_ro`'s precedent in `ensure-idp-sql.sh`.
+- **FE-51 is text.** **FE-52 reuses what the archive already does**: `expirePendingActions(tx, EVERY_QUESTION, { tokenId })`, run on the two other paths that revoke a token. A question's life is also capped at its token's expiry. One event, `pending_action.expired`, is published only when a person's act ended the question, never when the clock did.
 
 **Tech Stack:** TypeScript 5.9.3 on Node 24.12.0 (host), Fastify 5.12.3, Drizzle over Postgres 16, `zod/v4` for the API, Vitest 2.1. LiteLLM **1.98.0** (`infra/images.lock:9`, pinned by digest). SimpleSAMLphp **v2.5.3.1** (`manifest-idp`). Docker Desktop **29.7.2** (`docker info`: `InitBinary=docker-init`). **No new external package.**
 
@@ -60,9 +66,9 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: `__Host-` cookies over `http` and through curl; Fastify's ids on every refusal path; LiteLLM's post-call hooks against a `422`, **streamed and not**, in a THROWAWAY LiteLLM; `Init` beside `ReadonlyRootfs` and `CapDrop ALL`; §26's reachable mutations; the gate numbers | No | — | |
-| 2 | 2, 3, 4 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`** | Yes — `blueprints/` | **2** (§25), **3** (§20) | |
+| 2 | 2, 3, 4, 12 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51** (Task 12, after Task 4): the pending-action hint names what is matched | Yes — `blueprints/` | **2** (§25), **3** (§20) | |
 | 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | |
-| 4 | 6, 8 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans | Yes — `ai/`, `infra/`, `runtime/` | **4** (§12) for Task 8 | |
+| 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | |
 | 5 | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | |
 | 6 | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | |
 | 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
@@ -106,6 +112,7 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
   - **A spec action for §26's words** (Spec action 1).
 - **`node:24-alpine`, `Init: true`, THE IdP STORE'S OWN CREDENTIALS** — Rich chose all three for this plan (*"Which older §8 items join the next plan?"*: all four offered).
 - **THE EXTERNAL TRACK IS DEFERRED** — *"We can defer this. I have to get all of this working first locally. And then show demos."* Nothing in this plan raises it.
+- **FE-51 AND FE-52 JOIN THIS PLAN** — Rich, 2026-10-02: *"add them to the faculty-ready plan"*. This answered `manifest-96`'s report of the faculty front-end's F6b sitting 1 measurements, which the code had confirmed. **Their designs are this plan's Decisions 16 and 17, not his**: re-open either only if Task 1's `[M7]` breaks a premise. The front-end's write-ups are in `~/Developer/manifest-app/docs/api-findings.md`, under *FE-51* and *FE-52*.
 - **Carried from earlier plans, still binding:**
   - D24's privileged four, and the person-only class;
   - step-up for production deploys, approvals, member management and production secrets;
@@ -257,13 +264,52 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 - **`make demo-launch`** exists on either driver (RUNBOOK); this plan's acceptance runs beside it, and its `DEMO_LAUNCH_SLUG` override is
   `launchpath-*` only. Four minors were deferred by that plan's review (M1 instances left `destroying`; M3–M5 the demo's own) — its record.
 
+**FE-51 AND FE-52 — ADDED 2026-10-02.** `manifest-96` read them from the code at `d5c76d5`. The faculty front-end's F6b sitting 1
+(`manifest-app-30`) measured them on 7100, contract `1.5.0`. Task 1 re-reads each (T1: M7).
+
+18. **FE-51 — the hint names a key that the platform does not match.**
+    - A confirmed question is matched by `tokens/pending.ts`'s `resolutionFor()` (`:282-309`) on the token, the `method`, the `path` and
+      `bodySha256`. **No key is involved.** The confirm route's own description agrees (`api/routes/pending-actions.ts:282`: *"same token,
+      method, path and body"*).
+    - **The wording that names the key** (*"same body, same Idempotency-Key"*):
+      - `TOKEN_ACTION_PENDING`'s hint (`api/errors.ts:391`);
+      - its remedy (`api/error-codes.ts:268`), which is published into `openapi.json` and `docs/api/reference/{errors,operations}.md`;
+      - `journey/src/example-pending.ts:21`, which is generated into `docs/api/agents.md:88`;
+      - the hand-written guide line `docs/api/agents.md:59`;
+      - `journey/src/token.ts:653`'s step label.
+
+      **The mock carries no such hint** (grep of `packages/mock/src`).
+    - **Measured:** after a confirm, a retry under a NEW key passed (`201`, `consumedAt` set), and the ORIGINAL key afterwards opened a NEW
+      pending action. A refused request stores nothing under its key (`api/idempotency.ts:73-77`: a handler that throws stores nothing),
+      so the original key is not bound to the `403` either.
+19. **FE-52 — a revoked token's question stays open, and a yes to it does nothing.**
+    - **Three paths revoke a token, and only one expires its questions.**
+      - The archive does: `releases/lifecycle.ts:435-436` runs `revokeTokensOf`, then `expirePendingActions(tx, EVERY_QUESTION,
+        { projectId })` (the front-end enablement plan's Decision 28).
+      - `revokeToken` does not (`api/routes/tokens.ts:333-367`, `revokeToken(deps.db, …)` with no transaction).
+      - A member's removal does not (`api/routes/project-reads.ts:590-598`, `revokeTokensOfMember` inside the removal's transaction).
+    - **A token that EXPIRES leaves its questions open too.** A question lives `PENDING_ACTION_TTL_MS`, 24 hours (`tokens/pending.ts:23`,
+      `:153`), whatever its token's own `expiresAt`.
+    - **The confirm route never asks whether the token is still a credential.** It checks the row's `state` and the row's own expiry
+      (`pending-actions.ts:113-126`). The rule it skips is stated once, in `stillACredential` (`tokens/actor.ts:75-84`): a token that is
+      revoked, expired, or whose project is not active is no credential.
+    - **Measured:** an owner confirming a revoked token's question is answered `STEP_UP_REQUIRED`, then `200 confirmed`. The token's
+      retry is `401 UNAUTHENTICATED`, and `consumedAt` stays `null`. **No event says that a token was revoked.**
+    - **`expirePendingActions` publishes no event, deliberately** (`tokens/expiry.ts:25-30`): expiry is a clock passing, and has no actor.
+      A revoke, a removal and an archive each do have an actor.
+    - **What the spec already says:** §6's `PendingAction.state` already includes `expired`, and §11 already says an archive expires its
+      project's pending actions. **The spec names no `pending_action.*` event** (grep), so a new one needs no spec action.
+    - **What the front-end does meanwhile** (its F6b Decision 16): its *Agents* card asks only about a question whose token is active, and
+      its own *[Revoke]* rejects that token's waiting questions first. **What is left:** a token revoked anywhere else keeps its question
+      in the front-end's band for up to 24 hours.
+
 **The contract.** It is **`1.5.0`** in three places, held equal by `api/contract/document.test.ts:56-63`. Additive changes bump the minor (`document.ts:20-61`). The launch path plan takes no bump, so **this plan's Task 3 makes it `1.6.0`**, once.
 
 ---
 
 ## Decisions this plan makes, and why
 
-1. **ONE CONTRACT BUMP, `1.6.0`, AT TASK 3**, the first schema change. Tasks 4, 5 and 10 add to it. *Rejected:* a bump per task, which would make four versions the sibling repository has to adopt in a week.
+1. **ONE CONTRACT BUMP, `1.6.0`, AT TASK 3**, the first schema change. Tasks 4, 5, 10, 12 and 13 add to it. *Rejected:* a bump per task, which would make four versions the sibling repository has to adopt in a week.
 2. **THE REQUEST ID IS A UUID FROM `genReqId`**, the `x-request-id` header on EVERY answer, and `error.requestId` **required** in the envelope. A client can rely on it, and the mock sends one.
    - *Rejected:* an optional field, since a support report must never lack it.
    - *Rejected:* a short code, which the front-end already makes (its reference) and records beside ours.
@@ -305,6 +351,35 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
     - **The reason is shown on events whose `acted_as_admin` is true.**
 14. **§26 APPLIES TO MUTATIONS ONLY.** A read is not an action. `GET`s are exempt, so an administrator's look at a project needs no reason.
 15. **§26's REFUSAL IS DECLARED BY ONE FUNCTION**, `refusedWithoutAdminReason(route)`, beside `refusedWhenArchived` (`authz.ts:667-674`): every mutating route whose capability is an owner's.
+16. **FE-51: THE CODE IS RIGHT, AND THE WORDS MOVE TO MATCH IT** (added 2026-10-02). The hint, the remedy and the guides say: *"once they
+    have, send the identical request again from this token — the same method, path and body; the confirmation lets it through exactly
+    once, whatever its Idempotency-Key"*. The final wording is the task's, within that meaning.
+    - *Why:* a person confirms what they were shown, which is the request. The body's hash is what binds the confirmation to it.
+    - *Rejected:* (b), binding the confirmation to the original key too. That needs the key stored on the row (a migration), adds no
+      protection, since only the same token can spend the confirmation, and turns a lost key into a question asked twice.
+    - *Cost to change course:* text only.
+17. **FE-52: A TOKEN'S QUESTIONS END WHEN THE TOKEN DOES, AND A PERSON'S ACT THAT ENDS THEM SAYS SO** (added 2026-10-02). Three parts,
+    each reusing a mechanism that already exists.
+    - **Revoking expires.** `revokeToken` and a member's removal call `expirePendingActions(tx, EVERY_QUESTION, { tokenId })` for each
+      token they revoke, **in the same transaction as the revoke**. This is the archive's rule, Decision 28 of the front-end enablement
+      plan, applied to the other two paths. `revokeToken`'s revoke moves into a transaction for it.
+    - **Expiry is capped.** A question's `expiresAt` becomes `min(now + PENDING_ACTION_TTL_MS, the token's expiresAt)` when it is asked.
+      The existing sweep and the confirm route's expiry check (`409 PENDING_ACTION_RESOLVED`, `expired`) then cover a token that runs
+      out, with no new check.
+    - **One event, `pending_action.expired`**: `{ pendingActionId, tokenId, action, cause: 'token_revoked' | 'member_removed' |
+      'project_archived', by }`. Its sentence names the person, and the event is **published after the commit**, one per question, by
+      the three paths that have an actor. The archive's path gains it too, so the rule is one rule.
+      - **The clock sweep stays silent**, for `tokens/expiry.ts:25-30`'s reason: expiry has no actor. A front-end tells a token that ran
+        out from `listTokens`' `expiresAt`.
+    - *A confirm that commits before the revoke* leaves a `confirmed` row that nothing can spend. **Left as it is**: the person decided
+      while the token was live, and the `UPDATE`'s `state = 'pending'` clause makes the two writers' order the only answer.
+    - *Rejected:* (a) a read-side check only, `stillACredential` at confirm and list. The stored state would still read `pending`, which
+      `tokens/expiry.ts:14-16` says §26's queue must not, and the front-end's band would still get no event.
+    - *Rejected:* (b) the front-end's `token.revoked` event. Every client would then have to work out which questions died; the
+      question's own event is what the band already listens for.
+    - *Rejected:* (c) leaving it.
+    - *Cost:* a new event type is one contract addition under `1.6.0`, one `audit.events` CHECK migration, and the front-end told
+      before the commit.
 
 ---
 
@@ -349,7 +424,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 
 ## Review Focus
 
-**The five failure modes most likely to bite a person, that no task's happy path exercises.** Each has its test in the owning task.
+**The six failure modes most likely to bite a person, that no task's happy path exercises.** Each has its test in the owning task.
 
 1. **A sign-out that silently stops working.** A `__Host-` cookie cleared without `Secure` stays in the browser. Expected: **after `POST /auth/logout` and after an SLO, the browser holds no `__Host-manifest_session`**, asserted on the `Set-Cookie` of the clear (`Secure`, `Path=/`, `Max-Age=0` or a past `Expires`, no `Domain`), on BOTH origins. Owned by Task 5's *a clear carries Secure on https*.
 2. **A tossed cookie still honoured.** A `manifest_session` or `manifest_login` set with `Domain=manifest.internal` by a sibling host. Expected: **the https origin reads only `__Host-` names, so the tossed cookie changes nothing**:
@@ -365,6 +440,10 @@ Every task's requirements implicitly include this section. Values are copied ver
 
    Expected: the first set succeeds without the header; the second is `400 ADMIN_REASON_REQUIRED` without it and succeeds with it; **a replay with a different reason is `409 IDEMPOTENCY_KEY_REUSED`**. Owned by Task 10's matrix.
 5. **A streamed `422` that looks like success.** The front-end streams every call. Expected: **a streamed request the provider refuses `422` ends with an error the client sees**, never an empty stream that closes cleanly. Owned by Task 6's *a streamed 422 is a refusal*, or its stop to Rich.
+6. **A confirmation nobody can spend** (added 2026-10-02). An agent's token is revoked by its minter, by the minter's removal, or by an
+   archive, or it simply runs out, while its question waits. Expected: **the question reads `expired` at once, a person's confirm is
+   `409 PENDING_ACTION_RESOLVED`, and the project's stream carries one `pending_action.expired` naming who acted.** No event is
+   published when the clock ended it. Owned by Task 13's matrix.
 
 ---
 
@@ -377,12 +456,14 @@ packages/control-plane/src/api/
   contract/route.ts           MOD (T3, T10) config.operationId; T10: the admin-reason preHandler and its declaration
   contract/document.ts        MOD (T3, T5) CONTRACT_VERSION 1.6.0 (T3); securitySchemes.session names both (T5)
   representations/errors.ts   MOD (T3, T4) requestId (required); limit; session
-  errors.ts                   MOD (T3, T4, T10) toErrorResponse gains facts; ADMIN_REASON_REQUIRED
-  error-codes.ts              MOD (T4, T10) remedies point at the fields; ADMIN_REASON_REQUIRED
+  errors.ts                   MOD (T3, T4, T10, T12) toErrorResponse gains facts; ADMIN_REASON_REQUIRED; T12: TOKEN_ACTION_PENDING's hint
+  error-codes.ts              MOD (T4, T10, T12) remedies point at the fields; ADMIN_REASON_REQUIRED; T12: its remedy
   routes/webhooks.ts, routes/auth.ts, auth-page.ts   MOD (T3) refusals through sendRefusal; T5: cookie names
   routes/blueprints.ts        MOD (T2) listBlueprints filters listed; examples move to node-ts-mongo@1
   csrf.ts                     MOD (T5) carriesSession by the origin's name
   idempotency.ts              MOD (T10) the admin reason in the fingerprint
+  routes/tokens.ts            MOD (T13) revoke and expire in one transaction; the event after the commit
+  routes/project-reads.ts     MOD (T13) a removal expires its revoked tokens' questions; the event after the commit
 packages/control-plane/src/identity/
   cookie-names.ts             NEW (T5) cookieNames(origin)
   session.ts, login-state.ts, step-up.ts   MOD (T5) names from cookieNames; Path=/
@@ -394,10 +475,15 @@ packages/control-plane/src/runtime/docker/
   hardening.ts                MOD (T8) Init: true
 packages/control-plane/src/observability/
   acting.ts                   NEW (T10) the AsyncLocalStorage acting context
-  events.ts, event-schemas.ts MOD (T10) publish reads it; EventFrame.actor
+  events.ts, event-schemas.ts MOD (T10) publish reads it; EventFrame.actor; T13: pending_action.expired
+packages/control-plane/src/tokens/
+  expiry.ts                   MOD (T13) expirePendingActions answers its rows; publishQuestionsEnded
+  pending.ts                  MOD (T13) a question's expiresAt capped at its token's
+packages/control-plane/src/releases/
+  lifecycle.ts                MOD (T13) the archive publishes pending_action.expired after its commit
 packages/control-plane/src/projects/
   authz.ts                    MOD (T10) membership for administrators; adminActingOnOthers; refusedWithoutAdminReason
-packages/control-plane/src/db/schema.ts + drizzle/   MOD (T10) audit.events actor_user_id, acted_as_admin, reason
+packages/control-plane/src/db/schema.ts + drizzle/   MOD (T10) audit.events actor_user_id, acted_as_admin, reason; T13: the type CHECK
 blueprints/fixture-node/blueprint.yaml               MOD (T2 listed: false; T7 base_image)
 blueprints/node-ts-mongo/blueprint.yaml, agents/AGENTS.md   MOD (T7) node:24's digest; "Node 24"
 infra/litellm/manifest_guard.py                      MOD (T6) the 422 hook
@@ -409,8 +495,9 @@ packages/contract/src/client.ts, stream.ts, index.ts MOD (T5) sessionCookieFor(b
 packages/mock/src/                                   MOD (T3 requestId + header; T4 facts; T5 unchanged names, asserted)
 packages/console/src/                                MOD (T3 the reference shown; T10 the admin reason field)
 packages/journey/src/faculty-ready.ts                NEW (T11) make demo-faculty-ready's phases
+packages/journey/src/token.ts, example-pending.ts    MOD (T12 the retry under a new key; the words. T13 a revoked token's question)
 scripts/demo-faculty-ready.sh                        NEW (T11); ci-acceptance.sh, offline-acceptance.sh, Makefile MOD (T11)
-docs/api/conventions.md, authentication.md, frontend.md, agents.md, events.md   MOD (T3, T4, T5, T10)
+docs/api/conventions.md, authentication.md, frontend.md, agents.md, events.md   MOD (T3, T4, T5, T10, T12, T13)
 docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 ```
 
@@ -446,7 +533,18 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
   3. Read `instances.ts:~378`'s mapping of an exit code to §14's reason, and say what `143` becomes.
 - [ ] **Step 5: `[M5]` §26's surface.** From `api/contract/`'s route definitions, list every MUTATING operation whose capability is in `OWNER`, and every one whose capability is an administrator's own. Count them: the survey says about 25. Record which publish no event and which name nobody. **This is Task 10's matrix.**
 - [ ] **Step 6: `[M6]` The gate numbers** from `scripts/ci-acceptance.sh`'s `EXPECT_` lines, and `pnpm test` once on the unchanged tree.
-- [ ] **Step 7: Commit** the spike directory by name.
+- [ ] **Step 7: `[M7]` FE-51 and FE-52's premises, from the code at HEAD** (added 2026-10-02). Re-read *Read this first* 18–19 and record
+  each line as it now stands:
+  - the hint's and the remedy's lines;
+  - **every path that revokes a token** (grep `revokedAt: new Date()` and `revokeToken`), and whether each one expires its questions;
+  - where `recordPendingAction`'s caller can read the token's `expiresAt` (`tokens/actor.ts`'s actor carries it);
+  - whether a new event type needs an `audit.events` CHECK migration;
+  - whether anything in `packages/mock` or `packages/console` switches exhaustively over the event types;
+  - which unit test file holds the pending flow.
+
+  **No new measurement on 7100**: the front-end's of 2026-10-02 stands unless the code under it has moved. If a premise is broken, say
+  so to Rich before sitting 2.
+- [ ] **Step 8: Commit** the spike directory by name.
   ```bash
   git commit -m "docs(faculty-ready): Task 1 — the measurements (cookies, request ids, LiteLLM's 422 streamed and not, Init, §26's surface)"
   ```
@@ -834,11 +932,98 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
      - without the header → `ADMIN_REASON_REQUIRED`;
      - with it → success;
      - `instructor`'s stream shows the actor and the reason.
+  7. **An agent's question ends with its token** (Task 13; added 2026-10-02):
+     - a token asks for a privileged action, and its minter revokes it;
+     - `getPendingAction` reads `expired`;
+     - `instructor`'s confirm is `409 PENDING_ACTION_RESOLVED`;
+     - the stream carried one `pending_action.expired`, `cause: 'token_revoked'`, naming `instructor`.
 - [ ] **Step 2: Green three times on each driver** (fresh, re-use, from `make reset`), and every other demo, and `make ci-acceptance`.
 - [ ] **Step 3: The negative controls**, each seen red and restored: one per phase.
 - [ ] **Step 4: The clicked half.** Stage everything; ask Rich once; he types the passwords. **In headless Chrome FIRST** (Task 5's control (c)): the browser refuses a `__Host-` cookie at `Path=/auth`.
 - [ ] **Step 5: The plan's one whole-branch review**, beside the Docker tier; one fix wave.
 - [ ] **Step 6: Close out**: the ledger, ORIENTATION §7e's next job (FE-32's plan to write), and the front-end told.
+
+---
+
+## Task 12: FE-51 — the pending-action hint names what the platform matches
+
+**Added 2026-10-02 at Rich's word. It runs in sitting 2, after Task 4**: Task 3 has by then moved `errors.ts` through `sendRefusal`,
+and Task 4 has rewritten `error-codes.ts`'s remedies, so this is one more text change to files that sitting already has open.
+Decision 16.
+
+**Files:**
+- Modify: `packages/control-plane/src/api/errors.ts:391` (the hint) and `api/error-codes.ts:268` (the remedy); then `pnpm contract:write`, `contract:generate` and `docs:write`
+- Modify: `packages/journey/src/example-pending.ts:21` (generated into `docs/api/agents.md`) and `docs/api/agents.md:59` (hand-written)
+- Modify: `packages/journey/src/token.ts:653`: the step's label, and the step itself, which now retries under a NEW key
+- Test: the pending flow's unit file, named by `[M7]`
+
+- [ ] **Step 1: The tests.**
+  - **A pin, green from the start, and said to be one:** after a confirm, the retry under a DIFFERENT `Idempotency-Key` is `201` and
+    sets `consumedAt`.
+  - **The red one:** the refusal's `hint`, and the remedy in `error-codes.ts`, describe the retry by method, path and body, and do not
+    tell the agent to reuse a key. Assert the meaning against the words in Decision 16, not an exact sentence.
+- [ ] **Step 2: Run, and predict red** at the hint assertion only.
+- [ ] **Step 3: Implement the words**, then run the four contract commands. **Through the edge:** `make demo-token`, whose step now
+  retries under a new key; that proves the guide's claim on the real entry point.
+- [ ] **Step 4: Tell the front-end before the commit.** `openapi.json`'s remedy text changes; `packages/mock` does not.
+- [ ] **Step 5: Commit**, then run the **negative control**: put the old hint back, and predict red at the hint assertion. Restore.
+  ```bash
+  git commit -m "fix(tokens): the pending-action hint names what is matched — the request, not its Idempotency-Key (FE-51)"
+  ```
+
+---
+
+## Task 13: FE-52 — an agent's question ends when its token does
+
+**Added 2026-10-02 at Rich's word. It runs in sitting 4, after Task 8.** The Docker tier is owed there already, and this task adds
+`observability/` and `releases/` to it. Decision 17.
+
+**Files:**
+- Modify: `packages/control-plane/src/tokens/expiry.ts`: `expirePendingActions` answers the rows it expired (id, token, action, summary
+  and project), not a count, and the boot sweep at `index.ts:451` counts them. It also gains `publishQuestionsEnded(deps, rows,
+  { cause, by })`, called after a commit and never inside one.
+- Modify: `tokens/pending.ts:153`: `expiresAt` is capped at the token's own; the caller passes it (`[M7]` says from where)
+- Modify: `api/routes/tokens.ts:333-367`: the revoke and the expiry in ONE transaction, and the publish after the commit, beside
+  `closeToken`
+- Modify: `api/routes/project-reads.ts:590-598`: the expiry inside the removal's transaction, for each revoked id, and the publish after
+  the commit
+- Modify: `releases/lifecycle.ts:435-436`: the archive already expires; it now publishes, after its commit
+- Modify: `observability/event-schemas.ts` (`pending_action.expired`), its example if the map has one, and the migration for
+  `audit.events`' CHECK; then the four contract commands
+- Modify: `docs/api/agents.md` and `docs/api/events.md` (a question can end without an answer, and how a client learns it);
+  `packages/mock` and `packages/console` only if `[M7]` finds an exhaustive switch
+- Test: the pending flow's unit file, `tokens/expiry.test.ts`, and the removal's and the archive's tests
+
+- [ ] **Step 1: The failing tests, as one matrix.** For each of **revoke**, **removal** and **archive**, from a token with one question
+  `pending`:
+  - after the act, `getPendingAction` reads `expired`;
+  - a confirm is `409 PENDING_ACTION_RESOLVED`;
+  - exactly one `pending_action.expired` was published, with that `cause` and `by`, and its sentence names the person.
+
+  **Expiry:** a token minted to expire in an hour asks; its question's `expiresAt` equals the token's. After that moment, the sweep
+  moves the question to `expired` and publishes nothing.
+
+  **Positive controls, in the same file:**
+  - a live token's question still confirms (`200`), and its retry is `201`;
+  - a question already `confirmed` before the revoke stays `confirmed`, and no event is published for it.
+- [ ] **Step 2: Run, and predict.**
+  - **Red:** revoke's and removal's `expired`, all three events, and the cap.
+  - **Green, and say why:** the archive's `expired`, which Decision 28 of the front-end enablement plan already built; only its event
+    is new.
+- [ ] **Step 3: Implement.** The expiry goes inside each transaction, and the publish follows each commit, for the reason the streams
+  close after it: an event that announces a rollback is false.
+- [ ] **Step 4: The four contract commands, then tell the front-end BEFORE the commit.** Its watch stream gains an event type, and its
+  F6b Decision 16 workaround (*[Revoke]* rejects first) can go when it chooses. Keep `packages/contract` and `packages/mock`
+  typecheck-clean together in the working tree.
+- [ ] **Step 5: Through the edge.** `make demo-token` gains a step: a second token asks, its minter revokes it, the question reads
+  `expired`, and a confirm is `409 PENDING_ACTION_RESOLVED`. Run `make demo-frontend`, whose archive now publishes the event.
+- [ ] **Step 6: Commit**, then run the **negative controls**, each seen red and restored:
+  - **(a)** remove the expiry from `revokeToken`'s transaction. Predict red: the matrix's revoke row, and Step 5's demo step.
+  - **(b)** remove the cap. Predict red: the expiry case.
+  - **(c)** skip `publishQuestionsEnded`. Predict red: the three event assertions, and nothing else.
+  ```bash
+  git commit -m "fix(tokens): a token's questions end when it does — revoked, removed or archived, with an event; a question never outlives its token (FE-52)"
+  ```
 
 ---
 

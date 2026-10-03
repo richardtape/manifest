@@ -208,7 +208,7 @@ docs/superpowers/
 │   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — EXECUTED 2026-09-27, 13 tasks in ten sittings; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
 │   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 14 sittings since Rich merged 10 and 11 (2026-09-30) (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), ten spec actions, ALL APPLIED; EXECUTED 2026-10-02 — its *Sitting 12* is the record
-│   ├── 2026-09-30-faculty-ready.md                THE NEXT PLAN — WRITTEN and APPROVED 2026-09-30 (Rich: *"plan looks good"*), 11 tasks in 7 sittings; 4 spec actions to decide; then FE-32's plan
+│   ├── 2026-09-30-faculty-ready.md                THE NEXT PLAN — WRITTEN and APPROVED 2026-09-30 (Rich: *"plan looks good"*), 13 tasks in 7 sittings (12 and 13, FE-51 and FE-52, added 2026-10-02 at Rich's word); 4 spec actions to decide; then FE-32's plan
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -1831,7 +1831,8 @@ the record): `make demo-launch` green three times on each driver, its controls, 
 plan's one whole-branch review answered by one fix wave. Fifteen plans are executed (§2's table). **The next plan is *faculty-ready***
 ([`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md)) — WRITTEN and APPROVED by Rich (2026-09-30, *"plan looks good"*), seven
 sittings; **its *Read this first* now ends with what the launch path's sitting 12 handed it** (the locks' two pools, a lapse ends a
-registration, F7 as a candidate, `make demo-launch`). Its sitting 1 is Task 1 alone: measurements into `spikes/faculty-ready-baseline/`, no code.
+registration, F7 as a candidate, `make demo-launch`), **then FE-51 and FE-52, added 2026-10-02 at Rich's word as Tasks 12 and 13** (in
+sittings 2 and 4; Task 1's `[M7]` re-reads their premises). Its sitting 1 is Task 1 alone: measurements into `spikes/faculty-ready-baseline/`, no code.
 
 **IN THE FIRST MESSAGE — Rich's, before anything runs:**
 1. **Where FE-46, FE-47 and FE-5 go.** Their spec actions are DRAFTED, not applied ([`plans/2026-10-01-fe46-fe47-fe5-spec-actions.md`](plans/2026-10-01-fe46-fe47-fe5-spec-actions.md),
@@ -2057,6 +2058,14 @@ reasoning is recorded.**
   - **`Init: true`**, **`node:24-alpine`** and **the IdP store's own credentials** — all three into the *faculty-ready* plan (Tasks 8, 7, 9).
   - **The UBC external track** — DEFERRED: *"We can defer this. I have to get all of this working first locally. And then show
     demos."* (§2, *Outstanding*).
+- **FE-51 AND FE-52 INTO THE *FACULTY-READY* PLAN** (Rich, 2026-10-02: *"add them to the faculty-ready plan"*).
+  - **The finding:** the faculty front-end's F6b sitting 1 measured both on 7100, and `manifest-96` checked them in the code.
+  - **FE-51:** `TOKEN_ACTION_PENDING`'s hint says *"same Idempotency-Key"*, but a confirmation matches the token, method, path and body.
+    It becomes Task 12, a text fix, in sitting 2.
+  - **FE-52:** a revoked token's questions stay `pending`, and a confirm of one is `200` and can never be spent. It becomes Task 13, in
+    sitting 4: revoking or removing a person expires the questions as the archive already does, a question's life is capped at its token's,
+    and a person's act publishes `pending_action.expired`.
+  - **The designs** are that plan's Decisions 16 and 17. The front-end's write-ups are in `~/Developer/manifest-app/docs/api-findings.md`.
 
 - **THE LAUNCH PATH PLAN'S SPEC ACTION 8 — (b) AND (c) TOGETHER** (Rich, 2026-09-30, after sitting 4a's close, the premise re-asked at
   developer level from the code: *"b and c together, in its own small sitting after 5"*): running D21's rehearsal needs a step-up, and
