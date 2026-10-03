@@ -473,3 +473,9 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         to ONE networked pnpm add of nodemailer, pinned exactly, at the sitting that builds the mailer (with
         @types/nodemailer as a devDependency if the plan needs it). STARTTLS and AUTH for UBC's relay come with it.
     The plan is being revised to these; Rich has not yet approved it as a whole.
+
+    And at ~13:55 PDT: manifest-b9 (sitting 5) found, after Task 16, that member.removed is published after the removal's
+    commit and is never recorded by the retry (api/routes/project-reads.ts:657); its claim that project.archived shares the
+    defect was checked by manifest-94 and is wrong (publishArchivedOnce, releases/lifecycle.ts:338, publishes it from the
+    retry or the boot). Put to Rich, with "track it for later" recommended — "Fix it in sitting 5 now": the faculty-ready
+    plan's Task 16b, after Task 9, its design manifest-b9's (the sentence counts sessions ended after the commit).
