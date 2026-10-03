@@ -3,13 +3,21 @@
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after the Manifest
 > team's step ([`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md), approved the same afternoon). **Every fact in *Read this
 > first* was read from the code at `eee5648`**, while the faculty-ready plan's sitting 5 had uncommitted edits in `infra/`, `secrets/`,
-> `ai/` and `scripts/verify.sh`. Three plans run before this one, so **Task 1 re-reads every fact** into `spikes/fe32-baseline/`.
+> `ai/` and `scripts/verify.sh`. **Five plans run before this one** (the rest of *faculty-ready*, FE-46/47/5, A1, B, A2), so **Task 1
+> re-reads every fact** into `spikes/fe32-baseline/`.
 >
 > **Rich confirmed FE-32 on 2026-09-30, option (a)** (*"Confirm all three (Recommended)"*): an operation that resolves a `package-lock.json`
 > through the platform's mirror. **And placed it** (*"(a) Faculty-ready → FE-32 → vuln DB"*); since then the Manifest team's step
 > (2026-10-02), and §24's production instances, the load rehearsal and hibernation (2026-10-03: *"Build the load rehearsal first"*, then *"A1 → B → A2"*) go before it. **§12's package allowlist, which does
 > not exist today, is IN this plan** — Rich, 2026-10-03, ~13:43 PDT: *"Yes, in this plan (Recommended)"* (Task 4, Spec action C). **NOT
 > YET APPROVED.** Three spec actions are DRAFTED at the end, none applied; their words are Rich's at review.
+>
+> **REVISED 2026-10-03, 14:37–15:19 PDT (read from the clock), TO A FRESH REVIEW** ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md),
+> its §4 and *Cross-plan*; verdict *approve with the fixes*), by a fresh platform session at Rich's word (~14:33), coordinated by
+> `manifest-94`. **The allowlist can no longer be walked around** — an alias, an override, a `file:` or `git+` specifier and a hand-written
+> lockfile are each refused at both doors — **the lockfile answered names the public registry, not the laptop's mirror**, and the control
+> that could not fail now reads the resolver's own fetches. The review's line references were re-checked at `75030d8` and hold. **Every
+> finding, and where it went, is in *Revised to the review*.**
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
@@ -29,7 +37,12 @@ not exist — on either driver. A person clicks it too.
   `baseCommit`. It writes nothing to the project: the agent commits what it answers with `createCommit`, whose checks then apply.
 - **Resolution is the DRIVER's**, like a build: `Driver.resolveDependencies` (Spec action A, §11). The Docker driver runs it as a BuildKit
   build of a **blueprint-declared recipe** (`Resolve.tmpl`, Spec action B, §25) in the same rootless, `--internal`, bounded builder
-  (§12), exported with `--output type=local`. **The control plane names no package manager** (D30); the blueprint does.
+  (§12), exported with `--output type=local`. **The control plane RUNS no package manager** (D30); the blueprint's recipe does. **It
+  READS npm's two files in exactly one place** — a reader the descriptor's `dependencies.format: npm` selects — to check an app's direct
+  dependencies, its overrides and its lockfile against the allowlist.
+- **The lockfile answered names the public registry** (`https://registry.npmjs.org/`), as every committed lockfile here does: the recipe
+  rewrites the mirror's URLs back, so the lockfile is portable and `make seed`'s warm loop on the host can install it. The build's
+  `.npmrc` sends every tarball through the mirror whatever the lockfile says.
 - **The committed lockfile at `baseCommit` goes in with the new manifest**, so a dependency added changes only its own subtree — every
   existing pin stays.
 - **A FULL install, never `--package-lock-only`**, so every tarball is downloaded through Verdaccio and cached (`infra/seed/seed.sh:48-52`):
@@ -70,7 +83,7 @@ by audience), B (the load rehearsal, FE-44: *"Build the load rehearsal first"*),
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: every fact re-read; `--output type=local` from the rootless remote builder; a full install against the mirror, with the committed lock kept; what npm says when the mirror cannot fetch (a THROWAWAY Verdaccio whose uplink is unreachable); install scripts proved off; Verdaccio's unpublish for a test package; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M2]` finds the builder cannot export a file, or `[M3]` finds the mirror's two failures indistinguishable | ← **next**, once this plan is approved and the plan before it has closed |
 | 2 | 2 | **The driver resolves**: `Driver.resolveDependencies` on both drivers and in the driver contract; the descriptor's `dependencies` block; `Resolve.tmpl` in both blueprints; the driver's hard-coded `'package-lock.json'` read from the descriptor | Yes — `runtime/`, `blueprints/`, `build/` | After the commit, with the Docker case green and one resolution through the real builder quoted | |
-| 3 | 3, 4 | **The operation**: `resolveDependencies`, its refusals, contract `1.11.0`. **The allowlist** — a platform setting; the operation and the build's gate both refuse an unlisted direct dependency | Yes — `source/`, `build/`, `blueprints/` | After both commits, with a resolution and an allowlist refusal through the edge on driver 1 | |
+| 3 | 3, 4 | **The operation**: `resolveDependencies`, its refusals, contract `1.11.0`. **The allowlist** — a platform setting; the operation and the build's gate both refuse an unlisted direct dependency | Yes — `source/`, `build/`, `blueprints/`, `runtime/` | After both commits, with a resolution and an allowlist refusal through the edge on driver 1 | |
 | 4 | 5 | **The clients**: the mock, the knowledge pack's rule, the guide *Authoring*'s *Adding a dependency*, an example run against the mock | No, unless a fix touches the owed list | After the commit, with `pnpm docs:write` clean and the front-end told | |
 | 5 | 6 | **The acceptance**: `make demo-authoring`, extended, three times on each driver; the fixture that warms `marked`; every other demo; a clicked half; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | After the clicked half and the review's one fix wave | |
 
@@ -149,16 +162,38 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 9. **`createCommit`** (`api/routes/source.ts:~499-…`, `capability: 'source:write'`, mintable) writes files against a `baseCommit`, checks
    every path, secret-shaped value and the resulting `manifest.yaml`, and refuses a stale base. It is how the agent commits the manifest
    and the lockfile together.
-10. **Reading the project's tree at a commit** is `source/reading.ts` (`readText(repo, commit, path)`, over either driver's git dir).
+10. **Reading the project's tree at a commit** is `source/reading.ts` (**`readTextIn(gitDir, commit, path)`**, `:244`, over either
+    driver's git dir; refused past 1 MiB, binary or not UTF-8).
 11. **Platform settings are deployment configuration today** (`config.ts`, e.g. `MANIFEST_CAPABLE_MODEL_FALLBACK` `:319`,
     `MANIFEST_AGENT_SESSION_CAP_USD` `:326`), read at boot; §26 lists them (spec l.2959-2966). There is no settings table.
+
+**Added by the revision** (re-read at `75030d8`).
+
+12. **Every committed lockfile names the public registry**: all 254 `resolved` URLs in the blueprints' skeletons and the fixtures begin
+    `https://registry.npmjs.org/`. **A lockfile resolved inside the builder will name the MIRROR** — `http://manifest-verdaccio:4873/…` —
+    because npm writes the registry it fetched from. **`make seed`'s warm loop runs on the HOST** (`infra/seed/seed.sh:66-77`) with
+    `--registry http://127.0.0.1:<port>` and npm's default `replace-registry-host` (which rewrites `registry.npmjs.org` only), so it would
+    ask for `manifest-verdaccio` from the host, fail `ENOTFOUND`, and **`|| echo "WARN: mirror warm failed"` swallows it** — a clean machine
+    would never be warmed, and the offline acceptance would find out.
+13. **The skeleton uses `overrides`** — `node-ts-mongo`'s `package.json` overrides `@xmldom/xmldom` to `0.8.15` — and npm honours an alias
+    (`"express": "npm:<another>@1"`), a `file:` or `git+` specifier, and a lockfile entry whose `resolved` names another package's tarball.
+    **A check of `dependencies`' KEYS alone passes all four.**
+14. **The gates' function forbids a third parameter**: `runMandatoryGates(dir, blueprint: { lockfile })` — *"Two parameters, and
+    deliberately no third … An options object is where a waiver goes"* (`build/gates.ts:96-108`). **A gate's refusal reaches `Build.error`**
+    as `BUILD_GATE_FAILED: build blocked by N mandatory gate finding(s): [<gate>] <message> — <hint>` (`build/gates.ts:13-35`,
+    `releases/build.ts:216-222`), and the Docker driver's hint today says *"Remove the secret, or commit the lockfile"*
+    (`runtime/docker/driver.ts:301-305`). **The driver loads the blueprint's descriptor AFTER the gates** (`:309`).
+15. **With the network on, Verdaccio refreshes a package's metadata from npmjs** whenever it is asked for it after its cache ages out
+    (`infra/verdaccio/config.yaml:9-13`, `uplinks.npmjs`, `cache: true`) — a resolution online asks npmjs, through the mirror, even for a
+    package the mirror holds.
 
 ---
 
 ## Decisions this plan makes, and why
 
-1. **ONE CONTRACT BUMP, `1.11.0`, AT TASK 3.** Additive: one operation, its request and answer, its codes. *Cost to change course:* the
-   version string.
+1. **ONE CONTRACT BUMP, `1.11.0`, AT TASK 3**, the first schema change; Task 4 adds to it. Additive: **two operations** —
+   `resolveDependencies` (Task 3) and `listAllowedDependencies` (Task 4) — their requests and answers, and their codes. *Cost to change
+   course:* the version string.
 2. **THE OPERATION TAKES THE NEW MANIFEST AND A `baseCommit`, AND ANSWERS THE LOCKFILE — IT NEVER COMMITS.**
    - Request: `{ manifest: string, baseCommit?: string }` — the manifest file's whole new text (the descriptor names the file); `baseCommit`
      defaults to `main`'s head. The platform reads the **committed lockfile at `baseCommit`** and resolves with it, so an addition moves only
@@ -170,15 +205,20 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
      writes is exactly what FE-32 says a model cannot write correctly, and one it sends could carry anything.
 3. **RESOLUTION RUNS IN THE BUILDER, FROM A BLUEPRINT-DECLARED RECIPE** (Spec actions A and B). `Driver.resolveDependencies` builds
    `Resolve.tmpl` — the blueprint's, as its `Dockerfile.tmpl` is (D13) — with the manifest, the base lockfile and the platform's `.npmrc`,
-   and exports the lockfile with `--output type=local`. **The builder reaches only the mirror and the registry** (§12), so a `file:`,
-   `git+…` or `http(s):` dependency simply fails to resolve: **the control plane parses no `package.json`** (D30).
+   and exports the lockfile with `--output type=local`. **The builder reaches only the mirror and the registry** (§12), so a `git+…` or
+   `http(s):` dependency fails to resolve there — **but a `file:` one resolves from the tree, and an alias resolves to another package**,
+   which is why the allowlist's reader refuses each before any builder starts (Decision 11). **The control plane runs no package manager**
+   (D30); it reads a `package.json` and a lockfile in ONE named place (Decision 11), never anywhere else.
    - *Rejected:* `npm` on the host. It would put a package manager in the control plane (D30's failure), reach the public registry
      directly with the network up, and run beside the platform's own files.
    - *Rejected:* the build regenerating the lockfile (FE-32 (b), Rich's choice).
-4. **A FULL INSTALL, SCRIPTS OFF, AN EMPTY CACHE, NO BUILD CACHE.** The recipe runs `npm install --ignore-scripts --no-audit --no-fund` with
-   its cache in the build's own `/tmp`, and the build passes `--no-cache`: the question is *what the mirror resolves now*, and a cached layer
-   would answer a stale one and fetch nothing through Verdaccio. Every tarball is then in the mirror, so the build that follows works
-   offline (*Read this first* 6). *Cost:* a resolution takes about as long as an install — Task 1's `[M2]` measures it.
+4. **A FULL INSTALL, SCRIPTS OFF, AN EMPTY CACHE, NO BUILD CACHE, EVERY FETCH LOGGED.** The recipe runs `npm install --ignore-scripts
+   --no-audit --no-fund --loglevel http` with its cache in the build's own `/tmp`, and the build passes `--no-cache`: the question is *what
+   the mirror resolves now*, and a cached layer would answer a stale one and fetch nothing through Verdaccio. Every tarball is then in the
+   mirror, so the build that follows works offline (*Read this first* 6). **`--loglevel http` puts one line per fetch in the resolver's
+   log** — `seed.sh`'s own method (measured 2026-09-14) — so a test can see that a tarball was fetched THROUGH the mirror, which is the
+   only witness that the install was full (Task 2's control (b)). *Cost:* a resolution takes about as long as an install — Task 1's `[M2]`
+   measures it.
 5. **ITS REFUSALS SAY WHICH OF THREE THINGS WENT WRONG**, read from npm's own error lines in the resolver's log (the recipe is npm's, so
    the mapping lives with the Docker driver, never in `api/`):
    - **`422 DEPENDENCY_NOT_FOUND`** — the registry has no such package or version (`E404`, `ETARGET`), **naming it**. A name that is not
@@ -186,8 +226,8 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
      not exist, or a name the allowlist holds that the registry has since lost;
    - **`503 DEPENDENCY_UNAVAILABLE`** — the mirror cannot fetch it now (no route off the laptop, and not cached), naming it: C1's *"adding a
      new dependency needs network"*;
-   - **`422 DEPENDENCY_RESOLUTION_FAILED`** — anything else (a conflict, a manifest that is not JSON, a non-registry specifier), with npm's
-     `error` lines as `log`.
+   - **`422 DEPENDENCY_RESOLUTION_FAILED`** — anything else (a conflict, a manifest that is not JSON, and — at the driver alone — a
+     non-registry specifier, which the operation's allowlist check refuses first once Task 4 lands), with npm's `error` lines as `log`.
 
    `[M3]` measures what npm prints for the first two against the mirror; if the two cannot be told apart, the sitting stops and asks Rich.
 6. **A BOUNDED REQUEST, REFUSED BEFORE ANY BUILDER STARTS**: the manifest's text at most 64 KiB (`400 VALIDATION_FAILED`, the route's schema);
@@ -207,12 +247,37 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 11. **THE ALLOWLIST** (Task 4, Spec action C; Rich, *"Yes, in this plan"*): the direct dependencies an app may name, a **platform setting** — a file
     named by `MANIFEST_DEPENDENCY_ALLOWLIST` (default `infra/dependencies/allowed.txt`, one name per line, `#` comments) read at boot, as
     every platform setting is today (*Read this first* 11) — **seeded with every listed blueprint skeleton's direct dependencies**, which are
-    always allowed. What an allowed package depends on comes with it (the lockfile's closure is not listed). **Both doors refuse an
-    unlisted direct dependency, naming it**: the operation (`409 DEPENDENCY_NOT_ALLOWED`, before any builder starts) and the build's gate (a
-    new `dependency` finding), so a person's push cannot route around it. Reading the manifest's direct dependencies is then a
-    **descriptor-declared format** (`dependencies.format: npm`), read by one small function the blueprint registry selects — the only place
-    the control plane reads a `package.json`, and named so. `listAllowedDependencies` (`GET /v1/dependencies/allowed`, any signed-in person
-    or token) lets an agent check before it asks.
+    always allowed. What an allowed package depends on comes with it (the lockfile's closure is not listed). **Both doors refuse, naming the
+    package**: the operation (`409 DEPENDENCY_NOT_ALLOWED`, before any builder starts) and the build's gate (a new `dependency` finding), so
+    a person's push cannot route around it. **What each door checks** (the review's I1 — a check of `dependencies`' keys alone is passed by
+    an alias, an override, a `file:` or `git+` specifier, and a hand-written lockfile):
+    - **every direct dependency's NAME is on the list** — `dependencies`, `devDependencies`, `optionalDependencies` and `peerDependencies`;
+    - **every direct dependency's SPECIFIER is a plain registry range** — a version, a semver range, a dist-tag; never `npm:` (an alias),
+      `file:`, `link:`, `workspace:`, `git…`, `http(s):`, `github:` or a `user/repo` shorthand — refused `DEPENDENCY_NOT_ALLOWED`, naming the
+      package and the kind of specifier;
+    - **every `overrides` entry, at any depth**: its KEY (the package it pins) on the list or in the base lockfile's closure, and its VALUE
+      a plain registry range (`$<name>` references to a direct dependency allowed) — so the skeleton's own `@xmldom/xmldom` override passes,
+      and `"express": "npm:evil@1"` there does not;
+    - **at the build's gate only, the lockfile itself**: every `packages["node_modules/…/<n>"]` entry's `resolved` names `<n>`'s own
+      tarball on the public registry (`https://registry.npmjs.org/<n>/-/<basename>-<version>.tgz`, a scoped name's path included), and no
+      entry is `link: true` or resolves outside it — so a hand-written lockfile that maps an allowed name to another package's tarball is
+      refused, naming the entry. (The operation never checks a lockfile: it receives none — Decision 2.)
+    **The reader is ONE function the blueprint registry selects by `dependencies.format: npm`** — `npmDependencies(manifestText,
+    lockfileText | null): { direct: Dep[]; overrides: Override[]; lockEntries: LockEntry[] }` — the only place the control plane reads a
+    `package.json` or a lockfile, and named so. **The gate's allowlist is the DRIVER's, passed in the second parameter** —
+    `runMandatoryGates(dir, { lockfile, dependencies: { format, allowed } })` — never a third parameter and never anything an app sets
+    (*Read this first* 14); the driver loads the descriptor BEFORE the gates for it. **The gate's refusal reaches `Build.error`** as
+    `BUILD_GATE_FAILED: … [dependency] DEPENDENCY_NOT_ALLOWED: '<name>' …`, and the driver's hint names the remedy (*"ask for it to be
+    allowed, or remove it; `listAllowedDependencies` says what is"*) beside the secret's and the lockfile's (the review's minor).
+    `listAllowedDependencies` (`GET /v1/dependencies/allowed`, any signed-in person or token) lets an agent check before it asks.
+12. **THE LOCKFILE NAMES THE PUBLIC REGISTRY** (the review's I2). The recipe's last step rewrites every `resolved` URL that begins with the
+    registry npm used (`npm config get registry` — the platform's `.npmrc` names it, so the recipe hard-codes no host) to begin
+    `https://registry.npmjs.org/` instead; the path after it is the same on both (`[M2]` confirms, a scoped package included). The
+    `integrity` hashes are untouched, so nothing is weakened: the build's `.npmrc` (`replace-registry-host=always`) still fetches every
+    tarball through the mirror, and `make seed`'s warm loop on the host rewrites `registry.npmjs.org` to its own `--registry`, as it does for
+    every lockfile today. *Rejected:* omitting `resolved` (npm then resolves again at `npm ci`, which is a second resolution the build
+    cannot check); changing `seed.sh`'s loop to `replace-registry-host=always` (it would fix seed and leave every committed lockfile naming
+    a host that exists only on this laptop).
 
 ---
 
@@ -233,8 +298,10 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 - **A resolver's log is redacted before it is answered or logged** (§14), and an operator line never carries a manifest or a lockfile.
 - **The front-end is told before any commit to `packages/contract` or `packages/mock`**; keep them typecheck-clean together.
 - **Commit on `main`, stage your own paths by name**; `git status` before each commit.
-- **The network**: none is needed by any task but the acceptance's first resolution of `marked` (*What Rich does* 3). A measurement never
-  sends the live Verdaccio to npmjs: `[M3]` uses a THROWAWAY Verdaccio whose uplink is unreachable.
+- **The network**: none is needed by any task but the acceptance's first resolution of `marked` (*What Rich does* 3). **A measurement
+  never asks the live Verdaccio for a package or a version it does not hold**: `[M2]` names an EXACT version already in its storage, and
+  `[M3]` uses a THROWAWAY Verdaccio whose uplink is unreachable. **That is all that can be promised**: with the network on, the live
+  Verdaccio may still refresh a held package's metadata from npmjs (*Read this first* 15) — recorded when it happens, not prevented.
 - **Never touch the running Verdaccio's configuration**; a test package published to it is unpublished in the same test.
 - **The four protected containers survive; `caddy-data` is never destroyed; never touch Valet; ask before `sudo`; never edit the spec.**
 - **macOS: bash 3.2, BSD userland, the tool shell zsh** — multi-line probes as files run with `bash`.
@@ -245,7 +312,7 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 
 ## Review Focus
 
-**The six failure modes most likely to bite a person, that no happy path exercises.** Each has its test in the owning task.
+**The seven failure modes most likely to bite a person, that no happy path exercises.** Each has its test in the owning task.
 
 1. **A hallucination read as an outage, or an outage read as a hallucination.** A name npm has never had; an allowed package at a version
    it never published; a real package the mirror has not cached with no route off the laptop. Expected: **`DEPENDENCY_NOT_ALLOWED` for the
@@ -258,12 +325,20 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 3. **A lockfile the build then refuses.** The answered lockfile committed with its manifest. Expected: **the next build's `npm ci`
    succeeds** — on the same platform, and offline after the resolution (the mirror warm). Owned by Task 2's Docker case and Task 6.
 4. **A dependency that runs code, or reaches past the mirror.** A package with a `postinstall` that writes a marker; a `git+https:` and a
-   `file:../` specifier. Expected: **no marker in anything exported; the two specifiers fail as `DEPENDENCY_RESOLUTION_FAILED`, the
-   builder having reached nothing.** Owned by Task 2's *scripts are off, and only the mirror is reached*.
+   `file:../` specifier. Expected: **no marker in anything exported; at the driver, the two specifiers fail as
+   `DEPENDENCY_RESOLUTION_FAILED`, the builder having reached nothing** — and through the operation, once Task 4 lands, they never reach a
+   builder at all (Review Focus 6). Owned by Task 2's *scripts are off, and only the mirror is reached*.
 5. **A request that costs before it is refused.** A 65 KiB manifest; a `baseCommit` the project does not have; a token on another
    project. Expected: **refused before any builder starts** (assert no builder container appeared). Owned by Task 3's matrix.
-6. **An allowlist a push routes around.** A person pushes a `package.json` naming an unlisted package with a hand-written
-   lockfile. Expected: **the build's gate refuses it, naming the package**, exactly as the operation would have. Owned by Task 4.
+6. **An allowlist a push or a specifier routes around.** A person pushes a `package.json` naming an unlisted package with a hand-written
+   lockfile; an agent asks for `"express": "npm:<unlisted>@1"`, an `overrides` entry that aliases an allowed name to an unlisted one, a
+   `file:./vendor/x` or a `git+https:` specifier; a push whose `package.json` names only allowed packages but whose lockfile maps one of
+   them to another package's tarball. Expected: **each refused `DEPENDENCY_NOT_ALLOWED`, naming the package — by the operation before any
+   builder, and by the build's gate for a push — and `Build.error` carries the code**; the skeleton's own `@xmldom/xmldom` override passes.
+   Owned by Task 4.
+7. **A lockfile that only works on this laptop.** The lockfile answered, committed, and installed by `make seed`'s warm loop on the host.
+   Expected: **every `resolved` URL begins `https://registry.npmjs.org/`, and the warm loop installs it with no `WARN`.** Owned by Task 2
+   and Task 6.
 
 ---
 
@@ -283,12 +358,15 @@ packages/control-plane/src/runtime/
   docker/resolve.docker.test.ts   NEW (T2)
 packages/control-plane/src/api/
   routes/source.ts            MOD (T3) resolveDependencies
+  routes/dependencies.ts      NEW (T4) listAllowedDependencies — GET /v1/dependencies/allowed, not a project's; registered in routes/index.ts
   representations/source.ts   MOD (T3) ResolveDependenciesRequest, ResolvedDependencies
   error-codes.ts, errors.ts   MOD (T3) the three codes; (T4) DEPENDENCY_NOT_ALLOWED
   authz-contract.ts           MOD (T3) the operation's rows
   contract/document.ts        MOD (T3) 1.11.0
-packages/control-plane/src/build/gates.ts                                        MOD (T4, (a)) the dependency gate
-packages/control-plane/src/config.ts, infra/dependencies/allowed.txt             MOD/NEW (T4, (a))
+packages/control-plane/src/blueprints/npm-format.ts                              NEW (T4) npmDependencies — THE one reader of a package.json and a lockfile
+packages/control-plane/src/build/gates.ts                                        MOD (T4) the dependency gate, in the second parameter
+packages/control-plane/src/runtime/docker/driver.ts                              MOD (T4) the descriptor loaded before the gates; the allowlist passed; the hint
+packages/control-plane/src/config.ts, infra/dependencies/allowed.txt             MOD/NEW (T4)
 packages/mock/src/, packages/journey/src/example-dependency.ts, docs/api/authoring.md, blueprints/node-ts-mongo/agents/AGENTS.md   MOD/NEW (T5)
 packages/journey/src/authoring.ts, fixtures/dependency-app/, scripts/demo-authoring.sh (if its table moves)   MOD/NEW (T6)
 docs/superpowers/spikes/fe32-baseline/                                           NEW (T1)
@@ -301,9 +379,12 @@ docs/superpowers/spikes/fe32-baseline/                                          
 **ALONE, AND FIRST.** Nothing under `packages/` changes. The record is `docs/superpowers/spikes/fe32-baseline/README.md` and
 `results-task1-<date>.txt`.
 
-- [ ] **Step 1: `[M1]` Re-read every *Read this first* fact at HEAD** — two plans will have run — and record each with its line numbers.
+- [ ] **Step 1: `[M1]` Re-read every *Read this first* fact at HEAD** — five plans will have run — and record each with its line numbers.
   Above all: `runtime/driver.ts`'s `Driver`, `runtime/docker/driver.ts`'s `buildImage` and its gate call, `runtime/docker/builder.ts`'s
-  builder and `runBuildxBuild`, `build/context.ts`'s `.npmrc` placement, and what `source/reading.ts` reads at a commit.
+  builder and `runBuildxBuild`, `build/context.ts`'s `.npmrc` placement, what `source/reading.ts` reads at a commit (`readTextIn`),
+  **`build/gates.ts`' second parameter and how a finding reaches `Build.error`**, **where the driver loads the descriptor relative to the
+  gates**, and **the builder's network** (its name, and how a throwaway container joins it under an alias of its own — Task 2's Docker case
+  needs it).
 - [ ] **Step 2: `[M2]` The builder exports a file.** A probe in `$SCRATCH` (an `.mjs`, run with the RUNBOOK's environment) starts a
   throwaway builder the way `runtime/docker/builder.ts` does, on the same `--internal` network, and builds:
 
@@ -311,15 +392,21 @@ docs/superpowers/spikes/fe32-baseline/                                          
   FROM <node-ts-mongo's base_image, by digest>
   WORKDIR /resolve
   COPY package.json package-lock.json .npmrc ./
-  RUN npm install --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache
+  RUN npm install --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache --loglevel http
   FROM scratch
   COPY --from=0 /resolve/package-lock.json /
   ```
 
   with `--no-cache --output type=local,dest=$SCRATCH/out`, from the skeleton's own `package.json` plus one package **already in the
-  mirror's storage but not in the skeleton's direct dependencies** (pick one from `find` over Verdaccio's storage, e.g. a transitive
-  dependency of `express`), and the skeleton's lockfile as the base. Record: the exported file; the wall time; **that every package locked
-  in the base keeps its version** (a `jq` diff of `packages`); and the mirror's `.tgz` count before and after. Remove the builder.
+  mirror's storage but not in the skeleton's direct dependencies, at an EXACT version the storage holds** (pick one from `find` over
+  Verdaccio's storage, e.g. a transitive dependency of `express`; a range would let the mirror ask npmjs for a newer one), and the
+  skeleton's lockfile as the base. Record: the exported file; the wall time; **that every package locked in the base keeps its version**
+  (a `jq` diff of `packages`); the mirror's `.tgz` count before and after; **every `resolved` URL's host in the exported lockfile** (the
+  review's I2: expected `manifest-verdaccio:4873` for the new entries); **then the same build with Decision 12's rewrite as its last step**
+  — every host `registry.npmjs.org`, the paths unchanged, a scoped package's included — **and `make seed`'s warm loop, exactly as
+  `infra/seed/seed.sh:66-77` runs it on the host, installing that rewritten lockfile with no `WARN`**; **the `--loglevel http` lines** the
+  install printed for the new package's tarball (Task 2's control (b) reads them); and **every shape of `packages` entry the skeletons'
+  lockfiles hold** (bundled, optional, peer, a `link`) — Task 4's lockfile check passes exactly those. Remove the builder.
 - [ ] **Step 3: `[M3]` What npm says when the mirror cannot serve**, against a THROWAWAY Verdaccio (`docker run` of the image the compose
   file pins, its own network and port 7196, a config copy whose uplink is `http://127.0.0.1:9`): (i) a name the throwaway has never cached
   — npm's error code and message (the offline case); (ii) a name that cannot exist (`manifest-no-such-package-<nonce>`) — the same; and
@@ -399,14 +486,22 @@ docs/superpowers/spikes/fe32-baseline/                                          
 
 - [ ] **Step 1: The failing tests.**
   - **The driver contract** (both drivers): a manifest adding one package to a base lockfile answers a lockfile naming it; a second call
-    with the same inputs answers the same text; an unknown package is `DependencyError('DEPENDENCY_NOT_FOUND')` naming it.
+    with the same inputs answers the same text; **a package the mirror holds, at a version it never published** (`[M3]` (iv)'s case —
+    `ETARGET` from the mirror's own metadata, so it holds offline too, and never sends the live mirror after a package it lacks) is
+    `DependencyError('DEPENDENCY_NOT_FOUND')` naming it. (An unknown NAME would make the Docker driver ask the live mirror for a package
+    it does not hold, against *The network* above, and offline it answers `DEPENDENCY_UNAVAILABLE` instead.)
   - **`resolve.test.ts`** — npm's error lines (copied verbatim from `[M3]`'s record) map to the three codes, naming the package; a
     log with no recognisable line is `DEPENDENCY_RESOLUTION_FAILED`; the log answered is the last 40 lines, redacted.
   - **`blueprints.test.ts`** — every shipped blueprint declares `dependencies`, its `resolve` template exists and carries no `# syntax=`;
     a descriptor without the block is refused at load.
   - **`resolve.docker.test.ts`, *existing pins stay* (Review Focus 2)**: the skeleton's manifest plus one package `[M2]` found in the mirror,
-    its lockfile as the base → every base `packages` entry keeps its version; then **a build of that manifest and lockfile succeeds**
-    (Review Focus 3).
+    its lockfile as the base → every base `packages` entry keeps its version; **every `resolved` URL begins `https://registry.npmjs.org/`**
+    (Review Focus 7); **the resolver's log holds an `http fetch GET 200 …` line for the new package's tarball THROUGH the mirror**; then
+    **a build of that manifest and lockfile succeeds** (Review Focus 3).
+  - **`resolve.docker.test.ts`, *the mirror cannot serve it* (Review Focus 1)**: against a THROWAWAY Verdaccio whose uplink is unreachable
+    (`[M3]`'s) — started on the builder's network under an alias of its own, `mf-verdaccio-probe`, and reached through a TEST blueprint
+    whose `.npmrc` names `http://mf-verdaccio-probe:4873/` (the platform writes a blueprint's `.npmrc` into the context, so no production
+    seam is added) — a package it has never cached → `DEPENDENCY_UNAVAILABLE` naming it; the throwaway removed in the test's `finally`.
   - **`resolve.docker.test.ts`, *scripts are off, and only the mirror is reached* (Review Focus 4)**: `[M4]`'s postinstall package
     published to the platform's mirror under `@manifest-probe/`, resolved → no `RAN` in what is exported; unpublished in the test's
     `finally`. A `git+https:` and a `file:../x` specifier → `DEPENDENCY_RESOLUTION_FAILED`.
@@ -420,11 +515,17 @@ docs/superpowers/spikes/fe32-baseline/                                          
   FROM {{BASE_IMAGE}}
   WORKDIR /resolve
   # The platform's `.npmrc` with them: every lookup and every tarball through the mirror.
-  COPY package.json package-lock.json .npmrc ./
+  COPY package.json package-lock.jso[n] .npmrc ./
   # A FULL install, so every tarball is fetched THROUGH the mirror and kept there — the build that follows then
   # works offline. `--package-lock-only` would cache none (infra/seed/seed.sh). Scripts never run; the cache is
   # this build's own, so nothing is taken from a machine's ~/.npm instead of the mirror.
-  RUN npm install --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache
+  # `--loglevel http`: one line per fetch, so the log shows every tarball came THROUGH the mirror (Task 2's tests read it).
+  RUN npm install --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache --loglevel http
+  # THE LOCKFILE NAMES THE PUBLIC REGISTRY, not the mirror npm fetched from — so it is portable, and `make seed`'s warm
+  # loop on the host can install it. The registry comes from npm's own config (the platform's `.npmrc`), never a host
+  # written here; the integrity hashes are untouched. `[M2]` measured the shape of this line.
+  RUN reg="$(npm config get registry)"; reg="${reg%/}/" && \
+      sed -i "s#\"resolved\": \"${reg}#\"resolved\": \"https://registry.npmjs.org/#g" package-lock.json
   FROM scratch
   COPY --from=0 /resolve/package-lock.json /
   ```
@@ -435,17 +536,21 @@ docs/superpowers/spikes/fe32-baseline/                                          
   of the image output, and no registry token (it pushes nothing). `resolveDependencies` in the Docker driver: assemble a context in a temp
   directory (the manifest, the base lockfile, the blueprint's `.npmrc`, the rendered recipe), run it inside `queue.run(spec.projectSlug,
   …)`, read the exported lockfile, map a failed build's log through `resolve.ts`, and remove the temp directory in a `finally`. The fake
-  driver answers a deterministic lockfile naming each dependency, and `DEPENDENCY_NOT_FOUND` for a name beginning `manifest-no-such-`.
+  driver answers a deterministic lockfile naming each dependency, and `DEPENDENCY_NOT_FOUND` for a name beginning `manifest-no-such-` and
+  for any version `999.0.0` (the driver contract's case).
   The gate call (`driver.ts:296-299`) reads `descriptor.dependencies.lockfile`.
 - [ ] **Step 4: Through the real builder.** Run `resolve.docker.test.ts` alone (`MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project
   docker src/runtime/docker/resolve.docker.test.ts`), quote one resolution's time and lockfile diff.
 - [ ] **Step 5: Commit**, then the **negative controls**:
   - **(a)** drop `--ignore-scripts` from the recipe. Predict red: the postinstall case only.
-  - **(b)** `--package-lock-only` instead of a full install. Predict: the lockfile cases stay GREEN — say so — and the mirror's tarball
-    count does not move, which the *existing pins stay* case asserts too, so it goes red there.
+  - **(b)** `--package-lock-only` instead of a full install. Predict: the lockfile cases stay GREEN — say so — **and the *existing pins
+    stay* case goes red on its `http fetch GET … .tgz` line**: a lock-only resolution fetches package documents and no tarball. (Before the
+    review this control was predicted on the mirror's tarball COUNT, which cannot move for a package the mirror already holds — so it
+    could not fail; the fetch line can.)
   - **(c)** drop `--no-cache`. Predict: green on a first run, and a second resolution after `[M2]`'s package is removed from the mirror
     still answers — the case that removes it goes red. If no such case can be written without touching the mirror's storage, record (c) as
     *"cannot fail in this tier"* WITH the reason, and the acceptance's control replaces it.
+  - **(d)** drop Decision 12's rewrite. Predict red: the `registry.npmjs.org` row only.
   ```bash
   git commit -m "feat(runtime): the driver resolves an app's lockfile from its blueprint's recipe, in the network-restricted builder, through the mirror"
   ```
@@ -492,25 +597,40 @@ docs/superpowers/spikes/fe32-baseline/                                          
 **Files:**
 - Create: `infra/dependencies/allowed.txt` (one name per line, each with a `#` reason; seeded by hand with nothing beyond what the skeletons
   already name — the skeletons' own direct dependencies are allowed by the loader, not listed)
+- Create: `blueprints/npm-format.ts` — `npmDependencies(manifestText, lockfileText | null)`, Decision 11's one reader: the direct
+  dependencies with their specifiers, the `overrides` at every depth, and the lockfile's entries with their `resolved`; selected by the
+  registry from `dependencies.format`, and named in its comment as the only place the control plane reads either file
 - Modify: `config.ts` (`MANIFEST_DEPENDENCY_ALLOWLIST`, a path; `CONFIG_INVALID` naming a malformed line by number); the blueprint
-  registry (`dependencies.format`, and `directDependencies(format, manifestText): string[]` — the one place a `package.json` is read: the
-  keys of `dependencies`, `devDependencies`, `optionalDependencies` and `peerDependencies`); `build/gates.ts` (`runMandatoryGates` gains
-  the allowlist as a parameter the DRIVER passes, never an option an app sets — the function's own comment forbids a third); the operation
-  (refused before any builder); `api/error-codes.ts` (`DEPENDENCY_NOT_ALLOWED`, 409); `listAllowedDependencies`
-  (`GET /v1/dependencies/allowed`, any authenticated actor); the contract commands; the mock
-- Test: `build/gates.test.ts`, the operation's file, `config.test.ts`
+  registry (`dependencies.format`); `build/gates.ts` (**`runMandatoryGates(dir, { lockfile, dependencies: { format, allowed } })` — the
+  allowlist in the SECOND parameter, which the DRIVER fills; the function's *"no third"* rule kept**); `runtime/docker/driver.ts` (the
+  descriptor loaded BEFORE the gates, the allowlist passed, the hint naming the dependency remedy); the operation (refused before any
+  builder); `api/error-codes.ts` (`DEPENDENCY_NOT_ALLOWED`, 409); `listAllowedDependencies` (`GET /v1/dependencies/allowed`, any
+  authenticated actor); the contract commands; the mock
+- Test: `blueprints/npm-format.test.ts`, `build/gates.test.ts`, the operation's file, `config.test.ts`, a Docker case of a refused build
 
 - [ ] **Step 1: The failing tests.** (Task 3's tests gain a test allowlist naming what they resolve, and its `manifest-no-such-` names
-  stay allowed there, so its refusals still reach the driver — say so in the commit.) An unlisted direct dependency → the operation's
-  `409 DEPENDENCY_NOT_ALLOWED`, naming it, and no resolution recorded; **the same manifest pushed with any lockfile → the build's gate refuses it, naming it** (Review Focus 6); a skeleton
-  dependency needs no line; a listed one passes both; a package that is only TRANSITIVE is never asked about. `listAllowedDependencies`
-  answers the file's names and the skeletons'.
+  stay allowed there, so its refusals still reach the driver — say so in the commit.) Each refused `DEPENDENCY_NOT_ALLOWED`, naming the
+  package, **by the operation with no resolution recorded, and by the gate for a push** (Review Focus 6):
+  - an unlisted direct dependency, in each of the four blocks;
+  - **an alias**, `"express": "npm:<unlisted>@1"` — and `"express": "npm:express@4"`, an alias of an allowed name, refused too (an alias is
+    never a plain range);
+  - **a `file:./vendor/x`, a `link:`, a `git+https:`, an `https:` tarball and a `user/repo` specifier**, each naming its kind;
+  - **an `overrides` entry** whose key is unlisted and outside the base closure, or whose value is an alias — at the top and nested;
+  - **at the gate, a lockfile entry whose `resolved` names another package's tarball** (`node_modules/express` resolved to
+    `…/evil/-/evil-1.0.0.tgz`), and one resolved off the public registry;
+  - **`Build.error` reads `BUILD_GATE_FAILED: … [dependency] DEPENDENCY_NOT_ALLOWED: '<name>' …`** with the dependency hint.
+  Passing: a skeleton dependency needs no line; a listed one passes both doors; **the skeleton's own `@xmldom/xmldom` override passes**; a
+  package that is only TRANSITIVE is never asked about; every lockfile the skeletons and fixtures commit passes the gate (a pin over the
+  real files). `listAllowedDependencies` answers the file's names and the skeletons'.
 - [ ] **Step 2: Run, and predict.** **Step 3: Implement**, contract commands, the front-end told. **Step 4: Through the edge**: an unlisted
-  name refused by the operation, and by a build of a pushed commit.
-- [ ] **Step 5: Commit**, then the **negative control**: skip the gate's check. Predict red: Review Focus 6's push row only — the operation
-  still refuses, which is exactly why the gate is the second door.
+  name, and an alias of an allowed one, refused by the operation; a pushed commit with a lockfile that maps an allowed name to another
+  tarball refused by its build, `Build.error` quoted.
+- [ ] **Step 5: Commit**, then the **negative controls**: (a) skip the gate's check. Predict red: the push rows only — the operation still
+  refuses, which is exactly why the gate is the second door. (b) Read the KEYS alone, as the first draft did. Predict red: the alias,
+  specifier and override rows; the unlisted-name rows stay green. (c) Drop the lockfile `resolved` check. Predict red: the
+  other-tarball row only.
   ```bash
-  git commit -m "feat(build): an app names only an allowed direct dependency — at resolution and at the build's gate alike"
+  git commit -m "feat(build): an app names only an allowed direct dependency — no alias, override or local specifier around it — at resolution and at the build's gate alike"
   ```
 
 ---
@@ -555,7 +675,8 @@ docs/superpowers/spikes/fe32-baseline/                                          
 - Modify: `scripts/demo-authoring.sh`'s step table if it lists steps; `scripts/offline-acceptance.sh` only if a step's name moves
 
 - [ ] **Step 1: The first resolution of `marked`**, with the network on at Rich's yes; record the version, the day and the lockfile's
-  `sha256`; commit the fixture.
+  `sha256`; **check every `resolved` begins `https://registry.npmjs.org/`**; commit the fixture; **then run `make seed`'s warm step and
+  read its output for `fixtures/dependency-app` — a `WARN` there is a red, not a note** (Review Focus 7; the loop swallows a failure).
 - [ ] **Step 2: Green three times on each driver** (fresh, re-use, from `make reset`), every other demo, and `make ci-acceptance`. **And
   `scripts/offline-acceptance.sh` named to Rich as owed**: its step 14 now resolves `marked` from the warm mirror.
 - [ ] **Step 3: The negative controls**, one per Review Focus line, each predicted, seen red and restored.
@@ -569,7 +690,7 @@ docs/superpowers/spikes/fe32-baseline/                                          
 ## What this plan does not build
 
 - **Other ecosystems.** The recipe is the blueprint's; a second blueprint brings its own (D30). Nothing here is npm's beyond
-  `Resolve.tmpl`, `runtime/docker/resolve.ts`'s reading of npm's error lines and the allowlist's one `directDependencies` format.
+  `Resolve.tmpl`, `runtime/docker/resolve.ts`'s reading of npm's error lines and the allowlist's one reader, `npmDependencies`, selected by `format: npm`.
 - **Quarantine-on-first-use** (§12's Phase 4+ alternative).
 - **Upgrading a dependency for a vulnerability on the agent's own initiative** — the agent may now do it through this operation; nothing
   prompts it. The vulnerability database in the console is the next plan.
@@ -595,6 +716,9 @@ docs/superpowers/spikes/fe32-baseline/                                          
 ## Spec actions — DRAFTED, NONE APPLIED
 
 **Each is Rich's to read and decide; `manifest-94` applies an approved one.** The four shared HTML pages are checked with each.
+**§11's interface is changed by four plans, read in order** (the review's cross-plan 2): A1's A, B's C, A2's C, then this plan's A — each
+worded against the interface as the one before leaves it. **§26's settings sentence gains words from three**: B's B, A2's B, then this
+plan's C.
 
 ### A. §11 and §12 — the driver resolves an app's dependencies (before sitting 2)
 
@@ -607,7 +731,8 @@ infrastructure, and nothing more"*: resolution runs in the builder, so the inter
 2. **§12, *Supply chain***, the bullet *"committed lockfiles are required; builds fail without one"* ⟶ *"committed lockfiles are required;
    builds fail without one. **An agent obtains one from Manifest**: it sends the manifest it wants, and Manifest resolves the lockfile
    through the mirror, in the same network-restricted builder, with install scripts disabled, keeping every pin the committed lockfile
-   already holds, and answers it for the agent to commit — it never writes one by hand"*.
+   already holds unless the new manifest's ranges force a change, and answers it, naming the public registry, for the agent to commit — it
+   never writes one by hand"*.
 
 *Shared pages:* `manifest-decisions.html` (D13, D24 if it lists what a token may do) and `manifest-stories.html` (an agent's day that
 adds a package) — check; likely unchanged.
@@ -618,13 +743,16 @@ adds a package) — check; likely unchanged.
 
 ```yaml
 dependencies:                     # how an app's dependencies are declared and resolved
+  format: npm                     # which of the platform's readers checks them against the allowlist (§12)
   manifest: package.json
   lockfile: package-lock.json     # committed; the build fails without one (§12)
   resolve: ./Resolve.tmpl         # blueprint-managed, as the Dockerfile is (D13)
 ```
 
-and a sentence after the example: *"**The platform names no package manager**: the build's lockfile gate reads `dependencies.lockfile`,
-and resolving a lockfile builds `dependencies.resolve` in the network-restricted builder."*
+and a sentence after the example: *"**The platform runs no package manager**: the build's lockfile gate reads `dependencies.lockfile`,
+resolving a lockfile builds `dependencies.resolve` in the network-restricted builder, and `dependencies.format` names the one reader the
+platform uses to check an app's dependencies against the allowlist (§12) — the only place it reads that ecosystem's files."* (The review's
+minor: *"names no package manager"* was contradicted by that reader, which Task 4 adds.)
 
 *Shared pages:* none names the descriptor's fields — check.
 
@@ -633,12 +761,46 @@ and resolving a lockfile builds `dependencies.resolve` in the network-restricted
 **Proposed.**
 1. **§12, *Supply chain***, the first bullet ⟶ *"dependencies resolve through a private registry mirror, and **an app names as a direct
    dependency only a package on the platform's allowlist** — a platform setting (§26) administrators keep, to which every listed blueprint's
-   own dependencies always belong; what an allowed package depends on comes with it. Resolving a lockfile and the build's lockfile gate
-   both refuse an unlisted one, naming it. (Quarantine-on-first-use is the Phase 4+ alternative; v1 picks the allowlist, because two
+   own dependencies always belong; what an allowed package depends on comes with it. **A dependency is named by a plain registry range —
+   never an alias, a local path or a repository — an override may pin only what the app already depends on, and the lockfile must resolve
+   each name to that package's own published tarball.** Resolving a lockfile and the build's lockfile gate both refuse anything else,
+   naming it. (Quarantine-on-first-use is the Phase 4+ alternative; v1 picks the allowlist, because two
    mechanisms would be built and neither finished.)"*
-2. **§26, *Platform settings***: after *"…and the platform's monthly intake budget."* add *"And **the dependency allowlist** (§12)."*
+2. **§26, *Platform settings***: after A2's sentence (which follows B's, after *"…and the platform's monthly intake budget."*), add
+   *"And **the dependency allowlist** (§12)."* — deployment configuration read at boot, like every setting today, so a change is not yet
+   audited with its actor (the gap B's Spec action B names).
 
 *Shared pages:* `manifest-decisions.html` if it describes the supply chain; `manifest-schematic.html`'s supply-chain line — check.
+
+---
+
+## Revised to the review — what changed, finding by finding (2026-10-03)
+
+*The review is [`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md), §4 and *Cross-plan*. Its verdict on this plan:
+approve with the fixes. Each finding was checked against the code at `75030d8` before it was built in.*
+
+| Finding | What it said | Where it went |
+|---|---|---|
+| **I1** | The allowlist can be bypassed: an alias, `overrides`, a `file:` or `git+` specifier, a hand-written lockfile | Both doors check names, specifiers (plain registry ranges only) and overrides; the gate checks every lockfile entry's `resolved` names its own package (Decision 11; Task 4's rows and controls (b), (c); Review Focus 6; Spec action C's words) |
+| **I2** | New lockfile entries will name the internal mirror; seed's warm loop fails and swallows it | The recipe rewrites `resolved` to `https://registry.npmjs.org/` (Decision 12); `[M2]` records the hosts and runs the warm loop on the result; Task 2 asserts it, control (d); Task 6 reads the warm loop's output, a `WARN` a red (Review Focus 7) |
+| **I3** | Negative control (b) cannot fail | The recipe logs at `--loglevel http`; the *existing pins stay* case asserts the tarball fetch line, which a lock-only resolution never prints (Decision 4, Task 2) |
+| Minor: Spec action B's words | Omits `format: npm`; *"names no package manager"* contradicted by the reader | Both fixed |
+| Minor: Spec action A's words | *"keeping every pin"* says more than built | *"…unless the new manifest's ranges force a change"* |
+| Minor: the gate's refusal | `DEPENDENCY_NOT_ALLOWED` on `Build.error` | Stated, with the message's shape and the hint (Decision 11; Task 4) |
+| Minor: the network | Online, every resolution refreshes metadata via the uplink | `[M2]` pins an exact cached version; the constraint says what can and cannot be promised |
+| Minor: small errors | `readText` → `readTextIn`; *"two plans"* → five | Fixed (*Read this first* 10; Task 1; the header) |
+| Minor: the Docker case | How it points the real builder at a throwaway mirror | A throwaway Verdaccio on the builder's network under its own alias, reached through a TEST blueprint's `.npmrc` — no production seam (Task 2) |
+| Cross-plan 2, 6 | §11 and §26 changed by several plans | The order stated above the spec actions; Spec action C's §26 words placed after A2's |
+
+**Not taken:** nothing. **Routine calls this revision made**: the rewrite of `resolved` in the recipe, not in `seed.sh` or the driver
+(Decision 12, its rejected alternatives); an alias of an ALLOWED name refused too (an alias is never a plain range); the allowlist in
+`runMandatoryGates`' second parameter rather than a third; an override's key allowed when the base lockfile already holds it.
+
+**Checked before commit** by a fresh read-only agent, against the review and the other three plans; what it found here was fixed in
+place: `listAllowedDependencies` is a second operation in `1.11.0`, with its own route file; the driver contract's `DEPENDENCY_NOT_FOUND`
+case is a held package at a version never published (an unknown name would send the live mirror to npmjs, and offline answers
+`DEPENDENCY_UNAVAILABLE`); the recipe's `COPY` uses the `package-lock.jso[n]` glob its note describes; `directDependencies` →
+`npmDependencies`; one line reference.
 
 ---
 
