@@ -618,3 +618,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - m109, a helper's band — "An agent is waiting for an owner's answer." (Recommended): "<App>: an agent is waiting for
         an owner's answer." with no [Agents] button.
     Built by the fresh front-end session manifest-app-f6, after manifest-app-5a's close.
+
+    And at ~14:48 PDT, m104 RE-ASKED, its premise having been wrong: manifest-app-f6 measured that the front-end cannot read a
+    change's net sensitive change (the contract carries only each commit's SpecValidation.sensitiveDiff against the newest
+    valid manifest, and LaunchReadiness.sensitiveFields for the release serving staging; checked by manifest-94 in the
+    contract). Through the question tool — "Ask the platform: FE-54 (Recommended)": a commit's spec validation reports its
+    sensitive change against the last approved release, by the gate's own sensitiveFieldsBetween; additive, no spec action;
+    the FE-46/47/5 plan's new Task 2b, in its sitting 2, beside FE-53. m104 stays open, over-saying, until it lands. Over: the
+    front-end's own copy of the rule (it can under-say); leaving m104 as it is.
