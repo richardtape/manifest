@@ -702,3 +702,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - /v1/responses ON AGENT KEYS — "Yes, in this plan, if measured": agent keys gain it, conditional on Task 1 measuring
         that the gateway's capable model refuses tools on chat completions (S5 found gpt-6-luna does); a §10 spec action
         drafted; app and intake keys keep three routes. Over: leaving it to Phase 3.
+
+    And at 15:52 PDT, on the UBC AI Gateway plan (docs/superpowers/plans/2026-10-03-ubc-ai-gateway.md, f5faf87, by
+    manifest-b7: 6 tasks in 3 sittings; two spec actions drafted), through the question tool:
+      - "Quick review first (Recommended)": a read-only fresh reviewer of manifest-94's checks it against the code before
+        he approves it. Over: approving now.
+      - "Inline, a fresh session per sitting (Recommended)": executed inline, each sitting a fresh platform session from
+        ORIENTATION §7e, manifest-94 coordinating. Over: subagent-driven.
