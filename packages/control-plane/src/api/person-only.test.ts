@@ -166,7 +166,12 @@ function mint(ctx: Ctx, capabilities: string[], cookies = ctx.adminCookies) {
     method: 'POST',
     url: `/v1/projects/${ctx.projectId}/tokens`,
     cookies,
-    headers: mutationHeaders(ctx.deps),
+    // The administrator is not a member, so a mint says why (§26; the faculty-ready plan's Task 10);
+    // the owner's is not asked.
+    headers: {
+      ...mutationHeaders(ctx.deps),
+      'manifest-admin-reason': 'the person-only tests',
+    },
     payload: { name: 'person-only', capabilities, expiresInDays: 1 },
   })
 }
@@ -229,7 +234,8 @@ describe('the person-only class on a route (D24, §20)', () => {
           method: 'POST',
           url: `/v1/projects/${ctx.projectId}/zz-person-only-${probe}`,
           cookies: ctx.adminCookies,
-          headers: mutationHeaders(ctx.deps),
+          // Not a member: the rehearsal and the send are an owner's, so they say why (Task 10).
+          headers: { ...mutationHeaders(ctx.deps), 'manifest-admin-reason': 'the probe' },
           payload: { reason: 'probe' },
         })
         expect(res.statusCode, `${probe}: ${res.body}`).toBe(201)

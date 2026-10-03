@@ -640,8 +640,16 @@ export async function launchedCwlProject(slug: string) {
       method,
       url,
       cookies: as,
+      // The fixture's administrator is not a member, so a change an owner could make — the rehearsal —
+      // says why (§26; the faculty-ready plan's Task 10). Nobody else is asked; the owner's is not recorded.
       ...(method === 'POST'
-        ? { payload: payload ?? {}, headers: mutationHeaders(deps) }
+        ? {
+            payload: payload ?? {},
+            headers: {
+              ...mutationHeaders(deps),
+              'manifest-admin-reason': 'the launched fixture',
+            },
+          }
         : {}),
     })
     if (res.statusCode !== expected)

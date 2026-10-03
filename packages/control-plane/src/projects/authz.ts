@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { projectMembers, projects } from '../db/index.js'
 import { isSteppedUp } from '../identity/index.js'
-import { actingContext, ADMIN_REASON_MAX } from '../observability/acting.js'
+import { actingContext, ADMIN_REASON_MAX } from '../observability/index.js'
 import { AdminReasonRequiredError, AuthorizationError } from './errors.js'
 import { projectStateRefusal } from './state.js'
 

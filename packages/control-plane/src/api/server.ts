@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import cookie from '@fastify/cookie'
 import websocket from '@fastify/websocket'
-import type { EventBus, StreamRegistry } from '../observability/index.js'
+import {
+  offeredReasonOf,
+  type EventBus,
+  type StreamRegistry,
+} from '../observability/index.js'
 import { registerEventRoutes } from './routes/events.js'
 import Fastify, {
   type FastifyInstance,
@@ -30,7 +34,6 @@ import {
 import { assertSameOrigin } from './csrf.js'
 import { originOf } from './origins.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
-import { offeredReasonOf } from '../observability/acting.js'
 import { replayOrStore, type WithholdOnReplay } from './idempotency.js'
 import { sendRefusal } from './refusal.js'
 import { registerAuthRoutes } from './routes/auth.js'

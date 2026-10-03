@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod/v4'
-import { actingContext, offeredReasonOf } from '../../observability/acting.js'
+import { actingContext, offeredReasonOf } from '../../observability/index.js'
 import {
   actorNames,
   CAPABILITIES,

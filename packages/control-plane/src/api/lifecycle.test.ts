@@ -86,12 +86,18 @@ function withLifecycleServer(
   return withProjectServer((ctx) => fn(ctx, lite, sso), { llm: lite, sso, ...overrides })
 }
 
-const archive = (ctx: TestProject, cookies: Record<string, string>) =>
+/** Why an administrator who is not a member acts here (§26; the faculty-ready plan's Task 10). */
+const ADMIN_REASON = 'the lifecycle tests'
+
+const archive = (ctx: TestProject, cookies: Record<string, string>, reason?: string) =>
   ctx.app.inject({
     method: 'POST',
     url: `/v1/projects/${ctx.projectId}/archive`,
     cookies,
-    headers: mutationHeaders(ctx.deps),
+    headers: {
+      ...mutationHeaders(ctx.deps),
+      ...(reason === undefined ? {} : { 'manifest-admin-reason': reason }),
+    },
     payload: {},
   })
 
@@ -393,7 +399,8 @@ describe('archive and restore (§11, Task 11)', () => {
       expect(refusal(asToken)).toEqual({ status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' })
       // §26: an administrator acts on anyone's project — stepped up, like the owner.
       const admin = await loginAs(ctx.deps, 'platform_admin', { steppedUp: true })
-      expect((await archive(ctx, admin)).statusCode).toBe(200)
+      // Not a member, so they say why (§26; the faculty-ready plan's Task 10).
+      expect((await archive(ctx, admin, ADMIN_REASON)).statusCode).toBe(200)
     })
   })
 
@@ -1211,10 +1218,15 @@ describe('delete (§11, Task 12)', () => {
       expect(await stateOf(ctx)).toEqual({ state: 'active', deletedAt: null })
       // The positive control: an administrator, stepped up, may.
       const admin = await loginAs(ctx.deps, 'platform_admin', { steppedUp: true })
-      const res = await remove(ctx, admin)
+      // Not a member, so they say why (§26; the faculty-ready plan's Task 10).
+      const withReason = () => ({
+        ...mutationHeaders(ctx.deps),
+        'manifest-admin-reason': ADMIN_REASON,
+      })
+      const res = await remove(ctx, admin, withReason())
       expect(res.statusCode, res.body).toBe(200)
       // And a deleted project is gone for its deleter too: the same request again is a 404.
-      expect(refusal(await remove(ctx, admin))).toEqual({
+      expect(refusal(await remove(ctx, admin, withReason()))).toEqual({
         status: 404,
         code: 'NOT_FOUND',
       })
