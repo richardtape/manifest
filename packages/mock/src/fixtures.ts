@@ -65,6 +65,21 @@ export const ME: Schemas['Me'] = {
 export const ADMIN_ME: Schemas['Me'] = { ...ME, role: 'admin' }
 
 /**
+ * `MANIFEST_MOCK_ADMIN_REASON=1`'s person (the faculty-ready plan's Task 10): a platform administrator who
+ * is NOT a member of `mock-app` — `MEMBERS` lists the instructor alone — so a front-end that offers the
+ * reason field to exactly that person shows it here.
+ */
+export const OPERATOR_ID = '12121212-1212-4212-8212-121212121212'
+export const OPERATOR_ME: Schemas['Me'] = {
+  id: OPERATOR_ID,
+  puid: 'opr000001',
+  displayName: 'Operator One',
+  email: 'operator@example.test',
+  role: 'admin',
+  mayBuild: true,
+}
+
+/**
  * `owner` IS `UserSummary`, WHICH IS `{ id, displayName }` AND NOTHING ELSE. The plan's own
  * snippet gave it a `puid` and was `TS2353`; it would have failed the Ajv check too
  * (measured at the close of sitting 7, and again here).

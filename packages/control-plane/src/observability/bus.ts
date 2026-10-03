@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm'
-import { events, users, type Db } from '../db/index.js'
+import { delegatedTokens, events, users, type Db } from '../db/index.js'
 import type { StoredBuildLogLine } from './build-logs.js'
 import { EventError, recordEvent, type Event, type EventInput } from './events.js'
 import type { Redactor } from './redact.js'
@@ -64,6 +64,8 @@ export interface EventActor {
   name: string
   asAdministrator: boolean
   reason: string | null
+  /** The delegated token that acted, when the person's agent did (§26: its actions name the token). */
+  token: { id: string; name: string } | null
 }
 
 /** What a sentence says for a person whose name is blank — the rule `projects/` names people by. */
@@ -90,6 +92,13 @@ export function eventFrame(event: Event): StreamFrame {
                 : event.actorName,
             asAdministrator: event.actedAsAdmin,
             reason: event.reason,
+            token:
+              event.actorTokenId === null
+                ? null
+                : {
+                    id: event.actorTokenId,
+                    name: event.actorTokenName ?? 'a delegated token',
+                  },
           },
   }
 }
@@ -237,13 +246,20 @@ export async function recentFramesFor(
   // The actor's name is read where it is kept (§26; the faculty-ready plan's Task 10), so the replay a
   // reconnecting client reads names who acted exactly as the live frame did.
   const newestFirst = await db
-    .select({ event: events, actorName: users.displayName })
+    .select({
+      event: events,
+      actorName: users.displayName,
+      actorTokenName: delegatedTokens.name,
+    })
     .from(events)
     .leftJoin(users, eq(users.id, events.actorUserId))
+    .leftJoin(delegatedTokens, eq(delegatedTokens.id, events.actorTokenId))
     .where(eq(events.projectId, projectId))
     .orderBy(desc(events.createdAt), desc(events.id))
     .limit(limit)
   return newestFirst
     .reverse()
-    .map(({ event, actorName }) => eventFrame({ ...event, actorName }))
+    .map(({ event, actorName, actorTokenName }) =>
+      eventFrame({ ...event, actorName, actorTokenName }),
+    )
 }

@@ -365,6 +365,8 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
           actedAsAdmin: false,
           reason: null,
           actorName: null,
+          actorTokenId: null,
+          actorTokenName: null,
         }),
       )
       deps.bus.publish(liveFrame(projectId, 'live-during'))

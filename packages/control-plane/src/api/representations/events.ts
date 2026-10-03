@@ -31,6 +31,15 @@ export const EventActor = representation(
         .describe(
           'Why the administrator acted, in their own words, redacted like every event: present exactly when `asAdministrator` is true, otherwise null.',
         ),
+      token: z
+        .object({
+          id: Uuid.describe('The token (`listTokens`).'),
+          name: z.string().describe('The name its minter gave it.'),
+        })
+        .nullable()
+        .describe(
+          'The delegated token that acted, when the person’s agent did — `name` is then the person who minted it. Null when the person acted in their own session. A token an administrator minted on somebody else’s project gave its reason once, at the mint; its own acts read `asAdministrator: false`.',
+        ),
     })
     .describe(
       'Who acted on a project: the person, and — when a platform administrator who is not a member used an owner’s capability — that they did, and why.',
@@ -62,7 +71,7 @@ const eventFrameOf = <T extends EventType>(type: T) =>
     machineDetail: EVENT_DETAIL_SCHEMAS[type],
     createdAt: Timestamp.describe('When it was recorded.'),
     actor: EventActor.nullable().describe(
-      'Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it.',
+      'Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it.',
     ),
   })
 

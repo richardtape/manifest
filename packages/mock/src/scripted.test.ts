@@ -1074,6 +1074,18 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(
       (await fetch(`${at}/v1/projects/${f.PROJECT_ID}`, { headers: SESSION })).status,
     ).toBe(200)
+    // WHO IS ASKED: an administrator, and not a member — so a front-end that offers the reason field to
+    // exactly that person shows it against this scenario.
+    const me = (await (await fetch(`${at}/v1/me`, { headers: SESSION })).json()) as {
+      id: string
+      role: string
+    }
+    expect(me.role).toBe('admin')
+    const members = (await (
+      await fetch(`${at}/v1/projects/${f.PROJECT_ID}/members`, { headers: SESSION })
+    ).json()) as { userId: string }[]
+    expect(members.length).toBeGreaterThan(0)
+    expect(members.map((m) => m.userId)).not.toContain(me.id)
     // Unscripted, nobody is asked — the default, unchanged.
     const plain = await fetch(`${origin}/v1/projects/${f.PROJECT_ID}`, {
       method: 'PATCH',

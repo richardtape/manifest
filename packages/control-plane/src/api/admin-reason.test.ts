@@ -1,5 +1,5 @@
 import { asc, eq } from 'drizzle-orm'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import { events } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
@@ -375,7 +375,51 @@ describe('an administrator acting on a project they are not a member of gives a 
         name: 'Platform Admin',
         asAdministrator: true,
         reason: said,
+        token: null,
       })
+    })
+  })
+
+  /**
+   * AN OPERATOR LINE NEVER CARRIES A REASON (the plan's Global Constraints): a refusal's line on stderr
+   * names the request id, the operation and the code — never what the person wrote. Two refusals that
+   * arrive WITH a reason (one too long, one past it to the step-up) are read off stderr; POSITIVE
+   * CONTROL in the same test: both lines are there.
+   */
+  it('never writes the reason on the operator’s refusal line', async () => {
+    await withProjectServer(async (ctx) => {
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const canary = 'CANARY-REASON-7f3a'
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        const tooLong = await send(
+          ctx,
+          admin,
+          {
+            method: 'PATCH',
+            url: `/v1/projects/${ctx.projectId}`,
+            payload: { name: 'x' },
+          },
+          `${canary} ${'z'.repeat(500)}`,
+        )
+        expect(refusal(tooLong)).toEqual({ status: 400, code: 'ADMIN_REASON_REQUIRED' })
+        const unstepped = await send(
+          ctx,
+          admin,
+          { method: 'POST', url: `/v1/projects/${ctx.projectId}/archive`, payload: {} },
+          canary,
+        )
+        expect(refusal(unstepped)).toEqual({ status: 403, code: 'STEP_UP_REQUIRED' })
+        const lines = logged.mock.calls.map((call) => call.map(String).join(' '))
+        const refused = lines.filter((line) => line.includes('"msg":"refused"'))
+        expect(refused.map((line) => JSON.parse(line).code).sort()).toEqual([
+          'ADMIN_REASON_REQUIRED',
+          'STEP_UP_REQUIRED',
+        ])
+        expect(lines.filter((line) => line.includes(canary))).toEqual([])
+      } finally {
+        logged.mockRestore()
+      }
     })
   })
 
@@ -446,6 +490,7 @@ describe('the project’s people see who acted, and why', () => {
         name: 'Platform Admin',
         asAdministrator: true,
         reason: REASON,
+        token: null,
       })
       expect(frame.humanMessage).toMatch(
         /Platform Admin acted as a platform administrator — reason: 'Student reported a broken page'/,
@@ -502,6 +547,7 @@ describe('the project’s people see who acted, and why', () => {
         name: 'Bio Prof',
         asAdministrator: false,
         reason: null,
+        token: null,
       })
       expect(frame.humanMessage).not.toMatch(/platform administrator/)
       const [row] = await ctx.db.select().from(events).where(eq(events.id, frame.id))
@@ -552,12 +598,13 @@ describe('deploy, build and validate name who acted', () => {
   it('names a token’s agent as the person’s agent, by the token’s name', async () => {
     await withProjectServer(async (ctx) => {
       const frames = watch(ctx)
-      const { plaintext } = await mintTestToken(ctx.db, {
+      const { plaintext, row: token } = await mintTestToken(ctx.db, {
         userId: ctx.userId,
         projectId: ctx.projectId,
         capabilities: ['project:read', 'build:create'],
         name: 'builder-bot',
       })
+      const tokenId = token.id
       const started = await ctx.app.inject({
         method: 'POST',
         url: `/v1/projects/${ctx.projectId}/builds`,
@@ -573,11 +620,18 @@ describe('deploy, build and validate name who acted', () => {
       expect(frame.humanMessage).toMatch(
         /, started by Bio Prof's agent \(token 'builder-bot'\)\.$/,
       )
+      // THE TOKEN IS NAMED ON THE ACTOR TOO (the review's I3): read `actor`, never the sentence.
       expect(frame.actor).toEqual({
         name: 'Bio Prof',
         asAdministrator: false,
         reason: null,
+        token: { id: tokenId, name: 'builder-bot' },
       })
+      // …and the replay a reconnecting client reads says the same.
+      const { recentFramesFor } = await import('../observability/index.js')
+      expect(
+        (await recentFramesFor(ctx.db, ctx.projectId, 50)).find((f) => f.id === frame.id),
+      ).toEqual(frame)
       // The ordered rows agree: nothing here acted as an administrator.
       const rows = await ctx.db
         .select()

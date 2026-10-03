@@ -9,6 +9,7 @@ import {
   type Db,
 } from '../db/index.js'
 import {
+  actingContext,
   makeRedactor,
   publishEvent,
   type EventBus,
@@ -355,7 +356,13 @@ export function createRetirer(deps: RetirerDeps): Retirer {
       state.again = true
       if (state.running) return
       state.running = true
-      const pass = run(environmentId).finally(() => inFlight.delete(pass))
+      // A PASS NAMES NOBODY (§26; the faculty-ready plan's Task 10, its review's I1): requests coalesce
+      // into it, and it would otherwise run in the acting context of whichever request scheduled it
+      // first — stamping another deploy's retirements with that person, or an administrator's reason.
+      // The deploy's own events name who deployed; retiring what it replaced is the platform's.
+      const pass = actingContext
+        .exit(() => run(environmentId))
+        .finally(() => inFlight.delete(pass))
       inFlight.add(pass)
     },
 

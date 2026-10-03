@@ -59,7 +59,12 @@ const COMMIT = '5f3c1b8e2a4d6f7c9b0e1a2d3c4b5a6978e9f0a1'
  * Events the platform publishes for work a request started (a build's end, a deploy's health) name
  * the person who started it too.
  */
-const BY_ME = { name: ME.displayName, asAdministrator: false, reason: null } as const
+const BY_ME = {
+  name: ME.displayName,
+  asAdministrator: false,
+  reason: null,
+  token: null,
+} as const
 
 /** Event ids are uuids like everything else; the stream's own `id` is what de-duplicates. */
 const eventId = (n: number): string =>

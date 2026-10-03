@@ -2,7 +2,14 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { events, projects, sourceRepositories } from '../db/index.js'
 import { withProject } from '../db/testing.js'
-import { createEventBus } from '../observability/index.js'
+import {
+  actingContext,
+  createEventBus,
+  EXAMPLE_DETAILS,
+  makeRedactor,
+  publishEvent,
+  type StreamFrame,
+} from '../observability/index.js'
 import type { MirrorAdvance } from '../source/index.js'
 import { createSourceObserver } from './source-events.js'
 import { projectForRepository } from './source-repositories.js'
@@ -49,6 +56,72 @@ describe('the source observer reports commits too large to scan (Task 12)', () =
       expect((await incomplete()).map((r) => r.humanMessage)).toContain(
         `A commit pushed to GitHub (${A.slice(0, 12)}) was too large for Manifest to scan for secrets, so nothing in it was checked. A build of any commit still scans the whole tree it builds.`,
       )
+    })
+  })
+})
+
+/**
+ * A PUSH TO GITHUB IS GITHUB'S NEWS, NOT THE NEWS OF WHOEVER'S REQUEST FOUND IT (the faculty-ready plan's
+ * Task 10, its review's I1): a commit or a build syncs the mirror first, and the sync reports every push
+ * no webhook had — someone else's included. So what the observer publishes names nobody, whoever's request
+ * ran the sync; the commit made through Manifest names its maker in its own `repository.committed`.
+ * POSITIVE CONTROL in the same test: the same acting context, read directly, names its person.
+ */
+describe('the source observer names nobody (Task 10)', () => {
+  it('publishes a push a request’s sync found with no actor, and no administrator’s reason', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const [project] = await db.select().from(projects).where(eq(projects.id, projectId))
+      const bus = createEventBus()
+      const frames: StreamFrame[] = []
+      bus.subscribe(projectId, (frame) => frames.push(frame))
+      const acting = {
+        userId: ownerId,
+        name: 'An Administrator',
+        phrase: 'An Administrator',
+        token: null,
+        offeredReason: 'fixing something else',
+        asAdmin: true,
+        reason: 'fixing something else',
+      }
+      await actingContext.run(acting, () =>
+        createSourceObserver({ db, bus }).advanced({
+          ...advanceOf(project!.slug, [A]),
+          updated: [{ ref: 'refs/heads/main', from: A, to: B }],
+        }),
+      )
+      await actingContext.run(acting, () =>
+        publishEvent(
+          db,
+          bus,
+          {
+            projectId,
+            subject: 'control',
+            type: 'project.renamed',
+            machineDetail: EXAMPLE_DETAILS['project.renamed'],
+            humanMessage: 'The positive control.',
+          },
+          makeRedactor([]),
+        ),
+      )
+      const rows = await db.select().from(events).where(eq(events.projectId, projectId))
+      const fromGitHub = rows.filter((r) => r.type.startsWith('repository.'))
+      expect(fromGitHub.map((r) => r.type).sort()).toEqual([
+        'repository.pushed',
+        'repository.scan_incomplete',
+      ])
+      expect(fromGitHub.map((r) => [r.actorUserId, r.actedAsAdmin, r.reason])).toEqual(
+        fromGitHub.map(() => [null, false, null]),
+      )
+      const framed = frames.filter((f) => f.kind === 'event')
+      expect(
+        framed.filter((f) => f.type.startsWith('repository.')).map((f) => f.actor),
+      ).toEqual([null, null])
+      expect(framed.find((f) => f.type === 'project.renamed')?.actor).toEqual({
+        name: 'An Administrator',
+        asAdministrator: true,
+        reason: 'fixing something else',
+        token: null,
+      })
     })
   })
 })

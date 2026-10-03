@@ -2109,6 +2109,16 @@ export interface components {
             asAdministrator: boolean;
             /** @description Why the administrator acted, in their own words, redacted like every event: present exactly when `asAdministrator` is true, otherwise null. */
             reason: string | null;
+            /** @description The delegated token that acted, when the person’s agent did — `name` is then the person who minted it. Null when the person acted in their own session. A token an administrator minted on somebody else’s project gave its reason once, at the mint; its own acts read `asAdministrator: false`. */
+            token: {
+                /**
+                 * Format: uuid
+                 * @description The token (`listTokens`).
+                 */
+                id: string;
+                /** @description The name its minter gave it. */
+                name: string;
+            } | null;
         };
         /** @description An audit Event, as recorded and redacted at capture. Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect. */
         EventFrame: {
@@ -2154,7 +2164,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2193,7 +2203,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2237,7 +2247,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2281,7 +2291,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2325,7 +2335,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2385,7 +2395,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2445,7 +2455,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2505,7 +2515,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2567,7 +2577,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2622,7 +2632,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2669,7 +2679,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2715,7 +2725,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2761,7 +2771,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2809,7 +2819,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2863,7 +2873,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2904,7 +2914,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2950,7 +2960,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -2997,7 +3007,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3044,7 +3054,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3096,7 +3106,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3150,7 +3160,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3207,7 +3217,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3258,7 +3268,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3300,7 +3310,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3344,7 +3354,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3383,7 +3393,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3431,7 +3441,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3470,7 +3480,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3519,7 +3529,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3566,7 +3576,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3613,7 +3623,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3660,7 +3670,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3707,7 +3717,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3748,7 +3758,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3789,7 +3799,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3836,7 +3846,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3884,7 +3894,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3921,7 +3931,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -3960,7 +3970,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4017,7 +4027,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4061,7 +4071,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4115,7 +4125,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4169,7 +4179,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4220,7 +4230,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4279,7 +4289,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4335,7 +4345,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4396,7 +4406,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4452,7 +4462,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4509,7 +4519,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4546,7 +4556,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4593,7 +4603,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4640,7 +4650,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         } | {
             /**
@@ -4687,7 +4697,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, or a push straight to GitHub. An event that a request’s work publishes later, such as a build ending, names who started it. */
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
             actor: components["schemas"]["EventActor"] | null;
         };
         /** @description The fleet — every project, active or archived, but none deleted — for administrators only. It does not carry a project’s department, custom domains or AI spend this month. */

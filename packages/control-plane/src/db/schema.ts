@@ -1163,6 +1163,14 @@ export const events = audit.table(
      * duty or acting as a member included.
      */
     actedAsAdmin: boolean('acted_as_admin').notNull().default(false),
+    /**
+     * THE DELEGATED TOKEN THAT ACTED, when the person's agent did — `null` when they acted in their own
+     * session, or nobody did (the faculty-ready plan's Task 10, its review's I3: §26 says a token's later
+     * actions name the token). RESTRICT: a token is revoked, never deleted.
+     */
+    actorTokenId: uuid('actor_token_id').references(() => delegatedTokens.id, {
+      onDelete: 'restrict',
+    }),
     /** Why, in the administrator's words — redacted at capture, at most 500 characters as sent. */
     reason: text('reason'),
     /**
@@ -1194,6 +1202,11 @@ export const events = audit.table(
     check(
       'events_admin_reason',
       sql`(NOT ${t.actedAsAdmin} OR (${t.actorUserId} IS NOT NULL AND length(trim(${t.reason})) > 0)) AND (${t.actedAsAdmin} OR ${t.reason} IS NULL)`,
+    ),
+    /** A token acts for a person: an event naming a token names its person too. */
+    check(
+      'events_actor_token_has_person',
+      sql`${t.actorTokenId} IS NULL OR ${t.actorUserId} IS NOT NULL`,
     ),
   ],
 )

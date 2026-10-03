@@ -1,0 +1,3 @@
+ALTER TABLE "audit"."events" ADD COLUMN "actor_token_id" uuid;--> statement-breakpoint
+ALTER TABLE "audit"."events" ADD CONSTRAINT "events_actor_token_id_delegated_tokens_id_fk" FOREIGN KEY ("actor_token_id") REFERENCES "public"."delegated_tokens"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "audit"."events" ADD CONSTRAINT "events_actor_token_has_person" CHECK ("audit"."events"."actor_token_id" IS NULL OR "audit"."events"."actor_user_id" IS NOT NULL);

@@ -387,6 +387,10 @@ export function registerRoutes(
             userId: actor.userId,
             name,
             phrase: tokenName === null ? name : `${name}'s agent (token '${tokenName}')`,
+            token:
+              actor.credential === 'token'
+                ? { id: actor.tokenId, name: tokenName ?? 'a delegated token' }
+                : null,
             offeredReason: offeredReasonOf(request.headers['manifest-admin-reason']),
             asAdmin: false,
             reason: null,

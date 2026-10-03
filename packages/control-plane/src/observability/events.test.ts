@@ -342,7 +342,9 @@ describe('publishEvent — recorded, then streamed (P4b Task 15)', () => {
       const [row] = await db.select().from(events).where(eq(events.id, event.id))
       expect(row).toBeDefined()
       // Recorded outside any request: nobody acted, so the frame names nobody.
-      expect(frames).toEqual([eventFrame({ ...row!, actorName: null })])
+      expect(frames).toEqual([
+        eventFrame({ ...row!, actorName: null, actorTokenName: null }),
+      ])
       expect(frames[0]).toMatchObject({ actor: null })
       expect(JSON.stringify(frames)).not.toContain('STUDENT-PII-CANARY')
     })

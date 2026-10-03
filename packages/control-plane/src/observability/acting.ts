@@ -24,6 +24,11 @@ export interface Acting {
   /** Who acted, as a sentence begins: the name, or *"Ada's agent (token 'claude-code')"*. */
   phrase: string
   /**
+   * The delegated token that acted, by its id and name — `null` when the person acted in their own
+   * session (the review's I3: a token's later actions name the token, on `EventFrame.actor` too).
+   */
+  token: { id: string; name: string } | null
+  /**
    * The request's `Manifest-Admin-Reason`, decoded and trimmed — `null` when it sent none. Offered,
    * not yet recorded: only `assertCapability` decides it is needed.
    */

@@ -482,9 +482,12 @@ const ANSWERS: Record<string, Answerer> = {
   getMe: (ctx) =>
     ok(
       'Me',
-      ctx.options.role === 'admin'
-        ? f.ADMIN_ME
-        : { ...f.ME, mayBuild: ctx.options.mayBuild },
+      // Task 10's scenario signs in an administrator who is not a member of `mock-app`.
+      ctx.options.adminReason
+        ? f.OPERATOR_ME
+        : ctx.options.role === 'admin'
+          ? f.ADMIN_ME
+          : { ...f.ME, mayBuild: ctx.options.mayBuild },
     ),
   // KEYED ON THE PATH PARAMETER: this route's one caller is the *Check* button on a
   // CONFIRMED row, and answering some other row's state to it would be the mock lying about

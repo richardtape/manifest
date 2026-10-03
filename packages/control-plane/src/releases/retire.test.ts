@@ -16,7 +16,14 @@ import {
 } from '../db/index.js'
 import { resetDatabase, withRollback } from '../db/testing.js'
 import { createProject } from '../projects/index.js'
-import { createEventBus, type StreamFrame } from '../observability/index.js'
+import {
+  actingContext,
+  createEventBus,
+  EXAMPLE_DETAILS,
+  makeRedactor,
+  publishEvent,
+  type StreamFrame,
+} from '../observability/index.js'
 import { createFakeDriver, type Driver, type FakeDriver } from '../runtime/index.js'
 import type { AiKeyService } from '../ai/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
@@ -80,6 +87,8 @@ interface Fixture {
   /** The driver id of the instance with no row at all — a crashed control plane's. */
   orphan: string
   projectId: string
+  /** A real `users.id`, for an acting context's person (the faculty-ready plan's Task 10). */
+  ownerId: string
 }
 
 /**
@@ -208,6 +217,7 @@ async function threeInstances(
     rows: { old, serving },
     orphan,
     projectId: project.id,
+    ownerId: owner!.id,
   }
 }
 
@@ -544,6 +554,61 @@ describe('createRetirer (P4c Task 7)', () => {
       // running, and one more because something was asked for while it ran.
       expect(Math.max(...passes)).toBe(1)
       expect(passes.length).toBe(2)
+    })
+  })
+
+  /**
+   * A PASS NAMES NOBODY (the faculty-ready plan's Task 10, its review's I1): requests coalesce into a pass
+   * that runs in whichever request scheduled it first, so a pass is no one request's act — and an
+   * administrator's reason must not reach another deploy's retirements. POSITIVE CONTROL in the same
+   * test: the same acting context, read directly, does name its person.
+   */
+  it('names nobody on what a pass publishes, whoever’s request scheduled it', async () => {
+    await withRollback(async (db) => {
+      const { driver, environment, projectId, ownerId } = await threeInstances(db)
+      const bus = createEventBus()
+      const frames: StreamFrame[] = []
+      const unsubscribe = bus.subscribe(projectId, (frame) => frames.push(frame))
+      const acting = {
+        userId: ownerId,
+        name: 'An Administrator',
+        phrase: 'An Administrator',
+        token: null,
+        offeredReason: 'a reason for something else',
+        asAdmin: true,
+        reason: 'a reason for something else',
+      }
+      try {
+        const retirer = createRetirer(depsFor(db, driver, recordingAi([]), bus))
+        actingContext.run(acting, () => retirer.schedule(environment.id))
+        await retirer.idle()
+        await actingContext.run(acting, () =>
+          publishEvent(
+            db,
+            bus,
+            {
+              projectId,
+              subject: 'control',
+              type: 'project.renamed',
+              machineDetail: EXAMPLE_DETAILS['project.renamed'],
+              humanMessage: 'The positive control.',
+            },
+            makeRedactor([]),
+          ),
+        )
+      } finally {
+        unsubscribe()
+      }
+      const events = frames.filter((f) => f.kind === 'event')
+      const retirements = events.filter((f) => f.type.startsWith('instance.retir'))
+      expect(retirements.length).toBeGreaterThan(0)
+      expect(retirements.map((f) => f.actor)).toEqual(retirements.map(() => null))
+      expect(events.find((f) => f.type === 'project.renamed')?.actor).toEqual({
+        name: 'An Administrator',
+        asAdministrator: true,
+        reason: 'a reason for something else',
+        token: null,
+      })
     })
   })
 

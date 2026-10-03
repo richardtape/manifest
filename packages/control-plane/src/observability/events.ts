@@ -250,11 +250,15 @@ export interface Event {
   actedAsAdmin: boolean
   /** Why, redacted — only when `actedAsAdmin`. */
   reason: string | null
+  /** The delegated token that acted, when the person's agent did. */
+  actorTokenId: string | null
   /**
    * The actor's name, as `EventFrame.actor` carries it: from the acting context when recorded, from
    * `users` on a replay. Not a column — a person's name is read where it is kept.
    */
   actorName: string | null
+  /** The token's name, read like `actorName`: from the context when recorded, from the row on a replay. */
+  actorTokenName: string | null
 }
 
 /**
@@ -343,6 +347,7 @@ export async function recordEvent(
       machineDetail: redact(input.machineDetail),
       humanMessage: String(redact(humanMessage)),
       actorUserId: acting?.userId ?? null,
+      actorTokenId: acting?.token?.id ?? null,
       actedAsAdmin: admin !== null,
       reason: admin === null ? null : String(redact(admin.reason)),
     })
@@ -357,5 +362,9 @@ export async function recordEvent(
       `the insert of event '${input.type}' on '${input.subject}' returned no row`,
     )
   }
-  return { ...row, actorName: acting?.name ?? null }
+  return {
+    ...row,
+    actorName: acting?.name ?? null,
+    actorTokenName: acting?.token?.name ?? null,
+  }
 }
