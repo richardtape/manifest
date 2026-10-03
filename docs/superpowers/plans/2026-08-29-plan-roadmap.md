@@ -92,7 +92,7 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
-### Spec actions raised by the faculty front-end's FE-46, FE-47 and FE-5 (confirmed by Rich 2026-10-01) — THREE DRAFTED 2026-10-01, OVERNIGHT; NONE APPLIED
+### Spec actions raised by the faculty front-end's FE-46, FE-47 and FE-5 (confirmed by Rich 2026-10-01) — THREE DRAFTED 2026-10-01, OVERNIGHT; ✅ WORDS APPROVED BY RICH 2026-10-03, WITH THE RECOMMENDED CHOICES; NOT YET APPLIED
 
 **Where the words are.** [`2026-10-01-fe46-fe47-fe5-spec-actions.md`](./2026-10-01-fe46-fe47-fe5-spec-actions.md) gives, for each, the
 current text, the proposed text, its options and a recommendation, all checked against the code at `df62a72`.
@@ -102,7 +102,11 @@ to it, because the planning session had ended.
 
 **What Rich decides.** **None is applied until he has read the words**, and where they go in the plan order is his. The draft recommended
 a small plan of their own, after the launch path and before *faculty-ready*. **PLACED 2026-10-02: AFTER *faculty-ready*** (Rich, at its
-sitting 1's open: *"After faculty-ready"*), before FE-32.
+sitting 1's open: *"After faculty-ready"*), before FE-32. **THE WORDS APPROVED 2026-10-03, ~12:45 PDT** (*"I agree with all of your
+recommendations"* — [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), that section; `manifest-94`): all three as drafted, with FE-46's
+(i) yes, the team may hand a send back, and (ii) yes, every gap answered; FE-47's (a), `active → sent` with `sent_from: active`. **Not yet
+applied**: applying them sweeps the four shared HTML pages. **FE-53** (the front-end's m130: the asking token's `expiresAt` on
+`pending_action.created`; additive, no spec action) is confirmed the same morning and **goes into their plan, with FE-5**.
 
 1. **§6, §9, §13, §21, §26, §27 and D24: FE-46.** The owner sends each launch record to the Manifest team (LTIC), which submits it to
    UBC. The team is emailed on each send and on each sign-off request, and the assessment's gaps are answered.
@@ -1477,7 +1481,10 @@ token's questions expire when it ends (revoked by its minter, its minter removed
 `pending_action.expired` event when a person ended it (Task 13, sitting 4); both measured on 7100 by the front-end's F6b sitting 1, no spec action. **And at its sitting 1's open** (Rich, *"All into faculty-ready"*):
 FE-50 with Task 12 (who answers), FE-49 with Task 13 (`Token.mintedBy`), and F7 as Task 14 (driver 1 refuses a create over an existing
 repository). **FE-46, FE-47 and FE-5 go AFTER it** (*"After faculty-ready"*), before FE-32. **Execution: inline.** **Four spec actions drafted** (§26/§6, §25, §20,
-§12), **ALL FOUR APPLIED 2026-10-03** at sitting 2's open (Rich: (a) for each; 1 with the quota duty added). **Then FE-32** — an agent can add a dependency (an operation that resolves a `package-lock.json` through the mirror).
+§12), **ALL FOUR APPLIED 2026-10-03** at sitting 2's open (Rich: (a) for each; 1 with the quota duty added). **A fifth** (§26, an
+administrator who is a collaborator; sitting 6's I2) **DECIDED (a) AND APPLIED 2026-10-03, ~12:50 PDT**, and **two tasks added to sitting 5**
+the same morning at Rich's word: Task 15 (that rule's code) and Task 16 (sitting 4's M1, a question's end recorded in the transaction
+that ends it). **Sittings 3, 4 and 6's through-the-edge halves were run by Rich the same morning** (the plan's addendum after *Sitting 6*). **Then FE-32** — an agent can add a dependency (an operation that resolves a `package-lock.json` through the mirror).
 
 ### The vulnerability database in the console — AFTER *FACULTY-READY* AND FE-32 (Rich, 2026-09-30) — REQUESTED AND PLACED 2026-09-24: after the authoring API — and, since 2026-09-26, after Spec action 1's plan, which the front-end enablement plan replaced on 2026-09-27 in the same position — and, since 2026-09-27 (Rich), AFTER THE FRONT-END'S LAUNCH PATH (FE-6, FE-25)
 

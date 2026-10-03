@@ -1,5 +1,12 @@
 # Spec actions for FE-46, FE-47 and FE-5 — the Manifest team's step, a change to a live registration, and a question that says what it asks
 
+> **✅ THE WORDS APPROVED BY RICH 2026-10-03, ~12:45 PDT, AS DRAFTED, WITH EVERY RECOMMENDED CHOICE** (*"I agree with all of your
+> recommendations"*; [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), that section): Spec action 1 with (i) yes and (ii) yes,
+> Spec action 2's (a), Spec action 3 as worded. **NOT YET APPLIED** at that entry; the *Placement* below was decided 2026-10-02 ((b)).
+> Before applying, re-read each *Today* against the code: it was read at `df62a72`, before *faculty-ready* moved `tokens/pending.ts`
+> and the launch records' neighbours. *Found while drafting* (a lapsed registration re-sent read as registered) was FIXED by the launch
+> path plan's sitting 12 (its F3; `launch/readiness.ts:508-523`).
+>
 > **DRAFTED 2026-10-01, OVERNIGHT, BY `manifest-9f`.** Rich started this platform session for document work only. The faculty
 > front-end's overnight coordinator, `manifest-app-3a`, delegated the drafting to it under the arrangement Rich made. The planning
 > session (`manifest-60`) normally drafts spec actions, and it had ended. **NONE IS APPLIED. Applying one is Rich's word**, given

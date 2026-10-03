@@ -72,10 +72,10 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: `__Host-` cookies over `http` and through curl; Fastify's ids on every refusal path; LiteLLM's post-call hooks against a `422`, **streamed and not**, in a THROWAWAY LiteLLM; `Init` beside `ReadonlyRootfs` and `CapDrop ALL`; §26's reachable mutations; the gate numbers | No | — | **DONE 2026-10-02** (`3c80587`; *Sitting 1* below) |
 | 2 | 2, 3, 4, 12, 14 | **FE-31, FE-30, FE-29**: fixtures unlisted; a request id on every answer and every refusal logged; a limit's facts as fields — **contract `1.6.0`**. **FE-51 and FE-50** (Task 12, after Task 4): the pending-action hint names what is matched and who answers. **F7** (Task 14): driver 1 refuses a create over a repository already on the machine | Yes — `blueprints/`, `source/` | **2** (§25), **3** (§20) | **DONE 2026-10-03** (`3d73adf`, `f1e7255`, `71df40d`, `95843e2`, `e355d10`; the review's fixes `70c3964`; *Sitting 2* below) |
-| 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | **DONE 2026-10-03** (`7b85326`; the review's fix `d4291dd`; **Step 6, through the edge, is Rich's script** — the classifier refused its restart; *Sitting 3* below) |
-| 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | **DONE 2026-10-03** (`5effd5e`, `2dd6fdd`, `0d5a743`; the review's fix `d8ce094`; **the driver-1 demos are Rich's script** `s4-edge-proof.sh`; *Sitting 4* below) |
-| 5 — **after 6** ← **next** | 7, 9 | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`) | Yes — `build/`, `blueprints/`, `infra/` | — | **Follows sitting 6** (Rich's night order, 2026-10-03). Both Rich-steps are his already: `make seed` with the network on is PRE-AUTHORISED, and `SSP_STORE_PASSWORD` is in `.env` |
-| 6 (pulled ahead of 5 by Rich, 2026-10-03) | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | **DONE 2026-10-03** (`beb4827`, `1312504`; the review's fixes `8481440`; the whole suite's `efcaaeb`; **its through-the-edge half is Rich's script** `s6-edge-proof.sh`; **I2, an administrator who is a collaborator, is his question** — ORIENTATION §8; *Sitting 6* below) |
+| 3 | 5 | **FE-28, widened**: `__Host-` session, login and step-up cookies on https; the plain names on loopback http; every client and script; the sibling repository told first | Yes — `identity/` | — | **DONE 2026-10-03** (`7b85326`; the review's fix `d4291dd`; **Step 6, through the edge, Rich ran as a script on 2026-10-03, ~12:00 PDT: all 12 checks passed and control (c) went red as predicted** — *Sitting 3* below) |
+| 4 | 6, 8, 13 | **F8**: a `422` answers `422`, streamed too. **`Init: true`**: an init reaps an app's orphans. **FE-52 and FE-49** (Task 13): a revoked or expired token's questions expire, and a person's act that ends them says so; a token names its minter | Yes — `ai/`, `infra/`, `runtime/`, `observability/` | **4** (§12) for Task 8 | **DONE 2026-10-03** (`5effd5e`, `2dd6fdd`, `0d5a743`; the review's fix `d8ce094`; **the driver-1 demos Rich ran as `s4-edge-proof.sh` on 2026-10-03, ~12:05 PDT: all three green, control (a) red at exactly its two step-9 checks** — *Sitting 4* below) |
+| 5 — **after 6** ← **next** | 7, 9, **15, 16** | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`). **Task 15** (added 2026-10-03 by Rich's (a) on I2): an administrator who is a collaborator gives a reason beyond their role. **Task 16** (added the same morning, sitting 4's M1): a question's end recorded in the transaction that ends it | Yes — `build/`, `blueprints/`, `infra/`, `projects/` | **5** (§26) for Task 15 — **APPLIED 2026-10-03** | **Follows sitting 6** (Rich's night order, 2026-10-03). Both Rich-steps are his already: `make seed` with the network on is PRE-AUTHORISED, and `SSP_STORE_PASSWORD` is in `.env` |
+| 6 (pulled ahead of 5 by Rich, 2026-10-03) | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | **DONE 2026-10-03** (`beb4827`, `1312504`; the review's fixes `8481440`; the whole suite's `efcaaeb`; **its through-the-edge half Rich ran as `s6-edge-proof.sh` on 2026-10-03, ~12:15 PDT: the refusal, the reason and the three demos green; its two stream/audit FAILs were the SCRIPT's, and both assertions hold** (the addendum after *Sitting 6*); **I2 DECIDED (a) by Rich the same morning — Task 15, in sitting 5**; *Sitting 6* below) |
 | 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -1151,6 +1151,74 @@ now also covers `source/`. Decision 18.
 
 ---
 
+## Task 15: §26 — an administrator who is a collaborator gives a reason beyond their role (sitting 6's I2)
+
+**Added 2026-10-03, ~12:45 PDT, by Rich's (a)** (*"I agree with all of your recommendations"*; `2026-09-30-decisions.md`, that
+morning's section). **Spec action 5 is APPLIED.** It runs in **sitting 5**, whose Docker tier is owed already; this task adds `projects/`.
+
+**Today** (`34aa6fd`): `requireAdminReason` (`projects/authz.ts:776`) returns as soon as `projectRole !== null`, and
+`capabilitiesFor(projectRole, 'admin')` (`:505`) answers `PLATFORM_ADMIN` whatever the role. A collaborator lacks `members:manage`,
+`project:delete` and `release:promote` (`COLLABORATOR`, `:483`), so an administrator who is a collaborator deletes, archives or restores,
+manages people and promotes with no reason, and `acting.asAdmin` (`:803`) stays false.
+
+**Files** (confirm each at Step 1; the list is from reading, not measuring):
+- Modify: `packages/control-plane/src/projects/authz.ts` — `requireAdminReason`'s condition: refuse also when
+  `projectRole !== null && !capabilitiesFor(projectRole, 'member').has(capability)`; its doc comment (`:768-775`); the refusal's message,
+  which says *"not a member"* and must say *"beyond your role on it"* for a collaborator
+- Modify: `api/error-codes.ts` (`ADMIN_REASON_REQUIRED`'s meaning), the guides that say who is asked (sitting 6's Step 7 named them), and
+  the four contract commands, since the text is published
+- Modify: the console's project screen, if it shows the reason field only to a non-member (`packages/console/src/screens/project.tsx`), and
+  the mock's `MANIFEST_MOCK_ADMIN_REASON` person, if it can be a collaborator (`packages/mock/src/server.ts:134`)
+- Test: `packages/control-plane/src/api/admin-reason.test.ts`
+
+- [ ] **Step 1: The failing rows.** An administrator who is a COLLABORATOR: `removeMember` and `deleteProject` (or archive) without the
+  header → `400 ADMIN_REASON_REQUIRED`; with it → success, and the event's `actor.asAdministrator: true` with the reason. **Positive
+  controls in the same test:** the same administrator-collaborator's `renameProject` (a collaborator's own power) without a header →
+  success with `asAdministrator: false`; an administrator who is the OWNER deleting → no reason asked.
+- [ ] **Step 2: Run, and predict.** Red at exactly the two refusal rows and the flag; green at the positive controls.
+- [ ] **Step 3: Implement**, then the contract commands and the console/mock if Step 1 found them needing it.
+- [ ] **Step 4: Commit**, then the **negative control**: restore `projectRole !== null` as the whole exemption; predict red at exactly
+  Step 1's refusal rows. Restore.
+  ```bash
+  git commit -m "fix(authz): an administrator who is a collaborator gives a reason for what their role does not allow (§26, Spec action 5; sitting 6's I2)"
+  ```
+
+---
+
+## Task 16: A token's questions-ended events can never be lost after the commit (sitting 4's M1)
+
+**Added 2026-10-03, ~12:45 PDT, by Rich's (a)** (the same section of `2026-09-30-decisions.md`). It runs in **sitting 5**. No spec action.
+
+**Today** (`34aa6fd`): three callers commit a transaction that ends questions, then call `publishQuestionsEnded` (`tokens/expiry.ts:115`),
+which reads the person's name and writes one `pending_action.expired` event per question through `publishEvent`
+(`observability/bus.ts:215`: `recordEvent`, then the in-memory `bus.publish`):
+- `api/routes/tokens.ts:359-374` — a revoke;
+- `api/routes/project-reads.ts:~605-625` — a member removed;
+- `releases/lifecycle.ts:~440-455` — an archive (whose teardown has its own resume path: check it covers this, or does not).
+
+If the event write throws, the caller answers `500`; the retry finds nothing pending, so the events are never written. The questions DID
+end — what is lost is the record the console's stream and the front-end's `/api/needs` read. The failure-after-commit shape (ORIENTATION §9).
+
+**The fix (Rich's (a)):** the event ROWS are written inside the same transaction (`recordEvent` on `tx`), and pushed on the bus AFTER the
+commit — so a failed write rolls the whole act back and the retry does all of it, and nothing is announced before it is true. Keep each
+caller's ordering comments true (streams closed after the commit, before the sessions).
+
+**Files:** `tokens/expiry.ts` (`publishQuestionsEnded` split: record on a transaction, publish after), the three callers above, and
+their tests (`tokens/expiry.test.ts` or the routes' own — find the ones Task 13 added).
+
+- [ ] **Step 1: The failing case,** at each caller: the event write throws (a redactor or a stubbed `recordEvent` that throws) → the
+  request fails AND the token is NOT revoked / the member NOT removed / the project NOT archived, and its questions are still `pending`;
+  the same request repeated with the write restored → done, with exactly one `pending_action.expired` per question.
+- [ ] **Step 2: Run, and predict.** Red today at the "not revoked" / "still pending" assertions (the commit landed first).
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Commit**, then the **negative control**: move the record back after the commit at one caller; predict red at that
+  caller's case only. Restore.
+  ```bash
+  git commit -m "fix(tokens): a question's end is recorded in the transaction that ends it — never lost to a failure after the commit (sitting 4's M1)"
+  ```
+
+---
+
 ## What this plan does not build
 
 - **FE-32**, *an agent can add a dependency*. It is the next plan (Rich, 2026-09-30).
@@ -1164,7 +1232,7 @@ now also covers `source/`. Decision 18.
 
 ## Spec actions
 
-**FOUR, DRAFTED 2026-09-30 WITH THIS PLAN. ALL FOUR APPLIED 2026-10-03 at sitting 2's open** (Rich: (a) for each; 1 with the quota duty added — below). Each is decided by Rich before the sitting that builds it, and applied only after he has read the words.
+**FOUR, DRAFTED 2026-09-30 WITH THIS PLAN. ALL FOUR APPLIED 2026-10-03 at sitting 2's open; A FIFTH, PROPOSED BY SITTING 6, APPLIED 2026-10-03 at Rich's (a)** (Rich: (a) for each; 1 with the quota duty added — below). Each is decided by Rich before the sitting that builds it, and applied only after he has read the words.
 
 ### 1. §26 and §6 — the administrator's reason: who, how it is carried, where it is kept (before sitting 6)
 
@@ -1246,10 +1314,11 @@ After the example, add: *"**A blueprint the platform keeps for its own tests dec
 
 ---
 
-### 5. §26 — an administrator who is a collaborator (PROPOSED by sitting 6, 2026-10-03; HELD FOR RICH)
+### 5. §26 — an administrator who is a collaborator (PROPOSED by sitting 6, 2026-10-03; ✅ DECIDED (a) AND APPLIED 2026-10-03)
 
-**NOT APPLIED. `manifest-3d` judged it NOT minor** (it changes §26's WHO and a security property) **and holds it for Rich** — ORIENTATION §8
-*Open* has it at code level. Raised by sitting 6's fresh review (its I2; *Sitting 6*, F9).
+**✅ APPLIED 2026-10-03, ~12:50 PDT, as worded, at Rich's (a)** (*"I agree with all of your recommendations"* — `2026-09-30-decisions.md`,
+that morning's section; `manifest-94`). **Task 15 builds it, in sitting 5.** `manifest-3d` had judged it NOT minor (it changes §26's WHO
+and a security property) and held it for him. Raised by sitting 6's fresh review (its I2; *Sitting 6*, F9).
 
 **Why.** Today any member is exempt, as Spec action 1 worded §26, and `capabilitiesFor` gives an administrator `PLATFORM_ADMIN` whatever their
 project role — so an administrator who is a COLLABORATOR can delete, archive or restore the project, add or remove people (the owner included)
@@ -1887,3 +1956,55 @@ the archive row's `PROJECT_ARCHIVED` (F3); `tokenExpiresAt` required, from `acto
 - **7102 and 7105 are the faculty front-end's** (mock mode). Nothing listens on 7194–7199. Free disk 59 → 55 GiB (`snapshot-machine.sh`).
 - **The shared HTML pages and the spec were checked:** none mentions audit, a reason or an actor; the spec is unchanged; **a fifth spec action
   is PROPOSED and HELD FOR RICH** (Spec action 5, above).
+
+### The through-the-edge halves of sittings 3, 4 and 6 — run by Rich, 2026-10-03, ~11:58–12:27 PDT (checked by `manifest-94`)
+
+Rich ran the three scripts one after the other from his own terminal, then the morning cleanup. Each restarted 7100 onto driver 1, built
+from `34aa6fd`, and restored it on real GitHub with `make verify` at **64 checks, 0 failed, 0 warnings**. `manifest-94` read the summaries
+and the logs they left in `$TMPDIR` (`s3-edge-proof.FhmBvNM9br`, `s4-edge-proof.5nouw44doR`, `s6-edge-proof.NslIVsJZ3n`).
+
+- **Sitting 3's Step 6 (`s3-edge-proof.sh`) — PASSED.**
+  - All 12 headless edge checks passed. On `console.` and `app.`, `__Host-manifest_login` is set at `Path=/`, Secure, with no Domain.
+  - A CWL sign-in leaves `__Host-manifest_session` and no plain name. `/v1/me` answers `200` with it, and the same value under the plain
+    name answers `401 UNAUTHENTICATED` (Review Focus 2). The sign-out's clear is Secure and at `Path=/` (Review Focus 1).
+  - `make demo-journey`, `demo-token` and `demo-frontend` were green.
+  - **Control (c) went RED as predicted.** The login cookie at `Path=/auth` was not kept by curl, so the sign-in left no session, refused as
+    *"the sign-in was not started by this browser"*. Restored to 0 changed files.
+- **Sitting 4's driver-1 demos (`s4-edge-proof.sh`) — PASSED.**
+  - `make demo-redeploy`, `demo-token` and `demo-frontend` were green, with demo-token's four new step-9 lines.
+  - **Control (a)** (`revokeToken`'s transaction expires nothing) **went RED at exactly the predicted two checks:** the question read
+    `pending`, and a person's yes answered `200`, not `409 PENDING_ACTION_RESOLVED`. Restored.
+- **Sitting 6's Task 10 at the edge (`s6-edge-proof.sh`) — the platform PASSED; the script had two defects.**
+  - R1–R3 passed: `400 ADMIN_REASON_REQUIRED` without a reason, `200` with a percent-encoded one, and `200` for the owner with none.
+  - `make demo-production`, `demo-releases` and `demo-launch` were green.
+  - **R4 and R5 FAILED for the script's reasons, not the platform's:**
+    - The watcher was started without `NODE_EXTRA_CA_CERTS`, though the script sets `CA` and every other caller passes it
+      (`demo-ai.sh:150`). Its `wss://` handshake failed: `frames.ndjson` holds only `watcher error` and `closed 1006`.
+    - The subshell's `set -e` then ended at R4's failed `node` check, so R5's `psql` never ran (`results` holds R1–R3).
+  - **Both assertions hold, checked by `manifest-94` on the same project** (`reason-1791055160`, `920ca78d-…`):
+    - **R5:** `audit.events` reads `t|Student reported a broken page — urgent`, then `f|`.
+    - **R4:** after a fresh headless sign-in as `instructor`, the stream's replay WITH the CA carries the operator's `project.renamed`
+      (`actor {name: "Test Operator", asAdministrator: true, reason: "Student reported a broken page — urgent", token: null}`). Its sentence
+      ends *"Test Operator acted as a platform administrator — reason: 'Student reported a broken page — urgent'."* The instructor's own
+      rename carries `asAdministrator: false, reason: null`.
+    - Without the CA, the same replay fails as the script's did (error, 1006).
+  - **The LIVE stream** (a frame pushed while watching, not replayed) is not re-proved here. Task 11's phase 6 asserts it.
+  - **The script is fixed in place** (it is git-ignored): `NODE_EXTRA_CA_CERTS="$CA"` on the watcher, and R4's and R5's checks guarded so a
+    red one records rather than ends the subshell.
+- **The morning's cleanup.**
+  - The night report's `docker rm` of token-app's *"three rowless containers"* was stale by the time it ran. s3 and s4 had run
+    `make demo-token` three times in between, and token-app was a ROWED project again (`10464f52-…`). Its `mf-token-app-staging-db` and
+    `-egress` (names that never change) were the CURRENT deployment's, and the `814bed02` app container was already gone. So the `rm` removed
+    the live staging's database and egress, and `dead-app-resources.sh --apply` then removed its `db-data` volume.
+  - `mf-token-app-staging-a3a2685c-…-app` is left running `unhealthy`, alone. **Harmless:** `ensureServiceContainer` and `ensureEgressProxy`
+    (`runtime/docker/services.ts`, `egress.ts`) create a missing service and proxy on the next deploy, so the next `make demo-token` heals
+    it. Only demo data was lost.
+  - **The lesson:** an instruction naming a demo's stable container names goes stale the moment any demo runs. Name the RELEASE, or say
+    "only if `docker ps` still shows `<id>`".
+  - `litellm-orphans.sh --apply` deleted `mf-person-…` and `mf-platform-intake` (no live key; each month resets on this laptop) and one app
+    user. `app-images.sh --apply` (`manifest-94`) removed 10 dead images (0.5 GB); 6 are kept, and a re-run reads 0 dead.
+  - `github-real-repos.sh` still lists exactly three real repositories, `f6-watch`, `f6b-measure-1` and `keep-walk-1002`, each `NONE`.
+- **The machine afterwards** (~12:45 PDT):
+  - 7100 is PID 51789, real GitHub, started by the s6 script's restore.
+  - The tree is clean at `34aa6fd`.
+  - The four protected containers are up.

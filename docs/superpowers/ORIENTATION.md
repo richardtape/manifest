@@ -1857,69 +1857,73 @@ named in the row below.*
 | **Authoring API** | [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — **EXECUTED 2026-09-27**, all ten sittings | `make demo-authoring` — either driver, green three times on EACH; step 14 of the offline acceptance; a step of `make ci-acceptance`; **clicked by a person on the platform** | **Sitting 10's F5 and F6 are the ones to read**, found by the plan's one whole-branch review: a commit that LANDED could be answered 5xx and left unrecorded (so the documented retry was `SOURCE_CONFLICT` and its attribution lost), and one idempotency key replayed another resource's answer (the record keyed on a route TEMPLATE, fingerprinted over a body of only `{ value }`). **Sitting 10's F1**: the acceptance's own app signed nobody in, silently — a CWL app without `express.urlencoded` — and only the app's identity check saw it. **Sitting 10's F15–F19**: a fresh agent built an app from the served docs alone, and its five guesses are the guides' gaps. **Sitting 2's findings** are the write path's: a race lost inside git's receive-pack is not `[rejected]`, and the plan's own push reader would have read a refused push as success. **Sitting 5's F3/F4**: the idempotency record kept an unkeyed hash of a secret's value, and a delegated token's plaintext. |
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
 | **Launch path** | [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md) — **EXECUTED 2026-10-02**, nineteen tasks in fourteen sittings | `make demo-launch` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 16 of the offline acceptance; a step of `make ci-acceptance`; its controls seen red; the real leg; **a launch clicked by a person** | **Sitting 12's F1 is the one to read**: a control plane that answered `/v1/me` was dead — ten advisory-lock holders on the query pool deadlocked the boot, found only because a control restarted it with twelve environments; and its first fix still deadlocked under NESTED holders, found by the plan's one whole-branch review |
-### 7e. The faculty-ready plan's sitting 5 (Tasks 7 and 9 — `node:24-alpine` and the IdP store's own role) ← **START HERE**
+### 7e. The faculty-ready plan's sitting 5 (Tasks 7, 9, 15 and 16 — `node:24-alpine`, the IdP store's own role, §26's collaborator, M1) ← **START HERE**
 
 **The faculty-ready plan is IN PROGRESS** ([`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md); approved 2026-09-30). It is
 **executed inline**, at Rich's word (`superpowers:executing-plans`; the ledger is `.superpowers/sdd/2026-09-30-faculty-ready/progress.md`).
-- **Sittings 1, 2, 3, 4 and 6 are DONE** (2026-10-02/03; each one's *Sitting N* is the record). **The contract is `1.6.0`. All four spec actions are APPLIED.**
-- **Sitting 6 is DONE** (2026-10-03, a background agent of `manifest-3d`, pulled ahead of 5 by Rich; its *Sitting 6* is the record): Task 10 —
-  `beb4827`, `1312504`, the review's fixes `8481440`, and `efcaaeb` (what the first whole-suite run found).
+- **Sittings 1, 2, 3, 4 and 6 are DONE** (2026-10-02/03; each one's *Sitting N* is the record). **The contract is `1.6.0`. All five spec actions
+  are APPLIED** (the fifth, §26's collaborator, on 2026-10-03 at Rich's (a)).
+- **Their through-the-edge halves are DONE TOO**: Rich ran `s3-`, `s4-` and `s6-edge-proof.sh` on 2026-10-03 (~11:58–12:27 PDT), and
+  `manifest-94` checked them. The plan's addendum after *Sitting 6* is the record. In short:
+  - s3 and s4 were green, and their controls went red as predicted.
+  - s6's two stream/audit FAILs were the SCRIPT's: a missing `NODE_EXTRA_CA_CERTS`, then `set -e`. Both assertions hold on the same project,
+    and the script is fixed in place.
+  - The live stream is re-proved by Task 11's phase 6.
+- **Sitting 6's surface, for any test or demo** (its *Sitting 6* has the rest):
   - **A platform administrator who is not a member, using an owner's capability, sends `Manifest-Admin-Reason`** or is refused
-    `400 ADMIN_REASON_REQUIRED` — checked in `assertCapability`, before the archived state and the step-up; the 24 operations declare it.
-    **A test or demo acting as `platform_admin`/`operator` on somebody else's project must send one** (TRAPS, the newest entry).
-  - **`audit.events` gains `actor_user_id`, `acted_as_admin`, `reason`, `actor_token_id`** (migrations `0050`, `0051`); **`EventFrame.actor`**
-    (`{ name, asAdministrator, reason, token } | null`) is on every frame; deploy, build and validate name who acted.
-  - **Its through-the-edge half is Rich's script** (item 1 below), and **I2 is his question** (item 2).
+    `400 ADMIN_REASON_REQUIRED`. **After Task 15, so does an administrator who is a COLLABORATOR, beyond a collaborator's capabilities**
+    (`members:manage`, `project:delete`, `release:promote`).
+  - `audit.events` has `actor_user_id`, `acted_as_admin`, `reason` and `actor_token_id`.
+  - **`EventFrame.actor`** is on every frame.
 
-**SITTING 5 IS TASKS 7 AND 9** (the plan's `## Task 7` and `## Task 9`; no spec action). **Both of its Rich-steps are already his, by his night
-decision** (2026-10-03, ~01:10, `2026-09-30-decisions.md`):
-- **Task 7: `make seed` with the network ON is PRE-AUTHORISED** (it pulls `node:24-alpine` and mirrors it into the local registry). Step 1's
-  doctor check is red first; read the registry's single-arch digest for `24-alpine` after the seed; both descriptors move to it.
-- **Task 9: `SSP_STORE_PASSWORD` is ALREADY in `.env`** (Rich added it before bed; never print it). Step 2 is therefore done: after Step 1's red checks, go on to Step 3.
-  **Everyone signs in to the IdP again** after the `public` tables are dropped; say so in the record.
-- **The Docker tier is owed** (`build/`, `blueprints/`, `infra/`). Task 7's Step 4 asks for `make demo`, `make demo-identity` and `make demo-ai`
-  — **driver 1's demos, and 7100 runs real GitHub**: as sittings 3, 4 and 6 found, the restart onto driver 1 is refused to an agent
-  (*"Modify Shared Resources"*), so they go into a morning script for Rich in the shape of `s6-edge-proof.sh`.
-- **No agent starts after 08:00 PDT, 2026-10-03** (Rich), and sitting 6 closed after it — **so sitting 5 waits for Rich's word to start.**
+**SITTING 5 IS TASKS 7, 9, 15 AND 16** (the plan's `## Task 7`, `## Task 9`, `## Task 15`, `## Task 16`). **Rich decided 15 and 16 on
+2026-10-03, ~12:45 PDT** (`2026-09-30-decisions.md`, that section). **Every Rich-step is already his:**
+- **Task 7: `make seed` with the network ON is PRE-AUTHORISED** (it pulls `node:24-alpine` and mirrors it into the local registry).
+  - Step 1's doctor check is red first.
+  - After the seed, read the registry's single-arch digest for `24-alpine`, and move both descriptors to it.
+- **Task 9: `SSP_STORE_PASSWORD` is ALREADY in `.env`** (never print it). Step 2 is therefore done: after Step 1's red checks, go on to
+  Step 3.
+  - **Everyone signs in to the IdP again** after the `public` tables are dropped. Say so in the record, and tell the front-end's session.
+- **Task 15** (§26, Spec action 5 APPLIED): one condition in `requireAdminReason`. The refusal's message, the guides, the console's reason
+  field and the mock follow it, if Step 1 finds they need to.
+- **Task 16** (M1): the `pending_action.expired` rows are recorded inside the transaction that ends the questions, at all three callers, and
+  pushed on the bus after the commit.
+- **The Docker tier is owed** (`build/`, `blueprints/`, `infra/`, `projects/`).
+- **Task 7's Step 4 asks for `make demo`, `make demo-identity` and `make demo-ai`.** These are driver 1's demos, and 7100 runs real GitHub.
+  The restart onto driver 1 is refused to an agent (*"Modify Shared Resources"*), so they go into a script for Rich in the shape of
+  `s6-edge-proof.sh`, now fixed. **Pass `NODE_EXTRA_CA_CERTS` to every Node process that calls the edge.**
+- **It starts at Rich's word** (asked 2026-10-03 by `manifest-94`).
 
-**IN THE FIRST MESSAGE — Rich's, if he is there** (none blocks sitting 5):
-1. **Three through-the-edge scripts, if not yet run** — each restarts 7100 on driver 1 and restores it as found (real GitHub) with `make verify`;
-   run them one after the other, then the three cleanup scripts bare and `--apply`:
-   - `! bash .superpowers/sdd/2026-09-30-faculty-ready/s3-edge-proof.sh` (sitting 3's `__Host-` cookies at the edge; ~10–12 min);
-   - `! bash .superpowers/sdd/2026-09-30-faculty-ready/s4-edge-proof.sh` (sitting 4's demos and Task 13's control (a); ~12–15 min);
-   - `! bash .superpowers/sdd/2026-09-30-faculty-ready/s6-edge-proof.sh` (**sitting 6's**: the operator renames the instructor's project
-     without a reason — `400 ADMIN_REASON_REQUIRED` — and with a percent-encoded one; the instructor's stream and the audit row; then
-     `make demo-production`, `demo-releases` and `demo-launch`, whose operator now sends a reason; ~10–15 min).
-2. **§26's reason for an administrator who is a COLLABORATOR** (sitting 6's review, I2) — ORIENTATION §8 *Open*, at code level there. Today any
-   member is exempt (Spec action 1's words), so an administrator-collaborator deletes, archives, manages members and promotes with no reason
-   and no flag. Recommended: (a) exempt only what the member's own role grants — one condition in `requireAdminReason`, and a spec action
-   for §26's *"acts as a member"*.
-3. **`token-app`'s three rowless containers** (still): `docker rm -f -v mf-token-app-staging-814bed02-044397bd-app mf-token-app-staging-egress
-   mf-token-app-staging-db`, then `bash scripts/dead-app-resources.sh --apply` and `bash scripts/litellm-orphans.sh --apply`.
-4. **`make refresh-vulndb` is due after 2026-10-06** (the network on). Sitting 7's acceptance launches.
-5. **Three real repositories in `Manifest-local-dev` belong to no project** (`f6-watch`, `keep-walk-1002`, `f6b-measure-1`), and 12 orphan
-   driver-2 mirrors in `.manifest/repos` (`dead-app-resources.sh`). Removing them is his (`bash scripts/github-real-repos.sh`).
+**RICH'S, NONE BLOCKING SITTING 5:**
+1. **Applying FE-46, FE-47 and FE-5's spec actions.** Their words were approved 2026-10-03 (§8 *Decided*). Applying them, with the four
+   shared HTML pages swept, is the next document step, and then their plan is written. That plan also carries FE-53 (m130).
+2. **`make refresh-vulndb` is due after 2026-10-06** (the network on). Sitting 7's acceptance launches.
+3. **Three real repositories in `Manifest-local-dev` belong to no project** (`f6-watch`, `keep-walk-1002`, `f6b-measure-1`), and there are
+   12 orphan driver-2 mirrors in `.manifest/repos` (`dead-app-resources.sh`). Removing them is his (`bash scripts/github-real-repos.sh`).
 
-**THE MACHINE, AS SITTING 6 LEFT IT.** Queried at ~08:55 PDT on 2026-10-03, not remembered.
-- **The control plane:** PID 80905 on 7100, **REAL GitHub** (`Manifest-local-dev`), built from `efcaaeb` and started from `.env` (the machine
-  as found). Its boot line: the capable model registered, its fallback set.
-- **`manifest-litellm` runs the guard with F8's two hooks** (sitting 4's), untouched by sitting 6.
-- **The control database:** 0 users, 0 projects (`psql`). Migrations `0050` and `0051` are applied. Sitting 5's first Vitest run truncates it anyway.
-- **Containers:** 10 `manifest-` and 3 rowless `mf-token-app-*` (item 3); **13 Docker networks**. Otherwise the three cleanup scripts read 0 dead.
+**THE MACHINE, AS RICH'S SCRIPTS AND `manifest-94` LEFT IT.** Queried at ~12:45 PDT on 2026-10-03, not remembered.
+- **The control plane:** PID 51789 on 7100, **REAL GitHub** (`Manifest-local-dev`), built from `34aa6fd` and restarted from `.env` by
+  `s6-edge-proof.sh`'s restore. `make verify` 64, 0 warnings.
+- **The control database holds the scripts' demo projects**: 8 active (`journey-app`, `token-app`, `frontend-local`, `frontend-scratch-local`,
+  `proof-app`, `reason-1791055160`, `launch-app`, `launchpath-local`), 2 deleted, and 4 users (`psql`). Sitting 5's first Vitest run
+  truncates it.
+- **Containers:** the demos' app containers, networks and volumes, all rowed. Among them is `mf-token-app-staging-a3a2685c-…-app`, running
+  `unhealthy` alone: its database and egress were removed by hand. The next `make demo-token` recreates both (the addendum after
+  *Sitting 6*).
+  - The three cleanup scripts read 0 dead.
   - **Count `docker network ls -q` before the Docker tier**: Docker Desktop's pools hold ~31, and the tier needs 7.
-- **`make doctor` 21 and `make verify` 64**, both 0 warnings, at the close. **The four protected containers are up.**
-- **The contract's `dist/` is built from `8481440`** (nothing in `packages/contract` changed after it).
-- **7102 and 7105 are the faculty front-end's** (mock mode). **Nothing listens on 7194–7199.**
+- **The four protected containers are up.**
+- **7102 and 7105 are the faculty front-end's** (mock mode).
 
 **THE PEER SESSIONS** (`ListAgents` immediately before every promised message):
-- **The night shift (2026-10-03):** `manifest-3d` co-ordinates. **Every hold, free and notice for the front-end goes to it, starting HOLD
-  or FREE**, and the same word goes into the scratchpad flag file it names (`platform-window`).
-- **Otherwise:** the front-end's live `manifest-app-*` session. It asks for a message BEFORE any Vitest run, Docker tier, `make verify`, or
-  edit or commit to `packages/contract` or `packages/mock`, and at the close. Its repository is `~/Developer/manifest-app`; never edit it.
-- **The front-end was told** sitting 6's NOTICEs: `EventFrame.actor` (with `token`), `Manifest-Admin-Reason` and `400 ADMIN_REASON_REQUIRED`,
-  the three sentences, `actor: null` for sync-found pushes and the retirer, and the mock's `MANIFEST_MOCK_ADMIN_REASON=1` (Operator One).
+- **The front-end's live `manifest-app-*` session** asks for a message BEFORE any Vitest run, Docker tier, or `make verify`, and before any
+  edit or commit to `packages/contract` or `packages/mock`. It also asks for one at the close. Each message starts HOLD or FREE.
+  - If a coordinating session names a flag file, the same word goes into it.
+  - Its repository is `~/Developer/manifest-app`; never edit it.
+- **The front-end was told** sitting 6's NOTICEs. **Tell it Task 9's sign-out and any change Task 15 makes to `ADMIN_REASON_REQUIRED`'s text.**
 
-**WHERE SITTING 5 STOPS, AND HOW IT ENDS:** it stops after Tasks 7 and 9, each committed with its negative control. Then the plan's own close:
+**WHERE SITTING 5 STOPS, AND HOW IT ENDS:** it stops after Tasks 7, 9, 15 and 16, each committed with its negative control. Then the plan's
+own close:
 - the four gates (`pnpm test` twice, alone, on the final tree);
 - the Docker tier, in the background, never beside a Vitest run;
 - *What executing this plan found*, *Sitting 5*;
@@ -1946,66 +1950,6 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 reasoning is recorded.**
 
 ### Open
-
-- **§26'S REASON FOR AN ADMINISTRATOR WHO IS A COLLABORATOR — RAISED 2026-10-03 by the faculty-ready plan's sitting 6's fresh review (its
-  I2; the plan's *Sitting 6*, F9).** *Today* (`beb4827`): `projects/authz.ts`'s `requireAdminReason` returns as soon as `projectRole !== null`
-  — any member is exempt, as Spec action 1 worded §26 (*"An administrator who is not a member of a project … additionally gives a reason"*;
-  *"an administrator who is a member of the project acts as a member"*). But `capabilitiesFor(projectRole, 'admin')` gives an administrator
-  `PLATFORM_ADMIN` WHATEVER their project role, so an administrator who is a COLLABORATOR can delete, archive or restore the project, add or
-  remove people (the owner included) and promote a release — none of which a collaborator can — with no reason, and the event reads
-  `asAdministrator: false`. *Options*:
-  - **(a) — recommended** — exempt a member only for what their own role grants: `requireAdminReason` refuses when
-    `!capabilitiesFor(projectRole, 'member').has(capability)` as well (one condition; the declared 24 are unchanged; such an act is then flagged
-    and carries its reason). Needs a spec action — **drafted as the plan's Spec action 5, PROPOSED and HELD FOR RICH** (`manifest-3d`: not
-    minor), with the exact old and new words.
-  - **(b)** — keep §26 as worded: any member, any capability, no reason.
-  *Cost to change course*: one condition and a test row each way.
-
-- **FE-46 — THE OWNER SENDS TO LTIC, NOT TO UBC: A STEP BETWEEN *DRAFT* AND *SUBMITTED*, LTIC TOLD, AND THE ASSESSMENT'S GAPS ANSWERED.
-  RELAYED 2026-10-01, CONFIRMED THE SAME EVENING** — by the faculty front-end's F5b design session `manifest-app-d9`, at the launch path's sitting 9's close,
-  *"carried at Rich's word"*. **CONFIRMED BY RICH in the platform's sitting 9, 2026-10-01 19:56 PDT** (*"i approved"*, answering the question put to him there — his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-01 evening section). Rich's words as relayed: *"Sent to LTIC. And then submitted to PRISM by LTIC."* — all three records go VIA LTIC
-  (the team that runs Manifest), which submits the assessment to PRISM and the registrations to UBC IAM; and *"It emails us and we fill out
-  the appropriate forms"* — the PLATFORM tells LTIC. *Today* (sitting 9): an owner's *"I've sent it"* moves a record to `submitted`, which
-  every description reads as WITH UBC, `since` counts UBC's wait from that day, nothing emails anybody, and `PrivacyAssessmentDraft`'s gaps
-  are strings with no id and nowhere to be answered. *The front-end's option (a), relayed as Rich's choice*: a state between `draft` and
-  `submitted` for all three records (*sent to LTIC*; the owner's send, person-only, gated in UBC's order as the submission is now), an
-  administrator recording `sent → submitted` with UBC's reference and day; `since` from the send while LTIC holds it; `listQueue` listing what
-  LTIC holds apart from what UBC holds; an email to a configured LTIC address (Mailpit on the laptop) naming the app and linking the record;
-  each gap a stable id and the send carrying the owner's answers, kept beside the draft as sent and shown to administrators; two events.
-  **And, relayed the same evening at Rich's word** (*"Yes, and email it too"*): **a SIGN-OFF REQUEST emails LTIC too** — when
-  `approval.requested` is published (sitting 9's Task 12), the note kept out of the email as it is out of the event.
-  Rejected, as relayed: (b) reading the owner's submit as *sent to LTIC* and a ticket as *now with UBC* (a state read from a field); (c) the
-  front-end waiting. Full text: `~/Developer/manifest-app/docs/api-findings.md`, FE-46. *Needs*: a spec action (§6's `IamRegistration` and `PrivacyAssessment` states, §9's process, §13's waits, §26's queue, an email the
-  platform sends) and a place in the plan order — it touches the launch path's Task 13 (the mock's half), 14 (*Launching*) and 15 (the demo).
-  **ITS SPEC ACTION IS DRAFTED, NOT APPLIED** (2026-10-01, overnight, `manifest-9f`): Spec action 1 of
-  [`plans/2026-10-01-fe46-fe47-fe5-spec-actions.md`](plans/2026-10-01-fe46-fe47-fe5-spec-actions.md).
-  - **The design:** a state `sent`, while `submitted` keeps its meaning, *with UBC*; a column `sent_from`; and the platform's first
-    email, to one configured address, carrying nothing a person wrote.
-  - **Two choices inside it, each recommended yes:** may the team hand a send back; and must every gap be answered.
-  - **Where it goes in the plan order: PLACED 2026-10-02, AFTER *faculty-ready*** (Rich, at its sitting 1's open: *"After faculty-ready"*,
-    the draft's (b)). The order is *faculty-ready*, then FE-46, FE-47 and FE-5, then FE-32. **Still open:** the words of all three spec
-    actions, and the two choices above.
-
-- **FE-47 — AFTER LAUNCH, AN OWNER ASKS FOR A NEW SIGN-IN DETAIL (A CHANGE TO THE LIVE REGISTRATION), THROUGH LTIC. RELAYED 2026-10-01,
-  CONFIRMED THE SAME EVENING** — by `manifest-app-d9` (F6b's design), at sitting 9's close, *"File FE-47, as FE-46"*. **CONFIRMED BY RICH in the platform's sitting 9, 2026-10-01 19:56 PDT** (*"i approved"*, answering the question put to him there — his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-01 evening section). *Today*: no owner write on an `active` registration — `draftIamRegistration` refuses it (`409 LAUNCH_RECORD_SUBMITTED`) and
-  `submitIamRegistration` moves only from `draft`, `change_requested` or `expired`; only an administrator files a change request
-  (`recordIamRegistration` → `change_requested` with `requestedAttributes`), and nothing tells them an owner wants one; meanwhile
-  `assertAttributesRegistered` fails every build that asks for the attribute, the sandbox's included. *Option (a), relayed as Rich's*: from
-  `active` the owner (person-only) asks for the attributes wanted, with a package drafted from the newest valid manifest, sent to LTIC
-  (FE-46's step), which files it with UBC (`change_requested` from `active`); dated and queued by FE-46's rules; LTIC emailed. The build's
-  check stays as it is. Rejected, as relayed: (b) no path; (c) the front-end's server emailing LTIC with nothing recorded. *Needs*: a spec action
-  with FE-46's. **DRAFTED, NOT APPLIED** (2026-10-01, overnight): Spec action 2 of the same file. Rich chooses how a change with the team is
-  recorded:
-  - **(a), recommended:** `active → sent`, with `sent_from: active`. This is Spec action 10's pattern.
-  - **(a′):** a state of its own, `change_sent`.
-- **FE-5 — A QUESTION AN AGENT RAISES SAYS WHAT IT IS ASKING. CARRIED 2026-10-01, CONFIRMED THE SAME EVENING** (relayed with FE-47: *"Build it honest, carry
-  FE-5 now"*; open since 2026-09-27): **CONFIRMED BY RICH in the platform's sitting 9, 2026-10-01 19:56 PDT** (*"i approved"*, answering the question put to him there — his words in [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-01 evening section). option (a) — a `PendingAction` carries the specific object, taken from the request and never a secret
-  (a member: who, as the request named them, and the role; a deploy: which release and environment; a launch record: which). *Today* its
-  `summary` is the route's (*"add a member to this project"*) and only `bodySha256` of the request is kept. *Needs*: a spec action and a place in the plan order (D24's §20 — the payload rule that keeps a request's contents out).
-  **DRAFTED, NOT APPLIED** (2026-10-01, overnight): Spec action 3 of the same file.
-  - **The words:** §6's `payload` says what it holds, and D24 says the question names what it would do.
-  - **Three operations raise a question today:** `addMember`, `removeMember`, and `deploy` to production.
-  - **A launch record never does:** it is person-only, so a token is refused outright.
 
 - **FE-45 — AN APP THAT HAS BEEN LIVE IS NEVER DELETED; IT IS MARKED REMOVED, AND ONLY AN ADMINISTRATOR DELETES ITS DATA. RELAYED
   2026-10-01** by the faculty front-end's session `manifest-app-34`, from Rich's words in its F6 design, **and CONFIRMED by Rich to the
@@ -2092,13 +2036,27 @@ reasoning is recorded.**
   `eduPersonPrincipalName`.
 - **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or only the Ollama path?**
   Unmeasured — only Ollama was reachable offline. Cheap to settle the first time anyone has a provider key.
-- **ONE COOKIE NAME EVERYWHERE, OR NAMES BY SCHEME? — RAISED 2026-10-02 by the faculty-ready plan's sitting 1 (`[M1]`, F1); BUILT AS
-  APPROVED by its sitting 3.** Decision 7 (Rich, 2026-09-30) names the sign-in cookies `__Host-` on https and plain on loopback http,
-  because the plan believed http could not hold a `__Host-` cookie. `[M1]` measured that Chrome 154 and curl 8.7.1 DO keep one on
-  `http://127.0.0.1` and `http://localhost`. **Recommended: keep Decision 7** — the mock and the front-end's mock mode stay untouched,
-  and Firefox and Safari were not measured. Changing it is one function's http branch (`identity/cookie-names.ts`) and
-  `sessionCookieFor`'s. Nothing waits on the answer.
+
 ### Decided
+
+- **§26'S REASON FOR AN ADMINISTRATOR WHO IS A COLLABORATOR (sitting 6's review, I2) — DECIDED BY RICH 2026-10-03: (a)**, a member is asked
+  no reason only for what their own role allows; beyond it they act as an administrator and give one. **Spec action 5 APPLIED** (§26,
+  *Non-repudiation*); **the faculty-ready plan's Task 15 builds it, in sitting 5** (one condition in `requireAdminReason`). His words, *"I agree
+  with all of your recommendations"*: [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-03 ~12:45 section. Rejected: (b) §26 as worded.
+- **FE-46, FE-47 AND FE-5 — THEIR SPEC ACTIONS' WORDS APPROVED BY RICH 2026-10-03, with the recommended choices** (the same section of
+  [`2026-09-30-decisions.md`](2026-09-30-decisions.md)): FE-46's (i) the team MAY hand a send back, to `sent_from`, and (ii) EVERY gap answered, *"does not apply"* allowed; FE-47's (a)
+  `active → sent` with `sent_from: active`, over (a′) `change_sent`; FE-5 as worded. **APPROVED, NOT YET APPLIED** — applying them, with the
+  four shared HTML pages, is the next step; their full text is
+  [`plans/2026-10-01-fe46-fe47-fe5-spec-actions.md`](plans/2026-10-01-fe46-fe47-fe5-spec-actions.md). Placed 2026-10-02: after *faculty-ready*,
+  before FE-32 (the roadmap). The designs, as relayed and confirmed on 2026-10-01: `~/Developer/manifest-app/docs/api-findings.md`, FE-46,
+  FE-47, FE-5.
+- **FE-53 (the front-end's m130) — CONFIRMED BY RICH 2026-10-03**: `pending_action.created` carries the asking token's `expiresAt`, so a
+  front-end caps a question's wait at the platform's own expiry (and m131 is fixed by it). Additive, no spec action; **placed with FE-5**,
+  which changes the same file (`tokens/pending.ts`). The front-end files it in its `api-findings.md`. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), the same section.
+- **ONE COOKIE NAME EVERYWHERE, OR NAMES BY SCHEME? — DECIDED BY RICH 2026-10-03: KEEP Decision 7** (`__Host-` on https, plain on loopback
+  http), though the faculty-ready plan's `[M1]` measured that Chrome 154 and curl 8.7.1 keep a `__Host-` cookie on loopback http: Firefox
+  and Safari were not measured, and the mock and the front-end's mock mode stay untouched. Changing it later is one function's http branch
+  (`identity/cookie-names.ts`) and `sessionCookieFor`'s. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), the same section.
 
 - **`change_requested`'s two meanings — DECIDED BY RICH 2026-10-01: (a), record the origin** (*"(a) Record the origin
   (Recommended)"*, answering the launch path plan's sitting 8 at its close): a nullable `iam_registrations.change_requested_from`

@@ -15,7 +15,7 @@ names the next job** and the current plan's sittings table says how far it has g
 **The design is approved and complete, five spikes are done, and fifteen plans are executed** — each with an acceptance that
 passes; the newest is **the launch path plan** (`docs/superpowers/plans/2026-09-29-launch-path.md`), EXECUTED 2026-10-02. **The current
 plan, *faculty-ready*** (`docs/superpowers/plans/2026-09-30-faculty-ready.md`), is IN PROGRESS, executed inline at Rich's word; then FE-46,
-FE-47 and FE-5 (placed after it by Rich on 2026-10-02; their spec actions drafted, not applied); then FE-32's plan; then the
+FE-47 and FE-5 (placed after it by Rich on 2026-10-02; their spec actions' words approved 2026-10-03, not yet applied); then FE-32's plan; then the
 vulnerability database in the console. Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
