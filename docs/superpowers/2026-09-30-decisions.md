@@ -446,3 +446,15 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
            - m17, m83, m110 and m66 — the night's routine calls ACCEPTED as made.
          The front-end's own documents (minors.md, its adoption note, api-findings.md) record them in its next session;
          this platform session does not edit ~/Developer/manifest-app.
+
+    And at ~13:15 PDT, the front-end's Q10 words (manifest-app-5a's draft, put to him by manifest-94 through the question
+    tool), for an act the platform marks EventFrame.actor.asAdministrator, in an app's history and "Since you were last
+    here":
+      - NAME THEM — "Name them (Recommended)": "Operator One, a Manifest administrator, switched it off, and said:
+        ‘<reason>’". Over: no name.
+      - THE VERB for an act with no line of its own — "worked on it" (his pick over the recommended "stepped in", and
+        "made a change to it"): "Operator One, a Manifest administrator, worked on it, and said: ‘<reason>’".
+      - THE OWNERS' EMAILS TOO — "Yes, same words (Recommended)" (manifest-94's recommendation, over the front-end's "leave
+        them"): where an email says "Someone" for an administrator's act, it names them and carries the reason.
+      - THE REST — "Approve as drafted (Recommended)": one line per act (the same administrator and reason within an hour
+        fold into one), the reason as typed, in ‘ ’.
