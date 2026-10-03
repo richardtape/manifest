@@ -563,3 +563,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     came at ~13:27 to ~13:58). They are now corrected from the commits that recorded each answer (cb05240 13:28, 069cfb3
     13:35, 7ac03f8 13:38, e93b814 13:47, 9bbd054 13:53, 5e62fe0 13:57, 1bc2568 13:59). Commit e93b814's subject still says
     "~14:25"; the entry is right. The plans and the front-end that copied the estimates are told to correct theirs.
+
+    And at ~14:09 PDT (the clock read 14:10 at this entry), three on what follows, through the question tool:
+      - THE FOUR NEW PLANS (FE-32 with the allowlist; A1, production instances; B, the load rehearsal; A2, hibernation;
+        f6b3d83 and e969f9d, by manifest-c7) — "Fresh reviewer first (Recommended)": a read-only background reviewer of
+        manifest-94's checks each against the code before they come to him for approval. Over: reading them himself;
+        approving all four now.
+      - FACULTY-READY SITTING 7 (the acceptance) — "A fresh session you spawn (Recommended)": Rich spawns a fresh session
+        once manifest-b9 closes sitting 5; it starts from ORIENTATION §7e. Over: manifest-c7; manifest-b9 carrying on.
+      - MANIFEST-C7 — "Stop there (Recommended)": after its roadmap update, no further plans for now (five are queued).
