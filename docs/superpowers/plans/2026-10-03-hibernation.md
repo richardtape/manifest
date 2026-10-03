@@ -7,7 +7,8 @@
 > built"*, ~13:58), to come back to him if a cold wake measures more than a few seconds. **Its Task 1 is spike S4** — §11: *"The exact
 > mechanism is S4's question … the spike decides it."* Facts read at `e969f9d`; four plans run before this one (the rest of
 > *faculty-ready*, FE-46/47/5, A1, B), so **Task 1 re-reads every one**. **Three spec actions are DRAFTED at the end** (two at writing; the
-> revision added C), **none applied.** **NOT YET APPROVED.**
+> revision added C), **none applied.** **NOT YET APPROVED — revised (`2d74a5d`); a second fresh review before approval** (Rich, 2026-10-03, 15:20 PDT:
+> *"A1 and FE-32 now; B and A2 later (Recommended)"* — B and A2 are reviewed again when each is next in line).
 >
 > **REVISED 2026-10-03, 14:37–15:19 PDT (read from the clock), TO A FRESH REVIEW** ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md),
 > its §3 and *Cross-plan*; verdict *needs rework*), by a fresh platform session at Rich's word (~14:33), coordinated by `manifest-94`. It
@@ -112,7 +113,7 @@ times are the commits'.*
 
 ## What Rich does, and when
 
-1. **Review this plan.** 2. **Decide Spec action B, Spec action A's item 1 and Spec action C before sitting 2, and A's item 2 — written
+1. **Review this plan, after its second fresh review** (Rich, 15:20: *"B and A2 later"*). 2. **Decide Spec action B, Spec action A's item 1 and Spec action C before sitting 2, and A's item 2 — written
 from S4's answer — before sitting 3.** 3. **Hear pre-warming again** only if Task 1's cold wake is more than a few seconds. 4. **The
 clicked half, sitting 6**: open a hibernated app in a browser and watch it wake; read *asleep* and then *awake* in the console.
 

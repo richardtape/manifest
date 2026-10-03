@@ -10,7 +10,8 @@
 > one, [`2026-10-03-production-instances.md`](./2026-10-03-production-instances.md) — so this rehearsal grants staging production's real
 > shape, N instances; **the profile and the pass mark *"As proposed"***; and **a re-run at the first launch and when the
 > audience is raised** (*"First launch + audience raised"*). **Three spec actions are DRAFTED at the end** (two at writing; the revision
-> added C), **none applied.** **NOT YET APPROVED.**
+> added C), **none applied.** **NOT YET APPROVED — revised (`2d74a5d`); a second fresh review before approval** (Rich, 2026-10-03, 15:20 PDT:
+> *"A1 and FE-32 now; B and A2 later (Recommended)"* — B and A2 are reviewed again when each is next in line).
 >
 > **REVISED 2026-10-03, 14:37–15:19 PDT (read from the clock), TO A FRESH REVIEW** ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md),
 > its §2 and *Cross-plan*; verdict *needs rework*), by a fresh platform session at Rich's word (~14:33), coordinated by `manifest-94`. It
@@ -124,7 +125,7 @@ sitting 3**, where Task 4 builds the profile; **B before sitting 4**, where Task
 
 ## What Rich does, and when
 
-1. **Review this plan** (his answers of 2026-10-03 are in *Asked of Rich*).
+1. **Review this plan, after its second fresh review** (Rich, 15:20: *"B and A2 later"*); his answers of 2026-10-03 are in *Asked of Rich*.
 2. **The network, at sitting 2's open**, for Task 2's Step 1 alone: vegeta's release archive for this machine's architecture and its
    published checksums file downloaded, the archive verified against both, and the image built (*"its download a Rich-step at that
    sitting"*).

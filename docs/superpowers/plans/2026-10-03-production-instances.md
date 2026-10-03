@@ -5,7 +5,9 @@
 > audience, the edge balancing across them, before the rehearsal measures it; then *"Two plans: A then B"*; then *"A1 → B → A2"* — A1 this
 > plan (the instances), B the load rehearsal, A2 hibernation and wake-on-request. **Every fact in *Read this first* was read from the code at
 > `e969f9d`** (a read-only survey and this session); two plans run before this one (the rest of *faculty-ready*, then FE-46/47/5), so
-> **Task 1 re-reads every fact**. **Two spec actions are DRAFTED at the end, none applied.** **NOT YET APPROVED.**
+> **Task 1 re-reads every fact**. **Two spec actions are DRAFTED at the end, none applied.** **APPROVED by Rich, 2026-10-03, 15:20 PDT,
+> as revised (`2d74a5d`)** — *"A1 and FE-32 now; B and A2 later (Recommended)"*, through `manifest-94`'s question tool — with his two answers on the
+> replacement built in (Decision 11).
 >
 > **REVISED 2026-10-03, 14:37–15:19 PDT (read from the clock), TO A FRESH REVIEW** ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md),
 > its §1 and *Cross-plan*), by a fresh platform session at Rich's word (~14:33, *"starting fresh ones"*), coordinated by `manifest-94`.
@@ -100,6 +102,16 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
   recommended *"Report it"* and *"Record as not built"*; [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)), answering the fresh
   review's I5: **the platform starts a replacement when an instance of a production set exits**, and this plan designs who notices it, a
   backoff and a cap for a crash-looping app, and the event (Decision 11, Task 6).
+- **A REPLACEMENT SKIPS §13's CHECKLIST, AND KEEPS THE APPROVAL'S DIGEST CHECK** — *"Skip the checklist (Recommended)"* (2026-10-03,
+  15:20 PDT, through the question tool; [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): a replacement redeploys production's
+  exact digest without the route's `assertLaunchable`, and `release.ts:285`'s approval-digest check runs for it. *Rejected by that
+  choice:* running the checklist too, which would leave a dead member dead — and a `solo` app down — whenever the vulnerability database
+  is more than a week old.
+- **A RUNNING MEMBER UNHEALTHY FOR A MINUTE HAS EXITED** — *"Yes, after ~1 minute (Recommended)"* (15:20 PDT, the same): a member still
+  running but `failed` (Docker's health check `unhealthy`, no `exitCode`) for four watcher passes in a row counts as an exit, its event
+  `exitCode: null`. *Rejected by that choice:* real exits only, which would leave a hung member routed around until a person redeploys.
+- **APPROVAL** — *"A1 and FE-32 now; B and A2 later (Recommended)"* (15:20 PDT, the same): this plan APPROVED as revised (`2d74a5d`); B and A2 get a second
+  fresh review when each is next in line.
 - **THE SPLIT AND THE ORDER** — *"Two plans: A then B"* (~13:56), then *"A1 → B → A2"* (~13:58): **this plan builds the instances**; B the
   load rehearsal; **A2 hibernation and wake-on-request** (*"Build hibernation in Plan A"*, ~13:56), with term dates as an administrator's
   platform setting (*"An admin platform setting"*) and pre-warming not built (*"Record it as not built"*). Then FE-32, the vulnerability
@@ -112,7 +124,7 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 
 ## What Rich does, and when
 
-1. **Review this plan.** 2. **Read and decide Spec action A before sitting 3, and B before sitting 4.** 3. **The clicked half, sitting 8**:
+1. ~~Review this plan~~ — **APPROVED 2026-10-03, 15:20 PDT.** 2. **Read and decide Spec action A before sitting 3, and B before sitting 4.** 3. **The clicked half, sitting 8**:
 open a launched `class` app twice in two browsers and read, in DevTools, two different `X-Manifest-Instance` values; sign in on one and
 stay signed in on the other; read the console's environment showing two instances; and read the history of the app's production after
 the agent kills one member — *"an instance stopped and was replaced"* — and its Incident.
@@ -299,8 +311,9 @@ the agent kills one member — *"an instance stopped and was replaced"* — and 
       an existing verb, so every driver inherits it — of each member of every PRODUCTION environment's serving set (its Route rows). **A
       member has EXITED when its status is `gone` (its container is missing), or `failed` WITH an `exitCode` (the process ended).** A
       member RUNNING but `failed` (Docker's health check reads `unhealthy`, no `exitCode`) is routed around by the edge's active checks
-      already, and **is treated as an exit only once it has stayed so for four passes in a row (a minute)** — a member nobody has been able
-      to reach for a minute is as gone, to the people using the app, as one that died; its event says `exitCode: null` and why. *Rejected:* Docker's event stream (one
+      already, and **is treated as an exit only once it has stayed so for four passes in a row (a minute)** — Rich, *"Yes, after ~1
+      minute"* (15:20): a member nobody has been able to reach for a minute is as gone, to the people using the app, as one that died; its
+      event says `exitCode: null` and why. *Rejected:* Docker's event stream (one
       driver's mechanism, and a stream the host-run control plane must keep open across Docker Desktop restarts); the edge's passive
       health state (it routes around a member, and says nothing about why).
     - **WHAT IT RECORDS, ONCE PER EXIT** (a member whose row is already `failed` is never recorded again): the row `healthy → failed` on
@@ -314,7 +327,7 @@ the agent kills one member — *"an instance stopped and was replaced"* — and 
       Route row — a person's deploy in between has already replaced the set, and the replacement then does nothing and says so.
       **The approval check runs for it**: `release.ts:285`'s condition becomes `input.purpose !== 'rehearsal'`, so no purpose added
       after this one (B's included) can skip it by being new (a test and a negative control). **It does not pass through the route's
-      `assertLaunchable`**: it is the release production already serves, not a launch, and §13's checklist — whose `scans` item refuses
+      `assertLaunchable`** — Rich, *"Skip the checklist"* (15:20): it is the release production already serves, not a launch, and §13's checklist — whose `scans` item refuses
       every launch once the vulnerability database is a week old — must not keep a dead member dead.
       *Rejected:* replacing only the dead member — `ensureInstances` moves the route to exactly the specs it is given, so keeping the
       survivors means re-deriving their specs, which `INSTANCE_SPEC_CHANGED` refuses once an app secret has changed since their deploy; it
@@ -875,7 +888,10 @@ approve with the fixes. Each was checked against the code at `75030d8` before it
 
 **Not taken:** nothing. **Routine calls this revision made** (each recorded where it is decided): the whole set redeployed rather than one
 member (Decision 11); production of every audience, `solo` included, replaced; the watcher polling the driver's `status` every 15 s; the
-backoff's numbers and the cap of three in an hour; the count derived from the events, reset by a person's deploy.
+backoff's numbers and the cap of three in an hour; the count derived from the rows (`instances.replacing`), reset by a person's
+deploy. **Two more were put to Rich and answered at 15:20, both as recommended**: a replacement skips §13's checklist and keeps the
+approval's digest check (*"Skip the checklist"*), and a running member unhealthy for a minute counts as an exit (*"Yes, after ~1
+minute"*) — *Decided by Rich* above.
 
 **Checked before commit** by a fresh read-only agent, against the review and the other three plans; what it found here was fixed in
 place: `status()` answers `gone` for a missing container and never throws, and `failed` also means a RUNNING member Docker calls

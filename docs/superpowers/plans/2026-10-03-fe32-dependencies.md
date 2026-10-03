@@ -9,8 +9,9 @@
 > **Rich confirmed FE-32 on 2026-09-30, option (a)** (*"Confirm all three (Recommended)"*): an operation that resolves a `package-lock.json`
 > through the platform's mirror. **And placed it** (*"(a) Faculty-ready → FE-32 → vuln DB"*); since then the Manifest team's step
 > (2026-10-02), and §24's production instances, the load rehearsal and hibernation (2026-10-03: *"Build the load rehearsal first"*, then *"A1 → B → A2"*) go before it. **§12's package allowlist, which does
-> not exist today, is IN this plan** — Rich, 2026-10-03, ~13:43 PDT: *"Yes, in this plan (Recommended)"* (Task 4, Spec action C). **NOT
-> YET APPROVED.** Three spec actions are DRAFTED at the end, none applied; their words are Rich's at review.
+> not exist today, is IN this plan** — Rich, 2026-10-03, ~13:43 PDT: *"Yes, in this plan (Recommended)"* (Task 4, Spec action C). **APPROVED
+> by Rich, 2026-10-03, 15:20 PDT, as revised (`2d74a5d`)** — *"A1 and FE-32 now; B and A2 later (Recommended)"*, through `manifest-94`'s question tool. Three spec
+> actions are DRAFTED at the end, none applied; their words are Rich's to decide before the sittings they gate.
 >
 > **REVISED 2026-10-03, 14:37–15:19 PDT (read from the clock), TO A FRESH REVIEW** ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md),
 > its §4 and *Cross-plan*; verdict *approve with the fixes*), by a fresh platform session at Rich's word (~14:33), coordinated by
@@ -110,6 +111,8 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
   §24's capacity built before the rehearsal, as two plans and then three (*"Build §24's capacity first"*, *"A1 → B → A2"*); FE-45 after the
   vulnerability database the same day. So: *faculty-ready* → the Manifest team's step → A1 (production instances) → B (the load rehearsal)
   → A2 (hibernation) → **FE-32** → the vulnerability database → FE-45.
+- **APPROVAL** — *"A1 and FE-32 now; B and A2 later (Recommended)"* (2026-10-03, 15:20 PDT, through the question tool;
+  [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): this plan APPROVED as revised (`2d74a5d`), its five sittings with it.
 - **Carried, still binding:** D24 (a delegated token may do this — it decides nothing and writes nothing to the project); every refusal
   asserts its code; published text cites no section, decision or plan; **the front-end is told before any commit to `packages/contract`
   or `packages/mock`.**
@@ -118,7 +121,7 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 
 ## What Rich does, and when
 
-1. **Review this plan** (the allowlist is answered: *"Yes, in this plan"*); answer *Asked of Rich*'s two that remain.
+1. ~~Review this plan~~ — **APPROVED 2026-10-03, 15:20 PDT** (the allowlist answered: *"Yes, in this plan"*; the sittings with the plan).
 2. **Read and decide Spec actions A and B before sitting 2, and C before Task 4.**
 3. **The network, at sitting 5**, for the acceptance's first resolution of `marked`: Verdaccio fetches it from npmjs through its uplink,
    as `make seed` does. *Asked at that sitting's open.* After it the fixture's lockfile is committed, and `make seed` warms `marked` on any
@@ -707,7 +710,7 @@ docs/superpowers/spikes/fe32-baseline/                                          
    says dependencies resolve *"through a private registry mirror with an allowlist … v1 picks the allowlist"*; there is none
    (`infra/verdaccio/config.yaml`: `'**': { proxy: npmjs }`), and this plan turns *"add any package"* into an agent's API call. Options were
    (a) build its smallest faithful form here, (b) FE-32 without it, (c) its own plan after. → Task 4 and Spec action C, unconditional.
-2. **The sittings** — five, as proposed.
+2. **The sittings — ANSWERED 2026-10-03, 15:20 PDT**, with the plan's approval: five, as proposed.
 3. **The network at sitting 5** for the acceptance's first resolution of `marked` (*What Rich does* 3) — asked again at that sitting's
    open.
 

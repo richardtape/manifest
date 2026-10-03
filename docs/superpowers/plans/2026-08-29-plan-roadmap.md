@@ -1517,9 +1517,9 @@ only if the release ships no types) and *"Task 3, after the add"* (where nodemai
 owed.** **And FE-54** (the front-end's m104: a commit's sensitive change, read against the last approved release) — added by Rich as **Task 2b,
 in sitting 2, beside FE-53**; additive, no spec action (`15b0e77`).
 
-### A1 — production instances by audience (§24) — WRITTEN 2026-10-03: [`2026-10-03-production-instances.md`](./2026-10-03-production-instances.md), 8 tasks in 6 sittings, AFTER THE MANIFEST TEAM'S STEP — WRITTEN; A REVIEW'S FIXES PENDING ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+### A1 — production instances by audience (§24) — WRITTEN 2026-10-03: [`2026-10-03-production-instances.md`](./2026-10-03-production-instances.md), 10 tasks in 8 sittings, AFTER THE MANIFEST TEAM'S STEP — REVISED TO A FRESH REVIEW (`2d74a5d`) AND APPROVED BY RICH 2026-10-03, 15:20 ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
 
-*Which sitting is next: its sittings table, once its review's fixes are made, Rich approves it, and the Manifest team's step has closed.* **The review (`21dc368`): approve with fixes**; and a dead member of the set is replaced automatically (Rich). **Written 2026-10-03 by `manifest-c7`**
+*Which sitting is next: its sittings table (sitting 1, Task 1), once the Manifest team's step has closed.* **The review (`21dc368`): approve with fixes — REVISED to it (`2d74a5d`, a fresh session, `manifest-27`) and APPROVED as revised: *"A1 and FE-32 now; B and A2 later (Recommended)"* (15:20).** **A member that exits is replaced automatically** (Rich, *"Replace it automatically"*, ~14:33): the set watcher, an Incident and `instance.exited` per exit, backing off and stopping after three in an hour; a replacement skips §13's checklist and keeps the approval's digest check (*"Skip the checklist"*, 15:20), and a running member unhealthy for a minute counts as an exit (*"Yes, after ~1 minute"*, 15:20). **Written 2026-10-03 by `manifest-c7`**
 from the code at `e969f9d`; nothing executed. **What it builds:** production runs **`solo` 1, `class` 2, `large_course` 3, `public` 3**
 instances behind ONE edge route — round robin, actively and passively health-checked, `X-Manifest-Instance` from the upstream that answered,
 still deferred; **§11's `Driver` handles a SET per hostname** (`ensureInstances` moves the route once; `servingInstances`; `restoreRoute(ids)`;
@@ -1529,34 +1529,34 @@ AI key per instance; D21's rehearsal stays one; the knowledge pack's *keep nothi
 set), B (§24, the counts and *headroom*). **Rich's** (2026-10-03, through `manifest-94`): *"Build §24's capacity first"* (~13:52), *"Two plans:
 A then B"* (~13:56), *"A1 → B → A2"* (~13:58).
 
-### B — the load rehearsal (§24, FE-44) — WRITTEN 2026-10-03: [`2026-10-03-load-rehearsal.md`](./2026-10-03-load-rehearsal.md), 7 tasks in 5 sittings, AFTER A1 — WRITTEN; A REVIEW'S FIXES PENDING ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+### B — the load rehearsal (§24, FE-44) — WRITTEN 2026-10-03: [`2026-10-03-load-rehearsal.md`](./2026-10-03-load-rehearsal.md), 8 tasks in 6 sittings, AFTER A1 — REVISED TO A FRESH REVIEW (`2d74a5d`); A SECOND FRESH REVIEW BEFORE APPROVAL ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
 
-*Which sitting is next: its sittings table, once its review's rework is done, Rich approves it, and A1 has closed.* **The review (`21dc368`): needs rework** (an asynchronous run; Driver verbs with spec actions); vegeta built locally from the official release binary (Rich). **Written 2026-10-03 by `manifest-c7`** from the code at
+*Which sitting is next: its sittings table, once its second fresh review is answered, Rich approves it, and A1 has closed.* **The review (`21dc368`): needs rework — REVISED to it (`2d74a5d`)**: the run answers `202` and is polled; the exemption is a `Driver` verb (a third spec action, C, §11); staging deploys are refused while a run holds it; vegeta is built locally from its official release binary, checksum-verified (Rich, *"Build it locally"*, ~14:33). **A second fresh review before approval** (Rich, 15:20: *"B and A2 later"* — when it is next in line). **Written 2026-10-03 by `manifest-c7`** from the code at
 `e969f9d`; nothing executed. **What it builds:** the owner's `runLoadRehearsal` (`launch:rehearse`, person-only, stepped up; one at a time
-platform-wide): staging granted **production's N-instance shape** for one run, **vegeta** (pinned by digest and mirrored — its pull a Rich-step at
-sitting 2) putting the audience's arrival on it through the edge — **500 people**: `synchronised` 75 a second for a minute then 50 a second for
+platform-wide): staging granted **production's N-instance shape** for one run, **vegeta** (built here from its checksummed release — the download a
+Rich-step at sitting 2) putting the audience's arrival on it through the edge — **500 people**: `synchronised` 75 a second for a minute then 50 a second for
 five, `steady` a five-minute ramp — with the generator's own address exempt from the per-IP limit for that run; judged (≥ 99% answered, p95
 under 2 s, every instance healthy; a generator-bound run a FAILURE), recorded, and staging given back its own shape in a `finally` and at boot.
 The `load-rehearsal` item is met by that measurement at the first launch, and again only when the audience is raised. Contract **`1.9.0`**.
-Its acceptance is **`make demo-load`**. **Two spec actions DRAFTED, none applied**: A (§24, what the rehearsal is, with Rich's numbers), B
-(D24's person-only list; §26's settings). **Rich's** (2026-10-03): FE-44 *"Build the load rehearsal first"* (~13:46); *"As proposed"* and
+Its acceptance is **`make demo-load`**. **Three spec actions DRAFTED, none applied**: A (§24, what the rehearsal is, with Rich's numbers), B
+(D24's person-only list; §26's settings), C (§11, the exemption's `Driver` verb). **Rich's** (2026-10-03): FE-44 *"Build the load rehearsal first"* (~13:46); *"As proposed"* and
 *"First launch + audience raised"* (~13:52); *"vegeta"* and *"Exempt the generator's IP"* (~13:56).
 
-### A2 — hibernation and wake-on-request (§11, §24) — WRITTEN 2026-10-03: [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md), 7 tasks in 5 sittings, AFTER B — WRITTEN; A REVIEW'S FIXES PENDING ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+### A2 — hibernation and wake-on-request (§11, §24) — WRITTEN 2026-10-03: [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md), 8 tasks in 6 sittings, AFTER B — REVISED TO A FRESH REVIEW (`2d74a5d`); A SECOND FRESH REVIEW BEFORE APPROVAL ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
 
-*Which sitting is next: its sittings table, once its review's rework is done, Rich approves it, and B has closed.* **The review (`21dc368`): needs rework** (Driver verbs with spec actions; the waker against A1's health checks; the held mode); class apps woken at term start (Rich). **Written 2026-10-03 by `manifest-c7`** from the code at
+*Which sitting is next: its sittings table, once its second fresh review is answered, Rich approves it, and B has closed.* **The review (`21dc368`): needs rework — REVISED to it (`2d74a5d`)**: S4's stand-in waker on the host; the waker's route with no health checks, known by a secret; three `Driver` verbs (a third spec action, C, §11) and a wake that starts the same instances; the intent written first; class apps woken at term start (Rich, ~14:33); the sweep bound at boot only with everything that keeps an asleep app asleep and launchable. **A second fresh review before approval** (Rich, 15:20: *"B and A2 later"*). **Written 2026-10-03 by `manifest-c7`** from the code at
 `e969f9d`; nothing executed. **Its Task 1 is spike S4** (§11: *"the spike decides it"*), with a real cold wake measured. **What it builds:**
 `solo` production hibernates after a day idle, `class` only outside every term in **`MANIFEST_TERMS`** (none set: never), `large_course` and
 `public` never, staging after §11's seven days; idle measured at the edge; an environment's route to the waker FIRST, then its instances and its
 database stopped (D3); a request wakes it — joined per app, capped, queued (§20) — by S4's mechanism; a deploy wakes it, an archive does not,
 a boot keeps it asleep. Contract **`1.10.0`**. Its acceptance is **`make demo-hibernate`**. **Pre-warming is not built** (Rich, *"Record it as
-not built"*), and comes back to him if the cold wake is more than a few seconds. **Two spec actions DRAFTED, none applied**: A (§11, S4's answer
-and production's lifetime by audience — written from the spike), B (§24, §26, the term dates). **Rich's** (2026-10-03): *"Build hibernation in
+not built"*), and comes back to him if the cold wake is more than a few seconds. **Three spec actions DRAFTED, none applied**: A (§11, S4's answer
+and production's lifetime by audience — written from the spike), B (§24, §26, the term dates), C (§11, three `Driver` verbs). **Rich's** (2026-10-03): *"Build hibernation in
 Plan A"* (~13:56); *"A1 → B → A2"*, *"An admin platform setting"*, *"Record it as not built"* (~13:58).
 
-### FE-32 — an agent can add a dependency, with §12's allowlist — WRITTEN 2026-10-03: [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md), 6 tasks in 5 sittings, AFTER A2 (HIBERNATION) — WRITTEN; A REVIEW'S FIXES PENDING ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+### FE-32 — an agent can add a dependency, with §12's allowlist — WRITTEN 2026-10-03: [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md), 6 tasks in 5 sittings, AFTER A2 (HIBERNATION) — REVISED TO A FRESH REVIEW (`2d74a5d`) AND APPROVED BY RICH 2026-10-03, 15:20 ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
 
-*Which sitting is next: its sittings table, once its review's fixes are made, Rich approves it, and A2 has closed.* **The review (`21dc368`): approve with fixes.** **Written 2026-10-03 by `manifest-c7`**
+*Which sitting is next: its sittings table (sitting 1, Task 1), once A2 has closed.* **The review (`21dc368`): approve with fixes — REVISED to it (`2d74a5d`) and APPROVED as revised: *"A1 and FE-32 now; B and A2 later (Recommended)"* (15:20)** — the allowlist now refuses an alias, an override, a local specifier and a lockfile that maps a name to another tarball, at both doors, and the lockfile answered names the public registry. **Written 2026-10-03 by `manifest-c7`**
 from the code at `eee5648`; nothing executed. **What it builds:** `resolveDependencies` — an agent sends the `package.json` it wants and is
 answered the `package-lock.json`, resolved THROUGH THE MIRROR, inside the network-restricted builder, from a blueprint-declared recipe, with
 install scripts off and the committed lockfile's pins kept, as a full install that warms the mirror so the build after it works offline;
