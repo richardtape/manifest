@@ -1,4 +1,4 @@
-> **DECIDED by Rich, 2026-10-03, 22:21 PDT — NOT YET APPLIED** (`../2026-09-30-decisions.md`, its 22:21 entry): every sub-decision as recommended, S9 and S10 and S2 included. Apply it after the UBC AI Gateway plan's acceptance and before the U1 plan's first sitting; the spec, the four shared pages and `policy.ts:213-215`'s hint (E14) change together. Rich decided Manifest's classes become U1's at 21:48 (the same file).
+> **DECIDED by Rich, 2026-10-03, 22:21 PDT — NOT YET APPLIED** (`../2026-09-30-decisions.md`, its 22:21 entry): every sub-decision as recommended, S9 and S10 and S2 included. Apply it after the UBC AI Gateway plan's acceptance and before the U1 plan's first sitting; the spec and the four shared pages change together. **E14, `policy.ts:213-215`'s public hint, is CODE**: it is the U1 plan's to change, in a task with its test, never by whoever applies the spec words. Rich decided Manifest's classes become U1's at 21:48 (the same file).
 
 ## Spec actions
 
