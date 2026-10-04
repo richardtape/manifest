@@ -890,3 +890,15 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     budget is 30 USD, NOT the 20 recorded at 16:23. The gateway's own x-litellm-key-max-budget header reads 30.0 (manifest-ec,
     [M2]); CLAUDE.md's Outstanding is to be corrected at the day's sweep. UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01, appended by
     manifest-ec under his 19:58 yes. No gateway-side fallback exists, which settles [M9]'s second fact.
+
+    And at 21:0x PDT, F5b sitting 1's CLICKED HALF (the front-end's F5b, staged headless by manifest-app-79: the rehearsal
+    6/6, `MODE=edge check-slice.sh` 4/4), relayed by manifest-af. Rich, in his words: "I did the walk, all looked great." The
+    six steps: a CWL sign-in on app. as instructor; the __Host-manifest_session cookie (Secure, HttpOnly, Path=/, no Domain);
+    a planted plain manifest_session changing nothing; Going live's step-up, which sets __Host-manifest_stepup at Path=/; a real
+    launch of f5b-measure-1 (a real private repository in Manifest-local-dev, his to delete); sign-out clearing the session.
+    And the gateway's PROBE key: manifest-ec found its max budget at 0.10 USD, not 0.01 (x-litellm-key-max-budget: 0.1). Rich
+    LOWERED it to 0.01 at manifest-af's ask, so (e) can be measured in a call or two, with no hammering.
+    And the gateway-side FALLBACK manifest-ec found in the gateway's own router text, qwen3.6-35b-a3b → gpt-6-luna (his "no
+    fallbacks" read the key's page): "Don't worry about the fallback that's currently set I can sort that later, it's not a
+    blocker for us here." While it stands, qwen3.6-35b-a3b cannot be `confidential` (§7, Spec action 1). Sitting 2's close
+    chooses MANIFEST_GATEWAY_MODELS knowing it.
