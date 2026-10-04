@@ -277,6 +277,10 @@ describe('agent sessions (the front-end enablement plan’s Task 10)', () => {
       ])
     })
     const internalOnly = await declaredCatalogue().get()
+    const mediumOnly = internalOnly.models.filter((m) => m.maxClassification === 'medium')
+    // Non-empty, or this refusal is answered for an EMPTY catalogue — green for the wrong reason (U1 plan Task 2,
+    // C1). Asserted HERE, not inside the server's catalogue, where a failure reads as `500 INTERNAL` (sitting 1's F7).
+    expect(mediumOnly.length).toBeGreaterThan(0)
     const lite = fakeLiteLlm()
     await withProjectServer(
       async (ctx) => {
@@ -299,14 +303,7 @@ describe('agent sessions (the front-end enablement plan’s Task 10)', () => {
         llm: lite,
         catalogue: {
           enabled: true,
-          get: async () => {
-            const models = internalOnly.models.filter(
-              (m) => m.maxClassification === 'medium',
-            )
-            // Non-empty, or this refusal is answered for an EMPTY catalogue — green for the wrong reason (U1 plan Task 2, C1).
-            expect(models.length).toBeGreaterThan(0)
-            return { models, unclassified: [] }
-          },
+          get: async () => ({ models: mediumOnly, unclassified: [] }),
         },
       },
     )
