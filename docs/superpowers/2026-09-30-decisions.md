@@ -969,3 +969,25 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - WHO WRITES THEM — "manifest-61, at your word": it replaces the capable line and appends the gateway line by sed/printf,
         reading no value, from a 0600 backup checked by cmp and deleted at its close, then restarts the control plane after the
         Docker tier.
+
+    And at 22:21 PDT (the clock read just before this entry), THE U1 SPEC ACTION (plans/2026-10-03-u1-spec-action.md, drafted by
+    manifest-af's background agent from his 21:48 decisions, then reviewed by a fresh read-only agent:
+    plans/2026-10-03-review-of-u1-spec-action.md, "approve with fixes", C1 and I1–I9, and revised to it). It is DECIDED, NOT APPLIED.
+    It is applied after the UBC AI Gateway plan's acceptance, before the U1 plan's first sitting. Through the question tool,
+    each as recommended:
+      - S10, does "very-high forces on prem" cover the agent that BUILDS a very-high app — "No, the building agent may use it":
+        Spec action 10 stands; MANIFEST_AGENT_BUILDER_MODELS stays default 'capable' (config.ts:413). The 21:48 rule is about
+        where a very-high app's DATA may go; the building agent sends the code and the person's description, never the app's
+        data or its logs. Consistent with his 2026-09-28 words ("It's okay to use the larger models to BUILD the app…").
+      - S9, a delegated token reading a HIGH project's staging and production Incident log tails — "Refuse at high and above":
+        rank(level) >= rank('high') refuses them, whatever the capable model's level (releases.ts:1249-1257). A token's model is
+        unattested. The front-end's repair loop reads the sandbox's freely.
+      - S2, which names are `high` now — "Only what you decided": the gateway's OpenAI models (@high), the capable model while it
+        is one of them, and llama3 once the gateway prices it. default-chat, -reasoning and -embed stay `medium` until an
+        administrator attests their provider; the cost, accepted, is that a `high` app has no embedding or small chat model.
+      - THE OTHER EIGHT — "All as recommended": (S1) the rule, `high` only if every provider that may answer, the vendor behind
+        the gateway and any gateway fallback included, runs on UBC hardware or keeps nothing (ZDR), as the administrator attests;
+        `very-high` only if all of them run on UBC hardware. (S3) The capable model's level is a setting of its own, default
+        `medium`, set by him to `high`. (S4) A `high` project's building agent gets the capable model. (S5) An undeclared app is
+        `medium`. (S6) The platform answers in U1's names. (S7) The spec's example app is `high`. (S8) Story 04 keeps its
+        refusal, with a new reason. (S11) A lowered level takes effect at boot, and a key left with none is revoked.
